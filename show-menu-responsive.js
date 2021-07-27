@@ -1,3 +1,4 @@
+//<![CDATA[
 $(function() {
   var menuVisible = false;
   $('#menuBtn').click(function() {
@@ -20,3 +21,4 @@ $(function() {
     menuVisible = false;
   });
 });
+//]]>
