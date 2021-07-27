@@ -1,24 +1,27 @@
-//<![CDATA[
 $(function() {
   var menuVisible = false;
   $('#menuBtn').click(function() {
-    if (menuVisible) {
-      $('#myMenu').css({
-        'display': 'none'
-      });
-      menuVisible = false;
-      return;
+    if($(window).width() < 700){
+      if (menuVisible) {
+        $('#menu').css({'display':'none'});
+        menuVisible = false;
+        return;
+      }
+      $('#menu').css({'display':'block'});
+      menuVisible = true;
     }
-    $('#myMenu').css({
-      'display': 'block'
-    });
-    menuVisible = true;
   });
-  $('#myMenu').click(function() {
-    $(this).css({
-      'display': 'none'
-    });
-    menuVisible = false;
+  $('#menu').click(function() {
+    if($(window).width() < 700){
+      $(this).css({'display':'none'});
+      menuVisible = false;
+    }
   });
+
+  $(window).resize(function(){
+    if ( $(window).width() > 700) {
+      $('#menu').css({'display':'block'});
+    }
+  });
+
 });
-//]]>
