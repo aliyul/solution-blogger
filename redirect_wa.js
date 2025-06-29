@@ -1,10 +1,6 @@
-  // Ganti dengan URL WhatsApp tujuan
-  var redirectURL = "https://wa.me/6281299842508";
 
-  // Fungsi untuk melakukan redirect
-  function redirectWA() {
-    window.location.href = redirectURL;
+  if (window.location.href.includes("wa.me/6283839000968")) {
+    // Redirect ke link WA baru
+    window.location.href = "https://wa.me/6281299842508";
   }
 
-  // Menjalankan fungsi redirect saat halaman dimuat
-  window.onload = redirectWA;
