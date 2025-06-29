@@ -1,7 +1,7 @@
  document.addEventListener("DOMContentLoaded", function () {
     // Peta link WA asal → tujuan
     const redirectMap = {
-      "https://wa.me/6283839000968": "https://wa.me/6281299842508",
+      "https://wa.me/6283839000968": "https://wa.me/6281299842508"
       //"https://wa.me/6283839001968": "https://wa.me/6281234560002",
      // "https://wa.me/6283839002968": "https://wa.me/6281234560003"
     };
