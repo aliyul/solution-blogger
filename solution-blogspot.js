@@ -42,10 +42,35 @@ document.addEventListener("DOMContentLoaded", function() {
 
   const stopwords = ["dan","di","ke","dari","yang","untuk","pada","dengan","ini","itu","adalah","juga","atau","sebagai","dalam","oleh","karena","akan","sampai","tidak","dapat","lebih","kami","mereka","anda"];
 
-  // Fungsi escape JSON
+  // Escape JSON
   function escapeJSON(str){
     if(!str) return "";
-    return str.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,' ').replace(/\r/g,' ');
+    return str
+      .replace(/\\/g,'\\\\')
+      .replace(/"/g,'\\"')
+      .replace(/\n/g,' ')
+      .replace(/\r/g,' ')
+      .trim();
+  }
+
+  // Clean plain text (hilangkan spasi berlebih)
+  function cleanText(str){
+    if(!str) return "";
+    return str.replace(/\s+/g," ").trim();
+  }
+
+  // Hitung semua kata di konten (h1–h6, p, li, dll) tanpa script/style/hidden
+  function getArticleWordCount(content){
+    if(!content) return 0;
+    const clone = content.cloneNode(true);
+    clone.querySelectorAll("script,style,noscript,iframe").forEach(el => el.remove());
+    clone.querySelectorAll("[hidden],[aria-hidden='true']").forEach(el => el.remove());
+    clone.querySelectorAll("*").forEach(el => {
+      const style = window.getComputedStyle(el);
+      if(style && style.display === "none"){ el.remove(); }
+    });
+    const text = clone.innerText || "";
+    return text.trim().split(/\s+/).filter(Boolean).length;
   }
 
   // Ambil konten post / page
@@ -58,11 +83,11 @@ document.addEventListener("DOMContentLoaded", function() {
   // Ambil H1, H2, H3
   const h1 = document.querySelector("h1")?.textContent.trim() || "";
   const headers = Array.from(content.querySelectorAll("h2,h3"))
-    .map(h => h.textContent.trim())
+    .map(h => cleanText(h.textContent))
     .filter(Boolean);
 
   // Ambil semua paragraf
-  const paragraphs = Array.from(content.querySelectorAll("p")).map(p => p.textContent);
+  const paragraphs = Array.from(content.querySelectorAll("p")).map(p => cleanText(p.textContent));
   const allText = headers.concat(paragraphs).join(" ");
 
   // Buat daftar kata → filter stopwords
@@ -75,13 +100,13 @@ document.addEventListener("DOMContentLoaded", function() {
   let freq = {};
   words.forEach(w => freq[w] = (freq[w] || 0) + 1);
 
-  // Ambil 15 kata paling sering muncul
+  // Ambil 10 kata paling sering
   const topWords = Object.keys(freq)
     .sort((a,b) => freq[b]-freq[a])
-    .slice(0,15);
+    .slice(0,10);
 
-  // Gabungkan jadi keywords
-  const keywordsArr = [h1, ...headers, ...topWords];
+  // Gabungkan jadi keywords → batasi biar natural
+  const keywordsArr = [h1, ...headers.slice(0,5), ...topWords];
   const keywordsStr = Array.from(new Set(keywordsArr)).join(", ");
   const articleSectionStr = headers.join(", ");
 
@@ -105,14 +130,14 @@ document.addEventListener("DOMContentLoaded", function() {
       "image": [firstImg],
       "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
       "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png" }
+        "logo": { "@type": "ImageObject", "url": firstImg }
       },
       "datePublished": datePublished,
       "dateModified": dateModified,
       "articleSection": articleSectionStr || "Artikel",
       "keywords": keywordsStr,
-      "wordCount": paragraphs.join(" ").split(/\s+/).length,
-      "articleBody": escapeJSON(content.textContent),
+      "wordCount": getArticleWordCount(content),
+      "articleBody": escapeJSON(cleanText(content.textContent)),
       "inLanguage": "id-ID"
     };
 
@@ -140,46 +165,18 @@ document.addEventListener("DOMContentLoaded", function() {
       "image": [firstImg],
       "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
       "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png" }
+        "logo": { "@type": "ImageObject", "url": firstImg }
       },
       "datePublished": datePublished,
       "dateModified": dateModified,
       "articleSection": articleSectionStr || "Artikel",
       "keywords": keywordsStr,
-      "wordCount": paragraphs.join(" ").split(/\s+/).length,
-      "articleBody": escapeJSON(content.textContent),
+      "wordCount": getArticleWordCount(content),
+      "articleBody": escapeJSON(cleanText(content.textContent)),
       "inLanguage": "id-ID"
     };
 
     schemaStatic.textContent = JSON.stringify(staticSchema, null, 2);
     console.log("Static page schema filled");
-  }
-});
-
-document.addEventListener("DOMContentLoaded", function() {
-  console.log("Auto-schema WebPage JS running");
-
-  const schemaWeb = document.getElementById("auto-schema-webpage");
-  if(schemaWeb){
-    const url = window.location.href;
-    const title = document.title;
-    const descMeta = document.querySelector("meta[name='description']")?.content || "";
-
-    const webPageSchema = {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": title,
-      "url": url,
-      "description": descMeta,
-      "publisher": { 
-        "@type": "Organization", 
-        "name": "Beton Jaya Readymix",
-        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png" }
-      },
-      "inLanguage": "id-ID"
-    };
-
-    schemaWeb.textContent = JSON.stringify(webPageSchema, null, 2);
-    console.log("WebPage schema filled");
   }
 });
