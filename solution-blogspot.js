@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   const stopwords = ["dan","di","ke","dari","yang","untuk","pada","dengan","ini","itu","adalah","juga","atau","sebagai","dalam","oleh","karena","akan","sampai","tidak","dapat","lebih","kami","mereka","anda"];
 
-  // Fungsi bantu untuk escape string JSON
+  // Fungsi escape JSON
   function escapeJSON(str){
     if(!str) return "";
     return str.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,' ').replace(/\r/g,' ');
@@ -55,15 +55,34 @@ document.addEventListener("DOMContentLoaded", function() {
     return;
   }
 
-  const headers = Array.from(content.querySelectorAll("h2,h3")).map(h => h.textContent.trim());
+  // Ambil H1, H2, H3
+  const h1 = document.querySelector("h1")?.textContent.trim() || "";
+  const headers = Array.from(content.querySelectorAll("h2,h3"))
+    .map(h => h.textContent.trim())
+    .filter(Boolean);
+
+  // Ambil semua paragraf
   const paragraphs = Array.from(content.querySelectorAll("p")).map(p => p.textContent);
   const allText = headers.concat(paragraphs).join(" ");
 
-  let words = allText.replace(/[^a-zA-Z0-9 ]/g,"").toLowerCase().split(/\s+/)
-                .filter(w => w.length>3 && !stopwords.includes(w));
-  const uniqueWords = Array.from(new Set(words));
+  // Buat daftar kata → filter stopwords
+  let words = allText.replace(/[^a-zA-Z0-9 ]/g,"")
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !stopwords.includes(w));
 
-  const keywordsStr = uniqueWords.join(", ");
+  // Hitung frekuensi kata
+  let freq = {};
+  words.forEach(w => freq[w] = (freq[w] || 0) + 1);
+
+  // Ambil 15 kata paling sering muncul
+  const topWords = Object.keys(freq)
+    .sort((a,b) => freq[b]-freq[a])
+    .slice(0,15);
+
+  // Gabungkan jadi keywords
+  const keywordsArr = [h1, ...headers, ...topWords];
+  const keywordsStr = Array.from(new Set(keywordsArr)).join(", ");
   const articleSectionStr = headers.join(", ");
 
   // ====================== POST ======================
@@ -135,7 +154,6 @@ document.addEventListener("DOMContentLoaded", function() {
     schemaStatic.textContent = JSON.stringify(staticSchema, null, 2);
     console.log("Static page schema filled");
   }
-  
 });
 
 document.addEventListener("DOMContentLoaded", function() {
