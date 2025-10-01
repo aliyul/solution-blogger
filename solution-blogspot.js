@@ -70,30 +70,43 @@ document.addEventListener("DOMContentLoaded", function() {
     const uniqueWords = Array.from(new Set(words));
     console.log("Unique words:", uniqueWords);
 
-    const keywordsStr = uniqueWords.join(", ");
-    const articleSectionStr = headers.join(", ");
+    // Escape double quotes agar aman untuk JSON
+    const escapeJSON = str => str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
+    const keywordsStr = escapeJSON(uniqueWords.join(", "));
+    const articleSectionStr = escapeJSON(headers.join(", "));
     console.log("keywordsStr:", keywordsStr);
     console.log("articleSectionStr:", articleSectionStr);
 
-    // Update schema Article post (tanpa JSON.parse)
+    // Update schema Article post
     const schemaPost = document.getElementById("auto-schema");
     if(schemaPost){
       let schemaText = schemaPost.textContent;
       schemaText = schemaText.replace(/"keywords"\s*:\s*""/, `"keywords": "${keywordsStr}"`);
       schemaText = schemaText.replace(/"articleSection"\s*:\s*"Artikel"/, `"articleSection": "${articleSectionStr}"`);
       schemaPost.textContent = schemaText;
-      console.log("Post schema updated safely without JSON.parse");
+      console.log("Post schema updated safely");
     }
 
-    // Update schema Article static page (tanpa JSON.parse)
+    // Update schema Article static page
     const schemaStatic = document.getElementById("auto-schema-static-page");
     if(schemaStatic){
       let schemaText = schemaStatic.textContent;
       schemaText = schemaText.replace(/"keywords"\s*:\s*""/, `"keywords": "${keywordsStr}"`);
       schemaText = schemaText.replace(/"articleSection"\s*:\s*"Artikel"/, `"articleSection": "${articleSectionStr}"`);
       schemaStatic.textContent = schemaText;
-      console.log("Static page schema updated safely without JSON.parse");
+      console.log("Static page schema updated safely");
     }
+
+    // Optional: fallback dateModified
+    const updateDateModified = el => {
+      if(!el) return;
+      let schemaText = el.textContent;
+      schemaText = schemaText.replace(/"dateModified"\s*:\s*""/, `"dateModified": "${new Date().toISOString()}"`);
+      el.textContent = schemaText;
+    };
+    updateDateModified(schemaPost);
+    updateDateModified(schemaStatic);
 
   })();
 });
