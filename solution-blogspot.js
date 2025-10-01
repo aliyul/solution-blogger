@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const url = window.location.href;
     const title = document.title;
     const descMeta = document.querySelector("meta[name='description']")?.content || "";
-    const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/.../logo.png";
+    const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
     const datePublished = document.querySelector("meta[itemprop='datePublished']")?.content || new Date().toISOString();
     const dateModified = document.querySelector("meta[itemprop='dateModified']")?.content || datePublished;
 
@@ -86,7 +86,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "image": [firstImg],
       "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
       "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/.../logo.png" }
+        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png" }
       },
       "datePublished": datePublished,
       "dateModified": dateModified,
@@ -107,7 +107,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const url = window.location.href;
     const title = document.title;
     const descMeta = document.querySelector("meta[name='description']")?.content || "";
-    const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/.../logo.png";
+    const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
     const datePublished = new Date().toISOString();
     const dateModified = datePublished;
 
@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "image": [firstImg],
       "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
       "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/.../logo.png" }
+        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png" }
       },
       "datePublished": datePublished,
       "dateModified": dateModified,
@@ -156,7 +156,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "publisher": { 
         "@type": "Organization", 
         "name": "Beton Jaya Readymix",
-        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/.../logo.png" }
+        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png" }
       },
       "inLanguage": "id-ID"
     };
