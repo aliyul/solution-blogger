@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", function() {
     "image": ["<data:post.firstImageUrl data:default=\"https://blogger.googleusercontent.com/img/b/R29vZ2xl/.../s300/beton-jaya-readymix-logo.png\"/>"],
     "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
     "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-      "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/.../s300/beton-jaya-readymix-logo.png" }
+      "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png" }
     },
     "datePublished": "<data:post.timestampISO8601/>",
     "dateModified": "<data:post.lastUpdatedISO8601 data:default=\"<data:post.timestampISO8601/>\"/>",
