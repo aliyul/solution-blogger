@@ -38,77 +38,62 @@ $(function() {
 
 // --- Schema Article & WebPage ---
 document.addEventListener("DOMContentLoaded", function() {
-<b:if cond='data:blog.pageType == "item"'>
-  <script type="application/ld+json" id="auto-schema">
-  {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "isAccessibleForFree": true,
-    "mainEntityOfPage": { "@type": "WebPage", "@id": "<data:post.url/>#webpage" },
-    "headline": "<data:post.title/>",
-    "description": "<data:post.snippet/>",
-    "image": ["<data:post.firstImageUrl data:default=\"https://blogger.googleusercontent.com/img/b/R29vZ2xl/.../s300/beton-jaya-readymix-logo.png\"/>"],
-    "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
-    "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-      "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png" }
-    },
-    "datePublished": "<data:post.timestampISO8601/>",
-    "dateModified": "<data:post.lastUpdatedISO8601 data:default=\"<data:post.timestampISO8601/>\"/>",
-    "articleSection": "Artikel",
-    "keywords": "",
-    "wordCount": "<data:post.wordCount/>",
-    "articleBody": "<data:post.body/>",
-    "inLanguage": "id-ID"
-  }
-  </script>
-</b:if>
+(function(){
+  console.log("Auto-schema update script running");
 
-<b:if cond='data:blog.pageType == "static_page"'>
-  <b:if cond='data:page.url == "https://www.betonjayareadymix.com/p/hubungi-kami.html" or
-               data:page.url == "https://www.betonjayareadymix.com/p/portofolio.html" or
-               data:page.url == "https://www.betonjayareadymix.com/p/disclaimer.html" or
-               data:page.url == "https://www.betonjayareadymix.com/p/privacy-policy.html" or
-               data:page.url == "https://www.betonjayareadymix.com/p/terms-of-service.html" or
-               data:page.url == "https://www.betonjayareadymix.com/p/useful-links.html" or
-               data:page.url == "https://www.betonjayareadymix.com/p/about.html" or
-               data:page.url == "https://www.betonjayareadymix.com/p/sitemap.html"'>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "<data:page.title/>",
-      "url": "<data:page.url/>",
-      "description": "<data:page.snippet/>",
-      "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png" }
-      },
-      "inLanguage": "id-ID"
-    }
-    </script>
-  <b:else/>
-    <script type="application/ld+json" id="auto-schema-static-page">
-      {
-        "@context": "https://schema.org",
-        "@type": "Article",
-        "isAccessibleForFree": true,
-        "mainEntityOfPage": { "@type": "WebPage", "@id": "<data:page.url/>#webpage" },
-        "headline": "<data:page.title/>",
-        "description": "<data:page.snippet/>",
-        "image": ["<data:page.firstImageUrl data:default=\"https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png\"/>"],
-        "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
-        "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-          "logo": { "@type": "ImageObject", "url": "https://www.betonjayareadymix.com/logo.png" }
-        },
-        "datePublished": "<data:page.timestampISO8601/>",
-        "dateModified": "<data:page.lastUpdatedISO8601 data:default=\"<data:page.timestampISO8601/>\"/>",
-        "articleSection": "Artikel",
-        "keywords": "",
-        "wordCount": "<data:page.wordCount/>",
-        "articleBody": "<data:page.body/>",
-        "inLanguage": "id-ID"
-      }
-    </script>
-  </b:else>
-</b:if>
+  const stopwords = ["dan","di","ke","dari","yang","untuk","pada","dengan","ini","itu","adalah","juga","atau","sebagai","dalam","oleh","karena","akan","sampai","tidak","dapat","lebih","kami","mereka","anda"];
+
+  // Pilih konten (post atau static page)
+  const content = document.querySelector(".post-body.entry-content") || document.querySelector("[id^='post-body-']");
+  if(!content){
+    console.log("No content found, exiting");
+    return;
+  }
+
+  // Ambil H2/H3
+  const headers = Array.from(content.querySelectorAll("h2,h3")).map(h => h.textContent.trim());
+  console.log("Headers found:", headers);
+
+  // Ambil paragraf
+  const paragraphs = Array.from(content.querySelectorAll("p")).map(p => p.textContent);
+  console.log("Paragraphs found:", paragraphs.length);
+
+  // Gabungkan semua teks
+  const allText = headers.concat(paragraphs).join(" ");
+
+  // Ambil kata panjang >3 huruf, filter stopwords
+  const words = allText.replace(/[^a-zA-Z0-9 ]/g,"").toLowerCase().split(/\s+/)
+                .filter(w => w.length>3 && !stopwords.includes(w));
+  console.log("Filtered words:", words);
+
+  // Unique kata
+  const uniqueWords = Array.from(new Set(words));
+  console.log("Unique words:", uniqueWords);
+
+  const keywordsStr = uniqueWords.join(", ");
+  const articleSectionStr = headers.join(", ");
+  console.log("keywordsStr:", keywordsStr);
+  console.log("articleSectionStr:", articleSectionStr);
+
+  // Update schema Article post (tanpa JSON.parse)
+  const schemaPost = document.getElementById("auto-schema");
+  if(schemaPost){
+    let schemaText = schemaPost.textContent;
+    schemaText = schemaText.replace(/"keywords"\s*:\s*""/, `"keywords": "${keywordsStr}"`);
+    schemaText = schemaText.replace(/"articleSection"\s*:\s*"Artikel"/, `"articleSection": "${articleSectionStr}"`);
+    schemaPost.textContent = schemaText;
+    console.log("Post schema updated safely without JSON.parse");
+  }
+
+  // Update schema Article static page (tanpa JSON.parse)
+  const schemaStatic = document.getElementById("auto-schema-static-page");
+  if(schemaStatic){
+    let schemaText = schemaStatic.textContent;
+    schemaText = schemaText.replace(/"keywords"\s*:\s*""/, `"keywords": "${keywordsStr}"`);
+    schemaText = schemaText.replace(/"articleSection"\s*:\s*"Artikel"/, `"articleSection": "${articleSectionStr}"`);
+    schemaStatic.textContent = schemaText;
+    console.log("Static page schema updated safely without JSON.parse");
+  }
+})();
 
 });
