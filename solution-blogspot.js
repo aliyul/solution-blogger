@@ -38,76 +38,103 @@ $(function() {
 
 // --- Schema Article & WebPage ---
 document.addEventListener("DOMContentLoaded", function() {
-  (function(){
-    console.log("Auto-schema update script running");
+  console.log("Auto-schema JS running");
 
-    const stopwords = ["dan","di","ke","dari","yang","untuk","pada","dengan","ini","itu","adalah","juga","atau","sebagai","dalam","oleh","karena","akan","sampai","tidak","dapat","lebih","kami","mereka","anda"];
+  const stopwords = ["dan","di","ke","dari","yang","untuk","pada","dengan","ini","itu","adalah","juga","atau","sebagai","dalam","oleh","karena","akan","sampai","tidak","dapat","lebih","kami","mereka","anda"];
 
-    // Pilih konten (post atau static page)
-    const content = document.querySelector(".post-body.entry-content") || document.querySelector("[id^='post-body-']");
-    if(!content){
-      console.log("No content found, exiting");
-      return;
-    }
+  // Fungsi bantu untuk escape string JSON
+  function escapeJSON(str){
+    if(!str) return "";
+    return str.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,' ').replace(/\r/g,' ');
+  }
 
-    // Ambil H2/H3
-    const headers = Array.from(content.querySelectorAll("h2,h3")).map(h => h.textContent.trim());
-    console.log("Headers found:", headers);
+  // Ambil konten post / page
+  const content = document.querySelector(".post-body.entry-content") || document.querySelector("[id^='post-body-']");
+  if(!content){
+    console.log("No content found, exiting");
+    return;
+  }
 
-    // Ambil paragraf
-    const paragraphs = Array.from(content.querySelectorAll("p")).map(p => p.textContent);
-    console.log("Paragraphs found:", paragraphs.length);
+  const headers = Array.from(content.querySelectorAll("h2,h3")).map(h => h.textContent.trim());
+  const paragraphs = Array.from(content.querySelectorAll("p")).map(p => p.textContent);
+  const allText = headers.concat(paragraphs).join(" ");
 
-    // Gabungkan semua teks
-    const allText = headers.concat(paragraphs).join(" ");
+  let words = allText.replace(/[^a-zA-Z0-9 ]/g,"").toLowerCase().split(/\s+/)
+                .filter(w => w.length>3 && !stopwords.includes(w));
+  const uniqueWords = Array.from(new Set(words));
 
-    // Ambil kata panjang >3 huruf, filter stopwords
-    const words = allText.replace(/[^a-zA-Z0-9 ]/g,"").toLowerCase().split(/\s+/)
-                  .filter(w => w.length>3 && !stopwords.includes(w));
-    console.log("Filtered words:", words);
+  const keywordsStr = uniqueWords.join(", ");
+  const articleSectionStr = headers.join(", ");
 
-    // Unique kata
-    const uniqueWords = Array.from(new Set(words));
-    console.log("Unique words:", uniqueWords);
+  // ====================== POST ======================
+  const schemaPost = document.getElementById("auto-schema");
+  if(schemaPost){
+    const url = window.location.href;
+    const title = document.title;
+    const descMeta = document.querySelector("meta[name='description']")?.content || "";
+    const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/.../logo.png";
+    const datePublished = document.querySelector("meta[itemprop='datePublished']")?.content || new Date().toISOString();
+    const dateModified = document.querySelector("meta[itemprop='dateModified']")?.content || datePublished;
 
-    // Escape double quotes agar aman untuk JSON
-    const escapeJSON = str => str.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-
-    const keywordsStr = escapeJSON(uniqueWords.join(", "));
-    const articleSectionStr = escapeJSON(headers.join(", "));
-    console.log("keywordsStr:", keywordsStr);
-    console.log("articleSectionStr:", articleSectionStr);
-
-    // Update schema Article post
-    const schemaPost = document.getElementById("auto-schema");
-    if(schemaPost){
-      let schemaText = schemaPost.textContent;
-      schemaText = schemaText.replace(/"keywords"\s*:\s*""/, `"keywords": "${keywordsStr}"`);
-      schemaText = schemaText.replace(/"articleSection"\s*:\s*"Artikel"/, `"articleSection": "${articleSectionStr}"`);
-      schemaPost.textContent = schemaText;
-      console.log("Post schema updated safely");
-    }
-
-    // Update schema Article static page
-    const schemaStatic = document.getElementById("auto-schema-static-page");
-    if(schemaStatic){
-      let schemaText = schemaStatic.textContent;
-      schemaText = schemaText.replace(/"keywords"\s*:\s*""/, `"keywords": "${keywordsStr}"`);
-      schemaText = schemaText.replace(/"articleSection"\s*:\s*"Artikel"/, `"articleSection": "${articleSectionStr}"`);
-      schemaStatic.textContent = schemaText;
-      console.log("Static page schema updated safely");
-    }
-
-    // Optional: fallback dateModified
-    const updateDateModified = el => {
-      if(!el) return;
-      let schemaText = el.textContent;
-      schemaText = schemaText.replace(/"dateModified"\s*:\s*""/, `"dateModified": "${new Date().toISOString()}"`);
-      el.textContent = schemaText;
+    const postSchema = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "isAccessibleForFree": true,
+      "mainEntityOfPage": { "@type": "WebPage", "@id": url+"#webpage" },
+      "headline": escapeJSON(title),
+      "description": escapeJSON(descMeta),
+      "image": [firstImg],
+      "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
+      "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
+        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/.../logo.png" }
+      },
+      "datePublished": datePublished,
+      "dateModified": dateModified,
+      "articleSection": articleSectionStr || "Artikel",
+      "keywords": keywordsStr,
+      "wordCount": paragraphs.join(" ").split(/\s+/).length,
+      "articleBody": escapeJSON(content.textContent),
+      "inLanguage": "id-ID"
     };
-    updateDateModified(schemaPost);
-    updateDateModified(schemaStatic);
 
-  })();
+    schemaPost.textContent = JSON.stringify(postSchema, null, 2);
+    console.log("Post schema filled");
+  }
+
+  // ==================== STATIC PAGE ==================
+  const schemaStatic = document.getElementById("auto-schema-static-page");
+  if(schemaStatic){
+    const url = window.location.href;
+    const title = document.title;
+    const descMeta = document.querySelector("meta[name='description']")?.content || "";
+    const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/.../logo.png";
+    const datePublished = new Date().toISOString();
+    const dateModified = datePublished;
+
+    const staticSchema = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "isAccessibleForFree": true,
+      "mainEntityOfPage": { "@type": "WebPage", "@id": url+"#webpage" },
+      "headline": escapeJSON(title),
+      "description": escapeJSON(descMeta),
+      "image": [firstImg],
+      "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
+      "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
+        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/.../logo.png" }
+      },
+      "datePublished": datePublished,
+      "dateModified": dateModified,
+      "articleSection": articleSectionStr || "Artikel",
+      "keywords": keywordsStr,
+      "wordCount": paragraphs.join(" ").split(/\s+/).length,
+      "articleBody": escapeJSON(content.textContent),
+      "inLanguage": "id-ID"
+    };
+
+    schemaStatic.textContent = JSON.stringify(staticSchema, null, 2);
+    console.log("Static page schema filled");
+  }
+  
 });
 
