@@ -138,3 +138,30 @@ document.addEventListener("DOMContentLoaded", function() {
   
 });
 
+document.addEventListener("DOMContentLoaded", function() {
+  console.log("Auto-schema WebPage JS running");
+
+  const schemaWeb = document.getElementById("auto-schema-webpage");
+  if(schemaWeb){
+    const url = window.location.href;
+    const title = document.title;
+    const descMeta = document.querySelector("meta[name='description']")?.content || "";
+
+    const webPageSchema = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": title,
+      "url": url,
+      "description": descMeta,
+      "publisher": { 
+        "@type": "Organization", 
+        "name": "Beton Jaya Readymix",
+        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/.../logo.png" }
+      },
+      "inLanguage": "id-ID"
+    };
+
+    schemaWeb.textContent = JSON.stringify(webPageSchema, null, 2);
+    console.log("WebPage schema filled");
+  }
+});
