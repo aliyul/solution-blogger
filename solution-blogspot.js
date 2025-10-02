@@ -37,7 +37,6 @@ $(function() {
 });
 
 // --- Schema Article & WebPage ---
-<script>
 document.addEventListener("DOMContentLoaded", function() {
   console.log("Auto-schema JS running");
 
@@ -179,4 +178,40 @@ document.addEventListener("DOMContentLoaded", function() {
     console.log("Static page schema filled");
   }
 });
-</script>
+
+document.addEventListener("DOMContentLoaded", function () {
+  
+  console.log("Auto-schema WebPage JS running");
+
+  const schemaWeb = document.getElementById("auto-schema-webpage");
+  if (schemaWeb) {
+    const url = window.location.href;
+    const title = document.title;
+    const descMeta =
+      document.querySelector("meta[name='description']")?.content || "";
+
+    const webPageSchema = {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": title,
+      "url": url,
+      "description": descMeta,
+      "publisher": {
+        "@type": "Organization",
+        "name": "Beton Jaya Readymix",
+        "logo": {
+          "@type": "ImageObject",
+          "url":
+            "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png"
+        }
+      },
+      "inLanguage": "id-ID"
+    };
+
+    schemaWeb.textContent = JSON.stringify(webPageSchema, null, 2);
+    console.log("WebPage schema filled");
+  }
+});
+
+
+   
