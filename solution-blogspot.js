@@ -41,8 +41,18 @@ document.addEventListener("DOMContentLoaded", function() {
   var metas = document.querySelectorAll('meta[itemprop="dateModified"]');
   metas.forEach(meta => {
     var utcDate = new Date(meta.getAttribute("content")); // ambil UTC
-    var wibDate = new Date(utcDate.getTime() + (7 * 60 * 60 * 1000)); // konversi UTC ke WIB
-    var isoString = wibDate.toISOString().replace("Z", "+07:00"); // ganti Z jadi +07:00
+    var wibDate = new Date(utcDate.getTime() + (7 * 60 * 60 * 1000)); // konversi ke WIB
+
+    // Format ISO 8601 dengan offset +07:00
+    var pad = n => String(n).padStart(2, "0");
+    var isoString =
+      wibDate.getFullYear() + "-" +
+      pad(wibDate.getMonth() + 1) + "-" +
+      pad(wibDate.getDate()) + "T" +
+      pad(wibDate.getHours()) + ":" +
+      pad(wibDate.getMinutes()) + ":" +
+      pad(wibDate.getSeconds()) + "+07:00";
+
     meta.setAttribute("content", isoString);
   });
 });
