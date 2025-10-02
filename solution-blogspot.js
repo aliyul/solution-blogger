@@ -38,10 +38,14 @@ $(function() {
 
 //Ubah format DateModified dari UTC ke WIB
 document.addEventListener("DOMContentLoaded", function() {
-  var metas = document.querySelectorAll('meta[itemprop="dateModified"]');
-  metas.forEach(meta => {
-    var utcDate = new Date(meta.getAttribute("content")); // ambil UTC
-    var wibDate = new Date(utcDate.getTime() + (7 * 60 * 60 * 1000)); // konversi ke WIB
+  // Ambil meta dateModified (Blogspot default UTC)
+  var metaModified = document.querySelector('meta[itemprop="dateModified"]');
+  if (metaModified) {
+    // Parsing UTC dari Blogspot
+    var utcDate = new Date(metaModified.getAttribute("content"));
+
+    // Konversi ke WIB (+7 jam)
+    var wibDate = new Date(utcDate.getTime() + 7 * 60 * 60 * 1000);
 
     // Format ISO 8601 dengan offset +07:00
     var pad = n => String(n).padStart(2, "0");
@@ -53,8 +57,12 @@ document.addEventListener("DOMContentLoaded", function() {
       pad(wibDate.getMinutes()) + ":" +
       pad(wibDate.getSeconds()) + "+07:00";
 
-    meta.setAttribute("content", isoString);
-  });
+    // Update attribute content
+    metaModified.setAttribute("content", isoString);
+
+    // Opsional: tampilkan di console untuk cek
+    console.log("dateModified WIB:", isoString);
+  }
 });
 
 // --- Schema Article & WebPage ---
