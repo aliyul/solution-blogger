@@ -37,6 +37,7 @@ $(function() {
 });
 
 // --- Schema Article & WebPage ---
+<script>
 document.addEventListener("DOMContentLoaded", function() {
   console.log("Auto-schema JS running");
 
@@ -53,13 +54,13 @@ document.addEventListener("DOMContentLoaded", function() {
       .trim();
   }
 
-  // Clean plain text (hilangkan spasi berlebih)
+  // Clean plain text
   function cleanText(str){
     if(!str) return "";
     return str.replace(/\s+/g," ").trim();
   }
 
-  // Hitung semua kata di konten (h1–h6, p, li, dll) tanpa script/style/hidden
+  // Word count real content
   function getArticleWordCount(content){
     if(!content) return 0;
     const clone = content.cloneNode(true);
@@ -73,41 +74,39 @@ document.addEventListener("DOMContentLoaded", function() {
     return text.trim().split(/\s+/).filter(Boolean).length;
   }
 
-  // Ambil konten post / page
+  // ================== Ambil konten ==================
   const content = document.querySelector(".post-body.entry-content") || document.querySelector("[id^='post-body-']");
   if(!content){
     console.log("No content found, exiting");
     return;
   }
 
-  // Ambil H1, H2, H3
   const h1 = document.querySelector("h1")?.textContent.trim() || "";
   const headers = Array.from(content.querySelectorAll("h2,h3"))
     .map(h => cleanText(h.textContent))
     .filter(Boolean);
 
-  // Ambil semua paragraf
   const paragraphs = Array.from(content.querySelectorAll("p")).map(p => cleanText(p.textContent));
   const allText = headers.concat(paragraphs).join(" ");
 
-  // Buat daftar kata → filter stopwords
+  // Hitung kata penting
   let words = allText.replace(/[^a-zA-Z0-9 ]/g,"")
     .toLowerCase()
     .split(/\s+/)
     .filter(w => w.length > 3 && !stopwords.includes(w));
 
-  // Hitung frekuensi kata
   let freq = {};
   words.forEach(w => freq[w] = (freq[w] || 0) + 1);
 
-  // Ambil 10 kata paling sering
-  const topWords = Object.keys(freq)
-    .sort((a,b) => freq[b]-freq[a])
-    .slice(0,10);
+  const topWords = Object.keys(freq).sort((a,b) => freq[b]-freq[a]).slice(0,10);
 
-  // Gabungkan jadi keywords → batasi biar natural
-  const keywordsArr = [h1, ...headers.slice(0,5), ...topWords];
-  const keywordsStr = Array.from(new Set(keywordsArr)).join(", ");
+  // 🔑 AUTO keywords → pick dari H1 + 2 subheading utama + 2 topword
+  let keywordsArr = [];
+  if(h1) keywordsArr.push(h1);
+  if(headers.length) keywordsArr.push(...headers.slice(0,2));
+  if(topWords.length) keywordsArr.push(...topWords.slice(0,2));
+  const keywordsStr = Array.from(new Set(keywordsArr)).slice(0,5).join(", ");
+
   const articleSectionStr = headers.join(", ");
 
   // ====================== POST ======================
@@ -180,3 +179,4 @@ document.addEventListener("DOMContentLoaded", function() {
     console.log("Static page schema filled");
   }
 });
+</script>
