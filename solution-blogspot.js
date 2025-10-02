@@ -36,6 +36,17 @@ $(function() {
   });
 });
 
+//Ubah format DateModified dari UTC ke WIB
+document.addEventListener("DOMContentLoaded", function() {
+  var metas = document.querySelectorAll('meta[itemprop="dateModified"]');
+  metas.forEach(meta => {
+    var utcDate = new Date(meta.getAttribute("content")); // ambil UTC
+    var wibDate = new Date(utcDate.getTime() + (7 * 60 * 60 * 1000)); // konversi UTC ke WIB
+    var isoString = wibDate.toISOString().replace("Z", "+07:00"); // ganti Z jadi +07:00
+    meta.setAttribute("content", isoString);
+  });
+});
+
 // --- Schema Article & WebPage ---
 document.addEventListener("DOMContentLoaded", function() {
   console.log("Auto-schema JS running");
