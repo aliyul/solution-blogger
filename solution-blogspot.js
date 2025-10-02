@@ -161,7 +161,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "articleSection": articleSectionStr,
       "keywords": keywordsStr,
       "wordCount": getArticleWordCount(content),
-      "articleBody": escapeJSON(cleanText(content ? content.textContent : "")),
+      "articleBody": cleanText(content ? content.textContent : ""),
       "inLanguage": "id-ID"
     };
 
@@ -196,7 +196,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "articleSection": articleSectionStr,
       "keywords": keywordsStr,
       "wordCount": getArticleWordCount(content),
-      "articleBody": escapeJSON(cleanText(content ? content.textContent : "")),
+      "articleBody": cleanText(content ? content.textContent : ""),
       "inLanguage": "id-ID"
     };
 
