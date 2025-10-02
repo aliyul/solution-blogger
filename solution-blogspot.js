@@ -37,6 +37,7 @@ $(function() {
 });
 
 //Ubah format DateModified dari UTC ke WIB
+/*ga perlu karrna udah di buat format code nya di js Schema Article
 document.addEventListener("DOMContentLoaded", function() {
   // Ambil meta dateModified (Blogspot default UTC)
   var metaModified = document.querySelector('meta[itemprop="dateModified"]');
@@ -64,14 +65,14 @@ document.addEventListener("DOMContentLoaded", function() {
     console.log("dateModified WIB:", isoString);
   }
 });
-
+*/
 // --- Schema Article & WebPage ---
 document.addEventListener("DOMContentLoaded", function() {
   console.log("Auto-schema JS running");
 
   const stopwords = ["dan","di","ke","dari","yang","untuk","pada","dengan","ini","itu","adalah","juga","atau","sebagai","dalam","oleh","karena","akan","sampai","tidak","dapat","lebih","kami","mereka","anda"];
 
-  // Escape JSON
+  // Escape JSON aman
   function escapeJSON(str){
     if(!str) return "";
     return str
@@ -79,16 +80,18 @@ document.addEventListener("DOMContentLoaded", function() {
       .replace(/"/g,'\\"')
       .replace(/\n/g,' ')
       .replace(/\r/g,' ')
+      .replace(/</g,'\\u003c')
+      .replace(/>/g,'\\u003e')
       .trim();
   }
 
-  // Clean plain text
+  // Bersihkan plain text
   function cleanText(str){
     if(!str) return "";
     return str.replace(/\s+/g," ").trim();
   }
 
-  // Word count real content
+  // Hitung kata sebenarnya
   function getArticleWordCount(content){
     if(!content) return 0;
     const clone = content.cloneNode(true);
@@ -102,40 +105,34 @@ document.addEventListener("DOMContentLoaded", function() {
     return text.trim().split(/\s+/).filter(Boolean).length;
   }
 
-  // ================== Ambil konten ==================
-  const content = document.querySelector(".post-body.entry-content") || document.querySelector("[id^='post-body-']");
-  if(!content){
-    console.log("No content found, exiting");
-    return;
+  // Konversi UTC ke WIB +07:00
+  function convertToWIB(isoDate){
+    if(!isoDate) return new Date().toISOString().replace("Z","+07:00");
+    const d = new Date(isoDate);
+    const wib = new Date(d.getTime() + 7*60*60*1000);
+    return wib.toISOString().replace("Z","+07:00");
   }
 
+  // ================== Ambil konten ==================
+  const content = document.querySelector(".post-body.entry-content") || document.querySelector("[id^='post-body-']") || document.querySelector(".post-body");
   const h1 = document.querySelector("h1")?.textContent.trim() || "";
-  const headers = Array.from(content.querySelectorAll("h2,h3"))
-    .map(h => cleanText(h.textContent))
-    .filter(Boolean);
-
-  const paragraphs = Array.from(content.querySelectorAll("p")).map(p => cleanText(p.textContent));
+  const headers = content ? Array.from(content.querySelectorAll("h2,h3")).map(h => cleanText(h.textContent)).filter(Boolean) : [];
+  const paragraphs = content ? Array.from(content.querySelectorAll("p")).map(p => cleanText(p.textContent)) : [];
   const allText = headers.concat(paragraphs).join(" ");
 
   // Hitung kata penting
-  let words = allText.replace(/[^a-zA-Z0-9 ]/g,"")
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(w => w.length > 3 && !stopwords.includes(w));
-
+  let words = allText.replace(/[^a-zA-Z0-9 ]/g,"").toLowerCase().split(/\s+/).filter(w => w.length > 3 && !stopwords.includes(w));
   let freq = {};
   words.forEach(w => freq[w] = (freq[w] || 0) + 1);
-
   const topWords = Object.keys(freq).sort((a,b) => freq[b]-freq[a]).slice(0,10);
 
-  // 🔑 AUTO keywords → pick dari H1 + 2 subheading utama + 2 topword
+  // 🔑 AUTO keywords → H1 + 2 subheading utama + 2 topword
   let keywordsArr = [];
   if(h1) keywordsArr.push(h1);
   if(headers.length) keywordsArr.push(...headers.slice(0,2));
   if(topWords.length) keywordsArr.push(...topWords.slice(0,2));
-  const keywordsStr = Array.from(new Set(keywordsArr)).slice(0,5).join(", ");
-
-  const articleSectionStr = headers.join(", ");
+  const keywordsStr = Array.from(new Set(keywordsArr)).slice(0,5).join(", "); // tanpa fallback
+  const articleSectionStr = headers.length ? headers.join(", ") : "Artikel";
 
   // ====================== POST ======================
   const schemaPost = document.getElementById("auto-schema");
@@ -144,8 +141,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const title = document.title;
     const descMeta = document.querySelector("meta[name='description']")?.content || "";
     const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
-    const datePublished = document.querySelector("meta[itemprop='datePublished']")?.content || new Date().toISOString();
-    const dateModified = document.querySelector("meta[itemprop='dateModified']")?.content || datePublished;
+    const datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content);
+    const dateModified = convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content || datePublished);
 
     const postSchema = {
       "@context": "https://schema.org",
@@ -157,14 +154,14 @@ document.addEventListener("DOMContentLoaded", function() {
       "image": [firstImg],
       "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
       "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png" }
+        "logo": { "@type": "ImageObject", "url": firstImg }
       },
       "datePublished": datePublished,
       "dateModified": dateModified,
-      "articleSection": articleSectionStr || "Artikel",
+      "articleSection": articleSectionStr,
       "keywords": keywordsStr,
       "wordCount": getArticleWordCount(content),
-      "articleBody": escapeJSON(cleanText(content.textContent)),
+      "articleBody": escapeJSON(cleanText(content ? content.textContent : "")),
       "inLanguage": "id-ID"
     };
 
@@ -179,8 +176,8 @@ document.addEventListener("DOMContentLoaded", function() {
     const title = document.title;
     const descMeta = document.querySelector("meta[name='description']")?.content || "";
     const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
-    const datePublished = document.querySelector("meta[itemprop='datePublished']")?.content || new Date().toISOString();
-    const dateModified = document.querySelector("meta[itemprop='dateModified']")?.content || datePublished;
+    const datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content);
+    const dateModified = convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content || datePublished);
 
     const staticSchema = {
       "@context": "https://schema.org",
@@ -192,20 +189,21 @@ document.addEventListener("DOMContentLoaded", function() {
       "image": [firstImg],
       "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
       "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-        "logo": { "@type": "ImageObject", "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png" }
+        "logo": { "@type": "ImageObject", "url": firstImg }
       },
       "datePublished": datePublished,
       "dateModified": dateModified,
-      "articleSection": articleSectionStr || "Artikel",
+      "articleSection": articleSectionStr,
       "keywords": keywordsStr,
       "wordCount": getArticleWordCount(content),
-      "articleBody": escapeJSON(cleanText(content.textContent)),
+      "articleBody": escapeJSON(cleanText(content ? content.textContent : "")),
       "inLanguage": "id-ID"
     };
 
     schemaStatic.textContent = JSON.stringify(staticSchema, null, 2);
     console.log("Static page schema filled");
   }
+
 });
 
 document.addEventListener("DOMContentLoaded", function () {
