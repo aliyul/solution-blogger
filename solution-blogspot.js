@@ -212,6 +212,3 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("WebPage schema filled");
   }
 });
-
-
-   
