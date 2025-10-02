@@ -212,3 +212,47 @@ document.addEventListener("DOMContentLoaded", function () {
     console.log("WebPage schema filled");
   }
 });
+
+//Deteksi tanggal Update buat ditamplkan di post
+document.addEventListener("DOMContentLoaded", function() {
+  var el = document.getElementById("lastUpdatedText");
+  if (!el) return; // berhenti kalau elemen tidak ada
+
+  var isoDate = null;
+
+  // --- Cek semua schema JSON-LD ---
+  var schemas = document.querySelectorAll('script[type="application/ld+json"]');
+  schemas.forEach(s => {
+    try {
+      var data = JSON.parse(s.textContent);
+      if (Array.isArray(data["@graph"])) {
+        var article = data["@graph"].find(item => item["@type"] === "Article");
+        if (article && !isoDate) {
+          isoDate = article.dateModified || article.datePublished || null;
+        }
+      } else if (data["@type"] === "Article" && !isoDate) {
+        isoDate = data.dateModified || data.datePublished || null;
+      }
+    } catch (e) {
+      console.warn("Gagal parse schema JSON-LD:", e);
+    }
+  });
+
+  // --- Kalau schema kosong, fallback ke <time> ---
+  if (!isoDate && el.closest("time")) {
+    isoDate = el.closest("time").getAttribute("datetime");
+  }
+
+  // --- Format ke Indonesia ---
+  if (isoDate) {
+    var dateObj = new Date(isoDate);
+    if (!isNaN(dateObj.getTime())) {
+      var options = { day: "numeric", month: "long", year: "numeric" };
+      el.textContent = dateObj.toLocaleDateString("id-ID", options);
+    } else {
+      el.textContent = "-";
+    }
+  } else {
+    el.textContent = "-";
+  }
+});
