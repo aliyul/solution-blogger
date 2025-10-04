@@ -161,5 +161,5 @@ document.addEventListener("DOMContentLoaded", function() {
       console.warn("⚠️ Script tag dengan id 'auto-schema-service' tidak ditemukan di halaman.");
     }
 
-  }, 800); // delay agar Blogger selesai render
+  }); 
 });
