@@ -1,7 +1,7 @@
-//UPDATE 6
+//UPDATE 7
 document.addEventListener("DOMContentLoaded", function() {
 
-  // ====== KONFIGURASI HALAMAN ======
+  // ======= KONFIGURASI HALAMAN =======
   const PAGE = {
     url: location.href,
     title: document.querySelector('h1')?.textContent?.trim() || document.title.trim(),
@@ -9,20 +9,15 @@ document.addEventListener("DOMContentLoaded", function() {
       const meta = document.querySelector('meta[name="description"]')?.content?.trim();
       if (meta && meta.length > 30) return meta;
       const p = document.querySelector('article p, main p, .post-body p');
-      if (p && p.innerText.trim().length > 40) return p.innerText.trim().substring(0, 300);
-      const altText = Array.from(document.querySelectorAll('p, li'))
-        .map(el => el.innerText.trim()).filter(Boolean).join(' ');
-      return altText.substring(0, 300);
+      return p ? p.innerText.trim().substring(0, 300) : '';
     })(),
     parentUrl: (() => {
       const canonical = document.querySelector('link[rel="canonical"]')?.href;
-      if (canonical && canonical !== location.href) return canonical;
-      return location.origin;
+      return (canonical && canonical !== location.href) ? canonical : location.origin;
     })(),
     service: {
       name: document.querySelector('h1')?.textContent?.trim() || 'Jasa Konstruksi Profesional',
       description: document.querySelector('meta[name="description"]')?.content 
-                    || document.querySelector('p')?.innerText?.trim() 
                     || 'Layanan profesional dalam bidang konstruksi dan beton.',
       types: [],
       areaServed: []
@@ -43,20 +38,7 @@ document.addEventListener("DOMContentLoaded", function() {
         "https://www.facebook.com/betonjayareadymix",
         "https://www.instagram.com/betonjayareadymix"
       ]
-    },
-    product: (() => {
-      const el = document.querySelector('.harga, .price, .harga-produk');
-      if (el) {
-        const price = parseInt(el.innerText.replace(/[^\d]/g, ''), 10);
-        if (!isNaN(price) && price > 0) {
-          return { hasProduct: true, lowPrice: price, highPrice: price, offerCount: 1 };
-        }
-      }
-      return { hasProduct: false };
-    })(),
-    internalLinks: Array.from(document.querySelectorAll('article a, main a, .post-body a'))
-      .filter(a => a.href && a.href.includes(location.hostname) && a.href !== location.href)
-      .map(a => ({ url: a.href, name: a.innerText.trim() }))
+    }
   };
 
   // ===== DETEKSI AREA SERVED =====
@@ -75,33 +57,32 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== EXTRACT SERVICE TYPE BERDASARKAN H1/TOPIK =====
+  // ===== EXTRACT SERVICE TYPE BERDASARKAN KONTEN =====
   (function extractServiceTypes() {
-    const h1 = document.querySelector('h1');
-    if (!h1) return;
-
+    const h1Text = PAGE.service.name.toLowerCase();
     const typesSet = new Set();
 
-    // Ambil semua teks artikel (p, li, span) setelah H1
-    const contentEls = Array.from(document.querySelectorAll('article p, article li, article span, main p, main li, main span, .post-body p, .post-body li, .post-body span'));
-    contentEls.forEach(el => {
+    // Ambil semua elemen teks utama
+    const elements = Array.from(document.querySelectorAll('h2, h3, li, p, span, strong'));
+    elements.forEach(el => {
       let text = el.innerText.trim();
       if (!text) return;
 
-      // Split paragraf panjang jadi kalimat
-      const sentences = text.split(/[\.\n]/).map(s => s.trim()).filter(Boolean);
-      sentences.forEach(s => {
-        // Hanya ambil kalimat yang mengandung kata kunci relevan dari H1
-        // Contoh kata kunci: Renovasi, Perbaikan, Pemasangan, Peremajaan, Penggantian
-        if (new RegExp(h1.textContent.split(' ').slice(0,2).join('|'), 'i').test(s) || /Renovasi|Perbaikan|Pemasangan|Peremajaan|Penggantian|Inspeksi|Epoxy|Waterproofing/i.test(s)) {
-          // Bersihkan kalimat dari kata2 marketing atau simbol aneh
-          let clean = s.replace(/\s{2,}/g, ' ').replace(/&nbsp;|›/g, '').trim();
-          if (clean.length > 5) typesSet.add(clean);
+      // Ubah menjadi lowercase untuk pengecekan konteks
+      const lower = text.toLowerCase();
+
+      // Hanya ambil jika relevan dengan topik H1
+      if (h1Text.includes('renovasi stadion')) {
+        // filter kata kunci layanan spesifik untuk stadion
+        if (/tribun|lapangan|kamar ganti|pagar|atap|kanopi|lintasan atletik|track area|pencahayaan|struktur beton|baja|fasilitas penonton|joint sealant|epoxy|waterproofing/i.test(lower)) {
+          typesSet.add(text);
         }
-      });
+      }
+
+      // Bisa ditambahkan else-if untuk topik H1 lain jika perlu
     });
 
-    // Hanya ambil unique dan sorted
+    // Hapus duplikat dan urutkan
     PAGE.service.types = Array.from(typesSet);
   })();
 
@@ -117,8 +98,7 @@ document.addEventListener("DOMContentLoaded", function() {
       description: page.description,
       ...(page.parentUrl && { isPartOf: { "@id": page.parentUrl } }),
       mainEntity: { "@id": page.url + "#service" },
-      publisher: { "@id": page.business.url + "#localbusiness" },
-      ...(page.internalLinks.length && { hasPart: { "@id": page.url + "#daftar-internal-link" } })
+      publisher: { "@id": page.business.url + "#localbusiness" }
     });
 
     graph.push({
@@ -145,38 +125,7 @@ document.addEventListener("DOMContentLoaded", function() {
       mainEntityOfPage: { "@id": page.url + "#webpage" }
     };
 
-    if (page.product.hasProduct) {
-      const nextYear = new Date();
-      nextYear.setFullYear(nextYear.getFullYear() + 1);
-      serviceObj.offers = {
-        "@type": "AggregateOffer",
-        priceCurrency: "IDR",
-        lowPrice: page.product.lowPrice,
-        highPrice: page.product.highPrice,
-        offerCount: page.product.offerCount,
-        availability: "https://schema.org/InStock",
-        priceValidUntil: nextYear.toISOString().split('T')[0],
-        url: page.url
-      };
-    }
-
     graph.push(serviceObj);
-
-    if (page.internalLinks.length) {
-      graph.push({
-        "@type": "ItemList",
-        "@id": page.url + "#daftar-internal-link",
-        name: "Daftar Halaman Terkait",
-        itemListOrder: "http://schema.org/ItemListOrderAscending",
-        numberOfItems: page.internalLinks.length,
-        itemListElement: page.internalLinks.map((link, i) => ({
-          "@type": "ListItem",
-          position: i + 1,
-          url: link.url,
-          name: link.name
-        }))
-      });
-    }
 
     return { "@context": "https://schema.org", "@graph": graph };
   }
@@ -184,7 +133,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const targetScript = document.getElementById('auto-schema-service');
   if(targetScript){
     targetScript.textContent = JSON.stringify(generateSchema(PAGE), null, 2);
-    console.log("🚀 Schema JSON-LD sudah dirender di #auto-schema-service");
+    console.log("🚀 Schema JSON-LD serviceType sudah diperbarui dan terfilter dengan ketat");
   } else {
     console.warn("⚠️ Script tag dengan id 'auto-schema-service' tidak ditemukan di halaman.");
   }
