@@ -1,4 +1,4 @@
-//UPDATE 17
+//UPDATE 18
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan.");
@@ -80,7 +80,6 @@ document.addEventListener("DOMContentLoaded", function() {
         const text = el.innerText.trim();
         if (!text || text.length > 120) return;
 
-        // Regex sederhana untuk kata kerja layanan
         const servicePattern = /^(Renovasi|Perbaikan|Pemasangan|Epoxy|Peremajaan|Instalasi|Perkuatan)\s+[A-Z][a-zA-Z0-9\s]+/;
         const match = text.match(servicePattern);
         if (match) typesSet.add(match[0].replace(/\s+/g,' ').trim());
@@ -90,54 +89,38 @@ document.addEventListener("DOMContentLoaded", function() {
       console.log("[Schema Service] Detected service types:", PAGE.service.types);
     })();
 
-    // ===== DETEKSI HARGA PAKET DARI TABLE, LI, PARAGRAF =====
+    // ===== DETEKSI PRODUK & HARGA OTOMATIS (TERMULAI DARI "Rp") =====
     function detectProductPackage() {
-      let lowPrice = Infinity, highPrice = 0, offerCount = 0;
+      const contentEls = Array.from(document.querySelectorAll('p, li, td, th'));
+      let lowPrice = Infinity, highPrice = 0, found = false;
 
-      // Fungsi ekstraksi angka dari teks
-      function extractPrices(text) {
-        const matches = text.match(/(\d[\d\.]*)/g); // Ambil angka dengan titik
-        if (!matches) return [];
-        return matches.map(n => parseInt(n.replace(/\./g,''),10)).filter(n => !isNaN(n) && n > 0);
-      }
-
-      // 1. Cek tabel
-      const tables = document.querySelectorAll('table');
-      tables.forEach(table => {
-        table.querySelectorAll('td').forEach(td => {
-          const prices = extractPrices(td.innerText);
-          if(prices.length){
-            lowPrice = Math.min(lowPrice, ...prices);
-            highPrice = Math.max(highPrice, ...prices);
-            offerCount += prices.length;
-          }
-        });
-      });
-
-      // 2. Cek list li
-      const listItems = document.querySelectorAll('li');
-      listItems.forEach(li => {
-        const prices = extractPrices(li.innerText);
-        if(prices.length){
-          lowPrice = Math.min(lowPrice, ...prices);
-          highPrice = Math.max(highPrice, ...prices);
-          offerCount += prices.length;
+      contentEls.forEach(el => {
+        const text = el.innerText;
+        // Cari semua angka diawali Rp
+        const priceMatches = text.match(/Rp\s*[\d.,]+/g);
+        if(priceMatches) {
+          found = true;
+          priceMatches.forEach(p => {
+            const cleaned = p.replace(/[Rp\s.]/g,'').replace(/,/g,'');
+            const num = parseInt(cleaned,10);
+            if(!isNaN(num)) {
+              if(num < lowPrice) lowPrice = num;
+              if(num > highPrice) highPrice = num;
+            }
+          });
+        }
+        // Jika ada range misal "Rp 450.000 – Rp 650.000"
+        const rangeMatch = text.match(/Rp\s*([\d.,]+)\s*[-–]\s*Rp\s*([\d.,]+)/);
+        if(rangeMatch) {
+          found = true;
+          const low = parseInt(rangeMatch[1].replace(/[.\s]/g,''),10);
+          const high = parseInt(rangeMatch[2].replace(/[.\s]/g,''),10);
+          if(!isNaN(low) && low < lowPrice) lowPrice = low;
+          if(!isNaN(high) && high > highPrice) highPrice = high;
         }
       });
 
-      // 3. Cek paragraf
-      const paras = document.querySelectorAll('p');
-      paras.forEach(p => {
-        const prices = extractPrices(p.innerText);
-        if(prices.length){
-          lowPrice = Math.min(lowPrice, ...prices);
-          highPrice = Math.max(highPrice, ...prices);
-          offerCount += prices.length;
-        }
-      });
-
-      if(offerCount > 0) return { hasProduct: true, lowPrice, highPrice, offerCount };
-      return { hasProduct: false };
+      return found ? { hasProduct: true, lowPrice, highPrice, offerCount: 1 } : { hasProduct: false };
     }
 
     const productData = detectProductPackage();
@@ -186,8 +169,8 @@ document.addEventListener("DOMContentLoaded", function() {
         mainEntityOfPage: { "@id": page.url + "#webpage" }
       };
 
-      // Jika ada harga → buat offers & Product
-      if(product.hasProduct){
+      // Jika ada harga → buat offers
+      if(product.hasProduct) {
         const nextYear = new Date();
         nextYear.setFullYear(nextYear.getFullYear() + 1);
         serviceObj.offers = {
@@ -201,6 +184,7 @@ document.addEventListener("DOMContentLoaded", function() {
           url: page.url
         };
 
+        // Buat Product schema otomatis
         const productSchema = {
           "@type": "Product",
           "@id": page.url + "#product",
