@@ -22,25 +22,22 @@ document.addEventListener("DOMContentLoaded", function() {
       description: document.querySelector('meta[name="description"]')?.content 
                     || document.querySelector('p')?.innerText?.trim() 
                     || 'Layanan profesional dalam bidang konstruksi dan beton.',
-      types: Array.from(document.querySelectorAll('h2, h3'))
-                  .map(h => h.innerText.trim())
-                  // filter hanya heading yang relevan
-                  .filter(text => /Jasa|Renovasi|Layanan|Proyek|Konstruksi/i.test(text)),
+      types: [],
       areaServed: []
     },
     business: {
-      "name": "Beton Jaya Readymix",
-      "url": "https://www.betonjayareadymix.com",
-      "telephone": "+6283839000968",
-      "openingHours": "Mo-Sa 08:00-17:00",
-      "description": "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
-      "address": {
+      name: "Beton Jaya Readymix",
+      url: "https://www.betonjayareadymix.com",
+      telephone: "+6283839000968",
+      openingHours: "Mo-Sa 08:00-17:00",
+      description: "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
+      address: {
         "@type": "PostalAddress",
         "addressLocality": "Bogor",
         "addressRegion": "Jawa Barat",
         "addressCountry": "ID"
       },
-      "sameAs": [
+      sameAs: [
         "https://www.facebook.com/betonjayareadymix",
         "https://www.instagram.com/betonjayareadymix"
       ]
@@ -74,6 +71,20 @@ document.addEventListener("DOMContentLoaded", function() {
       url.includes(area.toLowerCase().replace(/\s+/g, ''))
     );
     PAGE.service.areaServed = match ? [match] : defaultAreas;
+  })();
+
+  // ===== DETEKSI SERVICE TYPE KONTEKS LAYANAN =====
+  (function detectServiceType() {
+    const potentialText = Array.from(document.querySelectorAll('h2,h3,h4,li,p'))
+      .map(el => el.innerText.trim())
+      .filter(Boolean);
+
+    // Filter hanya yang mengandung kata kerja jasa/renovasi/pembangunan
+    const serviceKeywordsRegex = /\b(Jasa|Renovasi|Pembangunan|Konstruksi|Perbaikan|Servis|Layanan|Proyek)\b/i;
+
+    PAGE.service.types = [...new Set(
+      potentialText.filter(text => serviceKeywordsRegex.test(text))
+    )];
   })();
 
   // ===== GENERATE JSON-LD =====
@@ -110,7 +121,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "@id": page.url + "#service",
       name: page.service.name,
       description: page.service.description,
-      serviceType: page.service.types || [],
+      serviceType: page.service.types.length ? page.service.types : [page.service.name],
       areaServed: (page.service.areaServed || []).map(a => ({ "@type": "Place", name: a })),
       provider: { "@id": page.business.url + "#localbusiness" },
       mainEntityOfPage: { "@id": page.url + "#webpage" }
