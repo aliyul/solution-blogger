@@ -1,7 +1,7 @@
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
 
-    // ====== KONFIGURASI HALAMAN ======
+    // ===== KONFIGURASI HALAMAN =====
     const PAGE = {
       url: location.href,
       title: document.querySelector('h1')?.textContent?.trim() || document.title.trim(),
@@ -29,18 +29,18 @@ document.addEventListener("DOMContentLoaded", function() {
         areaServed: []
       },
       business: {
-        "name": "Beton Jaya Readymix",
-        "url": "https://www.betonjayareadymix.com",
-        "telephone": "+6283839000968",
-        "openingHours": "Mo-Sa 08:00-17:00",
-        "description": "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
-        "address": {
+        name: "Beton Jaya Readymix",
+        url: "https://www.betonjayareadymix.com",
+        telephone: "+6283839000968",
+        openingHours: "Mo-Sa 08:00-17:00",
+        description: "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
+        address: {
           "@type": "PostalAddress",
-          "addressLocality": "Bogor",
-          "addressRegion": "Jawa Barat",
-          "addressCountry": "ID"
+          addressLocality: "Bogor",
+          addressRegion: "Jawa Barat",
+          addressCountry: "ID"
         },
-        "sameAs": [
+        sameAs: [
           "https://www.facebook.com/betonjayareadymix",
           "https://www.instagram.com/betonjayareadymix"
         ]
@@ -98,7 +98,7 @@ document.addEventListener("DOMContentLoaded", function() {
         name: page.business.name,
         url: page.business.url,
         telephone: page.business.phone,
-        openingHours: "Mo-Sa 08:00-17:00",
+        openingHours: page.business.openingHours,
         description: page.business.description,
         address: page.business.address,
         sameAs: page.business.sameAs,
