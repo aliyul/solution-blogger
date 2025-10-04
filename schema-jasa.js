@@ -1,4 +1,4 @@
-//UPDATE 15
+//UPDATE 16
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan.");
@@ -75,17 +75,13 @@ document.addEventListener("DOMContentLoaded", function() {
     (function extractServiceTypes() {
       const contentEls = document.querySelectorAll('article p, article li, main p, main li, .post-body p, .post-body li');
       const typesSet = new Set();
-
       contentEls.forEach(el => {
         const text = el.innerText.trim();
         if (!text || text.length > 120) return;
-
-        // Regex sederhana untuk kata kerja layanan
         const servicePattern = /^(Renovasi|Perbaikan|Pemasangan|Epoxy|Peremajaan|Instalasi|Perkuatan)\s+[A-Z][a-zA-Z0-9\s]+/;
         const match = text.match(servicePattern);
         if (match) typesSet.add(match[0].replace(/\s+/g,' ').trim());
       });
-
       PAGE.service.types = Array.from(typesSet);
       console.log("[Schema Service] Detected service types:", PAGE.service.types);
     })();
@@ -96,17 +92,36 @@ document.addEventListener("DOMContentLoaded", function() {
       for (let h of headings) {
         const text = h.innerText.toLowerCase();
         if (/harga|tarif|biaya/.test(text)) {
-          let next = h.nextElementSibling;
-          while(next) {
-            const priceText = next.innerText.replace(/[^\d]/g,'');
-            if(priceText.length > 0) {
-              const price = parseInt(priceText,10);
-              if(!isNaN(price) && price > 0) {
-                return { hasProduct: true, lowPrice: price, highPrice: price, offerCount: 1 };
+          let table = h.nextElementSibling;
+          while(table && table.tagName !== 'TABLE') table = table.nextElementSibling;
+          if(!table) return { hasProduct: false };
+
+          const rows = Array.from(table.querySelectorAll('tbody tr'));
+          let lowPrices = [], highPrices = [];
+          rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if(cells.length >= 2) {
+              const match = cells[1].innerText.match(/Rp\s*([\d.]+)\s*–\s*Rp\s*([\d.]+)/);
+              if(match){
+                const low = parseInt(match[1].replace(/\./g,''),10);
+                const high = parseInt(match[2].replace(/\./g,''),10);
+                if(!isNaN(low) && !isNaN(high)){
+                  lowPrices.push(low);
+                  highPrices.push(high);
+                }
               }
             }
-            next = next.nextElementSibling;
+          });
+
+          if(lowPrices.length && highPrices.length){
+            return {
+              hasProduct: true,
+              lowPrice: Math.min(...lowPrices),
+              highPrice: Math.max(...highPrices),
+              offerCount: rows.length
+            };
           }
+
           return { hasProduct: false };
         }
       }
@@ -159,11 +174,10 @@ document.addEventListener("DOMContentLoaded", function() {
         mainEntityOfPage: { "@id": page.url + "#webpage" }
       };
 
-      // Jika ada harga → buat offers
       if(product.hasProduct) {
         const nextYear = new Date();
         nextYear.setFullYear(nextYear.getFullYear() + 1);
-        serviceObj.offers = {
+        const offersObj = {
           "@type": "AggregateOffer",
           priceCurrency: "IDR",
           lowPrice: product.lowPrice,
@@ -173,18 +187,18 @@ document.addEventListener("DOMContentLoaded", function() {
           priceValidUntil: nextYear.toISOString().split('T')[0],
           url: page.url
         };
+        serviceObj.offers = offersObj;
 
-        // Buat Product schema otomatis
-        const productSchema = {
+        // Product schema otomatis
+        graph.push({
           "@type": "Product",
           "@id": page.url + "#product",
           name: "Harga " + page.service.name,
           description: page.service.description,
           category: "Jasa Konstruksi",
           brand: { "@type": "Brand", name: page.business.name },
-          offers: serviceObj.offers
-        };
-        graph.push(productSchema);
+          offers: offersObj
+        });
       }
 
       graph.push(serviceObj);
@@ -219,5 +233,5 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     schemaScript.textContent = JSON.stringify(generateSchema(PAGE, productData), null, 2);
     console.log("[Schema Service] JSON-LD berhasil di-inject");
-  }, 500);
+  }, 800);
 });
