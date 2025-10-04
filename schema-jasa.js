@@ -74,37 +74,40 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== EXTRACT SERVICE TYPE UNIVERSAL BERDASARKAN KONTEKS H1 =====
+  // ===== EXTRACT SERVICE TYPE AGRESIF =====
   (function extractServiceTypes() {
-    const h1 = document.querySelector('h1');
-    if (!h1) return;
+    const h1Text = document.querySelector('h1')?.textContent?.trim().toLowerCase();
+    if (!h1Text) return;
 
     const typesSet = new Set();
 
-    // Recursive function untuk traverse semua child nodes
-    function traverse(el) {
-      if (!el) return;
+    const allTextElements = Array.from(document.querySelectorAll('h2, h3, li, a, p'));
 
-      // Ambil teks jika elemen terlihat dan relevan
-      const tagName = el.tagName;
-      if (tagName && ["H2","H3","LI","P","SPAN","A","DIV"].includes(tagName)) {
-        const text = el.innerText.trim();
-        if (text && text.length > 3 && !text.toUpperCase().includes(h1.innerText.trim().toUpperCase())) {
-          typesSet.add(text);
-        }
+    allTextElements.forEach(el => {
+      let text = el.innerText.trim();
+      if (!text || text.length > 120) return;
+
+      // Potong sebelum ":" jika ada
+      if (text.includes(':')) text = text.split(':')[0].trim();
+
+      // Ambil kalimat relevan dari paragraf panjang
+      if (el.tagName === 'P' && text.length > 40) {
+        text.split(/[.?!]/).forEach(sentence => {
+          sentence = sentence.trim();
+          if (!sentence) return;
+          // Cek apakah setidaknya ada 2 kata yang relevan dengan H1
+          const matchCount = sentence.toLowerCase().split(' ')
+            .filter(word => h1Text.includes(word)).length;
+          if (matchCount >= 2) typesSet.add(sentence);
+        });
+      } else {
+        // Untuk H2, H3, LI, A: cek setidaknya ada 1 kata relevan dengan H1
+        const match = text.toLowerCase().split(' ').some(word => h1Text.includes(word));
+        if (match) typesSet.add(text);
       }
+    });
 
-      // Lanjut ke child
-      el.childNodes.forEach(child => traverse(child));
-    }
-
-    // Mulai traverse dari semua elemen dalam article/main/.post-body setelah H1
-    let startEl = h1.nextElementSibling;
-    while (startEl) {
-      traverse(startEl);
-      startEl = startEl.nextElementSibling;
-    }
-
+    // Hapus duplikat
     PAGE.service.types = Array.from(typesSet);
   })();
 
