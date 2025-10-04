@@ -1,4 +1,4 @@
-//UPDATE 10
+//UPDATE 11
 document.addEventListener("DOMContentLoaded", function() {
 
   // ====== KONFIGURASI HALAMAN ======
