@@ -1,4 +1,4 @@
-//UPDATE 
+//UPDATE 1
 document.addEventListener("DOMContentLoaded", function() {
 
   // ====== KONFIGURASI HALAMAN ======
@@ -10,20 +10,12 @@ document.addEventListener("DOMContentLoaded", function() {
       if (meta && meta.length > 30) return meta;
       const p = document.querySelector('article p, main p, .post-body p');
       if (p && p.innerText.trim().length > 40) return p.innerText.trim().substring(0, 300);
-      const altText = Array.from(document.querySelectorAll('p, li'))
-        .map(el => el.innerText.trim()).filter(Boolean).join(' ');
-      return altText.substring(0, 300);
-    })(),
-    parentUrl: (() => {
-      const canonical = document.querySelector('link[rel="canonical"]')?.href;
-      if (canonical && canonical !== location.href) return canonical;
-      return location.origin;
+      return "Layanan profesional dalam bidang konstruksi dan renovasi.";
     })(),
     service: {
       name: document.querySelector('h1')?.textContent?.trim() || 'Jasa Konstruksi Profesional',
       description: document.querySelector('meta[name="description"]')?.content 
-                    || document.querySelector('p')?.innerText?.trim() 
-                    || 'Layanan profesional dalam bidang konstruksi dan beton.',
+                    || 'Layanan profesional dalam bidang konstruksi.',
       types: [],
       areaServed: []
     },
@@ -32,7 +24,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "url": "https://www.betonjayareadymix.com",
       "telephone": "+6283839000968",
       "openingHours": "Mo-Sa 08:00-17:00",
-      "description": "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
+      "description": "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia.",
       "address": {
         "@type": "PostalAddress",
         "addressLocality": "Bogor",
@@ -43,20 +35,7 @@ document.addEventListener("DOMContentLoaded", function() {
         "https://www.facebook.com/betonjayareadymix",
         "https://www.instagram.com/betonjayareadymix"
       ]
-    },
-    product: (() => {
-      const el = document.querySelector('.harga, .price, .harga-produk');
-      if (el) {
-        const price = parseInt(el.innerText.replace(/[^\d]/g, ''), 10);
-        if (!isNaN(price) && price > 0) {
-          return { hasProduct: true, lowPrice: price, highPrice: price, offerCount: 1 };
-        }
-      }
-      return { hasProduct: false };
-    })(),
-    internalLinks: Array.from(document.querySelectorAll('article a, main a, .post-body a'))
-      .filter(a => a.href && a.href.includes(location.hostname) && a.href !== location.href)
-      .map(a => ({ url: a.href, name: a.innerText.trim() }))
+    }
   };
 
   // ===== DETEKSI AREA SERVED =====
@@ -75,45 +54,40 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== EXTRACT SERVICE TYPE ULTIMATE =====
+  // ===== EXTRACT SERVICE TYPES (AGRESIF, TAPI TEPAT) =====
   (function extractServiceTypes() {
-    const h1Text = document.querySelector('h1')?.textContent?.trim().toLowerCase();
-    if (!h1Text) return;
-
+    const h1Text = PAGE.service.name.toLowerCase();
     const typesSet = new Set();
-    const allElements = Array.from(document.querySelectorAll('h2, h3, li, a, p'));
 
-    allElements.forEach(el => {
+    // Daftar tag relevan
+    const elements = Array.from(document.querySelectorAll('h2, h3, li, a, p'));
+
+    elements.forEach(el => {
       let text = el.innerText.trim();
+
       if (!text) return;
 
-      // Potong sebelum ":" jika ada
-      if (text.includes(':')) text = text.split(':')[0].trim();
+      // Normalisasi spasi & hapus karakter aneh
+      text = text.replace(/\s+/g, ' ').replace(/\u00a0/g, ' ').trim();
 
-      // Paragraf panjang: split kalimat
-      if (el.tagName === 'P' && text.length > 40) {
-        text.split(/[.?!]/).forEach(sentence => {
-          sentence = sentence.trim();
-          if (!sentence) return;
+      // Filter: hanya ambil yang mengandung kata kunci dari H1
+      const lowerText = text.toLowerCase();
+      const h1Keywords = h1Text.split(/\s+/).filter(k => k.length > 3); // kata panjang >3 huruf
+      const hasKeyword = h1Keywords.some(kw => lowerText.includes(kw));
 
-          // Ambil kalimat jika relevan dengan H1
-          const matchCount = sentence.toLowerCase().split(' ')
-            .filter(word => h1Text.includes(word)).length;
+      // Skip kalimat terlalu panjang >50 kata (biasanya narasi/promosi)
+      const wordCount = text.split(/\s+/).length;
 
-          // Hanya masukkan kalimat jika ada minimal 2 kata relevan
-          if (matchCount >= 2) typesSet.add(sentence);
-        });
-      } else {
-        // H2/H3/LI/A: ambil jika ada minimal 1 kata relevan
-        const match = text.toLowerCase().split(' ').some(word => h1Text.includes(word));
-        if (match) typesSet.add(text);
+      // Skip kata-kata generik promosi
+      const genericWords = ["kami", "solusi", "hubungi", "whatsapp", "FAQ", "pendaftaran", "penawaran", "layanan lengkap"];
+      const isGeneric = genericWords.some(gw => lowerText.includes(gw));
+
+      if (hasKeyword && !isGeneric && wordCount <= 50) {
+        typesSet.add(text);
       }
     });
 
-    // Filter lagi: hapus yang **tidak relevan sama sekali** (kata kunci H1 tidak ada)
-    PAGE.service.types = Array.from(typesSet).filter(t =>
-      t.toLowerCase().split(' ').some(w => h1Text.includes(w))
-    );
+    PAGE.service.types = Array.from(typesSet);
   })();
 
   // ===== GENERATE JSON-LD =====
@@ -126,10 +100,8 @@ document.addEventListener("DOMContentLoaded", function() {
       url: page.url,
       name: page.title,
       description: page.description,
-      ...(page.parentUrl && { isPartOf: { "@id": page.parentUrl } }),
       mainEntity: { "@id": page.url + "#service" },
-      publisher: { "@id": page.business.url + "#localbusiness" },
-      ...(page.internalLinks.length && { hasPart: { "@id": page.url + "#daftar-internal-link" } })
+      publisher: { "@id": page.business.url + "#localbusiness" }
     });
 
     graph.push({
@@ -156,38 +128,7 @@ document.addEventListener("DOMContentLoaded", function() {
       mainEntityOfPage: { "@id": page.url + "#webpage" }
     };
 
-    if (page.product.hasProduct) {
-      const nextYear = new Date();
-      nextYear.setFullYear(nextYear.getFullYear() + 1);
-      serviceObj.offers = {
-        "@type": "AggregateOffer",
-        priceCurrency: "IDR",
-        lowPrice: page.product.lowPrice,
-        highPrice: page.product.highPrice,
-        offerCount: page.product.offerCount,
-        availability: "https://schema.org/InStock",
-        priceValidUntil: nextYear.toISOString().split('T')[0],
-        url: page.url
-      };
-    }
-
     graph.push(serviceObj);
-
-    if (page.internalLinks.length) {
-      graph.push({
-        "@type": "ItemList",
-        "@id": page.url + "#daftar-internal-link",
-        name: "Daftar Halaman Terkait",
-        itemListOrder: "http://schema.org/ItemListOrderAscending",
-        numberOfItems: page.internalLinks.length,
-        itemListElement: page.internalLinks.map((link, i) => ({
-          "@type": "ListItem",
-          position: i + 1,
-          url: link.url,
-          name: link.name
-        }))
-      });
-    }
 
     return { "@context": "https://schema.org", "@graph": graph };
   }
@@ -195,7 +136,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const targetScript = document.getElementById('auto-schema-service');
   if(targetScript){
     targetScript.textContent = JSON.stringify(generateSchema(PAGE), null, 2);
-    console.log("🚀 Schema JSON-LD sudah dirender di #auto-schema-service");
+    console.log("🚀 Schema JSON-LD serviceType sudah di-render di #auto-schema-service");
   } else {
     console.warn("⚠️ Script tag dengan id 'auto-schema-service' tidak ditemukan di halaman.");
   }
