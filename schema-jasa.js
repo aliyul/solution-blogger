@@ -26,18 +26,18 @@ document.addEventListener("DOMContentLoaded", function() {
       areaServed: []
     },
     business: {
-      name: "Beton Jaya Readymix",
-      url: "https://www.betonjayareadymix.com",
-      telephone: "+6283839000968",
-      openingHours: "Mo-Sa 08:00-17:00",
-      description: "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia.",
-      address: {
+      "name": "Beton Jaya Readymix",
+      "url": "https://www.betonjayareadymix.com",
+      "telephone": "+6283839000968",
+      "openingHours": "Mo-Sa 08:00-17:00",
+      "description": "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
+      "address": {
         "@type": "PostalAddress",
         "addressLocality": "Bogor",
         "addressRegion": "Jawa Barat",
         "addressCountry": "ID"
       },
-      sameAs: [
+      "sameAs": [
         "https://www.facebook.com/betonjayareadymix",
         "https://www.instagram.com/betonjayareadymix"
       ]
@@ -73,18 +73,20 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== DETEKSI SERVICE TYPE OTOMATIS =====
+  // ===== DETEKSI SERVICE TYPE BERBASIS KONTEN =====
   (function detectServiceType() {
-    // Ambil H2, H3, li, paragraf yang mengandung kata jasa, renovasi, konstruksi, proyek, layanan
-    const candidates = Array.from(document.querySelectorAll('h2,h3,li,p'))
+    const h1Text = PAGE.title.toLowerCase();
+    const elements = Array.from(document.querySelectorAll('h2,h3,li,a'))
       .map(el => el.innerText.trim())
-      .filter(text => /jasa|renovasi|konstruksi|proyek|layanan/i.test(text));
+      .filter(Boolean);
 
-    // Masukkan H1 sebagai serviceType utama
-    PAGE.service.types = [PAGE.service.name, ...candidates];
+    const relevant = elements.filter(text => {
+      const lower = text.toLowerCase();
+      return h1Text.split(' ').some(word => word.length > 3 && lower.includes(word))
+             || /jasa|renovasi|konstruksi|proyek|perbaikan|layanan/i.test(text);
+    });
 
-    // Unik
-    PAGE.service.types = [...new Set(PAGE.service.types)];
+    PAGE.service.types = [...new Set(relevant)];
   })();
 
   // ===== GENERATE JSON-LD =====
@@ -121,7 +123,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "@id": page.url + "#service",
       name: page.service.name,
       description: page.service.description,
-      serviceType: page.service.types,
+      serviceType: page.service.types || [],
       areaServed: (page.service.areaServed || []).map(a => ({ "@type": "Place", name: a })),
       provider: { "@id": page.business.url + "#localbusiness" },
       mainEntityOfPage: { "@id": page.url + "#webpage" }
