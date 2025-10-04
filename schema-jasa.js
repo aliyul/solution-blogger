@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function() {
-
+//UPDATE THE LAST
   // ====== KONFIGURASI HALAMAN ======
   const PAGE = {
     url: location.href,
