@@ -17,12 +17,17 @@ document.addEventListener("DOMContentLoaded", function() {
         return altText.substring(0, 300);
       })(),
       parentUrl: (() => {
-        const canonical = document.querySelector('link[rel="canonical"]')?.href;
-        if (canonical && canonical !== location.href) return canonical;
+      // 1️⃣ Cek meta parent-url
+      const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
+      if (metaParent) return metaParent;
+      
+        // 2️⃣ Cek breadcrumbs
         const breadcrumbLinks = Array.from(document.querySelectorAll('nav.breadcrumbs a'))
                                      .map(a => a.href)
                                      .filter(href => href !== location.href);
         if (breadcrumbLinks.length) return breadcrumbLinks[breadcrumbLinks.length - 1];
+      
+        // 3️⃣ Fallback ke origin
         return location.origin;
       })(),
       service: {
