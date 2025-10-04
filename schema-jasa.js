@@ -74,8 +74,8 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== EXTRACT SERVICE TYPE REAL-TIME =====
-  function extractServiceTypes() {
+  // ===== EXTRACT SERVICE TYPE ULTIMATE =====
+  (function extractServiceTypes() {
     const h1Text = document.querySelector('h1')?.textContent?.trim().toLowerCase();
     if (!h1Text) return;
 
@@ -86,28 +86,34 @@ document.addEventListener("DOMContentLoaded", function() {
       let text = el.innerText.trim();
       if (!text) return;
 
+      // Potong sebelum ":" jika ada
       if (text.includes(':')) text = text.split(':')[0].trim();
 
+      // Paragraf panjang: split kalimat
       if (el.tagName === 'P' && text.length > 40) {
         text.split(/[.?!]/).forEach(sentence => {
           sentence = sentence.trim();
           if (!sentence) return;
 
+          // Ambil kalimat jika relevan dengan H1
           const matchCount = sentence.toLowerCase().split(' ')
             .filter(word => h1Text.includes(word)).length;
 
+          // Hanya masukkan kalimat jika ada minimal 2 kata relevan
           if (matchCount >= 2) typesSet.add(sentence);
         });
       } else {
+        // H2/H3/LI/A: ambil jika ada minimal 1 kata relevan
         const match = text.toLowerCase().split(' ').some(word => h1Text.includes(word));
         if (match) typesSet.add(text);
       }
     });
 
+    // Filter lagi: hapus yang **tidak relevan sama sekali** (kata kunci H1 tidak ada)
     PAGE.service.types = Array.from(typesSet).filter(t =>
       t.toLowerCase().split(' ').some(w => h1Text.includes(w))
     );
-  }
+  })();
 
   // ===== GENERATE JSON-LD =====
   function generateSchema(page) {
@@ -185,23 +191,12 @@ document.addEventListener("DOMContentLoaded", function() {
     return { "@context": "https://schema.org", "@graph": graph };
   }
 
-  // ===== RENDER SCHEMA DAN OBSERVER UNTUK KONTEN DINAMIS =====
-  function renderSchema() {
-    extractServiceTypes();
-    const targetScript = document.getElementById('auto-schema-service');
-    if(targetScript){
-      targetScript.textContent = JSON.stringify(generateSchema(PAGE), null, 2);
-      console.log("🚀 Schema JSON-LD sudah dirender di #auto-schema-service");
-    } else {
-      console.warn("⚠️ Script tag dengan id 'auto-schema-service' tidak ditemukan di halaman.");
-    }
+  const targetScript = document.getElementById('auto-schema-service');
+  if(targetScript){
+    targetScript.textContent = JSON.stringify(generateSchema(PAGE), null, 2);
+    console.log("🚀 Schema JSON-LD sudah dirender di #auto-schema-service");
+  } else {
+    console.warn("⚠️ Script tag dengan id 'auto-schema-service' tidak ditemukan di halaman.");
   }
-
-  // Jalankan awal
-  renderSchema();
-
-  // MutationObserver untuk konten dinamis
-  const observer = new MutationObserver(() => renderSchema());
-  observer.observe(document.body, { childList: true, subtree: true });
 
 });
