@@ -1,4 +1,4 @@
-//UPDATE 8
+//UPDATE 9
 document.addEventListener("DOMContentLoaded", function() {
 
   // ====== KONFIGURASI HALAMAN ======
@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", function() {
     url: location.href,
     title: document.querySelector('h1')?.textContent?.trim() || document.title.trim(),
     service: {
-      name: document.querySelector('h1')?.textContent?.trim() || 'Jasa Konstruksi Profesional',
+      name: document.querySelector('h1')?.textContent?.trim() || 'Jasa Profesional',
       types: []
     }
   };
@@ -14,8 +14,9 @@ document.addEventListener("DOMContentLoaded", function() {
   // ====== EKSTRAKSI SERVICE TYPE BERSIH ======
   (function extractServiceTypes() {
     const h1Text = PAGE.service.name.toLowerCase();
+    const keywords = h1Text.split(/\s+/);
 
-    // Ambil semua elemen konten artikel utama
+    // Ambil semua elemen konten utama
     const contentEls = document.querySelectorAll('article p, article li, main p, main li, .post-body p, .post-body li');
 
     const typesSet = new Set();
@@ -24,13 +25,20 @@ document.addEventListener("DOMContentLoaded", function() {
       let text = el.innerText.trim();
       if (!text) return;
 
-      // Hanya ambil baris pendek dan relevan: < 120 karakter dan mengandung kata kunci topik
-      if (text.length <= 120 && h1Text.split(' ').some(w => text.toLowerCase().includes(w))) {
-        // Hapus karakter ekstra & whitespace ganda
-        text = text.replace(/\s+/g, ' ').replace(/[:;,.]$/,'').trim();
-        // Tambahkan ke set
-        typesSet.add(text);
-      }
+      // Hanya ambil frasa pendek (<100 karakter)
+      if (text.length > 100) return;
+
+      // Hanya ambil jika ada kata kunci H1 (implisit)
+      const matchesH1 = keywords.some(k => k && text.toLowerCase().includes(k));
+      if (!matchesH1) return;
+
+      // Filter kata-kata promosi atau deskripsi panjang
+      if (/^(kami|pengalaman|harga|tenaga|teknologi|estimasi|durasi|garansi)/i.test(text)) return;
+
+      // Hapus karakter akhir seperti :, ;, ., , dan whitespace ganda
+      text = text.replace(/\s+/g, ' ').replace(/[:;,.]$/,'').trim();
+
+      typesSet.add(text);
     });
 
     PAGE.service.types = Array.from(typesSet);
