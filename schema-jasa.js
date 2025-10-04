@@ -9,8 +9,14 @@ document.addEventListener("DOMContentLoaded", function() {
       if (meta && meta.length > 30) return meta;
       const p = document.querySelector('article p, main p, .post-body p');
       if (p && p.innerText.trim().length > 40) return p.innerText.trim().substring(0, 300);
-      return Array.from(document.querySelectorAll('p, li'))
-                  .map(el => el.innerText.trim()).filter(Boolean).join(' ').substring(0, 300);
+      const altText = Array.from(document.querySelectorAll('p, li'))
+        .map(el => el.innerText.trim()).filter(Boolean).join(' ');
+      return altText.substring(0, 300);
+    })(),
+    parentUrl: (() => {
+      const canonical = document.querySelector('link[rel="canonical"]')?.href;
+      if (canonical && canonical !== location.href) return canonical;
+      return location.origin;
     })(),
     service: {
       name: document.querySelector('h1')?.textContent?.trim() || 'Jasa Konstruksi Profesional',
@@ -36,7 +42,20 @@ document.addEventListener("DOMContentLoaded", function() {
         "https://www.facebook.com/betonjayareadymix",
         "https://www.instagram.com/betonjayareadymix"
       ]
-    }
+    },
+    product: (() => {
+      const el = document.querySelector('.harga, .price, .harga-produk');
+      if (el) {
+        const price = parseInt(el.innerText.replace(/[^\d]/g, ''), 10);
+        if (!isNaN(price) && price > 0) {
+          return { hasProduct: true, lowPrice: price, highPrice: price, offerCount: 1 };
+        }
+      }
+      return { hasProduct: false };
+    })(),
+    internalLinks: Array.from(document.querySelectorAll('article a, main a, .post-body a'))
+      .filter(a => a.href && a.href.includes(location.hostname) && a.href !== location.href)
+      .map(a => ({ url: a.href, name: a.innerText.trim() }))
   };
 
   // ===== DETEKSI AREA SERVED =====
@@ -55,77 +74,122 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== EXTRACT SERVICE TYPE =====
+  // ===== EXTRACT SERVICE TYPE UNIVERSAL BERDASARKAN KONTEKS H1 =====
   (function extractServiceTypes() {
-    const types = [];
+    const h1 = document.querySelector('h1');
+    if (!h1) return;
 
-    document.querySelectorAll('h2, h3').forEach(header => {
-      const text = header.innerText.trim();
-      if (/Layanan|Jenis Renovasi/i.test(text)) {
-        // Ambil list berikutnya (ul/ol)
-        let sibling = header.nextElementSibling;
-        while(sibling && sibling.tagName !== 'UL' && sibling.tagName !== 'OL') {
-          sibling = sibling.nextElementSibling;
-        }
-        if(sibling && (sibling.tagName === 'UL' || sibling.tagName === 'OL')) {
-          sibling.querySelectorAll('li').forEach(li => {
-            let liText = li.innerText.trim();
-            if(liText.includes(':')) liText = liText.split(':')[0].trim();
-            types.push(liText);
-          });
+    const typesSet = new Set();
+
+    // Recursive function untuk traverse semua child nodes
+    function traverse(el) {
+      if (!el) return;
+
+      // Ambil teks jika elemen terlihat dan relevan
+      const tagName = el.tagName;
+      if (tagName && ["H2","H3","LI","P","SPAN","A","DIV"].includes(tagName)) {
+        const text = el.innerText.trim();
+        if (text && text.length > 3 && !text.toUpperCase().includes(h1.innerText.trim().toUpperCase())) {
+          typesSet.add(text);
         }
       }
-    });
 
-    PAGE.service.types = types.length ? types : [PAGE.service.name];
+      // Lanjut ke child
+      el.childNodes.forEach(child => traverse(child));
+    }
+
+    // Mulai traverse dari semua elemen dalam article/main/.post-body setelah H1
+    let startEl = h1.nextElementSibling;
+    while (startEl) {
+      traverse(startEl);
+      startEl = startEl.nextElementSibling;
+    }
+
+    PAGE.service.types = Array.from(typesSet);
   })();
 
   // ===== GENERATE JSON-LD =====
   function generateSchema(page) {
-    return {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "WebPage",
-          "@id": page.url + "#webpage",
-          url: page.url,
-          name: page.title,
-          description: page.description,
-          mainEntity: { "@id": page.url + "#service" },
-          publisher: { "@id": page.business.url + "#localbusiness" }
-        },
-        {
-          "@type": ["LocalBusiness", "GeneralContractor"],
-          "@id": page.business.url + "#localbusiness",
-          name: page.business.name,
-          url: page.business.url,
-          telephone: page.business.telephone,
-          openingHours: page.business.openingHours,
-          description: page.business.description,
-          address: page.business.address,
-          sameAs: page.business.sameAs,
-          brand: { "@type": "Brand", name: page.business.name }
-        },
-        {
-          "@type": "Service",
-          "@id": page.url + "#service",
-          name: page.service.name,
-          description: page.service.description,
-          serviceType: page.service.types.map(t => t),
-          areaServed: (page.service.areaServed || []).map(a => ({ "@type": "Place", name: a })),
-          provider: { "@id": page.business.url + "#localbusiness" },
-          mainEntityOfPage: { "@id": page.url + "#webpage" }
-        }
-      ]
+    const graph = [];
+
+    graph.push({
+      "@type": "WebPage",
+      "@id": page.url + "#webpage",
+      url: page.url,
+      name: page.title,
+      description: page.description,
+      ...(page.parentUrl && { isPartOf: { "@id": page.parentUrl } }),
+      mainEntity: { "@id": page.url + "#service" },
+      publisher: { "@id": page.business.url + "#localbusiness" },
+      ...(page.internalLinks.length && { hasPart: { "@id": page.url + "#daftar-internal-link" } })
+    });
+
+    graph.push({
+      "@type": ["LocalBusiness", "GeneralContractor"],
+      "@id": page.business.url + "#localbusiness",
+      name: page.business.name,
+      url: page.business.url,
+      telephone: page.business.telephone,
+      openingHours: page.business.openingHours,
+      description: page.business.description,
+      address: page.business.address,
+      sameAs: page.business.sameAs,
+      brand: { "@type": "Brand", name: page.business.name }
+    });
+
+    const serviceObj = {
+      "@type": "Service",
+      "@id": page.url + "#service",
+      name: page.service.name,
+      description: page.service.description,
+      serviceType: page.service.types || [],
+      areaServed: (page.service.areaServed || []).map(a => ({ "@type": "Place", name: a })),
+      provider: { "@id": page.business.url + "#localbusiness" },
+      mainEntityOfPage: { "@id": page.url + "#webpage" }
     };
+
+    if (page.product.hasProduct) {
+      const nextYear = new Date();
+      nextYear.setFullYear(nextYear.getFullYear() + 1);
+      serviceObj.offers = {
+        "@type": "AggregateOffer",
+        priceCurrency: "IDR",
+        lowPrice: page.product.lowPrice,
+        highPrice: page.product.highPrice,
+        offerCount: page.product.offerCount,
+        availability: "https://schema.org/InStock",
+        priceValidUntil: nextYear.toISOString().split('T')[0],
+        url: page.url
+      };
+    }
+
+    graph.push(serviceObj);
+
+    if (page.internalLinks.length) {
+      graph.push({
+        "@type": "ItemList",
+        "@id": page.url + "#daftar-internal-link",
+        name: "Daftar Halaman Terkait",
+        itemListOrder: "http://schema.org/ItemListOrderAscending",
+        numberOfItems: page.internalLinks.length,
+        itemListElement: page.internalLinks.map((link, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          url: link.url,
+          name: link.name
+        }))
+      });
+    }
+
+    return { "@context": "https://schema.org", "@graph": graph };
   }
 
-  const script = document.getElementById('auto-schema-service');
-  if(script){
-    script.textContent = JSON.stringify(generateSchema(PAGE), null, 2);
-    console.log("🚀 Schema JSON-LD untuk ServiceType sudah dibuat.");
+  const targetScript = document.getElementById('auto-schema-service');
+  if(targetScript){
+    targetScript.textContent = JSON.stringify(generateSchema(PAGE), null, 2);
+    console.log("🚀 Schema JSON-LD sudah dirender di #auto-schema-service");
   } else {
-    console.warn("⚠️ Script tag #auto-schema-service tidak ditemukan.");
+    console.warn("⚠️ Script tag dengan id 'auto-schema-service' tidak ditemukan di halaman.");
   }
 
 });
