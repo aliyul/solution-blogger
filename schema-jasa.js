@@ -1,4 +1,4 @@
-//UPDATE 16
+//UPDATE 17
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan.");
@@ -75,56 +75,68 @@ document.addEventListener("DOMContentLoaded", function() {
     (function extractServiceTypes() {
       const contentEls = document.querySelectorAll('article p, article li, main p, main li, .post-body p, .post-body li');
       const typesSet = new Set();
+
       contentEls.forEach(el => {
         const text = el.innerText.trim();
         if (!text || text.length > 120) return;
+
+        // Regex sederhana untuk kata kerja layanan
         const servicePattern = /^(Renovasi|Perbaikan|Pemasangan|Epoxy|Peremajaan|Instalasi|Perkuatan)\s+[A-Z][a-zA-Z0-9\s]+/;
         const match = text.match(servicePattern);
         if (match) typesSet.add(match[0].replace(/\s+/g,' ').trim());
       });
+
       PAGE.service.types = Array.from(typesSet);
       console.log("[Schema Service] Detected service types:", PAGE.service.types);
     })();
 
-    // ===== DETEKSI PRODUK & HARGA OTOMATIS =====
+    // ===== DETEKSI HARGA PAKET DARI TABLE, LI, PARAGRAF =====
     function detectProductPackage() {
-      const headings = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6'));
-      for (let h of headings) {
-        const text = h.innerText.toLowerCase();
-        if (/harga|tarif|biaya/.test(text)) {
-          let table = h.nextElementSibling;
-          while(table && table.tagName !== 'TABLE') table = table.nextElementSibling;
-          if(!table) return { hasProduct: false };
+      let lowPrice = Infinity, highPrice = 0, offerCount = 0;
 
-          const rows = Array.from(table.querySelectorAll('tbody tr'));
-          let lowPrices = [], highPrices = [];
-          rows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if(cells.length >= 2) {
-              const match = cells[1].innerText.match(/Rp\s*([\d.]+)\s*–\s*Rp\s*([\d.]+)/);
-              if(match){
-                const low = parseInt(match[1].replace(/\./g,''),10);
-                const high = parseInt(match[2].replace(/\./g,''),10);
-                if(!isNaN(low) && !isNaN(high)){
-                  lowPrices.push(low);
-                  highPrices.push(high);
-                }
-              }
-            }
-          });
-
-          if(lowPrices.length && highPrices.length){
-            return {
-              hasProduct: true,
-              lowPrice: Math.min(...lowPrices),
-              highPrice: Math.max(...highPrices),
-              offerCount: rows.length
-            };
-          }
-
-          return { hasProduct: false };
-        }
+      // Fungsi ekstraksi angka dari teks
+      function extractPrices(text) {
+        const matches = text.match(/(\d[\d\.]*)/g); // Ambil angka dengan titik
+        if (!matches) return [];
+        return matches.map(n => parseInt(n.replace(/\./g,''),10)).filter(n => !isNaN(n) && n > 0);
       }
+
+      // 1. Cek tabel
+      const tables = document.querySelectorAll('table');
+      tables.forEach(table => {
+        table.querySelectorAll('td').forEach(td => {
+          const prices = extractPrices(td.innerText);
+          if(prices.length){
+            lowPrice = Math.min(lowPrice, ...prices);
+            highPrice = Math.max(highPrice, ...prices);
+            offerCount += prices.length;
+          }
+        });
+      });
+
+      // 2. Cek list li
+      const listItems = document.querySelectorAll('li');
+      listItems.forEach(li => {
+        const prices = extractPrices(li.innerText);
+        if(prices.length){
+          lowPrice = Math.min(lowPrice, ...prices);
+          highPrice = Math.max(highPrice, ...prices);
+          offerCount += prices.length;
+        }
+      });
+
+      // 3. Cek paragraf
+      const paras = document.querySelectorAll('p');
+      paras.forEach(p => {
+        const prices = extractPrices(p.innerText);
+        if(prices.length){
+          lowPrice = Math.min(lowPrice, ...prices);
+          highPrice = Math.max(highPrice, ...prices);
+          offerCount += prices.length;
+        }
+      });
+
+      if(offerCount > 0) return { hasProduct: true, lowPrice, highPrice, offerCount };
       return { hasProduct: false };
     }
 
@@ -174,10 +186,11 @@ document.addEventListener("DOMContentLoaded", function() {
         mainEntityOfPage: { "@id": page.url + "#webpage" }
       };
 
-      if(product.hasProduct) {
+      // Jika ada harga → buat offers & Product
+      if(product.hasProduct){
         const nextYear = new Date();
         nextYear.setFullYear(nextYear.getFullYear() + 1);
-        const offersObj = {
+        serviceObj.offers = {
           "@type": "AggregateOffer",
           priceCurrency: "IDR",
           lowPrice: product.lowPrice,
@@ -187,18 +200,17 @@ document.addEventListener("DOMContentLoaded", function() {
           priceValidUntil: nextYear.toISOString().split('T')[0],
           url: page.url
         };
-        serviceObj.offers = offersObj;
 
-        // Product schema otomatis
-        graph.push({
+        const productSchema = {
           "@type": "Product",
           "@id": page.url + "#product",
           name: "Harga " + page.service.name,
           description: page.service.description,
           category: "Jasa Konstruksi",
           brand: { "@type": "Brand", name: page.business.name },
-          offers: offersObj
-        });
+          offers: serviceObj.offers
+        };
+        graph.push(productSchema);
       }
 
       graph.push(serviceObj);
@@ -233,5 +245,5 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     schemaScript.textContent = JSON.stringify(generateSchema(PAGE, productData), null, 2);
     console.log("[Schema Service] JSON-LD berhasil di-inject");
-  }, 800);
+  }, 500);
 });
