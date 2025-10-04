@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
 
+    console.log("🚀 Schema JS dimulai...");
+
     // ====== KONFIGURASI HALAMAN ======
     const PAGE = {
       url: location.href,
@@ -29,18 +31,18 @@ document.addEventListener("DOMContentLoaded", function() {
         areaServed: []
       },
       business: {
-        "name": "Beton Jaya Readymix",
-        "url": "https://www.betonjayareadymix.com",
-        "telephone": "+6283839000968",
-        "openingHours": "Mo-Sa 08:00-17:00",
-        "description": "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
-        "address": {
+        name: "Beton Jaya Readymix",
+        url: "https://www.betonjayareadymix.com",
+        telephone: "+6283839000968",
+        openingHours: "Mo-Sa 08:00-17:00",
+        description: "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
+        address: {
           "@type": "PostalAddress",
-          "addressLocality": "Bogor",
-          "addressRegion": "Jawa Barat",
-          "addressCountry": "ID"
+          addressLocality: "Bogor",
+          addressRegion: "Jawa Barat",
+          addressCountry: "ID"
         },
-        "sameAs": [
+        sameAs: [
           "https://www.facebook.com/betonjayareadymix",
           "https://www.instagram.com/betonjayareadymix"
         ]
@@ -60,6 +62,8 @@ document.addEventListener("DOMContentLoaded", function() {
         .map(a => ({ url: a.href, name: a.innerText.trim() }))
     };
 
+    console.log("📄 PAGE config:", PAGE);
+
     // ===== DETEKSI AREA SERVED =====
     (function detectAreaServed() {
       const defaultAreas = [
@@ -74,6 +78,7 @@ document.addEventListener("DOMContentLoaded", function() {
         url.includes(area.toLowerCase().replace(/\s+/g, ''))
       );
       PAGE.service.areaServed = match ? [match] : defaultAreas;
+      console.log("🌍 Area Served:", PAGE.service.areaServed);
     })();
 
     // ===== GENERATE JSON-LD =====
@@ -102,13 +107,8 @@ document.addEventListener("DOMContentLoaded", function() {
         telephone: page.business.phone,
         openingHours: "Mo-Sa 08:00-17:00",
         description: page.business.description,
-        address: {
-          "@type": "PostalAddress",
-          addressLocality: page.business.city,
-          addressRegion: page.business.region,
-          addressCountry: "ID"
-        },
-        sameAs: page.business.social,
+        address: page.business.address,
+        sameAs: page.business.sameAs,
         brand: { "@type": "Brand", name: page.business.name }
       });
 
@@ -160,11 +160,12 @@ document.addEventListener("DOMContentLoaded", function() {
       return { "@context": "https://schema.org", "@graph": graph };
     }
 
-    // ===== INJEKSI OTOMATIS KE HEAD =====
     const script = document.createElement("script");
     script.type = "application/ld+json";
     script.textContent = JSON.stringify(generateSchema(PAGE), null, 2);
     document.head.appendChild(script);
+
+    console.log("✅ JSON-LD Schema berhasil di-inject ke <head>.");
 
   }, 800); // delay agar Blogger selesai render
 });
