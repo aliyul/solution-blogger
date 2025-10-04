@@ -1,4 +1,4 @@
-//UPDATE 5
+//UPDATE 6
 document.addEventListener("DOMContentLoaded", function() {
 
   // ====== KONFIGURASI HALAMAN ======
@@ -75,33 +75,34 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== EXTRACT SERVICE TYPES BERDASARKAN KONTEKS H1 =====
+  // ===== EXTRACT SERVICE TYPE BERDASARKAN H1/TOPIK =====
   (function extractServiceTypes() {
-    const h1Text = (document.querySelector('h1')?.textContent || '').trim().toLowerCase();
-    if (!h1Text) return;
+    const h1 = document.querySelector('h1');
+    if (!h1) return;
 
     const typesSet = new Set();
 
-    // Ambil semua teks dari artikel / main / post-body
-    const elements = Array.from(document.querySelectorAll('article, main, .post-body'));
-    elements.forEach(el => {
-      const paragraphs = Array.from(el.querySelectorAll('p, li, div'));
-      paragraphs.forEach(p => {
-        const text = p.innerText.trim();
-        if (!text) return;
+    // Ambil semua teks artikel (p, li, span) setelah H1
+    const contentEls = Array.from(document.querySelectorAll('article p, article li, article span, main p, main li, main span, .post-body p, .post-body li, .post-body span'));
+    contentEls.forEach(el => {
+      let text = el.innerText.trim();
+      if (!text) return;
 
-        // Ambil baris yang mengandung kata kunci inti H1
-        const lower = text.toLowerCase();
-        if (h1Text.includes('stadion') && lower.match(/renovasi|perbaikan|peremajaan|perkuatan|pemasangan|inspeksi|epoxy|joint sealant/)) {
-          typesSet.add(text);
+      // Split paragraf panjang jadi kalimat
+      const sentences = text.split(/[\.\n]/).map(s => s.trim()).filter(Boolean);
+      sentences.forEach(s => {
+        // Hanya ambil kalimat yang mengandung kata kunci relevan dari H1
+        // Contoh kata kunci: Renovasi, Perbaikan, Pemasangan, Peremajaan, Penggantian
+        if (new RegExp(h1.textContent.split(' ').slice(0,2).join('|'), 'i').test(s) || /Renovasi|Perbaikan|Pemasangan|Peremajaan|Penggantian|Inspeksi|Epoxy|Waterproofing/i.test(s)) {
+          // Bersihkan kalimat dari kata2 marketing atau simbol aneh
+          let clean = s.replace(/\s{2,}/g, ' ').replace(/&nbsp;|›/g, '').trim();
+          if (clean.length > 5) typesSet.add(clean);
         }
-        // Jika H1 lain, bisa tambahkan keyword sesuai H1
-        // Contoh: if(h1Text.includes('trotoar')) { ... }
       });
     });
 
-    // Hapus duplikat dan kalimat marketing/FAQ
-    PAGE.service.types = Array.from(typesSet).filter(s => s.length < 100); // batasi panjang agar bukan paragraf panjang
+    // Hanya ambil unique dan sorted
+    PAGE.service.types = Array.from(typesSet);
   })();
 
   // ===== GENERATE JSON-LD =====
