@@ -1,4 +1,4 @@
-//UPDATE 4
+//UPDATE 5
 document.addEventListener("DOMContentLoaded", function() {
 
   // ====== KONFIGURASI HALAMAN ======
@@ -75,35 +75,33 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== EXTRACT SERVICE TYPES AKURAT BERDASARKAN H1/TOPIK =====
+  // ===== EXTRACT SERVICE TYPES BERDASARKAN KONTEKS H1 =====
   (function extractServiceTypes() {
-    const h1 = document.querySelector('h1');
-    if (!h1) return;
-
-    const textContent = Array.from(document.querySelectorAll('article *, main *, .post-body *'))
-      .map(el => el.innerText.trim())
-      .filter(Boolean)
-      .join('\n');
-
-    const lines = textContent.split('\n')
-      .map(l => l.trim())
-      .filter(Boolean);
+    const h1Text = (document.querySelector('h1')?.textContent || '').trim().toLowerCase();
+    if (!h1Text) return;
 
     const typesSet = new Set();
 
-    // Heuristik: ambil frasa pendek yang mengandung kata relevan H1
-    const h1Keywords = h1.textContent.toLowerCase().split(/\s+/);
-    lines.forEach(line => {
-      const clean = line.replace(/\s{2,}/g,' ').trim();
-      if (clean.length < 8 || clean.length > 100) return; // abaikan terlalu pendek/panjang
-      const lc = clean.toLowerCase();
-      // ambil hanya jika setidaknya satu keyword H1 muncul
-      if (h1Keywords.some(k => lc.includes(k)) ) {
-        typesSet.add(clean);
-      }
+    // Ambil semua teks dari artikel / main / post-body
+    const elements = Array.from(document.querySelectorAll('article, main, .post-body'));
+    elements.forEach(el => {
+      const paragraphs = Array.from(el.querySelectorAll('p, li, div'));
+      paragraphs.forEach(p => {
+        const text = p.innerText.trim();
+        if (!text) return;
+
+        // Ambil baris yang mengandung kata kunci inti H1
+        const lower = text.toLowerCase();
+        if (h1Text.includes('stadion') && lower.match(/renovasi|perbaikan|peremajaan|perkuatan|pemasangan|inspeksi|epoxy|joint sealant/)) {
+          typesSet.add(text);
+        }
+        // Jika H1 lain, bisa tambahkan keyword sesuai H1
+        // Contoh: if(h1Text.includes('trotoar')) { ... }
+      });
     });
 
-    PAGE.service.types = Array.from(typesSet);
+    // Hapus duplikat dan kalimat marketing/FAQ
+    PAGE.service.types = Array.from(typesSet).filter(s => s.length < 100); // batasi panjang agar bukan paragraf panjang
   })();
 
   // ===== GENERATE JSON-LD =====
