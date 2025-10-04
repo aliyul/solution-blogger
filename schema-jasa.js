@@ -1,8 +1,6 @@
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
 
-    console.log("🚀 Schema JS dimulai...");
-
     // ====== KONFIGURASI HALAMAN ======
     const PAGE = {
       url: location.href,
@@ -31,18 +29,18 @@ document.addEventListener("DOMContentLoaded", function() {
         areaServed: []
       },
       business: {
-        name: "Beton Jaya Readymix",
-        url: "https://www.betonjayareadymix.com",
-        telephone: "+6283839000968",
-        openingHours: "Mo-Sa 08:00-17:00",
-        description: "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
-        address: {
+        "name": "Beton Jaya Readymix",
+        "url": "https://www.betonjayareadymix.com",
+        "telephone": "+6283839000968",
+        "openingHours": "Mo-Sa 08:00-17:00",
+        "description": "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
+        "address": {
           "@type": "PostalAddress",
-          addressLocality: "Bogor",
-          addressRegion: "Jawa Barat",
-          addressCountry: "ID"
+          "addressLocality": "Bogor",
+          "addressRegion": "Jawa Barat",
+          "addressCountry": "ID"
         },
-        sameAs: [
+        "sameAs": [
           "https://www.facebook.com/betonjayareadymix",
           "https://www.instagram.com/betonjayareadymix"
         ]
@@ -62,8 +60,6 @@ document.addEventListener("DOMContentLoaded", function() {
         .map(a => ({ url: a.href, name: a.innerText.trim() }))
     };
 
-    console.log("📄 PAGE config:", PAGE);
-
     // ===== DETEKSI AREA SERVED =====
     (function detectAreaServed() {
       const defaultAreas = [
@@ -78,14 +74,12 @@ document.addEventListener("DOMContentLoaded", function() {
         url.includes(area.toLowerCase().replace(/\s+/g, ''))
       );
       PAGE.service.areaServed = match ? [match] : defaultAreas;
-      console.log("🌍 Area Served:", PAGE.service.areaServed);
     })();
 
     // ===== GENERATE JSON-LD =====
     function generateSchema(page) {
       const graph = [];
 
-      // WebPage
       graph.push({
         "@type": "WebPage",
         "@id": page.url + "#webpage",
@@ -98,7 +92,6 @@ document.addEventListener("DOMContentLoaded", function() {
         ...(page.internalLinks.length && { hasPart: { "@id": page.url + "#daftar-internal-link" } })
       });
 
-      // LocalBusiness
       graph.push({
         "@type": ["LocalBusiness", "GeneralContractor"],
         "@id": page.business.url + "#localbusiness",
@@ -112,7 +105,6 @@ document.addEventListener("DOMContentLoaded", function() {
         brand: { "@type": "Brand", name: page.business.name }
       });
 
-      // Service
       const serviceObj = {
         "@type": "Service",
         "@id": page.url + "#service",
@@ -138,9 +130,9 @@ document.addEventListener("DOMContentLoaded", function() {
           url: page.url
         };
       }
+
       graph.push(serviceObj);
 
-      // ItemList (internal links)
       if (page.internalLinks.length) {
         graph.push({
           "@type": "ItemList",
@@ -160,12 +152,14 @@ document.addEventListener("DOMContentLoaded", function() {
       return { "@context": "https://schema.org", "@graph": graph };
     }
 
-    const script = document.createElement("script");
-    script.type = "application/ld+json";
-    script.textContent = JSON.stringify(generateSchema(PAGE), null, 2);
-    document.head.appendChild(script);
-
-    console.log("✅ JSON-LD Schema berhasil di-inject ke <head>.");
+    // ===== MASUKKAN KE SCRIPT ID auto-schema-service =====
+    const targetScript = document.getElementById('auto-schema-service');
+    if(targetScript){
+      targetScript.textContent = JSON.stringify(generateSchema(PAGE), null, 2);
+      console.log("🚀 Schema JSON-LD sudah dirender di #auto-schema-service");
+    } else {
+      console.warn("⚠️ Script tag dengan id 'auto-schema-service' tidak ditemukan di halaman.");
+    }
 
   }, 800); // delay agar Blogger selesai render
 });
