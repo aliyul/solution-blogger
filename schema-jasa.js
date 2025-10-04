@@ -1,42 +1,41 @@
-//UPDATE 2
+//UPDATE 3
 document.addEventListener("DOMContentLoaded", function() {
 
   // ====== KONFIGURASI HALAMAN ======
   const PAGE = {
     url: location.href,
     title: document.querySelector('h1')?.textContent?.trim() || document.title.trim(),
-    description: document.querySelector('meta[name="description"]')?.content?.trim() || 'Layanan profesional dalam bidang konstruksi.',
     service: {
       name: document.querySelector('h1')?.textContent?.trim() || 'Jasa Konstruksi Profesional',
       types: [],
       areaServed: []
     },
     business: {
-      "name": "Beton Jaya Readymix",
-      "url": "https://www.betonjayareadymix.com",
-      "telephone": "+6283839000968",
-      "openingHours": "Mo-Sa 08:00-17:00",
-      "description": "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia.",
-      "address": {
+      name: "Beton Jaya Readymix",
+      url: "https://www.betonjayareadymix.com",
+      telephone: "+6283839000968",
+      openingHours: "Mo-Sa 08:00-17:00",
+      description: "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia.",
+      address: {
         "@type": "PostalAddress",
-        "addressLocality": "Bogor",
-        "addressRegion": "Jawa Barat",
-        "addressCountry": "ID"
+        addressLocality: "Bogor",
+        addressRegion: "Jawa Barat",
+        addressCountry: "ID"
       },
-      "sameAs": [
+      sameAs: [
         "https://www.facebook.com/betonjayareadymix",
         "https://www.instagram.com/betonjayareadymix"
       ]
     }
   };
 
-  // ===== DETEKSI AREA SERVED =====
+  // ===== DETEKSI AREA SERVED ======
   (function detectAreaServed() {
     const defaultAreas = [
-      "DKI Jakarta","Kabupaten Bekasi","Kota Bekasi",
-      "Kabupaten Bogor","Kota Bogor","Kabupaten Tangerang",
-      "Kota Tangerang","Tangerang Selatan","Kota Depok",
-      "Kabupaten Karawang","Kabupaten Serang","Kota Serang","Kota Cilegon"
+      "DKI Jakarta", "Kabupaten Bekasi", "Kota Bekasi", 
+      "Kabupaten Bogor", "Kota Bogor", "Kabupaten Tangerang", 
+      "Kota Tangerang", "Tangerang Selatan", "Kota Depok", 
+      "Kabupaten Karawang", "Kabupaten Serang", "Kota Serang", "Kota Cilegon"
     ];
     const url = PAGE.url.toLowerCase();
     const match = defaultAreas.find(area =>
@@ -46,86 +45,87 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== DETEKSI SERVICE TYPE =====
+  // ===== EXTRACT SERVICE TYPES BERDASARKAN TOPIK H1 ======
   (function extractServiceTypes() {
     const h1Text = PAGE.service.name.toLowerCase();
     const typesSet = new Set();
-    const elements = Array.from(document.querySelectorAll('h2,h3,li,a,p'));
 
-    // pola kata kerja umum untuk layanan
-    const serviceKeywords = ["renovasi","perbaikan","pemasangan","pengaspalan","peningkatan","perkuatan","pelapisan","pembuatan","perawatan"];
-
-    elements.forEach(el => {
+    // Ambil semua elemen teks utama: h2,h3,li,p
+    const contentEls = Array.from(document.querySelectorAll('h2,h3,li,p'));
+    contentEls.forEach(el => {
       let text = el.innerText.trim();
-      if(!text) return;
+      if (!text) return;
 
-      // normalisasi
-      text = text.replace(/\s+/g,' ').replace(/\u00a0/g,' ').trim();
+      // Abaikan navigasi, breadcrumb, CTA, FAQ, Harga, Galeri, Proyek
+      if (/›|»|Konsultasi|WhatsApp|FAQ|Harga|Galeri|Proyek/i.test(text)) return;
 
-      // skip kalimat panjang >15 kata (biasanya narasi)
-      if(text.split(/\s+/).length > 15) return;
+      // Pisahkan kalimat jika ada
+      const sentences = text.split(/[:.]\s/);
+      sentences.forEach(s => {
+        const clean = s.trim();
+        if (!clean) return;
 
-      const lowerText = text.toLowerCase();
+        // Hitung kata, abaikan terlalu panjang (>30) atau terlalu pendek (<2)
+        const wordCount = clean.split(/\s+/).length;
+        if (wordCount < 2 || wordCount > 30) return;
 
-      // ambil hanya kalimat yang mengandung kata kerja layanan & ada konteks H1
-      const hasKeyword = serviceKeywords.some(kw => lowerText.includes(kw));
-      const hasH1Context = h1Text.split(/\s+/).some(k => k.length>3 && lowerText.includes(k));
-
-      if(hasKeyword && hasH1Context){
-        typesSet.add(text);
-      }
+        // Relevansi H1: setidaknya 1 kata sama dengan H1
+        const relevance = clean.toLowerCase().split(/\s+/).some(word => h1Text.includes(word));
+        if (relevance) typesSet.add(clean);
+      });
     });
 
     PAGE.service.types = Array.from(typesSet);
   })();
 
-  // ===== GENERATE JSON-LD =====
-  function generateSchema(page){
+  // ===== GENERATE JSON-LD ======
+  function generateSchema(page) {
     const graph = [];
 
+    // WebPage
     graph.push({
       "@type": "WebPage",
-      "@id": page.url+"#webpage",
+      "@id": page.url + "#webpage",
       url: page.url,
       name: page.title,
-      description: page.description,
-      mainEntity: {"@id": page.url+"#service"},
-      publisher: {"@id": page.business.url+"#localbusiness"}
+      mainEntity: { "@id": page.url + "#service" },
+      publisher: { "@id": page.business.url + "#localbusiness" }
     });
 
+    // LocalBusiness
     graph.push({
-      "@type":["LocalBusiness","GeneralContractor"],
-      "@id": page.business.url+"#localbusiness",
+      "@type": ["LocalBusiness", "GeneralContractor"],
+      "@id": page.business.url + "#localbusiness",
       name: page.business.name,
       url: page.business.url,
       telephone: page.business.telephone,
       openingHours: page.business.openingHours,
       description: page.business.description,
       address: page.business.address,
-      sameAs: page.business.sameAs,
-      brand: { "@type":"Brand", name: page.business.name }
+      sameAs: page.business.sameAs
     });
 
+    // Service
     graph.push({
-      "@type":"Service",
-      "@id": page.url+"#service",
+      "@type": "Service",
+      "@id": page.url + "#service",
       name: page.service.name,
-      description: page.description,
       serviceType: page.service.types,
-      areaServed: (page.service.areaServed || []).map(a=>({"@type":"Place","name":a})),
-      provider: {"@id": page.business.url+"#localbusiness"},
-      mainEntityOfPage: {"@id": page.url+"#webpage"}
+      areaServed: (page.service.areaServed || []).map(a => ({ "@type": "Place", name: a })),
+      provider: { "@id": page.business.url + "#localbusiness" },
+      mainEntityOfPage: { "@id": page.url + "#webpage" }
     });
 
-    return {"@context":"https://schema.org","@graph":graph};
+    return { "@context": "https://schema.org", "@graph": graph };
   }
 
+  // Render JSON-LD ke <script id="auto-schema-service">
   const targetScript = document.getElementById('auto-schema-service');
   if(targetScript){
-    targetScript.textContent = JSON.stringify(generateSchema(PAGE),null,2);
-    console.log("🚀 Schema JSON-LD serviceType sudah dirender di #auto-schema-service");
-  }else{
-    console.warn("⚠️ Script tag dengan id 'auto-schema-service' tidak ditemukan di halaman.");
+    targetScript.textContent = JSON.stringify(generateSchema(PAGE), null, 2);
+    console.log("🚀 Schema JSON-LD serviceType bersih dan akurat sudah dirender!");
+  } else {
+    console.warn("⚠️ Script tag dengan id 'auto-schema-service' tidak ditemukan.");
   }
 
 });
