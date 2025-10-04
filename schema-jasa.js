@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", function() {
 
+  // ====== KONFIGURASI HALAMAN ======
   const PAGE = {
     url: location.href,
     title: document.querySelector('h1')?.textContent?.trim() || document.title.trim(),
@@ -73,20 +74,19 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== DETEKSI SERVICE TYPE BERBASIS KONTEN =====
-  (function detectServiceType() {
-    const h1Text = PAGE.title.toLowerCase();
-    const elements = Array.from(document.querySelectorAll('h2,h3,li,a'))
+  // ===== EXTRACT SERVICE TYPE =====
+  (function extractServiceTypes() {
+    const raw = Array.from(document.querySelectorAll('h2, h3, ul li, .service-list'))
       .map(el => el.innerText.trim())
       .filter(Boolean);
 
-    const relevant = elements.filter(text => {
-      const lower = text.toLowerCase();
-      return h1Text.split(' ').some(word => word.length > 3 && lower.includes(word))
-             || /jasa|renovasi|konstruksi|proyek|perbaikan|layanan/i.test(text);
-    });
+    const excludeKeywords = ["PRODUK", "MATERIAL", "APA ITU", "MANFAAT", "FAQ", "›", "KONSTRUKSI"];
+    const serviceTypes = raw.filter(text => 
+      !excludeKeywords.some(k => text.toUpperCase().includes(k))
+    );
 
-    PAGE.service.types = [...new Set(relevant)];
+    // fallback ke H1 jika kosong
+    PAGE.service.types = serviceTypes.length ? serviceTypes : [document.querySelector('h1')?.innerText.trim()];
   })();
 
   // ===== GENERATE JSON-LD =====
