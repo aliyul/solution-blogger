@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function() {
       url: "https://www.betonjayareadymix.com",
       telephone: "+6283839000968",
       openingHours: "Mo-Sa 08:00-17:00",
-      description: "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
+      description: "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia.",
       address: {
         "@type": "PostalAddress",
         "addressLocality": "Bogor",
@@ -73,18 +73,18 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== DETEKSI SERVICE TYPE KONTEKS LAYANAN =====
+  // ===== DETEKSI SERVICE TYPE OTOMATIS =====
   (function detectServiceType() {
-    const potentialText = Array.from(document.querySelectorAll('h2,h3,h4,li,p'))
+    // Ambil H2, H3, li, paragraf yang mengandung kata jasa, renovasi, konstruksi, proyek, layanan
+    const candidates = Array.from(document.querySelectorAll('h2,h3,li,p'))
       .map(el => el.innerText.trim())
-      .filter(Boolean);
+      .filter(text => /jasa|renovasi|konstruksi|proyek|layanan/i.test(text));
 
-    // Filter hanya yang mengandung kata kerja jasa/renovasi/pembangunan
-    const serviceKeywordsRegex = /\b(Jasa|Renovasi|Pembangunan|Konstruksi|Perbaikan|Servis|Layanan|Proyek)\b/i;
+    // Masukkan H1 sebagai serviceType utama
+    PAGE.service.types = [PAGE.service.name, ...candidates];
 
-    PAGE.service.types = [...new Set(
-      potentialText.filter(text => serviceKeywordsRegex.test(text))
-    )];
+    // Unik
+    PAGE.service.types = [...new Set(PAGE.service.types)];
   })();
 
   // ===== GENERATE JSON-LD =====
@@ -121,7 +121,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "@id": page.url + "#service",
       name: page.service.name,
       description: page.service.description,
-      serviceType: page.service.types.length ? page.service.types : [page.service.name],
+      serviceType: page.service.types,
       areaServed: (page.service.areaServed || []).map(a => ({ "@type": "Place", name: a })),
       provider: { "@id": page.business.url + "#localbusiness" },
       mainEntityOfPage: { "@id": page.url + "#webpage" }
