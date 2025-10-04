@@ -29,13 +29,18 @@ document.addEventListener("DOMContentLoaded", function() {
         areaServed: []
       },
       business: {
-        name: "Beton Jaya Readymix",
-        url: "https://www.betonjayareadymix.com",
-        phone: "+6281234567890",
-        description: "Penyedia beton ready mix, precast, dan jasa konstruksi profesional wilayah Jabodetabek dan sekitarnya.",
-        city: "Kota Depok",
-        region: "Jawa Barat",
-        social: [
+        "name": "Beton Jaya Readymix",
+        "url": "https://www.betonjayareadymix.com",
+        "telephone": "+6283839000968",
+        "openingHours": "Mo-Sa 08:00-17:00",
+        "description": "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Bogor",
+          "addressRegion": "Jawa Barat",
+          "addressCountry": "ID"
+        },
+        "sameAs": [
           "https://www.facebook.com/betonjayareadymix",
           "https://www.instagram.com/betonjayareadymix"
         ]
