@@ -1,4 +1,4 @@
-//UPDATE 11
+//UPDATE 12
 document.addEventListener("DOMContentLoaded", function() {
 
   // ====== KONFIGURASI HALAMAN ======
@@ -11,36 +11,29 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   };
 
-  // ====== EKSTRAKSI SERVICE TYPE DARI H1 + H2/H3 ======
+  // ====== EKSTRAKSI SERVICE TYPE OTOMATIS ======
   (function extractServiceTypes() {
     const h1Text = PAGE.service.name.toLowerCase();
+
+    // Ambil semua elemen konten artikel utama
+    const contentEls = document.querySelectorAll('article p, article li, main p, main li, .post-body p, .post-body li');
+
     const typesSet = new Set();
 
-    // Ambil semua H2/H3 sebagai sub-jasa
-    const headingEls = document.querySelectorAll('article h2, article h3, main h2, main h3, .post-body h2, .post-body h3');
-    headingEls.forEach(el => {
-      const text = el.innerText.trim();
-      if (text && h1Text.split(' ').some(w => text.toLowerCase().includes(w))) {
-        typesSet.add(text.replace(/\s+/g, ' ').replace(/[:;,.]$/,'').trim());
-      }
-    });
-
-    // Ambil juga paragraf/li pendek yang mengandung kata kunci H1
-    const contentEls = document.querySelectorAll('article p, article li, main p, main li, .post-body p, .post-body li');
     contentEls.forEach(el => {
       let text = el.innerText.trim();
       if (!text) return;
 
-      // Pecah menjadi frasa berdasarkan koma, "dan", "/", atau "-"
-      const fragments = text.split(/,| dan |\/| - /i).map(f => f.trim());
-      fragments.forEach(frag => {
-        if (!frag) return;
-        const fragLower = frag.toLowerCase();
-
-        if (h1Text.split(' ').some(w => fragLower.includes(w)) && frag.length <= 100) {
-          typesSet.add(frag.replace(/\s+/g, ' ').replace(/[:;,.]$/,'').trim());
+      // Filter: pendek < 120 karakter & mengandung kata kerja layanan (misal Renovasi, Perbaikan, Pemasangan, Epoxy, dll)
+      if (text.length <= 120) {
+        // Gunakan regex sederhana untuk deteksi pola layanan: KataKerja + Objek
+        // Contoh: "Renovasi Tribun Penonton", "Perbaikan Atap Stadion"
+        const servicePattern = /^(Renovasi|Perbaikan|Pemasangan|Epoxy|Peremajaan|Instalasi|Perkuatan)\s+[A-Z][a-zA-Z0-9\s]+/;
+        const match = text.match(servicePattern);
+        if (match) {
+          typesSet.add(match[0].replace(/\s+/g,' ').trim());
         }
-      });
+      }
     });
 
     PAGE.service.types = Array.from(typesSet);
@@ -70,9 +63,9 @@ document.addEventListener("DOMContentLoaded", function() {
   const targetScript = document.getElementById('auto-schema-service');
   if(targetScript){
     targetScript.textContent = JSON.stringify(generateSchema(PAGE), null, 2);
-    console.log("🚀 Schema JSON-LD serviceType bersih + sub-jasa sudah dirender di #auto-schema-service");
+    console.log("🚀 Schema JSON-LD serviceType bersih sudah dirender di #auto-schema-service");
   } else {
-    console.warn("⚠️ Script tag dengan id 'auto-schema-service' tidak ditemukan.");
+    console.warn("⚠️ Script tag dengan id 'auto-schema-service' tidak ditemukan di halaman.");
   }
 
 });
