@@ -74,41 +74,45 @@ document.addEventListener("DOMContentLoaded", function() {
     PAGE.service.areaServed = match ? [match] : defaultAreas;
   })();
 
-  // ===== EXTRACT SERVICE TYPE AGRESIF =====
+  // ===== EXTRACT SERVICE TYPE ULTIMATE =====
   (function extractServiceTypes() {
     const h1Text = document.querySelector('h1')?.textContent?.trim().toLowerCase();
     if (!h1Text) return;
 
     const typesSet = new Set();
+    const allElements = Array.from(document.querySelectorAll('h2, h3, li, a, p'));
 
-    const allTextElements = Array.from(document.querySelectorAll('h2, h3, li, a, p'));
-
-    allTextElements.forEach(el => {
+    allElements.forEach(el => {
       let text = el.innerText.trim();
-      if (!text || text.length > 120) return;
+      if (!text) return;
 
       // Potong sebelum ":" jika ada
       if (text.includes(':')) text = text.split(':')[0].trim();
 
-      // Ambil kalimat relevan dari paragraf panjang
+      // Paragraf panjang: split kalimat
       if (el.tagName === 'P' && text.length > 40) {
         text.split(/[.?!]/).forEach(sentence => {
           sentence = sentence.trim();
           if (!sentence) return;
-          // Cek apakah setidaknya ada 2 kata yang relevan dengan H1
+
+          // Ambil kalimat jika relevan dengan H1
           const matchCount = sentence.toLowerCase().split(' ')
             .filter(word => h1Text.includes(word)).length;
+
+          // Hanya masukkan kalimat jika ada minimal 2 kata relevan
           if (matchCount >= 2) typesSet.add(sentence);
         });
       } else {
-        // Untuk H2, H3, LI, A: cek setidaknya ada 1 kata relevan dengan H1
+        // H2/H3/LI/A: ambil jika ada minimal 1 kata relevan
         const match = text.toLowerCase().split(' ').some(word => h1Text.includes(word));
         if (match) typesSet.add(text);
       }
     });
 
-    // Hapus duplikat
-    PAGE.service.types = Array.from(typesSet);
+    // Filter lagi: hapus yang **tidak relevan sama sekali** (kata kunci H1 tidak ada)
+    PAGE.service.types = Array.from(typesSet).filter(t =>
+      t.toLowerCase().split(' ').some(w => h1Text.includes(w))
+    );
   })();
 
   // ===== GENERATE JSON-LD =====
