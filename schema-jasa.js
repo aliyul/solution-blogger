@@ -1,4 +1,4 @@
-//✅ FINAL UPDATE — AUTO SCHEMA SERVICE + PRODUCT + OG:URL & CANONICAL CLEAN URL DETECTION
+// ✅ FINAL UPDATE — AUTO SCHEMA SERVICE + PRODUCT + OG:URL & CANONICAL CLEAN URL DETECTION (with real-price heading focus)
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan.");
@@ -25,15 +25,11 @@ document.addEventListener("DOMContentLoaded", function() {
       parentUrl: (() => {
         const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
         if (metaParent) return metaParent;
-
-        // Gunakan og:url jika berbeda dari halaman sekarang
         if (ogUrl && ogUrl !== cleanUrl) return ogUrl.replace(/[?&]m=1/, "");
-
         const breadcrumbLinks = Array.from(document.querySelectorAll('nav.breadcrumbs a'))
           .map(a => a.href.replace(/[?&]m=1/, ""))
           .filter(href => href !== cleanUrl);
         if (breadcrumbLinks.length) return breadcrumbLinks[breadcrumbLinks.length - 1];
-
         return location.origin;
       })(),
       service: {
@@ -99,28 +95,37 @@ document.addEventListener("DOMContentLoaded", function() {
       console.log("[Schema Service] Detected service types:", PAGE.service.types);
     })();
 
-    // ===== DETEKSI PRODUK & HARGA OTOMATIS =====
+    // ===== DETEKSI PRODUK & HARGA DI BAGIAN HARGA SAJA =====
     function detectProductPackage() {
-      const contentEls = Array.from(document.querySelectorAll('p, li, td, th'));
+      const headings = [...document.querySelectorAll('h2, h3, h4')];
       const priceSet = new Set();
 
-      contentEls.forEach(el => {
-        const text = el.innerText;
+      headings.forEach(h => {
+        const title = h.textContent.trim().toLowerCase();
+        if (!title.includes("harga")) return;
 
-        // Deteksi range harga “Rp 450.000 – Rp 650.000”
-        const rangeMatch = text.match(/Rp\s*([\d.,]+)\s*[-–]\s*Rp\s*([\d.,]+)/);
-        if (rangeMatch) {
-          const low = parseInt(rangeMatch[1].replace(/[.\s]/g,''),10);
-          const high = parseInt(rangeMatch[2].replace(/[.\s]/g,''),10);
-          if(!isNaN(low)) priceSet.add(low);
-          if(!isNaN(high)) priceSet.add(high);
-          return;
+        let sectionContent = "";
+        let next = h.nextElementSibling;
+        while (next && !['H2','H3','H4'].includes(next.tagName)) {
+          if (/harga\s+dapat\s+berubah/i.test(next.innerText)) break; // abaikan catatan
+          sectionContent += " " + next.innerText;
+          next = next.nextElementSibling;
         }
 
-        // Deteksi harga tunggal “Rp 450.000”
-        const priceMatches = text.match(/Rp\s*[\d.,]+/g);
-        if(priceMatches){
-          priceMatches.forEach(p=>{
+        // deteksi range harga
+        const rangeRegex = /Rp\s*([\d.,]+)\s*[-–]\s*Rp\s*([\d.,]+)/g;
+        let match;
+        while ((match = rangeRegex.exec(sectionContent)) !== null) {
+          const low = parseInt(match[1].replace(/[.\s]/g,''),10);
+          const high = parseInt(match[2].replace(/[.\s]/g,''),10);
+          if(!isNaN(low)) priceSet.add(low);
+          if(!isNaN(high)) priceSet.add(high);
+        }
+
+        // deteksi harga tunggal
+        const singleMatches = sectionContent.match(/Rp\s*[\d.,]+/g);
+        if(singleMatches){
+          singleMatches.forEach(p=>{
             const cleaned = p.replace(/[Rp\s.]/g,'').replace(/,/g,'');
             const num = parseInt(cleaned,10);
             if(!isNaN(num)) priceSet.add(num);
@@ -186,7 +191,6 @@ document.addEventListener("DOMContentLoaded", function() {
         mainEntityOfPage: { "@id": page.url + "#webpage" }
       };
 
-      // Jika ada harga → tambahkan offers & Product
       if(product.hasProduct) {
         const nextYear = new Date();
         nextYear.setFullYear(nextYear.getFullYear() + 1);
