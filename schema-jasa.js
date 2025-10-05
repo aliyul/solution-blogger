@@ -1,4 +1,4 @@
-//oke
+//FINAL
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan ✅");
@@ -87,21 +87,21 @@ document.addEventListener("DOMContentLoaded", function() {
       PAGE.service.types = Array.from(types);
     })();
 
-    // ========== DETEKSI PRODUK & HARGA (heading khusus harga) ==========
-   function detectProductPackage() {
+    // ========== DETEKSI PRODUK & HARGA ==========
+    function detectProductPackage() {
       const headings = [...document.querySelectorAll('h2,h3,h4')];
       const offers = [];
       const allPrices = [];
-    
+
       headings.forEach(h => {
         const title = h.textContent.trim().toLowerCase();
         if (!title.includes("harga")) return;
-    
+
         // Cari tabel di bawah heading harga
-        const table = h.nextElementSibling?.tagName === "TABLE" 
-          ? h.nextElementSibling 
+        const table = h.nextElementSibling?.tagName === "TABLE"
+          ? h.nextElementSibling
           : h.parentElement.querySelector("table");
-    
+
         if (table) {
           const rows = table.querySelectorAll("tbody tr");
           rows.forEach(row => {
@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", function() {
             const rangeRegex = /Rp\s*([\d.,]+)\s*[-–]\s*Rp\s*([\d.,]+)/;
             const singleRegex = /Rp\s*([\d.,]+)/g;
             let low, high;
-    
+
             const range = rangeRegex.exec(rowText);
             if (range) {
               low = parseInt(range[1].replace(/[.\s]/g, ''), 10);
@@ -126,24 +126,25 @@ document.addEventListener("DOMContentLoaded", function() {
                 high = Math.max(...prices);
               }
             }
-    
+
             if (low && high) {
               offers.push({
                 "@type": "Offer",
                 priceCurrency: "IDR",
-                price: `${(low + high) / 2}`,
-                priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split('T')[0],
+                price: `${Math.round((low + high) / 2)}`,
+                priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+                  .toISOString().split('T')[0],
                 availability: "https://schema.org/InStock",
-                url: location.href.replace(/[?&]m=1/, "")
+                url: cleanUrl
               });
               allPrices.push(low, high);
             }
           });
         }
       });
-    
+
       if (allPrices.length > 0) {
-        const sorted = allPrices.sort((a,b) => a-b);
+        const sorted = allPrices.sort((a, b) => a - b);
         return {
           hasProduct: true,
           lowPrice: sorted[0],
@@ -152,10 +153,9 @@ document.addEventListener("DOMContentLoaded", function() {
           offers
         };
       }
-    
+
       return { hasProduct: false };
     }
-
 
     const productData = detectProductPackage();
 
@@ -163,6 +163,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function generateSchema(page, product) {
       const graph = [];
 
+      // WebPage
       graph.push({
         "@type": "WebPage",
         "@id": page.url + "#webpage",
@@ -174,6 +175,7 @@ document.addEventListener("DOMContentLoaded", function() {
         publisher: { "@id": page.business.url + "#localbusiness" }
       });
 
+      // Business
       graph.push({
         "@type": ["LocalBusiness", "GeneralContractor"],
         "@id": page.business.url + "#localbusiness",
@@ -187,6 +189,7 @@ document.addEventListener("DOMContentLoaded", function() {
         brand: { "@type": "Brand", name: page.business.name }
       });
 
+      // Service
       const serviceObj = {
         "@type": "Service",
         "@id": page.url + "#service",
@@ -198,17 +201,21 @@ document.addEventListener("DOMContentLoaded", function() {
         mainEntityOfPage: { "@id": page.url + "#webpage" }
       };
 
+      // Tambahkan harga jika ada
       if (product.hasProduct) {
-        serviceObj.offers = {
+        const offerAgg = {
           "@type": "AggregateOffer",
           priceCurrency: "IDR",
           lowPrice: product.lowPrice,
           highPrice: product.highPrice,
           offerCount: product.offerCount,
           availability: "https://schema.org/InStock",
-          priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split("T")[0],
+          priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+            .toISOString().split("T")[0],
           url: page.url
         };
+
+        serviceObj.offers = offerAgg;
 
         graph.push({
           "@type": "Product",
@@ -217,7 +224,7 @@ document.addEventListener("DOMContentLoaded", function() {
           description: page.service.description,
           category: "Jasa Konstruksi",
           brand: { "@type": "Brand", name: page.business.name },
-          aggregateOffer: serviceObj.offers,
+          aggregateOffer: offerAgg,
           offers: product.offers
         });
       }
@@ -234,7 +241,10 @@ document.addEventListener("DOMContentLoaded", function() {
       schemaScript.type = "application/ld+json";
       document.head.appendChild(schemaScript);
     }
-    schemaScript.textContent = JSON.stringify(generateSchema(PAGE, productData), null, 2);
-    console.log(`[Schema Service] JSON-LD berhasil diinject (${productData.offerCount || 0} penawaran)`);
-  }, 500);
+
+    const jsonData = generateSchema(PAGE, productData);
+    schemaScript.textContent = JSON.stringify(jsonData, null, 2);
+
+    console.log(`[Schema Service] JSON-LD berhasil diinject ✅ (${productData.offerCount || 0} offer terdeteksi)`);
+  }, 600);
 });
