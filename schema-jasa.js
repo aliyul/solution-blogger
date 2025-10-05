@@ -1,11 +1,14 @@
-//UPDATE 20 — AUTO SCHEMA SERVICE + PRODUCT DENGAN DETEKSI HARGA UNIK & OFFERCOUNT OTOMATIS
+// UPDATE 21 — AUTO SCHEMA SERVICE + PRODUCT DENGAN DETEKSI HARGA UNIK & OFFERCOUNT OTOMATIS
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan.");
 
+    // ===== NORMALISASI URL AGAR TANPA ?m=1 =====
+    const cleanUrl = location.href.replace(/(\?m=\d+|&m=\d+)$/, "");
+
     // ===== KONFIGURASI HALAMAN =====
     const PAGE = {
-      url: location.href,
+      url: cleanUrl,
       title: document.querySelector('h1')?.textContent?.trim() || document.title.trim(),
       description: (() => {
         const meta = document.querySelector('meta[name="description"]')?.content?.trim();
@@ -20,8 +23,8 @@ document.addEventListener("DOMContentLoaded", function() {
         const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
         if(metaParent) return metaParent;
         const breadcrumbLinks = Array.from(document.querySelectorAll('nav.breadcrumbs a'))
-                                     .map(a => a.href)
-                                     .filter(href => href !== location.href);
+                                     .map(a => a.href.replace(/(\?m=\d+|&m=\d+)$/, ""))
+                                     .filter(href => href !== cleanUrl);
         if (breadcrumbLinks.length) return breadcrumbLinks[breadcrumbLinks.length - 1];
         return location.origin;
       })(),
@@ -51,8 +54,8 @@ document.addEventListener("DOMContentLoaded", function() {
         ]
       },
       internalLinks: Array.from(document.querySelectorAll('article a, main a, .post-body a'))
-        .filter(a => a.href && a.href.includes(location.hostname) && a.href !== location.href)
-        .map(a => ({ url: a.href, name: a.innerText.trim() }))
+        .filter(a => a.href && a.href.includes(location.hostname) && a.href !== cleanUrl)
+        .map(a => ({ url: a.href.replace(/(\?m=\d+|&m=\d+)$/, ""), name: a.innerText.trim() }))
     };
 
     // ===== DETEKSI AREA SERVED =====
@@ -93,7 +96,6 @@ document.addEventListener("DOMContentLoaded", function() {
     function detectProductPackage() {
       const contentEls = Array.from(document.querySelectorAll('p, li, td, th'));
       const priceSet = new Set();
-      let lowPrice = Infinity, highPrice = 0, found = false;
 
       contentEls.forEach(el => {
         const text = el.innerText;
@@ -101,7 +103,6 @@ document.addEventListener("DOMContentLoaded", function() {
         // Deteksi range harga “Rp 450.000 – Rp 650.000”
         const rangeMatch = text.match(/Rp\s*([\d.,]+)\s*[-–]\s*Rp\s*([\d.,]+)/);
         if (rangeMatch) {
-          found = true;
           const low = parseInt(rangeMatch[1].replace(/[.\s]/g,''),10);
           const high = parseInt(rangeMatch[2].replace(/[.\s]/g,''),10);
           if(!isNaN(low)) priceSet.add(low);
@@ -109,10 +110,9 @@ document.addEventListener("DOMContentLoaded", function() {
           return;
         }
 
-        // Deteksi semua harga tunggal “Rp 450.000”
+        // Deteksi harga tunggal “Rp 450.000”
         const priceMatches = text.match(/Rp\s*[\d.,]+/g);
         if(priceMatches){
-          found = true;
           priceMatches.forEach(p=>{
             const cleaned = p.replace(/[Rp\s.]/g,'').replace(/,/g,'');
             const num = parseInt(cleaned,10);
@@ -123,11 +123,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
       if (priceSet.size > 0) {
         const prices = Array.from(priceSet).sort((a,b)=>a-b);
-        lowPrice = prices[0];
-        highPrice = prices[prices.length-1];
-        return { hasProduct:true, lowPrice, highPrice, offerCount: priceSet.size };
+        return { 
+          hasProduct: true,
+          lowPrice: prices[0],
+          highPrice: prices[prices.length-1],
+          offerCount: priceSet.size
+        };
       }
-      return { hasProduct:false };
+      return { hasProduct: false };
     }
 
     const productData = detectProductPackage();
