@@ -1,15 +1,14 @@
-// The Last
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
-    console.log("[Schema Service] Script dijalankan.");
+    console.log("[Schema Service] Script dijalankan ✅");
 
-    // ====== DETEKSI URL BERSIH ======
+    // ========== DETEKSI URL BERSIH ==========
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
     const canonicalLink = document.querySelector('link[rel="canonical"]')?.href?.trim();
     const baseUrl = ogUrl || canonicalLink || location.href;
     const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
 
-    // ====== KONFIGURASI HALAMAN ======
+    // ========== KONFIGURASI HALAMAN ==========
     const PAGE = {
       url: cleanUrl,
       title: document.querySelector('h1')?.textContent?.trim() || document.title.trim(),
@@ -18,9 +17,9 @@ document.addEventListener("DOMContentLoaded", function() {
         if (meta && meta.length > 30) return meta;
         const p = document.querySelector('article p, main p, .post-body p');
         if (p && p.innerText.trim().length > 40) return p.innerText.trim().substring(0, 300);
-        const altText = Array.from(document.querySelectorAll('p, li'))
+        const alt = Array.from(document.querySelectorAll('p, li'))
           .map(el => el.innerText.trim()).filter(Boolean).join(' ');
-        return altText.substring(0, 300);
+        return alt.substring(0, 300);
       })(),
       parentUrl: (() => {
         const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
@@ -35,8 +34,8 @@ document.addEventListener("DOMContentLoaded", function() {
       service: {
         name: document.querySelector('h1')?.textContent?.trim() || 'Jasa Profesional',
         description: document.querySelector('meta[name="description"]')?.content 
-                      || document.querySelector('p')?.innerText?.trim() 
-                      || 'Layanan profesional dalam bidang konstruksi dan beton.',
+          || document.querySelector('p')?.innerText?.trim() 
+          || 'Layanan profesional dalam bidang konstruksi dan beton.',
         types: [],
         areaServed: []
       },
@@ -45,7 +44,7 @@ document.addEventListener("DOMContentLoaded", function() {
         url: "https://www.betonjayareadymix.com",
         telephone: "+6283839000968",
         openingHours: "Mo-Sa 08:00-17:00",
-        description: "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional untuk berbagai proyek infrastruktur, gedung, hingga renovasi rumah tinggal.",
+        description: "Beton Jaya Readymix adalah penyedia solusi konstruksi terlengkap di Indonesia, menawarkan layanan beton cor ready mix, precast, serta jasa konstruksi profesional.",
         address: {
           "@type": "PostalAddress",
           addressLocality: "Bogor",
@@ -56,99 +55,94 @@ document.addEventListener("DOMContentLoaded", function() {
           "https://www.facebook.com/betonjayareadymix",
           "https://www.instagram.com/betonjayareadymix"
         ]
-      },
-      internalLinks: Array.from(document.querySelectorAll('article a, main a, .post-body a'))
-        .filter(a => a.href && a.href.includes(location.hostname) && a.href !== cleanUrl)
-        .map(a => ({ url: a.href.replace(/[?&]m=1/, ""), name: a.innerText.trim() }))
+      }
     };
 
-    // ====== DETEKSI AREA ======
-    (function detectAreaServed() {
-      const defaultAreas = [
+    // ========== DETEKSI AREA SERVED ==========
+    (function detectArea() {
+      const areas = [
         "DKI Jakarta","Kabupaten Bekasi","Kota Bekasi","Kabupaten Bogor","Kota Bogor",
         "Kabupaten Tangerang","Kota Tangerang","Tangerang Selatan","Kota Depok",
         "Kabupaten Karawang","Kabupaten Serang","Kota Serang","Kota Cilegon"
       ];
       const url = PAGE.url.toLowerCase();
-      const match = defaultAreas.find(area =>
+      const match = areas.find(area =>
         url.includes(area.toLowerCase().replace(/\s+/g, '-')) ||
         url.includes(area.toLowerCase().replace(/\s+/g, ''))
       );
-      PAGE.service.areaServed = match ? [match] : defaultAreas;
+      PAGE.service.areaServed = match ? [match] : areas;
     })();
 
-    // ====== EKSTRAKTI SERVICE TYPE ======
-    (function extractServiceTypes() {
-      const contentEls = document.querySelectorAll('article p, li, main p, main li, .post-body p, .post-body li');
-      const typesSet = new Set();
-      contentEls.forEach(el => {
-        const text = el.innerText.trim();
-        if (!text || text.length > 120) return;
-        const match = text.match(/^(Renovasi|Perbaikan|Pemasangan|Epoxy|Peremajaan|Instalasi|Perkuatan)\s+[A-Z][a-zA-Z0-9\s]+/);
-        if (match) typesSet.add(match[0].replace(/\s+/g, ' ').trim());
+    // ========== DETEKSI SERVICE TYPE ==========
+    (function detectServiceTypes() {
+      const els = document.querySelectorAll('article p, li, main p, .post-body p');
+      const types = new Set();
+      els.forEach(el => {
+        const txt = el.innerText.trim();
+        if (txt.length > 120) return;
+        const m = txt.match(/^(Renovasi|Perbaikan|Pemasangan|Epoxy|Peremajaan|Instalasi|Perkuatan)\s+[A-Z][a-zA-Z\s]+/);
+        if (m) types.add(m[0]);
       });
-      PAGE.service.types = Array.from(typesSet);
+      PAGE.service.types = Array.from(types);
     })();
 
-    // ====== DETEKSI PRODUK & HARGA (dari heading harga) ======
+    // ========== DETEKSI PRODUK & HARGA (heading khusus harga) ==========
     function detectProductPackage() {
       const headings = [...document.querySelectorAll('h2,h3,h4')];
       const offers = [];
-      const rangeSet = new Set();
-      const singleSet = new Set();
+      const prices = [];
 
       headings.forEach(h => {
         const title = h.textContent.trim().toLowerCase();
-        if (!title.includes("harga")) return;
+        if (!title.includes("harga")) return; // hanya heading yang bahas harga
 
-        let sectionContent = "";
+        let content = "";
         let next = h.nextElementSibling;
-        while (next && !['H2','H3','H4'].includes(next.tagName)) {
-          if (/harga\s+dapat\s+berubah/i.test(next.innerText)) break;
-          sectionContent += " " + next.innerText;
+        while (next && !["H2","H3","H4"].includes(next.tagName)) {
+          content += " " + next.innerText;
           next = next.nextElementSibling;
         }
 
+        // Range harga: "Rp 450.000 – Rp 650.000"
         const rangeRegex = /Rp\s*([\d.,]+)\s*[-–]\s*Rp\s*([\d.,]+)/g;
         let match;
-        while ((match = rangeRegex.exec(sectionContent)) !== null) {
+        while ((match = rangeRegex.exec(content)) !== null) {
           const low = parseInt(match[1].replace(/[.\s]/g, ''), 10);
           const high = parseInt(match[2].replace(/[.\s]/g, ''), 10);
           if (!isNaN(low) && !isNaN(high)) {
-            rangeSet.add(`${low}-${high}`);
+            prices.push(low, high);
             offers.push({
               "@type": "Offer",
               priceCurrency: "IDR",
-              price: `${low}`,
-              priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split('T')[0],
+              price: low,
               availability: "https://schema.org/InStock",
+              priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split("T")[0],
               url: cleanUrl
-            });
-            offers.push({
+            },{
               "@type": "Offer",
               priceCurrency: "IDR",
-              price: `${high}`,
-              priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split('T')[0],
+              price: high,
               availability: "https://schema.org/InStock",
+              priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split("T")[0],
               url: cleanUrl
             });
           }
         }
 
-        const singleMatches = sectionContent.match(/Rp\s*[\d.,]+/g);
+        // Harga tunggal: "Rp 550.000"
+        const singleMatches = content.match(/Rp\s*[\d.,]+/g);
         if (singleMatches) {
           singleMatches.forEach(p => {
-            if (/-|–/.test(p)) return;
-            const cleaned = p.replace(/[Rp\s.]/g, '').replace(/,/g, '');
-            const num = parseInt(cleaned, 10);
+            if (/-|–/.test(p)) return; // skip range
+            const num = parseInt(p.replace(/[Rp\s.]/g, '').replace(/,/g, ''), 10);
             if (!isNaN(num)) {
-              singleSet.add(num);
+              prices.push(num);
               offers.push({
                 "@type": "Offer",
                 priceCurrency: "IDR",
-                price: `${num}`,
-                priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split('T')[0],
+                price: num,
                 availability: "https://schema.org/InStock",
+                priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split("T")[0],
                 url: cleanUrl
               });
             }
@@ -156,16 +150,12 @@ document.addEventListener("DOMContentLoaded", function() {
         }
       });
 
-      const allPrices = [];
-      rangeSet.forEach(r => { const [l,h]=r.split('-').map(Number); allPrices.push(l,h); });
-      singleSet.forEach(n => allPrices.push(n));
-
-      if (allPrices.length > 0) {
-        const prices = allPrices.sort((a,b)=>a-b);
+      if (prices.length) {
+        prices.sort((a,b)=>a-b);
         return {
           hasProduct: true,
           lowPrice: prices[0],
-          highPrice: prices[prices.length-1],
+          highPrice: prices[prices.length - 1],
           offerCount: offers.length,
           offers
         };
@@ -175,7 +165,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const productData = detectProductPackage();
 
-    // ====== GENERATE SCHEMA ======
+    // ========== GENERATE SCHEMA ==========
     function generateSchema(page, product) {
       const graph = [];
 
@@ -222,7 +212,7 @@ document.addEventListener("DOMContentLoaded", function() {
           highPrice: product.highPrice,
           offerCount: product.offerCount,
           availability: "https://schema.org/InStock",
-          priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split('T')[0],
+          priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split("T")[0],
           url: page.url
         };
 
@@ -239,11 +229,10 @@ document.addEventListener("DOMContentLoaded", function() {
       }
 
       graph.push(serviceObj);
-
       return { "@context": "https://schema.org", "@graph": graph };
     }
 
-    // ====== INJEKSI JSON-LD ======
+    // ========== INJEKSI JSON-LD ==========
     let schemaScript = document.querySelector('#auto-schema-service');
     if (!schemaScript) {
       schemaScript = document.createElement("script");
@@ -252,6 +241,6 @@ document.addEventListener("DOMContentLoaded", function() {
       document.head.appendChild(schemaScript);
     }
     schemaScript.textContent = JSON.stringify(generateSchema(PAGE, productData), null, 2);
-    console.log("[Schema Service] JSON-LD berhasil diinject ✅");
+    console.log(`[Schema Service] JSON-LD berhasil diinject (${productData.offerCount || 0} penawaran)`);
   }, 500);
 });
