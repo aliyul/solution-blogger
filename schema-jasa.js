@@ -1,15 +1,15 @@
-//FINAL
+//UPDATE FINAL
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan ✅");
 
-    // ========== DETEKSI URL BERSIH ==========
+    // ===== DETEKSI URL BERSIH =====
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
     const canonicalLink = document.querySelector('link[rel="canonical"]')?.href?.trim();
     const baseUrl = ogUrl || canonicalLink || location.href;
     const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
 
-    // ========== KONFIGURASI HALAMAN ==========
+    // ===== KONFIGURASI PAGE =====
     const PAGE = {
       url: cleanUrl,
       title: document.querySelector('h1')?.textContent?.trim() || document.title.trim(),
@@ -33,10 +33,10 @@ document.addEventListener("DOMContentLoaded", function() {
         return location.origin;
       })(),
       service: {
-        name: document.querySelector('h1')?.textContent?.trim() || 'Jasa Profesional',
+        name: document.querySelector('h1')?.textContent?.trim() || "Jasa Profesional",
         description: document.querySelector('meta[name="description"]')?.content 
           || document.querySelector('p')?.innerText?.trim() 
-          || 'Layanan profesional dalam bidang konstruksi dan beton.',
+          || "Layanan profesional dalam bidang konstruksi dan beton.",
         types: [],
         areaServed: []
       },
@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function() {
       }
     };
 
-    // ========== DETEKSI AREA SERVED ==========
+    // ===== DETEKSI AREA SERVED =====
     (function detectArea() {
       const areas = [
         "DKI Jakarta","Kabupaten Bekasi","Kota Bekasi","Kabupaten Bogor","Kota Bogor",
@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", function() {
       PAGE.service.areaServed = match ? [match] : areas;
     })();
 
-    // ========== DETEKSI SERVICE TYPE ==========
+    // ===== DETEKSI SERVICE TYPES =====
     (function detectServiceTypes() {
       const els = document.querySelectorAll('article p, li, main p, .post-body p');
       const types = new Set();
@@ -87,25 +87,31 @@ document.addEventListener("DOMContentLoaded", function() {
       PAGE.service.types = Array.from(types);
     })();
 
-    // ========== DETEKSI PRODUK & HARGA ==========
+    // ===== DETEKSI PRODUK & HARGA (H2/H3 Harga) =====
     function detectProductPackage() {
       const headings = [...document.querySelectorAll('h2,h3,h4')];
       const offers = [];
-      const allPrices = [];
+      const allPrices = new Set();
+      const addedRows = new Set();
 
       headings.forEach(h => {
         const title = h.textContent.trim().toLowerCase();
         if (!title.includes("harga")) return;
 
-        // Cari tabel di bawah heading harga
         const table = h.nextElementSibling?.tagName === "TABLE"
           ? h.nextElementSibling
           : h.parentElement.querySelector("table");
 
         if (table) {
           const rows = table.querySelectorAll("tbody tr");
-          rows.forEach(row => {
-            const rowText = row.innerText;
+          rows.forEach((row, idx) => {
+            const rowText = row.innerText.trim();
+            if (!rowText.match(/Rp\s*\d/)) return;
+
+            const rowHash = rowText.replace(/\s+/g, ''); // untuk hindari duplikat
+            if (addedRows.has(rowHash)) return;
+            addedRows.add(rowHash);
+
             const rangeRegex = /Rp\s*([\d.,]+)\s*[-–]\s*Rp\s*([\d.,]+)/;
             const singleRegex = /Rp\s*([\d.,]+)/g;
             let low, high;
@@ -131,20 +137,20 @@ document.addEventListener("DOMContentLoaded", function() {
               offers.push({
                 "@type": "Offer",
                 priceCurrency: "IDR",
-                price: `${Math.round((low + high) / 2)}`,
-                priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
-                  .toISOString().split('T')[0],
+                price: `${(low + high) / 2}`,
+                priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
                 availability: "https://schema.org/InStock",
-                url: cleanUrl
+                url: location.href.replace(/[?&]m=1/, "")
               });
-              allPrices.push(low, high);
+              allPrices.add(low);
+              allPrices.add(high);
             }
           });
         }
       });
 
-      if (allPrices.length > 0) {
-        const sorted = allPrices.sort((a, b) => a - b);
+      if (allPrices.size > 0) {
+        const sorted = [...allPrices].sort((a, b) => a - b);
         return {
           hasProduct: true,
           lowPrice: sorted[0],
@@ -159,11 +165,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const productData = detectProductPackage();
 
-    // ========== GENERATE SCHEMA ==========
+    // ===== GENERATE SCHEMA =====
     function generateSchema(page, product) {
       const graph = [];
 
-      // WebPage
       graph.push({
         "@type": "WebPage",
         "@id": page.url + "#webpage",
@@ -175,7 +180,6 @@ document.addEventListener("DOMContentLoaded", function() {
         publisher: { "@id": page.business.url + "#localbusiness" }
       });
 
-      // Business
       graph.push({
         "@type": ["LocalBusiness", "GeneralContractor"],
         "@id": page.business.url + "#localbusiness",
@@ -189,7 +193,6 @@ document.addEventListener("DOMContentLoaded", function() {
         brand: { "@type": "Brand", name: page.business.name }
       });
 
-      // Service
       const serviceObj = {
         "@type": "Service",
         "@id": page.url + "#service",
@@ -201,21 +204,17 @@ document.addEventListener("DOMContentLoaded", function() {
         mainEntityOfPage: { "@id": page.url + "#webpage" }
       };
 
-      // Tambahkan harga jika ada
       if (product.hasProduct) {
-        const offerAgg = {
+        serviceObj.offers = {
           "@type": "AggregateOffer",
           priceCurrency: "IDR",
           lowPrice: product.lowPrice,
           highPrice: product.highPrice,
           offerCount: product.offerCount,
           availability: "https://schema.org/InStock",
-          priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
-            .toISOString().split("T")[0],
+          priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0],
           url: page.url
         };
-
-        serviceObj.offers = offerAgg;
 
         graph.push({
           "@type": "Product",
@@ -224,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function() {
           description: page.service.description,
           category: "Jasa Konstruksi",
           brand: { "@type": "Brand", name: page.business.name },
-          aggregateOffer: offerAgg,
+          aggregateOffer: serviceObj.offers,
           offers: product.offers
         });
       }
@@ -233,18 +232,16 @@ document.addEventListener("DOMContentLoaded", function() {
       return { "@context": "https://schema.org", "@graph": graph };
     }
 
-    // ========== INJEKSI JSON-LD ==========
-    let schemaScript = document.querySelector('#auto-schema-service');
+    // ===== INJEKSI JSON-LD =====
+    let schemaScript = document.querySelector("#auto-schema-service");
     if (!schemaScript) {
       schemaScript = document.createElement("script");
       schemaScript.id = "auto-schema-service";
       schemaScript.type = "application/ld+json";
       document.head.appendChild(schemaScript);
     }
+    schemaScript.textContent = JSON.stringify(generateSchema(PAGE, productData), null, 2);
+    console.log(`[Schema Service] JSON-LD berhasil diinject (${productData.offerCount || 0} penawaran)`);
 
-    const jsonData = generateSchema(PAGE, productData);
-    schemaScript.textContent = JSON.stringify(jsonData, null, 2);
-
-    console.log(`[Schema Service] JSON-LD berhasil diinject ✅ (${productData.offerCount || 0} offer terdeteksi)`);
-  }, 600);
+  }, 500);
 });
