@@ -87,81 +87,74 @@ document.addEventListener("DOMContentLoaded", function() {
     })();
 
     // ========== DETEKSI PRODUK & HARGA (heading khusus harga) ==========
-    function detectProductPackage() {
+   function detectProductPackage() {
       const headings = [...document.querySelectorAll('h2,h3,h4')];
       const offers = [];
-      const prices = [];
-
+      const allPrices = [];
+    
       headings.forEach(h => {
         const title = h.textContent.trim().toLowerCase();
-        if (!title.includes("harga")) return; // hanya heading yang bahas harga
-
-        let content = "";
-        let next = h.nextElementSibling;
-        while (next && !["H2","H3","H4"].includes(next.tagName)) {
-          content += " " + next.innerText;
-          next = next.nextElementSibling;
-        }
-
-        // Range harga: "Rp 450.000 – Rp 650.000"
-        const rangeRegex = /Rp\s*([\d.,]+)\s*[-–]\s*Rp\s*([\d.,]+)/g;
-        let match;
-        while ((match = rangeRegex.exec(content)) !== null) {
-          const low = parseInt(match[1].replace(/[.\s]/g, ''), 10);
-          const high = parseInt(match[2].replace(/[.\s]/g, ''), 10);
-          if (!isNaN(low) && !isNaN(high)) {
-            prices.push(low, high);
-            offers.push({
-              "@type": "Offer",
-              priceCurrency: "IDR",
-              price: low,
-              availability: "https://schema.org/InStock",
-              priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split("T")[0],
-              url: cleanUrl
-            },{
-              "@type": "Offer",
-              priceCurrency: "IDR",
-              price: high,
-              availability: "https://schema.org/InStock",
-              priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split("T")[0],
-              url: cleanUrl
-            });
-          }
-        }
-
-        // Harga tunggal: "Rp 550.000"
-        const singleMatches = content.match(/Rp\s*[\d.,]+/g);
-        if (singleMatches) {
-          singleMatches.forEach(p => {
-            if (/-|–/.test(p)) return; // skip range
-            const num = parseInt(p.replace(/[Rp\s.]/g, '').replace(/,/g, ''), 10);
-            if (!isNaN(num)) {
-              prices.push(num);
+        if (!title.includes("harga")) return;
+    
+        // Cari tabel di bawah heading harga
+        const table = h.nextElementSibling?.tagName === "TABLE" 
+          ? h.nextElementSibling 
+          : h.parentElement.querySelector("table");
+    
+        if (table) {
+          const rows = table.querySelectorAll("tbody tr");
+          rows.forEach(row => {
+            const rowText = row.innerText;
+            const rangeRegex = /Rp\s*([\d.,]+)\s*[-–]\s*Rp\s*([\d.,]+)/;
+            const singleRegex = /Rp\s*([\d.,]+)/g;
+            let low, high;
+    
+            const range = rangeRegex.exec(rowText);
+            if (range) {
+              low = parseInt(range[1].replace(/[.\s]/g, ''), 10);
+              high = parseInt(range[2].replace(/[.\s]/g, ''), 10);
+            } else {
+              const prices = [];
+              let match;
+              while ((match = singleRegex.exec(rowText)) !== null) {
+                const num = parseInt(match[1].replace(/[.\s]/g, ''), 10);
+                if (!isNaN(num)) prices.push(num);
+              }
+              if (prices.length) {
+                low = Math.min(...prices);
+                high = Math.max(...prices);
+              }
+            }
+    
+            if (low && high) {
               offers.push({
                 "@type": "Offer",
                 priceCurrency: "IDR",
-                price: num,
+                price: `${(low + high) / 2}`,
+                priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split('T')[0],
                 availability: "https://schema.org/InStock",
-                priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear()+1)).toISOString().split("T")[0],
-                url: cleanUrl
+                url: location.href.replace(/[?&]m=1/, "")
               });
+              allPrices.push(low, high);
             }
           });
         }
       });
-
-      if (prices.length) {
-        prices.sort((a,b)=>a-b);
+    
+      if (allPrices.length > 0) {
+        const sorted = allPrices.sort((a,b) => a-b);
         return {
           hasProduct: true,
-          lowPrice: prices[0],
-          highPrice: prices[prices.length - 1],
+          lowPrice: sorted[0],
+          highPrice: sorted[sorted.length - 1],
           offerCount: offers.length,
           offers
         };
       }
+    
       return { hasProduct: false };
     }
+
 
     const productData = detectProductPackage();
 
