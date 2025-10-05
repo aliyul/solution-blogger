@@ -1,10 +1,13 @@
-//UPDATE 21 — AUTO SCHEMA SERVICE + PRODUCT DENGAN DETEKSI HARGA UNIK & OFFERCOUNT OTOMATIS
+//✅ FINAL UPDATE — AUTO SCHEMA SERVICE + PRODUCT + OG:URL & CANONICAL CLEAN URL DETECTION
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan.");
 
-    // ===== NORMALISASI URL AGAR TANPA ?m=1 =====
-    const cleanUrl = location.href.replace(/(\?m=\d+|&m=\d+)$/, "");
+    // ===== DETEKSI URL BERSIH DARI OG, CANONICAL, ATAU LOCATION =====
+    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
+    const canonicalLink = document.querySelector('link[rel="canonical"]')?.href?.trim();
+    const baseUrl = ogUrl || canonicalLink || location.href;
+    const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
 
     // ===== KONFIGURASI HALAMAN =====
     const PAGE = {
@@ -21,11 +24,16 @@ document.addEventListener("DOMContentLoaded", function() {
       })(),
       parentUrl: (() => {
         const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
-        if(metaParent) return metaParent;
+        if (metaParent) return metaParent;
+
+        // Gunakan og:url jika berbeda dari halaman sekarang
+        if (ogUrl && ogUrl !== cleanUrl) return ogUrl.replace(/[?&]m=1/, "");
+
         const breadcrumbLinks = Array.from(document.querySelectorAll('nav.breadcrumbs a'))
-                                     .map(a => a.href.replace(/(\?m=\d+|&m=\d+)$/, ""))
-                                     .filter(href => href !== cleanUrl);
+          .map(a => a.href.replace(/[?&]m=1/, ""))
+          .filter(href => href !== cleanUrl);
         if (breadcrumbLinks.length) return breadcrumbLinks[breadcrumbLinks.length - 1];
+
         return location.origin;
       })(),
       service: {
@@ -55,7 +63,7 @@ document.addEventListener("DOMContentLoaded", function() {
       },
       internalLinks: Array.from(document.querySelectorAll('article a, main a, .post-body a'))
         .filter(a => a.href && a.href.includes(location.hostname) && a.href !== cleanUrl)
-        .map(a => ({ url: a.href.replace(/(\?m=\d+|&m=\d+)$/, ""), name: a.innerText.trim() }))
+        .map(a => ({ url: a.href.replace(/[?&]m=1/, ""), name: a.innerText.trim() }))
     };
 
     // ===== DETEKSI AREA SERVED =====
@@ -82,7 +90,6 @@ document.addEventListener("DOMContentLoaded", function() {
       contentEls.forEach(el => {
         const text = el.innerText.trim();
         if (!text || text.length > 120) return;
-
         const servicePattern = /^(Renovasi|Perbaikan|Pemasangan|Epoxy|Peremajaan|Instalasi|Perkuatan)\s+[A-Z][a-zA-Z0-9\s]+/;
         const match = text.match(servicePattern);
         if (match) typesSet.add(match[0].replace(/\s+/g,' ').trim());
@@ -179,7 +186,7 @@ document.addEventListener("DOMContentLoaded", function() {
         mainEntityOfPage: { "@id": page.url + "#webpage" }
       };
 
-      // Jika ada harga → buat offers & Product schema
+      // Jika ada harga → tambahkan offers & Product
       if(product.hasProduct) {
         const nextYear = new Date();
         nextYear.setFullYear(nextYear.getFullYear() + 1);
@@ -194,7 +201,7 @@ document.addEventListener("DOMContentLoaded", function() {
           url: page.url
         };
 
-        const productSchema = {
+        graph.push({
           "@type": "Product",
           "@id": page.url + "#product",
           name: "Harga " + page.service.name,
@@ -202,8 +209,7 @@ document.addEventListener("DOMContentLoaded", function() {
           category: "Jasa Konstruksi",
           brand: { "@type": "Brand", name: page.business.name },
           offers: serviceObj.offers
-        };
-        graph.push(productSchema);
+        });
       }
 
       graph.push(serviceObj);
@@ -228,7 +234,7 @@ document.addEventListener("DOMContentLoaded", function() {
       return { "@context": "https://schema.org", "@graph": graph };
     }
 
-    // ===== INJEKSI KE SCRIPT =====
+    // ===== INJEKSI JSON-LD =====
     let schemaScript = document.querySelector('#auto-schema-service');
     if(!schemaScript){
       schemaScript = document.createElement("script");
