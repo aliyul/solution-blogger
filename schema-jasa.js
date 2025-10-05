@@ -1,4 +1,4 @@
-// UPDATE 20 — AUTO SCHEMA SERVICE + PRODUCT DENGAN DETEKSI HARGA UNIK & OFFERCOUNT OTOMATIS
+//UPDATE 20 — AUTO SCHEMA SERVICE + PRODUCT DENGAN DETEKSI HARGA UNIK & OFFERCOUNT OTOMATIS
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan.");
