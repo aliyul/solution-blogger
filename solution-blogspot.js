@@ -172,7 +172,12 @@ document.addEventListener("DOMContentLoaded", function() {
   // ==================== STATIC PAGE ==================
   const schemaStatic = document.getElementById("auto-schema-static-page");
   if(schemaStatic){
-    const url = window.location.href;
+    // ===== DETEKSI URL BERSIH DARI OG, CANONICAL, ATAU LOCATION =====
+    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
+    const canonicalLink = document.querySelector('link[rel="canonical"]')?.href?.trim();
+    const baseUrl = ogUrl || canonicalLink || location.href;
+    const url = baseUrl.replace(/[?&]m=1/, "");
+    
     const title = document.title;
     const descMeta = document.querySelector("meta[name='description']")?.content || "";
     const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
@@ -212,7 +217,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const schemaWeb = document.getElementById("auto-schema-webpage");
   if (schemaWeb) {
-    const url = window.location.href;
+    // ===== DETEKSI URL BERSIH DARI OG, CANONICAL, ATAU LOCATION =====
+    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
+    const canonicalLink = document.querySelector('link[rel="canonical"]')?.href?.trim();
+    const baseUrl = ogUrl || canonicalLink || location.href;
+    const url = baseUrl.replace(/[?&]m=1/, "");
     const title = document.title;
     const descMeta =
       document.querySelector("meta[name='description']")?.content || "";
