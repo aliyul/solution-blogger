@@ -1,3 +1,4 @@
+//oke
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan ✅");
