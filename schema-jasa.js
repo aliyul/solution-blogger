@@ -197,7 +197,7 @@ document.addEventListener("DOMContentLoaded", function() {
         address: page.business.address,
         sameAs: page.business.sameAs,
         brand: { "@type": "Brand", name: page.business.name },
-        logo: "https://www.betonjayareadymix.com/favicon.ico"
+        logo: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png"
       });
 
       const serviceObj = {
