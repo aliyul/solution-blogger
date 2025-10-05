@@ -1,4 +1,4 @@
-//UPDATE FINAL
+//update boss
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan ✅");
@@ -31,6 +31,11 @@ document.addEventListener("DOMContentLoaded", function() {
           .filter(href => href !== cleanUrl);
         if (breadcrumbLinks.length) return breadcrumbLinks[breadcrumbLinks.length - 1];
         return location.origin;
+      })(),
+      image: (() => {
+        const ogImg = document.querySelector('meta[property="og:image"]')?.content;
+        const articleImg = document.querySelector('article img, main img, .post-body img')?.src;
+        return ogImg || articleImg || "https://www.betonjayareadymix.com/favicon.ico";
       })(),
       service: {
         name: document.querySelector('h1')?.textContent?.trim() || "Jasa Profesional",
@@ -104,11 +109,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
         if (table) {
           const rows = table.querySelectorAll("tbody tr");
-          rows.forEach((row, idx) => {
+          rows.forEach(row => {
             const rowText = row.innerText.trim();
             if (!rowText.match(/Rp\s*\d/)) return;
 
-            const rowHash = rowText.replace(/\s+/g, ''); // untuk hindari duplikat
+            const rowHash = rowText.replace(/\s+/g, '');
             if (addedRows.has(rowHash)) return;
             addedRows.add(rowHash);
 
@@ -138,7 +143,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 "@type": "Offer",
                 priceCurrency: "IDR",
                 price: `${(low + high) / 2}`,
-                priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
+                priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
+                  .toISOString().split('T')[0],
                 availability: "https://schema.org/InStock",
                 url: location.href.replace(/[?&]m=1/, "")
               });
@@ -159,7 +165,6 @@ document.addEventListener("DOMContentLoaded", function() {
           offers
         };
       }
-
       return { hasProduct: false };
     }
 
@@ -175,6 +180,7 @@ document.addEventListener("DOMContentLoaded", function() {
         url: page.url,
         name: page.title,
         description: page.description,
+        image: page.image,
         ...(page.parentUrl && { isPartOf: { "@id": page.parentUrl } }),
         mainEntity: { "@id": page.url + "#service" },
         publisher: { "@id": page.business.url + "#localbusiness" }
@@ -190,7 +196,8 @@ document.addEventListener("DOMContentLoaded", function() {
         description: page.business.description,
         address: page.business.address,
         sameAs: page.business.sameAs,
-        brand: { "@type": "Brand", name: page.business.name }
+        brand: { "@type": "Brand", name: page.business.name },
+        logo: "https://www.betonjayareadymix.com/favicon.ico"
       });
 
       const serviceObj = {
@@ -198,6 +205,7 @@ document.addEventListener("DOMContentLoaded", function() {
         "@id": page.url + "#service",
         name: page.service.name,
         description: page.service.description,
+        image: page.image,
         serviceType: page.service.types,
         areaServed: page.service.areaServed.map(a => ({ "@type": "Place", name: a })),
         provider: { "@id": page.business.url + "#localbusiness" },
@@ -221,6 +229,7 @@ document.addEventListener("DOMContentLoaded", function() {
           "@id": page.url + "#product",
           name: "Harga " + page.service.name,
           description: page.service.description,
+          image: page.image,
           category: "Jasa Konstruksi",
           brand: { "@type": "Brand", name: page.business.name },
           aggregateOffer: serviceObj.offers,
