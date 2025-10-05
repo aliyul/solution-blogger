@@ -1,14 +1,14 @@
-//UPDATE 19
+// UPDATE 20 — AUTO SCHEMA SERVICE + PRODUCT DENGAN DETEKSI HARGA UNIK & OFFERCOUNT OTOMATIS
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(() => {
     console.log("[Schema Service] Script dijalankan.");
 
-    // ====== KONFIGURASI HALAMAN ======
+    // ===== KONFIGURASI HALAMAN =====
     const PAGE = {
       url: location.href,
       title: document.querySelector('h1')?.textContent?.trim() || document.title.trim(),
       description: (() => {
-        const meta = document.querySelector('meta[name=\"description\"]')?.content?.trim();
+        const meta = document.querySelector('meta[name="description"]')?.content?.trim();
         if (meta && meta.length > 30) return meta;
         const p = document.querySelector('article p, main p, .post-body p');
         if (p && p.innerText.trim().length > 40) return p.innerText.trim().substring(0, 300);
@@ -17,17 +17,17 @@ document.addEventListener("DOMContentLoaded", function() {
         return altText.substring(0, 300);
       })(),
       parentUrl: (() => {
-        const metaParent = document.querySelector('meta[name=\"parent-url\"]')?.content?.trim();
-        if (metaParent) return metaParent;
+        const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
+        if(metaParent) return metaParent;
         const breadcrumbLinks = Array.from(document.querySelectorAll('nav.breadcrumbs a'))
-          .map(a => a.href)
-          .filter(href => href !== location.href);
+                                     .map(a => a.href)
+                                     .filter(href => href !== location.href);
         if (breadcrumbLinks.length) return breadcrumbLinks[breadcrumbLinks.length - 1];
         return location.origin;
       })(),
       service: {
         name: document.querySelector('h1')?.textContent?.trim() || 'Jasa Profesional',
-        description: document.querySelector('meta[name=\"description\"]')?.content 
+        description: document.querySelector('meta[name="description"]')?.content 
                       || document.querySelector('p')?.innerText?.trim() 
                       || 'Layanan profesional dalam bidang konstruksi dan beton.',
         types: [],
@@ -71,54 +71,63 @@ document.addEventListener("DOMContentLoaded", function() {
       PAGE.service.areaServed = match ? [match] : defaultAreas;
     })();
 
-    // ===== EKSTRAKSI SERVICE TYPE =====
+    // ===== EKSTRAKSI SERVICE TYPE OTOMATIS =====
     (function extractServiceTypes() {
       const contentEls = document.querySelectorAll('article p, article li, main p, main li, .post-body p, .post-body li');
       const typesSet = new Set();
+
       contentEls.forEach(el => {
         const text = el.innerText.trim();
         if (!text || text.length > 120) return;
+
         const servicePattern = /^(Renovasi|Perbaikan|Pemasangan|Epoxy|Peremajaan|Instalasi|Perkuatan)\s+[A-Z][a-zA-Z0-9\s]+/;
         const match = text.match(servicePattern);
-        if (match) typesSet.add(match[0].replace(/\s+/g, ' ').trim());
+        if (match) typesSet.add(match[0].replace(/\s+/g,' ').trim());
       });
+
       PAGE.service.types = Array.from(typesSet);
       console.log("[Schema Service] Detected service types:", PAGE.service.types);
     })();
 
-    // ===== DETEKSI PRODUK & HARGA =====
+    // ===== DETEKSI PRODUK & HARGA OTOMATIS =====
     function detectProductPackage() {
       const contentEls = Array.from(document.querySelectorAll('p, li, td, th'));
+      const priceSet = new Set();
       let lowPrice = Infinity, highPrice = 0, found = false;
+
       contentEls.forEach(el => {
         const text = el.innerText;
-        // range harga "Rp 450.000 – Rp 650.000"
-        const range = text.match(/Rp\s*([\d.,]+)\s*[-–]\s*Rp\s*([\d.,]+)/);
-        if (range) {
+
+        // Deteksi range harga “Rp 450.000 – Rp 650.000”
+        const rangeMatch = text.match(/Rp\s*([\d.,]+)\s*[-–]\s*Rp\s*([\d.,]+)/);
+        if (rangeMatch) {
           found = true;
-          const low = parseInt(range[1].replace(/[.\s]/g, ""), 10);
-          const high = parseInt(range[2].replace(/[.\s]/g, ""), 10);
-          if (!isNaN(low) && low > 1000) lowPrice = Math.min(lowPrice, low);
-          if (!isNaN(high) && high > 1000) highPrice = Math.max(highPrice, high);
+          const low = parseInt(rangeMatch[1].replace(/[.\s]/g,''),10);
+          const high = parseInt(rangeMatch[2].replace(/[.\s]/g,''),10);
+          if(!isNaN(low)) priceSet.add(low);
+          if(!isNaN(high)) priceSet.add(high);
+          return;
         }
-        // semua harga "Rp 450.000"
-        const prices = text.match(/Rp\s*[\d.,]+/g);
-        if (prices) {
+
+        // Deteksi semua harga tunggal “Rp 450.000”
+        const priceMatches = text.match(/Rp\s*[\d.,]+/g);
+        if(priceMatches){
           found = true;
-          prices.forEach(p => {
-            const num = parseInt(p.replace(/[Rp\s.]/g, "").replace(/,/g, ""), 10);
-            if (!isNaN(num) && num > 1000) {
-              lowPrice = Math.min(lowPrice, num);
-              highPrice = Math.max(highPrice, num);
-            }
+          priceMatches.forEach(p=>{
+            const cleaned = p.replace(/[Rp\s.]/g,'').replace(/,/g,'');
+            const num = parseInt(cleaned,10);
+            if(!isNaN(num)) priceSet.add(num);
           });
         }
       });
 
-      if (!found || lowPrice === Infinity || highPrice === 0) {
-        return { hasProduct: false };
+      if (priceSet.size > 0) {
+        const prices = Array.from(priceSet).sort((a,b)=>a-b);
+        lowPrice = prices[0];
+        highPrice = prices[prices.length-1];
+        return { hasProduct:true, lowPrice, highPrice, offerCount: priceSet.size };
       }
-      return { hasProduct: true, lowPrice, highPrice, offerCount: 1 };
+      return { hasProduct:false };
     }
 
     const productData = detectProductPackage();
@@ -167,8 +176,8 @@ document.addEventListener("DOMContentLoaded", function() {
         mainEntityOfPage: { "@id": page.url + "#webpage" }
       };
 
-      // Jika ada harga → tambahkan Product + Offer
-      if (product.hasProduct) {
+      // Jika ada harga → buat offers & Product schema
+      if(product.hasProduct) {
         const nextYear = new Date();
         nextYear.setFullYear(nextYear.getFullYear() + 1);
         serviceObj.offers = {
@@ -178,10 +187,11 @@ document.addEventListener("DOMContentLoaded", function() {
           highPrice: product.highPrice,
           offerCount: product.offerCount,
           availability: "https://schema.org/InStock",
-          priceValidUntil: nextYear.toISOString().split("T")[0],
+          priceValidUntil: nextYear.toISOString().split('T')[0],
           url: page.url
         };
-        graph.push({
+
+        const productSchema = {
           "@type": "Product",
           "@id": page.url + "#product",
           name: "Harga " + page.service.name,
@@ -189,22 +199,23 @@ document.addEventListener("DOMContentLoaded", function() {
           category: "Jasa Konstruksi",
           brand: { "@type": "Brand", name: page.business.name },
           offers: serviceObj.offers
-        });
+        };
+        graph.push(productSchema);
       }
 
       graph.push(serviceObj);
 
-      // Internal links list
-      if (page.internalLinks.length) {
+      // ItemList internal links
+      if(page.internalLinks.length) {
         graph.push({
           "@type": "ItemList",
           "@id": page.url + "#daftar-internal-link",
           name: "Daftar Halaman Terkait",
           itemListOrder: "http://schema.org/ItemListOrderAscending",
           numberOfItems: page.internalLinks.length,
-          itemListElement: page.internalLinks.map((link, i) => ({
-            "@type": "ListItem",
-            position: i + 1,
+          itemListElement: page.internalLinks.map((link,i)=>({
+            "@type":"ListItem",
+            position: i+1,
             url: link.url,
             name: link.name
           }))
@@ -214,9 +225,9 @@ document.addEventListener("DOMContentLoaded", function() {
       return { "@context": "https://schema.org", "@graph": graph };
     }
 
-    // ===== INJEKSI JSON-LD =====
+    // ===== INJEKSI KE SCRIPT =====
     let schemaScript = document.querySelector('#auto-schema-service');
-    if (!schemaScript) {
+    if(!schemaScript){
       schemaScript = document.createElement("script");
       schemaScript.id = "auto-schema-service";
       schemaScript.type = "application/ld+json";
