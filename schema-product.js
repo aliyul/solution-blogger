@@ -1,9 +1,9 @@
-// ⚡ AUTO SCHEMA UNIVERSAL v4.2 — Brand Otomatis + Seller Linked ke LocalBusiness + ItemList Cerdas
+// ⚡ AUTO SCHEMA UNIVERSAL v4.3 — Optimized for Produk Pages (Brand Dinamis + ItemList Valid + Seller Linked)
 document.addEventListener("DOMContentLoaded", function () {
   setTimeout(() => {
     console.log("[AutoSchema] 🚀 Deteksi otomatis dimulai...");
 
-    // === 1️⃣ URL NORMAL (hapus m=1 agar canonical) ===
+    // === 1️⃣ URL NORMALISASI (hapus m=1 agar canonical tetap bersih) ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
     const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
     const baseUrl = ogUrl || canonical || location.href;
@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
           .join(" ")
           .substring(0, 300);
 
-    // === 4️⃣ GAMBAR ===
+    // === 4️⃣ GAMBAR UTAMA ===
     let image =
       document.querySelector('meta[property="og:image"]')?.content ||
       document.querySelector("article img, main img, .post-body img, img")?.src;
@@ -96,22 +96,30 @@ document.addEventListener("DOMContentLoaded", function () {
       seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" }
     }));
 
-    // === 9️⃣ ITEMLIST TANPA DUPLIKAT ===
+    // === 9️⃣ ITEMLIST PRODUK TANPA DUPLIKAT ===
     const allLinks = Array.from(document.querySelectorAll("a[href*='betonjayareadymix.com']")).map(a => ({
       name: a.innerText.trim(),
-      url: a.href.trim()
+      url: a.href.trim(),
+      desc: a.title || a.innerText.trim()
     }));
 
     const relevantLinks = allLinks
-      .filter(l => /jayamix|ready-mix|beton|precast|minimix|mutu|harga|plant|produk|material|kontraktor|konstruksi|sewa|rental|buis|box-culvert|u-ditch|panel|pagar|bata|genteng|atap|besi|semen/i.test(l.url + " " + l.name))
+      .filter(l => /jayamix|ready-mix|beton|precast|minimix|mutu|harga|plant|produk|material|bata|genteng|atap|besi|semen|box|u-ditch|panel|buis/i.test(l.url + " " + l.name))
       .filter((v, i, a) => a.findIndex(t => t.url === v.url) === i)
       .slice(0, 25);
 
     const itemListElement = relevantLinks.map((item, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      name: item.name || item.url.split("/").pop().replace(/[-_]/g, " "),
-      url: item.url
+      item: {
+        "@type": "Product",
+        name: item.name || item.url.split("/").pop().replace(/[-_]/g, " "),
+        url: item.url,
+        description: item.desc || title,
+        image,
+        brand: { "@type": "Brand", name: brandName },
+        seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" }
+      }
     }));
 
     // === 🔟 DATA BISNIS ===
@@ -136,17 +144,17 @@ document.addEventListener("DOMContentLoaded", function () {
       logo: image
     };
 
-    // === 11️⃣ ENTITY UTAMA ===
+    // === 11️⃣ ENTITY UTAMA (PRODUCT) ===
     const mainEntity = {
-      "@type": (isProductPage && !isServicePage) ? "Product" : "Service",
-      "@id": url + ((isProductPage && !isServicePage) ? "#product" : "#service"),
+      "@type": "Product",
+      "@id": url + "#product",
       name: title,
       description: desc,
       image,
       category,
       brand: { "@type": "Brand", "name": brandName },
       areaServed,
-      provider: { "@id": business["@id"] }
+      seller: { "@id": business["@id"] }
     };
 
     if (offerCount > 0 && lowPrice) {
@@ -183,12 +191,12 @@ document.addEventListener("DOMContentLoaded", function () {
     if (itemListElement.length > 0) {
       graph.push({
         "@type": "ItemList",
-        name: "Daftar Produk & Layanan Terkait",
+        name: "Daftar Produk & Material Terkait",
         itemListOrder: "https://schema.org/ItemListOrderAscending",
         numberOfItems: itemListElement.length,
         itemListElement
       });
-      console.log(`[AutoSchema] 🧩 ItemList aktif (${itemListElement.length} URL relevan).`);
+      console.log(`[AutoSchema] 🧩 ItemList aktif (${itemListElement.length} produk relevan).`);
     } else {
       console.log("[AutoSchema] ℹ️ Tidak ada URL relevan untuk ItemList.");
     }
@@ -196,6 +204,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // === 13️⃣ OUTPUT JSON-LD ===
     const schemaData = { "@context": "https://schema.org", "@graph": graph };
     document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData, null, 2);
-    console.log(`[AutoSchema] ✅ JSON-LD sukses — ${mainEntity["@type"]}, Brand: ${brandName}, Offers: ${offerCount}`);
+    console.log(`[AutoSchema] ✅ JSON-LD sukses — Product: ${title}, Brand: ${brandName}, Offers: ${offerCount}`);
   }, 600);
 });
