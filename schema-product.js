@@ -1,4 +1,4 @@
-// ⚡ AUTO SCHEMA UNIVERSAL v3.7 ULTRA PRO — Deteksi Produk, Jasa, Harga, & ItemList (Valid JSON-LD)
+// ⚡ AUTO SCHEMA UNIVERSAL v3.8 SEO-LINKED SELLER — Produk, Jasa, ItemList, Valid Google
 document.addEventListener("DOMContentLoaded", function () {
   setTimeout(() => {
     console.log("[AutoSchema] 🚀 Deteksi otomatis dimulai...");
@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
           .join(" ")
           .substring(0, 300);
 
-    // === 4️⃣ GAMBAR ===
+    // === 4️⃣ GAMBAR (fallback default jika tidak ada) ===
     let image =
       document.querySelector('meta[property="og:image"]')?.content ||
       document.querySelector("article img, main img, .post-body img, img")?.src;
@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // === 5️⃣ AREA SERVED ===
-    const areaList = ["Jakarta", "Bekasi", "Bogor", "Depok", "Tangerang", "Karawang", "Serang", "Cilegon", "Banten", "Jawa Barat", "Jabodetabek"];
+    const areaList = ["Jakarta","Bekasi","Bogor","Depok","Tangerang","Karawang","Serang","Cilegon","Banten","Jawa Barat","Jabodetabek"];
     const foundArea = areaList.find(a => url.toLowerCase().includes(a.toLowerCase().replace(/\s+/g, "-")));
     const areaServed = foundArea
       ? [{ "@type": "Place", name: foundArea }]
@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let isProductPage = false;
     let isServicePage = false;
 
-    const productKeywords = /readymix|beton|precast|baja|besi|acp|wpc|semen|grc|gypsum|keramik|bata|genteng|pasir|split|batu|pipa|cat|plester|conblock|paving|atap|asbes|kawat|besi hollow|buis|box culvert|u ditch|panel|kaca|tanah|paku|lem|pagar|kanopi|aspal|material|produk|mortar|hebel|batako/i;
+    const productKeywords = /readymix|beton|precast|baja|besi|acp|wpc|semen|grc|gypsum|keramik|bata|genteng|pasir|split|batu|pipa|cat|plester|conblock|paving|atap|asbes|kawat|buis|box culvert|u ditch|panel|kaca|tanah|paku|lem|pagar|kanopi|aspal|material|produk|mortar|hebel|batako/i;
     const serviceKeywords = /sewa|rental|jasa|kontraktor|pengaspalan|renovasi|pemasangan|borongan|perbaikan|pembangunan|pancang|angkut|cut fill|pembongkaran|pengiriman/i;
 
     if (productKeywords.test(textAll)) {
@@ -85,9 +85,9 @@ document.addEventListener("DOMContentLoaded", function () {
       price: ((p.low + p.high) / 2).toFixed(0),
       availability: "https://schema.org/InStock",
       priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
-        .toISOString()
-        .split("T")[0],
-      url
+        .toISOString().split("T")[0],
+      url,
+      seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" }
     }));
 
     // === 8️⃣ ITEMLIST LINK RELEVAN TANPA DUPLIKAT ===
@@ -102,7 +102,7 @@ document.addEventListener("DOMContentLoaded", function () {
           l.url + " " + l.name
         )
       )
-      .filter((v, i, a) => a.findIndex(t => t.url === v.url) === i) // 🔹 unik
+      .filter((v, i, a) => a.findIndex(t => t.url === v.url) === i)
       .slice(0, 25);
 
     const itemListElement = relevantLinks.map((item, i) => ({
@@ -112,10 +112,10 @@ document.addEventListener("DOMContentLoaded", function () {
       url: item.url
     }));
 
-    // === 9️⃣ DATA BISNIS ===
+    // === 9️⃣ DATA BISNIS (LOCAL BUSINESS LINKED) ===
     const business = {
       "@type": ["LocalBusiness", "GeneralContractor"],
-      "@id": "https://www.betonjayareadymix.com/#business",
+      "@id": "https://www.betonjayareadymix.com/#localbusiness",
       name: "Beton Jaya Readymix",
       url: "https://www.betonjayareadymix.com",
       telephone: "+6283839000968",
@@ -155,8 +155,7 @@ document.addEventListener("DOMContentLoaded", function () {
         offerCount,
         availability: "https://schema.org/InStock",
         priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
-          .toISOString()
-          .split("T")[0],
+          .toISOString().split("T")[0],
         url
       };
       mainEntity.offers = offers;
