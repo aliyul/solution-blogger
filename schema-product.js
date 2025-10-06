@@ -1,18 +1,18 @@
-// ⚡ AUTO SCHEMA UNIVERSAL v3.8 SEO-LINKED SELLER — Produk, Jasa, ItemList, Valid Google
+// ⚡ AUTO SCHEMA UNIVERSAL v4.2 — Brand Otomatis + Seller Linked ke LocalBusiness + ItemList Cerdas
 document.addEventListener("DOMContentLoaded", function () {
   setTimeout(() => {
     console.log("[AutoSchema] 🚀 Deteksi otomatis dimulai...");
 
-    // === 1️⃣ URL TANPA ?m=1 ===
+    // === 1️⃣ URL NORMAL (hapus m=1 agar canonical) ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
     const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
     const baseUrl = ogUrl || canonical || location.href;
     const url = baseUrl.replace(/[?&]m=1/, "");
 
-    // === 2️⃣ PARENT URL ===
+    // === 2️⃣ URL INDUK ===
     const parentMeta = document.querySelector('meta[name="parent-url"]')?.content?.trim();
     const parentUrl = parentMeta || (() => {
-      const breadcrumbLinks = Array.from(document.querySelectorAll('nav.breadcrumbs a'))
+      const breadcrumbLinks = Array.from(document.querySelectorAll("nav.breadcrumbs a"))
         .map(a => a.href)
         .filter(href => href !== location.href);
       return breadcrumbLinks.length ? breadcrumbLinks.pop() : location.origin;
@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function () {
           .join(" ")
           .substring(0, 300);
 
-    // === 4️⃣ GAMBAR (fallback default jika tidak ada) ===
+    // === 4️⃣ GAMBAR ===
     let image =
       document.querySelector('meta[property="og:image"]')?.content ||
       document.querySelector("article img, main img, .post-body img, img")?.src;
@@ -63,7 +63,14 @@ document.addEventListener("DOMContentLoaded", function () {
       isServicePage = true;
     }
 
-    // === 7️⃣ DETEKSI HARGA ===
+    // === 7️⃣ DETEKSI BRAND OTOMATIS ===
+    let brandName = "Beton Jaya Readymix";
+    const brandMatch = textAll.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|solusi bangun/i);
+    if (brandMatch) {
+      brandName = brandMatch[0].trim().replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    // === 8️⃣ DETEKSI HARGA ===
     const priceRegex = /Rp\s*([\d.]+)(?:\s*[-–]\s*Rp\s*([\d.]+))?/gi;
     let match, pricePairs = [], allPrices = [];
     while ((match = priceRegex.exec(document.body.innerText)) !== null) {
@@ -84,24 +91,19 @@ document.addEventListener("DOMContentLoaded", function () {
       priceCurrency: "IDR",
       price: ((p.low + p.high) / 2).toFixed(0),
       availability: "https://schema.org/InStock",
-      priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
-        .toISOString().split("T")[0],
+      priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0],
       url,
       seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" }
     }));
 
-    // === 8️⃣ ITEMLIST LINK RELEVAN TANPA DUPLIKAT ===
+    // === 9️⃣ ITEMLIST TANPA DUPLIKAT ===
     const allLinks = Array.from(document.querySelectorAll("a[href*='betonjayareadymix.com']")).map(a => ({
       name: a.innerText.trim(),
       url: a.href.trim()
     }));
 
     const relevantLinks = allLinks
-      .filter(l =>
-        /jayamix|ready-mix|beton|precast|minimix|mutu|harga|plant|produk|material|kontraktor|konstruksi|sewa|rental|buis|box-culvert|u-ditch|panel|pagar|bata|genteng|atap|besi|semen/i.test(
-          l.url + " " + l.name
-        )
-      )
+      .filter(l => /jayamix|ready-mix|beton|precast|minimix|mutu|harga|plant|produk|material|kontraktor|konstruksi|sewa|rental|buis|box-culvert|u-ditch|panel|pagar|bata|genteng|atap|besi|semen/i.test(l.url + " " + l.name))
       .filter((v, i, a) => a.findIndex(t => t.url === v.url) === i)
       .slice(0, 25);
 
@@ -112,7 +114,7 @@ document.addEventListener("DOMContentLoaded", function () {
       url: item.url
     }));
 
-    // === 9️⃣ DATA BISNIS (LOCAL BUSINESS LINKED) ===
+    // === 🔟 DATA BISNIS ===
     const business = {
       "@type": ["LocalBusiness", "GeneralContractor"],
       "@id": "https://www.betonjayareadymix.com/#localbusiness",
@@ -134,7 +136,7 @@ document.addEventListener("DOMContentLoaded", function () {
       logo: image
     };
 
-    // === 🔟 ENTITY UTAMA ===
+    // === 11️⃣ ENTITY UTAMA ===
     const mainEntity = {
       "@type": (isProductPage && !isServicePage) ? "Product" : "Service",
       "@id": url + ((isProductPage && !isServicePage) ? "#product" : "#service"),
@@ -142,6 +144,7 @@ document.addEventListener("DOMContentLoaded", function () {
       description: desc,
       image,
       category,
+      brand: { "@type": "Brand", "name": brandName },
       areaServed,
       provider: { "@id": business["@id"] }
     };
@@ -154,14 +157,13 @@ document.addEventListener("DOMContentLoaded", function () {
         highPrice,
         offerCount,
         availability: "https://schema.org/InStock",
-        priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
-          .toISOString().split("T")[0],
+        priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split("T")[0],
         url
       };
       mainEntity.offers = offers;
     }
 
-    // === 11️⃣ GRAPH FINAL ===
+    // === 12️⃣ GRAPH FINAL ===
     const graph = [
       {
         "@type": "WebPage",
@@ -191,10 +193,9 @@ document.addEventListener("DOMContentLoaded", function () {
       console.log("[AutoSchema] ℹ️ Tidak ada URL relevan untuk ItemList.");
     }
 
-    // === 12️⃣ INJEKSI JSON-LD ===
+    // === 13️⃣ OUTPUT JSON-LD ===
     const schemaData = { "@context": "https://schema.org", "@graph": graph };
     document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData, null, 2);
-
-    console.log(`[AutoSchema] ✅ JSON-LD sukses (${offerCount} harga, tipe: ${mainEntity["@type"]})`);
-  }, 500);
+    console.log(`[AutoSchema] ✅ JSON-LD sukses — ${mainEntity["@type"]}, Brand: ${brandName}, Offers: ${offerCount}`);
+  }, 600);
 });
