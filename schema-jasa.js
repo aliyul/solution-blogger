@@ -88,24 +88,31 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     const priceData = detectPrices();
 
-    // ===== 6️⃣ DETEKSI ITEMLIST (URL INTERNAL RELEVAN) =====
+    // ===== 6️⃣ DETEKSI ITEMLIST (URL INTERNAL) =====
     const itemListUrls = [...new Set(
       Array.from(document.querySelectorAll("a[href*='/p/'], a[href*='/20']"))
         .map(a => a.href.replace(/[?&]m=1/, ""))
         .filter(h => h.includes(location.origin) && !h.includes("#") && h !== PAGE.url)
-    )].slice(0, 10);
+    )].slice(0, 15);
+
+    // Deteksi otomatis tipe tiap URL: Product atau Service
+    function detectItemType(u) {
+      const productWords = ["produk","ready-mix","beton","precast","baja","acp","besi","genteng","bata","material","pipa","panel"];
+      return productWords.some(w => u.includes(w)) ? "Product" : "Service";
+    }
 
     const itemListElements = itemListUrls.map((u, i) => ({
       "@type": "ListItem",
       position: i + 1,
       item: {
-        "@type": "Service",
+        "@type": detectItemType(u),
         name: u.split("/").pop().replace(/[-_]/g, " ").replace(".html", ""),
-        url: u
+        url: u,
+        provider: { "@id": PAGE.business.url + "#localbusiness" }
       }
     }));
 
-    // ===== 7️⃣ BANGUN GRAPH SCHEMA =====
+    // ===== 7️⃣ GENERATE GRAPH SCHEMA =====
     const graph = [];
 
     // LocalBusiness
@@ -134,7 +141,7 @@ document.addEventListener("DOMContentLoaded", function () {
       publisher: { "@id": PAGE.business.url + "#localbusiness" }
     });
 
-    // Service
+    // Service utama halaman
     const serviceObj = {
       "@type": "Service",
       "@id": PAGE.url + "#service",
@@ -158,8 +165,7 @@ document.addEventListener("DOMContentLoaded", function () {
         priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
           .toISOString()
           .split("T")[0],
-        url: PAGE.url,
-        seller: { "@id": PAGE.business.url + "#localbusiness" }
+        url: PAGE.url
       };
     }
 
@@ -169,18 +175,16 @@ document.addEventListener("DOMContentLoaded", function () {
     if (itemListElements.length > 1) {
       graph.push({
         "@type": "ItemList",
-        name: "Daftar Layanan Terkait " + PAGE.business.name,
+        name: "Daftar Layanan & Produk Terkait " + PAGE.business.name,
         itemListElement: itemListElements
       });
     }
 
-    // ===== 8️⃣ INJEKSI JSON-LD KE HEAD =====
+    // ===== 8️⃣ INJEKSI JSON-LD =====
     const schema = { "@context": "https://schema.org", "@graph": graph };
     const scriptEl = document.querySelector("#auto-schema-service");
     scriptEl.textContent = JSON.stringify(schema, null, 2);
-    console.log(
-      `[Schema Service] JSON-LD diinject ✅ (${priceData?.offerCount || 0} harga, ${itemListElements.length} item)`
-    );
 
+    console.log(`[Schema Service] JSON-LD diinject (${priceData?.offerCount || 0} harga, ${itemListElements.length} item list) ✅`);
   }, 600);
 });
