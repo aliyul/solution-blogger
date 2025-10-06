@@ -88,7 +88,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     const priceData = detectPrices();
 
-    // ===== 6️⃣ DETEKSI ITEMLIST (URL INTERNAL) =====
+    // ===== 6️⃣ DETEKSI ITEMLIST (URL INTERNAL RELEVAN) =====
     const itemListUrls = [...new Set(
       Array.from(document.querySelectorAll("a[href*='/p/'], a[href*='/20']"))
         .map(a => a.href.replace(/[?&]m=1/, ""))
@@ -101,12 +101,11 @@ document.addEventListener("DOMContentLoaded", function () {
       item: {
         "@type": "Service",
         name: u.split("/").pop().replace(/[-_]/g, " ").replace(".html", ""),
-        url: u,
-        description: `Layanan terkait di ${PAGE.business.name}`
+        url: u
       }
     }));
 
-    // ===== 7️⃣ GENERATE SCHEMA =====
+    // ===== 7️⃣ BANGUN GRAPH SCHEMA =====
     const graph = [];
 
     // LocalBusiness
@@ -159,7 +158,8 @@ document.addEventListener("DOMContentLoaded", function () {
         priceValidUntil: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
           .toISOString()
           .split("T")[0],
-        url: PAGE.url
+        url: PAGE.url,
+        seller: { "@id": PAGE.business.url + "#localbusiness" }
       };
     }
 
@@ -174,11 +174,13 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
-    // ===== 8️⃣ INJEKSI JSON-LD =====
+    // ===== 8️⃣ INJEKSI JSON-LD KE HEAD =====
     const schema = { "@context": "https://schema.org", "@graph": graph };
     const scriptEl = document.querySelector("#auto-schema-service");
     scriptEl.textContent = JSON.stringify(schema, null, 2);
-    console.log(`[Schema Service] JSON-LD berhasil diinject (${priceData?.offerCount || 0} harga, ${itemListElements.length} item list) ✅`);
+    console.log(
+      `[Schema Service] JSON-LD diinject ✅ (${priceData?.offerCount || 0} harga, ${itemListElements.length} item)`
+    );
 
   }, 600);
 });
