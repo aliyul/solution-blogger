@@ -1,8 +1,8 @@
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[Schema Service v4.26] 🚀 Auto generator dijalankan");
+    console.log("[Schema Service v4.27] 🚀 Auto generator dijalankan");
 
-    // ========== 1️⃣ INFO HALAMAN ==========
+    // ========== 1️⃣ INFO DASAR HALAMAN ==========
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
     const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
     const baseUrl = ogUrl || canonical || location.href;
@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       title: document.querySelector("h1")?.textContent?.trim() || document.title.trim(),
       description:
         document.querySelector('meta[name="description"]')?.content?.trim() ||
-        document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 300) ||
+        document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 200) ||
         document.title,
       image:
         document.querySelector('meta[property="og:image"]')?.content ||
@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         url: "https://www.betonjayareadymix.com",
         telephone: "+6283839000968",
         openingHours: "Mo-Sa 08:00-17:00",
-        description: "Beton Jaya Readymix melayani jasa konstruksi, pengecoran beton, precast, dan sewa alat berat di seluruh Indonesia.",
+        description: "Beton Jaya Readymix melayani jasa konstruksi, beton cor, precast, dan sewa alat berat di seluruh Indonesia.",
         address: {
           "@type": "PostalAddress",
           addressLocality: "Bogor",
@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     };
 
-    // ========== 2️⃣ AREA DEFAULT JSON ==========
+    // ========== 2️⃣ AREA DEFAULT & WIKI URL ==========
     const areaJSON = {
       "Kabupaten Karawang": "Jawa Barat",
       "Kabupaten Bogor": "Jawa Barat",
@@ -56,65 +56,40 @@ document.addEventListener("DOMContentLoaded", async function () {
       "DKI Jakarta": "DKI Jakarta"
     };
 
+    const defaultAreaServed = [
+      { "@type": "Place", name: "Kabupaten Bogor", sameAs: "https://id.wikipedia.org/wiki/Kabupaten_Bogor" },
+      { "@type": "Place", name: "Kota Depok", sameAs: "https://id.wikipedia.org/wiki/Kota_Depok" },
+      { "@type": "Place", name: "Kabupaten Tangerang", sameAs: "https://id.wikipedia.org/wiki/Kabupaten_Tangerang" },
+      { "@type": "Place", name: "Kabupaten Karawang", sameAs: "https://id.wikipedia.org/wiki/Kabupaten_Karawang" },
+      { "@type": "Place", name: "Kabupaten Serang", sameAs: "https://id.wikipedia.org/wiki/Kabupaten_Serang" },
+      { "@type": "Place", name: "Kota Serang", sameAs: "https://id.wikipedia.org/wiki/Kota_Serang" },
+      { "@type": "Place", name: "Kota Cilegon", sameAs: "https://id.wikipedia.org/wiki/Kota_Cilegon" },
+      { "@type": "Place", name: "DKI Jakarta", sameAs: "https://id.wikipedia.org/wiki/DKI_Jakarta" }
+    ];
+
     const wikiUrl = n => "https://id.wikipedia.org/wiki/" + n.replace(/\s+/g, "_");
 
-    // ========== 3️⃣ DETEKSI AREA ==========
+    // ========== 3️⃣ DETEKSI AREA SERVED ==========
     async function detectArea(url, title = "") {
       const found = [];
       const lower = (url + " " + title).toLowerCase();
 
-      // — cari langsung di areaJSON
+      // deteksi kabupaten/kota dari areaJSON
       for (const area in areaJSON) {
-        if (lower.includes(area.toLowerCase().replace(/\s+/g, "-")) || lower.includes(area.toLowerCase())) {
+        const slug = area.toLowerCase().replace(/\s+/g, "-");
+        if (lower.includes(slug) || lower.includes(area.toLowerCase())) {
           found.push({ "@type": "Place", name: area, sameAs: wikiUrl(area) });
           found.push({ "@type": "Place", name: areaJSON[area], sameAs: wikiUrl(areaJSON[area]) });
         }
       }
 
-      // — jika tidak ketemu, cari kecamatan (via regex)
+      // fallback default jika tak ada nama daerah
       if (found.length === 0) {
-        const match = lower.match(/([a-z]+(?:-[a-z]+){0,2})(?=\.html|$)/);
-        const kecamatan = match ? match[1].replace(/-/g, " ") : null;
-        if (kecamatan) {
-          const cacheKey = "areaCache_" + kecamatan;
-          const cached = localStorage.getItem(cacheKey);
-          if (cached) {
-            const { data, timestamp } = JSON.parse(cached);
-            if (Date.now() - timestamp < 30 * 24 * 60 * 60 * 1000) {
-              return data;
-            }
-          }
-
-          try {
-            const res = await fetch(`https://id.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(kecamatan)}`);
-            if (res.ok) {
-              const data = await res.json();
-              if (data?.title && data?.content_urls?.desktop?.page) {
-                const info = [{
-                  "@type": "Place",
-                  name: data.title,
-                  sameAs: data.content_urls.desktop.page
-                }];
-                localStorage.setItem(cacheKey, JSON.stringify({ data: info, timestamp: Date.now() }));
-                return info;
-              }
-            }
-          } catch (e) {
-            console.warn("[Wikipedia gagal untuk]", kecamatan);
-          }
-        }
+        console.warn("[AutoSchema] ⚠️ Tidak ditemukan nama daerah dalam URL — gunakan defaultAreaServed");
+        return defaultAreaServed;
       }
 
-      // fallback: Indonesia
-      if (found.length === 0) {
-        found.push({
-          "@type": "Place",
-          name: "Indonesia",
-          sameAs: "https://id.wikipedia.org/wiki/Indonesia"
-        });
-      }
-
-      // unik
+      // hapus duplikat
       const unique = [];
       const names = new Set();
       for (const a of found) {
@@ -128,13 +103,24 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const areaServed = await detectArea(PAGE.url, PAGE.title);
 
-    // ========== 4️⃣ SERVICE TYPE ==========
-    const shortTexts = Array.from(document.querySelectorAll("p, li"))
-      .map(p => p.innerText.trim())
-      .filter(t => t.length < 100 && /^[A-Z]/.test(t));
-    const serviceTypes = [...new Set(shortTexts.slice(0, 5))];
+    // ========== 4️⃣ DETEKSI SERVICE TYPE ==========
+    function detectServiceType() {
+      const baseTitle = PAGE.title.toLowerCase();
+      const words = [
+        "sewa excavator", "sewa alat berat", "jasa borongan", "jasa cor beton", 
+        "jasa bongkar", "jasa renovasi", "jasa pancang", "jasa kontraktor",
+        "jasa puing", "jasa proyek", "rental alat berat"
+      ];
+      const matched = words.filter(w => baseTitle.includes(w));
+      if (matched.length) return matched;
+      if (baseTitle.includes("sewa")) return ["Sewa Alat Berat"];
+      if (baseTitle.includes("borongan")) return ["Jasa Borongan Konstruksi"];
+      if (baseTitle.includes("beton")) return ["Jasa Beton Cor"];
+      return ["Jasa Konstruksi Umum"];
+    }
+    const serviceTypes = detectServiceType();
 
-    // ========== 5️⃣ HARGA ==========
+    // ========== 5️⃣ DETEKSI HARGA ==========
     function detectPrices() {
       const text = document.body.innerText;
       const priceRegex = /Rp\s*([\d.,]+)/g;
@@ -153,33 +139,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     const priceData = detectPrices();
 
-    // ========== 6️⃣ ITEM LIST ==========
-    const itemListUrls = [...new Set(
-      Array.from(document.querySelectorAll("a[href*='/p/'], a[href*='/20']"))
-        .map(a => a.href.replace(/[?&]m=1/, ""))
-        .filter(h => h.includes(location.origin) && !h.includes("#") && h !== PAGE.url)
-    )].slice(0, 15);
-
-    async function detectItemType(u) {
-      const productWords = ["produk", "beton", "precast", "baja", "buis", "ready-mix"];
-      return productWords.some(w => u.includes(w)) ? "Product" : "Service";
-    }
-
-    const itemListElements = await Promise.all(
-      itemListUrls.map(async (u, i) => ({
-        "@type": "ListItem",
-        position: i + 1,
-        item: {
-          "@type": await detectItemType(u),
-          name: u.split("/").pop().replace(/[-_]/g, " ").replace(".html", ""),
-          url: u,
-          provider: { "@id": PAGE.business.url + "#localbusiness" },
-          areaServed: await detectArea(u)
-        }
-      }))
-    );
-
-    // ========== 7️⃣ BUILD GRAPH ==========
+    // ========== 6️⃣ BUILD GRAPH ==========
     const graph = [
       {
         "@type": ["LocalBusiness", "GeneralContractor"],
@@ -202,23 +162,22 @@ document.addEventListener("DOMContentLoaded", async function () {
         image: PAGE.image,
         mainEntity: { "@id": PAGE.url + "#service" },
         publisher: { "@id": PAGE.business.url + "#localbusiness" }
+      },
+      {
+        "@type": "Service",
+        "@id": PAGE.url + "#service",
+        name: PAGE.title,
+        description: PAGE.description,
+        image: PAGE.image,
+        serviceType: serviceTypes,
+        areaServed,
+        provider: { "@id": PAGE.business.url + "#localbusiness" },
+        brand: { "@type": "Brand", name: PAGE.business.name }
       }
     ];
 
-    const serviceObj = {
-      "@type": "Service",
-      "@id": PAGE.url + "#service",
-      name: PAGE.title,
-      description: PAGE.description,
-      image: PAGE.image,
-      serviceType: serviceTypes,
-      areaServed,
-      provider: { "@id": PAGE.business.url + "#localbusiness" },
-      brand: { "@type": "Brand", name: PAGE.business.name }
-    };
-
     if (priceData) {
-      serviceObj.offers = {
+      graph[2].offers = {
         "@type": "AggregateOffer",
         priceCurrency: "IDR",
         lowPrice: priceData.lowPrice,
@@ -230,22 +189,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       };
     }
 
-    graph.push(serviceObj);
-
-    if (itemListElements.length > 1) {
-      graph.push({
-        "@type": "ItemList",
-        name: "Daftar Layanan & Produk Terkait " + PAGE.business.name,
-        itemListOrder: "https://schema.org/ItemListOrderAscending",
-        numberOfItems: itemListElements.length,
-        itemListElement: itemListElements
-      });
-    }
-
-    // ========== 8️⃣ OUTPUT ==========
+    // ========== 7️⃣ OUTPUT ==========
     const schema = { "@context": "https://schema.org", "@graph": graph };
     document.querySelector("#auto-schema-service").textContent = JSON.stringify(schema, null, 2);
-
-    console.log(`[Schema Service v4.26] ✅ Injected: ${itemListElements.length} item, ${areaServed.length} area terdeteksi`);
+    console.log(`[Schema Service v4.27] ✅ Injected! serviceType: ${serviceTypes.join(", ")} | area: ${areaServed.length}`);
   }, 500);
 });
