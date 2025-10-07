@@ -1,7 +1,7 @@
-// ⚡ AUTO SCHEMA UNIVERSAL v4.24 — OPTIMIZED FOR PRODUCT PAGES + WIKIPEDIA + CACHE + AREA SERVED AUTO-DETECT
+// ⚡ AUTO SCHEMA UNIVERSAL v4.24+ — OPTIMIZED FOR PRODUCT PAGES + AREA SERVED AUTO-DETECT HYBRID
 document.addEventListener("DOMContentLoaded", function () {
   setTimeout(async () => {
-    console.log("[AutoSchema v4.24] 🚀 Memulai deteksi otomatis Produk...");
+    console.log("[AutoSchema v4.24+] 🚀 Memulai deteksi otomatis Produk & Area...");
 
     // === META DASAR & IDENTITAS URL ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -50,58 +50,58 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const getWikipediaUrl = name => "https://id.wikipedia.org/wiki/" + name.replace(/\s+/g, "_");
 
-    // === FETCH DESA / KELURAHAN DARI WIKIPEDIA ===
-    async function fetchDesaFromWikipedia(kecamatan){
-      const cacheKey = "wiki_" + kecamatan.replace(/\s+/g,"_");
-      const cached = sessionStorage.getItem(cacheKey);
-      if(cached) return JSON.parse(cached);
-      const wikiUrl = "https://id.wikipedia.org/w/api.php?action=parse&page=Kecamatan_" + encodeURIComponent(kecamatan) + "&format=json&origin=*";
-      try {
-        const res = await fetch(wikiUrl);
-        const data = await res.json();
-        const html = data.parse?.text["*"];
-        const list = [];
-        if(html){
-          const tempDiv = document.createElement("div");
-          tempDiv.innerHTML = html;
-          tempDiv.querySelectorAll("table.wikitable tbody tr").forEach(row=>{
-            const tds = row.querySelectorAll("td");
-            if(tds.length>0){
-              const name = tds[0].innerText.trim();
-              if(name) list.push({ "@type":"Place","name":name,"sameAs":getWikipediaUrl(name) });
-            }
-          });
-        }
-        if(list.length===0) list.push({ "@type":"Place","name":kecamatan,"sameAs":getWikipediaUrl(kecamatan) });
-        sessionStorage.setItem(cacheKey, JSON.stringify(list));
-        return list;
-      } catch(e){
-        console.warn("Wikipedia fetch gagal:", e);
-        return [{ "@type":"Place","name":kecamatan,"sameAs":getWikipediaUrl(kecamatan) }];
-      }
-    }
-
-    // === DETEKSI AREA SERVED OTOMATIS ===
+    // === DETEKSI AREA SERVED (Hybrid Mode: nama1 + daerah → fallback daerah)
     async function detectAreaServed(url){
       const lowerUrl = url.toLowerCase();
       const results = [];
-      for(const kab in areaJSON){
-        for(const kec of areaJSON[kab]){
-          const slug = kec.toLowerCase().replace(/\s+/g,"-");
-          if(lowerUrl.includes(slug)){
-            const desaList = await fetchDesaFromWikipedia(kec);
-            results.push(...desaList);
+
+      // Prioritas 1: deteksi gabungan nama1 + daerah
+      const possibleCombos = [];
+      for (const kab in areaJSON){
+        for (const kec of areaJSON[kab]){
+          possibleCombos.push(`${kec} ${kab}`.toLowerCase().replace(/\s+/g,"-"));
+        }
+      }
+      for (const combo of possibleCombos){
+        if(lowerUrl.includes(combo)){
+          const parts = combo.split("-");
+          const kecamatan = parts.slice(0, -2).join(" ") || parts[0];
+          const kabupaten = parts.slice(-2).join(" ") || "";
+          results.push({ "@type":"Place", "name": kecamatan, "sameAs": getWikipediaUrl(kecamatan) });
+          if(kabupaten) results.push({ "@type":"Place", "name": kabupaten, "sameAs": getWikipediaUrl(kabupaten) });
+          break;
+        }
+      }
+
+      // Prioritas 2: deteksi nama kecamatan saja
+      if(!results.length){
+        for(const kab in areaJSON){
+          for(const kec of areaJSON[kab]){
+            const slug = kec.toLowerCase().replace(/\s+/g,"-");
+            if(lowerUrl.includes(slug)){
+              results.push({ "@type":"Place", "name": kec, "sameAs": getWikipediaUrl(kec) });
+              results.push({ "@type":"Place", "name": kab, "sameAs": getWikipediaUrl(kab) });
+              break;
+            }
           }
         }
       }
-      if(results.length) return results;
-      for(const kab in areaJSON){
-        const slug = kab.toLowerCase().replace(/\s+/g,"-");
-        if(lowerUrl.includes(slug)){
-          return areaJSON[kab].map(kec=>({ "@type":"Place","name":kec,"sameAs":getWikipediaUrl(kec) }));
+
+      // Prioritas 3: deteksi nama kabupaten/kota saja
+      if(!results.length){
+        for(const kab in areaJSON){
+          const slug = kab.toLowerCase().replace(/\s+/g,"-");
+          if(lowerUrl.includes(slug)){
+            results.push({ "@type":"Place", "name": kab, "sameAs": getWikipediaUrl(kab) });
+            areaJSON[kab].forEach(kec => {
+              results.push({ "@type":"Place", "name": kec, "sameAs": getWikipediaUrl(kec) });
+            });
+            break;
+          }
         }
       }
-      return defaultAreaServed;
+
+      return results.length ? results : defaultAreaServed;
     }
 
     const areaServed = await detectAreaServed(url);
@@ -138,7 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
       logo:image
     };
 
-    // === SCHEMA MAIN ENTITY (PRODUK UTAMA HALAMAN) ===
+    // === SCHEMA MAIN ENTITY ===
     const entityType = isProduct && !isService ? "Product" : isService && !isProduct ? "Service" : "Product";
     const mainEntity = {
       "@type": entityType,
@@ -158,7 +158,7 @@ document.addEventListener("DOMContentLoaded", function () {
       provider: { "@id": business["@id"] }
     };
 
-    // === STRUKTUR GRAPH FINAL ===
+    // === GRAPH FINAL ===
     const schemaData = {
       "@context": "https://schema.org",
       "@graph": [
@@ -178,6 +178,6 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData, null, 2);
-    console.log(`[AutoSchema v4.24] ✅ JSON-LD sukses — ${entityType} (${areaServed.length} lokasi terdeteksi).`);
+    console.log(`[AutoSchema v4.24+] ✅ JSON-LD sukses — ${entityType} (${areaServed.length} lokasi terdeteksi).`);
   }, 600);
 });
