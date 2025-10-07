@@ -1,14 +1,15 @@
+//The Last
 document.addEventListener("DOMContentLoaded", function () {
   setTimeout(() => {
-    console.log("[Schema Service] Auto generator dijalankan ✅");
+    console.log("[Schema Service v2] Auto generator dijalankan ✅");
 
-    // ===== 1️⃣ DETEKSI URL BERSIH TANPA ?m=1 =====
+    // ===== 1️⃣ URL BERSIH =====
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
     const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
     const baseUrl = ogUrl || canonical || location.href;
     const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
 
-    // ===== 2️⃣ KONFIGURASI DASAR HALAMAN =====
+    // ===== 2️⃣ KONFIGURASI HALAMAN =====
     const PAGE = {
       url: cleanUrl,
       title: document.querySelector("h1")?.textContent?.trim() || document.title.trim(),
@@ -50,16 +51,58 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     };
 
-    // ===== 3️⃣ DETEKSI AREA LAYANAN =====
-    const AREAS = [
-      "DKI Jakarta","Bekasi","Depok","Bogor","Tangerang",
-      "Karawang","Serang","Cilegon","Banten","Jawa Barat"
-    ];
-    const url = PAGE.url.toLowerCase();
-    const foundArea = AREAS.find(a =>
-      url.includes(a.toLowerCase().replace(/\s+/g, "-"))
-    );
-    PAGE.service.areaServed = foundArea ? [foundArea] : ["Indonesia"];
+    // ===== 3️⃣ AREA SERVED HIERARKI DENGAN WIKIPEDIA =====
+    const AREA_HIERARCHY = {
+      "Sukmajaya": "Kota Depok",
+      "Tapos": "Kota Depok",
+      "Cilangkap": "Kota Depok",
+      "Leuwinanggung": "Kota Bogor",
+      "Jatijajar": "Kota Bogor",
+      "Sukamaju Baru": "Kota Bogor",
+      "Kota Depok": "Jawa Barat",
+      "Kota Bogor": "Jawa Barat",
+      "Kota Tangerang": "Banten",
+      "Kota Tangerang Selatan": "Banten",
+      "Kota Bekasi": "Jawa Barat",
+      "Kabupaten Bogor": "Jawa Barat",
+      "Kabupaten Bekasi": "Jawa Barat",
+      "Kabupaten Tangerang": "Banten",
+      "Kabupaten Karawang": "Jawa Barat",
+      "Kota Karawang": "Jawa Barat",
+      "Kota Serang": "Banten",
+      "Kabupaten Serang": "Banten",
+      "Kota Cilegon": "Banten",
+      "DKI Jakarta": "DKI Jakarta"
+    };
+
+    function getWikipediaUrl(name){
+      return "https://id.wikipedia.org/wiki/" + name.replace(/\s+/g,"_");
+    }
+
+    function detectAreaHierarki(text){
+      const matchedAreas = [];
+      Object.keys(AREA_HIERARCHY).forEach(area => {
+        if(text.toLowerCase().includes(area.toLowerCase().replace(/\s+/g,"-"))){
+          const parent = AREA_HIERARCHY[area];
+          matchedAreas.push(
+            { "@type":"Place","name":area,"sameAs":getWikipediaUrl(area)},
+            { "@type":"Place","name":parent,"sameAs":getWikipediaUrl(parent)}
+          );
+        }
+      });
+      if(matchedAreas.length === 0){
+        return [{ "@type":"Place","name":"Indonesia","sameAs":"https://id.wikipedia.org/wiki/Indonesia" }];
+      }
+      // hapus duplikat
+      const unique = [];
+      const names = new Set();
+      matchedAreas.forEach(a=>{
+        if(!names.has(a.name)){ unique.push(a); names.add(a.name); }
+      });
+      return unique;
+    }
+
+    PAGE.service.areaServed = detectAreaHierarki(PAGE.url);
 
     // ===== 4️⃣ DETEKSI JENIS SERVICE =====
     const shortTexts = Array.from(document.querySelectorAll("p, li"))
@@ -88,14 +131,13 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     const priceData = detectPrices();
 
-    // ===== 6️⃣ DETEKSI ITEMLIST (URL INTERNAL) =====
+    // ===== 6️⃣ ITEMLIST DENGAN AREA SERVED WIKIPEDIA =====
     const itemListUrls = [...new Set(
       Array.from(document.querySelectorAll("a[href*='/p/'], a[href*='/20']"))
         .map(a => a.href.replace(/[?&]m=1/, ""))
         .filter(h => h.includes(location.origin) && !h.includes("#") && h !== PAGE.url)
     )].slice(0, 15);
 
-    // Deteksi otomatis tipe tiap URL: Product atau Service
     function detectItemType(u) {
       const productWords = ["produk","ready-mix","beton","precast","baja","acp","besi","genteng","bata","material","pipa","panel"];
       return productWords.some(w => u.includes(w)) ? "Product" : "Service";
@@ -108,14 +150,14 @@ document.addEventListener("DOMContentLoaded", function () {
         "@type": detectItemType(u),
         name: u.split("/").pop().replace(/[-_]/g, " ").replace(".html", ""),
         url: u,
-        provider: { "@id": PAGE.business.url + "#localbusiness" }
+        provider: { "@id": PAGE.business.url + "#localbusiness" },
+        areaServed: detectAreaHierarki(u)
       }
     }));
 
-    // ===== 7️⃣ GENERATE GRAPH SCHEMA =====
+    // ===== 7️⃣ GENERATE JSON-LD =====
     const graph = [];
 
-    // LocalBusiness
     graph.push({
       "@type": ["LocalBusiness", "GeneralContractor"],
       "@id": PAGE.business.url + "#localbusiness",
@@ -129,7 +171,6 @@ document.addEventListener("DOMContentLoaded", function () {
       logo: PAGE.image
     });
 
-    // WebPage
     graph.push({
       "@type": "WebPage",
       "@id": PAGE.url + "#webpage",
@@ -141,7 +182,6 @@ document.addEventListener("DOMContentLoaded", function () {
       publisher: { "@id": PAGE.business.url + "#localbusiness" }
     });
 
-    // Service utama halaman
     const serviceObj = {
       "@type": "Service",
       "@id": PAGE.url + "#service",
@@ -149,7 +189,7 @@ document.addEventListener("DOMContentLoaded", function () {
       description: PAGE.service.description,
       image: PAGE.image,
       serviceType: PAGE.service.types,
-      areaServed: PAGE.service.areaServed.map(a => ({ "@type": "Place", name: a })),
+      areaServed: PAGE.service.areaServed,
       provider: { "@id": PAGE.business.url + "#localbusiness" },
       brand: { "@type": "Brand", name: PAGE.business.name }
     };
@@ -171,11 +211,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     graph.push(serviceObj);
 
-    // ItemList (jika ada lebih dari 1 link relevan)
     if (itemListElements.length > 1) {
       graph.push({
         "@type": "ItemList",
         name: "Daftar Layanan & Produk Terkait " + PAGE.business.name,
+        itemListOrder: "https://schema.org/ItemListOrderAscending",
+        numberOfItems: itemListElements.length,
         itemListElement: itemListElements
       });
     }
@@ -185,6 +226,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const scriptEl = document.querySelector("#auto-schema-service");
     scriptEl.textContent = JSON.stringify(schema, null, 2);
 
-    console.log(`[Schema Service] JSON-LD diinject (${priceData?.offerCount || 0} harga, ${itemListElements.length} item list) ✅`);
+    console.log(`[Schema Service v2] JSON-LD diinject (${priceData?.offerCount || 0} harga, ${itemListElements.length} item list) ✅`);
   }, 600);
 });
