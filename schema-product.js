@@ -1,7 +1,7 @@
-// ⚡ AUTO SCHEMA UNIVERSAL v4.13 — HALAMAN PRODUK & LOKAL SEO
+// ⚡ AUTO SCHEMA UNIVERSAL v4.15 — HALAMAN PRODUK & LOKAL SEO DENGAN WIKIPEDIA HIERARKI
 document.addEventListener("DOMContentLoaded", function () {
   setTimeout(() => {
-    console.log("[AutoSchema v4.13] 🚀 Deteksi otomatis dimulai...");
+    console.log("[AutoSchema v4.15] 🚀 Deteksi otomatis dimulai...");
 
     // === 1️⃣ URL HALAMAN ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -35,23 +35,59 @@ document.addEventListener("DOMContentLoaded", function () {
       image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
     }
 
-    // === 5️⃣ AREA SERVED ===
-    const defaultAreaServed = [
-      "Kabupaten Serang","Kota Serang","Kota Cilegon","Kabupaten Karawang","Kota Karawang",
-      "Kabupaten Bekasi","Kota Bekasi","Kabupaten Bogor","Kota Bogor","Kota Depok",
-      "Kabupaten Tangerang","Kota Tangerang","Kota Tangerang Selatan","DKI Jakarta"
-    ];
-    const kecamatanList = ["Sukmajaya","Tapos","Cilangkap","Leuwinanggung","Jatijajar","Sukamaju Baru"];
+    // === 5️⃣ AREA SERVED HIERARKI ===
+    const areaHierarchy = {
+      "Sukmajaya":"Kota Depok",
+      "Tapos":"Kota Depok",
+      "Cilangkap":"Kota Depok",
+      "Leuwinanggung":"Kota Bogor",
+      "Jatijajar":"Kota Bogor",
+      "Sukamaju Baru":"Kota Bogor",
+      "Kota Depok":"Jawa Barat",
+      "Kota Bogor":"Jawa Barat",
+      "Kota Tangerang":"Banten",
+      "Kota Tangerang Selatan":"Banten",
+      "Kota Bekasi":"Jawa Barat",
+      "Kabupaten Bogor":"Jawa Barat",
+      "Kabupaten Bekasi":"Jawa Barat",
+      "Kabupaten Tangerang":"Banten",
+      "Kabupaten Karawang":"Jawa Barat",
+      "Kota Karawang":"Jawa Barat",
+      "Kota Serang":"Banten",
+      "Kabupaten Serang":"Banten",
+      "Kota Cilegon":"Banten",
+      "DKI Jakarta":"DKI Jakarta"
+    };
 
-    function detectArea(text){
-      const foundKec = kecamatanList.filter(k => text.toLowerCase().includes(k.toLowerCase().replace(/\s+/g,"-")));
-      if(foundKec.length>0) return foundKec.map(k=>({ "@type":"Place","name":k }));
-      const foundCity = defaultAreaServed.filter(c => text.toLowerCase().includes(c.toLowerCase().replace(/\s+/g,"-")));
-      if(foundCity.length>0) return foundCity.map(c=>({ "@type":"Place","name":c }));
-      return defaultAreaServed.map(c=>({ "@type":"Place","name":c }));
+    function getWikipediaUrl(name){
+      return "https://id.wikipedia.org/wiki/" + name.replace(/\s+/g,"_");
     }
 
-    const pageAreaServed = detectArea(url);
+    function detectAreaHierarki(text){
+      const matchedAreas = [];
+      Object.keys(areaHierarchy).forEach(area => {
+        if(text.toLowerCase().includes(area.toLowerCase().replace(/\s+/g,"-"))){
+          const parent = areaHierarchy[area];
+          matchedAreas.push(
+            { "@type":"Place","name":area,"sameAs":getWikipediaUrl(area)},
+            { "@type":"Place","name":parent,"sameAs":getWikipediaUrl(parent)}
+          );
+        }
+      });
+      // Jika tidak ada yang cocok, kembalikan seluruh area default
+      if(matchedAreas.length === 0){
+        return Object.keys(areaHierarchy).map(a=>({ "@type":"Place","name":a,"sameAs":getWikipediaUrl(a) }));
+      }
+      // hapus duplikat
+      const unique = [];
+      const names = new Set();
+      matchedAreas.forEach(a=>{
+        if(!names.has(a.name)){ unique.push(a); names.add(a.name); }
+      });
+      return unique;
+    }
+
+    const pageAreaServed = detectAreaHierarki(url);
 
     // === 6️⃣ DETEKSI HALAMAN PRODUK / LAYANAN ===
     const textAll = document.body.innerText.toLowerCase();
@@ -89,14 +125,14 @@ document.addEventListener("DOMContentLoaded", function () {
       seller: {"@id":"https://www.betonjayareadymix.com/#localbusiness"}
     }));
 
-    // === 9️⃣ ITEMLIST INTERNAL PRODUCT & SERVICE SESUAI AREA ===
+    // === 9️⃣ ITEMLIST INTERNAL ===
     const articleLinks = Array.from(document.querySelectorAll("article a[href*='betonjayareadymix.com']"))
       .map(a => ({ name: a.innerText.trim(), url: a.href.trim() }))
       .filter(l => l.url.startsWith("https://www.betonjayareadymix.com/") && l.url !== url && l.name.length>0);
     const uniqueLinks = articleLinks.filter((v,i,a)=>a.findIndex(t=>t.url===v.url)===i);
 
     function isRelevantArea(linkUrl){
-      const linkAreas = detectArea(linkUrl).map(a=>a.name.toLowerCase());
+      const linkAreas = detectAreaHierarki(linkUrl).map(a=>a.name.toLowerCase());
       const pageAreas = pageAreaServed.map(a=>a.name.toLowerCase());
       return linkAreas.some(a => pageAreas.includes(a));
     }
@@ -104,7 +140,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const productItemList = [];
     const serviceItemList = [];
     uniqueLinks.forEach((item,i)=>{
-      if(!isRelevantArea(item.url)) return; // hanya area relevan
+      if(!isRelevantArea(item.url)) return;
       const txt = item.name.toLowerCase() + " " + item.url.toLowerCase();
       const isProd = productKeywords.test(txt);
       const isServ = serviceKeywords.test(txt);
@@ -116,7 +152,7 @@ document.addEventListener("DOMContentLoaded", function () {
           name: item.name,
           url: item.url,
           provider: {"@id":"https://www.betonjayareadymix.com/#localbusiness"},
-          areaServed: detectArea(item.url),
+          areaServed: detectAreaHierarki(item.url),
           sameAs: ["https://www.facebook.com/betonjayareadymix","https://www.instagram.com/betonjayareadymix"]
         }
       };
@@ -134,6 +170,7 @@ document.addEventListener("DOMContentLoaded", function () {
       openingHours:"Mo-Sa 08:00-17:00",
       description:"Beton Jaya Readymix menyediakan beton ready mix, precast, baja ringan, ACP, WPC, besi, serta layanan konstruksi & alat berat di seluruh Indonesia.",
       address:{"@type":"PostalAddress","addressLocality":"Bogor","addressRegion":"Jawa Barat","addressCountry":"ID"},
+      areaServed: pageAreaServed,
       sameAs:["https://www.facebook.com/betonjayareadymix","https://www.instagram.com/betonjayareadymix"],
       logo:image
     };
@@ -201,6 +238,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const schemaData={"@context":"https://schema.org","@graph":graph};
     document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData,null,2);
-    console.log(`[AutoSchema v4.13] ✅ JSON-LD sukses — ${mainEntity["@type"]}, Brand: ${brandName}, Offers: ${offerCount}`);
+    console.log(`[AutoSchema v4.15] ✅ JSON-LD sukses — ${mainEntity["@type"]}, Brand: ${brandName}, Offers: ${offerCount}`);
   },600);
 });
