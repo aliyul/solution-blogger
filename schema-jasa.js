@@ -1,8 +1,9 @@
+//* ⚡ AUTO SCHEMA SERVICE v4.28+ — Auto Detect Kabupaten/Kota/Kecamatan + Wikipedia Cache 30 Hari */
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[Schema Service v4.27] 🚀 Auto generator dijalankan");
+    console.log("[Schema Service v4.28+] 🚀 Auto generator dijalankan");
 
-    // ========== 1️⃣ INFO DASAR HALAMAN ==========
+    /* 1️⃣ INFO DASAR HALAMAN */
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
     const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
     const baseUrl = ogUrl || canonical || location.href;
@@ -25,7 +26,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         url: "https://www.betonjayareadymix.com",
         telephone: "+6283839000968",
         openingHours: "Mo-Sa 08:00-17:00",
-        description: "Beton Jaya Readymix melayani jasa konstruksi, beton cor, precast, dan sewa alat berat di seluruh Indonesia.",
+        description:
+          "Beton Jaya Readymix melayani jasa konstruksi, beton cor, precast, dan sewa alat berat di seluruh Indonesia.",
         address: {
           "@type": "PostalAddress",
           addressLocality: "Bogor",
@@ -39,107 +41,135 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     };
 
-    // ========== 2️⃣ AREA DEFAULT & WIKI URL ==========
+    /* 2️⃣ DATA DASAR AREA */
     const areaJSON = {
-      "Kabupaten Karawang": "Jawa Barat",
       "Kabupaten Bogor": "Jawa Barat",
+      "Kota Bogor": "Jawa Barat",
+      "Kota Depok": "Jawa Barat",
       "Kabupaten Bekasi": "Jawa Barat",
       "Kota Bekasi": "Jawa Barat",
-      "Kota Depok": "Jawa Barat",
-      "Kota Bogor": "Jawa Barat",
-      "Kabupaten Tangerang": "Banten",
-      "Kota Tangerang": "Banten",
-      "Kota Tangerang Selatan": "Banten",
+      "Kabupaten Karawang": "Jawa Barat",
       "Kabupaten Serang": "Banten",
       "Kota Serang": "Banten",
       "Kota Cilegon": "Banten",
+      "Kabupaten Tangerang": "Banten",
+      "Kota Tangerang": "Banten",
+      "Kota Tangerang Selatan": "Banten",
       "DKI Jakarta": "DKI Jakarta"
     };
 
-    const defaultAreaServed = [
-      { "@type": "Place", name: "Kabupaten Bogor", sameAs: "https://id.wikipedia.org/wiki/Kabupaten_Bogor" },
-      { "@type": "Place", name: "Kota Depok", sameAs: "https://id.wikipedia.org/wiki/Kota_Depok" },
-      { "@type": "Place", name: "Kabupaten Tangerang", sameAs: "https://id.wikipedia.org/wiki/Kabupaten_Tangerang" },
-      { "@type": "Place", name: "Kabupaten Karawang", sameAs: "https://id.wikipedia.org/wiki/Kabupaten_Karawang" },
-      { "@type": "Place", name: "Kabupaten Serang", sameAs: "https://id.wikipedia.org/wiki/Kabupaten_Serang" },
-      { "@type": "Place", name: "Kota Serang", sameAs: "https://id.wikipedia.org/wiki/Kota_Serang" },
-      { "@type": "Place", name: "Kota Cilegon", sameAs: "https://id.wikipedia.org/wiki/Kota_Cilegon" },
-      { "@type": "Place", name: "DKI Jakarta", sameAs: "https://id.wikipedia.org/wiki/DKI_Jakarta" }
-    ];
+    const defaultAreaServed = Object.keys(areaJSON).map(k => ({
+      "@type": "Place",
+      "name": k
+    }));
 
-    const wikiUrl = n => "https://id.wikipedia.org/wiki/" + n.replace(/\s+/g, "_");
+    /* 3️⃣ FETCH & CACHE */
+    async function getCachedAreaList(cacheKey, areaName, type) {
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.expire > Date.now()) {
+            console.log("📦 Cache loaded:", cacheKey);
+            return parsed.data;
+          } else localStorage.removeItem(cacheKey);
+        }
+        const data = await fetchAreaFromWikipedia(areaName, type);
+        if (data && data.length) {
+          localStorage.setItem(cacheKey, JSON.stringify({
+            expire: Date.now() + 1000 * 60 * 60 * 24 * 30,
+            data
+          }));
+          console.log("🌐 Cached new:", cacheKey);
+          return data;
+        }
+      } catch (e) {
+        console.warn("❌ Cache error:", e);
+      }
+      return null;
+    }
 
-    // ========== 3️⃣ DETEKSI AREA SERVED ==========
+    async function fetchAreaFromWikipedia(areaName, type) {
+      try {
+        const page = type === "kelurahan"
+          ? `Daftar_kelurahan_dan_desa_di_${areaName.replace(/\s+/g, "_")}`
+          : `Daftar_kecamatan_di_${areaName.replace(/\s+/g, "_")}`;
+        const url = `https://id.wikipedia.org/w/api.php?action=parse&page=${page}&prop=text&format=json&origin=*`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data?.parse?.text) {
+          const html = data.parse.text["*"];
+          const temp = document.createElement("div");
+          temp.innerHTML = html;
+          const items = Array.from(temp.querySelectorAll("li, td"))
+            .map(el => el.textContent.trim())
+            .filter(t => /^[A-Z]/.test(t) && !t.includes("Daftar"))
+            .slice(0, 100);
+          return items.map(n => ({
+            "@type": "Place",
+            "name": `${type === "kelurahan" ? "Kelurahan" : "Kecamatan"} ${n}`
+          }));
+        }
+      } catch (e) {
+        console.warn("⚠️ Wikipedia fetch error:", e);
+      }
+      return null;
+    }
+
+    /* 4️⃣ DETEKSI AREA */
     async function detectArea(url, title = "") {
-      const found = [];
-      const lower = (url + " " + title).toLowerCase();
+      const text = (url + " " + title).toLowerCase();
 
-      // deteksi kabupaten/kota dari areaJSON
+      // 1️⃣ Deteksi Kabupaten/Kota
       for (const area in areaJSON) {
         const slug = area.toLowerCase().replace(/\s+/g, "-");
-        if (lower.includes(slug) || lower.includes(area.toLowerCase())) {
-          found.push({ "@type": "Place", name: area, sameAs: wikiUrl(area) });
-          found.push({ "@type": "Place", name: areaJSON[area], sameAs: wikiUrl(areaJSON[area]) });
+        if (text.includes(slug) || text.includes(area.toLowerCase().replace(/\s+/g, ""))) {
+          console.log("📍 Terdeteksi kab/kota:", area);
+          return await getCachedAreaList(`wiki_kecamatan_${area.replace(/\s+/g, "_")}`, area, "kecamatan") || defaultAreaServed;
         }
       }
 
-      // fallback default jika tak ada nama daerah
-      if (found.length === 0) {
-        console.warn("[AutoSchema] ⚠️ Tidak ditemukan nama daerah dalam URL — gunakan defaultAreaServed");
-        return defaultAreaServed;
-      }
-
-      // hapus duplikat
-      const unique = [];
-      const names = new Set();
-      for (const a of found) {
-        if (!names.has(a.name)) {
-          unique.push(a);
-          names.add(a.name);
+      // 2️⃣ Deteksi Kecamatan (pakai cache Wikipedia)
+      const allKecKeys = Object.keys(localStorage).filter(k => k.startsWith("wiki_kecamatan_"));
+      for (const key of allKecKeys) {
+        const list = JSON.parse(localStorage.getItem(key) || "{}").data || [];
+        for (const kec of list) {
+          const n = kec.name.toLowerCase().replace("kecamatan ", "").replace(/\s+/g, "");
+          if (text.includes(n)) {
+            const parent = key.replace("wiki_kecamatan_", "").replace(/_/g, " ");
+            console.log("📍 Terdeteksi kecamatan:", n, "| parent:", parent);
+            return await getCachedAreaList(`wiki_kelurahan_${n}`, n, "kelurahan") ||
+              await getCachedAreaList(`wiki_kelurahan_${parent}`, parent, "kelurahan") ||
+              list;
+          }
         }
       }
-      return unique;
+
+      console.warn("[AutoSchema] Tidak ditemukan area — fallback default");
+      return defaultAreaServed;
     }
 
     const areaServed = await detectArea(PAGE.url, PAGE.title);
 
-    // ========== 4️⃣ DETEKSI SERVICE TYPE ==========
-    function detectServiceType() {
-      const baseTitle = PAGE.title.toLowerCase();
-      const words = [
-        "sewa excavator", "sewa alat berat", "jasa borongan", "jasa cor beton", 
-        "jasa bongkar", "jasa renovasi", "jasa pancang", "jasa kontraktor",
-        "jasa puing", "jasa proyek", "rental alat berat"
-      ];
-      const matched = words.filter(w => baseTitle.includes(w));
-      if (matched.length) return matched;
-      if (baseTitle.includes("sewa")) return ["Sewa Alat Berat"];
-      if (baseTitle.includes("borongan")) return ["Jasa Borongan Konstruksi"];
-      if (baseTitle.includes("beton")) return ["Jasa Beton Cor"];
-      return ["Jasa Konstruksi Umum"];
-    }
-    const serviceTypes = detectServiceType();
-
-    // ========== 5️⃣ DETEKSI HARGA ==========
-    function detectPrices() {
+    /* 5️⃣ DETEKSI SERVICE & HARGA */
+    const detectServiceType = () => {
+      const base = PAGE.title.toLowerCase();
+      const types = ["sewa excavator", "sewa alat berat", "jasa pancang", "jasa borongan", "jasa renovasi", "jasa puing", "rental alat berat", "beton cor", "ready mix"];
+      const found = types.filter(t => base.includes(t));
+      return found.length ? found : ["Jasa Konstruksi"];
+    };
+    const detectPrices = () => {
       const text = document.body.innerText;
-      const priceRegex = /Rp\s*([\d.,]+)/g;
-      const values = [];
-      let m;
-      while ((m = priceRegex.exec(text))) {
-        const num = parseInt(m[1].replace(/[.\s]/g, ""), 10);
-        if (!isNaN(num)) values.push(num);
-      }
-      if (!values.length) return null;
-      return {
-        lowPrice: Math.min(...values),
-        highPrice: Math.max(...values),
-        offerCount: values.length
-      };
-    }
+      const regex = /Rp\s*([\d.,]+)/g;
+      const vals = [...text.matchAll(regex)].map(m => parseInt(m[1].replace(/[.\s]/g, ""), 10)).filter(Boolean);
+      if (!vals.length) return null;
+      return { lowPrice: Math.min(...vals), highPrice: Math.max(...vals), offerCount: vals.length };
+    };
+
+    const serviceTypes = detectServiceType();
     const priceData = detectPrices();
 
-    // ========== 6️⃣ BUILD GRAPH ==========
+    /* 6️⃣ BUILD GRAPH */
     const graph = [
       {
         "@type": ["LocalBusiness", "GeneralContractor"],
@@ -170,9 +200,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         description: PAGE.description,
         image: PAGE.image,
         serviceType: serviceTypes,
-        areaServed,
+        areaServed: areaServed,
         provider: { "@id": PAGE.business.url + "#localbusiness" },
-        brand: { "@type": "Brand", name: PAGE.business.name }
+        brand: { "@type": "Brand", "name": PAGE.business.name }
       }
     ];
 
@@ -189,9 +219,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       };
     }
 
-    // ========== 7️⃣ OUTPUT ==========
+    /* 7️⃣ OUTPUT */
     const schema = { "@context": "https://schema.org", "@graph": graph };
     document.querySelector("#auto-schema-service").textContent = JSON.stringify(schema, null, 2);
-    console.log(`[Schema Service v4.27] ✅ Injected! serviceType: ${serviceTypes.join(", ")} | area: ${areaServed.length}`);
+    console.log(`[Schema Service v4.28+] ✅ Injected | ${serviceTypes.join(", ")} | Area: ${areaServed.length}`);
   }, 500);
 });
