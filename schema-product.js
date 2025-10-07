@@ -1,9 +1,9 @@
-// ⚡ AUTO SCHEMA UNIVERSAL v4.23 — DETEKSI KECAMATAN + DESA KELURAHAN + WIKIPEDIA + CACHE
+// ⚡ AUTO SCHEMA UNIVERSAL v4.24 — OPTIMIZED FOR PRODUCT PAGES + WIKIPEDIA + CACHE + AREA SERVED AUTO-DETECT
 document.addEventListener("DOMContentLoaded", function () {
   setTimeout(async () => {
-    console.log("[AutoSchema v4.23] 🚀 Mulai deteksi otomatis...");
+    console.log("[AutoSchema v4.24] 🚀 Memulai deteksi otomatis Produk...");
 
-    // === IDENTIFIKASI URL & METADATA DASAR ===
+    // === META DASAR & IDENTITAS URL ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
     const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
     const url = (ogUrl || canonical || location.href).replace(/[?&]m=1/, "");
@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
       image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
     }
 
-    // === DATA DEFAULT AREA SERVED ===
+    // === DEFAULT AREA SERVED ===
     const defaultAreaServed = [
       {"@type":"Place","name":"Kabupaten Serang"},
       {"@type":"Place","name":"Kota Serang"},
@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", function () {
       {"@type":"Place","name":"DKI Jakarta"}
     ];
 
-    // === DATA KECAMATAN DEFAULT UNTUK DETEKSI CEPAT ===
+    // === AREA JSON (KABUPATEN + KECAMATAN DEFAULT)
     const areaJSON = {
       "Kabupaten Bogor": ["Cibinong","Cileungsi","Gunung Putri","Jonggol","Dramaga","Ciampea","Leuwiliang","Caringin","Cisarua","Megamendung","Sukaraja","Babakan Madang","Parung","Kemang","Tajurhalang","Ciomas","Rumpin","Cigudeg","Tenjo","Pamijahan"],
       "Kota Bogor": ["Bogor Utara","Bogor Selatan","Bogor Timur","Bogor Tengah","Bogor Barat","Tanah Sareal"],
@@ -81,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
 
-    // === DETEKSI AREA SERVED ===
+    // === DETEKSI AREA SERVED OTOMATIS ===
     async function detectAreaServed(url){
       const lowerUrl = url.toLowerCase();
       const results = [];
@@ -106,20 +106,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const areaServed = await detectAreaServed(url);
 
-    // === DETEKSI PRODUK / LAYANAN ===
+    // === DETEKSI PRODUK ATAU LAYANAN ===
     const textAll = document.body.innerText.toLowerCase();
-    let category = "Jasa & Material Konstruksi";
-    const isProduct = /readymix|beton|precast|baja|besi|acp|pipa|cat|keramik|bata|genteng|pasir|split|conblock|paving|hebel|box culvert|u ditch|buis beton/i.test(textAll);
+    const isProduct = /readymix|beton|precast|baja|besi|acp|pipa|cat|keramik|bata|genteng|pasir|split|conblock|paving|hebel|box culvert|u ditch|buis beton|panel beton/i.test(textAll);
     const isService = /sewa|rental|kontraktor|borongan|renovasi|pembangunan|angkut|cut fill|pengaspalan|pancang|pengiriman/i.test(textAll);
+
+    let category = "Jasa & Material Konstruksi";
     if(isProduct && isService) category = "Produk & Layanan Konstruksi";
     else if(isProduct) category = "Produk Material & Konstruksi";
     else if(isService) category = "Layanan Jasa Konstruksi & Alat Berat";
 
+    // === DETEKSI BRAND ===
     let brandName = "Beton Jaya Readymix";
     const brandMatch = textAll.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|solusi bangun/i);
     if(brandMatch) brandName = brandMatch[0].replace(/\b\w/g,l=>l.toUpperCase());
 
-    // === OBJEK SCHEMA ===
+    // === SCHEMA BUSINESS ===
     const business = {
       "@type":["LocalBusiness","GeneralContractor"],
       "@id":"https://www.betonjayareadymix.com/#localbusiness",
@@ -127,12 +129,16 @@ document.addEventListener("DOMContentLoaded", function () {
       url:"https://www.betonjayareadymix.com",
       telephone:"+6283839000968",
       address:{"@type":"PostalAddress","addressLocality":"Bogor","addressRegion":"Jawa Barat","addressCountry":"ID"},
-      description:"Beton Jaya Readymix menyediakan ready mix, beton precast, dan layanan alat berat di seluruh wilayah Jawa Barat, Banten, dan DKI Jakarta.",
+      description:"Beton Jaya Readymix menyediakan beton cor ready mix, beton precast, dan jasa alat berat di seluruh wilayah Jawa Barat, Banten, dan DKI Jakarta.",
       areaServed,
-      sameAs:["https://www.facebook.com/betonjayareadymix","https://www.instagram.com/betonjayareadymix"],
+      sameAs:[
+        "https://www.facebook.com/betonjayareadymix",
+        "https://www.instagram.com/betonjayareadymix"
+      ],
       logo:image
     };
 
+    // === SCHEMA MAIN ENTITY (PRODUK UTAMA HALAMAN) ===
     const entityType = isProduct && !isService ? "Product" : isService && !isProduct ? "Service" : "Product";
     const mainEntity = {
       "@type": entityType,
@@ -143,9 +149,16 @@ document.addEventListener("DOMContentLoaded", function () {
       category,
       brand: { "@type": "Brand", "name": brandName },
       areaServed,
+      offers: {
+        "@type": "Offer",
+        url,
+        priceCurrency: "IDR",
+        availability: "https://schema.org/InStock"
+      },
       provider: { "@id": business["@id"] }
     };
 
+    // === STRUKTUR GRAPH FINAL ===
     const schemaData = {
       "@context": "https://schema.org",
       "@graph": [
@@ -164,7 +177,7 @@ document.addEventListener("DOMContentLoaded", function () {
       ]
     };
 
-    document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData,null,2);
-    console.log("[AutoSchema v4.23] ✅ JSON-LD sukses dipasang. Area terdeteksi:", areaServed.length, "lokasi.");
+    document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData, null, 2);
+    console.log(`[AutoSchema v4.24] ✅ JSON-LD sukses — ${entityType} (${areaServed.length} lokasi terdeteksi).`);
   }, 600);
 });
