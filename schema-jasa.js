@@ -1,7 +1,6 @@
-// ⚡ AUTO SCHEMA SERVICE v4.32 FULL — Area Wikipedia + Cache + Harga Real Aman + Product Optional + Fix ItemList Unik
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[Schema Service v4.32 🚀] Auto generator dijalankan");
+    console.log("[Schema Service v4.33 🚀] Auto generator dijalankan");
 
     // === 1️⃣ INFO DASAR HALAMAN ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -124,7 +123,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     const areaServed = await detectArea(PAGE.url, PAGE.title);
 
-    // === 5️⃣ DETEKSI SERVICE, HARGA, DAN LINK ===
+    // === 5️⃣ DETEKSI SERVICE, HARGA, PRODUK ===
     const detectServiceType = () => {
       const base = PAGE.title.toLowerCase();
       const types = [
@@ -143,24 +142,19 @@ document.addEventListener("DOMContentLoaded", async function () {
         : ["Jasa Konstruksi"];
     };
 
-    // 🔹 DETEKSI HARGA REAL AMAN
     const detectPrices = () => {
       const text = document.body.innerText;
-      const matches = [...text.matchAll(/Rp\s*([\d.,]{4,})/g)]; // hanya ambil yang ada "Rp" dan >=4 digit
+      const matches = [...text.matchAll(/Rp\s*([\d.,]{4,})/g)];
       if (!matches.length) return null;
 
       const vals = matches
         .map((m) => parseInt(m[1].replace(/[.\s,]/g, ""), 10))
-        .filter((v) => v >= 10000 && v <= 500000000); // minimal Rp10 ribu, maksimal Rp500 juta
+        .filter((v) => v >= 10000 && v <= 500000000);
 
       if (!vals.length) return null;
-
-      const low = Math.min(...vals);
-      const high = Math.max(...vals);
-
       return {
-        lowPrice: low,
-        highPrice: high,
+        lowPrice: Math.min(...vals),
+        highPrice: Math.max(...vals),
         offerCount: vals.length,
         priceCurrency: "IDR",
       };
@@ -190,10 +184,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     const priceData = detectPrices();
     const internalLinks = detectInternalLinks();
 
-    // === 5.1️⃣ PRODUK OPSIONAL ===
     const detectProduct = () => {
       const text = (PAGE.title + " " + PAGE.description).toLowerCase();
-      if (text.includes("jual ") || text.includes("produk ") || text.includes("harga ")) {
+      if (text.includes("jual") || text.includes("produk") || text.includes("harga ")) {
         return {
           "@type": "Product",
           "@id": PAGE.url + "#product",
@@ -287,7 +280,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const schema = { "@context": "https://schema.org", "@graph": graph };
     document.querySelector("#auto-schema-service").textContent = JSON.stringify(schema, null, 2);
     console.log(
-      `[Schema Service v4.32 ✅] Injected | ${serviceTypes.join(", ")} | Product: ${
+      `[Schema Service v4.33 ✅] Injected | ${serviceTypes.join(", ")} | Product: ${
         productData ? "Ya" : "Tidak"
       } | Harga: ${priceData ? "✅ Real" : "❌ None"} | Area: ${areaServed.length} | Links: ${
         internalLinks.length
