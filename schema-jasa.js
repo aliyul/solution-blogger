@@ -1,17 +1,17 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.45 — Hybrid-Stable Edition | Beton Jaya Readymix */ 
+//* ⚡ AUTO SCHEMA UNIVERSAL v4.46 — Hybrid Service + Product | Beton Jaya Readymix */ 
 (function () {
-  let schemaInjected = false
+  let schemaInjected = false;
 
   async function initSchema() {
-    if (schemaInjected) return
-    schemaInjected = true
-    console.log("[Schema Service v4.45 🚀] Auto generator dijalankan (produk + service)")
+    if (schemaInjected) return;
+    schemaInjected = true;
+    console.log("[Schema Service v4.46 🚀] Auto generator dijalankan (Service + Product)");
 
-    // === 1️⃣ INFO DASAR HALAMAN ===
-    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim()
-    const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim()
-    const baseUrl = ogUrl || canonical || location.href
-    const cleanUrl = baseUrl.replace(/[?&]m=1/, "")
+    // === 1️⃣ INFO HALAMAN ===
+    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
+    const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
+    const baseUrl = ogUrl || canonical || location.href;
+    const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
 
     const PAGE = {
       url: cleanUrl,
@@ -41,7 +41,7 @@
           "https://www.instagram.com/betonjayareadymix",
         ],
       },
-    }
+    };
 
     // === 2️⃣ AREA DEFAULT ===
     const areaJSON = {
@@ -52,77 +52,88 @@
       "Kota Cilegon": "Banten", "Kabupaten Tangerang": "Banten",
       "Kota Tangerang": "Banten", "Kota Tangerang Selatan": "Banten",
       "DKI Jakarta": "DKI Jakarta",
-    }
-    const defaultAreaServed = Object.keys(areaJSON).map(k => ({ "@type": "Place", name: k }))
+    };
+    const defaultAreaServed = Object.keys(areaJSON).map(k => ({ "@type": "Place", name: k }));
     async function detectArea(url, title = "") { return defaultAreaServed }
-    const areaServed = await detectArea(PAGE.url, PAGE.title)
+    const areaServed = await detectArea(PAGE.url, PAGE.title);
 
     // === 3️⃣ DETEKSI SERVICE ===
     const detectServiceType = () => {
-      const base = PAGE.title.toLowerCase()
-      const types = ["sewa excavator", "sewa alat berat", "jasa pancang", "jasa borongan", "jasa renovasi", "jasa puing", "rental alat berat", "beton cor", "ready mix"]
-      return types.filter(t => base.includes(t)) || ["Jasa Konstruksi"]
-    }
-    const serviceTypes = detectServiceType()
+      const base = PAGE.title.toLowerCase();
+      const types = ["sewa excavator", "sewa alat berat", "jasa pancang", "jasa borongan", "jasa renovasi", "jasa puing", "rental alat berat", "beton cor", "ready mix"];
+      return types.filter(t => base.includes(t)) || ["Jasa Konstruksi"];
+    };
+    const serviceTypes = detectServiceType();
 
-    // === 4️⃣ DETEKSI PRODUK DAN HARGA ===
-    function parseTableOffers() {
-      const offers = []
-      document.querySelectorAll("table tr").forEach(r => {
-        const cells = r.querySelectorAll("td, th")
-        if (cells.length >= 2) {
-          const name = cells[0].innerText.trim()
-          const priceMatch = r.innerText.match(/Rp\s*([\d.,]+)/)
-          if (priceMatch) {
-            const price = parseInt(priceMatch[1].replace(/[.\s,]/g, ""), 10)
-            if (price >= 10000 && price <= 500000000) offers.push({ name, price })
+    // === 4️⃣ DETEKSI PRODUCT DARI URL + TABLE ===
+    function getProductNameFromUrl() {
+      let path = location.pathname.replace(/^\/|\/$/g, "").split("/").pop();
+      path = path.replace(".html","").replace(/-/g," ");
+      return decodeURIComponent(path).replace(/\b\w/g, l => l.toUpperCase());
+    }
+    const productName = getProductNameFromUrl();
+
+    const seenItems = new Set();
+    const tableOffers = [];
+    function addOffer(name, key, price, desc="") {
+      let finalName = productName;
+      if(name && name.toLowerCase() !== productName.toLowerCase()) finalName += " " + name;
+      const k = finalName + "|" + key + "|" + price;
+      if (!seenItems.has(k)) {
+        seenItems.add(k);
+        tableOffers.push({
+          "@type":"Offer",
+          itemOffered:{ "@type":"Product", name: finalName, ...(desc ? { description: desc } : {}) },
+          price,
+          priceCurrency:"IDR",
+          availability:"https://schema.org/InStock"
+        });
+      }
+    }
+
+    // parsing tabel
+    Array.from(document.querySelectorAll("table")).forEach(table=>{
+      Array.from(table.querySelectorAll("tr")).forEach(row=>{
+        const cells = Array.from(row.querySelectorAll("td, th")).slice(0,6);
+        if(cells.length >= 2){
+          let col1 = cells[0].innerText.trim();
+          let uniqueKey = cells.slice(1).map(c=>c.innerText.trim()).join(" ");
+          let price = null;
+          for(let c of cells){
+            const m = c.innerText.match(/Rp\s*([\d.,]+)/);
+            if(m){ price = parseInt(m[1].replace(/[.\s,]/g,"")); break; }
           }
+          if(price) addOffer(col1, uniqueKey, price, cells[1]?.innerText.trim()||"");
         }
-      })
-      return offers
-    }
+      });
+    });
 
-    function parseListOffers() {
-      const offers = []
-      document.querySelectorAll("li").forEach(li => {
-        const txt = li.innerText.trim()
-        const priceMatch = txt.match(/(.+?)\s*[-:–]\s*Rp\s*([\d.,]+)/)
-        if (priceMatch) {
-          const name = priceMatch[1].trim()
-          const price = parseInt(priceMatch[2].replace(/[.\s,]/g, ""), 10)
-          if (price >= 10000 && price <= 500000000) offers.push({ name, price })
+    // parsing teks harga
+    document.body.innerText.split("\n").forEach(line=>{
+      const m = line.match(/Rp\s*([\d.,]{4,})/);
+      if(m){
+        const price = parseInt(m[1].replace(/[.\s,]/g,""));
+        if(price >= 10000 && price <= 500000000){
+          const words = line.split(/\s+/);
+          const idx = words.findIndex(w=>w.includes(m[1].replace(/[.,]/g,"")));
+          let name = words.slice(Math.max(0, idx-3), idx).join(" ").trim();
+          if(!name || name.toLowerCase() === productName.toLowerCase()) name = "";
+          addOffer(name, "", price);
         }
-      })
-      return offers
-    }
+      }
+    });
 
-    const combinedOffers = [...parseTableOffers(), ...parseListOffers()]
-    const allPrices = combinedOffers.map(o => o.price)
-    const priceData = allPrices.length ? {
-      lowPrice: Math.min(...allPrices),
-      highPrice: Math.max(...allPrices),
-      offerCount: allPrices.length,
-      priceCurrency: "IDR",
-      priceValidUntil: new Date(Date.now() + 7776000000).toISOString().split("T")[0],
-      offers: combinedOffers.slice(0, 20).map(o => ({
-        "@type": "Offer",
-        name: o.name,
-        price: o.price,
-        priceCurrency: "IDR",
-        availability: "https://schema.org/InStock",
-      })),
-    } : null
-    const isProductPage = combinedOffers.length > 0 || /(jual|harga|produk|penjualan|katalog|daftar harga|price list)/i.test(PAGE.title + PAGE.description)
+    const isProductPage = tableOffers.length > 0;
 
     // === 5️⃣ INTERNAL LINKS ===
     const anchors = [...document.querySelectorAll("article a, main a, .post-body a")]
       .filter(a => a.href && a.href.includes(location.hostname) && !a.href.includes("#"))
-      .map(a => ({ url: a.href.split("#")[0], name: a.innerText.trim() || a.href }))
+      .map(a => ({ url: a.href.split("#")[0], name: a.innerText.trim() || a.href }));
     const uniqueLinks = Array.from(new Map(anchors.map(a => [a.url, a.name])).entries())
-      .map(([url, name], i) => ({ "@type": "ListItem", position: i + 1, url, name }))
+      .map(([url, name], i) => ({ "@type": "ListItem", position: i + 1, url, name }));
 
-    // === 6️⃣ BUILD GRAPH UNTUK HALAMAN SERVICE + PRODUK ===
-    const graph = []
+    // === 6️⃣ BUILD GRAPH ===
+    const graph = [];
 
     const localBiz = {
       "@type": ["LocalBusiness", "GeneralContractor"],
@@ -137,9 +148,9 @@
       sameAs: PAGE.business.sameAs,
       areaServed,
       knowsAbout: ["Beton cor", "Ready mix", "Precast", "Sewa alat berat", "Jasa konstruksi"],
-    }
-    if (isProductPage) localBiz.hasOfferCatalog = { "@id": PAGE.url + "#product" }
-    graph.push(localBiz)
+      ...(isProductPage && { hasOfferCatalog: { "@id": PAGE.url + "#product" } })
+    };
+    graph.push(localBiz);
 
     const webpage = {
       "@type": "WebPage",
@@ -151,8 +162,8 @@
       mainEntity: { "@id": PAGE.url + "#service" },
       publisher: { "@id": PAGE.business.url + "#localbusiness" },
       ...(uniqueLinks.length && { hasPart: { "@id": PAGE.url + "#daftar-internal-link" } }),
-    }
-    graph.push(webpage)
+    };
+    graph.push(webpage);
 
     const service = {
       "@type": "Service",
@@ -165,26 +176,26 @@
       provider: { "@id": PAGE.business.url + "#localbusiness" },
       brand: { "@type": "Brand", name: PAGE.business.name },
       mainEntityOfPage: { "@id": PAGE.url + "#webpage" },
-      ...(priceData && { offers: { "@type": "AggregateOffer", ...priceData, url: PAGE.url } }),
-    }
-    graph.push(service)
+      ...(isProductPage && { offers: { "@type":"AggregateOffer", lowPrice: Math.min(...tableOffers.map(o=>o.price)), highPrice: Math.max(...tableOffers.map(o=>o.price)), offerCount: tableOffers.length, priceCurrency:"IDR", offers: tableOffers } })
+    };
+    graph.push(service);
 
-    if (isProductPage) {
+    if(isProductPage){
       graph.push({
         "@type": "Product",
         "@id": PAGE.url + "#product",
-        name: PAGE.title,
+        name: productName,
         description: PAGE.description,
         image: PAGE.image,
         brand: { "@type": "Brand", name: PAGE.business.name },
         mainEntityOfPage: { "@id": PAGE.url + "#webpage" },
-        ...(priceData && { offers: { "@type": "AggregateOffer", ...priceData, url: PAGE.url } }),
+        offers: tableOffers.length ? { "@type":"AggregateOffer", lowPrice: Math.min(...tableOffers.map(o=>o.price)), highPrice: Math.max(...tableOffers.map(o=>o.price)), offerCount: tableOffers.length, priceCurrency:"IDR", offers: tableOffers } : null,
         areaServed,
         provider: { "@id": PAGE.business.url + "#localbusiness" },
-      })
+      });
     }
 
-    if (uniqueLinks.length) {
+    if(uniqueLinks.length){
       graph.push({
         "@type": "ItemList",
         "@id": PAGE.url + "#daftar-internal-link",
@@ -192,35 +203,33 @@
         itemListOrder: "http://schema.org/ItemListOrderAscending",
         numberOfItems: uniqueLinks.length,
         itemListElement: uniqueLinks,
-      })
+      });
     }
 
     // === 7️⃣ OUTPUT ===
-    const schema = { "@context": "https://schema.org", "@graph": graph }
-    let el = document.querySelector("#auto-schema-service")
-    if (!el) {
-      el = document.createElement("script")
-      el.id = "auto-schema-service"
-      el.type = "application/ld+json"
-      document.head.appendChild(el)
+    const schema = { "@context": "https://schema.org", "@graph": graph };
+    let el = document.querySelector("#auto-schema-service");
+    if(!el){
+      el = document.createElement("script");
+      el.id = "auto-schema-service";
+      el.type = "application/ld+json";
+      document.head.appendChild(el);
     }
-    el.textContent = JSON.stringify(schema, null, 2)
-    console.log(`[Schema v4.45 ✅] Injected | Type: ${isProductPage ? "Service+Product" : "Service"} | Harga: ${priceData ? "Ya" : "Tidak"} | Area: ${areaServed.length}`)
+    el.textContent = JSON.stringify(schema, null, 2);
+
+    console.log(`[Schema v4.46 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length}`);
   }
 
-  // === 8️⃣ READY + OBSERVER + FALLBACK ===
   document.addEventListener("DOMContentLoaded", () => {
     const tryRun = () => {
-      if (document.querySelector("h1") && document.querySelector(".post-body")) {
-        initSchema()
-        return true
+      if(document.querySelector("h1") && document.querySelector(".post-body")){
+        initSchema();
+        return true;
       }
-      return false
-    }
-    setTimeout(tryRun, 600)
-    const observer = new MutationObserver(() => {
-      if (tryRun()) observer.disconnect()
-    })
-    observer.observe(document.body, { childList: true, subtree: true })
-  })
-})()
+      return false;
+    };
+    setTimeout(tryRun, 600);
+    const observer = new MutationObserver(() => { if(tryRun()) observer.disconnect() });
+    observer.observe(document.body, { childList: true, subtree: true });
+  });
+})();
