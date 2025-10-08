@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.37 🚀] Start detection (Product + Service + OfferCatalog + Table Parser)");
+    console.log("[AutoSchema Hybrid v4.38 🚀] Start detection (Product + Service + OfferCatalog + Table Parser + Unique Links)");
 
     // === 1️⃣ META DASAR ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       name: a,
     }));
 
-    // === 3️⃣ WIKIPEDIA CACHE ===
+    // === 3️⃣ CACHE WIKIPEDIA ===
     async function getCachedWiki(areaName, type) {
       const cacheKey = `wiki_${type}_${areaName.replace(/\s+/g, "_").toLowerCase()}`;
       const cache = localStorage.getItem(cacheKey);
@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const areaServed = await detectArea(cleanUrl, title);
 
-    // === 5️⃣ DETEKSI BRAND & HARGA ===
+    // === 5️⃣ BRAND & HARGA ===
     const text = document.body.innerText.toLowerCase();
     let brandName = "Beton Jaya Readymix";
     const brandMatch = text.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|solusi bangun/i);
@@ -133,7 +133,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
       : null;
 
-    // === 6️⃣ DETEKSI PRODUK / JASA ===
+    // === 6️⃣ DETEKSI TIPE ===
     const jasaKeywords = /(jasa|sewa|borongan|kontraktor|layanan|service|perbaikan|pemasangan)/i;
     const produkKeywords = /(produk|beton|readymix|precast|pipa|u[- ]?ditch|box culvert|panel)/i;
     const catalogKeywords = /(daftar harga|katalog|tabel harga|list harga|price list)/i;
@@ -147,7 +147,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     else if (hasJasa) mainType = "Service";
     else if (hasCatalog) mainType = "OfferCatalog";
 
-    // === 🧾 7️⃣ DETEKSI TABEL HARGA ===
+    // === 7️⃣ PARSER TABEL HARGA ===
     let tableOffers = [];
     const rows = Array.from(document.querySelectorAll("table tr"));
     rows.forEach((r) => {
@@ -166,21 +166,24 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
       }
     });
+    if (tableOffers.length >= 3) mainType = "OfferCatalog";
 
-    // Jika tabel valid, ubah ke OfferCatalog otomatis
-    if (tableOffers.length >= 3) {
-      mainType = "OfferCatalog";
-    }
-
-    // === 8️⃣ INTERNAL LINKS ===
-    const internalLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a"))
+    // === 8️⃣ INTERNAL LINKS (UNIQUE) ===
+    const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a"))
       .filter((a) => a.href && a.href.includes(location.hostname) && a.href !== location.href)
-      .map((a, i) => ({
-        "@type": "ListItem",
-        position: i + 1,
-        url: a.href,
-        name: a.innerText.trim(),
-      }));
+      .map((a) => ({ url: a.href, name: a.innerText.trim() }));
+
+    // Ambil hanya 1 per URL unik
+    const uniqueMap = new Map();
+    rawLinks.forEach((item) => {
+      if (!uniqueMap.has(item.url)) uniqueMap.set(item.url, item.name || item.url);
+    });
+    const internalLinks = Array.from(uniqueMap.entries()).map(([url, name], i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url,
+      name,
+    }));
 
     // === 9️⃣ ENTITY BISNIS ===
     const business = {
@@ -237,7 +240,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           }),
     };
 
-    // === 11️⃣ WEBPAGE & OUTPUT ===
+    // === 11️⃣ WEBPAGE OUTPUT ===
     const webpage = {
       "@type": "WebPage",
       "@id": cleanUrl + "#webpage",
@@ -264,9 +267,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData, null, 2);
 
     console.log(
-      `[AutoSchema v4.37 ✅] Type: ${JSON.stringify(mainType)} | Brand: ${brandName} | Harga: ${
+      `[AutoSchema v4.38 ✅] Type: ${JSON.stringify(mainType)} | Brand: ${brandName} | Harga: ${
         priceData ? "✅" : "❌"
-      } | Table: ${tableOffers.length} | Area: ${areaServed.length}`
+      } | Table: ${tableOffers.length} | Links: ${internalLinks.length} | Area: ${areaServed.length}`
     );
   }, 500);
 });
