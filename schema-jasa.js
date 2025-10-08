@@ -1,11 +1,11 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.47 — Hybrid Service + Product | Beton Jaya Readymix */ 
+//* ⚡ AUTO SCHEMA UNIVERSAL v4.48 — Hybrid Service + Product | Beton Jaya Readymix */ 
 (function () {
   let schemaInjected = false;
 
   async function initSchema() {
     if (schemaInjected) return;
     schemaInjected = true;
-    console.log("[Schema Service v4.47 🚀] Auto generator dijalankan (Service + Product + Multiple serviceType)");
+    console.log("[Schema Service v4.48 🚀] Auto generator dijalankan (Service + Product + AggregateOffer)");
 
     // === 1️⃣ INFO HALAMAN ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -93,7 +93,6 @@
       }
     }
 
-    // parsing tabel
     Array.from(document.querySelectorAll("table")).forEach(table=>{
       Array.from(table.querySelectorAll("tr")).forEach(row=>{
         const cells = Array.from(row.querySelectorAll("td, th")).slice(0,6);
@@ -110,7 +109,6 @@
       });
     });
 
-    // parsing teks harga
     document.body.innerText.split("\n").forEach(line=>{
       const m = line.match(/Rp\s*([\d.,]{4,})/);
       if(m){
@@ -178,7 +176,16 @@
       provider: { "@id": PAGE.business.url + "#localbusiness" },
       brand: { "@type": "Brand", name: PAGE.business.name },
       mainEntityOfPage: { "@id": PAGE.url + "#webpage" },
-      ...(isProductPage && { offers: { "@type":"AggregateOffer", lowPrice: Math.min(...tableOffers.map(o=>o.price)), highPrice: Math.max(...tableOffers.map(o=>o.price)), offerCount: tableOffers.length, priceCurrency:"IDR", offers: tableOffers } })
+      ...(isProductPage && { 
+        offers: {
+          "@type":"AggregateOffer",
+          lowPrice: Math.min(...tableOffers.map(o=>o.price)),
+          highPrice: Math.max(...tableOffers.map(o=>o.price)),
+          offerCount: tableOffers.length,
+          priceCurrency:"IDR",
+          offers: tableOffers
+        }
+      })
     };
     graph.push(service);
 
@@ -191,7 +198,14 @@
         image: PAGE.image,
         brand: { "@type": "Brand", name: PAGE.business.name },
         mainEntityOfPage: { "@id": PAGE.url + "#webpage" },
-        offers: tableOffers.length ? { "@type":"AggregateOffer", lowPrice: Math.min(...tableOffers.map(o=>o.price)), highPrice: Math.max(...tableOffers.map(o=>o.price)), offerCount: tableOffers.length, priceCurrency:"IDR", offers: tableOffers } : null,
+        offers: {
+          "@type":"AggregateOffer",
+          lowPrice: Math.min(...tableOffers.map(o=>o.price)),
+          highPrice: Math.max(...tableOffers.map(o=>o.price)),
+          offerCount: tableOffers.length,
+          priceCurrency:"IDR",
+          offers: tableOffers
+        },
         areaServed,
         provider: { "@id": PAGE.business.url + "#localbusiness" },
       });
@@ -219,7 +233,7 @@
     }
     el.textContent = JSON.stringify(schema, null, 2);
 
-    console.log(`[Schema v4.47 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")}`);
+    console.log(`[Schema v4.48 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")}`);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
