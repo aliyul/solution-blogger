@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.41 🚀] Start detection (Product + Service + OfferCatalog + Table Parser Flexible + Unique Links + Smart Image + Dual-Purpose Headings)");
+    console.log("[AutoSchema Hybrid v4.42 🚀] Start detection (Real Price + Unique Items + OfferCatalog + Smart Image + Dual-Purpose Headings)");
 
     // === 1️⃣ META DASAR ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -22,8 +22,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (imgEl && imgEl.src && !imgEl.src.includes("favicon")) image = imgEl.src;
     }
     if (!image) {
-      image =
-        "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+      image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
     }
 
     // === 3️⃣ AREA DASAR ===
@@ -38,7 +37,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     };
     const defaultAreaServed = Object.keys(areaProv).map((a) => ({ "@type": "Place", name: a }));
 
-    // === 4️⃣ WIKI CACHING ===
+    // === 4️⃣ & 5️⃣ WIKI CACHING & DETEKSI AREA ===
     async function getCachedWiki(areaName, type) {
       const cacheKey = `wiki_${type}_${areaName.replace(/\s+/g, "_").toLowerCase()}`;
       const cache = localStorage.getItem(cacheKey);
@@ -49,21 +48,14 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       const items = await fetchFromWikipedia(areaName, type);
       if (items?.length) {
-        localStorage.setItem(
-          cacheKey,
-          JSON.stringify({ expire: Date.now() + 1000 * 60 * 60 * 24 * 30, items })
-        );
+        localStorage.setItem(cacheKey, JSON.stringify({ expire: Date.now() + 1000 * 60 * 60 * 24 * 30, items }));
       }
       return items;
     }
 
     async function fetchFromWikipedia(areaName, type) {
       const formatted = areaName.replace(/\s+/g, "_");
-      const pages = [
-        type === "kecamatan"
-          ? `Daftar_kecamatan_di_${formatted}`
-          : `Daftar_kelurahan_dan_desa_di_kecamatan_${formatted}`,
-      ];
+      const pages = [type === "kecamatan" ? `Daftar_kecamatan_di_${formatted}` : `Daftar_kelurahan_dan_desa_di_kecamatan_${formatted}`];
       for (const page of pages) {
         try {
           const url = `https://id.wikipedia.org/w/api.php?action=parse&page=${page}&prop=text&format=json&origin=*`;
@@ -78,14 +70,11 @@ document.addEventListener("DOMContentLoaded", async function () {
               .slice(0, 150);
             if (items.length > 3) return items.map((n) => ({ "@type": "Place", name: n }));
           }
-        } catch (e) {
-          console.warn("⚠️ Wikipedia fetch error:", areaName, e);
-        }
+        } catch (e) { console.warn("⚠️ Wikipedia fetch error:", areaName, e); }
       }
       return null;
     }
 
-    // === 5️⃣ DETEKSI AREA ===
     async function detectArea(url, title) {
       const combined = (url + " " + title).toLowerCase();
       for (const area of Object.keys(areaProv)) {
@@ -108,27 +97,13 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const areaServed = await detectArea(cleanUrl, title);
 
-    // === 6️⃣ BRAND & HARGA ===
+    // === 6️⃣ BRAND DETECTION ===
     const text = document.body.innerText.toLowerCase();
     let brandName = "Beton Jaya Readymix";
     const brandMatch = text.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|solusi bangun/i);
     if (brandMatch) brandName = brandMatch[0].replace(/\b\w/g, (l) => l.toUpperCase());
 
-    const matches = [...document.body.innerText.matchAll(/Rp\s*([\d.,]{4,})/g)];
-    const prices = matches
-      .map((m) => parseInt(m[1].replace(/[.\s,]/g, ""), 10))
-      .filter((v) => v >= 10000 && v <= 500000000);
-    const priceData = prices.length
-      ? {
-          lowPrice: Math.min(...prices),
-          highPrice: Math.max(...prices),
-          offerCount: prices.length,
-          priceCurrency: "IDR",
-          priceValidUntil: new Date(Date.now() + 86400000 * 90).toISOString().split("T")[0],
-        }
-      : null;
-
-    // === 7️⃣ TIPE HALAMAN (DUAL-PURPOSE + HEADINGS) ===
+    // === 7️⃣ PAGE TYPE ===
     const jasaKeywords = /(jasa|sewa|borongan|kontraktor|layanan|service|perbaikan|pemasangan)/i;
     const produkKeywords = /(produk|beton|readymix|precast|pipa|u[- ]?ditch|box culvert|panel)/i;
     const catalogKeywords = /(daftar harga|katalog|tabel harga|list harga|price list)/i;
@@ -146,59 +121,73 @@ document.addEventListener("DOMContentLoaded", async function () {
     else if (hasJasa) mainType = "Service";
     else if (hasCatalog) mainType = "OfferCatalog";
 
-    // === 8️⃣ PARSER TABEL FLEXIBLE ===
+    // === 8️⃣ PARSER TABEL & TEKS REAL PRICE + UNIQUE + GROUP ===
+    const seenItems = new Set();
     let tableOffers = [];
-    const allRows = Array.from(document.querySelectorAll("table tr"));
-    allRows.forEach((r) => {
-      const cells = Array.from(r.querySelectorAll("td, th")).slice(0, 6); // max 6 kolom
-      if (cells.length >= 2) {
-        let name = "";
-        let price = null;
 
-        // ambil kolom pertama yg tidak kosong & bukan harga sebagai nama item
-        for (let i = 0; i < cells.length; i++) {
-          const txt = cells[i].innerText.trim();
-          if (txt && !/Rp/i.test(txt)) {
-            name = txt;
-            break;
+    function addOffer(name, uniqueKey, price) {
+      const key = name + "|" + uniqueKey + "|" + price;
+      if (!seenItems.has(key)) {
+        seenItems.add(key);
+        tableOffers.push({
+          "@type": "Offer",
+          itemOffered: { "@type": "Product", name },
+          price,
+          priceCurrency: "IDR",
+          availability: "https://schema.org/InStock",
+        });
+      }
+    }
+
+    // Parser tabel: nama = kolom pertama + kolom unik sebagai pembeda
+    const allTables = Array.from(document.querySelectorAll("table"));
+    allTables.forEach(table => {
+      const rows = Array.from(table.querySelectorAll("tr"));
+      rows.forEach(row => {
+        const cells = Array.from(row.querySelectorAll("td, th")).slice(0, 6);
+        if (cells.length >= 2) {
+          const name = cells[0].innerText.trim();
+          const uniqueKey = cells.slice(1).map(c => c.innerText.trim()).join(" "); // kolom lain sebagai pembeda
+          let price = null;
+          for (let i = 0; i < cells.length; i++) {
+            const match = cells[i].innerText.match(/Rp\s*([\d.,]+)/);
+            if (match) { price = parseInt(match[1].replace(/[.\s,]/g,""),10); break; }
+          }
+          if (name && price && price >= 10000 && price <= 500000000) {
+            addOffer(name, uniqueKey, price);
           }
         }
+      });
+    });
 
-        // ambil kolom yang mengandung harga Rp
-        for (let i = 0; i < cells.length; i++) {
-          const match = cells[i].innerText.match(/Rp\s*([\d.,]+)/);
-          if (match) {
-            price = parseInt(match[1].replace(/[.\s,]/g, ""), 10);
-            break;
-          }
-        }
-
-        if (name && price && price >= 10000 && price <= 500000000) {
-          tableOffers.push({
-            "@type": "Offer",
-            itemOffered: { "@type": "Product", name },
-            price,
-            priceCurrency: "IDR",
-            availability: "https://schema.org/InStock",
-          });
+    // Parser teks untuk harga di luar tabel tetap optional
+    const bodyText = document.body.innerText.split("\n");
+    bodyText.forEach(line => {
+      const match = line.match(/Rp\s*([\d.,]{4,})/);
+      if (match) {
+        const price = parseInt(match[1].replace(/[.\s,]/g,""),10);
+        if (price >= 10000 && price <= 500000000) {
+          const words = line.split(/\s+/);
+          const priceIndex = words.findIndex(w => w.includes(match[1].replace(/[.,]/g,"")));
+          const name = words.slice(Math.max(0, priceIndex-3), priceIndex).join(" ").trim() || "Produk";
+          addOffer(name, "", price);
         }
       }
     });
-    if (tableOffers.length >= 3) mainType = "OfferCatalog";
+
+    if(tableOffers.length >= 3) mainType = "OfferCatalog";
 
     // === 9️⃣ INTERNAL LINK (UNIQUE) ===
     const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a"))
-      .filter((a) => a.href && a.href.includes(location.hostname) && a.href !== location.href)
-      .map((a) => ({ url: a.href, name: a.innerText.trim() }));
+      .filter(a => a.href && a.href.includes(location.hostname) && a.href !== location.href)
+      .map(a => ({ url: a.href, name: a.innerText.trim() }));
     const uniqueMap = new Map();
-    rawLinks.forEach((item) => {
-      if (!uniqueMap.has(item.url)) uniqueMap.set(item.url, item.name || item.url);
-    });
+    rawLinks.forEach(item => { if (!uniqueMap.has(item.url)) uniqueMap.set(item.url, item.name||item.url); });
     const internalLinks = Array.from(uniqueMap.entries()).map(([url, name], i) => ({
       "@type": "ListItem",
       position: i + 1,
       url,
-      name,
+      name
     }));
 
     // === 🔟 BISNIS ENTITY ===
@@ -208,19 +197,11 @@ document.addEventListener("DOMContentLoaded", async function () {
       name: "Beton Jaya Readymix",
       url: "https://www.betonjayareadymix.com",
       telephone: "+6283839000968",
-      address: {
-        "@type": "PostalAddress",
-        addressLocality: "Bogor",
-        addressRegion: "Jawa Barat",
-        addressCountry: "ID",
-      },
+      address: { "@type": "PostalAddress", addressLocality:"Bogor", addressRegion:"Jawa Barat", addressCountry:"ID" },
       description: "Penyedia beton ready mix, precast, dan jasa konstruksi profesional wilayah Jabodetabek dan sekitarnya.",
       areaServed,
-      sameAs: [
-        "https://www.facebook.com/betonjayareadymix",
-        "https://www.instagram.com/betonjayareadymix",
-      ],
-      logo: "https://www.betonjayareadymix.com/favicon.ico",
+      sameAs: ["https://www.facebook.com/betonjayareadymix","https://www.instagram.com/betonjayareadymix"],
+      logo: "https://www.betonjayareadymix.com/favicon.ico"
     };
 
     // === 11️⃣ MAIN ENTITY ===
@@ -233,20 +214,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       areaServed,
       provider: { "@id": business["@id"] },
       brand: { "@type": "Brand", name: brandName },
-      ...(tableOffers.length
-        ? { offers: { "@type": "OfferCatalog", name: "Daftar Harga Produk", itemListElement: tableOffers } }
-        : priceData && {
-            offers: {
-              "@type": hasCatalog ? "OfferCatalog" : "AggregateOffer",
-              priceCurrency: priceData.priceCurrency,
-              lowPrice: priceData.lowPrice,
-              highPrice: priceData.highPrice,
-              offerCount: priceData.offerCount,
-              availability: "https://schema.org/InStock",
-              priceValidUntil: priceData.priceValidUntil,
-              url: cleanUrl,
-            },
-          }),
+      ...(tableOffers.length ? { offers: { "@type": "OfferCatalog", name: "Daftar Harga Produk", itemListElement: tableOffers } } : null)
     };
 
     // === 12️⃣ WEBPAGE OUTPUT ===
@@ -259,24 +227,23 @@ document.addEventListener("DOMContentLoaded", async function () {
       image,
       mainEntity: { "@id": mainEntity["@id"] },
       publisher: { "@id": business["@id"] },
-      ...(internalLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } }),
+      ...(internalLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } })
     };
 
     // === 13️⃣ FINAL GRAPH ===
     const graph = [webpage, business, mainEntity];
-    if (internalLinks.length)
-      graph.push({
-        "@type": "ItemList",
-        "@id": cleanUrl + "#daftar-internal-link",
-        name: "Daftar Halaman Terkait",
-        numberOfItems: internalLinks.length,
-        itemListElement: internalLinks,
-      });
+    if(internalLinks.length) graph.push({
+      "@type": "ItemList",
+      "@id": cleanUrl + "#daftar-internal-link",
+      name: "Daftar Halaman Terkait",
+      numberOfItems: internalLinks.length,
+      itemListElement: internalLinks
+    });
 
     // === 14️⃣ OUTPUT JSON-LD ===
-    const schemaData = { "@context": "https://schema.org", "@graph": graph };
+    const schemaData = { "@context":"https://schema.org", "@graph":graph };
     document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData, null, 2);
 
-    console.log(`[AutoSchema v4.41 ✅] Type: ${JSON.stringify(mainType)} | Brand: ${brandName} | Harga: ${priceData ? "✅" : "❌"} | Table: ${tableOffers.length} | Links: ${internalLinks.length} | Area: ${areaServed.length}`);
+    console.log(`[AutoSchema v4.42 ✅] Type: ${JSON.stringify(mainType)} | Brand: ${brandName} | Items: ${tableOffers.length} | Links: ${internalLinks.length} | Area: ${areaServed.length}`);
   }, 500);
 });
