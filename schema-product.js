@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async function () { 
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.44 🚀] Start detection (Optimized Product + Service + OfferCatalog)");
+    console.log("[AutoSchema Hybrid v4.45 🚀] Start detection (Product + OfferCatalog Updated)");
 
     // === 1️⃣ META DASAR ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -17,9 +17,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       const imgEl = document.querySelector("table img, article img, main img, .post-body img, img");
       if (imgEl && imgEl.src && !imgEl.src.includes("favicon")) image = imgEl.src;
     }
-    if (!image) {
-      image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
-    }
+    if (!image) image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
     // === 3️⃣ AREA DASAR ===
     const areaProv = {
@@ -39,20 +37,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const brandMatch = text.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|solusi bangun/i);
     if (brandMatch) brandName = brandMatch[0].replace(/\b\w/g, (l) => l.toUpperCase());
 
-    // === 5️⃣ TYPE PAGE ===
-    const jasaKeywords = /(jasa|sewa|borongan|kontraktor|layanan|service|perbaikan|pemasangan)/i;
-    const produkKeywords = /(produk|beton|readymix|precast|pipa|u[- ]?ditch|box culvert|panel)/i;
-    const catalogKeywords = /(daftar harga|katalog|tabel harga|list harga|price list)/i;
-    const headingsText = Array.from(document.querySelectorAll("h1, h2")).map(h => h.innerText.toLowerCase()).join(" ");
-    const hasJasa = jasaKeywords.test(text) || jasaKeywords.test(headingsText);
-    const hasProduk = produkKeywords.test(text) || produkKeywords.test(headingsText);
-    const hasCatalog = catalogKeywords.test(text);
-    let mainType = "Product";
-    if (hasJasa && hasProduk) mainType = ["Product", "Service"];
-    else if (hasJasa) mainType = "Service";
-    else if (hasCatalog) mainType = "OfferCatalog";
-
-    // === 6️⃣ PRODUCT NAME OTOMATIS DARI URL ===
+    // === 5️⃣ PRODUCT NAME DARI URL ===
     function getProductNameFromUrl() {
       let path = location.pathname.replace(/^\/|\/$/g,"").split("/").pop();
       path = path.replace(".html","").replace(/-/g," ");
@@ -60,16 +45,19 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     const productName = getProductNameFromUrl();
 
-    // === 7️⃣ PARSER TABLE & TEKS HARGA UNIQUE ===
+    // === 6️⃣ PARSER TABLE & TEKS HARGA UNIQUE DENGAN PRODUCTNAME ===
     const seenItems = new Set();
     const tableOffers = [];
     function addOffer(name, key, price, desc="") {
-      const k = name + "|" + key + "|" + price;
+      // selalu gabungkan productName + nama unik (kolom pertama atau teks)
+      let finalName = productName;
+      if(name && name.toLowerCase() !== productName.toLowerCase()) finalName += " " + name;
+      const k = finalName + "|" + key + "|" + price;
       if (!seenItems.has(k)) {
         seenItems.add(k);
         tableOffers.push({
           "@type":"Offer",
-          itemOffered:{ "@type":"Product", name, ...(desc ? { description: desc } : {}) },
+          itemOffered:{ "@type":"Product", name: finalName, ...(desc ? { description: desc } : {}) },
           price,
           priceCurrency:"IDR",
           availability:"https://schema.org/InStock"
@@ -77,25 +65,24 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    // Parsing tabel
+    // === Parsing tabel ===
     Array.from(document.querySelectorAll("table")).forEach(table=>{
       Array.from(table.querySelectorAll("tr")).forEach(row=>{
         const cells = Array.from(row.querySelectorAll("td, th")).slice(0,6);
         if(cells.length >= 2){
           let col1 = cells[0].innerText.trim();
-          const name = col1 ? col1 : productName;
-          const uniqueKey = cells.slice(1).map(c=>c.innerText.trim()).join(" ");
+          let uniqueKey = cells.slice(1).map(c=>c.innerText.trim()).join(" ");
           let price = null;
           for(let c of cells){
             const m = c.innerText.match(/Rp\s*([\d.,]+)/);
             if(m){ price = parseInt(m[1].replace(/[.\s,]/g,"")); break; }
           }
-          if(name && price) addOffer(name, uniqueKey, price, cells[1]?.innerText.trim()||"");
+          if(price) addOffer(col1, uniqueKey, price, cells[1]?.innerText.trim()||"");
         }
       });
     });
 
-    // Parsing teks
+    // === Parsing teks di luar table ===
     document.body.innerText.split("\n").forEach(line=>{
       const m = line.match(/Rp\s*([\d.,]{4,})/);
       if(m){
@@ -103,15 +90,17 @@ document.addEventListener("DOMContentLoaded", async function () {
         if(price >= 10000 && price <= 500000000){
           const words = line.split(/\s+/);
           const idx = words.findIndex(w=>w.includes(m[1].replace(/[.,]/g,"")));
-          const name = words.slice(Math.max(0, idx-3), idx).join(" ").trim() || productName;
+          let name = words.slice(Math.max(0, idx-3), idx).join(" ").trim();
+          if(!name || name.toLowerCase() === productName.toLowerCase()) name = "";
           addOffer(name, "", price);
         }
       }
     });
 
-    if(tableOffers.length >= 3) mainType = "OfferCatalog";
+    // === Tentukan tipe mainEntity ===
+    let mainType = tableOffers.length >= 3 ? "OfferCatalog" : "Product";
 
-    // === 8️⃣ INTERNAL LINK ===
+    // === 7️⃣ INTERNAL LINK ===
     const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a"))
       .filter(a => a.href && a.href.includes(location.hostname) && a.href !== location.href)
       .map(a => ({ url:a.href, name:a.innerText.trim() }));
@@ -119,7 +108,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     rawLinks.forEach(i=>{ if(!uniqueMap.has(i.url)) uniqueMap.set(i.url, i.name||i.url); });
     const internalLinks = Array.from(uniqueMap.entries()).map(([url,name],i)=>({ "@type":"ListItem", position:i+1, url, name }));
 
-    // === 9️⃣ BUSINESS ENTITY ===
+    // === 8️⃣ BUSINESS ENTITY ===
     const business = {
       "@type":["LocalBusiness","GeneralContractor"],
       "@id":"https://www.betonjayareadymix.com/#localbusiness",
@@ -133,9 +122,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       logo:"https://www.betonjayareadymix.com/favicon.ico"
     };
 
-    // === 10️⃣ MAIN ENTITY PRODUCT ===
+    // === 9️⃣ MAIN ENTITY PRODUCT ===
     const mainEntity = {
-      "@type":"Product",
+      "@type":mainType,
       "@id": cleanUrl+"#mainentity",
       name: productName,
       description: desc,
@@ -145,7 +134,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       ...(tableOffers.length ? { offers: tableOffers } : null)
     };
 
-    // === 11️⃣ WEBPAGE ===
+    // === 1️⃣0️⃣ WEBPAGE ===
     const webpage = {
       "@type":"WebPage",
       "@id": cleanUrl+"#webpage",
@@ -167,7 +156,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       itemListElement: internalLinks
     });
 
-    const schemaData = { "@context":"https://schema.org", "@graph": graph };
+    // === 1️⃣1️⃣ OUTPUT JSON-LD ===
     let scriptEl = document.querySelector("#auto-schema-product");
     if(!scriptEl){
       scriptEl = document.createElement("script");
@@ -175,8 +164,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       scriptEl.id="auto-schema-product";
       document.head.appendChild(scriptEl);
     }
-    scriptEl.textContent = JSON.stringify(schemaData, null, 2);
+    scriptEl.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
 
-    console.log(`[AutoSchema v4.44 ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length}`);
+    console.log(`[AutoSchema v4.45 ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length}`);
   }, 500);
 });
