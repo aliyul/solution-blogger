@@ -1,11 +1,11 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.46 — Hybrid Service + Product | Beton Jaya Readymix */ 
+//* ⚡ AUTO SCHEMA UNIVERSAL v4.47 — Hybrid Service + Product | Beton Jaya Readymix */ 
 (function () {
   let schemaInjected = false;
 
   async function initSchema() {
     if (schemaInjected) return;
     schemaInjected = true;
-    console.log("[Schema Service v4.46 🚀] Auto generator dijalankan (Service + Product)");
+    console.log("[Schema Service v4.47 🚀] Auto generator dijalankan (Service + Product + Multiple serviceType)");
 
     // === 1️⃣ INFO HALAMAN ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -63,7 +63,7 @@
       const types = ["sewa excavator", "sewa alat berat", "jasa pancang", "jasa borongan", "jasa renovasi", "jasa puing", "rental alat berat", "beton cor", "ready mix"];
       return types.filter(t => base.includes(t)) || ["Jasa Konstruksi"];
     };
-    const serviceTypes = detectServiceType();
+    let serviceTypes = detectServiceType();
 
     // === 4️⃣ DETEKSI PRODUCT DARI URL + TABLE ===
     function getProductNameFromUrl() {
@@ -88,6 +88,8 @@
           priceCurrency:"IDR",
           availability:"https://schema.org/InStock"
         });
+        // Tambahkan serviceType otomatis dari tabel
+        if(name && !serviceTypes.includes(name)) serviceTypes.push(name);
       }
     }
 
@@ -171,7 +173,7 @@
       name: PAGE.title,
       description: PAGE.description,
       image: PAGE.image,
-      serviceType: serviceTypes,
+      serviceType,
       areaServed,
       provider: { "@id": PAGE.business.url + "#localbusiness" },
       brand: { "@type": "Brand", name: PAGE.business.name },
@@ -217,7 +219,7 @@
     }
     el.textContent = JSON.stringify(schema, null, 2);
 
-    console.log(`[Schema v4.46 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length}`);
+    console.log(`[Schema v4.47 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")}`);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
