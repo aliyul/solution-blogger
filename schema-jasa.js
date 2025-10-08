@@ -1,11 +1,11 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.45 — Hybrid-Stable Edition | Beton Jaya Readymix */
+//* ⚡ AUTO SCHEMA UNIVERSAL v4.45 — Hybrid-Stable Edition | Beton Jaya Readymix */ 
 (function () {
   let schemaInjected = false
 
   async function initSchema() {
     if (schemaInjected) return
     schemaInjected = true
-    console.log("[Schema Service v4.45 🚀] Auto generator dijalankan (tabel+link+nama offers)")
+    console.log("[Schema Service v4.45 🚀] Auto generator dijalankan (produk + service)")
 
     // === 1️⃣ INFO DASAR HALAMAN ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim()
@@ -45,82 +45,28 @@
 
     // === 2️⃣ AREA DEFAULT ===
     const areaJSON = {
-      "Kabupaten Bogor": "Jawa Barat",
-      "Kota Bogor": "Jawa Barat",
-      "Kota Depok": "Jawa Barat",
-      "Kabupaten Bekasi": "Jawa Barat",
-      "Kota Bekasi": "Jawa Barat",
-      "Kabupaten Karawang": "Jawa Barat",
-      "Kabupaten Serang": "Banten",
-      "Kota Serang": "Banten",
-      "Kota Cilegon": "Banten",
-      "Kabupaten Tangerang": "Banten",
-      "Kota Tangerang": "Banten",
-      "Kota Tangerang Selatan": "Banten",
+      "Kabupaten Bogor": "Jawa Barat", "Kota Bogor": "Jawa Barat",
+      "Kota Depok": "Jawa Barat", "Kabupaten Bekasi": "Jawa Barat",
+      "Kota Bekasi": "Jawa Barat", "Kabupaten Karawang": "Jawa Barat",
+      "Kabupaten Serang": "Banten", "Kota Serang": "Banten",
+      "Kota Cilegon": "Banten", "Kabupaten Tangerang": "Banten",
+      "Kota Tangerang": "Banten", "Kota Tangerang Selatan": "Banten",
       "DKI Jakarta": "DKI Jakarta",
     }
     const defaultAreaServed = Object.keys(areaJSON).map(k => ({ "@type": "Place", name: k }))
-
-    async function fetchAreaFromWikipedia(areaName, type) {
-      try {
-        const page = type === "kelurahan"
-          ? `Daftar_kelurahan_dan_desa_di_${areaName.replace(/\s+/g, "_")}`
-          : `Daftar_kecamatan_di_${areaName.replace(/\s+/g, "_")}`
-        const url = `https://id.wikipedia.org/w/api.php?action=parse&page=${page}&prop=text&format=json&origin=*`
-        const res = await fetch(url)
-        const data = await res.json()
-        if (data?.parse?.text) {
-          const temp = document.createElement("div")
-          temp.innerHTML = data.parse.text["*"]
-          const items = Array.from(temp.querySelectorAll("li, td"))
-            .map(el => el.textContent.trim())
-            .filter(t => /^[A-Z]/.test(t) && !t.includes("Daftar"))
-            .slice(0, 100)
-          return items.map(n => ({ "@type": "Place", name: `${type === "kelurahan" ? "Kelurahan" : "Kecamatan"} ${n}` }))
-        }
-      } catch (e) { console.warn("⚠️ Wikipedia fetch error:", e) }
-      return null
-    }
-
-    async function getCachedAreaList(cacheKey, areaName, type) {
-      try {
-        const cached = localStorage.getItem(cacheKey)
-        if (cached) {
-          const parsed = JSON.parse(cached)
-          if (parsed.expire > Date.now()) return parsed.data
-          else localStorage.removeItem(cacheKey)
-        }
-        const data = await fetchAreaFromWikipedia(areaName, type)
-        if (data?.length) {
-          localStorage.setItem(cacheKey, JSON.stringify({ expire: Date.now() + 2592000000, data }))
-          return data
-        }
-      } catch (e) { console.warn("❌ Cache error:", e) }
-      return null
-    }
-
-    async function detectArea(url, title = "") {
-      const text = (url + " " + title).toLowerCase()
-      for (const area in areaJSON) {
-        const slug = area.toLowerCase().replace(/\s+/g, "-")
-        if (text.includes(slug) || text.includes(area.toLowerCase().replace(/\s+/g, ""))) {
-          return (await getCachedAreaList(`wiki_kecamatan_${area.replace(/\s+/g, "_")}`, area, "kecamatan")) || defaultAreaServed
-        }
-      }
-      return defaultAreaServed
-    }
+    async function detectArea(url, title = "") { return defaultAreaServed }
     const areaServed = await detectArea(PAGE.url, PAGE.title)
 
-    // === 3️⃣ DETEKSI SERVICE / PRODUK ===
+    // === 3️⃣ DETEKSI SERVICE ===
     const detectServiceType = () => {
       const base = PAGE.title.toLowerCase()
       const types = ["sewa excavator", "sewa alat berat", "jasa pancang", "jasa borongan", "jasa renovasi", "jasa puing", "rental alat berat", "beton cor", "ready mix"]
-      return types.filter(t => base.includes(t)).length ? types.filter(t => base.includes(t)) : ["Jasa Konstruksi"]
+      return types.filter(t => base.includes(t)) || ["Jasa Konstruksi"]
     }
     const serviceTypes = detectServiceType()
 
-    // === 4️⃣ DETEKSI HARGA + NAMA PRODUK ===
-    function parseValidTableOffers() {
+    // === 4️⃣ DETEKSI PRODUK DAN HARGA ===
+    function parseTableOffers() {
       const offers = []
       document.querySelectorAll("table tr").forEach(r => {
         const cells = r.querySelectorAll("td, th")
@@ -141,7 +87,7 @@
       document.querySelectorAll("li").forEach(li => {
         const txt = li.innerText.trim()
         const priceMatch = txt.match(/(.+?)\s*[-:–]\s*Rp\s*([\d.,]+)/)
-        if (priceMatch && priceMatch[1] && priceMatch[2]) {
+        if (priceMatch) {
           const name = priceMatch[1].trim()
           const price = parseInt(priceMatch[2].replace(/[.\s,]/g, ""), 10)
           if (price >= 10000 && price <= 500000000) offers.push({ name, price })
@@ -150,9 +96,8 @@
       return offers
     }
 
-    const combinedOffers = [...parseValidTableOffers(), ...parseListOffers()]
+    const combinedOffers = [...parseTableOffers(), ...parseListOffers()]
     const allPrices = combinedOffers.map(o => o.price)
-
     const priceData = allPrices.length ? {
       lowPrice: Math.min(...allPrices),
       highPrice: Math.max(...allPrices),
@@ -167,9 +112,7 @@
         availability: "https://schema.org/InStock",
       })),
     } : null
-
-    const productSignal = /(jual|harga|produk|penjualan|katalog|daftar harga|price list|tabel harga|ready mix|precast|pipa|panel|buis)/i
-    const isProductPage = productSignal.test((PAGE.title + " " + PAGE.description + " " + document.body.innerText).toLowerCase()) || combinedOffers.length > 0
+    const isProductPage = combinedOffers.length > 0 || /(jual|harga|produk|penjualan|katalog|daftar harga|price list)/i.test(PAGE.title + PAGE.description)
 
     // === 5️⃣ INTERNAL LINKS ===
     const anchors = [...document.querySelectorAll("article a, main a, .post-body a")]
@@ -178,7 +121,7 @@
     const uniqueLinks = Array.from(new Map(anchors.map(a => [a.url, a.name])).entries())
       .map(([url, name], i) => ({ "@type": "ListItem", position: i + 1, url, name }))
 
-    // === 6️⃣ BUILD GRAPH ===
+    // === 6️⃣ BUILD GRAPH UNTUK HALAMAN SERVICE + PRODUK ===
     const graph = []
 
     const localBiz = {
@@ -262,7 +205,6 @@
       document.head.appendChild(el)
     }
     el.textContent = JSON.stringify(schema, null, 2)
-
     console.log(`[Schema v4.45 ✅] Injected | Type: ${isProductPage ? "Service+Product" : "Service"} | Harga: ${priceData ? "Ya" : "Tidak"} | Area: ${areaServed.length}`)
   }
 
@@ -275,11 +217,7 @@
       }
       return false
     }
-
-    // 🕐 Fallback 1: langsung coba setelah 600ms
     setTimeout(tryRun, 600)
-
-    // 🧩 Fallback 2: observer untuk halaman yang muncul belakangan
     const observer = new MutationObserver(() => {
       if (tryRun()) observer.disconnect()
     })
