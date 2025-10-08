@@ -1,7 +1,11 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.35+dual-enhanced — Beton Jaya Readymix */
+//* ⚡ AUTO SCHEMA UNIVERSAL v4.45 — Hybrid-Stable Edition | Beton Jaya Readymix */
 (function () {
+  let schemaInjected = false
+
   async function initSchema() {
-    console.log("[Schema Service v4.35 🚀] Auto generator dijalankan (tabel+link+nama offers)")
+    if (schemaInjected) return
+    schemaInjected = true
+    console.log("[Schema Service v4.45 🚀] Auto generator dijalankan (tabel+link+nama offers)")
 
     // === 1️⃣ INFO DASAR HALAMAN ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim()
@@ -18,7 +22,7 @@
         document.title,
       image:
         document.querySelector('meta[property="og:image"]')?.content ||
-        document.querySelector("article img, main img, .post-body img")?.src ||
+        document.querySelector("article img, main img, .post-body img")?.getAttribute("src") ||
         "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png",
       business: {
         name: "Beton Jaya Readymix",
@@ -115,7 +119,7 @@
     }
     const serviceTypes = detectServiceType()
 
-    // === 4️⃣ DETEKSI HARGA + NAMA PRODUK DALAM TABEL ===
+    // === 4️⃣ DETEKSI HARGA + NAMA PRODUK ===
     function parseValidTableOffers() {
       const offers = []
       document.querySelectorAll("table tr").forEach(r => {
@@ -146,9 +150,7 @@
       return offers
     }
 
-    const tableOffers = parseValidTableOffers()
-    const listOffers = parseListOffers()
-    const combinedOffers = [...tableOffers, ...listOffers]
+    const combinedOffers = [...parseValidTableOffers(), ...parseListOffers()]
     const allPrices = combinedOffers.map(o => o.price)
 
     const priceData = allPrices.length ? {
@@ -169,7 +171,7 @@
     const productSignal = /(jual|harga|produk|penjualan|katalog|daftar harga|price list|tabel harga|ready mix|precast|pipa|panel|buis)/i
     const isProductPage = productSignal.test((PAGE.title + " " + PAGE.description + " " + document.body.innerText).toLowerCase()) || combinedOffers.length > 0
 
-    // === 5️⃣ INTERNAL LINKS (hapus duplikat URL) ===
+    // === 5️⃣ INTERNAL LINKS ===
     const anchors = [...document.querySelectorAll("article a, main a, .post-body a")]
       .filter(a => a.href && a.href.includes(location.hostname) && !a.href.includes("#"))
       .map(a => ({ url: a.href.split("#")[0], name: a.innerText.trim() || a.href }))
@@ -261,20 +263,25 @@
     }
     el.textContent = JSON.stringify(schema, null, 2)
 
-    console.log(`[Schema v4.35 ✅] Injected | Type: ${isProductPage ? "Service+Product" : "Service"} | Harga: ${priceData ? "Ya" : "Tidak"} | Area: ${areaServed.length}`)
+    console.log(`[Schema v4.45 ✅] Injected | Type: ${isProductPage ? "Service+Product" : "Service"} | Harga: ${priceData ? "Ya" : "Tidak"} | Area: ${areaServed.length}`)
   }
 
-  function ready(fn) {
-    if (document.readyState === "complete" || document.readyState === "interactive") setTimeout(fn, 400)
-    else document.addEventListener("DOMContentLoaded", fn)
-  }
-
-  ready(() => {
-    const observer = new MutationObserver(() => {
+  // === 8️⃣ READY + OBSERVER + FALLBACK ===
+  document.addEventListener("DOMContentLoaded", () => {
+    const tryRun = () => {
       if (document.querySelector("h1") && document.querySelector(".post-body")) {
-        observer.disconnect()
         initSchema()
+        return true
       }
+      return false
+    }
+
+    // 🕐 Fallback 1: langsung coba setelah 600ms
+    setTimeout(tryRun, 600)
+
+    // 🧩 Fallback 2: observer untuk halaman yang muncul belakangan
+    const observer = new MutationObserver(() => {
+      if (tryRun()) observer.disconnect()
     })
     observer.observe(document.body, { childList: true, subtree: true })
   })
