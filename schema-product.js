@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.41 🚀] Start detection (Product + Service + OfferCatalog + Table Parser + Unique Links + Smart Image + Dual-Purpose Headings)");
+    console.log("[AutoSchema Hybrid v4.41 🚀] Start detection (Product + Service + OfferCatalog + Table Parser Flexible + Unique Links + Smart Image + Dual-Purpose Headings)");
 
     // === 1️⃣ META DASAR ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -146,19 +146,38 @@ document.addEventListener("DOMContentLoaded", async function () {
     else if (hasJasa) mainType = "Service";
     else if (hasCatalog) mainType = "OfferCatalog";
 
-    // === 8️⃣ PARSER TABEL ===
+    // === 8️⃣ PARSER TABEL FLEXIBLE ===
     let tableOffers = [];
-    const rows = Array.from(document.querySelectorAll("table tr"));
-    rows.forEach((r) => {
-      const cells = r.querySelectorAll("td, th");
+    const allRows = Array.from(document.querySelectorAll("table tr"));
+    allRows.forEach((r) => {
+      const cells = Array.from(r.querySelectorAll("td, th")).slice(0, 6); // max 6 kolom
       if (cells.length >= 2) {
-        const name = cells[0].innerText.trim();
-        const priceMatch = cells[1].innerText.match(/Rp\s*([\d.,]+)/);
-        if (name && !/nama|wilayah|jenis|tipe|mutu|kelas|keterangan/i.test(name) && priceMatch) {
+        let name = "";
+        let price = null;
+
+        // ambil kolom pertama yg tidak kosong & bukan harga sebagai nama item
+        for (let i = 0; i < cells.length; i++) {
+          const txt = cells[i].innerText.trim();
+          if (txt && !/Rp/i.test(txt)) {
+            name = txt;
+            break;
+          }
+        }
+
+        // ambil kolom yang mengandung harga Rp
+        for (let i = 0; i < cells.length; i++) {
+          const match = cells[i].innerText.match(/Rp\s*([\d.,]+)/);
+          if (match) {
+            price = parseInt(match[1].replace(/[.\s,]/g, ""), 10);
+            break;
+          }
+        }
+
+        if (name && price && price >= 10000 && price <= 500000000) {
           tableOffers.push({
             "@type": "Offer",
             itemOffered: { "@type": "Product", name },
-            price: parseInt(priceMatch[1].replace(/[.\s,]/g, ""), 10),
+            price,
             priceCurrency: "IDR",
             availability: "https://schema.org/InStock",
           });
