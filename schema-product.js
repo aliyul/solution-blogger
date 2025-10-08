@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.36 🚀] Start detection (Product + Service + OfferCatalog)");
+    console.log("[AutoSchema Hybrid v4.37 🚀] Start detection (Product + Service + OfferCatalog + Table Parser)");
 
     // === 1️⃣ META DASAR ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -35,7 +35,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       "Kota Tangerang Selatan": "Banten",
       "DKI Jakarta": "DKI Jakarta",
     };
-    const defaultAreaServed = Object.keys(areaProv).map((a) => ({ "@type": "Place", name: a }));
+    const defaultAreaServed = Object.keys(areaProv).map((a) => ({
+      "@type": "Place",
+      name: a,
+    }));
 
     // === 3️⃣ WIKIPEDIA CACHE ===
     async function getCachedWiki(areaName, type) {
@@ -95,6 +98,16 @@ document.addEventListener("DOMContentLoaded", async function () {
           return [{ "@type": "Place", name: area }];
         }
       }
+      const match = combined.match(
+        /kecamatan-?([a-z\s-]+)-(bogor|bekasi|depok|tangerang|karawang|serang|jakarta)/
+      );
+      if (match) {
+        const kec = match[1].trim().replace(/-/g, " ");
+        const list = await getCachedWiki(kec, "kelurahan");
+        if (list?.length)
+          return list.map((a) => ({ "@type": "Place", name: "Kelurahan " + a.name }));
+        return [{ "@type": "Place", name: "Kecamatan " + kec }];
+      }
       return defaultAreaServed;
     }
 
@@ -120,17 +133,56 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
       : null;
 
-    // === 6️⃣ DETEKSI PRODUK / JASA / HYBRID ===
+    // === 6️⃣ DETEKSI PRODUK / JASA ===
     const jasaKeywords = /(jasa|sewa|borongan|kontraktor|layanan|service|perbaikan|pemasangan)/i;
     const produkKeywords = /(produk|beton|readymix|precast|pipa|u[- ]?ditch|box culvert|panel)/i;
+    const catalogKeywords = /(daftar harga|katalog|tabel harga|list harga|price list)/i;
+
     const hasJasa = jasaKeywords.test(text);
     const hasProduk = produkKeywords.test(text);
+    const hasCatalog = catalogKeywords.test(text);
 
     let mainType = "Product";
     if (hasJasa && hasProduk) mainType = ["Product", "Service"];
     else if (hasJasa) mainType = "Service";
+    else if (hasCatalog) mainType = "OfferCatalog";
 
-    // === 7️⃣ ENTITY BISNIS ===
+    // === 🧾 7️⃣ DETEKSI TABEL HARGA ===
+    let tableOffers = [];
+    const rows = Array.from(document.querySelectorAll("table tr"));
+    rows.forEach((r) => {
+      const cells = r.querySelectorAll("td, th");
+      if (cells.length >= 2) {
+        const name = cells[0].innerText.trim();
+        const priceMatch = cells[1].innerText.match(/Rp\s*([\d.,]+)/);
+        if (name && priceMatch) {
+          tableOffers.push({
+            "@type": "Offer",
+            itemOffered: { "@type": "Product", name },
+            price: parseInt(priceMatch[1].replace(/[.\s,]/g, ""), 10),
+            priceCurrency: "IDR",
+            availability: "https://schema.org/InStock",
+          });
+        }
+      }
+    });
+
+    // Jika tabel valid, ubah ke OfferCatalog otomatis
+    if (tableOffers.length >= 3) {
+      mainType = "OfferCatalog";
+    }
+
+    // === 8️⃣ INTERNAL LINKS ===
+    const internalLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a"))
+      .filter((a) => a.href && a.href.includes(location.hostname) && a.href !== location.href)
+      .map((a, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: a.href,
+        name: a.innerText.trim(),
+      }));
+
+    // === 9️⃣ ENTITY BISNIS ===
     const business = {
       "@type": ["LocalBusiness", "GeneralContractor"],
       "@id": "https://www.betonjayareadymix.com/#localbusiness",
@@ -153,7 +205,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       logo: image,
     };
 
-    // === 8️⃣ MAIN ENTITY ===
+    // === 🔟 MAIN ENTITY ===
     const mainEntity = {
       "@type": mainType,
       "@id": cleanUrl + "#mainentity",
@@ -163,41 +215,29 @@ document.addEventListener("DOMContentLoaded", async function () {
       areaServed,
       provider: { "@id": business["@id"] },
       brand: { "@type": "Brand", name: brandName },
-      ...(priceData && {
-        offers: {
-          "@type": "AggregateOffer",
-          priceCurrency: priceData.priceCurrency,
-          lowPrice: priceData.lowPrice,
-          highPrice: priceData.highPrice,
-          offerCount: priceData.offerCount,
-          availability: "https://schema.org/InStock",
-          priceValidUntil: priceData.priceValidUntil,
-          url: cleanUrl,
-        },
-      }),
+      ...(tableOffers.length
+        ? {
+            offers: {
+              "@type": "OfferCatalog",
+              name: "Katalog Harga",
+              itemListElement: tableOffers,
+            },
+          }
+        : priceData && {
+            offers: {
+              "@type": hasCatalog ? "OfferCatalog" : "AggregateOffer",
+              priceCurrency: priceData.priceCurrency,
+              lowPrice: priceData.lowPrice,
+              highPrice: priceData.highPrice,
+              offerCount: priceData.offerCount,
+              availability: "https://schema.org/InStock",
+              priceValidUntil: priceData.priceValidUntil,
+              url: cleanUrl,
+            },
+          }),
     };
 
-    // === 9️⃣ OFFER CATALOG (Jika banyak variasi harga ditemukan) ===
-    let offerCatalog = null;
-    if (priceData && prices.length >= 3) {
-      const offerItems = prices.slice(0, 10).map((p, i) => ({
-        "@type": "Offer",
-        name: `${title} Varian ${i + 1}`,
-        price: p,
-        priceCurrency: "IDR",
-        availability: "https://schema.org/InStock",
-        url: cleanUrl + `#varian-${i + 1}`,
-      }));
-      offerCatalog = {
-        "@type": "OfferCatalog",
-        name: `Daftar Harga ${title}`,
-        url: cleanUrl + "#offercatalog",
-        numberOfItems: offerItems.length,
-        itemListElement: offerItems,
-      };
-    }
-
-    // === 🔟 WEBPAGE & OUTPUT ===
+    // === 11️⃣ WEBPAGE & OUTPUT ===
     const webpage = {
       "@type": "WebPage",
       "@id": cleanUrl + "#webpage",
@@ -207,21 +247,26 @@ document.addEventListener("DOMContentLoaded", async function () {
       image,
       mainEntity: { "@id": mainEntity["@id"] },
       publisher: { "@id": business["@id"] },
+      ...(internalLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } }),
     };
 
-    // === 11️⃣ OUTPUT GRAPH ===
     const graph = [webpage, business, mainEntity];
-    if (offerCatalog) graph.push(offerCatalog);
+    if (internalLinks.length)
+      graph.push({
+        "@type": "ItemList",
+        "@id": cleanUrl + "#daftar-internal-link",
+        name: "Daftar Halaman Terkait",
+        numberOfItems: internalLinks.length,
+        itemListElement: internalLinks,
+      });
 
     const schemaData = { "@context": "https://schema.org", "@graph": graph };
     document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData, null, 2);
 
     console.log(
-      `[AutoSchema v4.36 ✅] Type: ${JSON.stringify(
-        mainType
-      )} | Brand: ${brandName} | Harga: ${priceData ? "✅" : "❌"} | OfferCatalog: ${
-        offerCatalog ? "✅" : "❌"
-      } | Area: ${areaServed.length}`
+      `[AutoSchema v4.37 ✅] Type: ${JSON.stringify(mainType)} | Brand: ${brandName} | Harga: ${
+        priceData ? "✅" : "❌"
+      } | Table: ${tableOffers.length} | Area: ${areaServed.length}`
     );
   }, 500);
 });
