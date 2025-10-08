@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.38 🚀] Start detection (Product + Service + OfferCatalog + Table Parser + Unique Links)");
+    console.log("[AutoSchema Hybrid v4.39 🚀] Start detection (Product + Service + OfferCatalog + Table Parser + Unique Links + Smart Image)");
 
     // === 1️⃣ META DASAR ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -14,33 +14,30 @@ document.addEventListener("DOMContentLoaded", async function () {
         .map((p) => p.innerText.trim())
         .join(" ")
         .substring(0, 300);
-    const image =
-      document.querySelector('meta[property="og:image"]')?.content ||
-      document.querySelector("article img, main img, .post-body img, img")?.src ||
-      "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
-    // === 2️⃣ AREA DASAR ===
+    // === 2️⃣ SMART IMAGE DETECTION ===
+    let image = document.querySelector('meta[property="og:image"]')?.content?.trim();
+    if (!image) {
+      const imgEl = document.querySelector("article img, main img, .post-body img, img");
+      if (imgEl && imgEl.src && !imgEl.src.includes("favicon")) image = imgEl.src;
+    }
+    if (!image) {
+      image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+    }
+
+    // === 3️⃣ AREA DASAR ===
     const areaProv = {
-      "Kabupaten Bogor": "Jawa Barat",
-      "Kota Bogor": "Jawa Barat",
-      "Kota Depok": "Jawa Barat",
-      "Kabupaten Bekasi": "Jawa Barat",
-      "Kota Bekasi": "Jawa Barat",
-      "Kabupaten Karawang": "Jawa Barat",
-      "Kabupaten Serang": "Banten",
-      "Kota Serang": "Banten",
-      "Kota Cilegon": "Banten",
-      "Kabupaten Tangerang": "Banten",
-      "Kota Tangerang": "Banten",
-      "Kota Tangerang Selatan": "Banten",
-      "DKI Jakarta": "DKI Jakarta",
+      "Kabupaten Bogor": "Jawa Barat", "Kota Bogor": "Jawa Barat",
+      "Kota Depok": "Jawa Barat", "Kabupaten Bekasi": "Jawa Barat",
+      "Kota Bekasi": "Jawa Barat", "Kabupaten Karawang": "Jawa Barat",
+      "Kabupaten Serang": "Banten", "Kota Serang": "Banten",
+      "Kota Cilegon": "Banten", "Kabupaten Tangerang": "Banten",
+      "Kota Tangerang": "Banten", "Kota Tangerang Selatan": "Banten",
+      "DKI Jakarta": "DKI Jakarta"
     };
-    const defaultAreaServed = Object.keys(areaProv).map((a) => ({
-      "@type": "Place",
-      name: a,
-    }));
+    const defaultAreaServed = Object.keys(areaProv).map((a) => ({ "@type": "Place", name: a }));
 
-    // === 3️⃣ CACHE WIKIPEDIA ===
+    // === 4️⃣ WIKI CACHING ===
     async function getCachedWiki(areaName, type) {
       const cacheKey = `wiki_${type}_${areaName.replace(/\s+/g, "_").toLowerCase()}`;
       const cache = localStorage.getItem(cacheKey);
@@ -51,10 +48,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       const items = await fetchFromWikipedia(areaName, type);
       if (items?.length) {
-        localStorage.setItem(
-          cacheKey,
-          JSON.stringify({ expire: Date.now() + 1000 * 60 * 60 * 24 * 30, items })
-        );
+        localStorage.setItem(cacheKey, JSON.stringify({
+          expire: Date.now() + 1000 * 60 * 60 * 24 * 30,
+          items
+        }));
       }
       return items;
     }
@@ -62,9 +59,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     async function fetchFromWikipedia(areaName, type) {
       const formatted = areaName.replace(/\s+/g, "_");
       const pages = [
-        type === "kecamatan"
-          ? `Daftar_kecamatan_di_${formatted}`
-          : `Daftar_kelurahan_dan_desa_di_kecamatan_${formatted}`,
+        type === "kecamatan" ? `Daftar_kecamatan_di_${formatted}` : `Daftar_kelurahan_dan_desa_di_kecamatan_${formatted}`,
       ];
       for (const page of pages) {
         try {
@@ -87,7 +82,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       return null;
     }
 
-    // === 4️⃣ DETEKSI AREA ===
+    // === 5️⃣ DETEKSI AREA ===
     async function detectArea(url, title) {
       const combined = (url + " " + title).toLowerCase();
       for (const area of Object.keys(areaProv)) {
@@ -98,14 +93,11 @@ document.addEventListener("DOMContentLoaded", async function () {
           return [{ "@type": "Place", name: area }];
         }
       }
-      const match = combined.match(
-        /kecamatan-?([a-z\s-]+)-(bogor|bekasi|depok|tangerang|karawang|serang|jakarta)/
-      );
+      const match = combined.match(/kecamatan-?([a-z\s-]+)-(bogor|bekasi|depok|tangerang|karawang|serang|jakarta)/);
       if (match) {
         const kec = match[1].trim().replace(/-/g, " ");
         const list = await getCachedWiki(kec, "kelurahan");
-        if (list?.length)
-          return list.map((a) => ({ "@type": "Place", name: "Kelurahan " + a.name }));
+        if (list?.length) return list.map((a) => ({ "@type": "Place", name: "Kelurahan " + a.name }));
         return [{ "@type": "Place", name: "Kecamatan " + kec }];
       }
       return defaultAreaServed;
@@ -113,15 +105,14 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const areaServed = await detectArea(cleanUrl, title);
 
-    // === 5️⃣ BRAND & HARGA ===
+    // === 6️⃣ BRAND & HARGA ===
     const text = document.body.innerText.toLowerCase();
     let brandName = "Beton Jaya Readymix";
     const brandMatch = text.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|solusi bangun/i);
     if (brandMatch) brandName = brandMatch[0].replace(/\b\w/g, (l) => l.toUpperCase());
 
     const matches = [...document.body.innerText.matchAll(/Rp\s*([\d.,]{4,})/g)];
-    const prices = matches
-      .map((m) => parseInt(m[1].replace(/[.\s,]/g, ""), 10))
+    const prices = matches.map((m) => parseInt(m[1].replace(/[.\s,]/g, ""), 10))
       .filter((v) => v >= 10000 && v <= 500000000);
     const priceData = prices.length
       ? {
@@ -133,7 +124,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
       : null;
 
-    // === 6️⃣ DETEKSI TIPE ===
+    // === 7️⃣ DETEKSI TIPE UTAMA ===
     const jasaKeywords = /(jasa|sewa|borongan|kontraktor|layanan|service|perbaikan|pemasangan)/i;
     const produkKeywords = /(produk|beton|readymix|precast|pipa|u[- ]?ditch|box culvert|panel)/i;
     const catalogKeywords = /(daftar harga|katalog|tabel harga|list harga|price list)/i;
@@ -147,7 +138,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     else if (hasJasa) mainType = "Service";
     else if (hasCatalog) mainType = "OfferCatalog";
 
-    // === 7️⃣ PARSER TABEL HARGA ===
+    // === 8️⃣ PARSER TABEL HARGA ===
     let tableOffers = [];
     const rows = Array.from(document.querySelectorAll("table tr"));
     rows.forEach((r) => {
@@ -168,12 +159,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
     if (tableOffers.length >= 3) mainType = "OfferCatalog";
 
-    // === 8️⃣ INTERNAL LINKS (UNIQUE) ===
+    // === 9️⃣ INTERNAL LINKS UNIK ===
     const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a"))
       .filter((a) => a.href && a.href.includes(location.hostname) && a.href !== location.href)
       .map((a) => ({ url: a.href, name: a.innerText.trim() }));
 
-    // Ambil hanya 1 per URL unik
     const uniqueMap = new Map();
     rawLinks.forEach((item) => {
       if (!uniqueMap.has(item.url)) uniqueMap.set(item.url, item.name || item.url);
@@ -185,7 +175,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       name,
     }));
 
-    // === 9️⃣ ENTITY BISNIS ===
+    // === 🔟 ENTITY BISNIS ===
     const business = {
       "@type": ["LocalBusiness", "GeneralContractor"],
       "@id": "https://www.betonjayareadymix.com/#localbusiness",
@@ -205,10 +195,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         "https://www.facebook.com/betonjayareadymix",
         "https://www.instagram.com/betonjayareadymix",
       ],
-      logo: image,
+      logo: "https://www.betonjayareadymix.com/favicon.ico",
     };
 
-    // === 🔟 MAIN ENTITY ===
+    // === 11️⃣ MAIN ENTITY ===
     const mainEntity = {
       "@type": mainType,
       "@id": cleanUrl + "#mainentity",
@@ -240,7 +230,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           }),
     };
 
-    // === 11️⃣ WEBPAGE OUTPUT ===
+    // === 12️⃣ WEBPAGE OUTPUT ===
     const webpage = {
       "@type": "WebPage",
       "@id": cleanUrl + "#webpage",
@@ -267,7 +257,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData, null, 2);
 
     console.log(
-      `[AutoSchema v4.38 ✅] Type: ${JSON.stringify(mainType)} | Brand: ${brandName} | Harga: ${
+      `[AutoSchema v4.39 ✅] Type: ${JSON.stringify(mainType)} | Brand: ${brandName} | Harga: ${
         priceData ? "✅" : "❌"
       } | Table: ${tableOffers.length} | Links: ${internalLinks.length} | Area: ${areaServed.length}`
     );
