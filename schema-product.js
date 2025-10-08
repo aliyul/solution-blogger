@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.39 🚀] Start detection (Product + Service + OfferCatalog + Table Parser + Unique Links + Smart Image)");
+    console.log("[AutoSchema Hybrid v4.41 🚀] Start detection (Product + Service + OfferCatalog + Table Parser + Unique Links + Smart Image + Dual-Purpose Headings)");
 
     // === 1️⃣ META DASAR ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -22,7 +22,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (imgEl && imgEl.src && !imgEl.src.includes("favicon")) image = imgEl.src;
     }
     if (!image) {
-      image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+      image =
+        "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
     }
 
     // === 3️⃣ AREA DASAR ===
@@ -48,10 +49,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       const items = await fetchFromWikipedia(areaName, type);
       if (items?.length) {
-        localStorage.setItem(cacheKey, JSON.stringify({
-          expire: Date.now() + 1000 * 60 * 60 * 24 * 30,
-          items
-        }));
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({ expire: Date.now() + 1000 * 60 * 60 * 24 * 30, items })
+        );
       }
       return items;
     }
@@ -59,7 +60,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     async function fetchFromWikipedia(areaName, type) {
       const formatted = areaName.replace(/\s+/g, "_");
       const pages = [
-        type === "kecamatan" ? `Daftar_kecamatan_di_${formatted}` : `Daftar_kelurahan_dan_desa_di_kecamatan_${formatted}`,
+        type === "kecamatan"
+          ? `Daftar_kecamatan_di_${formatted}`
+          : `Daftar_kelurahan_dan_desa_di_kecamatan_${formatted}`,
       ];
       for (const page of pages) {
         try {
@@ -89,7 +92,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         const slug = area.toLowerCase().replace(/\s+/g, "-");
         if (combined.includes(slug) || combined.includes(area.toLowerCase().replace(/\s+/g, ""))) {
           const list = await getCachedWiki(area, "kecamatan");
-          if (list?.length) return list.map((a) => ({ "@type": "Place", name: a.name }));
+          if (list?.length) return list;
           return [{ "@type": "Place", name: area }];
         }
       }
@@ -112,7 +115,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (brandMatch) brandName = brandMatch[0].replace(/\b\w/g, (l) => l.toUpperCase());
 
     const matches = [...document.body.innerText.matchAll(/Rp\s*([\d.,]{4,})/g)];
-    const prices = matches.map((m) => parseInt(m[1].replace(/[.\s,]/g, ""), 10))
+    const prices = matches
+      .map((m) => parseInt(m[1].replace(/[.\s,]/g, ""), 10))
       .filter((v) => v >= 10000 && v <= 500000000);
     const priceData = prices.length
       ? {
@@ -124,13 +128,17 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
       : null;
 
-    // === 7️⃣ DETEKSI TIPE UTAMA ===
+    // === 7️⃣ TIPE HALAMAN (DUAL-PURPOSE + HEADINGS) ===
     const jasaKeywords = /(jasa|sewa|borongan|kontraktor|layanan|service|perbaikan|pemasangan)/i;
     const produkKeywords = /(produk|beton|readymix|precast|pipa|u[- ]?ditch|box culvert|panel)/i;
     const catalogKeywords = /(daftar harga|katalog|tabel harga|list harga|price list)/i;
 
-    const hasJasa = jasaKeywords.test(text);
-    const hasProduk = produkKeywords.test(text);
+    const headingsText = Array.from(document.querySelectorAll("h1, h2"))
+      .map(h => h.innerText.toLowerCase())
+      .join(" ");
+
+    const hasJasa = jasaKeywords.test(text) || jasaKeywords.test(headingsText);
+    const hasProduk = produkKeywords.test(text) || produkKeywords.test(headingsText);
     const hasCatalog = catalogKeywords.test(text);
 
     let mainType = "Product";
@@ -138,7 +146,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     else if (hasJasa) mainType = "Service";
     else if (hasCatalog) mainType = "OfferCatalog";
 
-    // === 8️⃣ PARSER TABEL HARGA ===
+    // === 8️⃣ PARSER TABEL ===
     let tableOffers = [];
     const rows = Array.from(document.querySelectorAll("table tr"));
     rows.forEach((r) => {
@@ -146,7 +154,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       if (cells.length >= 2) {
         const name = cells[0].innerText.trim();
         const priceMatch = cells[1].innerText.match(/Rp\s*([\d.,]+)/);
-        if (name && priceMatch) {
+        if (name && !/nama|wilayah|jenis|tipe|mutu|kelas|keterangan/i.test(name) && priceMatch) {
           tableOffers.push({
             "@type": "Offer",
             itemOffered: { "@type": "Product", name },
@@ -159,11 +167,10 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
     if (tableOffers.length >= 3) mainType = "OfferCatalog";
 
-    // === 9️⃣ INTERNAL LINKS UNIK ===
+    // === 9️⃣ INTERNAL LINK (UNIQUE) ===
     const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a"))
       .filter((a) => a.href && a.href.includes(location.hostname) && a.href !== location.href)
       .map((a) => ({ url: a.href, name: a.innerText.trim() }));
-
     const uniqueMap = new Map();
     rawLinks.forEach((item) => {
       if (!uniqueMap.has(item.url)) uniqueMap.set(item.url, item.name || item.url);
@@ -175,7 +182,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       name,
     }));
 
-    // === 🔟 ENTITY BISNIS ===
+    // === 🔟 BISNIS ENTITY ===
     const business = {
       "@type": ["LocalBusiness", "GeneralContractor"],
       "@id": "https://www.betonjayareadymix.com/#localbusiness",
@@ -188,8 +195,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         addressRegion: "Jawa Barat",
         addressCountry: "ID",
       },
-      description:
-        "Penyedia beton ready mix, precast, dan jasa konstruksi di wilayah Jabodetabek dan sekitarnya.",
+      description: "Penyedia beton ready mix, precast, dan jasa konstruksi profesional wilayah Jabodetabek dan sekitarnya.",
       areaServed,
       sameAs: [
         "https://www.facebook.com/betonjayareadymix",
@@ -209,13 +215,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       provider: { "@id": business["@id"] },
       brand: { "@type": "Brand", name: brandName },
       ...(tableOffers.length
-        ? {
-            offers: {
-              "@type": "OfferCatalog",
-              name: "Katalog Harga",
-              itemListElement: tableOffers,
-            },
-          }
+        ? { offers: { "@type": "OfferCatalog", name: "Daftar Harga Produk", itemListElement: tableOffers } }
         : priceData && {
             offers: {
               "@type": hasCatalog ? "OfferCatalog" : "AggregateOffer",
@@ -243,6 +243,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       ...(internalLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } }),
     };
 
+    // === 13️⃣ FINAL GRAPH ===
     const graph = [webpage, business, mainEntity];
     if (internalLinks.length)
       graph.push({
@@ -253,13 +254,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         itemListElement: internalLinks,
       });
 
+    // === 14️⃣ OUTPUT JSON-LD ===
     const schemaData = { "@context": "https://schema.org", "@graph": graph };
     document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData, null, 2);
 
-    console.log(
-      `[AutoSchema v4.39 ✅] Type: ${JSON.stringify(mainType)} | Brand: ${brandName} | Harga: ${
-        priceData ? "✅" : "❌"
-      } | Table: ${tableOffers.length} | Links: ${internalLinks.length} | Area: ${areaServed.length}`
-    );
+    console.log(`[AutoSchema v4.41 ✅] Type: ${JSON.stringify(mainType)} | Brand: ${brandName} | Harga: ${priceData ? "✅" : "❌"} | Table: ${tableOffers.length} | Links: ${internalLinks.length} | Area: ${areaServed.length}`);
   }, 500);
 });
