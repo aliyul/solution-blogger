@@ -1,12 +1,13 @@
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.42 🚀] Start detection (Real Price + Unique Items + OfferCatalog + Smart Image + Dual-Purpose Headings)");
+    console.log("[AutoSchema Hybrid v4.43 🚀] Start detection (Optimized Product + Service + OfferCatalog)");
 
     // === 1️⃣ META DASAR ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
     const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
     const cleanUrl = (ogUrl || canonical || location.href).replace(/[?&]m=1/, "");
-    const title = document.querySelector("h1")?.innerText?.trim() || document.title.trim();
+    const titleRaw = document.querySelector("h1")?.innerText?.trim() || document.title.trim();
+    const title = titleRaw.replace(/\s{2,}/g," ").trim().substring(0,120);
     const metaDesc = document.querySelector('meta[name="description"]')?.content?.trim();
     const desc =
       metaDesc ||
@@ -18,7 +19,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     // === 2️⃣ SMART IMAGE DETECTION ===
     let image = document.querySelector('meta[property="og:image"]')?.content?.trim();
     if (!image) {
-      const imgEl = document.querySelector("article img, main img, .post-body img, img");
+      const imgEl = document.querySelector("table img, article img, main img, .post-body img, img");
       if (imgEl && imgEl.src && !imgEl.src.includes("favicon")) image = imgEl.src;
     }
     if (!image) {
@@ -125,13 +126,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     const seenItems = new Set();
     let tableOffers = [];
 
-    function addOffer(name, uniqueKey, price) {
+    function addOffer(name, uniqueKey, price, desc="") {
       const key = name + "|" + uniqueKey + "|" + price;
       if (!seenItems.has(key)) {
         seenItems.add(key);
         tableOffers.push({
           "@type": "Offer",
-          itemOffered: { "@type": "Product", name },
+          itemOffered: { "@type": "Product", name, ...(desc ? { description: desc } : {}) },
           price,
           priceCurrency: "IDR",
           availability: "https://schema.org/InStock",
@@ -139,28 +140,37 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    // Parser tabel: nama = kolom pertama + kolom unik sebagai pembeda
+    function getTitleFromUrl() {
+      let path = location.pathname.replace(/^\/|\/$/g,"").replace(/-\d{4}$/, "").replace(/-\d{1,2}$/, "");
+      path = path.split("/").pop().split("-").join(" ");
+      return decodeURIComponent(path);
+    }
+
     const allTables = Array.from(document.querySelectorAll("table"));
     allTables.forEach(table => {
       const rows = Array.from(table.querySelectorAll("tr"));
       rows.forEach(row => {
         const cells = Array.from(row.querySelectorAll("td, th")).slice(0, 6);
         if (cells.length >= 2) {
-          const name = cells[0].innerText.trim();
-          const uniqueKey = cells.slice(1).map(c => c.innerText.trim()).join(" "); // kolom lain sebagai pembeda
+          let col1 = cells[0].innerText.trim();
+          const isInvalidName = !col1 || /^\d+$/.test(col1) || /^\s*[-–—]\s*$/.test(col1);
+          const name = isInvalidName ? `${getTitleFromUrl()} ${col1 || ""}`.trim() : col1;
+          const uniqueKey = cells.slice(1).map(c => c.innerText.trim()).join(" ");
+          const desc = cells[1]?.innerText.trim() || "";
+
           let price = null;
           for (let i = 0; i < cells.length; i++) {
             const match = cells[i].innerText.match(/Rp\s*([\d.,]+)/);
             if (match) { price = parseInt(match[1].replace(/[.\s,]/g,""),10); break; }
           }
           if (name && price && price >= 10000 && price <= 500000000) {
-            addOffer(name, uniqueKey, price);
+            addOffer(name, uniqueKey, price, desc);
           }
         }
       });
     });
 
-    // Parser teks untuk harga di luar tabel tetap optional
+    // Parser teks untuk harga di luar tabel tetap opsional
     const bodyText = document.body.innerText.split("\n");
     bodyText.forEach(line => {
       const match = line.match(/Rp\s*([\d.,]{4,})/);
@@ -169,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         if (price >= 10000 && price <= 500000000) {
           const words = line.split(/\s+/);
           const priceIndex = words.findIndex(w => w.includes(match[1].replace(/[.,]/g,"")));
-          const name = words.slice(Math.max(0, priceIndex-3), priceIndex).join(" ").trim() || "Produk";
+          const name = words.slice(Math.max(0, priceIndex-3), priceIndex).join(" ").trim() || getTitleFromUrl();
           addOffer(name, "", price);
         }
       }
@@ -214,7 +224,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       areaServed,
       provider: { "@id": business["@id"] },
       brand: { "@type": "Brand", name: brandName },
-      ...(tableOffers.length ? { offers: { "@type": "OfferCatalog", name: "Daftar Harga Produk", itemListElement: tableOffers } } : null)
+      ...(tableOffers.length ? { offers: tableOffers } : null)
     };
 
     // === 12️⃣ WEBPAGE OUTPUT ===
@@ -244,6 +254,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     const schemaData = { "@context":"https://schema.org", "@graph":graph };
     document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData, null, 2);
 
-    console.log(`[AutoSchema v4.42 ✅] Type: ${JSON.stringify(mainType)} | Brand: ${brandName} | Items: ${tableOffers.length} | Links: ${internalLinks.length} | Area: ${areaServed.length}`);
+    console.log(`[AutoSchema v4.43 ✅] Type: ${JSON.stringify(mainType)} | Brand: ${brandName} | Items: ${tableOffers.length} | Links: ${internalLinks.length} | Area: ${areaServed.length}`);
   }, 500);
 });
