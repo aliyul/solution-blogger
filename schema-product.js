@@ -1,7 +1,6 @@
-// ⚡ AUTO SCHEMA PRODUK v4.33 FULL UPDATE — Smart Local SEO + Wikipedia Cache + URL Adaptive Place Detection
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Product v4.33] 🚀 Start full detection");
+    console.log("[AutoSchema Product v4.34] 🚀 Start full detection");
 
     // === 1️⃣ META DASAR HALAMAN ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -11,23 +10,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     const metaDesc = document.querySelector('meta[name="description"]')?.content?.trim();
     const desc = metaDesc || Array.from(document.querySelectorAll("p")).map(p => p.innerText.trim()).join(" ").substring(0, 300);
     const image = document.querySelector('meta[property="og:image"]')?.content ||
-                  document.querySelector("article img, main img, .post-body img, img")?.src ||
-                  "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+      document.querySelector("article img, main img, .post-body img, img")?.src ||
+      "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
     // === 2️⃣ AREA DASAR ===
     const areaProv = {
-      "Kabupaten Bogor": "Jawa Barat",
-      "Kota Bogor": "Jawa Barat",
-      "Kota Depok": "Jawa Barat",
-      "Kabupaten Bekasi": "Jawa Barat",
-      "Kota Bekasi": "Jawa Barat",
-      "Kabupaten Karawang": "Jawa Barat",
-      "Kabupaten Serang": "Banten",
-      "Kota Serang": "Banten",
-      "Kota Cilegon": "Banten",
-      "Kabupaten Tangerang": "Banten",
-      "Kota Tangerang": "Banten",
-      "Kota Tangerang Selatan": "Banten",
+      "Kabupaten Bogor": "Jawa Barat", "Kota Bogor": "Jawa Barat", "Kota Depok": "Jawa Barat",
+      "Kabupaten Bekasi": "Jawa Barat", "Kota Bekasi": "Jawa Barat", "Kabupaten Karawang": "Jawa Barat",
+      "Kabupaten Serang": "Banten", "Kota Serang": "Banten", "Kota Cilegon": "Banten",
+      "Kabupaten Tangerang": "Banten", "Kota Tangerang": "Banten", "Kota Tangerang Selatan": "Banten",
       "DKI Jakarta": "DKI Jakarta"
     };
     const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type": "Place", "name": a }));
@@ -43,10 +34,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       const items = await fetchFromWikipedia(areaName, type);
       if (items?.length) {
-        localStorage.setItem(cacheKey, JSON.stringify({
-          expire: Date.now() + 1000 * 60 * 60 * 24 * 30, // 30 hari
-          items
-        }));
+        localStorage.setItem(cacheKey, JSON.stringify({ expire: Date.now() + 1000 * 60 * 60 * 24 * 30, items }));
       }
       return items;
     }
@@ -71,9 +59,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               .slice(0, 150);
             if (items.length > 3) return items.map(n => ({ "@type": "Place", "name": n }));
           }
-        } catch (e) {
-          console.warn("❌ Wikipedia fetch error for", areaName, e);
-        }
+        } catch (e) { console.warn("❌ Wikipedia fetch error for", areaName, e); }
       }
       return null;
     }
@@ -101,32 +87,42 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     const areaServed = await detectArea(cleanUrl, title);
 
-    // === 5️⃣ DETEKSI PRODUK, BRAND & HARGA ===
+    // === 5️⃣ DETEKSI PRODUK & HARGA DARI HEADING ===
+    const productList = [];
+    const headings = Array.from(document.querySelectorAll("h2, h3, h4")).filter(h => /harga|produk|ready mix|beton|buis|culvert|u ditch|panel/i.test(h.innerText));
+    headings.forEach(h => {
+      const name = h.innerText.trim();
+      const nextText = h.nextElementSibling?.innerText || "";
+      const priceMatch = (name + " " + nextText).match(/(\d[\d.,]+)\s?(?:rb|ribu|jt|juta|IDR|Rp)/i);
+      let price = null;
+      if (priceMatch) {
+        const numeric = priceMatch[1].replace(/[^\d]/g, "");
+        price = parseInt(numeric);
+      }
+      productList.push({
+        "@type": "Product",
+        name,
+        description: nextText.substring(0, 150),
+        areaServed,
+        ...(price ? {
+          offers: {
+            "@type": "Offer",
+            priceCurrency: "IDR",
+            price: price,
+            availability: "https://schema.org/InStock",
+            url: cleanUrl
+          }
+        } : {})
+      });
+    });
+
+    // === 6️⃣ BRAND DETECTION ===
     const text = document.body.innerText.toLowerCase();
-    const isProduct = /readymix|beton|precast|buis|pipa|u ditch|box culvert|paving|panel beton/i.test(text);
     let brandName = "Beton Jaya Readymix";
     const brandMatch = text.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|solusi bangun/i);
     if (brandMatch) brandName = brandMatch[0].replace(/\b\w/g, l => l.toUpperCase());
 
-    let price = null;
-    const priceElem = document.querySelector('.harga, .price, .harga-produk, [id*="harga"]');
-    if (priceElem) {
-      const priceText = priceElem.innerText.replace(/\D/g, "");
-      const parsed = parseInt(priceText);
-      if (!isNaN(parsed)) price = parsed;
-    }
-
-    // === 6️⃣ INTERNAL LINKS ===
-    const internalLinks = Array.from(document.querySelectorAll('article a, main a, .post-body a'))
-      .filter(a => a.href && a.href.includes(location.hostname) && a.href !== location.href)
-      .map((a,i) => ({
-        "@type": "ListItem",
-        position: i+1,
-        url: a.href,
-        name: a.innerText.trim()
-      }));
-
-    // === 7️⃣ LOCAL BUSINESS & MAIN ENTITY ===
+    // === 7️⃣ LOCAL BUSINESS ===
     const business = {
       "@type": ["LocalBusiness", "GeneralContractor"],
       "@id": "https://www.betonjayareadymix.com/#localbusiness",
@@ -139,65 +135,35 @@ document.addEventListener("DOMContentLoaded", async function () {
         addressRegion: "Jawa Barat",
         addressCountry: "ID"
       },
-      description: "Penyedia beton ready mix, precast, dan jasa konstruksi di wilayah Jabodetabek dan sekitarnya.",
       areaServed,
+      logo: image,
+      description: "Penyedia beton ready mix, precast, dan jasa konstruksi di wilayah Jabodetabek dan sekitarnya.",
       sameAs: [
         "https://www.facebook.com/betonjayareadymix",
         "https://www.instagram.com/betonjayareadymix"
-      ],
-      logo: image
+      ]
     };
 
-    const mainEntity = {
-      "@type": "Product",
-      "@id": cleanUrl + "#product",
-      name: title,
-      description: desc,
-      image,
-      brand: { "@type": "Brand", "name": brandName },
-      areaServed,
-      category: "Produk Material & Konstruksi",
-      offers: price ? {
-        "@type": "AggregateOffer",
-        priceCurrency: "IDR",
+    // === 8️⃣ GRAPH SETUP ===
+    const graph = [
+      {
+        "@type": "WebPage",
+        "@id": cleanUrl + "#webpage",
         url: cleanUrl,
-        availability: "https://schema.org/InStock",
-        lowPrice: price,
-        highPrice: price,
-        offerCount: 1
-      } : undefined,
-      provider: { "@id": business["@id"] }
-    };
-
-    // === 8️⃣ WEBPAGE & ITEMLIST ===
-    const webpage = {
-      "@type": "WebPage",
-      "@id": cleanUrl + "#webpage",
-      url: cleanUrl,
-      name: title,
-      description: desc,
-      image,
-      mainEntity: { "@id": mainEntity["@id"] },
-      publisher: { "@id": business["@id"] },
-      ...(internalLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } })
-    };
-
-    const graph = [webpage, business, mainEntity];
-
-    if (internalLinks.length) {
-      graph.push({
-        "@type": "ItemList",
-        "@id": cleanUrl + "#daftar-internal-link",
-        name: "Daftar Halaman Terkait",
-        itemListOrder: "http://schema.org/ItemListOrderAscending",
-        numberOfItems: internalLinks.length,
-        itemListElement: internalLinks
-      });
-    }
+        name: title,
+        description: desc,
+        mainEntity: productList.length ? productList.map((p, i) => ({ "@id": cleanUrl + "#product-" + (i + 1) })) : undefined,
+        publisher: { "@id": business["@id"] }
+      },
+      business,
+      ...productList.map((p, i) => ({ ...p, "@id": cleanUrl + "#product-" + (i + 1), brand: { "@type": "Brand", name: brandName } }))
+    ];
 
     // === 9️⃣ OUTPUT JSON-LD ===
     const schemaData = { "@context": "https://schema.org", "@graph": graph };
-    document.querySelector("#auto-schema-product").textContent = JSON.stringify(schemaData,null,2);
-    console.log(`[AutoSchema Product v4.33] ✅ Injected schema | Area: ${areaServed.length} | Links: ${internalLinks.length}`);
+    const el = document.querySelector("#auto-schema-product") || document.body.appendChild(Object.assign(document.createElement("script"), { id: "auto-schema-product", type: "application/ld+json" }));
+    el.textContent = JSON.stringify(schemaData, null, 2);
+
+    console.log(`[AutoSchema Product v4.34] ✅ Injected schema | Produk: ${productList.length} | Area: ${areaServed.length}`);
   }, 500);
 });
