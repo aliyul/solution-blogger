@@ -1,7 +1,7 @@
-// ⚡ AUTO SCHEMA SERVICE v4.31 FULL — Area Wikipedia + Cache + Harga Real + Product Optional + Fix ItemList Unik
+// ⚡ AUTO SCHEMA SERVICE v4.32 FULL — Area Wikipedia + Cache + Harga Real Aman + Product Optional + Fix ItemList Unik
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[Schema Service v4.31 🚀] Auto generator dijalankan");
+    console.log("[Schema Service v4.32 🚀] Auto generator dijalankan");
 
     // === 1️⃣ INFO DASAR HALAMAN ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -143,22 +143,27 @@ document.addEventListener("DOMContentLoaded", async function () {
         : ["Jasa Konstruksi"];
     };
 
-    // 🔹 Hanya deteksi harga yang realistis
+    // 🔹 DETEKSI HARGA REAL AMAN
     const detectPrices = () => {
       const text = document.body.innerText;
-      const regex = /Rp\s*([\d.,]+)/g;
-      const vals = [...text.matchAll(regex)]
-        .map((m) => parseInt(m[1].replace(/[.\s]/g, ""), 10))
-        .filter((v) => v >= 1000 && v <= 500000000); // filter nominal real (Rp 1 ribu - 500 juta)
-      if (vals.length < 1) return null;
+      const matches = [...text.matchAll(/Rp\s*([\d.,]{4,})/g)]; // hanya ambil yang ada "Rp" dan >=4 digit
+      if (!matches.length) return null;
 
-      // buang nilai yang terlalu sering muncul (angka umum, bukan harga)
-      const counts = {};
-      vals.forEach((v) => (counts[v] = (counts[v] || 0) + 1));
-      const realVals = vals.filter((v) => counts[v] < 5);
+      const vals = matches
+        .map((m) => parseInt(m[1].replace(/[.\s,]/g, ""), 10))
+        .filter((v) => v >= 10000 && v <= 500000000); // minimal Rp10 ribu, maksimal Rp500 juta
 
-      if (!realVals.length) return null;
-      return { lowPrice: Math.min(...realVals), highPrice: Math.max(...realVals), offerCount: realVals.length };
+      if (!vals.length) return null;
+
+      const low = Math.min(...vals);
+      const high = Math.max(...vals);
+
+      return {
+        lowPrice: low,
+        highPrice: high,
+        offerCount: vals.length,
+        priceCurrency: "IDR",
+      };
     };
 
     const detectInternalLinks = () => {
@@ -204,7 +209,7 @@ document.addEventListener("DOMContentLoaded", async function () {
               highPrice: priceData.highPrice,
               offerCount: priceData.offerCount,
               availability: "https://schema.org/InStock",
-              priceValidUntil: new Date().toISOString().split("T")[0],
+              priceValidUntil: new Date(Date.now() + 86400000 * 90).toISOString().split("T")[0],
               url: PAGE.url,
             },
           }),
@@ -258,7 +263,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             highPrice: priceData.highPrice,
             offerCount: priceData.offerCount,
             availability: "https://schema.org/InStock",
-            priceValidUntil: new Date().toISOString().split("T")[0],
+            priceValidUntil: new Date(Date.now() + 86400000 * 90).toISOString().split("T")[0],
             url: PAGE.url,
           },
         }),
@@ -282,7 +287,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const schema = { "@context": "https://schema.org", "@graph": graph };
     document.querySelector("#auto-schema-service").textContent = JSON.stringify(schema, null, 2);
     console.log(
-      `[Schema Service v4.31 ✅] Injected | ${serviceTypes.join(", ")} | Product: ${
+      `[Schema Service v4.32 ✅] Injected | ${serviceTypes.join(", ")} | Product: ${
         productData ? "Ya" : "Tidak"
       } | Harga: ${priceData ? "✅ Real" : "❌ None"} | Area: ${areaServed.length} | Links: ${
         internalLinks.length
