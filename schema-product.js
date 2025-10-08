@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", async function () { 
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.45 🚀] Start detection (Product + OfferCatalog Updated)");
+    console.log("[AutoSchema Hybrid v4.46 🚀] Start detection (Product + AggregateOffer)");
 
     // === 1️⃣ META DASAR ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -49,7 +49,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     const seenItems = new Set();
     const tableOffers = [];
     function addOffer(name, key, price, desc="") {
-      // selalu gabungkan productName + nama unik (kolom pertama atau teks)
       let finalName = productName;
       if(name && name.toLowerCase() !== productName.toLowerCase()) finalName += " " + name;
       const k = finalName + "|" + key + "|" + price;
@@ -65,7 +64,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    // === Parsing tabel ===
     Array.from(document.querySelectorAll("table")).forEach(table=>{
       Array.from(table.querySelectorAll("tr")).forEach(row=>{
         const cells = Array.from(row.querySelectorAll("td, th")).slice(0,6);
@@ -82,7 +80,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       });
     });
 
-    // === Parsing teks di luar table ===
     document.body.innerText.split("\n").forEach(line=>{
       const m = line.match(/Rp\s*([\d.,]{4,})/);
       if(m){
@@ -96,9 +93,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
       }
     });
-
-    // === Tentukan tipe mainEntity ===
-    let mainType = tableOffers.length >= 3 ? "OfferCatalog" : "Product";
 
     // === 7️⃣ INTERNAL LINK ===
     const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a"))
@@ -122,16 +116,25 @@ document.addEventListener("DOMContentLoaded", async function () {
       logo:"https://www.betonjayareadymix.com/favicon.ico"
     };
 
-    // === 9️⃣ MAIN ENTITY PRODUCT ===
+    // === 9️⃣ MAIN ENTITY PRODUCT DENGAN AGGREGATEOFFER ===
     const mainEntity = {
-      "@type":mainType,
+      "@type":"Product",
       "@id": cleanUrl+"#mainentity",
       name: productName,
       description: desc,
       image,
       brand: { "@type":"Brand", name: brandName },
       provider: { "@id": business["@id"] },
-      ...(tableOffers.length ? { offers: tableOffers } : null)
+      ...(tableOffers.length ? { 
+        offers: {
+          "@type":"AggregateOffer",
+          lowPrice: Math.min(...tableOffers.map(o=>o.price)),
+          highPrice: Math.max(...tableOffers.map(o=>o.price)),
+          offerCount: tableOffers.length,
+          priceCurrency:"IDR",
+          offers: tableOffers
+        }
+      } : null)
     };
 
     // === 1️⃣0️⃣ WEBPAGE ===
@@ -166,6 +169,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     scriptEl.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
 
-    console.log(`[AutoSchema v4.45 ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length}`);
+    console.log(`[AutoSchema v4.46 ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length}`);
   }, 500);
 });
