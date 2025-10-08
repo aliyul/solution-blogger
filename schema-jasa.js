@@ -1,7 +1,7 @@
-// ⚡ AUTO SCHEMA SERVICE v4.30 FULL — Area Wikipedia + Cache + Harga + Product Optional + Fix ItemList Unik
+// ⚡ AUTO SCHEMA SERVICE v4.31 FULL — Area Wikipedia + Cache + Harga Real + Product Optional + Fix ItemList Unik
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[Schema Service v4.30 🚀] Auto generator dijalankan");
+    console.log("[Schema Service v4.31 🚀] Auto generator dijalankan");
 
     // === 1️⃣ INFO DASAR HALAMAN ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -143,14 +143,22 @@ document.addEventListener("DOMContentLoaded", async function () {
         : ["Jasa Konstruksi"];
     };
 
+    // 🔹 Hanya deteksi harga yang realistis
     const detectPrices = () => {
       const text = document.body.innerText;
       const regex = /Rp\s*([\d.,]+)/g;
       const vals = [...text.matchAll(regex)]
         .map((m) => parseInt(m[1].replace(/[.\s]/g, ""), 10))
-        .filter(Boolean);
-      if (!vals.length) return null;
-      return { lowPrice: Math.min(...vals), highPrice: Math.max(...vals), offerCount: vals.length };
+        .filter((v) => v >= 1000 && v <= 500000000); // filter nominal real (Rp 1 ribu - 500 juta)
+      if (vals.length < 1) return null;
+
+      // buang nilai yang terlalu sering muncul (angka umum, bukan harga)
+      const counts = {};
+      vals.forEach((v) => (counts[v] = (counts[v] || 0) + 1));
+      const realVals = vals.filter((v) => counts[v] < 5);
+
+      if (!realVals.length) return null;
+      return { lowPrice: Math.min(...realVals), highPrice: Math.max(...realVals), offerCount: realVals.length };
     };
 
     const detectInternalLinks = () => {
@@ -177,7 +185,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const priceData = detectPrices();
     const internalLinks = detectInternalLinks();
 
-    // === 5.1️⃣ DETEKSI PRODUK OPSIONAL ===
+    // === 5.1️⃣ PRODUK OPSIONAL ===
     const detectProduct = () => {
       const text = (PAGE.title + " " + PAGE.description).toLowerCase();
       if (text.includes("jual ") || text.includes("produk ") || text.includes("harga ")) {
@@ -206,7 +214,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     };
     const productData = detectProduct();
 
-    // === 6️⃣ BANGUN GRAPH ===
+    // === 6️⃣ GRAPH ===
     const graph = [
       {
         "@type": ["LocalBusiness", "GeneralContractor"],
@@ -270,13 +278,15 @@ document.addEventListener("DOMContentLoaded", async function () {
       });
     }
 
-    // === 7️⃣ OUTPUT SCHEMA ===
+    // === 7️⃣ OUTPUT ===
     const schema = { "@context": "https://schema.org", "@graph": graph };
     document.querySelector("#auto-schema-service").textContent = JSON.stringify(schema, null, 2);
     console.log(
-      `[Schema Service v4.30 ✅] Injected | ${serviceTypes.join(", ")} | Product: ${
+      `[Schema Service v4.31 ✅] Injected | ${serviceTypes.join(", ")} | Product: ${
         productData ? "Ya" : "Tidak"
-      } | Area: ${areaServed.length} | Links: ${internalLinks.length}`
+      } | Harga: ${priceData ? "✅ Real" : "❌ None"} | Area: ${areaServed.length} | Links: ${
+        internalLinks.length
+      }`
     );
   }, 500);
 });
