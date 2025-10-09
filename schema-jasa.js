@@ -58,98 +58,80 @@ document.addEventListener("DOMContentLoaded", async function () {
       async function detectArea(url, title = "") { return defaultAreaServed; }
       const areaServed = await detectArea(PAGE.url, PAGE.title);
 
-      // === 3️⃣ DETEKSI SERVICE ===
-      // === 3️⃣ DETEKSI SERVICE (versi GPT enhanced) ===
-      // ⚡ detectServiceType v4.7+ — Smart Cleaner + Regional Filter
+           // === 3️⃣ DETEKSI SERVICE TYPE — DIBERSIHKAN DARI NAMA DAERAH ===
       function detectServiceType() {
-        // 🔹 1. Ambil sumber utama: H1 > Title > paragraf pertama > URL
         let raw =
           document.querySelector("h1")?.textContent?.trim() ||
           document.title.trim() ||
           document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 120) ||
           location.pathname.split("/").pop().replace(/[-_]/g, " ");
-      
+
         if (!raw) return ["Jasa Konstruksi"];
-      
-        // 🔹 2. Daftar kata umum & daerah untuk dibersihkan
+
         const stopwords = [
-          "harga", "murah", "terdekat", "update", "promo", "diskon",
-          "202[0-9]", "terbaru", "per hari", "per jam", "kubik",
-          "m3", "standar", "minimix", "supermix", "express"
+          "harga","murah","terdekat","update","promo","diskon",
+          "202[0-9]","terbaru","per hari","per jam","kubik",
+          "m3","standar","minimix","supermix","express"
         ];
-      
+
         const daerahKataKunci = [
-          "jakarta", "bogor", "depok", "bekasi", "tangerang", "banten",
-          "tangerang selatan", "karawang", "purwakarta", "subang", "cikampek",
-          "bandung", "sumedang", "cimahi", "garut", "tasikmalaya", "cianjur",
-          "sukabumi", "serang", "cilegon", "indonesia", "jawa barat",
-          "jawa tengah", "jawa timur", "bali", "timur", "barat", "utara", "selatan"
+          "jakarta","bogor","depok","bekasi","tangerang","banten",
+          "tangerang selatan","karawang","purwakarta","subang","cikampek",
+          "bandung","sumedang","cimahi","garut","tasikmalaya","cianjur",
+          "sukabumi","serang","cilegon","indonesia","jawa barat",
+          "jawa tengah","jawa timur","bali","timur","barat","utara","selatan"
         ];
-      
-        // 🔹 3. Bersihkan teks mentah dari kata umum, frasa daerah, dan karakter tidak penting
+
         raw = raw
           .toLowerCase()
-          // hapus stopwords umum
           .replace(new RegExp(`\\b(${stopwords.join("|")})\\b`, "gi"), "")
-          // hapus kombinasi daerah lengkap (kota, kabupaten, provinsi, arah mata angin)
           .replace(new RegExp(`\\b(kota|kabupaten|provinsi)?\\s*(${daerahKataKunci.join("|")})(\\s*(utara|selatan|barat|timur))?\\b`, "gi"), "")
-          // bersihkan tanda baca
           .replace(/[^\w\s]/g, " ")
-          // rapikan spasi
           .replace(/\s+/g, " ")
           .trim();
-      
-        // 🔹 4. Daftar kata jasa & pekerjaan yang umum
+
         const jasaKataKunci = [
-          "sewa", "rental", "jasa", "layanan", "penjualan",
-          "pengiriman", "pemasangan", "pembuatan", "pengecoran",
-          "produksi", "pancang", "kontraktor", "renovasi", "pembersihan"
+          "sewa","rental","jasa","layanan","penjualan",
+          "pengiriman","pemasangan","pembuatan","pengecoran",
+          "produksi","pancang","kontraktor","renovasi","pembersihan"
         ];
-      
+
         const alatDanPekerjaan = [
-          "excavator", "bulldozer", "crane", "vibro roller", "tandem roller",
-          "wales", "bor pile", "drop hammer", "pancang", "tiang pancang",
-          "beton cor", "ready mix", "precast", "buis beton", "u ditch",
-          "box culvert", "panel beton", "saluran", "gorong gorong",
-          "puing", "bekisting", "pondasi"
+          "excavator","bulldozer","crane","vibro roller","tandem roller",
+          "wales","bor pile","drop hammer","pancang","tiang pancang",
+          "beton cor","ready mix","precast","buis beton","u ditch",
+          "box culvert","panel beton","saluran","gorong gorong",
+          "puing","bekisting","pondasi"
         ];
-      
+
         let hasil = [];
-      
-        // 🔹 5. Deteksi kombinasi jasa + pekerjaan
+
         jasaKataKunci.forEach(jk => {
           alatDanPekerjaan.forEach(item => {
             if (raw.includes(jk) && raw.includes(item)) hasil.push(`${jk} ${item}`);
           });
         });
-      
-        // 🔹 6. Jika tidak ada kombinasi, deteksi tunggal
+
         if (hasil.length === 0) {
           const singleMatch = [...jasaKataKunci, ...alatDanPekerjaan].find(k => raw.includes(k));
           if (singleMatch) hasil.push(singleMatch);
         }
-      
-        // 🔹 7. Jika tetap kosong, fallback ke slug bersih
+
         if (hasil.length === 0) {
           let slug = location.pathname.split("/").pop().replace(/[-_]/g, " ").replace(".html", "");
           slug = slug.replace(new RegExp(`\\b(${daerahKataKunci.join("|")})\\b`, "gi"), "").trim();
           hasil.push(slug || "Jasa Konstruksi");
         }
-      
-        // 🔹 8. Format kapitalisasi tiap kata
+
         hasil = [...new Set(hasil)]
           .filter(h => h.length > 2)
-          .map(str =>
-            str
-              .trim()
-              .replace(/\b\w/g, l => l.toUpperCase())
-              .replace(/\s+/g, " ")
-          );
-      
+          .map(str => str.trim().replace(/\b\w/g, l => l.toUpperCase()).replace(/\s+/g, " "));
+
         return hasil.length ? hasil : ["Jasa Konstruksi"];
       }
-      
+
       let serviceTypes = detectServiceType();
+
 
 
 
