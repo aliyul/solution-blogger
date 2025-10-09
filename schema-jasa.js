@@ -1,4 +1,4 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.51 — Hybrid Service + Product | Beton Jaya Readymix */
+//* ⚡ AUTO SCHEMA UNIVERSAL v4.52 — Hybrid Service + Product | Beton Jaya Readymix */
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema Service v4.51 🚀] Auto generator dijalankan (Service + Product + Offers)");
+      console.log("[Schema Service v4.52 🚀] Auto generator dijalankan (Service + Product + Offers)");
 
       // === 1️⃣ INFO HALAMAN ===
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -79,7 +79,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         BuildingMaterial: ["beton","ready mix","precast","besi","pipa","semen","buis","gorong gorong","panel"],
         ConstructionEquipment: ["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"]
       };
-
       function detectProductCategory(name) {
         name = name.toLowerCase();
         for(const [category, keywords] of Object.entries(productKeywords)){
@@ -87,7 +86,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
         return "Other";
       }
-
       function detectProductSameAs(category) {
         switch(category){
           case "BuildingMaterial": return "https://id.wikipedia.org/wiki/Material_konstruksi";
@@ -95,24 +93,34 @@ document.addEventListener("DOMContentLoaded", async function () {
           default: return "https://id.wikipedia.org/wiki/Konstruksi";
         }
       }
-
       const productCategory = detectProductCategory(productName);
       const productSameAs = detectProductSameAs(productCategory);
 
-      // === 4b️⃣ DETEKSI EVERGREEN ===
+      // === 4b️⃣ DETEKSI EVERGREEN DENGAN LSI & PANJANG KONTEN ===
       function detectEvergreen(title, content) {
-        const timeKeywords = ["harga","promo","update","tarif","2025","2026"];
-        const evergreenKeywords = ["panduan","cara","tips","definisi","jenis","manfaat"];
+        const timeKeywords = ["harga","promo","update","tarif","2025","2026","diskon"];
+        const evergreenKeywords = ["panduan","cara","tips","definisi","jenis","manfaat","tutorial","strategi"];
         const text = (title + " " + content).toLowerCase();
+
+        // konten pendek kemungkinan bukan evergreen
+        if(content.split(/\s+/).length < 300) return false;
+
+        // jika ada kata waktu/price → bukan evergreen
         if(timeKeywords.some(k => text.includes(k))) return false;
-        if(evergreenKeywords.some(k => text.includes(k))) return true;
-        const hasPriceTable = document.querySelectorAll("table").length > 0;
-        if(hasPriceTable) return false;
-        return true;
+
+        // jika banyak kata LSI evergreen → evergreen
+        let evergreenCount = evergreenKeywords.reduce((acc,k) => acc + (text.includes(k)?1:0), 0);
+        if(evergreenCount >= 2) return true;
+
+        // jika ada tabel harga → bukan evergreen
+        if(document.querySelectorAll("table").length > 0) return false;
+
+        // fallback default
+        return evergreenCount >= 1;
       }
       const isEvergreen = detectEvergreen(PAGE.title, document.body.innerText);
 
-      // === 4c️⃣ PRICE VALID UNTIL ===
+      // === 4c️⃣ PRICE VALID UNTIL OTOMATIS ===
       const now = new Date();
       const priceValidUntil = new Date(now);
       if(isEvergreen){
@@ -243,7 +251,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       };
       graph.push(service);
 
-      // === 7️⃣ PRODUCT (format array offers) ===
       if(isProductPage){
         graph.push({
           "@type":"Product",
@@ -292,10 +299,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       el.textContent = JSON.stringify(schema, null, 2);
 
-      console.log(`[Schema v4.51 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")} | Evergreen: ${isEvergreen}`);
+      console.log(`[Schema v4.52 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")} | Evergreen: ${isEvergreen}`);
     }
 
-    // Run schema after DOM ready
     if(document.querySelector("h1") && document.querySelector(".post-body")){
       await initSchema();
     } else {
