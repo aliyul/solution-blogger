@@ -64,7 +64,7 @@ document.addEventListener("DOMContentLoaded", function() {
     console.log("Konten berubah → dateModified diupdate ke sekarang");
   }
 
-  // ================== DETEKSI TYPE KONTEN (Advanced) ==================
+  // ================== DETEKSI TYPE KONTEN ==================
   const nonEvergreenKeywords = ["harga","update","terbaru","berita","jadwal","event","promo","diskon","proyek","progres"];
   const evergreenKeywords = ["panduan","tutorial","tips","cara","definisi","pandangan","strategi","langkah","prosedur","panduan lengkap"];
 
@@ -72,24 +72,29 @@ document.addEventListener("DOMContentLoaded", function() {
   let score = 0;
   const contentLower = contentText.toLowerCase();
 
-  // Cek kata kunci non-evergreen
   nonEvergreenKeywords.forEach(kw => { if(contentLower.includes(kw)) score += 2; });
-
-  // Cek kata kunci evergreen
   evergreenKeywords.forEach(kw => { if(contentLower.includes(kw)) score -= 1; });
 
-  // Cek angka/dates
   const numberCount = (contentText.match(/\d{1,4}/g) || []).length;
   score += numberCount * 0.5;
 
-  // Panjang artikel & jumlah subheading
   const headers = contentEl ? Array.from(contentEl.querySelectorAll("h2,h3")).map(h => cleanText(h.textContent)).filter(Boolean) : [];
   const wordCount = getArticleWordCount(contentEl);
   if(wordCount > 500) score -= 1;
   if(headers.length >= 2) score -= 1;
 
-  // Tentukan typeKonten
   typeKonten = score >= 2 ? "NON-EVERGREEN" : "EVERGREEN";
+
+  // ================== SEMBUNYIKAN AUTHOR & TANGGAL JIKA EVERGREEN ==================
+  if (typeKonten === "EVERGREEN") {
+    console.log("Konten evergreen → sembunyikan author & tanggal");
+    const metaBlocks = document.querySelectorAll(
+      ".title-secondary, .post-author, .post-timestamp, .post-updated"
+    );
+    metaBlocks.forEach(el => {
+      el.style.display = "none";
+    });
+  }
 
   // ================== REKOMENDASI TANGGAL UPDATE ==================
   let nextUpdateDate = new Date(dateModified);
@@ -108,10 +113,9 @@ document.addEventListener("DOMContentLoaded", function() {
     lastUpdatedEl.textContent = !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString("id-ID", options) : "-";
   }
 
-  // ================== TAMBAHKAN TYPE KONTEN & TANGGAL REKOMENDASI ==================
+  // ================== TAMBAHKAN TYPE KONTEN ==================
   let typeEl = document.createElement("div");
- // typeEl.innerHTML = `Ini typeKonten: <b>${typeKonten}</b>, harus update paling lambat: <b>${nextUpdateStr}</b>`;
- typeEl.innerHTML = `<b>${typeKonten}</b>, UPDATE KONTEN paling lambat: <b>${nextUpdateStr}</b>`;
+  typeEl.innerHTML = `<b>${typeKonten}</b>, UPDATE KONTEN paling lambat: <b>${nextUpdateStr}</b>`;
   typeEl.setAttribute("data-nosnippet","true");
   typeEl.style.fontSize = "0.85em";
   typeEl.style.color = "#555";
@@ -128,46 +132,40 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
 
-  // ================== GENERATE ARTICLE SCHEMA ==================
+  // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
 
   const stopwords = ["dan","di","ke","dari","yang","untuk","pada","dengan","ini","itu","adalah","juga","atau","sebagai","dalam","oleh","karena","akan","sampai","tidak","dapat","lebih","kami","mereka","anda"];
 
-  // ================== Ambil konten ==================
   const content = document.querySelector(".post-body.entry-content") || document.querySelector("[id^='post-body-']") || document.querySelector(".post-body");
   const h1 = document.querySelector("h1")?.textContent.trim() || "";
-  const headers = content ? Array.from(content.querySelectorAll("h2,h3")).map(h => cleanText(h.textContent)).filter(Boolean) : [];
+  const headers2 = content ? Array.from(content.querySelectorAll("h2,h3")).map(h => cleanText(h.textContent)).filter(Boolean) : [];
   const paragraphs = content ? Array.from(content.querySelectorAll("p")).map(p => cleanText(p.textContent)) : [];
-  const allText = headers.concat(paragraphs).join(" ");
+  const allText = headers2.concat(paragraphs).join(" ");
 
-  // Hitung kata penting
   let words = allText.replace(/[^a-zA-Z0-9 ]/g,"").toLowerCase().split(/\s+/).filter(w => w.length > 3 && !stopwords.includes(w));
   let freq = {};
   words.forEach(w => freq[w] = (freq[w] || 0) + 1);
   const topWords = Object.keys(freq).sort((a,b) => freq[b]-freq[a]).slice(0,10);
 
-  // 🔑 AUTO keywords → H1 + 2 subheading utama + 2 topword
   let keywordsArr = [];
   if(h1) keywordsArr.push(h1);
-  if(headers.length) keywordsArr.push(...headers.slice(0,2));
+  if(headers2.length) keywordsArr.push(...headers2.slice(0,2));
   if(topWords.length) keywordsArr.push(...topWords.slice(0,2));
-  const keywordsStr = Array.from(new Set(keywordsArr)).slice(0,5).join(", "); // tanpa fallback
-  const articleSectionStr = headers.length ? headers.join(", ") : "Artikel";
+  const keywordsStr = Array.from(new Set(keywordsArr)).slice(0,5).join(", ");
+  const articleSectionStr = headers2.length ? headers2.join(", ") : "Artikel";
 
-  // ===== DETEKSI URL BERSIH DARI OG, CANONICAL, ATAU LOCATION =====
-    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
-    const canonicalLink = document.querySelector('link[rel="canonical"]')?.href?.trim();
-    const baseUrl = ogUrl || canonicalLink || location.href;
-    const url = baseUrl.replace(/[?&]m=1/, "");
-    
-    const title = document.title;
-    const descMeta = document.querySelector("meta[name='description']")?.content || "";
-    const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
-  // ====================== POST ======================
+  const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
+  const canonicalLink = document.querySelector('link[rel="canonical"]')?.href?.trim();
+  const baseUrl = ogUrl || canonicalLink || location.href;
+  const url = baseUrl.replace(/[?&]m=1/, "");
+  const title = document.title;
+  const descMeta = document.querySelector("meta[name='description']")?.content || "";
+  const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+
+  // ===== POST =====
   const schemaPost = document.getElementById("auto-schema");
   if(schemaPost){
-    console.log("Auto-schema ARTICLE POST JS running");
-
     const postSchema = {
       "@context": "https://schema.org",
       "@type": "Article",
@@ -177,9 +175,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "description": escapeJSON(descMeta),
       "image": [firstImg],
       "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
-      "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-        "logo": { "@type": "ImageObject", "url": firstImg }
-      },
+      "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix", "logo": { "@type": "ImageObject", "url": firstImg } },
       "datePublished": datePublished,
       "dateModified": dateModified,
       "articleSection": articleSectionStr,
@@ -188,19 +184,12 @@ document.addEventListener("DOMContentLoaded", function() {
       "articleBody": cleanText(content ? content.textContent : ""),
       "inLanguage": "id-ID"
     };
-
     schemaPost.textContent = JSON.stringify(postSchema, null, 2);
-    console.log("Post schema filled");
   }
 
-  // ==================== STATIC PAGE ==================
+  // ===== STATIC PAGE =====
   const schemaStatic = document.getElementById("auto-schema-static-page");
   if(schemaStatic){
-     console.log("Auto-schema ARTICLE PAGE JS running");
-    
-    /*const datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content);
-    const dateModified = convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content || datePublished);
-    */
     const staticSchema = {
       "@context": "https://schema.org",
       "@type": "Article",
@@ -210,9 +199,7 @@ document.addEventListener("DOMContentLoaded", function() {
       "description": escapeJSON(descMeta),
       "image": [firstImg],
       "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
-      "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix",
-        "logo": { "@type": "ImageObject", "url": firstImg }
-      },
+      "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix", "logo": { "@type": "ImageObject", "url": firstImg } },
       "datePublished": datePublished,
       "dateModified": dateModified,
       "articleSection": articleSectionStr,
@@ -221,15 +208,12 @@ document.addEventListener("DOMContentLoaded", function() {
       "articleBody": cleanText(content ? content.textContent : ""),
       "inLanguage": "id-ID"
     };
-
     schemaStatic.textContent = JSON.stringify(staticSchema, null, 2);
-    console.log("Static page schema filled");
   }
 
+  // ===== WEBPAGE =====
   const schemaWeb = document.getElementById("auto-schema-webpage");
   if (schemaWeb) {
-    console.log("Auto-schema WebPage JS running");
-    
     const webPageSchema = {
       "@context": "https://schema.org",
       "@type": "WebPage",
@@ -241,15 +225,11 @@ document.addEventListener("DOMContentLoaded", function() {
         "name": "Beton Jaya Readymix",
         "logo": {
           "@type": "ImageObject",
-          "url":
-            "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png"
+          "url": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png"
         }
       },
       "inLanguage": "id-ID"
     };
-
     schemaWeb.textContent = JSON.stringify(webPageSchema, null, 2);
-    console.log("WebPage schema filled");
   }
 });
-
