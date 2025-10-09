@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       const areaServed = await detectArea(PAGE.url, PAGE.title);
 
            // === 3️⃣ DETEKSI SERVICE TYPE — DIBERSIHKAN DARI NAMA DAERAH ===
-      function detectServiceType() {
+ function detectServiceType() {
   // 🔹 1. Ambil sumber utama: H1 > title > slug URL
   let raw =
     document.querySelector("h1")?.textContent?.trim() ||
