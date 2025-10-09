@@ -1,11 +1,11 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.48 — Hybrid Service + Product | Beton Jaya Readymix */ 
+//* ⚡ AUTO SCHEMA UNIVERSAL v4.50 — Hybrid Service + Product | Beton Jaya Readymix */
 (function () {
   let schemaInjected = false;
 
   async function initSchema() {
     if (schemaInjected) return;
     schemaInjected = true;
-    console.log("[Schema Service v4.48 🚀] Auto generator dijalankan (Service + Product + AggregateOffer)");
+    console.log("[Schema Service v4.50 🚀] Auto generator dijalankan (Service + Product + Offers)");
 
     // === 1️⃣ INFO HALAMAN ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -73,6 +73,31 @@
     }
     const productName = getProductNameFromUrl();
 
+    // === 4a️⃣ DETEKSI KATEGORI PRODUK OTOMATIS ===
+    const productKeywords = {
+      BuildingMaterial: ["beton","ready mix","precast","besi","pipa","semen","buis","gorong gorong","panel"],
+      ConstructionEquipment: ["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"]
+    };
+
+    function detectProductCategory(name) {
+      name = name.toLowerCase();
+      for(const [category, keywords] of Object.entries(productKeywords)){
+        if(keywords.some(k => name.includes(k))) return category;
+      }
+      return "Other";
+    }
+
+    function detectProductSameAs(category) {
+      switch(category){
+        case "BuildingMaterial": return "https://id.wikipedia.org/wiki/Material_konstruksi";
+        case "ConstructionEquipment": return "https://id.wikipedia.org/wiki/Alat_berat";
+        default: return "https://id.wikipedia.org/wiki/Konstruksi";
+      }
+    }
+
+    const productCategory = detectProductCategory(productName);
+    const productSameAs = detectProductSameAs(productCategory);
+
     const seenItems = new Set();
     const tableOffers = [];
     function addOffer(name, key, price, desc="") {
@@ -83,12 +108,16 @@
         seenItems.add(k);
         tableOffers.push({
           "@type":"Offer",
-          itemOffered:{ "@type":"Product", name: finalName, ...(desc ? { description: desc } : {}) },
-          price,
+          name: finalName,
+          url:"#",
           priceCurrency:"IDR",
-          availability:"https://schema.org/InStock"
+          price: price.toString(),
+          itemCondition:"https://schema.org/NewCondition",
+          availability:"https://schema.org/InStock",
+          priceValidUntil:"2025-12-31",
+          seller:{ "@id": PAGE.business.url + "#localbusiness" },
+          description: desc || undefined
         });
-        // Tambahkan serviceType otomatis dari tabel
         if(name && !serviceTypes.includes(name)) serviceTypes.push(name);
       }
     }
@@ -147,7 +176,7 @@
       logo: PAGE.image,
       sameAs: PAGE.business.sameAs,
       areaServed,
-      knowsAbout: ["Beton cor", "Ready mix", "Precast", "Sewa alat berat", "Jasa konstruksi"],
+      knowsAbout: ["Beton cor","Ready mix","Precast","Sewa alat berat","Jasa konstruksi"],
       ...(isProductPage && { hasOfferCatalog: { "@id": PAGE.url + "#product" } })
     };
     graph.push(localBiz);
@@ -174,13 +203,13 @@
       serviceType,
       areaServed,
       provider: { "@id": PAGE.business.url + "#localbusiness" },
-      brand: { "@type": "Brand", name: PAGE.business.name },
+      brand: { "@type":"Brand", name: PAGE.business.name },
       mainEntityOfPage: { "@id": PAGE.url + "#webpage" },
-      ...(isProductPage && { 
+      ...(isProductPage && {
         offers: {
           "@type":"AggregateOffer",
-          lowPrice: Math.min(...tableOffers.map(o=>o.price)),
-          highPrice: Math.max(...tableOffers.map(o=>o.price)),
+          lowPrice: Math.min(...tableOffers.map(o=>parseInt(o.price))),
+          highPrice: Math.max(...tableOffers.map(o=>parseInt(o.price))),
           offerCount: tableOffers.length,
           priceCurrency:"IDR",
           offers: tableOffers
@@ -190,22 +219,18 @@
     graph.push(service);
 
     if(isProductPage){
+      // === 7️⃣ PRODUCT ===
       graph.push({
-        "@type": "Product",
+        "@type":"Product",
         "@id": PAGE.url + "#product",
         name: productName,
         description: PAGE.description,
         image: PAGE.image,
-        brand: { "@type": "Brand", name: PAGE.business.name },
+        brand: { "@type":"Brand", name: PAGE.business.name },
+        category: productCategory,
+        sameAs: productSameAs,
         mainEntityOfPage: { "@id": PAGE.url + "#webpage" },
-        offers: {
-          "@type":"AggregateOffer",
-          lowPrice: Math.min(...tableOffers.map(o=>o.price)),
-          highPrice: Math.max(...tableOffers.map(o=>o.price)),
-          offerCount: tableOffers.length,
-          priceCurrency:"IDR",
-          offers: tableOffers
-        },
+        offers: tableOffers,
         areaServed,
         provider: { "@id": PAGE.business.url + "#localbusiness" },
       });
@@ -222,7 +247,7 @@
       });
     }
 
-    // === 7️⃣ OUTPUT ===
+    // === 8️⃣ OUTPUT ===
     const schema = { "@context": "https://schema.org", "@graph": graph };
     let el = document.querySelector("#auto-schema-service");
     if(!el){
@@ -233,7 +258,7 @@
     }
     el.textContent = JSON.stringify(schema, null, 2);
 
-    console.log(`[Schema v4.48 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")}`);
+    console.log(`[Schema v4.50 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")}`);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
