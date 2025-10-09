@@ -1,6 +1,6 @@
-document.addEventListener("DOMContentLoaded", async function () { 
+document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.46 🚀] Start detection (Product + AggregateOffer)");
+    console.log("[AutoSchema Hybrid v4.49 🚀] Start detection (Service + Product + Offers)");
 
     // === 1️⃣ META DASAR ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -56,10 +56,15 @@ document.addEventListener("DOMContentLoaded", async function () {
         seenItems.add(k);
         tableOffers.push({
           "@type":"Offer",
-          itemOffered:{ "@type":"Product", name: finalName, ...(desc ? { description: desc } : {}) },
-          price,
-          priceCurrency:"IDR",
-          availability:"https://schema.org/InStock"
+          "name": finalName,
+          "url":"#",
+          "priceCurrency":"IDR",
+          "price": price.toString(),
+          "itemCondition":"https://schema.org/NewCondition",
+          "availability":"https://schema.org/InStock",
+          "priceValidUntil":"2025-12-31",
+          "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
+          "description": desc || undefined
         });
       }
     }
@@ -116,28 +121,28 @@ document.addEventListener("DOMContentLoaded", async function () {
       logo:"https://www.betonjayareadymix.com/favicon.ico"
     };
 
-    // === 9️⃣ MAIN ENTITY PRODUCT DENGAN AGGREGATEOFFER ===
+    // === 9️⃣ CATEGORY & SAMEAS DARI DETEKSI TOPIK PRODUK ===
+    let productCategory = "Product";
+    let wikipediaLink = "https://id.wikipedia.org/wiki/Produk";
+    if(/ready\s*mix|beton|precast/i.test(productName)) { productCategory = "BuildingMaterial"; wikipediaLink="https://id.wikipedia.org/wiki/Beton"; }
+    else if(/sewa|rental|alat berat/i.test(productName)) { productCategory = "ConstructionEquipment"; wikipediaLink="https://id.wikipedia.org/wiki/Alat_berat"; }
+
+    // === 1️⃣0️⃣ MAIN ENTITY PRODUCT ===
     const mainEntity = {
       "@type":"Product",
-      "@id": cleanUrl+"#mainentity",
+      "@id": cleanUrl+"#product",
+      "mainEntityOfPage": { "@type":"WebPage","@id": cleanUrl+"#webpage" },
       name: productName,
+      image: [ image ],
       description: desc,
-      image,
       brand: { "@type":"Brand", name: brandName },
+      category: productCategory,
+      sameAs: wikipediaLink,
       provider: { "@id": business["@id"] },
-      ...(tableOffers.length ? { 
-        offers: {
-          "@type":"AggregateOffer",
-          lowPrice: Math.min(...tableOffers.map(o=>o.price)),
-          highPrice: Math.max(...tableOffers.map(o=>o.price)),
-          offerCount: tableOffers.length,
-          priceCurrency:"IDR",
-          offers: tableOffers
-        }
-      } : null)
+      offers: tableOffers
     };
 
-    // === 1️⃣0️⃣ WEBPAGE ===
+    // === 1️⃣1️⃣ WEBPAGE ===
     const webpage = {
       "@type":"WebPage",
       "@id": cleanUrl+"#webpage",
@@ -159,7 +164,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       itemListElement: internalLinks
     });
 
-    // === 1️⃣1️⃣ OUTPUT JSON-LD ===
+    // === 1️⃣2️⃣ OUTPUT JSON-LD ===
     let scriptEl = document.querySelector("#auto-schema-product");
     if(!scriptEl){
       scriptEl = document.createElement("script");
@@ -169,6 +174,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     scriptEl.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
 
-    console.log(`[AutoSchema v4.46 ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length}`);
+    console.log(`[AutoSchema v4.49 ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length}`);
   }, 500);
 });
