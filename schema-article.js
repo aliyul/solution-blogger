@@ -129,7 +129,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // ================== GENERATE ARTICLE SCHEMA ==================
- console.log("Auto-schema ARTICLE SCHEMA JS running");
+  console.log("Auto-schema ARTICLE SCHEMA JS running");
 
   const stopwords = ["dan","di","ke","dari","yang","untuk","pada","dengan","ini","itu","adalah","juga","atau","sebagai","dalam","oleh","karena","akan","sampai","tidak","dapat","lebih","kami","mereka","anda"];
 
@@ -154,15 +154,19 @@ document.addEventListener("DOMContentLoaded", function() {
   const keywordsStr = Array.from(new Set(keywordsArr)).slice(0,5).join(", "); // tanpa fallback
   const articleSectionStr = headers.length ? headers.join(", ") : "Artikel";
 
-  // ====================== POST ======================
-  const schemaPost = document.getElementById("auto-schema");
-  if(schemaPost){
-    const url = window.location.href;
+  // ===== DETEKSI URL BERSIH DARI OG, CANONICAL, ATAU LOCATION =====
+    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
+    const canonicalLink = document.querySelector('link[rel="canonical"]')?.href?.trim();
+    const baseUrl = ogUrl || canonicalLink || location.href;
+    const url = baseUrl.replace(/[?&]m=1/, "");
+    
     const title = document.title;
     const descMeta = document.querySelector("meta[name='description']")?.content || "";
     const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
-    const datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content);
-    const dateModified = convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content || datePublished);
+  // ====================== POST ======================
+  const schemaPost = document.getElementById("auto-schema");
+  if(schemaPost){
+    console.log("Auto-schema ARTICLE POST JS running");
 
     const postSchema = {
       "@context": "https://schema.org",
@@ -192,18 +196,11 @@ document.addEventListener("DOMContentLoaded", function() {
   // ==================== STATIC PAGE ==================
   const schemaStatic = document.getElementById("auto-schema-static-page");
   if(schemaStatic){
-    // ===== DETEKSI URL BERSIH DARI OG, CANONICAL, ATAU LOCATION =====
-    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
-    const canonicalLink = document.querySelector('link[rel="canonical"]')?.href?.trim();
-    const baseUrl = ogUrl || canonicalLink || location.href;
-    const url = baseUrl.replace(/[?&]m=1/, "");
+     console.log("Auto-schema ARTICLE PAGE JS running");
     
-    const title = document.title;
-    const descMeta = document.querySelector("meta[name='description']")?.content || "";
-    const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
-    const datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content);
+    /*const datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content);
     const dateModified = convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content || datePublished);
-
+    */
     const staticSchema = {
       "@context": "https://schema.org",
       "@type": "Article",
@@ -229,23 +226,10 @@ document.addEventListener("DOMContentLoaded", function() {
     console.log("Static page schema filled");
   }
 
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-  
-  console.log("Auto-schema WebPage JS running");
-
   const schemaWeb = document.getElementById("auto-schema-webpage");
   if (schemaWeb) {
-    // ===== DETEKSI URL BERSIH DARI OG, CANONICAL, ATAU LOCATION =====
-    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
-    const canonicalLink = document.querySelector('link[rel="canonical"]')?.href?.trim();
-    const baseUrl = ogUrl || canonicalLink || location.href;
-    const url = baseUrl.replace(/[?&]m=1/, "");
-    const title = document.title;
-    const descMeta =
-      document.querySelector("meta[name='description']")?.content || "";
-
+    console.log("Auto-schema WebPage JS running");
+    
     const webPageSchema = {
       "@context": "https://schema.org",
       "@type": "WebPage",
