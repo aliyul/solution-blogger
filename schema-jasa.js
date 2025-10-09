@@ -1,4 +1,4 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.50 — Hybrid Service + Product | Beton Jaya Readymix */
+//* ⚡ AUTO SCHEMA UNIVERSAL v4.50 — Hybrid Service + Product | Beton Jaya Readymix */ 
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           tableOffers.push({
             "@type":"Offer",
             name: finalName,
-            url:"#",
+            url: PAGE.url,
             priceCurrency:"IDR",
             price: price.toString(),
             itemCondition:"https://schema.org/NewCondition",
@@ -219,21 +219,30 @@ document.addEventListener("DOMContentLoaded", async function () {
       };
       graph.push(service);
 
+      // === 7️⃣ PRODUCT (format array offers) ===
       if(isProductPage){
-        // === 7️⃣ PRODUCT ===
         graph.push({
           "@type":"Product",
           "@id": PAGE.url + "#product",
-          name: productName,
-          description: PAGE.description,
-          image: PAGE.image,
-          brand: { "@type":"Brand", name: PAGE.business.name },
-          category: productCategory,
-          sameAs: productSameAs,
-          mainEntityOfPage: { "@id": PAGE.url + "#webpage" },
-          offers: tableOffers,
-          areaServed,
-          provider: { "@id": PAGE.business.url + "#localbusiness" },
+          "mainEntityOfPage": { "@type": "WebPage", "@id": PAGE.url + "#webpage" },
+          "name": productName,
+          "image": [PAGE.image],
+          "description": PAGE.description,
+          "brand": { "@type":"Brand", "name": PAGE.business.name },
+          "category": productCategory,
+          "sameAs": productSameAs,
+          "offers": tableOffers.map(o => ({
+            "@type": "Offer",
+            "name": o.name,
+            "url": PAGE.url,
+            "priceCurrency": o.priceCurrency,
+            "price": o.price,
+            "itemCondition": o.itemCondition,
+            "availability": o.availability,
+            "priceValidUntil": o.priceValidUntil,
+            "seller": o.seller,
+            "description": o.description || undefined
+          }))
         });
       }
 
