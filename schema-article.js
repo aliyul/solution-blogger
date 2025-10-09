@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", function() {
   if(headers.length >= 2) score -= 1;
 
   // Tentukan typeKonten
-  typeKonten = score >= 2 ? "non-evergreen" : "evergreen";
+  typeKonten = score >= 2 ? "NON-EVERGREEN" : "EVERGREEN";
 
   // ================== REKOMENDASI TANGGAL UPDATE ==================
   let nextUpdateDate = new Date(dateModified);
@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function() {
   // ================== TAMBAHKAN TYPE KONTEN & TANGGAL REKOMENDASI ==================
   let typeEl = document.createElement("div");
  // typeEl.innerHTML = `Ini typeKonten: <b>${typeKonten}</b>, harus update paling lambat: <b>${nextUpdateStr}</b>`;
- typeEl.innerHTML = `<b>${typeKonten}</b>, harus update paling lambat: <b>${nextUpdateStr}</b>`;
+ typeEl.innerHTML = `<b>${typeKonten}</b>, UPDATE KONTEN paling lambat: <b>${nextUpdateStr}</b>`;
   typeEl.setAttribute("data-nosnippet","true");
   typeEl.style.fontSize = "0.85em";
   typeEl.style.color = "#555";
