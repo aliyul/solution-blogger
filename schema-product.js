@@ -98,7 +98,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         tableOffers.push({
           "@type":"Offer",
           "name": finalName,
-          "url":"#",
+          "url": cleanUrl,
           "priceCurrency":"IDR",
           "price": price.toString(),
           "itemCondition":"https://schema.org/NewCondition",
