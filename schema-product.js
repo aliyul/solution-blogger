@@ -1,6 +1,8 @@
-document.addEventListener("DOMContentLoaded", async function () {
+document.addEventListener("DOMContentLoaded", async function () { 
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.49 🚀] Start detection (Service + Product + Offers)");
+    console.log("[AutoSchema Hybrid v4.51 🚀] Start detection (Service + Product + Offers)");
+
+    const fallbackImage = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
     // === 1️⃣ META DASAR ===
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -12,12 +14,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     const desc = metaDesc || Array.from(document.querySelectorAll("p")).map((p) => p.innerText.trim()).join(" ").substring(0, 300);
 
     // === 2️⃣ IMAGE DETECTION ===
-    let image = document.querySelector('meta[property="og:image"]')?.content?.trim();
-    if (!image) {
+    let contentImage = document.querySelector('meta[property="og:image"]')?.content?.trim();
+    if(!contentImage){
       const imgEl = document.querySelector("table img, article img, main img, .post-body img, img");
-      if (imgEl && imgEl.src && !imgEl.src.includes("favicon")) image = imgEl.src;
+      if(imgEl && imgEl.src && !imgEl.src.includes("favicon")) contentImage = imgEl.src;
     }
-    if (!image) image = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+    if(!contentImage) contentImage = fallbackImage;
 
     // === 3️⃣ AREA DASAR ===
     const areaProv = {
@@ -45,7 +47,23 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     const productName = getProductNameFromUrl();
 
-    // === 6️⃣ PARSER TABLE & TEKS HARGA UNIQUE DENGAN PRODUCTNAME ===
+    // === 5a️⃣ DETEKSI KATEGORI PRODUK OTOMATIS ===
+    const productKeywords = {
+      BuildingMaterial: ["beton","ready mix","precast","buis","gorong gorong","panel","semen","besi","pipa"],
+      ConstructionEquipment: ["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"]
+    };
+    let productCategory = "Product";
+    let wikipediaLink = "https://id.wikipedia.org/wiki/Produk";
+
+    for(const [category, keywords] of Object.entries(productKeywords)){
+      if(keywords.some(k=>productName.toLowerCase().includes(k))){
+        productCategory = category;
+        wikipediaLink = category==="BuildingMaterial" ? "https://id.wikipedia.org/wiki/Beton" : "https://id.wikipedia.org/wiki/Alat_berat";
+        break;
+      }
+    }
+
+    // === 6️⃣ PARSER TABLE & TEKS HARGA ===
     const seenItems = new Set();
     const tableOffers = [];
     function addOffer(name, key, price, desc="") {
@@ -118,22 +136,16 @@ document.addEventListener("DOMContentLoaded", async function () {
       description:"Penyedia beton ready mix, precast, dan jasa konstruksi profesional wilayah Jabodetabek dan sekitarnya.",
       areaServed: defaultAreaServed,
       sameAs:["https://www.facebook.com/betonjayareadymix","https://www.instagram.com/betonjayareadymix"],
-      logo:"https://www.betonjayareadymix.com/favicon.ico"
+      logo: fallbackImage
     };
 
-    // === 9️⃣ CATEGORY & SAMEAS DARI DETEKSI TOPIK PRODUK ===
-    let productCategory = "Product";
-    let wikipediaLink = "https://id.wikipedia.org/wiki/Produk";
-    if(/ready\s*mix|beton|precast/i.test(productName)) { productCategory = "BuildingMaterial"; wikipediaLink="https://id.wikipedia.org/wiki/Beton"; }
-    else if(/sewa|rental|alat berat/i.test(productName)) { productCategory = "ConstructionEquipment"; wikipediaLink="https://id.wikipedia.org/wiki/Alat_berat"; }
-
-    // === 1️⃣0️⃣ MAIN ENTITY PRODUCT ===
+    // === 9️⃣ MAIN ENTITY PRODUCT ===
     const mainEntity = {
       "@type":"Product",
       "@id": cleanUrl+"#product",
       "mainEntityOfPage": { "@type":"WebPage","@id": cleanUrl+"#webpage" },
       name: productName,
-      image: [ image ],
+      image: [ contentImage || fallbackImage ],
       description: desc,
       brand: { "@type":"Brand", name: brandName },
       category: productCategory,
@@ -142,14 +154,14 @@ document.addEventListener("DOMContentLoaded", async function () {
       offers: tableOffers
     };
 
-    // === 1️⃣1️⃣ WEBPAGE ===
+    // === 1️⃣0️⃣ WEBPAGE ===
     const webpage = {
       "@type":"WebPage",
       "@id": cleanUrl+"#webpage",
       url: cleanUrl,
       name: title,
       description: desc,
-      image,
+      image: [ contentImage || fallbackImage ],
       mainEntity: { "@id": mainEntity["@id"] },
       publisher: { "@id": business["@id"] },
       ...(internalLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } })
@@ -164,16 +176,16 @@ document.addEventListener("DOMContentLoaded", async function () {
       itemListElement: internalLinks
     });
 
-    // === 1️⃣2️⃣ OUTPUT JSON-LD ===
+    // === 1️⃣1️⃣ OUTPUT JSON-LD ===
     let scriptEl = document.querySelector("#auto-schema-product");
     if(!scriptEl){
       scriptEl = document.createElement("script");
-      scriptEl.type="application/ld+json";
+      scriptEl.type = "application/ld+json";
       scriptEl.id="auto-schema-product";
       document.head.appendChild(scriptEl);
     }
     scriptEl.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
 
-    console.log(`[AutoSchema v4.49 ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length}`);
+    console.log(`[AutoSchema v4.51 ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length} | Category: ${productCategory} | Image: ${contentImage || fallbackImage}`);
   }, 500);
 });
