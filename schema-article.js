@@ -129,7 +129,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // ================== GENERATE ARTICLE SCHEMA ==================
-    console.log("Auto-schema JS running");
+ console.log("Auto-schema ARTICLE SCHEMA JS running");
 
   const stopwords = ["dan","di","ke","dari","yang","untuk","pada","dengan","ini","itu","adalah","juga","atau","sebagai","dalam","oleh","karena","akan","sampai","tidak","dapat","lebih","kami","mereka","anda"];
 
