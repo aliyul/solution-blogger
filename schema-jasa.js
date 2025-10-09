@@ -59,12 +59,64 @@ document.addEventListener("DOMContentLoaded", async function () {
       const areaServed = await detectArea(PAGE.url, PAGE.title);
 
       // === 3️⃣ DETEKSI SERVICE ===
-      const detectServiceType = () => {
-        const base = PAGE.title.toLowerCase();
-        const types = ["sewa excavator", "sewa alat berat", "jasa pancang", "jasa borongan", "jasa renovasi", "jasa puing", "rental alat berat", "beton cor", "ready mix"];
-        return types.filter(t => base.includes(t)) || ["Jasa Konstruksi"];
-      };
-      let serviceTypes = detectServiceType();
+      // === 3️⃣ DETEKSI SERVICE (versi GPT enhanced) ===
+function detectServiceType() {
+  // 🔹 1. Ambil sumber utama: H1 > Title > paragraf pertama > URL
+  let raw =
+    document.querySelector("h1")?.textContent?.trim() ||
+    document.title.trim() ||
+    document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 100) ||
+    location.pathname.split("/").pop().replace(/[-_]/g, " ");
+
+  // 🔹 2. Bersihkan teks dari kata umum yang bukan inti jasa
+  raw = raw
+    .toLowerCase()
+    .replace(/\b(harga|murah|terdekat|update|promo|diskon|202[0-9]|terbaru|per\s*hari|per\s*jam|kubik|m3|standar|minimix)\b/g, "")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // 🔹 3. Deteksi inti jasa berdasarkan kata kunci penting
+  const jasaKataKunci = [
+    "sewa", "rental", "jasa", "layanan", "pemasangan", "pengecoran", "penjualan", "pengiriman"
+  ];
+  const alatDanPekerjaan = [
+    "excavator", "bulldozer", "crane", "vibro roller", "tandem roller", "wales",
+    "bor pile", "drop hammer", "pancang", "beton cor", "ready mix", "precast",
+    "buis beton", "u ditch", "box culvert", "panel beton", "renovasi", "puing"
+  ];
+
+  let result = [];
+  jasaKataKunci.forEach(jk => {
+    alatDanPekerjaan.forEach(item => {
+      if (raw.includes(jk) && raw.includes(item)) {
+        result.push(`${jk} ${item}`);
+      }
+    });
+  });
+
+  // 🔹 4. Jika tidak ditemukan kombinasi langsung, fallback deteksi tunggal
+  if (result.length === 0) {
+    const singleMatch = [...jasaKataKunci, ...alatDanPekerjaan].find(k => raw.includes(k));
+    if (singleMatch) result.push(singleMatch);
+  }
+
+  // 🔹 5. Jika tetap kosong, fallback ke hasil slug bersih
+  if (result.length === 0) {
+    let slug = location.pathname.split("/").pop().replace(/[-_]/g, " ").replace(".html", "");
+    result.push(slug);
+  }
+
+  // 🔹 6. Format Kapitalisasi Tiap Kata
+  result = [...new Set(result)].map(str =>
+    str.replace(/\b\w/g, l => l.toUpperCase())
+  );
+
+  return result.length ? result : ["Jasa Konstruksi"];
+}
+
+let serviceTypes = detectServiceType();
+
 
       // === 4️⃣ DETEKSI PRODUCT DARI URL + TABLE ===
       function getProductNameFromUrl() {
