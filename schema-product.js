@@ -1,7 +1,7 @@
-// ⚡ AutoSchema Hybrid v4.52 — Product + Service + Offers | Beton Jaya Readymix
+// ⚡ AutoSchema Hybrid v4.52+ — Product + Service + Offers | Beton Jaya Readymix
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.52 🚀] Start detection (Service + Product + Offers)");
+    console.log("[AutoSchema Hybrid v4.52+ 🚀] Start detection (Service + Product + Offers)");
 
     const fallbackImage = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
@@ -63,6 +63,29 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
+    // === 5b️⃣ DETEKSI EVERGREEN OTOMATIS ===
+    function detectEvergreen(title, content) {
+      const timeKeywords = ["harga","promo","update","tarif","2025","2026"];
+      const evergreenKeywords = ["panduan","cara","tips","definisi","jenis","manfaat"];
+      const text = (title + " " + content).toLowerCase();
+      if(timeKeywords.some(k => text.includes(k))) return false;
+      if(evergreenKeywords.some(k => text.includes(k))) return true;
+      const hasPriceTable = document.querySelectorAll("table").length > 0;
+      if(hasPriceTable) return false;
+      return true;
+    }
+    const isEvergreen = detectEvergreen(title, document.body.innerText);
+
+    // Tentukan priceValidUntil otomatis
+    const now = new Date();
+    const priceValidUntil = new Date(now);
+    if(isEvergreen){
+      priceValidUntil.setFullYear(now.getFullYear() + 1);
+    } else {
+      priceValidUntil.setMonth(now.getMonth() + 3);
+    }
+    const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
+
     // === 6️⃣ PARSER TABLE & TEKS HARGA ===
     const seenItems = new Set();
     const tableOffers = [];
@@ -80,14 +103,14 @@ document.addEventListener("DOMContentLoaded", async function () {
           "price": price.toString(),
           "itemCondition":"https://schema.org/NewCondition",
           "availability":"https://schema.org/InStock",
-          "priceValidUntil":"2025-12-31",
+          "priceValidUntil": autoPriceValidUntil,
           "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
           "description": desc || undefined
         });
       }
     }
 
-    // Table
+    // Parsing table
     Array.from(document.querySelectorAll("table")).forEach(table=>{
       Array.from(table.querySelectorAll("tr")).forEach(row=>{
         const cells = Array.from(row.querySelectorAll("td, th")).slice(0,6);
@@ -104,7 +127,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       });
     });
 
-    // Text price detection
+    // Parsing text
     document.body.innerText.split("\n").forEach(line=>{
       const m = line.match(/Rp\s*([\d.,]{4,})/);
       if(m){
@@ -188,7 +211,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     scriptEl.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
 
-    console.log(`[AutoSchema v4.52 ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length} | Category: ${productCategory} | Image: ${contentImage || fallbackImage}`);
-
+    console.log(`[AutoSchema v4.52+ ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length} | Category: ${productCategory} | Evergreen: ${isEvergreen}`);
   }, 500);
 });
