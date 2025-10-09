@@ -201,7 +201,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         name: PAGE.title,
         description: PAGE.description,
         image: PAGE.image,
-        serviceType,
+        serviceType: serviceTypes, // ganti serviceType menjadi serviceTypes
         areaServed,
         provider: { "@id": PAGE.business.url + "#localbusiness" },
         brand: { "@type":"Brand", name: PAGE.business.name },
