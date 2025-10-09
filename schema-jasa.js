@@ -60,15 +60,16 @@ document.addEventListener("DOMContentLoaded", async function () {
 
            // === 3️⃣ DETEKSI SERVICE TYPE — DIBERSIHKAN DARI NAMA DAERAH ===
  function detectServiceType() {
-  // 🔹 1. Ambil sumber utama: H1 > title > slug URL
+  // 🔹 1. Ambil sumber utama: H1 > title > paragraf pertama > slug
   let raw =
     document.querySelector("h1")?.textContent?.trim() ||
     document.title.trim() ||
+    document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 150) ||
     location.pathname.split("/").pop().replace(/[-_]/g, " ");
 
   if (!raw) return ["Jasa Konstruksi"];
 
-  // 🔹 2. Daftar kata umum & daerah untuk dibersihkan
+  // 🔹 2. Daftar kata umum & daerah untuk dibersihkan (case-insensitive)
   const stopwords = [
     "harga","murah","terdekat","update","promo","diskon",
     "202[0-9]","terbaru","per hari","per jam","kubik",
@@ -87,6 +88,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   raw = raw
     .toLowerCase()
     .replace(new RegExp(`\\b(${stopwords.join("|")})\\b`, "gi"), "")
+    // hilangkan nama daerah, baik huruf besar, kecil, atau kombinasi
     .replace(new RegExp(`\\b(kota|kabupaten|provinsi)?\\s*(${daerahKataKunci.join("|")})(\\s*(utara|selatan|barat|timur))?\\b`, "gi"), "")
     .replace(/[^\w\s]/g, " ")
     .replace(/\s+/g, " ")
