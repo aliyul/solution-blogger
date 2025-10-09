@@ -64,22 +64,39 @@ document.addEventListener("DOMContentLoaded", function() {
     console.log("Konten berubah → dateModified diupdate ke sekarang");
   }
 
-  // ================== DETEKSI TYPE KONTEN ==================
+  // ================== DETEKSI TYPE KONTEN (Advanced) ==================
   const nonEvergreenKeywords = ["harga","update","terbaru","berita","jadwal","event","promo","diskon","proyek","progres"];
+  const evergreenKeywords = ["panduan","tutorial","tips","cara","definisi","pandangan","strategi","langkah","prosedur","panduan lengkap"];
+
   let typeKonten = "evergreen";
-  for(let kw of nonEvergreenKeywords){
-    if(contentText.toLowerCase().includes(kw)){
-      typeKonten = "non-evergreen";
-      break;
-    }
-  }
+  let score = 0;
+  const contentLower = contentText.toLowerCase();
+
+  // Cek kata kunci non-evergreen
+  nonEvergreenKeywords.forEach(kw => { if(contentLower.includes(kw)) score += 2; });
+
+  // Cek kata kunci evergreen
+  evergreenKeywords.forEach(kw => { if(contentLower.includes(kw)) score -= 1; });
+
+  // Cek angka/dates
+  const numberCount = (contentText.match(/\d{1,4}/g) || []).length;
+  score += numberCount * 0.5;
+
+  // Panjang artikel & jumlah subheading
+  const headers = contentEl ? Array.from(contentEl.querySelectorAll("h2,h3")).map(h => cleanText(h.textContent)).filter(Boolean) : [];
+  const wordCount = getArticleWordCount(contentEl);
+  if(wordCount > 500) score -= 1;
+  if(headers.length >= 2) score -= 1;
+
+  // Tentukan typeKonten
+  typeKonten = score >= 2 ? "non-evergreen" : "evergreen";
 
   // ================== REKOMENDASI TANGGAL UPDATE ==================
   let nextUpdateDate = new Date(dateModified);
   if(typeKonten === "evergreen"){
-    nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 12); // 12 bulan
+    nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 12);
   } else {
-    nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 3); // 3 bulan
+    nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 3);
   }
   const options = { day: "numeric", month: "long", year: "numeric" };
   const nextUpdateStr = nextUpdateDate.toLocaleDateString("id-ID", options);
@@ -88,16 +105,13 @@ document.addEventListener("DOMContentLoaded", function() {
   const lastUpdatedEl = document.getElementById("lastUpdatedText");
   if(lastUpdatedEl){
     const dateObj = new Date(dateModified);
-    if(!isNaN(dateObj.getTime())){
-      lastUpdatedEl.textContent = dateObj.toLocaleDateString("id-ID", options);
-    } else {
-      lastUpdatedEl.textContent = "-";
-    }
+    lastUpdatedEl.textContent = !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString("id-ID", options) : "-";
   }
 
   // ================== TAMBAHKAN TYPE KONTEN & TANGGAL REKOMENDASI ==================
   let typeEl = document.createElement("div");
-  typeEl.innerHTML = `Ini typeKonten: <b>${typeKonten}</b>, harus update paling lambat: <b>${nextUpdateStr}</b>`;
+ // typeEl.innerHTML = `Ini typeKonten: <b>${typeKonten}</b>, harus update paling lambat: <b>${nextUpdateStr}</b>`;
+ typeEl.innerHTML = `<b>${typeKonten}</b>, harus update paling lambat: <b>${nextUpdateStr}</b>`;
   typeEl.setAttribute("data-nosnippet","true");
   typeEl.style.fontSize = "0.85em";
   typeEl.style.color = "#555";
@@ -115,8 +129,6 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // ================== GENERATE ARTICLE SCHEMA ==================
-  const h1 = document.querySelector("h1")?.textContent.trim() || "";
-  const headers = contentEl ? Array.from(contentEl.querySelectorAll("h2,h3")).map(h => cleanText(h.textContent)).filter(Boolean) : [];
   const paragraphs = contentEl ? Array.from(contentEl.querySelectorAll("p")).map(p => cleanText(p.textContent)) : [];
   const allText = headers.concat(paragraphs).join(" ");
 
@@ -127,6 +139,7 @@ document.addEventListener("DOMContentLoaded", function() {
   words.forEach(w => freq[w] = (freq[w] || 0) + 1);
   const topWords = Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,10);
   let keywordsArr = [];
+  const h1 = document.querySelector("h1")?.textContent.trim() || "";
   if(h1) keywordsArr.push(h1);
   if(headers.length) keywordsArr.push(...headers.slice(0,2));
   if(topWords.length) keywordsArr.push(...topWords.slice(0,2));
@@ -154,9 +167,11 @@ document.addEventListener("DOMContentLoaded", function() {
       "dateModified":dateModified,
       "articleSection":articleSectionStr,
       "keywords":keywordsStr,
-      "wordCount":getArticleWordCount(contentEl),
+      "wordCount":wordCount,
       "articleBody":cleanText(contentText),
-      "inLanguage":"id-ID"
+      "inLanguage":"id-ID",
+      "typeKonten": typeKonten,
+      "nextUpdate": nextUpdateStr
     };
 
     schemaPostEl.textContent = JSON.stringify(postSchema,null,2);
