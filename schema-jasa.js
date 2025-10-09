@@ -1,4 +1,4 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.50 — Hybrid Service + Product | Beton Jaya Readymix */ 
+//* ⚡ AUTO SCHEMA UNIVERSAL v4.51 — Hybrid Service + Product | Beton Jaya Readymix */
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema Service v4.50 🚀] Auto generator dijalankan (Service + Product + Offers)");
+      console.log("[Schema Service v4.51 🚀] Auto generator dijalankan (Service + Product + Offers)");
 
       // === 1️⃣ INFO HALAMAN ===
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -99,6 +99,30 @@ document.addEventListener("DOMContentLoaded", async function () {
       const productCategory = detectProductCategory(productName);
       const productSameAs = detectProductSameAs(productCategory);
 
+      // === 4b️⃣ DETEKSI EVERGREEN ===
+      function detectEvergreen(title, content) {
+        const timeKeywords = ["harga","promo","update","tarif","2025","2026"];
+        const evergreenKeywords = ["panduan","cara","tips","definisi","jenis","manfaat"];
+        const text = (title + " " + content).toLowerCase();
+        if(timeKeywords.some(k => text.includes(k))) return false;
+        if(evergreenKeywords.some(k => text.includes(k))) return true;
+        const hasPriceTable = document.querySelectorAll("table").length > 0;
+        if(hasPriceTable) return false;
+        return true;
+      }
+      const isEvergreen = detectEvergreen(PAGE.title, document.body.innerText);
+
+      // === 4c️⃣ PRICE VALID UNTIL ===
+      const now = new Date();
+      const priceValidUntil = new Date(now);
+      if(isEvergreen){
+        priceValidUntil.setFullYear(now.getFullYear() + 1);
+      } else {
+        priceValidUntil.setMonth(now.getMonth() + 3);
+      }
+      const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
+
+      // === 4d️⃣ ADD OFFER ===
       const seenItems = new Set();
       const tableOffers = [];
       function addOffer(name, key, price, desc="") {
@@ -115,7 +139,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             price: price.toString(),
             itemCondition:"https://schema.org/NewCondition",
             availability:"https://schema.org/InStock",
-            priceValidUntil:"2025-12-31",
+            priceValidUntil: autoPriceValidUntil,
             seller:{ "@id": PAGE.business.url + "#localbusiness" },
             description: desc || undefined
           });
@@ -123,6 +147,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
       }
 
+      // === 4e️⃣ PARSE TABLE & BODY ===
       Array.from(document.querySelectorAll("table")).forEach(table=>{
         Array.from(table.querySelectorAll("tr")).forEach(row=>{
           const cells = Array.from(row.querySelectorAll("td, th")).slice(0,6);
@@ -138,7 +163,6 @@ document.addEventListener("DOMContentLoaded", async function () {
           }
         });
       });
-
       document.body.innerText.split("\n").forEach(line=>{
         const m = line.match(/Rp\s*([\d.,]{4,})/);
         if(m){
@@ -201,7 +225,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         name: PAGE.title,
         description: PAGE.description,
         image: PAGE.image,
-        serviceType: serviceTypes, // ganti serviceType menjadi serviceTypes
+        serviceType: serviceTypes,
         areaServed,
         provider: { "@id": PAGE.business.url + "#localbusiness" },
         brand: { "@type":"Brand", name: PAGE.business.name },
@@ -268,7 +292,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       el.textContent = JSON.stringify(schema, null, 2);
 
-      console.log(`[Schema v4.50 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")}`);
+      console.log(`[Schema v4.51 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")} | Evergreen: ${isEvergreen}`);
     }
 
     // Run schema after DOM ready
