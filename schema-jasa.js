@@ -60,77 +60,93 @@ document.addEventListener("DOMContentLoaded", async function () {
 
            // === 3️⃣ DETEKSI SERVICE TYPE — DIBERSIHKAN DARI NAMA DAERAH ===
       function detectServiceType() {
-        let raw =
-          document.querySelector("h1")?.textContent?.trim() ||
-          document.title.trim() ||
-          document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 120) ||
-          location.pathname.split("/").pop().replace(/[-_]/g, " ");
+  // 🔹 1. Ambil sumber utama: H1 > title > slug URL
+  let raw =
+    document.querySelector("h1")?.textContent?.trim() ||
+    document.title.trim() ||
+    location.pathname.split("/").pop().replace(/[-_]/g, " ");
 
-        if (!raw) return ["Jasa Konstruksi"];
+  if (!raw) return ["Jasa Konstruksi"];
 
-        const stopwords = [
-          "harga","murah","terdekat","update","promo","diskon",
-          "202[0-9]","terbaru","per hari","per jam","kubik",
-          "m3","standar","minimix","supermix","express"
-        ];
+  // 🔹 2. Daftar kata umum & daerah untuk dibersihkan
+  const stopwords = [
+    "harga","murah","terdekat","update","promo","diskon",
+    "202[0-9]","terbaru","per hari","per jam","kubik",
+    "m3","standar","minimix","supermix","express"
+  ];
 
-        const daerahKataKunci = [
-          "jakarta","bogor","depok","bekasi","tangerang","banten",
-          "tangerang selatan","karawang","purwakarta","subang","cikampek",
-          "bandung","sumedang","cimahi","garut","tasikmalaya","cianjur",
-          "sukabumi","serang","cilegon","indonesia","jawa barat",
-          "jawa tengah","jawa timur","bali","timur","barat","utara","selatan"
-        ];
+  const daerahKataKunci = [
+    "jakarta","bogor","depok","bekasi","tangerang","banten",
+    "tangerang selatan","karawang","purwakarta","subang","cikampek",
+    "bandung","sumedang","cimahi","garut","tasikmalaya","cianjur",
+    "sukabumi","serang","cilegon","indonesia","jawa barat",
+    "jawa tengah","jawa timur","bali","timur","barat","utara","selatan"
+  ];
 
-        raw = raw
-          .toLowerCase()
-          .replace(new RegExp(`\\b(${stopwords.join("|")})\\b`, "gi"), "")
-          .replace(new RegExp(`\\b(kota|kabupaten|provinsi)?\\s*(${daerahKataKunci.join("|")})(\\s*(utara|selatan|barat|timur))?\\b`, "gi"), "")
-          .replace(/[^\w\s]/g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
+  // 🔹 3. Bersihkan teks mentah dari noise kata umum & daerah
+  raw = raw
+    .toLowerCase()
+    .replace(new RegExp(`\\b(${stopwords.join("|")})\\b`, "gi"), "")
+    .replace(new RegExp(`\\b(kota|kabupaten|provinsi)?\\s*(${daerahKataKunci.join("|")})(\\s*(utara|selatan|barat|timur))?\\b`, "gi"), "")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-        const jasaKataKunci = [
-          "sewa","rental","jasa","layanan","penjualan",
-          "pengiriman","pemasangan","pembuatan","pengecoran",
-          "produksi","pancang","kontraktor","renovasi","pembersihan"
-        ];
+  // 🔹 4. Daftar kata jasa & pekerjaan umum
+  const jasaKataKunci = [
+    "sewa","rental","jasa","layanan","penjualan",
+    "pengiriman","pemasangan","pembuatan","pengecoran",
+    "produksi","pancang","kontraktor","renovasi","pembersihan","buang"
+  ];
 
-        const alatDanPekerjaan = [
-          "excavator","bulldozer","crane","vibro roller","tandem roller",
-          "wales","bor pile","drop hammer","pancang","tiang pancang",
-          "beton cor","ready mix","precast","buis beton","u ditch",
-          "box culvert","panel beton","saluran","gorong gorong",
-          "puing","bekisting","pondasi"
-        ];
+  const alatDanPekerjaan = [
+    "excavator","bulldozer","crane","vibro roller","tandem roller",
+    "wales","bor pile","drop hammer","pancang","tiang pancang",
+    "beton cor","ready mix","precast","buis beton","u ditch",
+    "box culvert","panel beton","saluran","gorong gorong",
+    "puing","bekisting","pondasi"
+  ];
 
-        let hasil = [];
+  let hasil = [];
 
-        jasaKataKunci.forEach(jk => {
-          alatDanPekerjaan.forEach(item => {
-            if (raw.includes(jk) && raw.includes(item)) hasil.push(`${jk} ${item}`);
-          });
-        });
+  // 🔹 5. Cari kombinasi jasa + pekerjaan
+  jasaKataKunci.forEach(jk => {
+    alatDanPekerjaan.forEach(item => {
+      if (raw.includes(jk) && raw.includes(item)) hasil.push(`${jk} ${item}`);
+    });
+  });
 
-        if (hasil.length === 0) {
-          const singleMatch = [...jasaKataKunci, ...alatDanPekerjaan].find(k => raw.includes(k));
-          if (singleMatch) hasil.push(singleMatch);
-        }
+  // 🔹 6. Jika tidak ada kombinasi langsung, deteksi tunggal
+  if (hasil.length === 0) {
+    const singleMatch = [...jasaKataKunci, ...alatDanPekerjaan].find(k => raw.includes(k));
+    if (singleMatch) hasil.push(singleMatch);
+  }
 
-        if (hasil.length === 0) {
-          let slug = location.pathname.split("/").pop().replace(/[-_]/g, " ").replace(".html", "");
-          slug = slug.replace(new RegExp(`\\b(${daerahKataKunci.join("|")})\\b`, "gi"), "").trim();
-          hasil.push(slug || "Jasa Konstruksi");
-        }
+  // 🔹 7. Jika tetap kosong, fallback ke slug bersih
+  if (hasil.length === 0) {
+    let slug = location.pathname.split("/").pop().replace(/[-_]/g, " ").replace(".html", "");
+    slug = slug
+      .replace(new RegExp(`\\b(${daerahKataKunci.join("|")})\\b`, "gi"), "")
+      .replace(/[0-9]/g, "")
+      .trim();
+    hasil.push(slug || "Jasa Konstruksi");
+  }
 
-        hasil = [...new Set(hasil)]
-          .filter(h => h.length > 2)
-          .map(str => str.trim().replace(/\b\w/g, l => l.toUpperCase()).replace(/\s+/g, " "));
+  // 🔹 8. Format kapitalisasi tiap kata
+  hasil = [...new Set(hasil)]
+    .filter(h => h.length > 2 && !/\d/.test(h))
+    .map(str =>
+      str
+        .trim()
+        .replace(/\b\w/g, l => l.toUpperCase())
+        .replace(/\s+/g, " ")
+    );
 
-        return hasil.length ? hasil : ["Jasa Konstruksi"];
-      }
+  return hasil.length ? hasil : ["Jasa Konstruksi"];
+}
 
-      let serviceTypes = detectServiceType();
+let serviceTypes = detectServiceType();
+
 
 
 
