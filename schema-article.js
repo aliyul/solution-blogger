@@ -133,47 +133,6 @@ document.addEventListener("DOMContentLoaded", function() {
 
   const stopwords = ["dan","di","ke","dari","yang","untuk","pada","dengan","ini","itu","adalah","juga","atau","sebagai","dalam","oleh","karena","akan","sampai","tidak","dapat","lebih","kami","mereka","anda"];
 
-  // Escape JSON aman
-  function escapeJSON(str){
-    if(!str) return "";
-    return str
-      .replace(/\\/g,'\\\\')
-      .replace(/"/g,'\\"')
-      .replace(/\n/g,' ')
-      .replace(/\r/g,' ')
-      .replace(/</g,'\\u003c')
-      .replace(/>/g,'\\u003e')
-      .trim();
-  }
-
-  // Bersihkan plain text
-  function cleanText(str){
-    if(!str) return "";
-    return str.replace(/\s+/g," ").trim();
-  }
-
-  // Hitung kata sebenarnya
-  function getArticleWordCount(content){
-    if(!content) return 0;
-    const clone = content.cloneNode(true);
-    clone.querySelectorAll("script,style,noscript,iframe").forEach(el => el.remove());
-    clone.querySelectorAll("[hidden],[aria-hidden='true']").forEach(el => el.remove());
-    clone.querySelectorAll("*").forEach(el => {
-      const style = window.getComputedStyle(el);
-      if(style && style.display === "none"){ el.remove(); }
-    });
-    const text = clone.innerText || "";
-    return text.trim().split(/\s+/).filter(Boolean).length;
-  }
-
-  // Konversi UTC ke WIB +07:00
-  function convertToWIB(isoDate){
-    if(!isoDate) return new Date().toISOString().replace("Z","+07:00");
-    const d = new Date(isoDate);
-    const wib = new Date(d.getTime() + 7*60*60*1000);
-    return wib.toISOString().replace("Z","+07:00");
-  }
-
   // ================== Ambil konten ==================
   const content = document.querySelector(".post-body.entry-content") || document.querySelector("[id^='post-body-']") || document.querySelector(".post-body");
   const h1 = document.querySelector("h1")?.textContent.trim() || "";
@@ -310,46 +269,3 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
-//Deteksi tanggal Update buat ditamplkan di post
-document.addEventListener("DOMContentLoaded", function() {
-  var el = document.getElementById("lastUpdatedText");
-  if (!el) return; // berhenti kalau elemen tidak ada
-
-  var isoDate = null;
-
-  // --- Cek semua schema JSON-LD ---
-  var schemas = document.querySelectorAll('script[type="application/ld+json"]');
-  schemas.forEach(s => {
-    try {
-      var data = JSON.parse(s.textContent);
-      if (Array.isArray(data["@graph"])) {
-        var article = data["@graph"].find(item => item["@type"] === "Article");
-        if (article && !isoDate) {
-          isoDate = article.dateModified || article.datePublished || null;
-        }
-      } else if (data["@type"] === "Article" && !isoDate) {
-        isoDate = data.dateModified || data.datePublished || null;
-      }
-    } catch (e) {
-      console.warn("Gagal parse schema JSON-LD:", e);
-    }
-  });
-
-  // --- Kalau schema kosong, fallback ke <time> ---
-  if (!isoDate && el.closest("time")) {
-    isoDate = el.closest("time").getAttribute("datetime");
-  }
-
-  // --- Format ke Indonesia ---
-  if (isoDate) {
-    var dateObj = new Date(isoDate);
-    if (!isNaN(dateObj.getTime())) {
-      var options = { day: "numeric", month: "long", year: "numeric" };
-      el.textContent = dateObj.toLocaleDateString("id-ID", options);
-    } else {
-      el.textContent = "-";
-    }
-  } else {
-    el.textContent = "-";
-  }
-});
