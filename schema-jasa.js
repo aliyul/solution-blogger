@@ -1,4 +1,4 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.52 — Hybrid Service + Product | Beton Jaya Readymix */
+//* ⚡ AUTO SCHEMA UNIVERSAL v4.53 — Hybrid Service + Product | Beton Jaya Readymix */
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema Service v4.52 🚀] Auto generator dijalankan (Service + Product + Offers)");
+      console.log("[Schema Service v4.53 🚀] Auto generator dijalankan (Service + Product + Offers)");
 
       // === 1️⃣ INFO HALAMAN ===
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -102,20 +102,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         const evergreenKeywords = ["panduan","cara","tips","definisi","jenis","manfaat","tutorial","strategi"];
         const text = (title + " " + content).toLowerCase();
 
-        // konten pendek kemungkinan bukan evergreen
         if(content.split(/\s+/).length < 300) return false;
-
-        // jika ada kata waktu/price → bukan evergreen
         if(timeKeywords.some(k => text.includes(k))) return false;
 
-        // jika banyak kata LSI evergreen → evergreen
         let evergreenCount = evergreenKeywords.reduce((acc,k) => acc + (text.includes(k)?1:0), 0);
         if(evergreenCount >= 2) return true;
-
-        // jika ada tabel harga → bukan evergreen
         if(document.querySelectorAll("table").length > 0) return false;
-
-        // fallback default
         return evergreenCount >= 1;
       }
       const isEvergreen = detectEvergreen(PAGE.title, document.body.innerText);
@@ -142,7 +134,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           tableOffers.push({
             "@type":"Offer",
             name: finalName,
-            url: PAGE.url,
+            url: cleanUrl,
             priceCurrency:"IDR",
             price: price.toString(),
             itemCondition:"https://schema.org/NewCondition",
@@ -190,7 +182,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       // === 5️⃣ INTERNAL LINKS ===
       const anchors = [...document.querySelectorAll("article a, main a, .post-body a")]
         .filter(a => a.href && a.href.includes(location.hostname) && !a.href.includes("#"))
-        .map(a => ({ url: a.href.split("#")[0], name: a.innerText.trim() || a.href }));
+        .map(a => ({ url: a.href.split("#")[0].replace(/[?&]m=1/, ""), name: a.innerText.trim() || a.href }));
       const uniqueLinks = Array.from(new Map(anchors.map(a => [a.url, a.name])).entries())
         .map(([url, name], i) => ({ "@type": "ListItem", position: i + 1, url, name }));
 
@@ -210,26 +202,26 @@ document.addEventListener("DOMContentLoaded", async function () {
         sameAs: PAGE.business.sameAs,
         areaServed,
         knowsAbout: ["Beton cor","Ready mix","Precast","Sewa alat berat","Jasa konstruksi"],
-        ...(isProductPage && { hasOfferCatalog: { "@id": PAGE.url + "#product" } })
+        ...(isProductPage && { hasOfferCatalog: { "@id": cleanUrl + "#product" } })
       };
       graph.push(localBiz);
 
       const webpage = {
         "@type": "WebPage",
-        "@id": PAGE.url + "#webpage",
-        url: PAGE.url,
+        "@id": cleanUrl + "#webpage",
+        url: cleanUrl,
         name: PAGE.title,
         description: PAGE.description,
         image: PAGE.image,
-        mainEntity: { "@id": PAGE.url + "#service" },
+        mainEntity: { "@id": cleanUrl + "#service" },
         publisher: { "@id": PAGE.business.url + "#localbusiness" },
-        ...(uniqueLinks.length && { hasPart: { "@id": PAGE.url + "#daftar-internal-link" } }),
+        ...(uniqueLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } }),
       };
       graph.push(webpage);
 
       const service = {
         "@type": "Service",
-        "@id": PAGE.url + "#service",
+        "@id": cleanUrl + "#service",
         name: PAGE.title,
         description: PAGE.description,
         image: PAGE.image,
@@ -237,7 +229,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         areaServed,
         provider: { "@id": PAGE.business.url + "#localbusiness" },
         brand: { "@type":"Brand", name: PAGE.business.name },
-        mainEntityOfPage: { "@id": PAGE.url + "#webpage" },
+        mainEntityOfPage: { "@id": cleanUrl + "#webpage" },
         ...(isProductPage && {
           offers: {
             "@type":"AggregateOffer",
@@ -245,7 +237,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             highPrice: Math.max(...tableOffers.map(o=>parseInt(o.price))),
             offerCount: tableOffers.length,
             priceCurrency:"IDR",
-            offers: tableOffers
+            offers: tableOffers.map(o => ({...o, url: cleanUrl}))
           }
         })
       };
@@ -254,8 +246,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       if(isProductPage){
         graph.push({
           "@type":"Product",
-          "@id": PAGE.url + "#product",
-          "mainEntityOfPage": { "@type": "WebPage", "@id": PAGE.url + "#webpage" },
+          "@id": cleanUrl + "#product",
+          "mainEntityOfPage": { "@type": "WebPage", "@id": cleanUrl + "#webpage" },
           "name": productName,
           "image": [PAGE.image],
           "description": PAGE.description,
@@ -265,7 +257,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           "offers": tableOffers.map(o => ({
             "@type": "Offer",
             "name": o.name,
-            "url": PAGE.url,
+            "url": cleanUrl,
             "priceCurrency": o.priceCurrency,
             "price": o.price,
             "itemCondition": o.itemCondition,
@@ -280,7 +272,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       if(uniqueLinks.length){
         graph.push({
           "@type": "ItemList",
-          "@id": PAGE.url + "#daftar-internal-link",
+          "@id": cleanUrl + "#daftar-internal-link",
           name: "Daftar Halaman Terkait",
           itemListOrder: "http://schema.org/ItemListOrderAscending",
           numberOfItems: uniqueLinks.length,
@@ -299,7 +291,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       el.textContent = JSON.stringify(schema, null, 2);
 
-      console.log(`[Schema v4.52 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")} | Evergreen: ${isEvergreen}`);
+      console.log(`[Schema v4.53 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")} | Evergreen: ${isEvergreen}`);
     }
 
     if(document.querySelector("h1") && document.querySelector(".post-body")){
