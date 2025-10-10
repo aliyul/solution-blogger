@@ -87,7 +87,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       return defaultAreaServed;
     }
-    const productAreaServed = detectAreaServed();
+    
+    // ✅ WAJIB gunakan await di sini
+    const productAreaServed = await detectAreaServed();
 
     // === 5️⃣ BRAND DETECTION ===
     const text = document.body.innerText.toLowerCase();
