@@ -167,7 +167,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         return serviceType.trim();
       }
         let serviceTypes = detectServiceType();
-         console.log("🔎 Service Type Terdeteksi:", serviceTypes);
+       console.log("🔎 Service Type Terdeteksi:", serviceTypes);
       
       // === 4️⃣ DETEKSI PRODUCT DARI URL + TABLE ===
       function getProductNameFromUrl() {
@@ -411,7 +411,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       el.textContent = JSON.stringify(schema, null, 2);
 
-      console.log(`[Schema v4.53 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${detectServiceType().join(", ")} | Evergreen: ${isEvergreen} | Parent: ${cleanParentUrl ? cleanParentUrl : "none"}`);
+      console.log(`[Schema v4.53 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")} | Evergreen: ${isEvergreen} | Parent: ${cleanParentUrl ? cleanParentUrl : "none"}`);
     }
 
     if(document.querySelector("h1") && document.querySelector(".post-body")){
