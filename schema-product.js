@@ -14,14 +14,18 @@ document.addEventListener("DOMContentLoaded", async function () {
     const metaDesc = document.querySelector('meta[name="description"]')?.content?.trim();
     const desc = metaDesc || Array.from(document.querySelectorAll("p")).map(p => p.innerText.trim()).join(" ").substring(0, 300);
 
-    // === 2️⃣ URL PARENT (isPartOf) ===
+    // === 2️⃣ URL PARENT ===
     const parentMeta = document.querySelector('meta[name="parent-url"]')?.content?.trim();
     const parentUrl = parentMeta || (() => {
-      const breadcrumbs = Array.from(document.querySelectorAll("nav.breadcrumbs a"))
+      // ambil semua link dari breadcrumbs (pakai .breadcrumbs a, bukan nav)
+      const breadcrumbs = Array.from(document.querySelectorAll(".breadcrumbs a"))
         .map(a => a.href)
-        .filter(href => href !== location.href);
+        .filter(href => href && href !== location.href);
+    
+      // ambil link terakhir sebelum halaman aktif (biasanya level terakhir sebelum span pageName)
       return breadcrumbs.length ? breadcrumbs.pop() : location.origin;
     })();
+
 
     // === 3️⃣ IMAGE DETECTION ===
     let contentImage = document.querySelector('meta[property="og:image"]')?.content?.trim();
