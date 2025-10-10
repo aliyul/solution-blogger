@@ -44,6 +44,16 @@ document.addEventListener("DOMContentLoaded", async function () {
         },
       };
 
+      // === 2️⃣ URL PARENT ===
+      const parentMeta = document.querySelector('meta[name="parent-url"]')?.content?.trim();
+      const parentUrl = parentMeta || (() => {
+        const breadcrumbs = Array.from(document.querySelectorAll("nav.breadcrumbs a"))
+          .map(a => a.href)
+          .filter(href => href !== location.href);
+        return breadcrumbs.length ? breadcrumbs.pop() : location.origin;
+      })();
+      const cleanParentUrl = parentUrl ? parentUrl.replace(/[?&]m=1/, "") : null;
+
       // === 2️⃣ AREA DEFAULT ===
       const areaJSON = {
         "Kabupaten Bogor": "Jawa Barat", "Kota Bogor": "Jawa Barat",
@@ -58,100 +68,143 @@ document.addEventListener("DOMContentLoaded", async function () {
       async function detectArea(url, title = "") { return defaultAreaServed; }
       const areaServed = await detectArea(PAGE.url, PAGE.title);
 
-           // === 3️⃣ DETEKSI SERVICE TYPE — DIBERSIHKAN DARI NAMA DAERAH ===
- function detectServiceType() {
-  // 🔹 1. Ambil sumber utama: H1 > title > paragraf pertama > slug
-  let raw =
-    document.querySelector("h1")?.textContent?.trim() ||
-    document.title.trim() ||
-    document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 150) ||
-    location.pathname.split("/").pop().replace(/[-_]/g, " ");
+      function detectKnowsAbout() {
+        // === 1️⃣ Ambil sumber utama (H1 > Title > URL slug) ===
+        let raw =
+          document.querySelector("h1")?.textContent?.trim() ||
+          document.title.trim() ||
+          location.pathname.split("/").pop().replace(/[-_]/g, " ");
+      
+        const text = raw.toLowerCase();
+        const topics = new Set();
+      
+        // === 2️⃣ Kamus kategori dinamis ===
+        const keywordMap = {
+          "Beton cor / Ready mix": ["beton cor", "ready mix", "readymix", "minimix", "mix"],
+          "Precast": ["precast", "u ditch", "box culvert", "buis", "panel", "kanstin", "saluran", "culvert"],
+          "Sewa alat berat": ["sewa", "rental", "alat berat", "excavator", "bulldozer", "crane", "roller", "vibro", "tandem"],
+          "Jasa konstruksi": ["jasa", "kontraktor", "konstruksi", "pembangunan", "renovasi", "perbaikan", "proyek"],
+          "Merek beton": ["jayamix", "adhimix", "scg", "pionir", "tiga roda", "holcim", "dynamix"]
+        };
+      
+        // === 3️⃣ Pendeteksian multi-topik ===
+        for (const [label, keywords] of Object.entries(keywordMap)) {
+          for (const word of keywords) {
+            if (text.includes(word)) {
+              // Pisahkan kategori gabungan seperti "Beton cor / Ready mix"
+              label.split("/").forEach(l => topics.add(l.trim()));
+              break;
+            }
+          }
+        }
+      
+        // === 4️⃣ Fallback jika tak terdeteksi ===
+        if (topics.size === 0 && raw) {
+          // Ambil kata2 penting tanpa angka atau kata umum
+          const cleaned = raw
+            .replace(/\d+/g, "")
+            .replace(/\b(harga|jual|sewa|jasa|murah|terdekat|beton|precast)\b/gi, "")
+            .trim();
+      
+          const words = cleaned.split(/\s+/).slice(0, 3); // ambil 3 kata pertama
+          const titleCase = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+          if (titleCase.length) topics.add(titleCase.join(" "));
+        }
+      
+        // === 5️⃣ Return hasil akhir rapi ===
+        return Array.from(topics);
+      }
+      
+      // === 3️⃣ DETEKSI SERVICE TYPE — DIBERSIHKAN DARI NAMA DAERAH ===
+      function detectServiceType() {
+        // 🔹 1. Ambil sumber utama: H1 > title > paragraf pertama > slug
+        let raw =
+          document.querySelector("h1")?.textContent?.trim() ||
+          document.title.trim() ||
+          document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 150) ||
+          location.pathname.split("/").pop().replace(/[-_]/g, " ");
 
-  if (!raw) return ["Jasa Konstruksi"];
+        if (!raw) return ["Jasa Konstruksi"];
 
-  // 🔹 2. Daftar kata umum & daerah untuk dibersihkan (case-insensitive)
-  const stopwords = [
-    "harga","murah","terdekat","update","promo","diskon",
-    "202[0-9]","terbaru","per hari","per jam","kubik",
-    "m3","standar","minimix","supermix","express"
-  ];
+        // 🔹 2. Daftar kata umum & daerah untuk dibersihkan (case-insensitive)
+        const stopwords = [
+          "harga","murah","terdekat","update","promo","diskon",
+          "202[0-9]","terbaru","per hari","per jam","kubik",
+          "m3","standar","minimix","supermix","express"
+        ];
 
-  const daerahKataKunci = [
-    "jakarta","bogor","depok","bekasi","tangerang","banten",
-    "tangerang selatan","karawang","purwakarta","subang","cikampek",
-    "bandung","sumedang","cimahi","garut","tasikmalaya","cianjur",
-    "sukabumi","serang","cilegon","indonesia","jawa barat",
-    "jawa tengah","jawa timur","bali","timur","barat","utara","selatan"
-  ];
+        const daerahKataKunci = [
+          "jakarta","bogor","depok","bekasi","tangerang","banten",
+          "tangerang selatan","karawang","purwakarta","subang","cikampek",
+          "bandung","sumedang","cimahi","garut","tasikmalaya","cianjur",
+          "sukabumi","serang","cilegon","indonesia","jawa barat",
+          "jawa tengah","jawa timur","bali","timur","barat","utara","selatan"
+        ];
 
-  // 🔹 3. Bersihkan teks mentah dari noise kata umum & daerah
-  raw = raw
-    .toLowerCase()
-    .replace(new RegExp(`\\b(${stopwords.join("|")})\\b`, "gi"), "")
-    // hilangkan nama daerah, baik huruf besar, kecil, atau kombinasi
-    .replace(new RegExp(`\\b(kota|kabupaten|provinsi)?\\s*(${daerahKataKunci.join("|")})(\\s*(utara|selatan|barat|timur))?\\b`, "gi"), "")
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+        // 🔹 3. Bersihkan teks mentah dari noise kata umum & daerah
+        raw = raw
+          .toLowerCase()
+          .replace(new RegExp(`\\b(${stopwords.join("|")})\\b`, "gi"), "")
+          // hilangkan nama daerah, baik huruf besar, kecil, atau kombinasi
+          .replace(new RegExp(`\\b(kota|kabupaten|provinsi)?\\s*(${daerahKataKunci.join("|")})(\\s*(utara|selatan|barat|timur))?\\b`, "gi"), "")
+          .replace(/[^\w\s]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
 
-  // 🔹 4. Daftar kata jasa & pekerjaan umum
-  const jasaKataKunci = [
-    "sewa","rental","jasa","layanan","penjualan",
-    "pengiriman","pemasangan","pembuatan","pengecoran",
-    "produksi","pancang","kontraktor","renovasi","pembersihan","buang"
-  ];
+        // 🔹 4. Daftar kata jasa & pekerjaan umum
+        const jasaKataKunci = [
+          "sewa","rental","jasa","layanan","penjualan",
+          "pengiriman","pemasangan","pembuatan","pengecoran",
+          "produksi","pancang","kontraktor","renovasi","pembersihan","buang"
+        ];
 
-  const alatDanPekerjaan = [
-    "excavator","bulldozer","crane","vibro roller","tandem roller",
-    "wales","bor pile","drop hammer","pancang","tiang pancang",
-    "beton cor","ready mix","precast","buis beton","u ditch",
-    "box culvert","panel beton","saluran","gorong gorong",
-    "puing","bekisting","pondasi"
-  ];
+        const alatDanPekerjaan = [
+          "excavator","bulldozer","crane","vibro roller","tandem roller",
+          "wales","bor pile","drop hammer","pancang","tiang pancang",
+          "beton cor","ready mix","precast","buis beton","u ditch",
+          "box culvert","panel beton","saluran","gorong gorong",
+          "puing","bekisting","pondasi"
+        ];
 
-  let hasil = [];
+        let hasil = [];
 
-  // 🔹 5. Cari kombinasi jasa + pekerjaan
-  jasaKataKunci.forEach(jk => {
-    alatDanPekerjaan.forEach(item => {
-      if (raw.includes(jk) && raw.includes(item)) hasil.push(`${jk} ${item}`);
-    });
-  });
+        // 🔹 5. Cari kombinasi jasa + pekerjaan
+        jasaKataKunci.forEach(jk => {
+          alatDanPekerjaan.forEach(item => {
+            if (raw.includes(jk) && raw.includes(item)) hasil.push(`${jk} ${item}`);
+          });
+        });
 
-  // 🔹 6. Jika tidak ada kombinasi langsung, deteksi tunggal
-  if (hasil.length === 0) {
-    const singleMatch = [...jasaKataKunci, ...alatDanPekerjaan].find(k => raw.includes(k));
-    if (singleMatch) hasil.push(singleMatch);
-  }
+        // 🔹 6. Jika tidak ada kombinasi langsung, deteksi tunggal
+        if (hasil.length === 0) {
+          const singleMatch = [...jasaKataKunci, ...alatDanPekerjaan].find(k => raw.includes(k));
+          if (singleMatch) hasil.push(singleMatch);
+        }
 
-  // 🔹 7. Jika tetap kosong, fallback ke slug bersih
-  if (hasil.length === 0) {
-    let slug = location.pathname.split("/").pop().replace(/[-_]/g, " ").replace(".html", "");
-    slug = slug
-      .replace(new RegExp(`\\b(${daerahKataKunci.join("|")})\\b`, "gi"), "")
-      .replace(/[0-9]/g, "")
-      .trim();
-    hasil.push(slug || "Jasa Konstruksi");
-  }
+        // 🔹 7. Jika tetap kosong, fallback ke slug bersih
+        if (hasil.length === 0) {
+          let slug = location.pathname.split("/").pop().replace(/[-_]/g, " ").replace(".html", "");
+          slug = slug
+            .replace(new RegExp(`\\b(${daerahKataKunci.join("|")})\\b`, "gi"), "")
+            .replace(/[0-9]/g, "")
+            .trim();
+          hasil.push(slug || "Jasa Konstruksi");
+        }
 
-  // 🔹 8. Format kapitalisasi tiap kata
-  hasil = [...new Set(hasil)]
-    .filter(h => h.length > 2 && !/\d/.test(h))
-    .map(str =>
-      str
-        .trim()
-        .replace(/\b\w/g, l => l.toUpperCase())
-        .replace(/\s+/g, " ")
-    );
+        // 🔹 8. Format kapitalisasi tiap kata
+        hasil = [...new Set(hasil)]
+          .filter(h => h.length > 2 && !/\d/.test(h))
+          .map(str =>
+            str
+              .trim()
+              .replace(/\b\w/g, l => l.toUpperCase())
+              .replace(/\s+/g, " ")
+          );
 
-  return hasil.length ? hasil : ["Jasa Konstruksi"];
-}
+        return hasil.length ? hasil : ["Jasa Konstruksi"];
+      }
 
-let serviceTypes = detectServiceType();
-
-
-
-
+      let serviceTypes = detectServiceType();
 
       // === 4️⃣ DETEKSI PRODUCT DARI URL + TABLE ===
       function getProductNameFromUrl() {
@@ -288,10 +341,25 @@ let serviceTypes = detectServiceType();
         logo: PAGE.image,
         sameAs: PAGE.business.sameAs,
         areaServed,
-        knowsAbout: ["Beton cor","Ready mix","Precast","Sewa alat berat","Jasa konstruksi"],
+        "knowsAbout": detectKnowsAbout(),
         ...(isProductPage && { hasOfferCatalog: { "@id": cleanUrl + "#product" } })
       };
       graph.push(localBiz);
+
+      // If parent page is detected and different from current page, optionally add a minimal parent WebPage node
+      let parentWebPageNode = null;
+      if (cleanParentUrl && cleanParentUrl !== location.origin) {
+        const parentId = cleanParentUrl + "#webpage";
+        // Add a lightweight parent node to the graph (no deep scraping — minimal representation)
+        parentWebPageNode = {
+          "@type": "WebPage",
+          "@id": parentId,
+          url: cleanParentUrl,
+          name: undefined // not scraping other page for title to avoid cross-origin; left undefined
+        };
+        // Only push parent node if it's not the same as current page
+        if (parentId !== cleanUrl + "#webpage") graph.push(parentWebPageNode);
+      }
 
       const webpage = {
         "@type": "WebPage",
@@ -303,6 +371,8 @@ let serviceTypes = detectServiceType();
         mainEntity: { "@id": cleanUrl + "#service" },
         publisher: { "@id": PAGE.business.url + "#localbusiness" },
         ...(uniqueLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } }),
+        // Tambahkan isPartOf jika parent valid dan berbeda dari halaman saat ini
+        ...(cleanParentUrl && cleanParentUrl !== cleanUrl ? { isPartOf: { "@id": (cleanParentUrl + "#webpage") } } : {})
       };
       graph.push(webpage);
 
@@ -378,7 +448,7 @@ let serviceTypes = detectServiceType();
       }
       el.textContent = JSON.stringify(schema, null, 2);
 
-      console.log(`[Schema v4.53 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")} | Evergreen: ${isEvergreen}`);
+      console.log(`[Schema v4.53 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes.join(", ")} | Evergreen: ${isEvergreen} | Parent: ${cleanParentUrl ? cleanParentUrl : "none"}`);
     }
 
     if(document.querySelector("h1") && document.querySelector(".post-body")){
