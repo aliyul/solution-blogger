@@ -120,9 +120,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
       // === 5️⃣ AUTO ITEMLIST INTERNAL LINKS (bersih + relevan + unik) ===
-      // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned) ===
-      function generateCleanInternalLinks() {
-        const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase().replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, ""); // buang bulan & tahun
+     // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v2) ===
+      function generateCleanInternalLinksV2() {
+        const h1 = (document.querySelector("h1")?.innerText || "")
+          .toLowerCase()
+          .replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, ""); // buang bulan & tahun
+      
+        // Ambil semua link internal
         const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a, a"))
           .map(a => a.href)
           .filter(href =>
@@ -134,37 +138,45 @@ document.addEventListener("DOMContentLoaded", async function () {
           )
           .map(url => url.split("?")[0].replace(/\/$/, "").replace(/[?&].*$/, "")); // bersihkan ?m=1, query, slash
       
-        // Unik & bersih
+        // Unik
         const uniqueUrls = [...new Set(rawLinks)];
       
-        // Hitung relevansi berdasarkan H1
+        // Hitung relevansi terhadap H1
         const relevancyScores = uniqueUrls.map(url => {
-          const slugText = url.replace(location.origin, "")
+          let slugText = url.replace(location.origin, "")
             .replace(".html", "")
             .replace(/^\/+|\/+$/g, "")
             .replace(/-/g, " ")
-            .replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, "") // buang bulan & tahun
+            .replace(/\b\d{1,2}\b/g, "") // hapus angka 1-2 digit (bulan/hari)
+            .replace(/\d{4}/g, "")        // hapus tahun 4 digit
+            .replace(/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, "") // hapus nama bulan
+            .replace(/\s+/g, " ")
+            .trim()
             .toLowerCase();
+      
           let score = 0;
           h1.split(" ").forEach(word => {
-            if (slugText.includes(word)) score++;
+            if (word && slugText.includes(word)) score++;
           });
+      
           return { url, score, slugText };
         });
       
-        // Urutkan relevansi tertinggi → authority meningkat
+        // Urutkan berdasarkan relevansi tertinggi
         relevancyScores.sort((a, b) => b.score - a.score);
       
         // Ambil 50 link paling relevan
         const topLinks = relevancyScores.slice(0, 50);
       
-        // Buat itemListElement
+        // Buat itemListElement schema
         const itemList = topLinks.map((item, i) => {
           let nameClean = item.slugText
             .replace(/\//g, " ")
             .replace(/\s+/g, " ")
             .trim();
+      
           if(nameClean) nameClean = nameClean.charAt(0).toUpperCase() + nameClean.slice(1);
+      
           return {
             "@type": "ListItem",
             position: i + 1,
@@ -176,7 +188,9 @@ document.addEventListener("DOMContentLoaded", async function () {
         return itemList;
       }
       
-      const internalLinks = generateCleanInternalLinks();
+      // Jalankan
+      const internalLinks = generateCleanInternalLinksV2();
+      console.log("[InternalLinks v2 ✅]", internalLinks);
 
       // === 6️⃣ GRAPH ===
       const graph = [];
