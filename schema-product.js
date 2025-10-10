@@ -1,7 +1,7 @@
-// ⚡ AutoSchema Hybrid v4.52+ — Product + Service + Offers | Beton Jaya Readymix
+// ⚡ AutoSchema Hybrid v4.53+ — Product + Service + Offers + isPartOf | Beton Jaya Readymix
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.52+ 🚀] Start detection (Service + Product + Offers)");
+    console.log("[AutoSchema Hybrid v4.53+ 🚀] Start detection (Service + Product + Offers + isPartOf)");
 
     const fallbackImage = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
@@ -14,7 +14,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     const metaDesc = document.querySelector('meta[name="description"]')?.content?.trim();
     const desc = metaDesc || Array.from(document.querySelectorAll("p")).map(p => p.innerText.trim()).join(" ").substring(0, 300);
 
-    // === 2️⃣ IMAGE DETECTION ===
+    // === 2️⃣ URL PARENT (isPartOf) ===
+    const parentMeta = document.querySelector('meta[name="parent-url"]')?.content?.trim();
+    const parentUrl = parentMeta || (() => {
+      const breadcrumbs = Array.from(document.querySelectorAll("nav.breadcrumbs a"))
+        .map(a => a.href)
+        .filter(href => href !== location.href);
+      return breadcrumbs.length ? breadcrumbs.pop() : location.origin;
+    })();
+
+    // === 3️⃣ IMAGE DETECTION ===
     let contentImage = document.querySelector('meta[property="og:image"]')?.content?.trim();
     if(!contentImage){
       const imgEl = document.querySelector("table img, article img, main img, .post-body img, img");
@@ -22,7 +31,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     if(!contentImage) contentImage = fallbackImage;
 
-    // === 3️⃣ AREA DASAR ===
+    // === 4️⃣ AREA DASAR ===
     const areaProv = {
       "Kabupaten Bogor": "Jawa Barat","Kota Bogor": "Jawa Barat",
       "Kota Depok": "Jawa Barat","Kabupaten Bekasi": "Jawa Barat",
@@ -34,13 +43,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     };
     const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type":"Place", name: a }));
 
-    // === 4️⃣ BRAND DETECTION ===
+    // === 5️⃣ BRAND DETECTION ===
     const text = document.body.innerText.toLowerCase();
     let brandName = "Beton Jaya Readymix";
     const brandMatch = text.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|solusi bangun/i);
     if (brandMatch) brandName = brandMatch[0].replace(/\b\w/g, l => l.toUpperCase());
 
-    // === 5️⃣ PRODUCT NAME DARI URL ===
+    // === 6️⃣ PRODUCT NAME DARI URL ===
     function getProductNameFromUrl() {
       let path = location.pathname.replace(/^\/|\/$/g,"").split("/").pop();
       path = path.replace(".html","").replace(/-/g," ");
@@ -48,7 +57,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     const productName = getProductNameFromUrl();
 
-    // === 5a️⃣ DETEKSI KATEGORI PRODUK OTOMATIS ===
+    // === 7️⃣ DETEKSI KATEGORI PRODUK OTOMATIS ===
     const productKeywords = {
       BuildingMaterial: ["beton","ready mix","precast","buis","gorong gorong","panel","semen","besi","pipa"],
       ConstructionEquipment: ["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"]
@@ -63,30 +72,25 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    // === 5b️⃣ DETEKSI EVERGREEN OTOMATIS ===
+    // === 8️⃣ DETEKSI EVERGREEN ===
     function detectEvergreen(title, content) {
       const timeKeywords = ["harga","promo","update","tarif","2025","2026"];
       const evergreenKeywords = ["panduan","cara","tips","definisi","jenis","manfaat"];
       const text = (title + " " + content).toLowerCase();
       if(timeKeywords.some(k => text.includes(k))) return false;
       if(evergreenKeywords.some(k => text.includes(k))) return true;
-      const hasPriceTable = document.querySelectorAll("table").length > 0;
-      if(hasPriceTable) return false;
-      return true;
+      return !document.querySelector("table");
     }
     const isEvergreen = detectEvergreen(title, document.body.innerText);
 
-    // Tentukan priceValidUntil otomatis
+    // === 9️⃣ priceValidUntil ===
     const now = new Date();
     const priceValidUntil = new Date(now);
-    if(isEvergreen){
-      priceValidUntil.setFullYear(now.getFullYear() + 1);
-    } else {
-      priceValidUntil.setMonth(now.getMonth() + 3);
-    }
+    if(isEvergreen) priceValidUntil.setFullYear(now.getFullYear() + 1);
+    else priceValidUntil.setMonth(now.getMonth() + 3);
     const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
 
-    // === 6️⃣ PARSER TABLE & TEKS HARGA ===
+    // === 🔟 PARSER TABLE & TEKS HARGA ===
     const seenItems = new Set();
     const tableOffers = [];
     function addOffer(name, key, price, desc="") {
@@ -142,7 +146,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     });
 
-    // === 7️⃣ INTERNAL LINK ===
+    // === 11️⃣ INTERNAL LINK ===
     const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a"))
       .filter(a => a.href && a.href.includes(location.hostname) && a.href !== location.href)
       .map(a => ({ url:a.href, name:a.innerText.trim() }));
@@ -150,7 +154,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     rawLinks.forEach(i=>{ if(!uniqueMap.has(i.url)) uniqueMap.set(i.url, i.name||i.url); });
     const internalLinks = Array.from(uniqueMap.entries()).map(([url,name],i)=>({ "@type":"ListItem", position:i+1, url, name }));
 
-    // === 8️⃣ BUSINESS ENTITY ===
+    // === 12️⃣ BUSINESS ENTITY ===
     const business = {
       "@type":["LocalBusiness","GeneralContractor"],
       "@id":"https://www.betonjayareadymix.com/#localbusiness",
@@ -164,11 +168,12 @@ document.addEventListener("DOMContentLoaded", async function () {
       logo: fallbackImage
     };
 
-    // === 9️⃣ MAIN ENTITY PRODUCT ===
+    // === 13️⃣ MAIN ENTITY PRODUCT ===
     const mainEntity = {
       "@type":"Product",
       "@id": cleanUrl+"#product",
       "mainEntityOfPage": { "@type":"WebPage","@id": cleanUrl+"#webpage" },
+      "isPartOf": { "@type":"WebPage", "@id": parentUrl },
       name: productName,
       image: [ contentImage || fallbackImage ],
       description: desc,
@@ -179,7 +184,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       offers: tableOffers
     };
 
-    // === 10️⃣ WEBPAGE ===
+    // === 14️⃣ WEBPAGE ===
     const webpage = {
       "@type":"WebPage",
       "@id": cleanUrl+"#webpage",
@@ -189,9 +194,11 @@ document.addEventListener("DOMContentLoaded", async function () {
       image: [ contentImage || fallbackImage ],
       mainEntity: { "@id": mainEntity["@id"] },
       publisher: { "@id": business["@id"] },
+      "isPartOf": { "@type": "WebPage", "@id": parentUrl },
       ...(internalLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } })
     };
 
+    // === 15️⃣ GRAPH BUILD ===
     const graph = [webpage, business, mainEntity];
     if(internalLinks.length) graph.push({
       "@type":"ItemList",
@@ -201,7 +208,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       itemListElement: internalLinks
     });
 
-    // === 11️⃣ OUTPUT JSON-LD ===
+    // === 16️⃣ OUTPUT JSON-LD ===
     let scriptEl = document.querySelector("#auto-schema-product");
     if(!scriptEl){
       scriptEl = document.createElement("script");
@@ -211,6 +218,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     scriptEl.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
 
-    console.log(`[AutoSchema v4.52+ ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length} | Category: ${productCategory} | Evergreen: ${isEvergreen}`);
+    console.log(`[AutoSchema v4.53+ ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length} | Category: ${productCategory} | Parent: ${parentUrl}`);
   }, 500);
 });
