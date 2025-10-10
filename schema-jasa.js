@@ -246,7 +246,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             seller:{ "@id": PAGE.business.url + "#localbusiness" },
             description: desc || undefined
           });
-          if(name && !serviceTypes.includes(name)) serviceTypes.push(name);
+        //  if(name && !serviceTypes.includes(name)) serviceTypes.push(name);
         }
       }
 
