@@ -466,5 +466,5 @@ document.addEventListener("DOMContentLoaded", async function () {
       observer.observe(document.body, { childList: true, subtree: true });
     }
 
-  }, 500);
+  }, 600);
 });
