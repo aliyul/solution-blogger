@@ -1,4 +1,4 @@
-// ⚡ AutoSchema Hybrid v4.53+ — Product + Service + Offers + isPartOf + Auto AreaServed | Beton Jaya Readymix
+// ⚡ AutoSchema Hybrid v4.53+ — Product + Service + Offers + isPartOf (Smart Multi) + Auto AreaServed | Beton Jaya Readymix
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
     console.log("[AutoSchema Hybrid v4.53+ 🚀] Start detection (Service + Product + Offers + isPartOf + Auto AreaServed)");
@@ -14,16 +14,30 @@ document.addEventListener("DOMContentLoaded", async function () {
     const metaDesc = document.querySelector('meta[name="description"]')?.content?.trim();
     const desc = metaDesc || Array.from(document.querySelectorAll("p")).map(p => p.innerText.trim()).join(" ").substring(0, 300);
 
-    // === 2️⃣ URL PARENT ===
-    const parentMeta = document.querySelector('meta[name="parent-url"]')?.content?.trim();
-    const parentUrl = parentMeta || (() => {
-      const breadcrumbs = Array.from(document.querySelectorAll(".breadcrumbs a"))
+    // === 2️⃣ SMART MULTI isPartOf DETECTION ===
+    function detectParentUrls() {
+      const urls = new Set();
+
+      // 🧩 1️⃣ Breadcrumb detection
+      const breadcrumbLinks = Array.from(document.querySelectorAll(".breadcrumbs a"))
         .map(a => a.href)
         .filter(href => href && href !== location.href);
-      return breadcrumbs.length ? breadcrumbs.pop() : location.origin;
-    })();
+      breadcrumbLinks.forEach(url => urls.add(url));
 
-    // === 3️⃣ IMAGE DETECTION (tanpa og:image) ===
+      // 🧩 2️⃣ Meta parent-url
+      const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
+      if (metaParent && !urls.has(metaParent)) urls.add(metaParent);
+
+      // 🧩 3️⃣ Fallback ke domain utama
+      if (urls.size === 0) urls.add(location.origin);
+
+      // 🧩 4️⃣ Convert ke array objek schema
+      return Array.from(urls).map(u => ({ "@type": "WebPage", "@id": u }));
+    }
+
+    const parentUrls = detectParentUrls();
+
+    // === 3️⃣ IMAGE DETECTION ===
     let contentImage = "";
     const imgEl = document.querySelector("article img, main img, .post-body img, table img, img");
     if (imgEl && imgEl.src && !/favicon|blank|logo/i.test(imgEl.src)) contentImage = imgEl.src.trim();
@@ -41,48 +55,39 @@ document.addEventListener("DOMContentLoaded", async function () {
     };
     const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type":"Place", name: a }));
 
-    // === 🧠 4B️⃣ DETEKSI AREA SERVED OTOMATIS (SMART VER) ===
-        async function detectAreaServed() {
-          const h1 = titleRaw.toLowerCase();
-        
-          // 1️⃣ Deteksi langsung kota/kab dari daftar utama
-          for (const [kota, prov] of Object.entries(areaProv)) {
-            const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
-            if (h1.includes(nameLow)) {
-              return [{ "@type": "Place", name: kota, addressRegion: prov }];
-            }
-          }
-        
-          // 2️⃣ Deteksi kecamatan otomatis pakai pola umum
-          const match = h1.match(/\b([a-z]{3,15})\b/i);
-          if (match) {
-            const kecamatanGuess = match[1];
-            try {
-              // Gunakan API geonames bawaan browser via fetch ke Wikipedia (tanpa API key)
-              const response = await fetch(`https://id.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(kecamatanGuess)}&limit=1`);
-              const data = await response.json();
-              if (data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")) {
-                const desc = data.pages[0].description;
-                // Ekstrak kota/provinsi dari deskripsi Wikipedia
-                const parts = desc.split(",").map(p => p.trim());
-                const kec = parts[0] || kecamatanGuess;
-                const city = parts[1] || "Wilayah Sekitarnya";
-                const prov = parts[2] || "Jawa Barat";
-                return [
-                  { "@type": "Place", name: "Kecamatan " + kec },
-                  { "@type": "Place", name: city, addressRegion: prov }
-                ];
-              }
-            } catch (e) {
-              console.warn("⚠️ Area auto detection fallback", e);
-            }
-          }
-        
-          // 3️⃣ Default jika tidak ditemukan
-          return defaultAreaServed;
+    // === 🧠 4B️⃣ DETEKSI AREA SERVED OTOMATIS ===
+    async function detectAreaServed() {
+      const h1 = titleRaw.toLowerCase();
+      for (const [kota, prov] of Object.entries(areaProv)) {
+        const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
+        if (h1.includes(nameLow)) {
+          return [{ "@type": "Place", name: kota, addressRegion: prov }];
         }
-        
-        const productAreaServed = detectAreaServed();
+      }
+      const match = h1.match(/\b([a-z]{3,15})\b/i);
+      if (match) {
+        const kecamatanGuess = match[1];
+        try {
+          const response = await fetch(`https://id.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(kecamatanGuess)}&limit=1`);
+          const data = await response.json();
+          if (data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")) {
+            const desc = data.pages[0].description;
+            const parts = desc.split(",").map(p => p.trim());
+            const kec = parts[0] || kecamatanGuess;
+            const city = parts[1] || "Wilayah Sekitarnya";
+            const prov = parts[2] || "Jawa Barat";
+            return [
+              { "@type": "Place", name: "Kecamatan " + kec },
+              { "@type": "Place", name: city, addressRegion: prov }
+            ];
+          }
+        } catch (e) {
+          console.warn("⚠️ Area auto detection fallback", e);
+        }
+      }
+      return defaultAreaServed;
+    }
+    const productAreaServed = detectAreaServed();
 
     // === 5️⃣ BRAND DETECTION ===
     const text = document.body.innerText.toLowerCase();
@@ -90,7 +95,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const brandMatch = text.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|solusi bangun/i);
     if (brandMatch) brandName = brandMatch[0].replace(/\b\w/g, l => l.toUpperCase());
 
-    // === 6️⃣ PRODUCT NAME DARI URL ===
+    // === 6️⃣ PRODUCT NAME FROM URL ===
     function getProductNameFromUrl() {
       let path = location.pathname.replace(/^\/|\/$/g,"").split("/").pop();
       path = path.replace(".html","").replace(/-/g," ");
@@ -98,7 +103,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     const productName = getProductNameFromUrl();
 
-    // === 7️⃣ DETEKSI KATEGORI PRODUK OTOMATIS ===
+    // === 7️⃣ DETEKSI KATEGORI PRODUK ===
     const productKeywords = {
       BuildingMaterial: ["beton","ready mix","precast","buis","gorong gorong","panel","semen","besi","pipa"],
       ConstructionEquipment: ["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"]
@@ -212,7 +217,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       "@type":"Product",
       "@id": cleanUrl+"#product",
       "mainEntityOfPage": { "@type":"WebPage","@id": cleanUrl+"#webpage" },
-      "isPartOf": { "@type":"WebPage", "@id": parentUrl },
+      "isPartOf": parentUrls,
       name: productName,
       image: [ contentImage || fallbackImage ],
       description: desc,
@@ -234,7 +239,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       image: [ contentImage || fallbackImage ],
       mainEntity: { "@id": mainEntity["@id"] },
       publisher: { "@id": business["@id"] },
-      "isPartOf": { "@type": "WebPage", "@id": parentUrl },
+      "isPartOf": parentUrls,
       ...(internalLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } })
     };
 
@@ -258,6 +263,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     scriptEl.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
 
-    console.log(`[AutoSchema v4.53+ ✅] Product: ${productName} | Items: ${tableOffers.length} | AreaServed: ${productAreaServed.map(a=>a.name||a).join(", ")} | Parent: ${parentUrl}`);
+    console.log(`[AutoSchema v4.53+ ✅] Product: ${productName} | Offers: ${tableOffers.length} | Parent(s): ${parentUrls.map(p=>p["@id"]).join(", ")}`);
   }, 500);
 });
