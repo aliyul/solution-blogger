@@ -1,4 +1,4 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.53 — Hybrid Service + Product | Beton Jaya Readymix */
+//* ⚡ AUTO SCHEMA UNIVERSAL v4.54 — Hybrid Service + Product | Beton Jaya Readymix */
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema Service v4.53 🚀] Auto generator dijalankan (Service + Product + Offers)");
+      console.log("[Schema Service v4.54 🚀] Auto generator dijalankan (Service + Product + Offers)");
 
       // === 1️⃣ INFO HALAMAN ===
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -47,41 +47,75 @@ document.addEventListener("DOMContentLoaded", async function () {
       // === 2️⃣ URL PARENT ===
       const parentMeta = document.querySelector('meta[name="parent-url"]')?.content?.trim();
       const parentUrl = parentMeta || (() => {
-        // ambil semua link dari breadcrumbs (pakai .breadcrumbs a, bukan nav)
         const breadcrumbs = Array.from(document.querySelectorAll(".breadcrumbs a"))
           .map(a => a.href)
           .filter(href => href && href !== location.href);
-      
-        // ambil link terakhir sebelum halaman aktif (biasanya level terakhir sebelum span pageName)
         return breadcrumbs.length ? breadcrumbs.pop() : location.origin;
       })();
       const cleanParentUrl = parentUrl ? parentUrl.replace(/[?&]m=1/, "") : null;
 
-      // === 2️⃣ AREA DEFAULT ===
-      const areaJSON = {
-        "Kabupaten Bogor": "Jawa Barat", "Kota Bogor": "Jawa Barat",
-        "Kota Depok": "Jawa Barat", "Kabupaten Bekasi": "Jawa Barat",
-        "Kota Bekasi": "Jawa Barat", "Kabupaten Karawang": "Jawa Barat",
-        "Kabupaten Serang": "Banten", "Kota Serang": "Banten",
-        "Kota Cilegon": "Banten", "Kabupaten Tangerang": "Banten",
-        "Kota Tangerang": "Banten", "Kota Tangerang Selatan": "Banten",
-        "DKI Jakarta": "DKI Jakarta",
-      };
-      const defaultAreaServed = Object.keys(areaJSON).map(k => ({ "@type": "Place", name: k }));
-      async function detectArea(url, title = "") { return defaultAreaServed; }
-      const areaServed = await detectArea(PAGE.url, PAGE.title);
+         // === 4️⃣ AREA DASAR ===
+    const areaProv = {
+      "Kabupaten Bogor": "Jawa Barat","Kota Bogor": "Jawa Barat",
+      "Kota Depok": "Jawa Barat","Kabupaten Bekasi": "Jawa Barat",
+      "Kota Bekasi": "Jawa Barat","Kabupaten Karawang": "Jawa Barat",
+      "Kabupaten Serang": "Banten","Kota Serang": "Banten",
+      "Kota Cilegon": "Banten","Kabupaten Tangerang": "Banten",
+      "Kota Tangerang": "Banten","Kota Tangerang Selatan": "Banten",
+      "DKI Jakarta": "DKI Jakarta"
+    };
+    const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type":"Place", name: a }));
+
+    // === 🧠 4B️⃣ DETEKSI AREA SERVED OTOMATIS (SMART VER) ===
+      async function detectAreaServed() {
+        const h1 = titleRaw.toLowerCase();
+      
+        // 1️⃣ Deteksi langsung kota/kab dari daftar utama
+        for (const [kota, prov] of Object.entries(areaProv)) {
+          const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
+          if (h1.includes(nameLow)) {
+            return [{ "@type": "Place", name: kota, addressRegion: prov }];
+          }
+        }
+      
+        // 2️⃣ Deteksi kecamatan otomatis pakai pola umum
+        const match = h1.match(/\b([a-z]{3,15})\b/i);
+        if (match) {
+          const kecamatanGuess = match[1];
+          try {
+            // Gunakan API geonames bawaan browser via fetch ke Wikipedia (tanpa API key)
+            const response = await fetch(`https://id.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(kecamatanGuess)}&limit=1`);
+            const data = await response.json();
+            if (data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")) {
+              const desc = data.pages[0].description;
+              // Ekstrak kota/provinsi dari deskripsi Wikipedia
+              const parts = desc.split(",").map(p => p.trim());
+              const kec = parts[0] || kecamatanGuess;
+              const city = parts[1] || "Wilayah Sekitarnya";
+              const prov = parts[2] || "Jawa Barat";
+              return [
+                { "@type": "Place", name: "Kecamatan " + kec },
+                { "@type": "Place", name: city, addressRegion: prov }
+              ];
+            }
+          } catch (e) {
+            console.warn("⚠️ Area auto detection fallback", e);
+          }
+        }
+      
+        // 3️⃣ Default jika tidak ditemukan
+        return defaultAreaServed;
+      }
+      
+      const serviceAreaServed = detectAreaServed();
 
       function detectKnowsAbout() {
-        // === 1️⃣ Ambil sumber utama (H1 > Title > URL slug) ===
         let raw =
           document.querySelector("h1")?.textContent?.trim() ||
           document.title.trim() ||
           location.pathname.split("/").pop().replace(/[-_]/g, " ");
-      
         const text = raw.toLowerCase();
         const topics = new Set();
-      
-        // === 2️⃣ Kamus kategori dinamis ===
         const keywordMap = {
           "Beton cor / Ready mix": ["beton cor", "ready mix", "readymix", "minimix", "mix"],
           "Precast": ["precast", "u ditch", "box culvert", "buis", "panel", "kanstin", "saluran", "culvert"],
@@ -89,87 +123,59 @@ document.addEventListener("DOMContentLoaded", async function () {
           "Jasa konstruksi": ["jasa", "kontraktor", "konstruksi", "pembangunan", "renovasi", "perbaikan", "proyek"],
           "Merek beton": ["jayamix", "adhimix", "scg", "pionir", "tiga roda", "holcim", "dynamix"]
         };
-      
-        // === 3️⃣ Pendeteksian multi-topik ===
         for (const [label, keywords] of Object.entries(keywordMap)) {
           for (const word of keywords) {
             if (text.includes(word)) {
-              // Pisahkan kategori gabungan seperti "Beton cor / Ready mix"
               label.split("/").forEach(l => topics.add(l.trim()));
               break;
             }
           }
         }
-      
-        // === 4️⃣ Fallback jika tak terdeteksi ===
         if (topics.size === 0 && raw) {
-          // Ambil kata2 penting tanpa angka atau kata umum
-          const cleaned = raw
-            .replace(/\d+/g, "")
+          const cleaned = raw.replace(/\d+/g, "")
             .replace(/\b(harga|jual|sewa|jasa|murah|terdekat|beton|precast)\b/gi, "")
             .trim();
-      
-          const words = cleaned.split(/\s+/).slice(0, 3); // ambil 3 kata pertama
+          const words = cleaned.split(/\s+/).slice(0, 3);
           const titleCase = words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
           if (titleCase.length) topics.add(titleCase.join(" "));
         }
-      
-        // === 5️⃣ Return hasil akhir rapi ===
         return Array.from(topics);
       }
- 
-     // ⚡ Auto ServiceType Semantic Detector v6.2 — No Hardcoded Keywords
+
       function detectServiceType() {
-        // --- Ambil sumber utama ---
         const h1 = document.querySelector("h1")?.textContent?.trim() || "";
         const p1 = document.querySelector("main p, article p")?.textContent?.trim() || "";
         const text = (h1 + " " + p1).toLowerCase();
-      
-        // --- 1️⃣ Bersihkan kata umum yang tidak informatif ---
         let clean = text
           .replace(/\b(harga|murah|terdekat|terpercaya|berkualitas|profesional|resmi|202\d|terbaru|update)\b/gi, "")
           .replace(/[^\w\s]/g, " ")
           .replace(/\s+/g, " ")
           .trim();
-      
-        // --- 2️⃣ Cari frasa 2–5 kata paling relevan di awal H1 ---
         const words = clean.split(" ");
         let corePhrase = words.slice(0, 5).join(" ").trim();
-      
-        // --- 3️⃣ Analisis struktur kalimat: ambil kombinasi awal yang paling deskriptif ---
-        // Deteksi pola seperti “jasa buang puing”, “sewa excavator”, “harga ready mix beton cor”, dll
         const stopwords = ["dan", "atau", "dengan", "untuk", "serta", "yang"];
         corePhrase = corePhrase
           .split(" ")
           .filter(w => !stopwords.includes(w))
           .slice(0, 4)
           .join(" ");
-      
-        // --- 4️⃣ Buat format rapi (capitalize tiap kata) ---
         function toTitleCase(str) {
           return str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1));
         }
-      
         let serviceType = toTitleCase(corePhrase);
-      
-        // --- 5️⃣ Validasi tambahan dari paragraf pertama (kalau lebih spesifik) ---
         const match = p1.match(/(jasa|sewa|jual|beli|pengiriman|pembuatan|pemasangan)\s+[a-z\s]{3,30}/i);
         if (match && match[0].length > 10) {
           serviceType = toTitleCase(match[0].trim());
         }
-      
-        // --- 6️⃣ Hasil fallback jika terlalu pendek ---
         if (!serviceType || serviceType.split(" ").length < 2) {
           serviceType = toTitleCase(h1.split(" ").slice(0, 3).join(" "));
         }
-      
-        // --- 7️⃣ Return hasil terdeteksi ---
         return serviceType.trim();
       }
-        let serviceTypes = detectServiceType();
-       console.log("🔎 Service Type Terdeteksi:", serviceTypes);
-      
-      // === 4️⃣ DETEKSI PRODUCT DARI URL + TABLE ===
+
+      let serviceTypes = detectServiceType();
+      console.log("🔎 Service Type Terdeteksi:", serviceTypes);
+
       function getProductNameFromUrl() {
         let path = location.pathname.replace(/^\/|\/$/g, "").split("/").pop();
         path = path.replace(".html","").replace(/-/g," ");
@@ -177,7 +183,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       const productName = getProductNameFromUrl();
 
-      // === 4a️⃣ DETEKSI KATEGORI PRODUK OTOMATIS ===
       const productKeywords = {
         BuildingMaterial: ["beton","ready mix","precast","besi","pipa","semen","buis","gorong gorong","panel"],
         ConstructionEquipment: ["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"]
@@ -199,15 +204,12 @@ document.addEventListener("DOMContentLoaded", async function () {
       const productCategory = detectProductCategory(productName);
       const productSameAs = detectProductSameAs(productCategory);
 
-      // === 4b️⃣ DETEKSI EVERGREEN DENGAN LSI & PANJANG KONTEN ===
       function detectEvergreen(title, content) {
         const timeKeywords = ["harga","promo","update","tarif","2025","2026","diskon"];
         const evergreenKeywords = ["panduan","cara","tips","definisi","jenis","manfaat","tutorial","strategi"];
         const text = (title + " " + content).toLowerCase();
-
         if(content.split(/\s+/).length < 300) return false;
         if(timeKeywords.some(k => text.includes(k))) return false;
-
         let evergreenCount = evergreenKeywords.reduce((acc,k) => acc + (text.includes(k)?1:0), 0);
         if(evergreenCount >= 2) return true;
         if(document.querySelectorAll("table").length > 0) return false;
@@ -215,7 +217,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       const isEvergreen = detectEvergreen(PAGE.title, document.body.innerText);
 
-      // === 4c️⃣ PRICE VALID UNTIL OTOMATIS ===
       const now = new Date();
       const priceValidUntil = new Date(now);
       if(isEvergreen){
@@ -225,7 +226,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
 
-      // === 4d️⃣ ADD OFFER ===
       const seenItems = new Set();
       const tableOffers = [];
       function addOffer(name, key, price, desc="") {
@@ -246,11 +246,9 @@ document.addEventListener("DOMContentLoaded", async function () {
             seller:{ "@id": PAGE.business.url + "#localbusiness" },
             description: desc || undefined
           });
-        //  if(name && !serviceTypes.includes(name)) serviceTypes.push(name);
         }
       }
 
-      // === 4e️⃣ PARSE TABLE & BODY ===
       Array.from(document.querySelectorAll("table")).forEach(table=>{
         Array.from(table.querySelectorAll("tr")).forEach(row=>{
           const cells = Array.from(row.querySelectorAll("td, th")).slice(0,6);
@@ -266,6 +264,7 @@ document.addEventListener("DOMContentLoaded", async function () {
           }
         });
       });
+
       document.body.innerText.split("\n").forEach(line=>{
         const m = line.match(/Rp\s*([\d.,]{4,})/);
         if(m){
@@ -282,14 +281,12 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       const isProductPage = tableOffers.length > 0;
 
-      // === 5️⃣ INTERNAL LINKS ===
       const anchors = [...document.querySelectorAll("article a, main a, .post-body a")]
         .filter(a => a.href && a.href.includes(location.hostname) && !a.href.includes("#"))
         .map(a => ({ url: a.href.split("#")[0].replace(/[?&]m=1/, ""), name: a.innerText.trim() || a.href }));
       const uniqueLinks = Array.from(new Map(anchors.map(a => [a.url, a.name])).entries())
         .map(([url, name], i) => ({ "@type": "ListItem", position: i + 1, url, name }));
 
-      // === 6️⃣ BUILD GRAPH ===
       const graph = [];
 
       const localBiz = {
@@ -303,24 +300,21 @@ document.addEventListener("DOMContentLoaded", async function () {
         openingHours: PAGE.business.openingHours,
         logo: PAGE.image,
         sameAs: PAGE.business.sameAs,
-        areaServed,
+        areaServed : defaultAreaServed,
         "knowsAbout": detectKnowsAbout(),
         ...(isProductPage && { hasOfferCatalog: { "@id": cleanUrl + "#product" } })
       };
       graph.push(localBiz);
 
-      // If parent page is detected and different from current page, optionally add a minimal parent WebPage node
       let parentWebPageNode = null;
       if (cleanParentUrl && cleanParentUrl !== location.origin) {
         const parentId = cleanParentUrl + "#webpage";
-        // Add a lightweight parent node to the graph (no deep scraping — minimal representation)
         parentWebPageNode = {
           "@type": "WebPage",
           "@id": parentId,
           url: cleanParentUrl,
-          name: undefined // not scraping other page for title to avoid cross-origin; left undefined
+          name: undefined 
         };
-        // Only push parent node if it's not the same as current page
         if (parentId !== cleanUrl + "#webpage") graph.push(parentWebPageNode);
       }
 
@@ -334,7 +328,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         mainEntity: { "@id": cleanUrl + "#service" },
         publisher: { "@id": PAGE.business.url + "#localbusiness" },
         ...(uniqueLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } }),
-        // Tambahkan isPartOf jika parent valid dan berbeda dari halaman saat ini
         ...(cleanParentUrl && cleanParentUrl !== cleanUrl ? { isPartOf: { "@id": (cleanParentUrl + "#webpage") } } : {})
       };
       graph.push(webpage);
@@ -346,7 +339,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         description: PAGE.description,
         image: PAGE.image,
         serviceType: serviceTypes,
-        areaServed,
+        areaServed: serviceAreaServed, // ✅ Tambahan di sini
         provider: { "@id": PAGE.business.url + "#localbusiness" },
         brand: { "@type":"Brand", name: PAGE.business.name },
         mainEntityOfPage: { "@id": cleanUrl + "#webpage" },
@@ -400,7 +393,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
       }
 
-      // === 8️⃣ OUTPUT ===
       const schema = { "@context": "https://schema.org", "@graph": graph };
       let el = document.querySelector("#auto-schema-service");
       if(!el){
@@ -411,7 +403,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       el.textContent = JSON.stringify(schema, null, 2);
 
-      console.log(`[Schema v4.53 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes} | Evergreen: ${isEvergreen} | Parent: ${cleanParentUrl ? cleanParentUrl : "none"}`);
+      console.log(`[Schema v4.54 ✅] Injected | Type: Service${isProductPage ? "+Product" : ""} | Items: ${tableOffers.length} | Area: ${areaServed.length} | ServiceType: ${serviceTypes} | Evergreen: ${isEvergreen} | Parent: ${cleanParentUrl ? cleanParentUrl : "none"}`);
     }
 
     if(document.querySelector("h1") && document.querySelector(".post-body")){
