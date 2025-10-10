@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         // ambil link terakhir sebelum halaman aktif (biasanya level terakhir sebelum span pageName)
         return breadcrumbs.length ? breadcrumbs.pop() : location.origin;
       })();
-
+      const cleanParentUrl = parentUrl ? parentUrl.replace(/[?&]m=1/, "") : null;
 
       // === 2️⃣ AREA DEFAULT ===
       const areaJSON = {
