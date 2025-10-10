@@ -27,13 +27,19 @@ document.addEventListener("DOMContentLoaded", async function () {
     })();
 
 
-    // === 3️⃣ IMAGE DETECTION ===
-    let contentImage = document.querySelector('meta[property="og:image"]')?.content?.trim();
-    if(!contentImage){
-      const imgEl = document.querySelector("table img, article img, main img, .post-body img, img");
-      if(imgEl && imgEl.src && !imgEl.src.includes("favicon")) contentImage = imgEl.src;
+   // === 3️⃣ IMAGE DETECTION (tanpa og:image) ===
+    let contentImage = "";
+    
+    const imgEl = document.querySelector("article img, main img, .post-body img, table img, img");
+    if (imgEl && imgEl.src && !/favicon|blank|logo/i.test(imgEl.src)) {
+      contentImage = imgEl.src.trim();
     }
-    if(!contentImage) contentImage = fallbackImage;
+    
+    if (!contentImage) {
+      // fallbackImage wajib sudah didefinisikan sebelumnya
+      contentImage = fallbackImage;
+    }
+
 
     // === 4️⃣ AREA DASAR ===
     const areaProv = {
