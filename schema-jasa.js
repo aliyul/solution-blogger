@@ -1,4 +1,4 @@
-//* ⚡ AUTO SCHEMA UNIVERSAL v4.54+dual-parent — Hybrid Service + Product | Beton Jaya Readymix */
+/* ⚡ AUTO SCHEMA UNIVERSAL v4.55+dual-parent-autoItemList — Hybrid Service + Product | Beton Jaya Readymix */
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema Service v4.54+ 🚀] Auto generator dijalankan (Service + Product + Offers + Multi Parent)");
+      console.log("[Schema v4.55+ 🚀] Auto generator dijalankan (Service + Product + Offers + Multi Parent + ItemList)");
 
       // === 1️⃣ INFO HALAMAN ===
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -39,12 +39,12 @@ document.addEventListener("DOMContentLoaded", async function () {
           },
           sameAs: [
             "https://www.facebook.com/betonjayareadymix",
-            "https://www.instagram.com/betonjayareadymix",
-          ],
-        },
+            "https://www.instagram.com/betonjayareadymix"
+          ]
+        }
       };
 
-      // === 2️⃣ URL PARENT (MULTI SUPPORT + FALLBACK 2 LEVEL BREADCRUMB) ===
+      // === 2️⃣ URL PARENT (MULTI BREADCRUMB SUPPORT) ===
       const parentUrls = [];
       document.querySelectorAll('meta[name^="parent-url"]').forEach(meta => {
         const url = meta.content?.trim()?.replace(/[?&]m=1/, "");
@@ -56,32 +56,26 @@ document.addEventListener("DOMContentLoaded", async function () {
           .map(a => a.href)
           .filter(href => href && href !== location.href);
         if (breadcrumbs.length >= 2) {
-          // Ambil dua terakhir dari breadcrumb (misal: Lokasi & Depok)
           parentUrls.push(breadcrumbs[breadcrumbs.length - 2]);
           parentUrls.push(breadcrumbs[breadcrumbs.length - 1]);
         } else if (breadcrumbs.length === 1) {
           parentUrls.push(breadcrumbs.pop());
         }
       }
+      const cleanParentUrls = parentUrls.map(u => u.replace(/[?&]m=1/, "")).filter(u => u && u !== location.origin);
 
-      const cleanParentUrls = parentUrls
-        .map(u => u.replace(/[?&]m=1/, ""))
-        .filter(u => u && u !== location.origin);
-      const cleanParentUrl = cleanParentUrls.length ? cleanParentUrls[0] : null;
-
-      // === 3️⃣ AREA DASAR ===
+      // === 3️⃣ AREA SERVED DETECTION ===
       const areaProv = {
-        "Kabupaten Bogor": "Jawa Barat", "Kota Bogor": "Jawa Barat",
-        "Kota Depok": "Jawa Barat", "Kabupaten Bekasi": "Jawa Barat",
-        "Kota Bekasi": "Jawa Barat", "Kabupaten Karawang": "Jawa Barat",
-        "Kabupaten Serang": "Banten", "Kota Serang": "Banten",
-        "Kota Cilegon": "Banten", "Kabupaten Tangerang": "Banten",
-        "Kota Tangerang": "Banten", "Kota Tangerang Selatan": "Banten",
+        "Kabupaten Bogor": "Jawa Barat","Kota Bogor": "Jawa Barat",
+        "Kota Depok": "Jawa Barat","Kabupaten Bekasi": "Jawa Barat",
+        "Kota Bekasi": "Jawa Barat","Kabupaten Karawang": "Jawa Barat",
+        "Kabupaten Serang": "Banten","Kota Serang": "Banten",
+        "Kota Cilegon": "Banten","Kabupaten Tangerang": "Banten",
+        "Kota Tangerang": "Banten","Kota Tangerang Selatan": "Banten",
         "DKI Jakarta": "DKI Jakarta"
       };
-      const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type":"Place", name: a }));
+      const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type": "Place", name: a }));
 
-      // === 🧠 DETEKSI AREA SERVED OTOMATIS (SMART VER) ===
       async function detectAreaServed() {
         const h1 = PAGE.title.toLowerCase();
         for (const [kota, prov] of Object.entries(areaProv)) {
@@ -94,55 +88,72 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       const serviceAreaServed = await detectAreaServed();
 
-      // === 🔎 DETEKSI KONTEN & PRODUK ===
-      function detectKnowsAbout() {
-        let raw = document.querySelector("h1")?.textContent?.trim() || document.title.trim() || "";
-        const text = raw.toLowerCase();
-        const topics = new Set();
-        const keywordMap = {
-          "Beton cor / Ready mix": ["beton cor", "ready mix", "readymix", "minimix", "mix"],
-          "Precast": ["precast", "u ditch", "box culvert", "buis", "panel", "kanstin", "saluran", "culvert"],
-          "Sewa alat berat": ["sewa", "rental", "alat berat", "excavator", "bulldozer", "crane", "roller", "vibro", "tandem"],
-          "Jasa konstruksi": ["jasa", "kontraktor", "konstruksi", "pembangunan", "renovasi", "proyek"],
-          "Merek beton": ["jayamix", "adhimix", "scg", "pionir", "tiga roda", "holcim", "dynamix"]
-        };
-        for (const [label, keywords] of Object.entries(keywordMap)) {
-          for (const word of keywords) {
-            if (text.includes(word)) {
-              label.split("/").forEach(l => topics.add(l.trim()));
-              break;
-            }
-          }
-        }
-        return Array.from(topics);
-      }
+      // === 4️⃣ AUTO KNOWS ABOUT ===
+     function detectKnowsAbout() {
+      // Ambil teks utama dari H1 + konten
+      const h1 = document.querySelector("h1")?.innerText || "";
+      const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
+                            .map(p => p.innerText)
+                            .join(" ");
+      const text = (h1 + " " + content).toLowerCase();
+    
+      // Bersihkan teks: hapus karakter non-alfabet & stopwords sederhana
+      const stopwords = new Set([
+        "dan","di","yang","untuk","dengan","pada","adalah","atau","ini","juga","oleh","dari","sebagai","dalam","saja","tetapi","agar"
+      ]);
+      const words = text.match(/\b[a-z]{3,}\b/g) || [];
+      const filtered = words.filter(w => !stopwords.has(w));
+    
+      // Hitung frekuensi kata
+      const freq = {};
+      filtered.forEach(w => { freq[w] = (freq[w] || 0) + 1; });
+    
+      // Ambil kata paling sering muncul (top 5)
+      const topWords = Object.entries(freq)
+                             .sort((a,b) => b[1] - a[1])
+                             .slice(0,5)
+                             .map(e => e[0]);
+    
+      // Gunakan topWords untuk membuat daftar topik otomatis
+      // Misal: setiap kata menjadi topik sederhana (Google bisa mengerti)
+      return topWords.map(w => w.charAt(0).toUpperCase() + w.slice(1));
+    }
 
-      function getProductNameFromUrl() {
-        let path = location.pathname.replace(/^\/|\/$/g, "").split("/").pop();
-        path = path.replace(".html", "").replace(/-/g, " ");
-        return decodeURIComponent(path).replace(/\b\w/g, l => l.toUpperCase());
-      }
-      const productName = getProductNameFromUrl();
+      // === 5️⃣ AUTO ITEMLIST INTERNAL LINKS (bersih + relevan + unik) ===
+      function generateCleanInternalLinks() {
+        const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
+        const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a, a"))
+          .map(a => a.href)
+          .filter(href =>
+            href && href.includes(location.hostname) &&
+            !href.includes("#") && href !== location.href &&
+            !href.match(/(\/search|\/feed|\/label)/i)
+          )
+          .map(url => url.split("?")[0].replace(/\/$/, "").replace(/[?&].*$/, ""));
+        const unique = [...new Set(rawLinks)];
 
-      // === 🧩 PRODUCT CATEGORY DETECTION ===
-      const productKeywords = {
-        BuildingMaterial: ["beton", "ready mix", "precast", "besi", "pipa", "semen", "buis", "gorong gorong", "panel"],
-        ConstructionEquipment: ["excavator", "bulldozer", "crane", "vibro roller", "tandem roller", "wales", "grader", "dump truck"]
-      };
-      function detectProductCategory(name) {
-        name = name.toLowerCase();
-        for (const [category, keywords] of Object.entries(productKeywords)) {
-          if (keywords.some(k => name.includes(k))) return category;
-        }
-        return "Other";
-      }
-      const productCategory = detectProductCategory(productName);
+        const relevancy = unique.map(url => {
+          const slug = url.replace(location.origin, "").replace(/\.html$/i, "").replace(/\//g, " ");
+          let score = 0;
+          h1.split(" ").forEach(w => { if (slug.toLowerCase().includes(w)) score++; });
+          return { url, score };
+        }).sort((a, b) => b.score - a.score).slice(0, 50);
 
-      // === 🏗️ GRAPH ===
+        return relevancy.map((item, i) => {
+          let nameSlug = item.url.replace(location.origin, "")
+            .replace(".html", "").replace(/^\/+|\/+$/g, "")
+            .replace(/-/g, " ").trim();
+          nameSlug = nameSlug.charAt(0).toUpperCase() + nameSlug.slice(1);
+          return { "@type": "ListItem", position: i + 1, url: item.url, name: nameSlug };
+        });
+      }
+      const internalLinks = generateCleanInternalLinks();
+
+      // === 6️⃣ GRAPH ===
       const graph = [];
 
-      const localBiz = {
-        "@type": ["LocalBusiness", "GeneralContractor"],
+      graph.push({
+        "@type": ["LocalBusiness","GeneralContractor"],
         "@id": PAGE.business.url + "#localbusiness",
         name: PAGE.business.name,
         url: PAGE.business.url,
@@ -152,12 +163,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         openingHours: PAGE.business.openingHours,
         logo: PAGE.image,
         sameAs: PAGE.business.sameAs,
-        areaServed : defaultAreaServed,
-        "knowsAbout": detectKnowsAbout()
-      };
-      graph.push(localBiz);
+        areaServed: defaultAreaServed,
+        knowsAbout: detectKnowsAbout()
+      });
 
-      const webpage = {
+      graph.push({
         "@type": "WebPage",
         "@id": cleanUrl + "#webpage",
         url: cleanUrl,
@@ -166,13 +176,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         image: PAGE.image,
         mainEntity: { "@id": cleanUrl + "#service" },
         publisher: { "@id": PAGE.business.url + "#localbusiness" },
-        ...(cleanParentUrls.length ? {
-          isPartOf: cleanParentUrls.map(u => ({ "@id": u + "#webpage" }))
-        } : {})
-      };
-      graph.push(webpage);
+        ...(cleanParentUrls.length ? { isPartOf: cleanParentUrls.map(u => ({ "@id": u + "#webpage" })) } : {})
+      });
 
-      const service = {
+      graph.push({
         "@type": "Service",
         "@id": cleanUrl + "#service",
         name: PAGE.title,
@@ -182,33 +189,38 @@ document.addEventListener("DOMContentLoaded", async function () {
         provider: { "@id": PAGE.business.url + "#localbusiness" },
         brand: { "@type": "Brand", name: PAGE.business.name },
         mainEntityOfPage: { "@id": cleanUrl + "#webpage" }
-      };
-      graph.push(service);
+      });
 
-      // === 🧠 INJECT SCHEMA ===
+      graph.push({
+        "@type": "ItemList",
+        "@id": cleanUrl + "#internal-links",
+        name: "Daftar Halaman Terkait",
+        numberOfItems: internalLinks.length,
+        itemListElement: internalLinks
+      });
+
+      // === 7️⃣ INJECT ===
       const schema = { "@context": "https://schema.org", "@graph": graph };
       let el = document.querySelector("#auto-schema-service");
-      if(!el){
+      if (!el) {
         el = document.createElement("script");
         el.id = "auto-schema-service";
         el.type = "application/ld+json";
         document.head.appendChild(el);
       }
       el.textContent = JSON.stringify(schema, null, 2);
-
-      console.log(`[Schema v4.54+ ✅] Injected | MultiParent: ${cleanParentUrls.length} | Parents: ${cleanParentUrls.join(", ")}`);
+      console.log(`[Schema v4.55 ✅] Injected | Parents: ${cleanParentUrls.length} | ItemList: ${internalLinks.length}`);
     }
 
-    if(document.querySelector("h1") && document.querySelector(".post-body")){
+    if (document.querySelector("h1") && document.querySelector(".post-body")) {
       await initSchema();
     } else {
-      const observer = new MutationObserver(async () => {
-        if(document.querySelector("h1") && document.querySelector(".post-body")){
-          await initSchema();
-          observer.disconnect();
+      const obs = new MutationObserver(async () => {
+        if (document.querySelector("h1") && document.querySelector(".post-body")) {
+          await initSchema(); obs.disconnect();
         }
       });
-      observer.observe(document.body, { childList: true, subtree: true });
+      obs.observe(document.body, { childList: true, subtree: true });
     }
   }, 600);
 });
