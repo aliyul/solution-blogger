@@ -192,13 +192,60 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     });
 
-    // === 11️⃣ INTERNAL LINK ===
-    const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a"))
-      .filter(a => a.href && a.href.includes(location.hostname) && a.href !== location.href)
-      .map(a => ({ url:a.href, name:a.innerText.trim() }));
-    const uniqueMap = new Map();
-    rawLinks.forEach(i=>{ if(!uniqueMap.has(i.url)) uniqueMap.set(i.url, i.name||i.url); });
-    const internalLinks = Array.from(uniqueMap.entries()).map(([url,name],i)=>({ "@type":"ListItem", position:i+1, url, name }));
+     // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50) ===
+    function generateCleanInternalLinks() {
+      const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
+      const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a, a"))
+        .map(a => a.href)
+        .filter(href =>
+          href &&
+          href.includes(location.hostname) &&
+          !href.includes("#") &&
+          href !== location.href &&
+          !href.match(/(\/search|\/feed|\/label)/i)
+        )
+        .map(url => url.split("?")[0].replace(/\/$/, "").replace(/[?&].*$/, "")); // clean ?m=1, query, slash
+    
+      // Unik & bersih
+      const uniqueUrls = [...new Set(rawLinks)];
+    
+      // Hitung relevansi sederhana berdasarkan kecocokan kata di h1
+      const relevancyScores = uniqueUrls.map(url => {
+        const slug = url.replace(location.origin, "").replace(/\.html$/i, "").replace(/\//g, " ");
+        let score = 0;
+        h1.split(" ").forEach(word => {
+          if (slug.toLowerCase().includes(word)) score++;
+        });
+        return { url, score };
+      });
+    
+      // Urutkan berdasarkan skor relevansi tertinggi
+      relevancyScores.sort((a, b) => b.score - a.score);
+    
+      // Batasi 50 link paling relevan
+      const topLinks = relevancyScores.slice(0, 50);
+    
+      // Buat itemListElement
+      const itemList = topLinks.map((item, i) => {
+        let nameSlug = item.url.replace(location.origin, "")
+          .replace(".html", "")
+          .replace(/^\/+|\/+$/g, "")
+          .replace(/-/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        nameSlug = nameSlug.charAt(0).toUpperCase() + nameSlug.slice(1);
+        return {
+          "@type": "ListItem",
+          position: i + 1,
+          url: item.url,
+          name: nameSlug || `Tautan ${i + 1}`
+        };
+      });
+    
+      return itemList;
+    }
+    
+    const internalLinks = generateCleanInternalLinks();
 
     // === 12️⃣ BUSINESS ENTITY ===
     const business = {
