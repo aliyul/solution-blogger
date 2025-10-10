@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type":"Place", name: a }));
 
     // === 🧠 4B️⃣ DETEKSI AREA SERVED OTOMATIS ===
-    function detectAreaServed() {
+    async function detectAreaServed() {
       const h1 = titleRaw.toLowerCase();
       for (const [kota, prov] of Object.entries(areaProv)) {
         const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
