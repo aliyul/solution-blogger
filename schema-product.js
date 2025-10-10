@@ -1,7 +1,7 @@
-// ⚡ AutoSchema Hybrid v4.53+ — Product + Service + Offers + isPartOf | Beton Jaya Readymix
+// ⚡ AutoSchema Hybrid v4.53+ — Product + Service + Offers + isPartOf + Auto AreaServed | Beton Jaya Readymix
 document.addEventListener("DOMContentLoaded", async function () {
   setTimeout(async () => {
-    console.log("[AutoSchema Hybrid v4.53+ 🚀] Start detection (Service + Product + Offers + isPartOf)");
+    console.log("[AutoSchema Hybrid v4.53+ 🚀] Start detection (Service + Product + Offers + isPartOf + Auto AreaServed)");
 
     const fallbackImage = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
@@ -17,29 +17,17 @@ document.addEventListener("DOMContentLoaded", async function () {
     // === 2️⃣ URL PARENT ===
     const parentMeta = document.querySelector('meta[name="parent-url"]')?.content?.trim();
     const parentUrl = parentMeta || (() => {
-      // ambil semua link dari breadcrumbs (pakai .breadcrumbs a, bukan nav)
       const breadcrumbs = Array.from(document.querySelectorAll(".breadcrumbs a"))
         .map(a => a.href)
         .filter(href => href && href !== location.href);
-    
-      // ambil link terakhir sebelum halaman aktif (biasanya level terakhir sebelum span pageName)
       return breadcrumbs.length ? breadcrumbs.pop() : location.origin;
     })();
 
-
-   // === 3️⃣ IMAGE DETECTION (tanpa og:image) ===
+    // === 3️⃣ IMAGE DETECTION (tanpa og:image) ===
     let contentImage = "";
-    
     const imgEl = document.querySelector("article img, main img, .post-body img, table img, img");
-    if (imgEl && imgEl.src && !/favicon|blank|logo/i.test(imgEl.src)) {
-      contentImage = imgEl.src.trim();
-    }
-    
-    if (!contentImage) {
-      // fallbackImage wajib sudah didefinisikan sebelumnya
-      contentImage = fallbackImage;
-    }
-
+    if (imgEl && imgEl.src && !/favicon|blank|logo/i.test(imgEl.src)) contentImage = imgEl.src.trim();
+    if (!contentImage) contentImage = fallbackImage;
 
     // === 4️⃣ AREA DASAR ===
     const areaProv = {
@@ -52,6 +40,49 @@ document.addEventListener("DOMContentLoaded", async function () {
       "DKI Jakarta": "DKI Jakarta"
     };
     const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type":"Place", name: a }));
+
+    // === 🧠 4B️⃣ DETEKSI AREA SERVED OTOMATIS (SMART VER) ===
+async function detectAreaServed() {
+  const h1 = titleRaw.toLowerCase();
+
+  // 1️⃣ Deteksi langsung kota/kab dari daftar utama
+  for (const [kota, prov] of Object.entries(areaProv)) {
+    const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
+    if (h1.includes(nameLow)) {
+      return [{ "@type": "Place", name: kota, addressRegion: prov }];
+    }
+  }
+
+  // 2️⃣ Deteksi kecamatan otomatis pakai pola umum
+  const match = h1.match(/\b([a-z]{3,15})\b/i);
+  if (match) {
+    const kecamatanGuess = match[1];
+    try {
+      // Gunakan API geonames bawaan browser via fetch ke Wikipedia (tanpa API key)
+      const response = await fetch(`https://id.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(kecamatanGuess)}&limit=1`);
+      const data = await response.json();
+      if (data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")) {
+        const desc = data.pages[0].description;
+        // Ekstrak kota/provinsi dari deskripsi Wikipedia
+        const parts = desc.split(",").map(p => p.trim());
+        const kec = parts[0] || kecamatanGuess;
+        const city = parts[1] || "Wilayah Sekitarnya";
+        const prov = parts[2] || "Jawa Barat";
+        return [
+          { "@type": "Place", name: "Kecamatan " + kec },
+          { "@type": "Place", name: city, addressRegion: prov }
+        ];
+      }
+    } catch (e) {
+      console.warn("⚠️ Area auto detection fallback", e);
+    }
+  }
+
+  // 3️⃣ Default jika tidak ditemukan
+  return defaultAreaServed;
+}
+
+const productAreaServed = detectAreaServed();
 
     // === 5️⃣ BRAND DETECTION ===
     const text = document.body.innerText.toLowerCase();
@@ -124,7 +155,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    // Parsing table
     Array.from(document.querySelectorAll("table")).forEach(table=>{
       Array.from(table.querySelectorAll("tr")).forEach(row=>{
         const cells = Array.from(row.querySelectorAll("td, th")).slice(0,6);
@@ -141,7 +171,6 @@ document.addEventListener("DOMContentLoaded", async function () {
       });
     });
 
-    // Parsing text
     document.body.innerText.split("\n").forEach(line=>{
       const m = line.match(/Rp\s*([\d.,]{4,})/);
       if(m){
@@ -191,7 +220,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       category: productCategory,
       sameAs: wikipediaLink,
       provider: { "@id": business["@id"] },
-      offers: tableOffers
+      offers: tableOffers,
+      areaServed: productAreaServed
     };
 
     // === 14️⃣ WEBPAGE ===
@@ -228,6 +258,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     scriptEl.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
 
-    console.log(`[AutoSchema v4.53+ ✅] Product: ${productName} | Items: ${tableOffers.length} | Links: ${internalLinks.length} | Category: ${productCategory} | Parent: ${parentUrl}`);
+    console.log(`[AutoSchema v4.53+ ✅] Product: ${productName} | Items: ${tableOffers.length} | AreaServed: ${productAreaServed.map(a=>a.name||a).join(", ")} | Parent: ${parentUrl}`);
   }, 500);
 });
