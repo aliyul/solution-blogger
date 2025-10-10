@@ -42,47 +42,47 @@ document.addEventListener("DOMContentLoaded", async function () {
     const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type":"Place", name: a }));
 
     // === 🧠 4B️⃣ DETEKSI AREA SERVED OTOMATIS (SMART VER) ===
-async function detectAreaServed() {
-  const h1 = titleRaw.toLowerCase();
-
-  // 1️⃣ Deteksi langsung kota/kab dari daftar utama
-  for (const [kota, prov] of Object.entries(areaProv)) {
-    const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
-    if (h1.includes(nameLow)) {
-      return [{ "@type": "Place", name: kota, addressRegion: prov }];
-    }
-  }
-
-  // 2️⃣ Deteksi kecamatan otomatis pakai pola umum
-  const match = h1.match(/\b([a-z]{3,15})\b/i);
-  if (match) {
-    const kecamatanGuess = match[1];
-    try {
-      // Gunakan API geonames bawaan browser via fetch ke Wikipedia (tanpa API key)
-      const response = await fetch(`https://id.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(kecamatanGuess)}&limit=1`);
-      const data = await response.json();
-      if (data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")) {
-        const desc = data.pages[0].description;
-        // Ekstrak kota/provinsi dari deskripsi Wikipedia
-        const parts = desc.split(",").map(p => p.trim());
-        const kec = parts[0] || kecamatanGuess;
-        const city = parts[1] || "Wilayah Sekitarnya";
-        const prov = parts[2] || "Jawa Barat";
-        return [
-          { "@type": "Place", name: "Kecamatan " + kec },
-          { "@type": "Place", name: city, addressRegion: prov }
-        ];
-      }
-    } catch (e) {
-      console.warn("⚠️ Area auto detection fallback", e);
-    }
-  }
-
-  // 3️⃣ Default jika tidak ditemukan
-  return defaultAreaServed;
-}
-
-const productAreaServed = detectAreaServed();
+        async function detectAreaServed() {
+          const h1 = titleRaw.toLowerCase();
+        
+          // 1️⃣ Deteksi langsung kota/kab dari daftar utama
+          for (const [kota, prov] of Object.entries(areaProv)) {
+            const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
+            if (h1.includes(nameLow)) {
+              return [{ "@type": "Place", name: kota, addressRegion: prov }];
+            }
+          }
+        
+          // 2️⃣ Deteksi kecamatan otomatis pakai pola umum
+          const match = h1.match(/\b([a-z]{3,15})\b/i);
+          if (match) {
+            const kecamatanGuess = match[1];
+            try {
+              // Gunakan API geonames bawaan browser via fetch ke Wikipedia (tanpa API key)
+              const response = await fetch(`https://id.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(kecamatanGuess)}&limit=1`);
+              const data = await response.json();
+              if (data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")) {
+                const desc = data.pages[0].description;
+                // Ekstrak kota/provinsi dari deskripsi Wikipedia
+                const parts = desc.split(",").map(p => p.trim());
+                const kec = parts[0] || kecamatanGuess;
+                const city = parts[1] || "Wilayah Sekitarnya";
+                const prov = parts[2] || "Jawa Barat";
+                return [
+                  { "@type": "Place", name: "Kecamatan " + kec },
+                  { "@type": "Place", name: city, addressRegion: prov }
+                ];
+              }
+            } catch (e) {
+              console.warn("⚠️ Area auto detection fallback", e);
+            }
+          }
+        
+          // 3️⃣ Default jika tidak ditemukan
+          return defaultAreaServed;
+        }
+        
+        const productAreaServed = detectAreaServed();
 
     // === 5️⃣ BRAND DETECTION ===
     const text = document.body.innerText.toLowerCase();
