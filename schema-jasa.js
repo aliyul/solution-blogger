@@ -117,98 +117,58 @@ document.addEventListener("DOMContentLoaded", async function () {
         // === 5️⃣ Return hasil akhir rapi ===
         return Array.from(topics);
       }
-      
-      // === 3️⃣ DETEKSI SERVICE TYPE — DIBERSIHKAN DARI NAMA DAERAH ===
+ 
+     // ⚡ Auto ServiceType Semantic Detector v6.2 — No Hardcoded Keywords
       function detectServiceType() {
-        // 🔹 1. Ambil sumber utama: H1 > title > paragraf pertama > slug
-        let raw =
-          document.querySelector("h1")?.textContent?.trim() ||
-          document.title.trim() ||
-          document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 150) ||
-          location.pathname.split("/").pop().replace(/[-_]/g, " ");
-
-        if (!raw) return ["Jasa Konstruksi"];
-
-        // 🔹 2. Daftar kata umum & daerah untuk dibersihkan (case-insensitive)
-        const stopwords = [
-          "harga","murah","terdekat","update","promo","diskon",
-          "202[0-9]","terbaru","per hari","per jam","kubik",
-          "m3","standar","minimix","supermix","express"
-        ];
-
-        const daerahKataKunci = [
-          "jakarta","bogor","depok","bekasi","tangerang","banten",
-          "tangerang selatan","karawang","purwakarta","subang","cikampek",
-          "bandung","sumedang","cimahi","garut","tasikmalaya","cianjur",
-          "sukabumi","serang","cilegon","indonesia","jawa barat",
-          "jawa tengah","jawa timur","bali","timur","barat","utara","selatan"
-        ];
-
-        // 🔹 3. Bersihkan teks mentah dari noise kata umum & daerah
-        raw = raw
-          .toLowerCase()
-          .replace(new RegExp(`\\b(${stopwords.join("|")})\\b`, "gi"), "")
-          // hilangkan nama daerah, baik huruf besar, kecil, atau kombinasi
-          .replace(new RegExp(`\\b(kota|kabupaten|provinsi)?\\s*(${daerahKataKunci.join("|")})(\\s*(utara|selatan|barat|timur))?\\b`, "gi"), "")
+        // --- Ambil sumber utama ---
+        const h1 = document.querySelector("h1")?.textContent?.trim() || "";
+        const p1 = document.querySelector("main p, article p")?.textContent?.trim() || "";
+        const text = (h1 + " " + p1).toLowerCase();
+      
+        // --- 1️⃣ Bersihkan kata umum yang tidak informatif ---
+        let clean = text
+          .replace(/\b(harga|murah|terdekat|terpercaya|berkualitas|profesional|resmi|202\d|terbaru|update)\b/gi, "")
           .replace(/[^\w\s]/g, " ")
           .replace(/\s+/g, " ")
           .trim();
-
-        // 🔹 4. Daftar kata jasa & pekerjaan umum
-        const jasaKataKunci = [
-          "sewa","rental","jasa","layanan","penjualan",
-          "pengiriman","pemasangan","pembuatan","pengecoran",
-          "produksi","pancang","kontraktor","renovasi","pembersihan","buang"
-        ];
-
-        const alatDanPekerjaan = [
-          "excavator","bulldozer","crane","vibro roller","tandem roller",
-          "wales","bor pile","drop hammer","pancang","tiang pancang",
-          "beton cor","ready mix","precast","buis beton","u ditch",
-          "box culvert","panel beton","saluran","gorong gorong",
-          "puing","bekisting","pondasi"
-        ];
-
-        let hasil = [];
-
-        // 🔹 5. Cari kombinasi jasa + pekerjaan
-        jasaKataKunci.forEach(jk => {
-          alatDanPekerjaan.forEach(item => {
-            if (raw.includes(jk) && raw.includes(item)) hasil.push(`${jk} ${item}`);
-          });
-        });
-
-        // 🔹 6. Jika tidak ada kombinasi langsung, deteksi tunggal
-        if (hasil.length === 0) {
-          const singleMatch = [...jasaKataKunci, ...alatDanPekerjaan].find(k => raw.includes(k));
-          if (singleMatch) hasil.push(singleMatch);
+      
+        // --- 2️⃣ Cari frasa 2–5 kata paling relevan di awal H1 ---
+        const words = clean.split(" ");
+        let corePhrase = words.slice(0, 5).join(" ").trim();
+      
+        // --- 3️⃣ Analisis struktur kalimat: ambil kombinasi awal yang paling deskriptif ---
+        // Deteksi pola seperti “jasa buang puing”, “sewa excavator”, “harga ready mix beton cor”, dll
+        const stopwords = ["dan", "atau", "dengan", "untuk", "serta", "yang"];
+        corePhrase = corePhrase
+          .split(" ")
+          .filter(w => !stopwords.includes(w))
+          .slice(0, 4)
+          .join(" ");
+      
+        // --- 4️⃣ Buat format rapi (capitalize tiap kata) ---
+        function toTitleCase(str) {
+          return str.replace(/\w\S*/g, txt => txt.charAt(0).toUpperCase() + txt.substr(1));
         }
-
-        // 🔹 7. Jika tetap kosong, fallback ke slug bersih
-        if (hasil.length === 0) {
-          let slug = location.pathname.split("/").pop().replace(/[-_]/g, " ").replace(".html", "");
-          slug = slug
-            .replace(new RegExp(`\\b(${daerahKataKunci.join("|")})\\b`, "gi"), "")
-            .replace(/[0-9]/g, "")
-            .trim();
-          hasil.push(slug || "Jasa Konstruksi");
+      
+        let serviceType = toTitleCase(corePhrase);
+      
+        // --- 5️⃣ Validasi tambahan dari paragraf pertama (kalau lebih spesifik) ---
+        const match = p1.match(/(jasa|sewa|jual|beli|pengiriman|pembuatan|pemasangan)\s+[a-z\s]{3,30}/i);
+        if (match && match[0].length > 10) {
+          serviceType = toTitleCase(match[0].trim());
         }
-
-        // 🔹 8. Format kapitalisasi tiap kata
-        hasil = [...new Set(hasil)]
-          .filter(h => h.length > 2 && !/\d/.test(h))
-          .map(str =>
-            str
-              .trim()
-              .replace(/\b\w/g, l => l.toUpperCase())
-              .replace(/\s+/g, " ")
-          );
-
-        return hasil.length ? hasil : ["Jasa Konstruksi"];
+      
+        // --- 6️⃣ Hasil fallback jika terlalu pendek ---
+        if (!serviceType || serviceType.split(" ").length < 2) {
+          serviceType = toTitleCase(h1.split(" ").slice(0, 3).join(" "));
+        }
+      
+        // --- 7️⃣ Return hasil terdeteksi ---
+        return serviceType.trim();
       }
-
-      let serviceTypes = detectServiceType();
-
+        let serviceTypes = detectServiceType();
+         console.log("🔎 Service Type Terdeteksi:", serviceTypes);
+      
       // === 4️⃣ DETEKSI PRODUCT DARI URL + TABLE ===
       function getProductNameFromUrl() {
         let path = location.pathname.replace(/^\/|\/$/g, "").split("/").pop();
