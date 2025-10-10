@@ -193,8 +193,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     });
 
      // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50) ===
-    function generateCleanInternalLinks() {
-      const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
+    // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v2) ===
+    function generateCleanInternalLinksV2() {
+      const h1 = (document.querySelector("h1")?.innerText || "")
+        .toLowerCase()
+        .replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, ""); // buang bulan & tahun
+    
+      // Ambil semua link internal
       const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a, a"))
         .map(a => a.href)
         .filter(href =>
@@ -204,48 +209,61 @@ document.addEventListener("DOMContentLoaded", async function () {
           href !== location.href &&
           !href.match(/(\/search|\/feed|\/label)/i)
         )
-        .map(url => url.split("?")[0].replace(/\/$/, "").replace(/[?&].*$/, "")); // clean ?m=1, query, slash
+        .map(url => url.split("?")[0].replace(/\/$/, "").replace(/[?&].*$/, "")); // bersihkan ?m=1, query, slash
     
-      // Unik & bersih
+      // Unik
       const uniqueUrls = [...new Set(rawLinks)];
     
-      // Hitung relevansi sederhana berdasarkan kecocokan kata di h1
+      // Hitung relevansi terhadap H1
       const relevancyScores = uniqueUrls.map(url => {
-        const slug = url.replace(location.origin, "").replace(/\.html$/i, "").replace(/\//g, " ");
-        let score = 0;
-        h1.split(" ").forEach(word => {
-          if (slug.toLowerCase().includes(word)) score++;
-        });
-        return { url, score };
-      });
-    
-      // Urutkan berdasarkan skor relevansi tertinggi
-      relevancyScores.sort((a, b) => b.score - a.score);
-    
-      // Batasi 50 link paling relevan
-      const topLinks = relevancyScores.slice(0, 50);
-    
-      // Buat itemListElement
-      const itemList = topLinks.map((item, i) => {
-        let nameSlug = item.url.replace(location.origin, "")
+        let slugText = url.replace(location.origin, "")
           .replace(".html", "")
           .replace(/^\/+|\/+$/g, "")
           .replace(/-/g, " ")
+          .replace(/\b\d{1,2}\b/g, "") // hapus angka 1-2 digit (bulan/hari)
+          .replace(/\d{4}/g, "")        // hapus tahun 4 digit
+          .replace(/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, "") // hapus nama bulan
+          .replace(/\s+/g, " ")
+          .trim()
+          .toLowerCase();
+    
+        let score = 0;
+        h1.split(" ").forEach(word => {
+          if (word && slugText.includes(word)) score++;
+        });
+    
+        return { url, score, slugText };
+      });
+    
+      // Urutkan berdasarkan relevansi tertinggi
+      relevancyScores.sort((a, b) => b.score - a.score);
+    
+      // Ambil 50 link paling relevan
+      const topLinks = relevancyScores.slice(0, 50);
+    
+      // Buat itemListElement schema
+      const itemList = topLinks.map((item, i) => {
+        let nameClean = item.slugText
+          .replace(/\//g, " ")
           .replace(/\s+/g, " ")
           .trim();
-        nameSlug = nameSlug.charAt(0).toUpperCase() + nameSlug.slice(1);
+    
+        if(nameClean) nameClean = nameClean.charAt(0).toUpperCase() + nameClean.slice(1);
+    
         return {
           "@type": "ListItem",
           position: i + 1,
           url: item.url,
-          name: nameSlug || `Tautan ${i + 1}`
+          name: nameClean || `Tautan ${i + 1}`
         };
       });
     
       return itemList;
     }
     
-    const internalLinks = generateCleanInternalLinks();
+    // Jalankan
+    const internalLinks = generateCleanInternalLinksV2();
+    console.log("[InternalLinks v2 ✅]", internalLinks);
 
     // === 12️⃣ BUSINESS ENTITY ===
     const business = {
