@@ -69,8 +69,8 @@ document.addEventListener("DOMContentLoaded", function() {
  // ===== 1️⃣ Deteksi Konten =====
   const contentElDetector = document.querySelector("article, main, .post-body");
   const h1Text = document.querySelector("h1")?.innerText || "";
-  const contentText = (contentElDetector ? contentElDetector.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
-  const text = (h1Text + " " + contentText).toLowerCase();
+  const contentTextDetector = (contentElDetector ? contentElDetector.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
+  const text = (h1Text + " " + contentTextDetector).toLowerCase();
 
   // 🔍 Hitung indikator alami
   const wordCount = text.split(/\s+/).filter(Boolean).length;
