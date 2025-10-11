@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   // ===== 2️⃣ Tampilkan label tipe konten di halaman =====
   const h1label = document.querySelector("h1");
-  if (h1) {
+  if (h1label) {
     const label = document.createElement("div");
     label.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
     label.style.fontSize = "0.9em";
