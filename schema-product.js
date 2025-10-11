@@ -121,15 +121,37 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     // === 8️⃣ DETEKSI EVERGREEN ===
-    function detectEvergreen(title, content) {
-      const timeKeywords = ["harga","promo","update","tarif","2025","2026"];
-      const evergreenKeywords = ["panduan","cara","tips","definisi","jenis","manfaat"];
-      const text = (title + " " + content).toLowerCase();
-      if(timeKeywords.some(k => text.includes(k))) return false;
-      if(evergreenKeywords.some(k => text.includes(k))) return true;
-      return !document.querySelector("table");
+   function detectEvergreenAI() {
+      // Ambil H1 & konten utama
+      const h1 = document.querySelector("h1")?.innerText || "";
+      const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
+                           .map(p => p.innerText)
+                           .join(" ");
+    
+      const text = (h1 + " " + content).toLowerCase();
+    
+      // Deteksi pola time-sensitive otomatis: tahun, update, harga, promo, diskon, deadline
+      const hasTimePattern = /\b(20\d{2}|update|harga|tarif|promo|diskon|deadline|agenda|sementara)\b/.test(text);
+    
+      // Deteksi pola evergreen otomatis: tutorial, panduan, tips, cara, langkah-langkah, contoh, teknik
+      const sentenceIndicators = (text.match(/\b(cara|tips|panduan|tutorial|langkah|contoh|teknik|definisi|jenis|manfaat|strategi|panduan lengkap)\b/g) || []).length;
+    
+      // Analisis panjang paragraf: konten naratif panjang → indikasi evergreen
+      const paragraphScore = content.split("\n\n").filter(p => p.trim().length > 50).length;
+    
+      // Skor total untuk menilai evergreen
+      const evergreenScore = sentenceIndicators + paragraphScore;
+    
+      // Keputusan final
+      if (hasTimePattern) return false;           // time-sensitive
+      if (evergreenScore > 3) return true;       // cukup indikasi evergreen
+      return !document.querySelector("table");   // fallback sederhana: tabel → time-sensitive
     }
-    const isEvergreen = detectEvergreen(title, document.body.innerText);
+    
+    // Jalankan otomatis
+    const isEvergreen = detectEvergreenAI();
+    console.log("[Evergreen AI ✅]", isEvergreen);
+
 
     // === 9️⃣ priceValidUntil ===
     const now = new Date();
