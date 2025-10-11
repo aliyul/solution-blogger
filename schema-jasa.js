@@ -216,7 +216,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       });
       const isProductPage = tableOffers.length>0;
 
-    // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v4) ===
+
+        // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v4) ===
     function generateCleanInternalLinksV4() {
       const h1 = (document.querySelector("h1")?.innerText || "")
         .toLowerCase()
@@ -231,14 +232,14 @@ document.addEventListener("DOMContentLoaded", async function () {
           href.includes(location.hostname) &&
           !href.includes("#") &&
           href !== location.href &&
-          !href.match(/(\/search|\/feed|\/label)/i) &&
-          !href.includes("/p/")  // ❌ exclude path /p/
+          !href.match(/(\/search|\/feed|\/label)/i)
         )
         .map(url => url.split("?")[0].replace(/\/$/,""));
     
       const uniqueUrls = [...new Set(rawLinks)];
     
       const relevancyScores = uniqueUrls.map(url => {
+        // slug untuk relevansi, tetap hitung semua kata
         let slugText = url
           .replace(location.origin, "")
           .replace(".html", "")
@@ -262,7 +263,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       const topLinks = relevancyScores.slice(0, 50);
     
       return topLinks.map((item, i) => {
-        let nameClean = item.slugText.replace(/\//g," ").replace(/\s+/g," ").trim();
+        // nameClean diambil dari URL, tapi hapus '/p/' jika ada
+        let nameClean = item.url.replace(location.origin,"").replace(/^\/p\//,"").replace(".html","").replace(/-/g," ").replace(/\s+/g," ").trim();
         if(nameClean) nameClean = nameClean.charAt(0).toUpperCase() + nameClean.slice(1);
         return { "@type": "ListItem", position: i+1, url: item.url, name: nameClean || `Tautan ${i+1}` };
       });
