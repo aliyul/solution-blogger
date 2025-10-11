@@ -297,7 +297,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         mainEntity: { "@id": cleanUrl+"#service" },
         publisher: { "@id": PAGE.business.url+"#localbusiness" },
         ...(internalLinks.length && { hasPart:{ "@id": cleanUrl+"#internal-links" } }),
-        ...(cleanParentUrls.length && { isPartOf: cleanParentUrls.map(u=>({ "@id": u+"#webpage })) })
+        ...(cleanParentUrls.length && { isPartOf: cleanParentUrls.map(u => ({ "@id": u+"#webpage" })) })
+
       });
 
       const serviceNode={
