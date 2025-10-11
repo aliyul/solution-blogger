@@ -330,5 +330,5 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     initSchema();
-  },700);
+  },500);
 });
