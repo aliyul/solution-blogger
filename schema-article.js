@@ -66,11 +66,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
   // ================== DETEKSI TYPE KONTEN ==================
 // ⚡ Auto Evergreen Detector v8.5 — Enterprise Full Automation + Blogspot Dashboard
- // ===== 1️⃣ Deteksi Konten =====
-  const contentElDetector = document.querySelector("article, main, .post-body");
+  // ===== 1️⃣ Deteksi Konten =====
+  const contentEl = document.querySelector("article, main, .post-body");
   const h1Text = document.querySelector("h1")?.innerText || "";
-  const contentTextDetector = (contentElDetector ? contentElDetector.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
-  const text = (h1Text + " " + contentTextDetector).toLowerCase();
+  const contentText = (contentEl ? contentEl.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
+  const text = (h1Text + " " + contentText).toLowerCase();
 
   // 🔍 Hitung indikator alami
   const wordCount = text.split(/\s+/).filter(Boolean).length;
@@ -102,19 +102,52 @@ document.addEventListener("DOMContentLoaded", function() {
 
   const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
-  // ===== 2️⃣ Tampilkan label tipe konten di halaman =====
-  const h1label = document.querySelector("h1");
-  if (h1label) {
-    const label = document.createElement("div");
-    label.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
-    label.style.fontSize = "0.9em";
-    label.style.color = "#444";
-    label.style.marginTop = "4px";
-    label.style.marginBottom = "10px";
-    h1label.insertAdjacentElement("afterend", label);
+  // ===== 2️⃣ Tampilkan label tipe konten dan tanggal sesuai tipe konten =====
+  const h1El = document.querySelector("h1");
+  const authorEl = document.querySelector(".post-author, .author-name"); // sesuaikan selector author
+  if (typeKonten === "EVERGREEN") {
+    // Evergreen → tidak menampilkan tanggal
+    console.log("Evergreen → tidak menampilkan tanggal");
+  } else if (typeKonten === "SEMI-EVERGREEN") {
+    // Semi-Evergreen → tanggal sejajar author
+    if (authorEl) {
+      const dateEl = document.createElement("span");
+      dateEl.textContent = ` · Diperbarui: ${nextUpdateStr}`;
+      dateEl.style.fontSize = "0.85em";
+      dateEl.style.color = "#555";
+      authorEl.appendChild(dateEl);
+    } else if (h1El) {
+      const dateDiv = document.createElement("div");
+      dateDiv.textContent = `Diperbarui: ${nextUpdateStr}`;
+      dateDiv.style.fontSize = "0.85em";
+      dateDiv.style.color = "#555";
+      dateDiv.style.marginTop = "4px";
+      h1El.insertAdjacentElement("afterend", dateDiv);
+    }
+  } else if (typeKonten === "NON-EVERGREEN") {
+    // Non-Evergreen → tanggal menonjol dekat H1
+    if (h1El) {
+      const dateDiv = document.createElement("div");
+      dateDiv.textContent = `🕒 Diperbarui: ${nextUpdateStr}`;
+      dateDiv.style.fontWeight = "bold";
+      dateDiv.style.color = "#d00";
+      dateDiv.style.marginBottom = "6px";
+      h1El.insertAdjacentElement("beforebegin", dateDiv);
+    }
   }
 
-  // ===== 3️⃣ Siapkan Dashboard Blogspot =====
+  // ===== 3️⃣ Label tipe konten di bawah H1 (opsional) =====
+  if (h1El) {
+    const labelDiv = document.createElement("div");
+    labelDiv.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+    labelDiv.style.fontSize = "0.85em";
+    labelDiv.style.color = "#444";
+    labelDiv.style.marginTop = "4px";
+    labelDiv.style.marginBottom = "8px";
+    h1El.insertAdjacentElement("afterend", labelDiv);
+  }
+
+  // ===== 4️⃣ Simpan ke Dashboard Blogspot =====
   let dashboardTable = document.getElementById("dashboardTable");
   if (!dashboardTable) {
     dashboardTable = document.createElement("table");
@@ -132,19 +165,12 @@ document.addEventListener("DOMContentLoaded", function() {
           <th style="padding:4px;border:1px solid #ccc;">Next Update</th>
         </tr>
       </thead>
+      <tbody></tbody>
     `;
-    const tbody = document.createElement("tbody");
-    dashboardTable.appendChild(tbody);
     document.body.appendChild(dashboardTable);
   }
-  // Pastikan tbody ada
-  let tbody = dashboardTable.querySelector("tbody");
-  if (!tbody) {
-    tbody = document.createElement("tbody");
-    dashboardTable.appendChild(tbody);
-  }
 
-  // ===== 4️⃣ Tambahkan row baru ke dashboard =====
+  const tbody = dashboardTable.querySelector("tbody");
   const pageTitle = h1Text || document.title || "Unknown Page";
   const row = document.createElement("tr");
   row.innerHTML = `
