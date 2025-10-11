@@ -119,9 +119,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       return topWords.map(w => w.charAt(0).toUpperCase() + w.slice(1));
     }
 
-      // === 5️⃣ AUTO ITEMLIST INTERNAL LINKS (bersih + relevan + unik) ===
      // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v3) ===
-    function generateCleanInternalLinksV3() {
+     function generateCleanInternalLinksV3() {
       const h1 = (document.querySelector("h1")?.innerText || "")
         .toLowerCase()
         .replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, ""); // buang bulan & tahun
@@ -195,7 +194,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     console.log("[InternalLinks v3 ✅]", internalLinks);
 
       // === 6️⃣ GRAPH ===
-      const graph = [];
+    const graph = [];
 
       graph.push({
         "@type": ["LocalBusiness","GeneralContractor"],
