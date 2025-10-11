@@ -120,45 +120,65 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    // === 8️⃣ DETEKSI EVERGREEN ===
-   function detectEvergreenAI() {
-      // Ambil H1 & konten utama
-      const h1 = document.querySelector("h1")?.innerText || "";
+   // === 🧠 DETEKSI EVERGREEN AI v2 (Adaptive SEO Mode) ===
+    function detectEvergreenAI() {
+      const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
       const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
                            .map(p => p.innerText)
-                           .join(" ");
+                           .join(" ")
+                           .toLowerCase();
     
-      const text = (h1 + " " + content).toLowerCase();
+      const text = (h1 + " " + content).replace(/\s+/g, " ");
     
-      // Deteksi pola time-sensitive otomatis: tahun, update, harga, promo, diskon, deadline
-      const hasTimePattern = /\b(20\d{2}|update|harga|tarif|promo|diskon|deadline|agenda|sementara)\b/.test(text);
+      // 1️⃣ Deteksi pola time-sensitive
+      const hasTimePattern = /\b(20\d{2}|harga|tarif|update|promo|diskon|deadline|agenda|sementara|terbaru|bulan|minggu)\b/.test(text);
     
-      // Deteksi pola evergreen otomatis: tutorial, panduan, tips, cara, langkah-langkah, contoh, teknik
-      const sentenceIndicators = (text.match(/\b(cara|tips|panduan|tutorial|langkah|contoh|teknik|definisi|jenis|manfaat|strategi|panduan lengkap)\b/g) || []).length;
+      // 2️⃣ Indikator evergreen
+      const evergreenIndicators = (text.match(/\b(cara|tips|panduan|tutorial|langkah|contoh|teknik|definisi|jenis|manfaat|strategi|panduan lengkap)\b/g) || []).length;
     
-      // Analisis panjang paragraf: konten naratif panjang → indikasi evergreen
-      const paragraphScore = content.split("\n\n").filter(p => p.trim().length > 50).length;
+      // 3️⃣ Skor tambahan
+      const paragraphCount = content.split(/\n{2,}/).filter(p => p.trim().length > 50).length;
+      const tableCount = document.querySelectorAll("table").length;
+      const listCount = document.querySelectorAll("article ol, article ul").length;
+      const wordCount = content.split(/\s+/).length;
     
-      // Skor total untuk menilai evergreen
-      const evergreenScore = sentenceIndicators + paragraphScore;
+      let evergreenScore = evergreenIndicators + paragraphCount + listCount;
+      if (wordCount > 800) evergreenScore += 2;
+      if (tableCount > 0) evergreenScore -= 2;
     
-      // Keputusan final
-      if (hasTimePattern) return false;           // time-sensitive
-      if (evergreenScore > 3) return true;       // cukup indikasi evergreen
-      return !document.querySelector("table");   // fallback sederhana: tabel → time-sensitive
+      // 4️⃣ Klasifikasi akhir
+      let resultType = "semi-evergreen";
+      if (hasTimePattern && evergreenScore <= 2) resultType = "non-evergreen";
+      else if (evergreenScore >= 5 && !hasTimePattern) resultType = "evergreen";
+    
+      console.log(`[Evergreen AI ✅] Type: ${resultType}, Score: ${evergreenScore}, TimeSensitive: ${hasTimePattern}`);
+      return resultType;
     }
     
-    // Jalankan otomatis
-    const isEvergreen = detectEvergreenAI();
-    console.log("[Evergreen AI ✅]", isEvergreen);
-
-
-    // === 9️⃣ priceValidUntil ===
+    // Jalankan deteksi
+    const evergreenType = detectEvergreenAI();
+    
+    // === 9️⃣ AUTO PRICE VALID UNTIL (Berdasarkan Hasil Deteksi) ===
     const now = new Date();
     const priceValidUntil = new Date(now);
-    if(isEvergreen) priceValidUntil.setFullYear(now.getFullYear() + 1);
-    else priceValidUntil.setMonth(now.getMonth() + 3);
+    
+    /*
+    📘 Standar pakar SEO:
+    - evergreen → relevan >12 bulan (update tahunan)
+    - semi-evergreen → relevan 3–6 bulan (harga, topik tren ringan)
+    - non-evergreen → relevan <3 bulan (promo, update musiman)
+    */
+    if (evergreenType === "evergreen") {
+      priceValidUntil.setFullYear(now.getFullYear() + 1);
+    } else if (evergreenType === "semi-evergreen") {
+      priceValidUntil.setMonth(now.getMonth() + 6);
+    } else {
+      priceValidUntil.setMonth(now.getMonth() + 1);
+    }
+    
     const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
+    console.log(`[Auto PriceValidUntil 📅] ${autoPriceValidUntil} (${evergreenType.toUpperCase()})`);
+
 
     // === 🔟 PARSER TABLE, TEKS, & LI HARGA v3 ===
 const seenItems = new Set();
