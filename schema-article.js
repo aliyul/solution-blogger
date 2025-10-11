@@ -65,18 +65,17 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // ================== DETEKSI TYPE KONTEN ==================
-// ⚡ Auto Evergreen Detector v8.3 Adaptive — Hybrid + AI + History Tracking
+// ⚡ Auto Evergreen Detector v8.3 Pro Ultimate — Full Adaptive + Material Recognition
 (function() {
   // ===== 1️⃣ Ambil konten =====
   const contentEl = document.querySelector("article, main, .post-body");
   const contentText = contentEl ? contentEl.innerText : document.body.innerText || "";
   const h1Text = document.querySelector("h1")?.innerText || "";
-
   if (!contentText) return;
 
   const text = (h1Text + " " + contentText).toLowerCase().replace(/\s+/g," ");
 
-  // ===== 2️⃣ Indikator natural =====
+  // ===== 2️⃣ Deteksi indikator alami =====
   const wordCount = contentText.split(/\s+/).filter(Boolean).length;
   const numberCount = (contentText.match(/\d{1,4}/g) || []).length;
   const percentCount = (contentText.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)/g) || []).length;
@@ -84,33 +83,37 @@ document.addEventListener("DOMContentLoaded", function() {
   const listCount = document.querySelectorAll("ul,ol").length;
   const h2Count = document.querySelectorAll("h2").length;
 
-  // ===== 3️⃣ Skor otomatis =====
+  // ===== 3️⃣ Material & jasa recognition otomatis =====
+  const materialKeywords = ["beton","buis","box culvert","u ditch","gorong-gorong","panel","semen","baja","besi","aspal","keramik","genteng","cat","paving","kayu"];
+  const serviceKeywords = ["sewa","rental","jasa","kontraktor","borongan","renovasi","pembangunan","bongkar","pemasangan","pengiriman","analisa harga satuan","estimasi biaya"];
+
+  const materialCount = materialKeywords.filter(k => text.includes(k)).length;
+  const serviceCount = serviceKeywords.filter(k => text.includes(k)).length;
+
+  // ===== 4️⃣ Skor otomatis =====
   let score = 0;
-  score += numberCount * 0.3;      // banyak angka → time-sensitive
-  score += percentCount * 0.5;     // harga/data → time-sensitive
+  score += numberCount * 0.3;      // angka → time-sensitive
+  score += percentCount * 0.5;     // data/harga → time-sensitive
   score += tableCount * 1;         // tabel = data dinamis
+  score += materialCount * 0.5;    // material → bisa semi-evergreen
+  score += serviceCount * 0.5;     // jasa → semi-evergreen
   score -= (wordCount > 1000 ? 1 : 0); // panjang → lebih evergreen
   score -= (h2Count > 2 ? 0.5 : 0);    // banyak subjudul = panduan
-  score -= (listCount > 0 ? 0.5 : 0);  // list = panduan
+  score -= (listCount > 0 ? 0.5 : 0);  // list → panduan
 
-  // ===== 4️⃣ Deteksi tipe konten =====
+  // ===== 5️⃣ Klasifikasi konten otomatis =====
   let typeKonten = "SEMI-EVERGREEN";
-  if (score >= 3) typeKonten = "NON-EVERGREEN";
-  else if (score <= 1) typeKonten = "EVERGREEN";
+  if (score >= 4) typeKonten = "NON-EVERGREEN";
+  else if (score <= 1.5) typeKonten = "EVERGREEN";
 
-  // ===== 5️⃣ Adaptive History Tracking =====
-  // Simpan histori di localStorage untuk tiap URL
+  // ===== 6️⃣ Adaptive History Tracking =====
   const storageKey = `evergreenAI_history_${location.pathname}`;
   const history = JSON.parse(localStorage.getItem(storageKey) || "{}");
-
-  // Update score historis
   const prevScore = history.score || 0;
   const prevType = history.typeKonten || typeKonten;
 
-  // Adaptive adjustment: jika konten sebelumnya sering berubah → naikkan kemungkinan NON-EVERGREEN
-  if (prevScore >= 3 && typeKonten === "SEMI-EVERGREEN") {
-    typeKonten = "NON-EVERGREEN";
-  }
+  // Konten sering berubah → naikkan kemungkinan NON-EVERGREEN
+  if (prevScore >= 4 && typeKonten === "SEMI-EVERGREEN") typeKonten = "NON-EVERGREEN";
 
   // Simpan histori terbaru
   localStorage.setItem(storageKey, JSON.stringify({
@@ -119,7 +122,7 @@ document.addEventListener("DOMContentLoaded", function() {
     lastChecked: new Date().toISOString()
   }));
 
-  // ===== 6️⃣ Tentukan tanggal update berikutnya =====
+  // ===== 7️⃣ Tanggal update berikutnya =====
   const nextUpdateDate = new Date();
   if (typeKonten === "EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 12);
   else if (typeKonten === "SEMI-EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 6);
@@ -129,7 +132,7 @@ document.addEventListener("DOMContentLoaded", function() {
     day:"numeric", month:"long", year:"numeric"
   });
 
-  // ===== 7️⃣ Update last modified di UI =====
+  // ===== 8️⃣ Update last modified di UI =====
   const dateModifiedEl = document.querySelector('meta[itemprop="dateModified"], time[itemprop="dateModified"]');
   const dateModified = dateModifiedEl ? new Date(dateModifiedEl.getAttribute("content") || new Date()) : new Date();
   const lastUpdatedEl = document.getElementById("lastUpdatedText");
@@ -139,7 +142,7 @@ document.addEventListener("DOMContentLoaded", function() {
       : "-";
   }
 
-  // ===== 8️⃣ Tampilkan label tipe konten di UI (di bawah H1) =====
+  // ===== 9️⃣ Tampilkan label tipe konten di UI (di bawah H1) =====
   const typeEl = document.createElement("div");
   typeEl.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
   typeEl.setAttribute("data-nosnippet","true");
@@ -158,12 +161,12 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   }
 
-  // ===== 9️⃣ Simpan ke window untuk schema =====
+  // ===== 10️⃣ Simpan ke window untuk schema =====
   window.typeKonten = typeKonten;
   window.nextUpdateStr = nextUpdateStr;
 
   // ===== 🔍 Console Log =====
-  console.log(`[EvergreenAI v8.3 Adaptive ✅] Type: ${typeKonten} | Skor: ${score.toFixed(1)} | WordCount: ${wordCount}`);
+  console.log(`[EvergreenAI v8.3 Pro Ultimate ✅] Type: ${typeKonten} | Skor: ${score.toFixed(1)} | WordCount: ${wordCount}`);
   console.log(`📅 Update berikutnya: ${nextUpdateStr}`);
 })();
 
