@@ -67,9 +67,9 @@ document.addEventListener("DOMContentLoaded", function() {
   // ================== DETEKSI TYPE KONTEN ==================
 // ⚡ Auto Evergreen Detector v8.5 — Enterprise Full Automation + Blogspot Dashboard
  // ===== 1️⃣ Deteksi Konten =====
-  const contentEl = document.querySelector("article, main, .post-body");
+  const contentElDetector = document.querySelector("article, main, .post-body");
   const h1Text = document.querySelector("h1")?.innerText || "";
-  const contentText = (contentEl ? contentEl.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
+  const contentText = (contentElDetector ? contentElDetector.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
   const text = (h1Text + " " + contentText).toLowerCase();
 
   // 🔍 Hitung indikator alami
