@@ -236,11 +236,23 @@ document.querySelectorAll("li").forEach(li=>{
 console.log("[Parser v3] Total detected offers:", tableOffers.length);
 
 
-    // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v3) ===
+// === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v3 + Blacklist) ===
     function generateCleanInternalLinksV3() {
       const h1 = (document.querySelector("h1")?.innerText || "")
         .toLowerCase()
         .replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, ""); // buang bulan & tahun
+    
+      // Daftar URL yang dikecualikan
+      const blacklist = [
+        "https://www.betonjayareadymix.com/p/hubungi-kami.html",
+        "https://www.betonjayareadymix.com/p/portofolio.html",
+        "https://www.betonjayareadymix.com/p/disclaimer.html",
+        "https://www.betonjayareadymix.com/p/privacy-policy.html",
+        "https://www.betonjayareadymix.com/p/terms-of-service.html",
+        "https://www.betonjayareadymix.com/p/useful-links.html",
+        "https://www.betonjayareadymix.com/p/about.html",
+        "https://www.betonjayareadymix.com/p/sitemap.html"
+      ];
     
       // Ambil semua link internal dari konten <article> saja
       const rawLinks = Array.from(document.querySelectorAll("article a"))
@@ -250,7 +262,8 @@ console.log("[Parser v3] Total detected offers:", tableOffers.length);
           href.includes(location.hostname) &&
           !href.includes("#") &&
           href !== location.href &&
-          !href.match(/(\/search|\/feed|\/label)/i)
+          !href.match(/(\/search|\/feed|\/label)/i) &&
+          !blacklist.includes(href)  // ❌ cek blacklist
         )
         .map(url => url.split("?")[0].replace(/\/$/, "")); // bersihkan query & slash akhir
     
@@ -259,7 +272,7 @@ console.log("[Parser v3] Total detected offers:", tableOffers.length);
     
       // Hitung relevansi terhadap H1
       const relevancyScores = uniqueUrls.map(url => {
-        // ambil slug tanpa /p/ di path
+        // ambil slug tanpa /p/ di path untuk name
         let slugText = url.replace(location.origin, "")
           .replace(".html", "")
           .replace(/^\/p\//, "") // HILANGKAN /p/ jika ada
