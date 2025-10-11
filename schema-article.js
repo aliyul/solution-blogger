@@ -64,73 +64,87 @@ document.addEventListener("DOMContentLoaded", function() {
     console.log("Konten berubah → dateModified diupdate ke sekarang");
   }
 
-  // ================== DETEKSI TYPE KONTEN ==================
-  const nonEvergreenKeywords = ["harga","update","terbaru","berita","jadwal","event","promo","diskon","proyek","progres"];
-  const evergreenKeywords = ["panduan","tutorial","tips","cara","definisi","pandangan","strategi","langkah","prosedur","panduan lengkap"];
+// === 🧠 EVERGREEN AI v3 — Adaptive SEO Detector + Auto Price Validity ===
+function detectEvergreenAI() {
+  const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
+  const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
+    .map(p => p.innerText)
+    .join(" ")
+    .toLowerCase();
+  const text = (h1 + " " + content).replace(/\s+/g, " ");
 
-  let typeKonten = "evergreen";
-  let score = 0;
-  const contentLower = contentText.toLowerCase();
+  // ===== 1️⃣ Keyword Pattern (umum + industri konstruksi)
+  const nonEvergreenKeywords = [
+    "harga","update","terbaru","berita","jadwal","event","promo","diskon",
+    "proyek","progres","bulan","tahun","sementara","musiman","penawaran",
+    "stok","kontrak","laporan","estimasi","kuota","perubahan","sementara"
+  ];
 
-  nonEvergreenKeywords.forEach(kw => { if(contentLower.includes(kw)) score += 2; });
-  evergreenKeywords.forEach(kw => { if(contentLower.includes(kw)) score -= 1; });
+  const evergreenKeywords = [
+    "panduan","tutorial","tips","cara","definisi","strategi","langkah",
+    "prosedur","manfaat","fungsi","jenis","contoh","teknik","pengertian",
+    "kegunaan","struktur","standar","material","spesifikasi","panduan lengkap"
+  ];
 
-  const numberCount = (contentText.match(/\d{1,4}/g) || []).length;
-  score += numberCount * 0.5;
+  const semiEvergreenKeywords = [
+    "harga beton","harga ready mix","harga u ditch","harga precast",
+    "sewa","rental","kontraktor","pembangunan","analisa harga satuan",
+    "review","perbandingan","tren","pasar","industri konstruksi"
+  ];
 
-  const headers = contentEl ? Array.from(contentEl.querySelectorAll("h2,h3")).map(h => cleanText(h.textContent)).filter(Boolean) : [];
-  const wordCount = getArticleWordCount(contentEl);
-  if(wordCount > 500) score -= 1;
-  if(headers.length >= 2) score -= 1;
+  // ===== 2️⃣ Deteksi Time-Sensitive
+  const hasTimePattern = /\b(20\d{2}|harga|tarif|update|promo|diskon|bulan|minggu|sementara|terbaru)\b/.test(text);
 
-  typeKonten = score >= 2 ? "NON-EVERGREEN" : "EVERGREEN";
+  const nonEvergreenHits = nonEvergreenKeywords.filter(k => text.includes(k)).length;
+  const evergreenHits = evergreenKeywords.filter(k => text.includes(k)).length;
+  const semiEvergreenHits = semiEvergreenKeywords.filter(k => text.includes(k)).length;
 
-  // ================== SEMBUNYIKAN AUTHOR & TANGGAL JIKA EVERGREEN ==================
-  if (typeKonten === "EVERGREEN") {
-    console.log("Konten evergreen → sembunyikan author & tanggal");
-    const metaBlocks = document.querySelectorAll(
-      ".title-secondary, .post-author, .post-timestamp, .post-updated"
-    );
-    metaBlocks.forEach(el => {
-      el.style.display = "none";
-    });
-  }
+  // ===== 3️⃣ Struktur & Panjang Konten
+  const paragraphCount = content.split(/\n{2,}/).filter(p => p.trim().length > 50).length;
+  const tableCount = document.querySelectorAll("table").length;
+  const listCount = document.querySelectorAll("article ol, article ul").length;
+  const wordCount = content.split(/\s+/).length;
 
-  // ================== REKOMENDASI TANGGAL UPDATE ==================
-  let nextUpdateDate = new Date(dateModified);
-  if(typeKonten === "evergreen"){
-    nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 12);
-  } else {
-    nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 3);
-  }
-  const options = { day: "numeric", month: "long", year: "numeric" };
-  const nextUpdateStr = nextUpdateDate.toLocaleDateString("id-ID", options);
+  // ===== 4️⃣ Skoring
+  let evergreenScore = evergreenHits * 2 + paragraphCount + listCount;
+  let semiScore = semiEvergreenHits + (hasTimePattern ? 1 : 0);
+  let nonScore = nonEvergreenHits * 1.5 + tableCount;
 
-  // ================== UPDATE LAST UPDATED TEXT ==================
-  const lastUpdatedEl = document.getElementById("lastUpdatedText");
-  if(lastUpdatedEl){
-    const dateObj = new Date(dateModified);
-    lastUpdatedEl.textContent = !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString("id-ID", options) : "-";
-  }
+  if (wordCount > 800) evergreenScore += 2;
+  if (tableCount > 0) evergreenScore -= 2;
 
-  // ================== TAMBAHKAN TYPE KONTEN ==================
-  let typeEl = document.createElement("div");
-  typeEl.innerHTML = `<b>${typeKonten}</b>, UPDATE KONTEN paling lambat: <b>${nextUpdateStr}</b>`;
-  typeEl.setAttribute("data-nosnippet","true");
-  typeEl.style.fontSize = "0.85em";
-  typeEl.style.color = "#555";
-  typeEl.style.marginTop = "4px";
-  typeEl.style.marginBottom = "8px";
+  // ===== 5️⃣ Klasifikasi
+  let resultType = "semi-evergreen";
+  if (nonScore >= evergreenScore && nonScore > 3) resultType = "non-evergreen";
+  else if (evergreenScore >= semiScore + 2 && !hasTimePattern) resultType = "evergreen";
 
-  const postUpdatedEl = document.querySelector(".post-updated");
-  if(postUpdatedEl){
-    postUpdatedEl.parentNode.insertBefore(typeEl, postUpdatedEl.nextSibling);
-  } else {
-    const h1El = document.querySelector("h1");
-    if(h1El && h1El.parentNode){
-      h1El.parentNode.insertBefore(typeEl, h1El.nextSibling);
-    }
-  }
+  console.log(`[Evergreen AI ✅] Type: ${resultType}, EvergreenScore: ${evergreenScore}, SemiScore: ${semiScore}, NonScore: ${nonScore}`);
+  return resultType;
+}
+
+// === 🔁 Jalankan Deteksi
+const evergreenType = detectEvergreenAI();
+
+// === 📆 AUTO PRICE VALID UNTIL (Berdasarkan Jenis Konten)
+const now = new Date();
+const priceValidUntil = new Date(now);
+
+/*
+📘 Standar pakar SEO:
+- Evergreen → relevan ≥12 bulan (update tahunan)
+- Semi-evergreen → relevan 6 bulan
+- Non-evergreen → relevan <3 bulan (update maksimal 3 bulan)
+*/
+if (evergreenType === "evergreen") {
+  priceValidUntil.setFullYear(now.getFullYear() + 1);
+} else if (evergreenType === "semi-evergreen") {
+  priceValidUntil.setMonth(now.getMonth() + 6);
+} else {
+  priceValidUntil.setMonth(now.getMonth() + 3); // ✅ paling ideal SEO
+}
+
+const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
+console.log(`[Auto PriceValidUntil 📅] ${autoPriceValidUntil} (${evergreenType.toUpperCase()})`);
 
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
