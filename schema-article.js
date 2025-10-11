@@ -68,7 +68,8 @@ document.addEventListener("DOMContentLoaded", function() {
 // ⚡ Auto Evergreen Detector v8.5 — Enterprise Full Automation + Blogspot Dashboard
   // ===== 1️⃣ Deteksi Konten =====
   const contentEl = document.querySelector("article, main, .post-body");
-  const h1Text = document.querySelector("h1")?.innerText || "";
+  const h1El = document.querySelector("h1");
+  const h1Text = h1El ? h1El.innerText : "";
   const contentText = (contentEl ? contentEl.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
   const text = (h1Text + " " + contentText).toLowerCase();
 
@@ -102,52 +103,43 @@ document.addEventListener("DOMContentLoaded", function() {
 
   const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
-  // ===== 2️⃣ Tampilkan label tipe konten dan tanggal sesuai tipe konten =====
-  const h1El = document.querySelector("h1");
-  const authorEl = document.querySelector(".post-author, .author-name"); // sesuaikan selector author
-  if (typeKonten === "EVERGREEN") {
-    // Evergreen → tidak menampilkan tanggal
-    console.log("Evergreen → tidak menampilkan tanggal");
-  } else if (typeKonten === "SEMI-EVERGREEN") {
-    // Semi-Evergreen → tanggal sejajar author
-    if (authorEl) {
-      const dateEl = document.createElement("span");
-      dateEl.textContent = ` · Diperbarui: ${nextUpdateStr}`;
-      dateEl.style.fontSize = "0.85em";
-      dateEl.style.color = "#555";
-      authorEl.appendChild(dateEl);
-    } else if (h1El) {
-      const dateDiv = document.createElement("div");
-      dateDiv.textContent = `Diperbarui: ${nextUpdateStr}`;
-      dateDiv.style.fontSize = "0.85em";
-      dateDiv.style.color = "#555";
-      dateDiv.style.marginTop = "4px";
-      h1El.insertAdjacentElement("afterend", dateDiv);
-    }
-  } else if (typeKonten === "NON-EVERGREEN") {
-    // Non-Evergreen → tanggal menonjol dekat H1
-    if (h1El) {
-      const dateDiv = document.createElement("div");
-      dateDiv.textContent = `🕒 Diperbarui: ${nextUpdateStr}`;
-      dateDiv.style.fontWeight = "bold";
-      dateDiv.style.color = "#d00";
-      dateDiv.style.marginBottom = "6px";
-      h1El.insertAdjacentElement("beforebegin", dateDiv);
-    }
-  }
-
-  // ===== 3️⃣ Label tipe konten di bawah H1 (opsional) =====
+  // ===== 2️⃣ Tampilkan label tipe konten di halaman =====
   if (h1El) {
-    const labelDiv = document.createElement("div");
-    labelDiv.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
-    labelDiv.style.fontSize = "0.85em";
-    labelDiv.style.color = "#444";
-    labelDiv.style.marginTop = "4px";
-    labelDiv.style.marginBottom = "8px";
-    h1El.insertAdjacentElement("afterend", labelDiv);
+    const label = document.createElement("div");
+    label.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+    label.style.fontSize = "0.9em";
+    label.style.color = "#444";
+    label.style.marginTop = "4px";
+    label.style.marginBottom = "10px";
+
+    // Non-Evergreen → tampil di atas H1
+    if (typeKonten === "NON-EVERGREEN") {
+      h1El.parentNode.insertBefore(label, h1El);
+    }
+    // Semi-Evergreen / Evergreen → tampil di bawah H1
+    else {
+      h1El.insertAdjacentElement("afterend", label);
+    }
   }
 
-  // ===== 4️⃣ Simpan ke Dashboard Blogspot =====
+  // ===== 3️⃣ Author + Tanggal Update (Blogspot) =====
+  const authorEl = document.querySelector(".post-author .fn");
+  if (authorEl && typeKonten === "SEMI-EVERGREEN") {
+    const dateEl = document.createElement("span");
+    dateEl.textContent = ` · Diperbarui: ${nextUpdateStr}`;
+    dateEl.style.fontSize = "0.85em";
+    dateEl.style.color = "#555";
+    dateEl.style.marginLeft = "4px";
+    authorEl.appendChild(dateEl);
+  }
+
+  // Evergreen → sembunyikan author & tanggal
+  if (typeKonten === "EVERGREEN") {
+    const metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
+    metaBlocks.forEach(el => el.style.display = "none");
+  }
+
+  // ===== 4️⃣ Siapkan Dashboard Blogspot =====
   let dashboardTable = document.getElementById("dashboardTable");
   if (!dashboardTable) {
     dashboardTable = document.createElement("table");
@@ -165,12 +157,20 @@ document.addEventListener("DOMContentLoaded", function() {
           <th style="padding:4px;border:1px solid #ccc;">Next Update</th>
         </tr>
       </thead>
-      <tbody></tbody>
     `;
+    const tbody = document.createElement("tbody");
+    dashboardTable.appendChild(tbody);
     document.body.appendChild(dashboardTable);
   }
 
-  const tbody = dashboardTable.querySelector("tbody");
+  // Pastikan tbody ada
+  let tbody = dashboardTable.querySelector("tbody");
+  if (!tbody) {
+    tbody = document.createElement("tbody");
+    dashboardTable.appendChild(tbody);
+  }
+
+  // ===== 5️⃣ Tambahkan row baru ke dashboard =====
   const pageTitle = h1Text || document.title || "Unknown Page";
   const row = document.createElement("tr");
   row.innerHTML = `
@@ -182,7 +182,7 @@ document.addEventListener("DOMContentLoaded", function() {
   `;
   tbody.appendChild(row);
 
-  // ===== 5️⃣ Simpan ke Window untuk Schema / Automation =====
+  // ===== 6️⃣ Simpan ke Window untuk Schema / Automation =====
   window.typeKonten = typeKonten;
   window.nextUpdateStr = nextUpdateStr;
   window.evergreenScore = score.toFixed(1);
@@ -190,7 +190,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   console.log(`🧠 [EvergreenAI v8.5 Enterprise] ${typeKonten} | Score: ${score.toFixed(1)} | Word: ${wordCount}`);
   console.log(`📅 Next Update: ${nextUpdateStr}`);
-
+  
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
 
