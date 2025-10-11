@@ -138,65 +138,81 @@ document.addEventListener("DOMContentLoaded", async function () {
     else priceValidUntil.setMonth(now.getMonth() + 3);
     const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
 
-    // === 🔟 PARSER TABLE & TEKS HARGA ===
-       // === 🔟 PARSER TABLE & TEKS HARGA v2 ===
-    const seenItems = new Set();
-    const tableOffers = [];
-    
-    function addOffer(name, key, price, desc="") {
-      let finalName = productName;
-      if(name && name.toLowerCase() !== productName.toLowerCase()) finalName += " " + name;
-      const k = finalName + "|" + key + "|" + price;
-      if (!seenItems.has(k)) {
-        seenItems.add(k);
-        tableOffers.push({
-          "@type":"Offer",
-          "name": finalName,
-          "url": cleanUrl,
-          "priceCurrency":"IDR",
-          "price": price.toString(),
-          "itemCondition":"https://schema.org/NewCondition",
-          "availability":"https://schema.org/InStock",
-          "priceValidUntil": autoPriceValidUntil,
-          "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
-          "description": desc || undefined
-        });
+    // === 🔟 PARSER TABLE, TEKS, & LI HARGA v3 ===
+const seenItems = new Set();
+const tableOffers = [];
+
+function addOffer(name, key, price, desc="") {
+  let finalName = productName;
+  if(name && name.toLowerCase() !== productName.toLowerCase()) finalName += " " + name;
+  const k = finalName + "|" + key + "|" + price;
+  if (!seenItems.has(k)) {
+    seenItems.add(k);
+    tableOffers.push({
+      "@type":"Offer",
+      "name": finalName,
+      "url": cleanUrl,
+      "priceCurrency":"IDR",
+      "price": price.toString(),
+      "itemCondition":"https://schema.org/NewCondition",
+      "availability":"https://schema.org/InStock",
+      "priceValidUntil": autoPriceValidUntil,
+      "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
+      "description": desc || undefined
+    });
+  }
+}
+
+// 1️⃣ Deteksi dari tabel tetap
+Array.from(document.querySelectorAll("table")).forEach(table=>{
+  Array.from(table.querySelectorAll("tr")).forEach(row=>{
+    const cells = Array.from(row.querySelectorAll("td, th")).slice(0,6);
+    if(cells.length>=2){
+      let col1 = cells[0].innerText.trim();
+      let uniqueKey = cells.slice(1).map(c=>c.innerText.trim()).join(" ");
+      let price = null;
+      for(let c of cells){
+        const m = c.innerText.match(/Rp\s*([\d.,]+)/);
+        if(m){ price = parseInt(m[1].replace(/[.\s,]/g,"")); break; }
+      }
+      if(price) addOffer(col1, uniqueKey, price, cells[1]?.innerText.trim()||"");
+    }
+  });
+});
+
+// 2️⃣ Deteksi dari teks artikel (<article>)
+document.querySelectorAll("article").forEach(article=>{
+  article.innerText.split("\n").forEach(line=>{
+    const m = line.match(/Rp\s*([\d.,]{4,})/);
+    if(m){
+      const price = parseInt(m[1].replace(/[.\s,]/g,""));
+      if(price>=10000 && price<=500000000){
+        const words = line.split(/\s+/);
+        const idx = words.findIndex(w=>w.includes(m[1].replace(/[.,]/g,"")));
+        let name = words.slice(Math.max(0, idx-3), idx).join(" ").trim();
+        if(!name || name.toLowerCase() === productName.toLowerCase()) name="";
+        addOffer(name, "", price);
       }
     }
-    
-    // 1️⃣ Deteksi dari tabel tetap
-    Array.from(document.querySelectorAll("table")).forEach(table=>{
-      Array.from(table.querySelectorAll("tr")).forEach(row=>{
-        const cells = Array.from(row.querySelectorAll("td, th")).slice(0,6);
-        if(cells.length>=2){
-          let col1 = cells[0].innerText.trim();
-          let uniqueKey = cells.slice(1).map(c=>c.innerText.trim()).join(" ");
-          let price = null;
-          for(let c of cells){
-            const m = c.innerText.match(/Rp\s*([\d.,]+)/);
-            if(m){ price = parseInt(m[1].replace(/[.\s,]/g,"")); break; }
-          }
-          if(price) addOffer(col1, uniqueKey, price, cells[1]?.innerText.trim()||"");
-        }
-      });
-    });
-    
-    // 2️⃣ Deteksi dari teks artikel saja (<article>)
-    document.querySelectorAll("article").forEach(article=>{
-      article.innerText.split("\n").forEach(line=>{
-        const m = line.match(/Rp\s*([\d.,]{4,})/);
-        if(m){
-          const price = parseInt(m[1].replace(/[.\s,]/g,""));
-          if(price>=10000 && price<=500000000){
-            const words = line.split(/\s+/);
-            const idx = words.findIndex(w=>w.includes(m[1].replace(/[.,]/g,"")));
-            let name = words.slice(Math.max(0, idx-3), idx).join(" ").trim();
-            if(!name || name.toLowerCase() === productName.toLowerCase()) name="";
-            addOffer(name, "", price);
-          }
-        }
-      });
-    });
+  });
+});
+
+// 3️⃣ Deteksi langsung dari <li>
+document.querySelectorAll("li").forEach(li=>{
+  const text = li.innerText;
+  const m = text.match(/Rp\s*([\d.,]{4,})/);
+  if(m){
+    const price = parseInt(m[1].replace(/[.\s,]/g,""));
+    if(price>=10000 && price<=500000000){
+      let name = text.replace(m[0],"").trim(); // ambil sisa teks sebagai nama
+      if(!name || name.toLowerCase() === productName.toLowerCase()) name="";
+      addOffer(name, "", price);
+    }
+  }
+});
+
+console.log("[Parser v3] Total detected offers:", tableOffers.length);
+
 
     // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v3) ===
     function generateCleanInternalLinksV3() {
