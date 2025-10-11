@@ -8,6 +8,26 @@ document.addEventListener("DOMContentLoaded", async function () {
       schemaInjected = true;
       console.log("[Schema v4.55 🚀] Auto generator dijalankan (Service + Product + Offers + Multi Parent + ItemList)");
 
+      // === Tunggu h1 atau konten utama tersedia ===
+      async function waitForElement(selector, timeout = 3000) {
+        const interval = 50;
+        const maxAttempts = timeout / interval;
+        let attempts = 0;
+        return new Promise(resolve => {
+          const check = () => {
+            const el = document.querySelector(selector);
+            if (el) return resolve(el);
+            attempts++;
+            if (attempts >= maxAttempts) return resolve(null);
+            setTimeout(check, interval);
+          };
+          check();
+        });
+      }
+
+      const h1El = await waitForElement("h1");
+      const articleP = await waitForElement("article p, main p, .post-body p");
+
       // === 1️⃣ INFO HALAMAN ===
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
@@ -16,10 +36,10 @@ document.addEventListener("DOMContentLoaded", async function () {
 
       const PAGE = {
         url: cleanUrl,
-        title: document.querySelector("h1")?.innerText?.trim() || document.title.trim(),
+        title: h1El?.innerText?.trim() || document.title.trim(),
         description:
           document.querySelector('meta[name="description"]')?.content?.trim() ||
-          document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 200) ||
+          articleP?.innerText?.substring(0, 200) ||
           document.title,
         image:
           document.querySelector('meta[property="og:image"]')?.content ||
@@ -132,7 +152,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       // === 6️⃣ SERVICE TYPE DETECTION ===
       function detectServiceType() {
         const h1 = PAGE.title || "";
-        const p1 = document.querySelector("main p, article p")?.innerText || "";
+        const p1 = articleP?.innerText || "";
         let text = (h1 + " " + p1).toLowerCase();
         text = text.replace(/\b(harga|murah|terdekat|terpercaya|berkualitas|profesional|resmi|202\d|terbaru|update)\b/gi,"").replace(/[^\w\s]/g," ");
         const words = text.split(/\s+/).filter(w => !["dan","atau","dengan","untuk","serta","yang"].includes(w));
@@ -277,7 +297,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         mainEntity: { "@id": cleanUrl+"#service" },
         publisher: { "@id": PAGE.business.url+"#localbusiness" },
         ...(internalLinks.length && { hasPart:{ "@id": cleanUrl+"#internal-links" } }),
-        ...(cleanParentUrls.length && { isPartOf: cleanParentUrls.map(u=>({ "@id": u+"#webpage" })) })
+        ...(cleanParentUrls.length && { isPartOf: cleanParentUrls.map(u=>({ "@id": u+"#webpage })) })
       });
 
       const serviceNode={
@@ -303,32 +323,29 @@ document.addEventListener("DOMContentLoaded", async function () {
           name: productName,
           image:[PAGE.image],
           description: PAGE.description,
-          brand:{ "@type":"Brand","name": PAGE.business.name },
           category: productCategory,
-          sameAs: productSameAs,
-          offers: tableOffers.map(o=>({...o,url:cleanUrl}))
+          brand: { "@type":"Brand", name: PAGE.business.name, sameAs: productSameAs },
+          offers: tableOffers
         });
       }
 
+      // === 13️⃣ ITEM LIST (Internal Links) ===
       if(internalLinks.length){
         graph.push({
           "@type":"ItemList",
           "@id": cleanUrl+"#internal-links",
-          name: "Daftar Halaman Terkait",
-          itemListOrder:"http://schema.org/ItemListOrderAscending",
-          numberOfItems: internalLinks.length,
           itemListElement: internalLinks
         });
       }
 
-      // === 13️⃣ SEMATKAN SCHEMA ===
+      // === 14️⃣ TAMBAH JSON-LD KE HEAD ===
       const scriptTag=document.createElement("script");
       scriptTag.type="application/ld+json";
-      scriptTag.textContent=JSON.stringify({ "@context":"https://schema.org","@graph":graph }, null, 2);
+      scriptTag.text = JSON.stringify({ "@context":"https://schema.org","@graph":graph },null,2);
       document.head.appendChild(scriptTag);
-      console.log("[Schema v4.55 🚀] JSON-LD berhasil diinject ✅");
+      console.log("[Schema v4.55 🚀] JSON-LD berhasil disisipkan!", graph);
     }
 
-    initSchema();
-  },500);
+    await initSchema();
+  }, 700);
 });
