@@ -70,13 +70,13 @@ document.addEventListener("DOMContentLoaded", function() {
   const contentElDetector = document.querySelector("article, main, .post-body");
   const h1El = document.querySelector("h1");
   const h1Text = h1El ? h1El.innerText : "";
-  const contentText = (contentElDetector ? contentElDetector.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
-  const text = (h1Text + " " + contentText).toLowerCase();
+  const contentTextDetector = (contentElDetector ? contentElDetector.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
+  const textDetector = (h1Text + " " + contentTextDetector).toLowerCase();
 
   // 🔍 Hitung indikator alami
-  const wordCount = text.split(/\s+/).filter(Boolean).length;
-  const numberCount = (text.match(/\d{1,4}/g) || []).length;
-  const percentCount = (text.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)/g) || []).length;
+  const wordCount = textDetector.split(/\s+/).filter(Boolean).length;
+  const numberCount = (textDetector.match(/\d{1,4}/g) || []).length;
+  const percentCount = (textDetector.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)/g) || []).length;
   const tableCount = document.querySelectorAll("table").length;
   const listCount = document.querySelectorAll("ul,ol").length;
   const h2Count = document.querySelectorAll("h2").length;
