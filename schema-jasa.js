@@ -217,11 +217,23 @@ document.addEventListener("DOMContentLoaded", async function () {
       const isProductPage = tableOffers.length>0;
 
 
-        // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v4) ===
-    function generateCleanInternalLinksV4() {
+   // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v5) ===
+    function generateCleanInternalLinksV5() {
       const h1 = (document.querySelector("h1")?.innerText || "")
         .toLowerCase()
         .replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, "");
+    
+      // Daftar URL yang dikecualikan
+      const blacklist = [
+        "https://www.betonjayareadymix.com/p/hubungi-kami.html",
+        "https://www.betonjayareadymix.com/p/portofolio.html",
+        "https://www.betonjayareadymix.com/p/disclaimer.html",
+        "https://www.betonjayareadymix.com/p/privacy-policy.html",
+        "https://www.betonjayareadymix.com/p/terms-of-service.html",
+        "https://www.betonjayareadymix.com/p/useful-links.html",
+        "https://www.betonjayareadymix.com/p/about.html",
+        "https://www.betonjayareadymix.com/p/sitemap.html"
+      ];
     
       // Ambil semua link <a> di dalam artikel saja
       const articleContent = document.querySelector("article") || document.querySelector("main") || document.body;
@@ -232,7 +244,8 @@ document.addEventListener("DOMContentLoaded", async function () {
           href.includes(location.hostname) &&
           !href.includes("#") &&
           href !== location.href &&
-          !href.match(/(\/search|\/feed|\/label)/i)
+          !href.match(/(\/search|\/feed|\/label)/i) &&
+          !blacklist.includes(href)
         )
         .map(url => url.split("?")[0].replace(/\/$/,""));
     
@@ -263,15 +276,15 @@ document.addEventListener("DOMContentLoaded", async function () {
       const topLinks = relevancyScores.slice(0, 50);
     
       return topLinks.map((item, i) => {
-        // nameClean diambil dari URL, tapi hapus '/p/' jika ada
+        // nameClean diambil dari URL, hapus '/p/' jika ada
         let nameClean = item.url.replace(location.origin,"").replace(/^\/p\//,"").replace(".html","").replace(/-/g," ").replace(/\s+/g," ").trim();
         if(nameClean) nameClean = nameClean.charAt(0).toUpperCase() + nameClean.slice(1);
         return { "@type": "ListItem", position: i+1, url: item.url, name: nameClean || `Tautan ${i+1}` };
       });
     }
     
-    const internalLinks = generateCleanInternalLinksV4();
-    console.log("[InternalLinks v4 ✅]", internalLinks);
+    const internalLinks = generateCleanInternalLinksV5();
+    console.log("[InternalLinks v5 ✅]", internalLinks);
 
 
       // === 9️⃣ GRAPH ===
