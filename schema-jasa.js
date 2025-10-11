@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v4.55+ 🚀] Auto generator dijalankan (Service + Product + Offers + Multi Parent + ItemList)");
+      console.log("[Schema v4.55 🚀] Auto generator dijalankan (Service + Product + Offers + Multi Parent + ItemList)");
 
       // === 1️⃣ INFO HALAMAN ===
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -44,26 +44,30 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
       };
 
-      // === 2️⃣ URL PARENT (MULTI BREADCRUMB SUPPORT) ===
-      const parentUrls = [];
-      document.querySelectorAll('meta[name^="parent-url"]').forEach(meta => {
-        const url = meta.content?.trim()?.replace(/[?&]m=1/, "");
-        if (url && !parentUrls.includes(url)) parentUrls.push(url);
-      });
+       // === 2️⃣ SMART MULTI isPartOf DETECTION ===
+    function detectParentUrls() {
+      const urls = new Set();
 
-      if (parentUrls.length === 0) {
-        const breadcrumbs = Array.from(document.querySelectorAll(".breadcrumbs a"))
-          .map(a => a.href)
-          .filter(href => href && href !== location.href);
-        if (breadcrumbs.length >= 2) {
-          parentUrls.push(breadcrumbs[breadcrumbs.length - 2]);
-          parentUrls.push(breadcrumbs[breadcrumbs.length - 1]);
-        } else if (breadcrumbs.length === 1) {
-          parentUrls.push(breadcrumbs.pop());
-        }
-      }
-      const cleanParentUrls = parentUrls.map(u => u.replace(/[?&]m=1/, "")).filter(u => u && u !== location.origin);
+      // 🧩 1️⃣ Breadcrumb detection
+      const breadcrumbLinks = Array.from(document.querySelectorAll(".breadcrumbs a"))
+        .map(a => a.href)
+        .filter(href => href && href !== location.href);
+      breadcrumbLinks.forEach(url => urls.add(url));
 
+      // 🧩 2️⃣ Meta parent-url
+      const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
+      if (metaParent && !urls.has(metaParent)) urls.add(metaParent);
+
+      // 🧩 3️⃣ Fallback ke domain utama
+      if (urls.size === 0) urls.add(location.origin);
+
+      // 🧩 4️⃣ Convert ke array objek schema
+      return Array.from(urls).map(u => ({ "@type": "WebPage", "@id": u }));
+    }
+
+    const parentUrls = detectParentUrls();
+
+      
       // === 3️⃣ AREA SERVED DETECTION ===
       const areaProv = {
         "Kabupaten Bogor": "Jawa Barat","Kota Bogor": "Jawa Barat",
@@ -74,21 +78,45 @@ document.addEventListener("DOMContentLoaded", async function () {
         "Kota Tangerang": "Banten","Kota Tangerang Selatan": "Banten",
         "DKI Jakarta": "DKI Jakarta"
       };
-      const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type": "Place", name: a }));
+      const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type":"Place", name: a }));
 
-      async function detectAreaServed() {
-        const h1 = PAGE.title.toLowerCase();
-        for (const [kota, prov] of Object.entries(areaProv)) {
-          const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
-          if (h1.includes(nameLow)) {
-            return [{ "@type": "Place", name: kota, addressRegion: prov }];
-          }
+     // === 🧠 4B️⃣ DETEKSI AREA SERVED OTOMATIS ===
+    async function detectAreaServed() {
+      const h1 = titleRaw.toLowerCase();
+      for (const [kota, prov] of Object.entries(areaProv)) {
+        const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
+        if (h1.includes(nameLow)) {
+          return [{ "@type": "Place", name: kota, addressRegion: prov }];
         }
-        return defaultAreaServed;
       }
-      const serviceAreaServed = await detectAreaServed();
+      const match = h1.match(/\b([a-z]{3,15})\b/i);
+      if (match) {
+        const kecamatanGuess = match[1];
+        try {
+          const response = await fetch(`https://id.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(kecamatanGuess)}&limit=1`);
+          const data = await response.json();
+          if (data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")) {
+            const desc = data.pages[0].description;
+            const parts = desc.split(",").map(p => p.trim());
+            const kec = parts[0] || kecamatanGuess;
+            const city = parts[1] || "Wilayah Sekitarnya";
+            const prov = parts[2] || "Jawa Barat";
+            return [
+              { "@type": "Place", name: "Kecamatan " + kec },
+              { "@type": "Place", name: city, addressRegion: prov }
+            ];
+          }
+        } catch (e) {
+          console.warn("⚠️ Area auto detection fallback", e);
+        }
+      }
+      return defaultAreaServed;
+    }
+    
+    // ✅ WAJIB gunakan await di sini
+    const serviceAreaServed = await detectAreaServed();
 
-      // === 4️⃣ AUTO KNOWS ABOUT ===
+    // === 4️⃣ AUTO KNOWS ABOUT ===
      function detectKnowsAbout() {
       // Ambil teks utama dari H1 + konten
       const h1 = document.querySelector("h1")?.innerText || "";
@@ -119,8 +147,113 @@ document.addEventListener("DOMContentLoaded", async function () {
       return topWords.map(w => w.charAt(0).toUpperCase() + w.slice(1));
     }
 
+      // === 5️⃣ SERVICE TYPE DETECTION ===
+      function detectServiceType() {
+        const h1 = document.querySelector("h1")?.innerText || "";
+        const p1 = document.querySelector("main p, article p")?.innerText || "";
+        let text = (h1 + " " + p1).toLowerCase();
+        text = text.replace(/\b(harga|murah|terdekat|terpercaya|berkualitas|profesional|resmi|202\d|terbaru|update)\b/gi,"").replace(/[^\w\s]/g," ");
+        const words = text.split(/\s+/).filter(w => !["dan","atau","dengan","untuk","serta","yang"].includes(w));
+        return words.slice(0,4).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
+      }
+      const serviceTypes = detectServiceType();
+
+      // === 6️⃣ PRODUCT NAME & CATEGORY ===
+      function getProductNameFromUrl() {
+        let path = location.pathname.replace(/^\/|\/$/g,"").split("/").pop();
+        path = path.replace(".html","").replace(/-/g," ");
+        return decodeURIComponent(path).replace(/\b\w/g,l=>l.toUpperCase());
+      }
+      const productName = getProductNameFromUrl();
+      const productKeywords = { BuildingMaterial:["beton","ready mix","precast","besi","pipa","semen","buis","gorong gorong","panel"], ConstructionEquipment:["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"] };
+      const productCategory = Object.entries(productKeywords).find(([k,v])=>v.some(w=>productName.toLowerCase().includes(w)))?.[0] || "Other";
+      const productSameAs = productCategory==="BuildingMaterial"?"https://id.wikipedia.org/wiki/Material_konstruksi":productCategory==="ConstructionEquipment"?"https://id.wikipedia.org/wiki/Alat_berat":"https://id.wikipedia.org/wiki/Konstruksi";
+
+    // === 8️⃣ DETEKSI EVERGREEN ===
+   // === 8️⃣ DETEKSI EVERGREEN AI-LIKE ===
+    function detectEvergreenAI() {
+      // Ambil H1 & konten utama
+      const h1 = document.querySelector("h1")?.innerText || "";
+      const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
+                           .map(p => p.innerText)
+                           .join(" ");
+    
+      const text = (h1 + " " + content).toLowerCase();
+    
+      // Deteksi pola time-sensitive otomatis: tahun, update, harga, promo, diskon, deadline
+      const hasTimePattern = /\b(20\d{2}|update|harga|tarif|promo|diskon|deadline|agenda|sementara)\b/.test(text);
+    
+      // Deteksi pola evergreen otomatis: tutorial, panduan, tips, cara, langkah-langkah, contoh, teknik
+      const sentenceIndicators = (text.match(/\b(cara|tips|panduan|tutorial|langkah|contoh|teknik|definisi|jenis|manfaat|strategi|panduan lengkap)\b/g) || []).length;
+    
+      // Analisis panjang paragraf: konten naratif panjang → indikasi evergreen
+      const paragraphScore = content.split("\n\n").filter(p => p.trim().length > 50).length;
+    
+      // Skor total untuk menilai evergreen
+      const evergreenScore = sentenceIndicators + paragraphScore;
+    
+      // Keputusan final
+      if (hasTimePattern) return false;           // time-sensitive
+      if (evergreenScore > 3) return true;       // cukup indikasi evergreen
+      return !document.querySelector("table");   // fallback sederhana: tabel → time-sensitive
+    }
+    
+    // Jalankan otomatis
+    const isEvergreen = detectEvergreenAI();
+    console.log("[Evergreen AI ✅]", isEvergreen);
+
+    // === 9️⃣ priceValidUntil ===
+    const now = new Date();
+    const priceValidUntil = new Date(now);
+    if(isEvergreen) priceValidUntil.setFullYear(now.getFullYear() + 1);
+    else priceValidUntil.setMonth(now.getMonth() + 3);
+    const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
+
+    
+      // === 7️⃣ PRICE DETECTION & OFFERS ===
+      const seenItems = new Set();
+      const tableOffers = [];
+      function addOffer(name,key,price,desc=""){
+        let finalName = productName;
+        if(name && name.toLowerCase()!==productName.toLowerCase()) finalName += " "+name;
+        const k = finalName+"|"+key+"|"+price;
+        if(!seenItems.has(k)){
+          seenItems.add(k);
+          tableOffers.push({ "@type":"Offer", name:finalName, url:cleanUrl, priceCurrency:"IDR", price:price.toString(), itemCondition:"https://schema.org/NewCondition", availability:"https://schema.org/InStock", priceValidUntil:autoPriceValidUntil, seller:{ "@id": PAGE.business.url+"#localbusiness" }, description: desc||undefined });
+        }
+      }
+
+      Array.from(document.querySelectorAll("table")).forEach(table=>{
+        Array.from(table.querySelectorAll("tr")).forEach(row=>{
+          const cells = Array.from(row.querySelectorAll("td,th")).slice(0,6);
+          if(cells.length>=2){
+            let col1 = cells[0].innerText.trim();
+            let key = cells.slice(1).map(c=>c.innerText.trim()).join(" ");
+            let price = null;
+            for(let c of cells){ const m=c.innerText.match(/Rp\s*([\d.,]+)/); if(m){price=parseInt(m[1].replace(/[.\s,]/g,""));break;} }
+            if(price) addOffer(col1,key,price,cells[1]?.innerText.trim()||"");
+          }
+        });
+      });
+
+      document.body.innerText.split("\n").forEach(line=>{
+        const m=line.match(/Rp\s*([\d.,]{4,})/);
+        if(m){
+          const price=parseInt(m[1].replace(/[.\s,]/g,""));
+          if(price>=10000 && price<=500000000){
+            const words=line.split(/\s+/);
+            const idx=words.findIndex(w=>w.includes(m[1].replace(/[.,]/g,"")));
+            let name=words.slice(Math.max(0,idx-3),idx).join(" ").trim();
+            if(!name || name.toLowerCase()===productName.toLowerCase()) name="";
+            addOffer(name,"",price);
+          }
+        }
+      });
+
+      const isProductPage = tableOffers.length>0;
+
      // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v3) ===
-     function generateCleanInternalLinksV3() {
+    function generateCleanInternalLinksV3() {
       const h1 = (document.querySelector("h1")?.innerText || "")
         .toLowerCase()
         .replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, ""); // buang bulan & tahun
@@ -192,13 +325,12 @@ document.addEventListener("DOMContentLoaded", async function () {
     // Jalankan
     const internalLinks = generateCleanInternalLinksV3();
     console.log("[InternalLinks v3 ✅]", internalLinks);
-
-      // === 6️⃣ GRAPH ===
-    const graph = [];
-
-      graph.push({
-        "@type": ["LocalBusiness","GeneralContractor"],
-        "@id": PAGE.business.url + "#localbusiness",
+      
+      // === 9️⃣ GRAPH ===
+      const graph=[];
+      const localBiz={
+        "@type":["LocalBusiness","GeneralContractor"],
+        "@id": PAGE.business.url+"#localbusiness",
         name: PAGE.business.name,
         url: PAGE.business.url,
         telephone: PAGE.business.telephone,
@@ -208,63 +340,90 @@ document.addEventListener("DOMContentLoaded", async function () {
         logo: PAGE.image,
         sameAs: PAGE.business.sameAs,
         areaServed: defaultAreaServed,
-        knowsAbout: detectKnowsAbout()
+        knowsAbout: detectKnowsAbout(),
+        ...(isProductPage && { hasOfferCatalog:{ "@id": cleanUrl+"#product" } })
+      };
+      graph.push(localBiz);
+
+      cleanParentUrls.forEach(url=>{
+        if(url && url!==cleanUrl) graph.push({ "@type":"WebPage","@id":url+"#webpage","url":url });
       });
 
       graph.push({
-        "@type": "WebPage",
-        "@id": cleanUrl + "#webpage",
+        "@type":"WebPage",
+        "@id": cleanUrl+"#webpage",
         url: cleanUrl,
         name: PAGE.title,
         description: PAGE.description,
         image: PAGE.image,
-        mainEntity: { "@id": cleanUrl + "#service" },
-        publisher: { "@id": PAGE.business.url + "#localbusiness" },
-        ...(cleanParentUrls.length ? { isPartOf: cleanParentUrls.map(u => ({ "@id": u + "#webpage" })) } : {})
+        mainEntity: { "@id": cleanUrl+"#service" },
+        publisher: { "@id": PAGE.business.url+"#localbusiness" },
+        ...(internalLinks.length && { hasPart:{ "@id": cleanUrl+"#internal-links" } }),
+        ...(cleanParentUrls.length && { isPartOf: cleanParentUrls.map(u=>({ "@id": u+"#webpage" })) })
       });
 
-      graph.push({
-        "@type": "Service",
-        "@id": cleanUrl + "#service",
+      const serviceNode={
+        "@type":"Service",
+        "@id": cleanUrl+"#service",
         name: PAGE.title,
         description: PAGE.description,
         image: PAGE.image,
+        serviceType: serviceTypes,
         areaServed: serviceAreaServed,
-        provider: { "@id": PAGE.business.url + "#localbusiness" },
-        brand: { "@type": "Brand", name: PAGE.business.name },
-        mainEntityOfPage: { "@id": cleanUrl + "#webpage" }
-      });
+        provider:{ "@id": PAGE.business.url+"#localbusiness" },
+        brand:{ "@type":"Brand", name: PAGE.business.name },
+        mainEntityOfPage:{ "@id": cleanUrl+"#webpage" },
+        ...(isProductPage && { offers:{ "@type":"AggregateOffer", lowPrice:Math.min(...tableOffers.map(o=>parseInt(o.price))), highPrice:Math.max(...tableOffers.map(o=>parseInt(o.price))), offerCount:tableOffers.length, priceCurrency:"IDR", offers:tableOffers.map(o=>({...o,url:cleanUrl})) } })
+      };
+      graph.push(serviceNode);
 
-      graph.push({
-        "@type": "ItemList",
-        "@id": cleanUrl + "#internal-links",
-        name: "Daftar Halaman Terkait",
-        numberOfItems: internalLinks.length,
-        itemListElement: internalLinks
-      });
+      if(isProductPage){
+        graph.push({
+          "@type":"Product",
+          "@id": cleanUrl+"#product",
+          mainEntityOfPage:{ "@type":"WebPage","@id": cleanUrl+"#webpage" },
+          name: productName,
+          image:[PAGE.image],
+          description: PAGE.description,
+          brand:{ "@type":"Brand","name": PAGE.business.name },
+          category: productCategory,
+          sameAs: productSameAs,
+          offers: tableOffers.map(o=>({...o,url:cleanUrl}))
+        });
+      }
 
-      // === 7️⃣ INJECT ===
-      const schema = { "@context": "https://schema.org", "@graph": graph };
-      let el = document.querySelector("#auto-schema-service");
-      if (!el) {
-        el = document.createElement("script");
-        el.id = "auto-schema-service";
-        el.type = "application/ld+json";
+      if(internalLinks.length){
+        graph.push({
+          "@type":"ItemList",
+          "@id": cleanUrl+"#internal-links",
+          name: "Daftar Halaman Terkait",
+          itemListOrder:"http://schema.org/ItemListOrderAscending",
+          numberOfItems: internalLinks.length,
+          itemListElement: internalLinks
+        });
+      }
+
+      const schema={ "@context":"https://schema.org", "@graph":graph };
+      let el=document.querySelector("#auto-schema-service");
+      if(!el){
+        el=document.createElement("script");
+        el.id="auto-schema-service";
+        el.type="application/ld+json";
         document.head.appendChild(el);
       }
-      el.textContent = JSON.stringify(schema, null, 2);
-      console.log(`[Schema v4.55 ✅] Injected | Parents: ${cleanParentUrls.length} | ItemList: ${internalLinks.length}`);
+      el.textContent=JSON.stringify(schema,null,2);
+      console.log(`[Schema v4.55 ✅] Injected | Parents: ${cleanParentUrls.length} | Items: ${tableOffers.length} | InternalLinks: ${internalLinks.length} | ServiceType: ${serviceTypes}`);
     }
 
-    if (document.querySelector("h1") && document.querySelector(".post-body")) {
+    if(document.querySelector("h1") && document.querySelector(".post-body")){
       await initSchema();
     } else {
-      const obs = new MutationObserver(async () => {
-        if (document.querySelector("h1") && document.querySelector(".post-body")) {
+      const obs=new MutationObserver(async ()=>{
+        if(document.querySelector("h1") && document.querySelector(".post-body")){
           await initSchema(); obs.disconnect();
         }
       });
-      obs.observe(document.body, { childList: true, subtree: true });
+      obs.observe(document.body,{childList:true,subtree:true});
     }
-  }, 600);
+  },600);
 });
