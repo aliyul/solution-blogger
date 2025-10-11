@@ -216,30 +216,61 @@ document.addEventListener("DOMContentLoaded", async function () {
       });
       const isProductPage = tableOffers.length>0;
 
-      // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v3) ===
-      function generateCleanInternalLinksV3(){
-        const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase().replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, "");
-        const rawLinks = Array.from(document.querySelectorAll("article a"))
-          .map(a=>a.href)
-          .filter(href=>href && href.includes(location.hostname) && !href.includes("#") && href!==location.href && !href.match(/(\/search|\/feed|\/label)/i))
-          .map(url=>url.split("?")[0].replace(/\/$/,""));
-        const uniqueUrls = [...new Set(rawLinks)];
-        const relevancyScores = uniqueUrls.map(url=>{
-          let slugText = url.replace(location.origin,"").replace(".html","").replace(/^\/+|\/+$/g,"").replace(/-/g," ").replace(/\b\d{1,2}\b/g,"").replace(/\d{4}/g,"").replace(/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi,"").replace(/\s+/g," ").trim().toLowerCase();
-          let score = 0;
-          h1.split(" ").forEach(word=>{ if(word && slugText.includes(word)) score++; });
-          return {url,score,slugText};
-        });
-        relevancyScores.sort((a,b)=>b.score-a.score);
-        const topLinks = relevancyScores.slice(0,50);
-        return topLinks.map((item,i)=>{
-          let nameClean = item.slugText.replace(/\//g," ").replace(/\s+/g," ").trim();
-          if(nameClean) nameClean = nameClean.charAt(0).toUpperCase() + nameClean.slice(1);
-          return {"@type":"ListItem",position:i+1,url:item.url,name:nameClean||`Tautan ${i+1}`};
-        });
-      }
-      const internalLinks = generateCleanInternalLinksV3();
-      console.log("[InternalLinks v3 ✅]", internalLinks);
+    // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v4) ===
+    function generateCleanInternalLinksV4() {
+      const h1 = (document.querySelector("h1")?.innerText || "")
+        .toLowerCase()
+        .replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, "");
+    
+      // Ambil semua link <a> di dalam artikel saja
+      const articleContent = document.querySelector("article") || document.querySelector("main") || document.body;
+      const rawLinks = Array.from(articleContent.querySelectorAll("a"))
+        .map(a => a.href)
+        .filter(href =>
+          href &&
+          href.includes(location.hostname) &&
+          !href.includes("#") &&
+          href !== location.href &&
+          !href.match(/(\/search|\/feed|\/label)/i) &&
+          !href.includes("/p/")  // ❌ exclude path /p/
+        )
+        .map(url => url.split("?")[0].replace(/\/$/,""));
+    
+      const uniqueUrls = [...new Set(rawLinks)];
+    
+      const relevancyScores = uniqueUrls.map(url => {
+        let slugText = url
+          .replace(location.origin, "")
+          .replace(".html", "")
+          .replace(/^\/+|\/+$/g, "")
+          .replace(/-/g, " ")
+          .replace(/\b\d{1,2}\b/g, "")
+          .replace(/\d{4}/g, "")
+          .replace(/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi,"")
+          .replace(/\s+/g," ")
+          .trim()
+          .toLowerCase();
+    
+        let score = 0;
+        h1.split(" ").forEach(word => { if(word && slugText.includes(word)) score++; });
+    
+        return { url, score, slugText };
+      });
+    
+      relevancyScores.sort((a, b) => b.score - a.score);
+    
+      const topLinks = relevancyScores.slice(0, 50);
+    
+      return topLinks.map((item, i) => {
+        let nameClean = item.slugText.replace(/\//g," ").replace(/\s+/g," ").trim();
+        if(nameClean) nameClean = nameClean.charAt(0).toUpperCase() + nameClean.slice(1);
+        return { "@type": "ListItem", position: i+1, url: item.url, name: nameClean || `Tautan ${i+1}` };
+      });
+    }
+    
+    const internalLinks = generateCleanInternalLinksV4();
+    console.log("[InternalLinks v4 ✅]", internalLinks);
+
 
       // === 9️⃣ GRAPH ===
       const graph=[];
