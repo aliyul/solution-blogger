@@ -13,6 +13,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
       const baseUrl = ogUrl || canonical || location.href;
       const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
+      const titleRaw = document.querySelector("h1")?.innerText?.trim() || document.title.trim();
+      const title = titleRaw.replace(/\s{2,}/g," ").trim().substring(0,120);
 
       const PAGE = {
         url: cleanUrl,
