@@ -192,15 +192,14 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     });
 
-     // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50) ===
-    // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v2) ===
-    function generateCleanInternalLinksV2() {
+    // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v3) ===
+    function generateCleanInternalLinksV3() {
       const h1 = (document.querySelector("h1")?.innerText || "")
         .toLowerCase()
         .replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, ""); // buang bulan & tahun
     
-      // Ambil semua link internal
-      const rawLinks = Array.from(document.querySelectorAll("article a, main a, .post-body a, a"))
+      // Ambil semua link internal dari konten <article> saja
+      const rawLinks = Array.from(document.querySelectorAll("article a"))
         .map(a => a.href)
         .filter(href =>
           href &&
@@ -209,15 +208,17 @@ document.addEventListener("DOMContentLoaded", async function () {
           href !== location.href &&
           !href.match(/(\/search|\/feed|\/label)/i)
         )
-        .map(url => url.split("?")[0].replace(/\/$/, "").replace(/[?&].*$/, "")); // bersihkan ?m=1, query, slash
+        .map(url => url.split("?")[0].replace(/\/$/, "")); // bersihkan query & slash akhir
     
       // Unik
       const uniqueUrls = [...new Set(rawLinks)];
     
       // Hitung relevansi terhadap H1
       const relevancyScores = uniqueUrls.map(url => {
+        // ambil slug tanpa /p/ di path
         let slugText = url.replace(location.origin, "")
           .replace(".html", "")
+          .replace(/^\/p\//, "") // HILANGKAN /p/ jika ada
           .replace(/^\/+|\/+$/g, "")
           .replace(/-/g, " ")
           .replace(/\b\d{1,2}\b/g, "") // hapus angka 1-2 digit (bulan/hari)
@@ -262,8 +263,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     
     // Jalankan
-    const internalLinks = generateCleanInternalLinksV2();
-    console.log("[InternalLinks v2 ✅]", internalLinks);
+    const internalLinks = generateCleanInternalLinksV3();
+    console.log("[InternalLinks v3 ✅]", internalLinks);
 
     // === 12️⃣ BUSINESS ENTITY ===
     const business = {
