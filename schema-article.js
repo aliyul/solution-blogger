@@ -64,87 +64,108 @@ document.addEventListener("DOMContentLoaded", function() {
     console.log("Konten berubah → dateModified diupdate ke sekarang");
   }
 
-// === 🧠 EVERGREEN AI v3 — Adaptive SEO Detector + Auto Price Validity ===
-function detectEvergreenAI() {
-  const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
-  const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
-    .map(p => p.innerText)
-    .join(" ")
-    .toLowerCase();
-  const text = (h1 + " " + content).replace(/\s+/g, " ");
+  // ================== DETEKSI TYPE KONTEN ==================
+// ⚡ Auto Evergreen Detector v8.3 Adaptive — Hybrid + AI + History Tracking
+(function() {
+  // ===== 1️⃣ Ambil konten =====
+  const contentEl = document.querySelector("article, main, .post-body");
+  const contentText = contentEl ? contentEl.innerText : document.body.innerText || "";
+  const h1Text = document.querySelector("h1")?.innerText || "";
 
-  // ===== 1️⃣ Keyword Pattern (umum + industri konstruksi)
-  const nonEvergreenKeywords = [
-    "harga","update","terbaru","berita","jadwal","event","promo","diskon",
-    "proyek","progres","bulan","tahun","sementara","musiman","penawaran",
-    "stok","kontrak","laporan","estimasi","kuota","perubahan","sementara"
-  ];
+  if (!contentText) return;
 
-  const evergreenKeywords = [
-    "panduan","tutorial","tips","cara","definisi","strategi","langkah",
-    "prosedur","manfaat","fungsi","jenis","contoh","teknik","pengertian",
-    "kegunaan","struktur","standar","material","spesifikasi","panduan lengkap"
-  ];
+  const text = (h1Text + " " + contentText).toLowerCase().replace(/\s+/g," ");
 
-  const semiEvergreenKeywords = [
-    "harga beton","harga ready mix","harga u ditch","harga precast",
-    "sewa","rental","kontraktor","pembangunan","analisa harga satuan",
-    "review","perbandingan","tren","pasar","industri konstruksi"
-  ];
-
-  // ===== 2️⃣ Deteksi Time-Sensitive
-  const hasTimePattern = /\b(20\d{2}|harga|tarif|update|promo|diskon|bulan|minggu|sementara|terbaru)\b/.test(text);
-
-  const nonEvergreenHits = nonEvergreenKeywords.filter(k => text.includes(k)).length;
-  const evergreenHits = evergreenKeywords.filter(k => text.includes(k)).length;
-  const semiEvergreenHits = semiEvergreenKeywords.filter(k => text.includes(k)).length;
-
-  // ===== 3️⃣ Struktur & Panjang Konten
-  const paragraphCount = content.split(/\n{2,}/).filter(p => p.trim().length > 50).length;
+  // ===== 2️⃣ Indikator natural =====
+  const wordCount = contentText.split(/\s+/).filter(Boolean).length;
+  const numberCount = (contentText.match(/\d{1,4}/g) || []).length;
+  const percentCount = (contentText.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)/g) || []).length;
   const tableCount = document.querySelectorAll("table").length;
-  const listCount = document.querySelectorAll("article ol, article ul").length;
-  const wordCount = content.split(/\s+/).length;
+  const listCount = document.querySelectorAll("ul,ol").length;
+  const h2Count = document.querySelectorAll("h2").length;
 
-  // ===== 4️⃣ Skoring
-  let evergreenScore = evergreenHits * 2 + paragraphCount + listCount;
-  let semiScore = semiEvergreenHits + (hasTimePattern ? 1 : 0);
-  let nonScore = nonEvergreenHits * 1.5 + tableCount;
+  // ===== 3️⃣ Skor otomatis =====
+  let score = 0;
+  score += numberCount * 0.3;      // banyak angka → time-sensitive
+  score += percentCount * 0.5;     // harga/data → time-sensitive
+  score += tableCount * 1;         // tabel = data dinamis
+  score -= (wordCount > 1000 ? 1 : 0); // panjang → lebih evergreen
+  score -= (h2Count > 2 ? 0.5 : 0);    // banyak subjudul = panduan
+  score -= (listCount > 0 ? 0.5 : 0);  // list = panduan
 
-  if (wordCount > 800) evergreenScore += 2;
-  if (tableCount > 0) evergreenScore -= 2;
+  // ===== 4️⃣ Deteksi tipe konten =====
+  let typeKonten = "SEMI-EVERGREEN";
+  if (score >= 3) typeKonten = "NON-EVERGREEN";
+  else if (score <= 1) typeKonten = "EVERGREEN";
 
-  // ===== 5️⃣ Klasifikasi
-  let resultType = "semi-evergreen";
-  if (nonScore >= evergreenScore && nonScore > 3) resultType = "non-evergreen";
-  else if (evergreenScore >= semiScore + 2 && !hasTimePattern) resultType = "evergreen";
+  // ===== 5️⃣ Adaptive History Tracking =====
+  // Simpan histori di localStorage untuk tiap URL
+  const storageKey = `evergreenAI_history_${location.pathname}`;
+  const history = JSON.parse(localStorage.getItem(storageKey) || "{}");
 
-  console.log(`[Evergreen AI ✅] Type: ${resultType}, EvergreenScore: ${evergreenScore}, SemiScore: ${semiScore}, NonScore: ${nonScore}`);
-  return resultType;
-}
+  // Update score historis
+  const prevScore = history.score || 0;
+  const prevType = history.typeKonten || typeKonten;
 
-// === 🔁 Jalankan Deteksi
-const evergreenType = detectEvergreenAI();
+  // Adaptive adjustment: jika konten sebelumnya sering berubah → naikkan kemungkinan NON-EVERGREEN
+  if (prevScore >= 3 && typeKonten === "SEMI-EVERGREEN") {
+    typeKonten = "NON-EVERGREEN";
+  }
 
-// === 📆 AUTO PRICE VALID UNTIL (Berdasarkan Jenis Konten)
-const now = new Date();
-const priceValidUntil = new Date(now);
+  // Simpan histori terbaru
+  localStorage.setItem(storageKey, JSON.stringify({
+    score: score,
+    typeKonten: typeKonten,
+    lastChecked: new Date().toISOString()
+  }));
 
-/*
-📘 Standar pakar SEO:
-- Evergreen → relevan ≥12 bulan (update tahunan)
-- Semi-evergreen → relevan 6 bulan
-- Non-evergreen → relevan <3 bulan (update maksimal 3 bulan)
-*/
-if (evergreenType === "evergreen") {
-  priceValidUntil.setFullYear(now.getFullYear() + 1);
-} else if (evergreenType === "semi-evergreen") {
-  priceValidUntil.setMonth(now.getMonth() + 6);
-} else {
-  priceValidUntil.setMonth(now.getMonth() + 3); // ✅ paling ideal SEO
-}
+  // ===== 6️⃣ Tentukan tanggal update berikutnya =====
+  const nextUpdateDate = new Date();
+  if (typeKonten === "EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 12);
+  else if (typeKonten === "SEMI-EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 6);
+  else nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 3);
 
-const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
-console.log(`[Auto PriceValidUntil 📅] ${autoPriceValidUntil} (${evergreenType.toUpperCase()})`);
+  const nextUpdateStr = nextUpdateDate.toLocaleDateString("id-ID", {
+    day:"numeric", month:"long", year:"numeric"
+  });
+
+  // ===== 7️⃣ Update last modified di UI =====
+  const dateModifiedEl = document.querySelector('meta[itemprop="dateModified"], time[itemprop="dateModified"]');
+  const dateModified = dateModifiedEl ? new Date(dateModifiedEl.getAttribute("content") || new Date()) : new Date();
+  const lastUpdatedEl = document.getElementById("lastUpdatedText");
+  if (lastUpdatedEl) {
+    lastUpdatedEl.textContent = !isNaN(dateModified.getTime())
+      ? dateModified.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})
+      : "-";
+  }
+
+  // ===== 8️⃣ Tampilkan label tipe konten di UI (di bawah H1) =====
+  const typeEl = document.createElement("div");
+  typeEl.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+  typeEl.setAttribute("data-nosnippet","true");
+  typeEl.style.fontSize = "0.85em";
+  typeEl.style.color = "#555";
+  typeEl.style.marginTop = "4px";
+  typeEl.style.marginBottom = "8px";
+
+  const postUpdatedEl = document.querySelector(".post-updated");
+  if(postUpdatedEl){
+    postUpdatedEl.parentNode.insertBefore(typeEl, postUpdatedEl.nextSibling);
+  } else {
+    const h1El = document.querySelector("h1");
+    if(h1El && h1El.parentNode){
+      h1El.parentNode.insertBefore(typeEl, h1El.nextSibling);
+    }
+  }
+
+  // ===== 9️⃣ Simpan ke window untuk schema =====
+  window.typeKonten = typeKonten;
+  window.nextUpdateStr = nextUpdateStr;
+
+  // ===== 🔍 Console Log =====
+  console.log(`[EvergreenAI v8.3 Adaptive ✅] Type: ${typeKonten} | Skor: ${score.toFixed(1)} | WordCount: ${wordCount}`);
+  console.log(`📅 Update berikutnya: ${nextUpdateStr}`);
+})();
 
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
