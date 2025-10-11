@@ -66,8 +66,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
   // ================== DETEKSI TYPE KONTEN ==================
 // ⚡ Auto Evergreen Detector v8.5 — Enterprise Full Automation + Blogspot Dashboard
-document.addEventListener("DOMContentLoaded", function () {
-  // ===== 1️⃣ Deteksi Konten =====
+ // ===== 1️⃣ Deteksi Konten =====
   const contentEl = document.querySelector("article, main, .post-body");
   const h1Text = document.querySelector("h1")?.innerText || "";
   const contentText = (contentEl ? contentEl.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
@@ -165,7 +164,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   console.log(`🧠 [EvergreenAI v8.5 Enterprise] ${typeKonten} | Score: ${score.toFixed(1)} | Word: ${wordCount}`);
   console.log(`📅 Next Update: ${nextUpdateStr}`);
-});
 
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
