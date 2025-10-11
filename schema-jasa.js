@@ -8,43 +8,19 @@ document.addEventListener("DOMContentLoaded", async function () {
       schemaInjected = true;
       console.log("[Schema v4.55 🚀] Auto generator dijalankan (Service + Product + Offers + Multi Parent + ItemList)");
 
-      // === Tunggu h1 atau konten utama tersedia ===
-      async function waitForElement(selector, timeout = 3000) {
-        const interval = 50;
-        const maxAttempts = timeout / interval;
-        let attempts = 0;
-        return new Promise(resolve => {
-          const check = () => {
-            const el = document.querySelector(selector);
-            if (el) return resolve(el);
-            attempts++;
-            if (attempts >= maxAttempts) return resolve(null);
-            setTimeout(check, interval);
-          };
-          check();
-        });
-      }
-
-      const h1El = await waitForElement("h1");
-      const articleP = await waitForElement("article p, main p, .post-body p");
-
       // === 1️⃣ INFO HALAMAN ===
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
       const baseUrl = ogUrl || canonical || location.href;
       const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
+      const titleRaw = document.querySelector("h1")?.innerText?.trim() || document.title.trim();
+      const title = titleRaw.replace(/\s{2,}/g," ").trim().substring(0,120);
 
       const PAGE = {
         url: cleanUrl,
-        title: h1El?.innerText?.trim() || document.title.trim(),
-        description:
-          document.querySelector('meta[name="description"]')?.content?.trim() ||
-          articleP?.innerText?.substring(0, 200) ||
-          document.title,
-        image:
-          document.querySelector('meta[property="og:image"]')?.content ||
-          document.querySelector("article img, main img, .post-body img")?.getAttribute("src") ||
-          "https://blogger.googleusercontent.com/img/b/R29vZ2xl/.../s300/beton-jaya-readymix-logo.png",
+        title: titleRaw,
+        description: document.querySelector('meta[name="description"]')?.content?.trim() || document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 200) || document.title,
+        image: document.querySelector('meta[property="og:image"]')?.content || document.querySelector("article img, main img, .post-body img")?.getAttribute("src") || "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png",
         business: {
           name: "Beton Jaya Readymix",
           url: "https://www.betonjayareadymix.com",
@@ -67,25 +43,23 @@ document.addEventListener("DOMContentLoaded", async function () {
       // === 2️⃣ SMART MULTI isPartOf DETECTION ===
       function detectParentUrls() {
         const urls = new Set();
-
-        // 🧩 1️⃣ Breadcrumb detection
+        // 🧩 Breadcrumb
         const breadcrumbLinks = Array.from(document.querySelectorAll(".breadcrumbs a"))
           .map(a => a.href)
           .filter(href => href && href !== location.href);
         breadcrumbLinks.forEach(url => urls.add(url));
 
-        // 🧩 2️⃣ Meta parent-url
+        // 🧩 Meta parent-url
         const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
-        if (metaParent && !urls.has(metaParent)) urls.add(metaParent);
+        if (metaParent) urls.add(metaParent);
 
-        // 🧩 3️⃣ Fallback ke domain utama
+        // 🧩 Fallback ke domain utama
         if (urls.size === 0) urls.add(location.origin);
 
-        // 🧩 4️⃣ Convert ke array objek schema
         return Array.from(urls).map(u => ({ "@type": "WebPage", "@id": u }));
       }
-
-      const cleanParentUrls = detectParentUrls();
+      const parentUrls = detectParentUrls();
+      const cleanParentUrls = parentUrls.map(u=>u["@id"]); // ✅ koreksi deklarasi
 
       // === 3️⃣ AREA SERVED DETECTION ===
       const areaProv = {
@@ -99,69 +73,62 @@ document.addEventListener("DOMContentLoaded", async function () {
       };
       const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type":"Place", name: a }));
 
-      // === 4️⃣ DETEKSI AREA SERVED OTOMATIS ===
+      // === 🧠 4B️⃣ DETEKSI AREA SERVED OTOMATIS ===
       async function detectAreaServed() {
         const h1 = PAGE.title.toLowerCase();
         for (const [kota, prov] of Object.entries(areaProv)) {
           const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
-          if (h1.includes(nameLow)) {
-            return [{ "@type": "Place", name: kota, addressRegion: prov }];
-          }
+          if (h1.includes(nameLow)) return [{ "@type": "Place", name: kota, addressRegion: prov }];
         }
+
         const match = h1.match(/\b([a-z]{3,15})\b/i);
-        if (match) {
+        if(match){
           const kecamatanGuess = match[1];
           try {
             const response = await fetch(`https://id.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(kecamatanGuess)}&limit=1`);
             const data = await response.json();
-            if (data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")) {
+            if(data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")){
               const desc = data.pages[0].description;
-              const parts = desc.split(",").map(p => p.trim());
+              const parts = desc.split(",").map(p=>p.trim());
               const kec = parts[0] || kecamatanGuess;
               const city = parts[1] || "Wilayah Sekitarnya";
               const prov = parts[2] || "Jawa Barat";
-              return [
-                { "@type": "Place", name: "Kecamatan " + kec },
-                { "@type": "Place", name: city, addressRegion: prov }
-              ];
+              return [ { "@type": "Place", name: "Kecamatan "+kec }, { "@type": "Place", name: city, addressRegion: prov } ];
             }
-          } catch (e) {
-            console.warn("⚠️ Area auto detection fallback", e);
-          }
+          } catch(e){ console.warn("⚠️ Area auto detection fallback", e); }
         }
         return defaultAreaServed;
       }
-      
       const serviceAreaServed = await detectAreaServed();
 
-      // === 5️⃣ AUTO KNOWS ABOUT ===
+      // === 4️⃣ AUTO KNOWS ABOUT ===
       function detectKnowsAbout() {
-        const h1 = PAGE.title || "";
+        const h1 = document.querySelector("h1")?.innerText || "";
         const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
-                              .map(p => p.innerText)
-                              .join(" ");
+          .map(p => p.innerText).join(" ");
         const text = (h1 + " " + content).toLowerCase();
         const stopwords = new Set(["dan","di","yang","untuk","dengan","pada","adalah","atau","ini","juga","oleh","dari","sebagai","dalam","saja","tetapi","agar"]);
-        const words = (text.match(/\b[a-z]{3,}\b/g) || []).filter(w => !stopwords.has(w));
+        const words = text.match(/\b[a-z]{3,}\b/g) || [];
+        const filtered = words.filter(w=>!stopwords.has(w));
         const freq = {};
-        words.forEach(w => freq[w] = (freq[w] || 0) + 1);
+        filtered.forEach(w=>{ freq[w]=(freq[w]||0)+1; });
         const topWords = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5).map(e=>e[0]);
-        return topWords.map(w => w.charAt(0).toUpperCase() + w.slice(1));
+        return topWords.map(w=>w.charAt(0).toUpperCase()+w.slice(1));
       }
 
-      // === 6️⃣ SERVICE TYPE DETECTION ===
-      function detectServiceType() {
-        const h1 = PAGE.title || "";
-        const p1 = articleP?.innerText || "";
-        let text = (h1 + " " + p1).toLowerCase();
+      // === 5️⃣ SERVICE TYPE DETECTION ===
+      function detectServiceType(){
+        const h1 = document.querySelector("h1")?.innerText||"";
+        const p1 = document.querySelector("main p, article p")?.innerText||"";
+        let text = (h1+" "+p1).toLowerCase();
         text = text.replace(/\b(harga|murah|terdekat|terpercaya|berkualitas|profesional|resmi|202\d|terbaru|update)\b/gi,"").replace(/[^\w\s]/g," ");
-        const words = text.split(/\s+/).filter(w => !["dan","atau","dengan","untuk","serta","yang"].includes(w));
+        const words = text.split(/\s+/).filter(w=>!["dan","atau","dengan","untuk","serta","yang"].includes(w));
         return words.slice(0,4).map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(" ");
       }
       const serviceTypes = detectServiceType();
 
-      // === 7️⃣ PRODUCT NAME & CATEGORY ===
-      function getProductNameFromUrl() {
+      // === 6️⃣ PRODUCT NAME & CATEGORY ===
+      function getProductNameFromUrl(){
         let path = location.pathname.replace(/^\/|\/$/g,"").split("/").pop();
         path = path.replace(".html","").replace(/-/g," ");
         return decodeURIComponent(path).replace(/\b\w/g,l=>l.toUpperCase());
@@ -174,15 +141,13 @@ document.addEventListener("DOMContentLoaded", async function () {
       const productCategory = Object.entries(productKeywords).find(([k,v])=>v.some(w=>productName.toLowerCase().includes(w)))?.[0] || "Other";
       const productSameAs = productCategory==="BuildingMaterial"?"https://id.wikipedia.org/wiki/Material_konstruksi":productCategory==="ConstructionEquipment"?"https://id.wikipedia.org/wiki/Alat_berat":"https://id.wikipedia.org/wiki/Konstruksi";
 
-      // === 8️⃣ DETEKSI EVERGREEN AI ===
-      function detectEvergreenAI() {
-        const h1 = PAGE.title || "";
-        const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
-                             .map(p => p.innerText)
-                             .join(" ");
-        const text = (h1 + " " + content).toLowerCase();
+      // === 8️⃣ DETEKSI EVERGREEN ===
+      function detectEvergreenAI(){
+        const h1 = document.querySelector("h1")?.innerText||"";
+        const content = Array.from(document.querySelectorAll("article p, main p, .post-body p")).map(p=>p.innerText).join(" ");
+        const text = (h1+" "+content).toLowerCase();
         const hasTimePattern = /\b(20\d{2}|update|harga|tarif|promo|diskon|deadline|agenda|sementara)\b/.test(text);
-        const sentenceIndicators = (text.match(/\b(cara|tips|panduan|tutorial|langkah|contoh|teknik|definisi|jenis|manfaat|strategi|panduan lengkap)\b/g) || []).length;
+        const sentenceIndicators = (text.match(/\b(cara|tips|panduan|tutorial|langkah|contoh|teknik|definisi|jenis|manfaat|strategi|panduan lengkap)\b/g)||[]).length;
         const paragraphScore = content.split("\n\n").filter(p=>p.trim().length>50).length;
         const evergreenScore = sentenceIndicators + paragraphScore;
         if(hasTimePattern) return false;
@@ -190,6 +155,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         return !document.querySelector("table");
       }
       const isEvergreen = detectEvergreenAI();
+      console.log("[Evergreen AI ✅]", isEvergreen);
 
       // === 9️⃣ priceValidUntil ===
       const now = new Date();
@@ -198,7 +164,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       else priceValidUntil.setMonth(now.getMonth()+3);
       const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
 
-      // === 10️⃣ PRICE DETECTION & OFFERS ===
+      // === 7️⃣ PRICE DETECTION & OFFERS ===
       const seenItems = new Set();
       const tableOffers = [];
       function addOffer(name,key,price,desc=""){
@@ -207,11 +173,21 @@ document.addEventListener("DOMContentLoaded", async function () {
         const k = finalName+"|"+key+"|"+price;
         if(!seenItems.has(k)){
           seenItems.add(k);
-          tableOffers.push({ "@type":"Offer", name:finalName, url:cleanUrl, priceCurrency:"IDR", price:price.toString(), itemCondition:"https://schema.org/NewCondition", availability:"https://schema.org/InStock", priceValidUntil:autoPriceValidUntil, seller:{ "@id": PAGE.business.url+"#localbusiness" }, description: desc||undefined });
+          tableOffers.push({
+            "@type":"Offer",
+            name:finalName,
+            url:cleanUrl,
+            priceCurrency:"IDR",
+            price:price.toString(),
+            itemCondition:"https://schema.org/NewCondition",
+            availability:"https://schema.org/InStock",
+            priceValidUntil:autoPriceValidUntil,
+            seller:{ "@id": PAGE.business.url+"#localbusiness" },
+            description: desc||undefined
+          });
         }
       }
 
-      // --- ambil dari tabel ---
       Array.from(document.querySelectorAll("table")).forEach(table=>{
         Array.from(table.querySelectorAll("tr")).forEach(row=>{
           const cells = Array.from(row.querySelectorAll("td,th")).slice(0,6);
@@ -225,7 +201,6 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
       });
 
-      // --- ambil dari teks ---
       document.body.innerText.split("\n").forEach(line=>{
         const m=line.match(/Rp\s*([\d.,]{4,})/);
         if(m){
@@ -241,30 +216,32 @@ document.addEventListener("DOMContentLoaded", async function () {
       });
       const isProductPage = tableOffers.length>0;
 
-      // === 11️⃣ INTERNAL LINK ===
-      function generateCleanInternalLinksV3() {
-        const h1 = PAGE.title.toLowerCase().replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi,"");
+      // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v3) ===
+      function generateCleanInternalLinksV3(){
+        const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase().replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, "");
         const rawLinks = Array.from(document.querySelectorAll("article a"))
           .map(a=>a.href)
           .filter(href=>href && href.includes(location.hostname) && !href.includes("#") && href!==location.href && !href.match(/(\/search|\/feed|\/label)/i))
           .map(url=>url.split("?")[0].replace(/\/$/,""));
         const uniqueUrls = [...new Set(rawLinks)];
         const relevancyScores = uniqueUrls.map(url=>{
-          let slugText = url.replace(location.origin,"").replace(".html","").replace(/^\/p\//,"").replace(/^\/+|\/+$/g,"").replace(/-/g," ").replace(/\b\d{1,2}\b/g,"").replace(/\d{4}/g,"").replace(/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi,"").replace(/\s+/g," ").trim().toLowerCase();
-          let score=0; h1.split(" ").forEach(word=>{if(word && slugText.includes(word)) score++;});
+          let slugText = url.replace(location.origin,"").replace(".html","").replace(/^\/+|\/+$/g,"").replace(/-/g," ").replace(/\b\d{1,2}\b/g,"").replace(/\d{4}/g,"").replace(/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi,"").replace(/\s+/g," ").trim().toLowerCase();
+          let score = 0;
+          h1.split(" ").forEach(word=>{ if(word && slugText.includes(word)) score++; });
           return {url,score,slugText};
         });
-        relevancyScores.sort((a,b)=>b.score-b.score);
+        relevancyScores.sort((a,b)=>b.score-a.score);
         const topLinks = relevancyScores.slice(0,50);
         return topLinks.map((item,i)=>{
           let nameClean = item.slugText.replace(/\//g," ").replace(/\s+/g," ").trim();
           if(nameClean) nameClean = nameClean.charAt(0).toUpperCase() + nameClean.slice(1);
-          return { "@type":"ListItem", position:i+1, url:item.url, name:nameClean||`Tautan ${i+1}` };
+          return {"@type":"ListItem",position:i+1,url:item.url,name:nameClean||`Tautan ${i+1}`};
         });
       }
       const internalLinks = generateCleanInternalLinksV3();
+      console.log("[InternalLinks v3 ✅]", internalLinks);
 
-      // === 12️⃣ GRAPH ===
+      // === 9️⃣ GRAPH ===
       const graph=[];
       const localBiz={
         "@type":["LocalBusiness","GeneralContractor"],
@@ -277,16 +254,14 @@ document.addEventListener("DOMContentLoaded", async function () {
         openingHours: PAGE.business.openingHours,
         logo: PAGE.image,
         sameAs: PAGE.business.sameAs,
-        areaServed: serviceAreaServed,
+        areaServed: defaultAreaServed,
         knowsAbout: detectKnowsAbout(),
         ...(isProductPage && { hasOfferCatalog:{ "@id": cleanUrl+"#product" } })
       };
       graph.push(localBiz);
-
       cleanParentUrls.forEach(url=>{
         if(url && url!==cleanUrl) graph.push({ "@type":"WebPage","@id":url+"#webpage","url":url });
       });
-
       graph.push({
         "@type":"WebPage",
         "@id": cleanUrl+"#webpage",
@@ -297,10 +272,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         mainEntity: { "@id": cleanUrl+"#service" },
         publisher: { "@id": PAGE.business.url+"#localbusiness" },
         ...(internalLinks.length && { hasPart:{ "@id": cleanUrl+"#internal-links" } }),
-        ...(cleanParentUrls.length && { isPartOf: cleanParentUrls.map(u => ({ "@id": u+"#webpage" })) })
-
+        ...(cleanParentUrls.length && { isPartOf: cleanParentUrls.map(u=>({ "@id": u+"#webpage" })) })
       });
-
       const serviceNode={
         "@type":"Service",
         "@id": cleanUrl+"#service",
@@ -312,7 +285,16 @@ document.addEventListener("DOMContentLoaded", async function () {
         provider:{ "@id": PAGE.business.url+"#localbusiness" },
         brand:{ "@type":"Brand", name: PAGE.business.name },
         mainEntityOfPage:{ "@id": cleanUrl+"#webpage" },
-        ...(isProductPage && { offers:{ "@type":"AggregateOffer", lowPrice:Math.min(...tableOffers.map(o=>parseInt(o.price))), highPrice:Math.max(...tableOffers.map(o=>parseInt(o.price))), offerCount:tableOffers.length, priceCurrency:"IDR", offers:tableOffers.map(o=>({...o,url:cleanUrl})) } })
+        ...(isProductPage && {
+          offers:{
+            "@type":"AggregateOffer",
+            lowPrice:Math.min(...tableOffers.map(o=>parseInt(o.price))),
+            highPrice:Math.max(...tableOffers.map(o=>parseInt(o.price))),
+            offerCount:tableOffers.length,
+            priceCurrency:"IDR",
+            offers:tableOffers.map(o=>({...o,url:cleanUrl}))
+          }
+        })
       };
       graph.push(serviceNode);
 
@@ -324,29 +306,52 @@ document.addEventListener("DOMContentLoaded", async function () {
           name: productName,
           image:[PAGE.image],
           description: PAGE.description,
+          brand:{ "@type":"Brand","name": PAGE.business.name },
           category: productCategory,
-          brand: { "@type":"Brand", name: PAGE.business.name, sameAs: productSameAs },
-          offers: tableOffers
+          sameAs: productSameAs,
+          offers: tableOffers.map(o=>({...o,url:cleanUrl}))
         });
       }
 
-      // === 13️⃣ ITEM LIST (Internal Links) ===
       if(internalLinks.length){
         graph.push({
           "@type":"ItemList",
           "@id": cleanUrl+"#internal-links",
+          name: "Daftar Halaman Terkait",
+          itemListOrder:"http://schema.org/ItemListOrderAscending",
+          numberOfItems: internalLinks.length,
           itemListElement: internalLinks
         });
       }
 
-      // === 14️⃣ TAMBAH JSON-LD KE HEAD ===
-      const scriptTag=document.createElement("script");
-      scriptTag.type="application/ld+json";
-      scriptTag.text = JSON.stringify({ "@context":"https://schema.org","@graph":graph },null,2);
-      document.head.appendChild(scriptTag);
-      console.log("[Schema v4.55 🚀] JSON-LD berhasil disisipkan!", graph);
+      const schema={
+        "@context":"https://schema.org",
+        "@graph":graph
+      };
+
+      let el=document.querySelector("#auto-schema-service");
+      if(!el){
+        el=document.createElement("script");
+        el.id="auto-schema-service";
+        el.type="application/ld+json";
+        document.head.appendChild(el);
+      }
+      el.textContent=JSON.stringify(schema,null,2);
+
+      console.log(`[Schema v4.55 ✅] Injected | Parents: ${cleanParentUrls.length} | Items: ${tableOffers.length} | InternalLinks: ${internalLinks.length} | ServiceType: ${serviceTypes}`);
     }
 
-    await initSchema();
-  }, 700);
+    if(document.querySelector("h1") && document.querySelector(".post-body")){
+      await initSchema();
+    } else {
+      const obs=new MutationObserver(async ()=>{
+        if(document.querySelector("h1") && document.querySelector(".post-body")){
+          await initSchema();
+          obs.disconnect();
+        }
+      });
+      obs.observe(document.body,{childList:true,subtree:true});
+    }
+
+  },600);
 });
