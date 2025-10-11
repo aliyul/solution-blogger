@@ -252,7 +252,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         description: PAGE.business.description,
         address: PAGE.business.address,
         openingHours: PAGE.business.openingHours,
-        logo: PAGE.image,
+        logo: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png",
         sameAs: PAGE.business.sameAs,
         areaServed: defaultAreaServed,
         knowsAbout: detectKnowsAbout(),
