@@ -84,7 +84,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
      // === 🧠 4B️⃣ DETEKSI AREA SERVED OTOMATIS ===
     async function detectAreaServed() {
-      const h1 = titleRaw.toLowerCase();
+      const h1 = PAGE.title.toLowerCase();
       for (const [kota, prov] of Object.entries(areaProv)) {
         const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
         if (h1.includes(nameLow)) {
