@@ -103,7 +103,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
   // ===== 2️⃣ Tampilkan label tipe konten di halaman =====
-  const h1 = document.querySelector("h1");
+  const h1label = document.querySelector("h1");
   if (h1) {
     const label = document.createElement("div");
     label.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
@@ -111,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function() {
     label.style.color = "#444";
     label.style.marginTop = "4px";
     label.style.marginBottom = "10px";
-    h1.insertAdjacentElement("afterend", label);
+    h1label.insertAdjacentElement("afterend", label);
   }
 
   // ===== 3️⃣ Siapkan Dashboard Blogspot =====
