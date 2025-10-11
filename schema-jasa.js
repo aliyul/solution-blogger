@@ -13,12 +13,10 @@ document.addEventListener("DOMContentLoaded", async function () {
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
       const baseUrl = ogUrl || canonical || location.href;
       const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
-      const titleRaw = document.querySelector("h1")?.innerText?.trim() || document.title.trim();
-      const title = titleRaw.replace(/\s{2,}/g," ").trim().substring(0,120);
 
       const PAGE = {
         url: cleanUrl,
-        title: document.querySelector("h1")?.textContent?.trim() || document.title.trim(),
+        title: document.querySelector("h1")?.innerText?.trim() || document.title.trim(),
         description:
           document.querySelector('meta[name="description"]')?.content?.trim() ||
           document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 200) ||
@@ -26,7 +24,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         image:
           document.querySelector('meta[property="og:image"]')?.content ||
           document.querySelector("article img, main img, .post-body img")?.getAttribute("src") ||
-          "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png",
+          "https://blogger.googleusercontent.com/img/b/R29vZ2xl/.../s300/beton-jaya-readymix-logo.png",
         business: {
           name: "Beton Jaya Readymix",
           url: "https://www.betonjayareadymix.com",
@@ -46,30 +44,29 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
       };
 
-       // === 2️⃣ SMART MULTI isPartOf DETECTION ===
-    function detectParentUrls() {
-      const urls = new Set();
+      // === 2️⃣ SMART MULTI isPartOf DETECTION ===
+      function detectParentUrls() {
+        const urls = new Set();
 
-      // 🧩 1️⃣ Breadcrumb detection
-      const breadcrumbLinks = Array.from(document.querySelectorAll(".breadcrumbs a"))
-        .map(a => a.href)
-        .filter(href => href && href !== location.href);
-      breadcrumbLinks.forEach(url => urls.add(url));
+        // 🧩 1️⃣ Breadcrumb detection
+        const breadcrumbLinks = Array.from(document.querySelectorAll(".breadcrumbs a"))
+          .map(a => a.href)
+          .filter(href => href && href !== location.href);
+        breadcrumbLinks.forEach(url => urls.add(url));
 
-      // 🧩 2️⃣ Meta parent-url
-      const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
-      if (metaParent && !urls.has(metaParent)) urls.add(metaParent);
+        // 🧩 2️⃣ Meta parent-url
+        const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
+        if (metaParent && !urls.has(metaParent)) urls.add(metaParent);
 
-      // 🧩 3️⃣ Fallback ke domain utama
-      if (urls.size === 0) urls.add(location.origin);
+        // 🧩 3️⃣ Fallback ke domain utama
+        if (urls.size === 0) urls.add(location.origin);
 
-      // 🧩 4️⃣ Convert ke array objek schema
-      return Array.from(urls).map(u => ({ "@type": "WebPage", "@id": u }));
-    }
+        // 🧩 4️⃣ Convert ke array objek schema
+        return Array.from(urls).map(u => ({ "@type": "WebPage", "@id": u }));
+      }
 
-    const parentUrls = detectParentUrls();
+      const cleanParentUrls = detectParentUrls();
 
-      
       // === 3️⃣ AREA SERVED DETECTION ===
       const areaProv = {
         "Kabupaten Bogor": "Jawa Barat","Kota Bogor": "Jawa Barat",
@@ -82,76 +79,59 @@ document.addEventListener("DOMContentLoaded", async function () {
       };
       const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type":"Place", name: a }));
 
-     // === 🧠 4B️⃣ DETEKSI AREA SERVED OTOMATIS ===
-    async function detectAreaServed() {
-      const h1 = PAGE.title.toLowerCase();
-      for (const [kota, prov] of Object.entries(areaProv)) {
-        const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
-        if (h1.includes(nameLow)) {
-          return [{ "@type": "Place", name: kota, addressRegion: prov }];
-        }
-      }
-      const match = h1.match(/\b([a-z]{3,15})\b/i);
-      if (match) {
-        const kecamatanGuess = match[1];
-        try {
-          const response = await fetch(`https://id.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(kecamatanGuess)}&limit=1`);
-          const data = await response.json();
-          if (data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")) {
-            const desc = data.pages[0].description;
-            const parts = desc.split(",").map(p => p.trim());
-            const kec = parts[0] || kecamatanGuess;
-            const city = parts[1] || "Wilayah Sekitarnya";
-            const prov = parts[2] || "Jawa Barat";
-            return [
-              { "@type": "Place", name: "Kecamatan " + kec },
-              { "@type": "Place", name: city, addressRegion: prov }
-            ];
+      // === 4️⃣ DETEKSI AREA SERVED OTOMATIS ===
+      async function detectAreaServed() {
+        const h1 = PAGE.title.toLowerCase();
+        for (const [kota, prov] of Object.entries(areaProv)) {
+          const nameLow = kota.toLowerCase().replace("kabupaten ", "").replace("kota ", "");
+          if (h1.includes(nameLow)) {
+            return [{ "@type": "Place", name: kota, addressRegion: prov }];
           }
-        } catch (e) {
-          console.warn("⚠️ Area auto detection fallback", e);
         }
+        const match = h1.match(/\b([a-z]{3,15})\b/i);
+        if (match) {
+          const kecamatanGuess = match[1];
+          try {
+            const response = await fetch(`https://id.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(kecamatanGuess)}&limit=1`);
+            const data = await response.json();
+            if (data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")) {
+              const desc = data.pages[0].description;
+              const parts = desc.split(",").map(p => p.trim());
+              const kec = parts[0] || kecamatanGuess;
+              const city = parts[1] || "Wilayah Sekitarnya";
+              const prov = parts[2] || "Jawa Barat";
+              return [
+                { "@type": "Place", name: "Kecamatan " + kec },
+                { "@type": "Place", name: city, addressRegion: prov }
+              ];
+            }
+          } catch (e) {
+            console.warn("⚠️ Area auto detection fallback", e);
+          }
+        }
+        return defaultAreaServed;
       }
-      return defaultAreaServed;
-    }
-    
-    // ✅ WAJIB gunakan await di sini
-    const serviceAreaServed = await detectAreaServed();
+      
+      const serviceAreaServed = await detectAreaServed();
 
-    // === 4️⃣ AUTO KNOWS ABOUT ===
-     function detectKnowsAbout() {
-      // Ambil teks utama dari H1 + konten
-      const h1 = document.querySelector("h1")?.innerText || "";
-      const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
-                            .map(p => p.innerText)
-                            .join(" ");
-      const text = (h1 + " " + content).toLowerCase();
-    
-      // Bersihkan teks: hapus karakter non-alfabet & stopwords sederhana
-      const stopwords = new Set([
-        "dan","di","yang","untuk","dengan","pada","adalah","atau","ini","juga","oleh","dari","sebagai","dalam","saja","tetapi","agar"
-      ]);
-      const words = text.match(/\b[a-z]{3,}\b/g) || [];
-      const filtered = words.filter(w => !stopwords.has(w));
-    
-      // Hitung frekuensi kata
-      const freq = {};
-      filtered.forEach(w => { freq[w] = (freq[w] || 0) + 1; });
-    
-      // Ambil kata paling sering muncul (top 5)
-      const topWords = Object.entries(freq)
-                             .sort((a,b) => b[1] - a[1])
-                             .slice(0,5)
-                             .map(e => e[0]);
-    
-      // Gunakan topWords untuk membuat daftar topik otomatis
-      // Misal: setiap kata menjadi topik sederhana (Google bisa mengerti)
-      return topWords.map(w => w.charAt(0).toUpperCase() + w.slice(1));
-    }
+      // === 5️⃣ AUTO KNOWS ABOUT ===
+      function detectKnowsAbout() {
+        const h1 = PAGE.title || "";
+        const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
+                              .map(p => p.innerText)
+                              .join(" ");
+        const text = (h1 + " " + content).toLowerCase();
+        const stopwords = new Set(["dan","di","yang","untuk","dengan","pada","adalah","atau","ini","juga","oleh","dari","sebagai","dalam","saja","tetapi","agar"]);
+        const words = (text.match(/\b[a-z]{3,}\b/g) || []).filter(w => !stopwords.has(w));
+        const freq = {};
+        words.forEach(w => freq[w] = (freq[w] || 0) + 1);
+        const topWords = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5).map(e=>e[0]);
+        return topWords.map(w => w.charAt(0).toUpperCase() + w.slice(1));
+      }
 
-      // === 5️⃣ SERVICE TYPE DETECTION ===
+      // === 6️⃣ SERVICE TYPE DETECTION ===
       function detectServiceType() {
-        const h1 = document.querySelector("h1")?.innerText || "";
+        const h1 = PAGE.title || "";
         const p1 = document.querySelector("main p, article p")?.innerText || "";
         let text = (h1 + " " + p1).toLowerCase();
         text = text.replace(/\b(harga|murah|terdekat|terpercaya|berkualitas|profesional|resmi|202\d|terbaru|update)\b/gi,"").replace(/[^\w\s]/g," ");
@@ -160,59 +140,45 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       const serviceTypes = detectServiceType();
 
-      // === 6️⃣ PRODUCT NAME & CATEGORY ===
+      // === 7️⃣ PRODUCT NAME & CATEGORY ===
       function getProductNameFromUrl() {
         let path = location.pathname.replace(/^\/|\/$/g,"").split("/").pop();
         path = path.replace(".html","").replace(/-/g," ");
         return decodeURIComponent(path).replace(/\b\w/g,l=>l.toUpperCase());
       }
       const productName = getProductNameFromUrl();
-      const productKeywords = { BuildingMaterial:["beton","ready mix","precast","besi","pipa","semen","buis","gorong gorong","panel"], ConstructionEquipment:["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"] };
+      const productKeywords = {
+        BuildingMaterial:["beton","ready mix","precast","besi","pipa","semen","buis","gorong gorong","panel"],
+        ConstructionEquipment:["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"]
+      };
       const productCategory = Object.entries(productKeywords).find(([k,v])=>v.some(w=>productName.toLowerCase().includes(w)))?.[0] || "Other";
       const productSameAs = productCategory==="BuildingMaterial"?"https://id.wikipedia.org/wiki/Material_konstruksi":productCategory==="ConstructionEquipment"?"https://id.wikipedia.org/wiki/Alat_berat":"https://id.wikipedia.org/wiki/Konstruksi";
 
-    // === 8️⃣ DETEKSI EVERGREEN ===
-   // === 8️⃣ DETEKSI EVERGREEN AI-LIKE ===
-    function detectEvergreenAI() {
-      // Ambil H1 & konten utama
-      const h1 = document.querySelector("h1")?.innerText || "";
-      const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
-                           .map(p => p.innerText)
-                           .join(" ");
-    
-      const text = (h1 + " " + content).toLowerCase();
-    
-      // Deteksi pola time-sensitive otomatis: tahun, update, harga, promo, diskon, deadline
-      const hasTimePattern = /\b(20\d{2}|update|harga|tarif|promo|diskon|deadline|agenda|sementara)\b/.test(text);
-    
-      // Deteksi pola evergreen otomatis: tutorial, panduan, tips, cara, langkah-langkah, contoh, teknik
-      const sentenceIndicators = (text.match(/\b(cara|tips|panduan|tutorial|langkah|contoh|teknik|definisi|jenis|manfaat|strategi|panduan lengkap)\b/g) || []).length;
-    
-      // Analisis panjang paragraf: konten naratif panjang → indikasi evergreen
-      const paragraphScore = content.split("\n\n").filter(p => p.trim().length > 50).length;
-    
-      // Skor total untuk menilai evergreen
-      const evergreenScore = sentenceIndicators + paragraphScore;
-    
-      // Keputusan final
-      if (hasTimePattern) return false;           // time-sensitive
-      if (evergreenScore > 3) return true;       // cukup indikasi evergreen
-      return !document.querySelector("table");   // fallback sederhana: tabel → time-sensitive
-    }
-    
-    // Jalankan otomatis
-    const isEvergreen = detectEvergreenAI();
-    console.log("[Evergreen AI ✅]", isEvergreen);
+      // === 8️⃣ DETEKSI EVERGREEN AI ===
+      function detectEvergreenAI() {
+        const h1 = PAGE.title || "";
+        const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
+                             .map(p => p.innerText)
+                             .join(" ");
+        const text = (h1 + " " + content).toLowerCase();
+        const hasTimePattern = /\b(20\d{2}|update|harga|tarif|promo|diskon|deadline|agenda|sementara)\b/.test(text);
+        const sentenceIndicators = (text.match(/\b(cara|tips|panduan|tutorial|langkah|contoh|teknik|definisi|jenis|manfaat|strategi|panduan lengkap)\b/g) || []).length;
+        const paragraphScore = content.split("\n\n").filter(p=>p.trim().length>50).length;
+        const evergreenScore = sentenceIndicators + paragraphScore;
+        if(hasTimePattern) return false;
+        if(evergreenScore>3) return true;
+        return !document.querySelector("table");
+      }
+      const isEvergreen = detectEvergreenAI();
 
-    // === 9️⃣ priceValidUntil ===
-    const now = new Date();
-    const priceValidUntil = new Date(now);
-    if(isEvergreen) priceValidUntil.setFullYear(now.getFullYear() + 1);
-    else priceValidUntil.setMonth(now.getMonth() + 3);
-    const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
+      // === 9️⃣ priceValidUntil ===
+      const now = new Date();
+      const priceValidUntil = new Date(now);
+      if(isEvergreen) priceValidUntil.setFullYear(now.getFullYear()+1);
+      else priceValidUntil.setMonth(now.getMonth()+3);
+      const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
 
-    
-      // === 7️⃣ PRICE DETECTION & OFFERS ===
+      // === 10️⃣ PRICE DETECTION & OFFERS ===
       const seenItems = new Set();
       const tableOffers = [];
       function addOffer(name,key,price,desc=""){
@@ -225,6 +191,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         }
       }
 
+      // --- ambil dari tabel ---
       Array.from(document.querySelectorAll("table")).forEach(table=>{
         Array.from(table.querySelectorAll("tr")).forEach(row=>{
           const cells = Array.from(row.querySelectorAll("td,th")).slice(0,6);
@@ -238,6 +205,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
       });
 
+      // --- ambil dari teks ---
       document.body.innerText.split("\n").forEach(line=>{
         const m=line.match(/Rp\s*([\d.,]{4,})/);
         if(m){
@@ -251,84 +219,32 @@ document.addEventListener("DOMContentLoaded", async function () {
           }
         }
       });
-
       const isProductPage = tableOffers.length>0;
 
-     // === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v3) ===
-    function generateCleanInternalLinksV3() {
-      const h1 = (document.querySelector("h1")?.innerText || "")
-        .toLowerCase()
-        .replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, ""); // buang bulan & tahun
-    
-      // Ambil semua link internal dari konten <article> saja
-      const rawLinks = Array.from(document.querySelectorAll("article a"))
-        .map(a => a.href)
-        .filter(href =>
-          href &&
-          href.includes(location.hostname) &&
-          !href.includes("#") &&
-          href !== location.href &&
-          !href.match(/(\/search|\/feed|\/label)/i)
-        )
-        .map(url => url.split("?")[0].replace(/\/$/, "")); // bersihkan query & slash akhir
-    
-      // Unik
-      const uniqueUrls = [...new Set(rawLinks)];
-    
-      // Hitung relevansi terhadap H1
-      const relevancyScores = uniqueUrls.map(url => {
-        // ambil slug tanpa /p/ di path
-        let slugText = url.replace(location.origin, "")
-          .replace(".html", "")
-          .replace(/^\/p\//, "") // HILANGKAN /p/ jika ada
-          .replace(/^\/+|\/+$/g, "")
-          .replace(/-/g, " ")
-          .replace(/\b\d{1,2}\b/g, "") // hapus angka 1-2 digit (bulan/hari)
-          .replace(/\d{4}/g, "")        // hapus tahun 4 digit
-          .replace(/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, "") // hapus nama bulan
-          .replace(/\s+/g, " ")
-          .trim()
-          .toLowerCase();
-    
-        let score = 0;
-        h1.split(" ").forEach(word => {
-          if (word && slugText.includes(word)) score++;
+      // === 11️⃣ INTERNAL LINK ===
+      function generateCleanInternalLinksV3() {
+        const h1 = PAGE.title.toLowerCase().replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi,"");
+        const rawLinks = Array.from(document.querySelectorAll("article a"))
+          .map(a=>a.href)
+          .filter(href=>href && href.includes(location.hostname) && !href.includes("#") && href!==location.href && !href.match(/(\/search|\/feed|\/label)/i))
+          .map(url=>url.split("?")[0].replace(/\/$/,""));
+        const uniqueUrls = [...new Set(rawLinks)];
+        const relevancyScores = uniqueUrls.map(url=>{
+          let slugText = url.replace(location.origin,"").replace(".html","").replace(/^\/p\//,"").replace(/^\/+|\/+$/g,"").replace(/-/g," ").replace(/\b\d{1,2}\b/g,"").replace(/\d{4}/g,"").replace(/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi,"").replace(/\s+/g," ").trim().toLowerCase();
+          let score=0; h1.split(" ").forEach(word=>{if(word && slugText.includes(word)) score++;});
+          return {url,score,slugText};
         });
-    
-        return { url, score, slugText };
-      });
-    
-      // Urutkan berdasarkan relevansi tertinggi
-      relevancyScores.sort((a, b) => b.score - a.score);
-    
-      // Ambil 50 link paling relevan
-      const topLinks = relevancyScores.slice(0, 50);
-    
-      // Buat itemListElement schema
-      const itemList = topLinks.map((item, i) => {
-        let nameClean = item.slugText
-          .replace(/\//g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
-    
-        if(nameClean) nameClean = nameClean.charAt(0).toUpperCase() + nameClean.slice(1);
-    
-        return {
-          "@type": "ListItem",
-          position: i + 1,
-          url: item.url,
-          name: nameClean || `Tautan ${i + 1}`
-        };
-      });
-    
-      return itemList;
-    }
-    
-    // Jalankan
-    const internalLinks = generateCleanInternalLinksV3();
-    console.log("[InternalLinks v3 ✅]", internalLinks);
-      
-      // === 9️⃣ GRAPH ===
+        relevancyScores.sort((a,b)=>b.score-b.score);
+        const topLinks = relevancyScores.slice(0,50);
+        return topLinks.map((item,i)=>{
+          let nameClean = item.slugText.replace(/\//g," ").replace(/\s+/g," ").trim();
+          if(nameClean) nameClean = nameClean.charAt(0).toUpperCase() + nameClean.slice(1);
+          return { "@type":"ListItem", position:i+1, url:item.url, name:nameClean||`Tautan ${i+1}` };
+        });
+      }
+      const internalLinks = generateCleanInternalLinksV3();
+
+      // === 12️⃣ GRAPH ===
       const graph=[];
       const localBiz={
         "@type":["LocalBusiness","GeneralContractor"],
@@ -341,7 +257,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         openingHours: PAGE.business.openingHours,
         logo: PAGE.image,
         sameAs: PAGE.business.sameAs,
-        areaServed: defaultAreaServed,
+        areaServed: serviceAreaServed,
         knowsAbout: detectKnowsAbout(),
         ...(isProductPage && { hasOfferCatalog:{ "@id": cleanUrl+"#product" } })
       };
@@ -405,27 +321,14 @@ document.addEventListener("DOMContentLoaded", async function () {
         });
       }
 
-      const schema={ "@context":"https://schema.org", "@graph":graph };
-      let el=document.querySelector("#auto-schema-service");
-      if(!el){
-        el=document.createElement("script");
-        el.id="auto-schema-service";
-        el.type="application/ld+json";
-        document.head.appendChild(el);
-      }
-      el.textContent=JSON.stringify(schema,null,2);
-      console.log(`[Schema v4.55 ✅] Injected | Parents: ${cleanParentUrls.length} | Items: ${tableOffers.length} | InternalLinks: ${internalLinks.length} | ServiceType: ${serviceTypes}`);
+      // === 13️⃣ SEMATKAN SCHEMA ===
+      const scriptTag=document.createElement("script");
+      scriptTag.type="application/ld+json";
+      scriptTag.textContent=JSON.stringify({ "@context":"https://schema.org","@graph":graph }, null, 2);
+      document.head.appendChild(scriptTag);
+      console.log("[Schema v4.55 🚀] JSON-LD berhasil diinject ✅");
     }
 
-    if(document.querySelector("h1") && document.querySelector(".post-body")){
-      await initSchema();
-    } else {
-      const obs=new MutationObserver(async ()=>{
-        if(document.querySelector("h1") && document.querySelector(".post-body")){
-          await initSchema(); obs.disconnect();
-        }
-      });
-      obs.observe(document.body,{childList:true,subtree:true});
-    }
-  },600);
+    initSchema();
+  },700);
 });
