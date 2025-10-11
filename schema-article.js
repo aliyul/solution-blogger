@@ -65,116 +65,107 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // ================== DETEKSI TYPE KONTEN ==================
-// ⚡ Auto Evergreen Detector v8.3 Ultra Pro Ultimate — Topik & Trend-Aware
-(function() {
-  // ===== 1️⃣ Ambil konten =====
+// ⚡ Auto Evergreen Detector v8.5 — Enterprise Full Automation + Blogspot Dashboard
+document.addEventListener("DOMContentLoaded", function () {
+  // ===== 1️⃣ Deteksi Konten =====
   const contentEl = document.querySelector("article, main, .post-body");
-  const contentText = contentEl ? contentEl.innerText : document.body.innerText || "";
   const h1Text = document.querySelector("h1")?.innerText || "";
-  if (!contentText) return;
+  const contentText = (contentEl ? contentEl.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
+  const text = (h1Text + " " + contentText).toLowerCase();
 
-  const text = (h1Text + " " + contentText).toLowerCase().replace(/\s+/g," ");
-
-  // ===== 2️⃣ Deteksi indikator alami =====
-  const wordCount = contentText.split(/\s+/).filter(Boolean).length;
-  const numberCount = (contentText.match(/\d{1,4}/g) || []).length;
-  const percentCount = (contentText.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)/g) || []).length;
+  // 🔍 Hitung indikator alami
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  const numberCount = (text.match(/\d{1,4}/g) || []).length;
+  const percentCount = (text.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)/g) || []).length;
   const tableCount = document.querySelectorAll("table").length;
   const listCount = document.querySelectorAll("ul,ol").length;
   const h2Count = document.querySelectorAll("h2").length;
 
-  // ===== 3️⃣ Material & jasa intelligence =====
-  const materialKeywords = {
-    evergreen: ["panduan","tutorial","tips","cara","definisi","strategi","langkah","prosedur","manfaat","fungsi","jenis","contoh","teknik","pengertian"],
-    semi: ["beton","buis","box culvert","u ditch","gorong-gorong","panel","semen","baja","besi","aspal","keramik","genteng","cat","paving","kayu"],
-    non: ["harga beton","harga besi","harga ready mix","harga u ditch","harga precast","harga keramik","harga genteng","sewa","rental","jasa","kontraktor","borongan","renovasi","pembangunan","bongkar","pemasangan","pengiriman"]
-  };
-
-  let materialScore = 0;
-  Object.keys(materialKeywords).forEach(type=>{
-    materialKeywords[type].forEach(k=>{
-      if(text.includes(k)){
-        if(type==="evergreen") materialScore -= 1.5;
-        else if(type==="semi") materialScore += 0.5;
-        else if(type==="non") materialScore += 1;
-      }
-    });
-  });
-
-  // ===== 4️⃣ Skor hybrid =====
+  // 🔢 Penilaian otomatis (Hybrid Logic)
   let score = 0;
-  score += numberCount * 0.3;      
-  score += percentCount * 0.5;     
-  score += tableCount * 1;         
-  score += materialScore;           
-  score -= (wordCount > 1000 ? 1 : 0); 
-  score -= (h2Count > 2 ? 0.5 : 0);    
-  score -= (listCount > 0 ? 0.5 : 0);  
+  score += numberCount * 0.3;      // banyak angka → time-sensitive
+  score += percentCount * 0.5;     // harga/data → time-sensitive
+  score += tableCount * 1;         // tabel = data dinamis
+  score -= (wordCount > 1000 ? 1 : 0); // panjang = lebih evergreen
+  score -= (h2Count > 2 ? 0.5 : 0);    // banyak subjudul → panduan
+  score -= (listCount > 0 ? 0.5 : 0);  // ada list → panduan
 
-  // ===== 5️⃣ Klasifikasi konten otomatis =====
+  // 🧭 Klasifikasi otomatis
   let typeKonten = "SEMI-EVERGREEN";
-  if(score >= 4) typeKonten = "NON-EVERGREEN";
-  else if(score <= 1.5) typeKonten = "EVERGREEN";
+  if (score >= 3) typeKonten = "NON-EVERGREEN";
+  else if (score <= 1) typeKonten = "EVERGREEN";
 
-  // ===== 6️⃣ Adaptive history + trend =====
-  const storageKey = `evergreenAI_history_${location.pathname}`;
-  const history = JSON.parse(localStorage.getItem(storageKey) || "{}");
-  const prevScore = history.score || 0;
-  const prevType = history.typeKonten || typeKonten;
+  // 📅 Hitung rekomendasi update
+  const nextUpdate = new Date();
+  if (typeKonten === "EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 12);
+  else if (typeKonten === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
+  else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
 
-  // Konten dengan material/jasa non-evergreen → cenderung update lebih cepat
-  if(prevScore >= 4 && typeKonten === "SEMI-EVERGREEN") typeKonten = "NON-EVERGREEN";
+  const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
-  localStorage.setItem(storageKey, JSON.stringify({
-    score: score,
-    typeKonten: typeKonten,
-    lastChecked: new Date().toISOString()
-  }));
-
-  // ===== 7️⃣ Hitung tanggal update otomatis =====
-  const nextUpdateDate = new Date();
-  if(typeKonten==="EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 12);
-  else if(typeKonten==="SEMI-EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 6);
-  else nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 3);
-
-  const nextUpdateStr = nextUpdateDate.toLocaleDateString("id-ID", {
-    day:"numeric", month:"long", year:"numeric"
-  });
-
-  // ===== 8️⃣ Update last modified UI =====
-  const dateModifiedEl = document.querySelector('meta[itemprop="dateModified"], time[itemprop="dateModified"]');
-  const dateModified = dateModifiedEl ? new Date(dateModifiedEl.getAttribute("content") || new Date()) : new Date();
-  const lastUpdatedEl = document.getElementById("lastUpdatedText");
-  if(lastUpdatedEl){
-    lastUpdatedEl.textContent = !isNaN(dateModified.getTime())
-      ? dateModified.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})
-      : "-";
+  // ===== 2️⃣ Tampilkan label tipe konten di halaman =====
+  const h1 = document.querySelector("h1");
+  if (h1) {
+    const label = document.createElement("div");
+    label.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+    label.style.fontSize = "0.9em";
+    label.style.color = "#444";
+    label.style.marginTop = "4px";
+    label.style.marginBottom = "10px";
+    h1.insertAdjacentElement("afterend", label);
   }
 
-  // ===== 9️⃣ Tampilkan label tipe konten di UI =====
-  const typeEl = document.createElement("div");
-  typeEl.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
-  typeEl.setAttribute("data-nosnippet","true");
-  typeEl.style.fontSize = "0.85em";
-  typeEl.style.color = "#555";
-  typeEl.style.marginTop = "4px";
-  typeEl.style.marginBottom = "8px";
-
-  const postUpdatedEl = document.querySelector(".post-updated");
-  if(postUpdatedEl) postUpdatedEl.parentNode.insertBefore(typeEl, postUpdatedEl.nextSibling);
-  else {
-    const h1El = document.querySelector("h1");
-    if(h1El && h1El.parentNode) h1El.parentNode.insertBefore(typeEl, h1El.nextSibling);
+  // ===== 3️⃣ Siapkan Dashboard Blogspot =====
+  let dashboardTable = document.getElementById("dashboardTable");
+  if (!dashboardTable) {
+    dashboardTable = document.createElement("table");
+    dashboardTable.id = "dashboardTable";
+    dashboardTable.style.width = "100%";
+    dashboardTable.style.borderCollapse = "collapse";
+    dashboardTable.style.marginTop = "20px";
+    dashboardTable.innerHTML = `
+      <thead>
+        <tr style="background:#f0f0f0;">
+          <th style="padding:4px;border:1px solid #ccc;">Halaman</th>
+          <th style="padding:4px;border:1px solid #ccc;">Type</th>
+          <th style="padding:4px;border:1px solid #ccc;">Score</th>
+          <th style="padding:4px;border:1px solid #ccc;">Word</th>
+          <th style="padding:4px;border:1px solid #ccc;">Next Update</th>
+        </tr>
+      </thead>
+    `;
+    const tbody = document.createElement("tbody");
+    dashboardTable.appendChild(tbody);
+    document.body.appendChild(dashboardTable);
+  }
+  // Pastikan tbody ada
+  let tbody = dashboardTable.querySelector("tbody");
+  if (!tbody) {
+    tbody = document.createElement("tbody");
+    dashboardTable.appendChild(tbody);
   }
 
-  // ===== 🔟 Simpan ke window untuk schema =====
+  // ===== 4️⃣ Tambahkan row baru ke dashboard =====
+  const pageTitle = h1Text || document.title || "Unknown Page";
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td style="padding:4px;border:1px solid #ccc;">${pageTitle}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${typeKonten}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${score.toFixed(1)}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${wordCount}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${nextUpdateStr}</td>
+  `;
+  tbody.appendChild(row);
+
+  // ===== 5️⃣ Simpan ke Window untuk Schema / Automation =====
   window.typeKonten = typeKonten;
   window.nextUpdateStr = nextUpdateStr;
+  window.evergreenScore = score.toFixed(1);
+  window.wordCount = wordCount;
 
-  // ===== 11️⃣ Console log =====
-  console.log(`[EvergreenAI v8.3 Ultra Pro Ultimate ✅] Type: ${typeKonten} | Skor: ${score.toFixed(1)} | WordCount: ${wordCount}`);
-  console.log(`📅 Update berikutnya: ${nextUpdateStr}`);
-})();
+  console.log(`🧠 [EvergreenAI v8.5 Enterprise] ${typeKonten} | Score: ${score.toFixed(1)} | Word: ${wordCount}`);
+  console.log(`📅 Next Update: ${nextUpdateStr}`);
+});
 
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
