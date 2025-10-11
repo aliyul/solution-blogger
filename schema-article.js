@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // ================== DETEKSI TYPE KONTEN ==================
-// ⚡ Auto Evergreen Detector v8.3 Pro Ultimate — Full Adaptive + Material Recognition
+// ⚡ Auto Evergreen Detector v8.3 Ultra Pro Ultimate — Topik & Trend-Aware
 (function() {
   // ===== 1️⃣ Ambil konten =====
   const contentEl = document.querySelector("article, main, .post-body");
@@ -83,66 +83,75 @@ document.addEventListener("DOMContentLoaded", function() {
   const listCount = document.querySelectorAll("ul,ol").length;
   const h2Count = document.querySelectorAll("h2").length;
 
-  // ===== 3️⃣ Material & jasa recognition otomatis =====
-  const materialKeywords = ["beton","buis","box culvert","u ditch","gorong-gorong","panel","semen","baja","besi","aspal","keramik","genteng","cat","paving","kayu"];
-  const serviceKeywords = ["sewa","rental","jasa","kontraktor","borongan","renovasi","pembangunan","bongkar","pemasangan","pengiriman","analisa harga satuan","estimasi biaya"];
+  // ===== 3️⃣ Material & jasa intelligence =====
+  const materialKeywords = {
+    evergreen: ["panduan","tutorial","tips","cara","definisi","strategi","langkah","prosedur","manfaat","fungsi","jenis","contoh","teknik","pengertian"],
+    semi: ["beton","buis","box culvert","u ditch","gorong-gorong","panel","semen","baja","besi","aspal","keramik","genteng","cat","paving","kayu"],
+    non: ["harga beton","harga besi","harga ready mix","harga u ditch","harga precast","harga keramik","harga genteng","sewa","rental","jasa","kontraktor","borongan","renovasi","pembangunan","bongkar","pemasangan","pengiriman"]
+  };
 
-  const materialCount = materialKeywords.filter(k => text.includes(k)).length;
-  const serviceCount = serviceKeywords.filter(k => text.includes(k)).length;
+  let materialScore = 0;
+  Object.keys(materialKeywords).forEach(type=>{
+    materialKeywords[type].forEach(k=>{
+      if(text.includes(k)){
+        if(type==="evergreen") materialScore -= 1.5;
+        else if(type==="semi") materialScore += 0.5;
+        else if(type==="non") materialScore += 1;
+      }
+    });
+  });
 
-  // ===== 4️⃣ Skor otomatis =====
+  // ===== 4️⃣ Skor hybrid =====
   let score = 0;
-  score += numberCount * 0.3;      // angka → time-sensitive
-  score += percentCount * 0.5;     // data/harga → time-sensitive
-  score += tableCount * 1;         // tabel = data dinamis
-  score += materialCount * 0.5;    // material → bisa semi-evergreen
-  score += serviceCount * 0.5;     // jasa → semi-evergreen
-  score -= (wordCount > 1000 ? 1 : 0); // panjang → lebih evergreen
-  score -= (h2Count > 2 ? 0.5 : 0);    // banyak subjudul = panduan
-  score -= (listCount > 0 ? 0.5 : 0);  // list → panduan
+  score += numberCount * 0.3;      
+  score += percentCount * 0.5;     
+  score += tableCount * 1;         
+  score += materialScore;           
+  score -= (wordCount > 1000 ? 1 : 0); 
+  score -= (h2Count > 2 ? 0.5 : 0);    
+  score -= (listCount > 0 ? 0.5 : 0);  
 
   // ===== 5️⃣ Klasifikasi konten otomatis =====
   let typeKonten = "SEMI-EVERGREEN";
-  if (score >= 4) typeKonten = "NON-EVERGREEN";
-  else if (score <= 1.5) typeKonten = "EVERGREEN";
+  if(score >= 4) typeKonten = "NON-EVERGREEN";
+  else if(score <= 1.5) typeKonten = "EVERGREEN";
 
-  // ===== 6️⃣ Adaptive History Tracking =====
+  // ===== 6️⃣ Adaptive history + trend =====
   const storageKey = `evergreenAI_history_${location.pathname}`;
   const history = JSON.parse(localStorage.getItem(storageKey) || "{}");
   const prevScore = history.score || 0;
   const prevType = history.typeKonten || typeKonten;
 
-  // Konten sering berubah → naikkan kemungkinan NON-EVERGREEN
-  if (prevScore >= 4 && typeKonten === "SEMI-EVERGREEN") typeKonten = "NON-EVERGREEN";
+  // Konten dengan material/jasa non-evergreen → cenderung update lebih cepat
+  if(prevScore >= 4 && typeKonten === "SEMI-EVERGREEN") typeKonten = "NON-EVERGREEN";
 
-  // Simpan histori terbaru
   localStorage.setItem(storageKey, JSON.stringify({
     score: score,
     typeKonten: typeKonten,
     lastChecked: new Date().toISOString()
   }));
 
-  // ===== 7️⃣ Tanggal update berikutnya =====
+  // ===== 7️⃣ Hitung tanggal update otomatis =====
   const nextUpdateDate = new Date();
-  if (typeKonten === "EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 12);
-  else if (typeKonten === "SEMI-EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 6);
+  if(typeKonten==="EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 12);
+  else if(typeKonten==="SEMI-EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 6);
   else nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 3);
 
   const nextUpdateStr = nextUpdateDate.toLocaleDateString("id-ID", {
     day:"numeric", month:"long", year:"numeric"
   });
 
-  // ===== 8️⃣ Update last modified di UI =====
+  // ===== 8️⃣ Update last modified UI =====
   const dateModifiedEl = document.querySelector('meta[itemprop="dateModified"], time[itemprop="dateModified"]');
   const dateModified = dateModifiedEl ? new Date(dateModifiedEl.getAttribute("content") || new Date()) : new Date();
   const lastUpdatedEl = document.getElementById("lastUpdatedText");
-  if (lastUpdatedEl) {
+  if(lastUpdatedEl){
     lastUpdatedEl.textContent = !isNaN(dateModified.getTime())
       ? dateModified.toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})
       : "-";
   }
 
-  // ===== 9️⃣ Tampilkan label tipe konten di UI (di bawah H1) =====
+  // ===== 9️⃣ Tampilkan label tipe konten di UI =====
   const typeEl = document.createElement("div");
   typeEl.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
   typeEl.setAttribute("data-nosnippet","true");
@@ -152,21 +161,18 @@ document.addEventListener("DOMContentLoaded", function() {
   typeEl.style.marginBottom = "8px";
 
   const postUpdatedEl = document.querySelector(".post-updated");
-  if(postUpdatedEl){
-    postUpdatedEl.parentNode.insertBefore(typeEl, postUpdatedEl.nextSibling);
-  } else {
+  if(postUpdatedEl) postUpdatedEl.parentNode.insertBefore(typeEl, postUpdatedEl.nextSibling);
+  else {
     const h1El = document.querySelector("h1");
-    if(h1El && h1El.parentNode){
-      h1El.parentNode.insertBefore(typeEl, h1El.nextSibling);
-    }
+    if(h1El && h1El.parentNode) h1El.parentNode.insertBefore(typeEl, h1El.nextSibling);
   }
 
-  // ===== 10️⃣ Simpan ke window untuk schema =====
+  // ===== 🔟 Simpan ke window untuk schema =====
   window.typeKonten = typeKonten;
   window.nextUpdateStr = nextUpdateStr;
 
-  // ===== 🔍 Console Log =====
-  console.log(`[EvergreenAI v8.3 Pro Ultimate ✅] Type: ${typeKonten} | Skor: ${score.toFixed(1)} | WordCount: ${wordCount}`);
+  // ===== 11️⃣ Console log =====
+  console.log(`[EvergreenAI v8.3 Ultra Pro Ultimate ✅] Type: ${typeKonten} | Skor: ${score.toFixed(1)} | WordCount: ${wordCount}`);
   console.log(`📅 Update berikutnya: ${nextUpdateStr}`);
 })();
 
