@@ -149,6 +149,7 @@ if (authorEl) {
 }
 
 // ===== 4️⃣ Siapkan Dashboard Blogspot =====
+// ===== 4️⃣ Siapkan Dashboard Blogspot (Update + Publish) =====
 let dashboardTable = document.getElementById("dashboardTable");
 if (!dashboardTable) {
   dashboardTable = document.createElement("table");
@@ -163,8 +164,8 @@ if (!dashboardTable) {
         <th style="padding:4px;border:1px solid #ccc;">Type</th>
         <th style="padding:4px;border:1px solid #ccc;">Score</th>
         <th style="padding:4px;border:1px solid #ccc;">Word</th>
-        <th style="padding:4px;border:1px solid #ccc;">Next Update</th>
-        <th style="padding:4px;border:1px solid #ccc;">Last Modified</th>
+        <th style="padding:4px;border:1px solid #ccc;">Tanggal Publish</th>
+        <th style="padding:4px;border:1px solid #ccc;">Tanggal Update</th>
       </tr>
     </thead>
   `;
@@ -180,6 +181,14 @@ if (!tbody) {
   dashboardTable.appendChild(tbody);
 }
 
+// Ambil tanggal publish & modified
+let datePublishedEl = document.querySelector("meta[itemprop='datePublished']");
+let datePublishedValue = datePublishedEl ? new Date(datePublishedEl.content) : new Date();
+let datePublishedStr = datePublishedValue.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+
+let dateModifiedValue = new Date(dateModified); // variable existing
+let dateModifiedStr = dateModifiedValue.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+
 // ===== 5️⃣ Tambahkan row baru ke dashboard =====
 const pageTitle = h1Text || document.title || "Unknown Page";
 const row = document.createElement("tr");
@@ -188,10 +197,11 @@ row.innerHTML = `
   <td style="padding:4px;border:1px solid #ccc;">${typeKonten}</td>
   <td style="padding:4px;border:1px solid #ccc;">${score.toFixed(1)}</td>
   <td style="padding:4px;border:1px solid #ccc;">${wordCount}</td>
-  <td style="padding:4px;border:1px solid #ccc;">${nextUpdateStr}</td>
-  <td style="padding:4px;border:1px solid #ccc;" data-nosnippet="true">${dateModifiedStr}</td>
+  <td style="padding:4px;border:1px solid #ccc;">${datePublishedStr}</td>
+  <td style="padding:4px;border:1px solid #ccc;">${dateModifiedStr}</td>
 `;
 tbody.appendChild(row);
+
 
 // ===== 6️⃣ Simpan ke Window untuk Schema / Automation =====
 window.typeKonten = typeKonten;
