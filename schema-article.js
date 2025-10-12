@@ -65,144 +65,157 @@ if(oldHash && oldHash == currentHash){
 }
 
 // ================== DETEKSI TYPE KONTEN ==================
-<!-- ⚡ Auto Evergreen Detector v9.5 Pro Ultimate — SEO Advanced Analyzer & Dynamic Silo -->
-(function(){
-  // ===== 1️⃣ Ambil Elemen & Text =====
-  const contentEl = document.querySelector("article, main, .post-body") || document.body;
-  const h1El = document.querySelector("h1");
-  const h1Text = (h1El?.innerText || "").trim();
-  const contentText = (contentEl.innerText || "").toLowerCase();
-  const fullText = (h1Text + " " + contentText);
+<!-- ⚡ Auto Evergreen Detector v9.5 Pro Ultimate — Full Hybrid + SEO Silo AI + Dashboard -->
+(function() {
+  // ===== 1️⃣ Elemen & Text Detector =====
+  const elContent = document.querySelector("article, main, .post-body");
+  const elH1 = document.querySelector("h1");
+  const h1Text = elH1 ? elH1.innerText.trim() : "";
+  const textContent = (elContent ? elContent.innerText : document.body.innerText || "").toLowerCase();
+  const fullText = (h1Text + " " + textContent);
 
-  // ===== 2️⃣ Analisis dasar =====
+  // ===== 2️⃣ Hitung indikator alami =====
   const wordCount = fullText.split(/\s+/).filter(Boolean).length;
   const numberCount = (fullText.match(/\d{1,4}/g) || []).length;
-  const percentCount = (fullText.match(/%|rp|\d+(\.\d+)?\s?(m|cm|kg|m2|m3|m³|ton|kubik|liter)/gi) || []).length;
+  const percentCount = (fullText.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|m³|ton|kubik|liter)/gi) || []).length;
   const tableCount = document.querySelectorAll("table").length;
-  const listCount  = document.querySelectorAll("ul,ol").length;
+  const listCount = document.querySelectorAll("ul,ol").length;
   const h2Els = document.querySelectorAll("h2");
   const h3Els = document.querySelectorAll("h3");
 
-  // ===== 3️⃣ Pola Kata Kunci =====
-  const nonEvergreenKeywords = ["harga","update","terbaru","berita","jadwal","event","promo","diskon","proyek","progres","bulan","tahun","sementara","deadline","musiman"];
-  const evergreenKeywords = ["panduan","tutorial","tips","cara","definisi","pandangan","strategi","langkah","prosedur","manfaat","penjelasan","fungsi","teknik","contoh","jenis","arti","perbedaan","kegunaan","panduan lengkap"];
+  // ===== 3️⃣ Keyword Pattern =====
+  const nonEvergreen = ["harga","update","terbaru","berita","jadwal","event","promo","diskon","proyek","progres","bulan","tahun","sementara","deadline","musiman"];
+  const evergreen = ["panduan","tutorial","tips","cara","definisi","pandangan","strategi","langkah","prosedur","manfaat","penjelasan","fungsi","teknik","contoh","jenis","arti","perbedaan","kegunaan"];
 
-  const hasTimePattern = nonEvergreenKeywords.some(k => new RegExp(`\\b${k}\\b`,'i').test(fullText));
-  const evergreenIndicators = evergreenKeywords.reduce((a,k)=>a+(new RegExp(`\\b${k}\\b`,'i').test(fullText)?1:0),0);
+  const hasTimePattern = nonEvergreen.some(k => new RegExp(`\\b${k}\\b`, 'i').test(fullText));
+  const evergreenIndicators = evergreen.reduce((acc, k) => acc + (new RegExp(`\\b${k}\\b`, 'i').test(fullText) ? 1 : 0), 0);
 
-  // ===== 4️⃣ Skor Hybrid =====
-  let score = numberCount*0.35 + percentCount*0.55 + tableCount*1.2;
-  if(wordCount>1000) score -= 1;
-  if(h2Els.length>2) score -= 0.5;
-  if(listCount>0) score -= 0.5;
-  score -= evergreenIndicators*0.55;
+  // ===== 4️⃣ Hitung Skor Hybrid =====
+  let score = 0;
+  score += numberCount * 0.3;
+  score += percentCount * 0.5;
+  score += tableCount * 1;
+  score -= (wordCount > 1000 ? 1 : 0);
+  score -= (h2Els.length > 2 ? 0.5 : 0);
+  score -= (listCount > 0 ? 0.5 : 0);
+  score -= evergreenIndicators * 0.5;
 
-  // ===== 5️⃣ Klasifikasi =====
-  let typeKonten = "SEMI-EVERGREEN";
-  if((hasTimePattern && evergreenIndicators<=1) || score>=3) typeKonten="NON-EVERGREEN";
-  else if(evergreenIndicators>=2 && score<=1) typeKonten="EVERGREEN";
+  // ===== 5️⃣ Klasifikasi Tipe Konten =====
+  let type = "SEMI-EVERGREEN";
+  if ((hasTimePattern && evergreenIndicators <= 1) || score >= 3) type = "NON-EVERGREEN";
+  else if (evergreenIndicators >= 2 && score <= 1) type = "EVERGREEN";
 
-  // ===== 6️⃣ Rencana Update =====
-  const now = new Date();
-  const nextUpdate = new Date(now);
-  if(typeKonten==="EVERGREEN") nextUpdate.setMonth(now.getMonth()+12);
-  else if(typeKonten==="SEMI-EVERGREEN") nextUpdate.setMonth(now.getMonth()+6);
-  else nextUpdate.setMonth(now.getMonth()+3);
+  // ===== 6️⃣ Hitung rekomendasi update =====
+  const nextUpdate = new Date();
+  if (type === "EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 12);
+  else if (type === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
+  else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
+  const options = { day: "numeric", month: "long", year: "numeric" };
+  const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", options);
 
-  const fmt = {day:"numeric",month:"long",year:"numeric"};
-  const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID",fmt);
-  const dateModifiedMeta = document.querySelector("meta[itemprop='dateModified']")?.content;
-  const dateModifiedStr = new Date(dateModifiedMeta || now).toLocaleDateString("id-ID",fmt);
-  const datePublishedMeta = document.querySelector("meta[itemprop='datePublished']")?.content;
-  const datePublishedStr = new Date(datePublishedMeta || now).toLocaleDateString("id-ID",fmt);
-  const authorName = document.querySelector(".post-author .fn")?.innerText || "Admin";
-
-  // ===== 7️⃣ Label Info di bawah H1 =====
-  if(h1El && !document.getElementById("AEDv95U_label")){
-    const info = document.createElement("div");
-    info.id = "AEDv95U_label";
-    info.innerHTML = `🧠 <b>${typeKonten}</b> • Diperbarui: <b>${dateModifiedStr}</b> • Oleh: ${authorName} • Next: ${nextUpdateStr}`;
-    info.style.cssText = "font-size:.85em;color:#555;margin-top:4px;margin-bottom:10px";
-    h1El.insertAdjacentElement("afterend",info);
+  // ===== 7️⃣ Label tipe konten =====
+  if (elH1) {
+    const label = document.createElement("div");
+    label.innerHTML = `<b>${type}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+    label.setAttribute("data-nosnippet","true");
+    label.style.fontSize = "0.9em";
+    label.style.color = "#444";
+    label.style.marginTop = "4px";
+    elH1.insertAdjacentElement("afterend", label);
   }
 
-  // ===== 8️⃣ URL vs H1 =====
-  let urlName = window.location.pathname.split("/").filter(Boolean).pop() || "";
-  urlName = urlName.replace(/^p\//,"").replace(/\.html$/i,"").replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,"").replace(/[-_]/g," ").trim().toLowerCase();
-  const H1vsURLdiff = urlName !== h1Text.toLowerCase();
-  const recommendedH1 = H1vsURLdiff ? urlName.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") : h1Text;
+  // ===== 8️⃣ Deteksi URL vs H1 + rekomendasi H1 =====
+  let urlRaw = window.location.pathname.split("/").filter(Boolean).pop() || "";
+  urlRaw = urlRaw.replace(/^p\//, "").replace(/\.html$/i, "").replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g, "").replace(/[-_]/g, " ").trim().toLowerCase();
+  const h1Diff = urlRaw !== h1Text.toLowerCase();
+  const recommendedH1 = h1Diff ? urlRaw.split(" ").map(w => w[0].toUpperCase() + w.slice(1)).join(" ") : h1Text;
 
-  // ===== 9️⃣ Meta Description =====
-  const sentences = contentText.split(/\.|\n/).filter(Boolean);
+  // ===== 9️⃣ Meta Description Otomatis =====
+  const sentences = textContent.split(/\.|\n/).filter(Boolean);
   let metaDesc = sentences.slice(0,3).join(". ").substring(0,160).trim();
-  if(metaDesc.length<50) metaDesc = recommendedH1+" — "+sentences.slice(0,2).join(". ").trim();
+  if (metaDesc.length < 50) metaDesc = recommendedH1 + " — " + sentences.slice(0,2).join(". ").trim();
 
-  // ===== 🔟 Deteksi Struktur H2/H3 =====
-  const existingH2 = [...h2Els].map(h=>h.innerText.trim());
-  const existingH3 = [...h3Els].map(h=>h.innerText.trim());
+  // ===== 🔟 H2/H3 SEO Silo Dinamis & Missing Section =====
+  const existingH2 = [...h2Els].map(h=>h.innerText.trim().toLowerCase());
   const wordFreq = {};
-  contentText.split(/\s+/).forEach(w=>{
-    w=w.replace(/[^a-zA-Z0-9]/g,"").trim();
-    if(w.length>3) wordFreq[w]=(wordFreq[w]||0)+1;
+  textContent.split(/\s+/).forEach(w => {
+    w=w.replace(/[^a-zA-Z0-9]/g,'').trim();
+    if(w.length>3) wordFreq[w] = (wordFreq[w]||0)+1;
   });
-  const topKeywords = Object.entries(wordFreq).sort((a,b)=>b[1]-a[1]).slice(0,15).map(k=>k[0]);
-  const predictedH2 = topKeywords.filter(k=>!existingH2.join(" ").toLowerCase().includes(k));
-  const predictedH3 = predictedH2.map(k=>"Sub-topik "+k);
-  const highlightH2H3 = predictedH2.join(", ") + (predictedH3.length ? " | "+predictedH3.join(" | ") : "");
+  const topWords = Object.entries(wordFreq).sort((a,b)=>b[1]-a[1]).slice(0,10).map(k=>k[0]);
+  const predictedH2 = topWords.filter(k=>!existingH2.some(h=>h.includes(k.toLowerCase())));
+  const predictedH3 = predictedH2.map(k=>"Sub-topik: "+k);
 
   // ===== 1️⃣1️⃣ Highlight angka penting =====
   const highlightMatches = (fullText.match(/\d+(\.\d+)?|\d+\s?(m|cm|kg|m2|m3|m³|ton|kubik|liter)|rp|\%/gi) || []).join(", ");
 
-  // ===== 1️⃣2️⃣ Solusi Lengkap =====
-  const solution = H1vsURLdiff
-    ? `⚠️ H1 ≠ URL (“${urlName}”) → revisi ke: “${recommendedH1}”.\nHighlight: ${highlightMatches}\nTambah H2/H3: ${highlightH2H3}\nUpdate data & angka tiap 3–12 bulan.`
-    : `✅ H1 sudah sesuai.\nHighlight: ${highlightMatches}\nPerkuat H2/H3: ${highlightH2H3}\nUpdate data & angka sesuai jadwal.`;
+  // ===== 1️⃣2️⃣ Solusi & Rekomendasi =====
+  const solution = h1Diff
+    ? `⚠️ H1 berbeda dari URL (“${urlRaw}”) → Revisi H1: "${recommendedH1}".\nHighlight: ${highlightMatches}\nTambahkan H2/H3: ${predictedH2.join(", ")}`
+    : `✅ H1 sesuai URL.\nHighlight: ${highlightMatches}\nTambahkan H2/H3: ${predictedH2.join(", ")}`;
 
-  // ===== 1️⃣3️⃣ Saran berdasarkan tipe =====
-  const suggestion =
-    typeKonten==="EVERGREEN" ? `Pertahankan panduan ${recommendedH1}, fokus tips & tutorial, update tahunan.\n${solution}` :
-    typeKonten==="SEMI-EVERGREEN" ? `Tambah data & angka terbaru, jaga list/langkah, update 3–6 bulan.\n${solution}` :
-    `Perbarui harga/data secara rutin & tampilkan tanggal jelas (1–3 bulan).\n${solution}`;
+  let suggestion = "";
+  if (type === "EVERGREEN")
+    suggestion = `Konten evergreen: pertahankan H1 (${recommendedH1}), gunakan H2/H3 relevan, fokus tips/tutorial, update tahunan.\n${solution}`;
+  else if (type === "SEMI-EVERGREEN")
+    suggestion = `Konten semi-evergreen: tambahkan data terbaru, pertahankan struktur & langkah-langkah, update tiap 3–6 bulan.\n${solution}`;
+  else
+    suggestion = `Konten non-evergreen: fokus pada update harga/data terbaru, tampilkan tanggal jelas, update 1–3 bulan.\n${solution}`;
 
-  // ===== 1️⃣4️⃣ Dashboard =====
-  let table = document.getElementById("AEDv95U_dashboard");
-  if(!table){
+  // ===== 1️⃣3️⃣ Dashboard Blogspot =====
+  let table = document.getElementById("AEDv95_dashboardTable");
+  if (!table) {
     table = document.createElement("table");
-    table.id="AEDv95U_dashboard";
-    table.style.cssText="width:100%;border-collapse:collapse;margin-top:25px;font-size:.9em";
-    table.innerHTML=`<thead><tr style="background:#f7f7f7">
-      <th>Halaman</th><th>Tipe</th><th>Score</th><th>Word</th>
-      <th>Publish</th><th>Update</th><th>Rekom H1</th>
-      <th>Meta Description</th><th>Struktur SEO</th><th>Saran</th><th>Solusi</th>
-    </tr></thead><tbody></tbody>`;
+    table.id = "AEDv95_dashboardTable";
+    table.style.width = "100%";
+    table.style.borderCollapse = "collapse";
+    table.style.marginTop = "20px";
+    table.innerHTML = `
+      <thead>
+        <tr style="background:#f0f0f0;">
+          <th style="padding:4px;border:1px solid #ccc;">Halaman</th>
+          <th style="padding:4px;border:1px solid #ccc;">Type</th>
+          <th style="padding:4px;border:1px solid #ccc;">Score</th>
+          <th style="padding:4px;border:1px solid #ccc;">Word</th>
+          <th style="padding:4px;border:1px solid #ccc;">Rekom H1</th>
+          <th style="padding:4px;border:1px solid #ccc;">Meta Description</th>
+          <th style="padding:4px;border:1px solid #ccc;">Struktur Heading</th>
+          <th style="padding:4px;border:1px solid #ccc;">Saran Konten</th>
+        </tr>
+      </thead><tbody></tbody>`;
     document.body.appendChild(table);
   }
-  const tr=document.createElement("tr");
-  tr.innerHTML=`<td>${h1Text||document.title}</td>
-  <td>${typeKonten}</td>
-  <td>${score.toFixed(1)}</td>
-  <td>${wordCount}</td>
-  <td>${datePublishedStr}</td>
-  <td>${dateModifiedStr}</td>
-  <td>${recommendedH1}</td>
-  <td>${metaDesc}</td>
-  <td style="white-space:pre-wrap">${highlightH2H3}</td>
-  <td style="white-space:pre-wrap">${suggestion}</td>
-  <td style="white-space:pre-wrap">${solution}</td>`;
-  table.querySelector("tbody").appendChild(tr);
 
-  // ===== 1️⃣5️⃣ Simpan Global =====
-  Object.assign(window,{
-    AEDv95U_type:typeKonten,
-    AEDv95U_score:score,
-    AEDv95U_wordCount:wordCount,
-    AEDv95U_recommendedH1:recommendedH1,
-    AEDv95U_metaDesc:metaDesc,
-    AEDv95U_H2H3:highlightH2H3,
-    AEDv95U_solution:solution
+  const tbody = table.querySelector("tbody");
+  const pageTitle = h1Text || document.title || "Unknown Page";
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td style="padding:4px;border:1px solid #ccc;">${pageTitle}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${type}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${score.toFixed(1)}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${wordCount}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${recommendedH1}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${metaDesc}</td>
+    <td style="padding:4px;border:1px solid #ccc;white-space:pre-wrap;">${predictedH2.join(", ")}</td>
+    <td style="padding:4px;border:1px solid #ccc;white-space:pre-wrap;">${suggestion}</td>`;
+  tbody.appendChild(row);
+
+  // ===== 1️⃣4️⃣ Simpan ke Window =====
+  Object.assign(window, {
+    AEDv95_type: type,
+    AEDv95_nextUpdate: nextUpdateStr,
+    AEDv95_score: score.toFixed(1),
+    AEDv95_wordCount: wordCount,
+    AEDv95_recommendedH1: recommendedH1,
+    AEDv95_metaDescription: metaDesc,
+    AEDv95_predictedH2: predictedH2,
+    AEDv95_suggestion: suggestion
   });
 
-  console.log(`✅ [Evergreen v9.5 Pro Ultimate] ${typeKonten} | Score ${score.toFixed(1)} | Next: ${nextUpdateStr}`);
+  console.log(`🧠 [EvergreenAI v9.5 Pro Ultimate] ${type} | Score ${score.toFixed(1)} | Word ${wordCount}`);
+  console.log(`💡 H1: ${recommendedH1} | Meta: ${metaDesc}`);
+  console.log(`💡 H2/H3 Prediksi: ${predictedH2.join(", ")}`);
+  console.log(`💡 Saran: ${suggestion}`);
 })();
   
   // ================== SCHEMA GENERATOR ==================
