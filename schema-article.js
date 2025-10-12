@@ -65,183 +65,144 @@ if(oldHash && oldHash == currentHash){
 }
 
 // ================== DETEKSI TYPE KONTEN ==================
-// ⚡ Auto Evergreen Detector v9.5 Pro Ultimate — SEO Advanced Analyzer & Dynamic Silo
-(function() {
-  // ===== 1️⃣ Elemen & Text Detector =====
-  const contentEl = document.querySelector("article, main, .post-body");
+<!-- ⚡ Auto Evergreen Detector v9.5 Pro Ultimate — SEO Advanced Analyzer & Dynamic Silo -->
+(function(){
+  // ===== 1️⃣ Ambil Elemen & Text =====
+  const contentEl = document.querySelector("article, main, .post-body") || document.body;
   const h1El = document.querySelector("h1");
-  const h1Text = h1El ? h1El.innerText.trim() : "";
-  const contentText = (contentEl ? contentEl.innerText : document.body.innerText || "").toLowerCase();
+  const h1Text = (h1El?.innerText || "").trim();
+  const contentText = (contentEl.innerText || "").toLowerCase();
   const fullText = (h1Text + " " + contentText);
 
-  // ===== 2️⃣ Hitung indikator alami =====
+  // ===== 2️⃣ Analisis dasar =====
   const wordCount = fullText.split(/\s+/).filter(Boolean).length;
   const numberCount = (fullText.match(/\d{1,4}/g) || []).length;
   const percentCount = (fullText.match(/%|rp|\d+(\.\d+)?\s?(m|cm|kg|m2|m3|m³|ton|kubik|liter)/gi) || []).length;
   const tableCount = document.querySelectorAll("table").length;
-  const listCount = document.querySelectorAll("ul,ol").length;
+  const listCount  = document.querySelectorAll("ul,ol").length;
   const h2Els = document.querySelectorAll("h2");
   const h3Els = document.querySelectorAll("h3");
 
-  // ===== 3️⃣ Keyword Pattern =====
+  // ===== 3️⃣ Pola Kata Kunci =====
   const nonEvergreenKeywords = ["harga","update","terbaru","berita","jadwal","event","promo","diskon","proyek","progres","bulan","tahun","sementara","deadline","musiman"];
-  const evergreenKeywords = ["panduan","tutorial","tips","cara","definisi","pandangan","strategi","langkah","prosedur","manfaat","penjelasan","fungsi","teknik","contoh","jenis","panduan lengkap","arti","perbedaan","kegunaan"];
+  const evergreenKeywords = ["panduan","tutorial","tips","cara","definisi","pandangan","strategi","langkah","prosedur","manfaat","penjelasan","fungsi","teknik","contoh","jenis","arti","perbedaan","kegunaan","panduan lengkap"];
 
-  const hasTimePattern = nonEvergreenKeywords.some(k => new RegExp(`\\b${k}\\b`, 'i').test(fullText));
-  const evergreenIndicators = evergreenKeywords.reduce((acc, k) => acc + (new RegExp(`\\b${k}\\b`, 'i').test(fullText) ? 1 : 0), 0);
+  const hasTimePattern = nonEvergreenKeywords.some(k => new RegExp(`\\b${k}\\b`,'i').test(fullText));
+  const evergreenIndicators = evergreenKeywords.reduce((a,k)=>a+(new RegExp(`\\b${k}\\b`,'i').test(fullText)?1:0),0);
 
-  // ===== 4️⃣ Hitung Skor Hybrid + Advanced Weight =====
-  let score = 0;
-  score += numberCount * 0.35;
-  score += percentCount * 0.55;
-  score += tableCount * 1.2;
-  score -= (wordCount > 1000 ? 1 : 0);
-  score -= (h2Els.length > 2 ? 0.5 : 0);
-  score -= (listCount > 0 ? 0.5 : 0);
-  score -= evergreenIndicators * 0.55;
+  // ===== 4️⃣ Skor Hybrid =====
+  let score = numberCount*0.35 + percentCount*0.55 + tableCount*1.2;
+  if(wordCount>1000) score -= 1;
+  if(h2Els.length>2) score -= 0.5;
+  if(listCount>0) score -= 0.5;
+  score -= evergreenIndicators*0.55;
 
-  // ===== 5️⃣ Klasifikasi Tipe Konten =====
+  // ===== 5️⃣ Klasifikasi =====
   let typeKonten = "SEMI-EVERGREEN";
-  if ((hasTimePattern && evergreenIndicators <= 1) || score >= 3) typeKonten = "NON-EVERGREEN";
-  else if (evergreenIndicators >= 2 && score <= 1) typeKonten = "EVERGREEN";
+  if((hasTimePattern && evergreenIndicators<=1) || score>=3) typeKonten="NON-EVERGREEN";
+  else if(evergreenIndicators>=2 && score<=1) typeKonten="EVERGREEN";
 
-  // ===== 6️⃣ Hitung rekomendasi update otomatis =====
-  const nextUpdate = new Date();
-  if (typeKonten === "EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 12);
-  else if (typeKonten === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
-  else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
+  // ===== 6️⃣ Rencana Update =====
+  const now = new Date();
+  const nextUpdate = new Date(now);
+  if(typeKonten==="EVERGREEN") nextUpdate.setMonth(now.getMonth()+12);
+  else if(typeKonten==="SEMI-EVERGREEN") nextUpdate.setMonth(now.getMonth()+6);
+  else nextUpdate.setMonth(now.getMonth()+3);
 
-  const options = { day: "numeric", month: "long", year: "numeric" };
-  const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", options);
-  const dateModifiedSafe = typeof dateModified !== "undefined" ? new Date(dateModified) : new Date();
-  const dateModifiedStr = dateModifiedSafe.toLocaleDateString("id-ID", options);
+  const fmt = {day:"numeric",month:"long",year:"numeric"};
+  const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID",fmt);
+  const dateModifiedMeta = document.querySelector("meta[itemprop='dateModified']")?.content;
+  const dateModifiedStr = new Date(dateModifiedMeta || now).toLocaleDateString("id-ID",fmt);
   const datePublishedMeta = document.querySelector("meta[itemprop='datePublished']")?.content;
-  const datePublishedStr = new Date(datePublishedMeta || Date.now()).toLocaleDateString("id-ID", options);
+  const datePublishedStr = new Date(datePublishedMeta || now).toLocaleDateString("id-ID",fmt);
+  const authorName = document.querySelector(".post-author .fn")?.innerText || "Admin";
 
-  // ===== 7️⃣ Label tipe konten di halaman =====
-  if (h1El) {
-    const label = document.createElement("div");
-    label.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
-    label.setAttribute("data-nosnippet","true");
-    label.style.fontSize = "0.9em";
-    label.style.color = "#444";
-    label.style.marginTop = "4px";
-    label.style.marginBottom = "10px";
-    h1El.insertAdjacentElement("afterend", label);
+  // ===== 7️⃣ Label Info di bawah H1 =====
+  if(h1El && !document.getElementById("AEDv95U_label")){
+    const info = document.createElement("div");
+    info.id = "AEDv95U_label";
+    info.innerHTML = `🧠 <b>${typeKonten}</b> • Diperbarui: <b>${dateModifiedStr}</b> • Oleh: ${authorName} • Next: ${nextUpdateStr}`;
+    info.style.cssText = "font-size:.85em;color:#555;margin-top:4px;margin-bottom:10px";
+    h1El.insertAdjacentElement("afterend",info);
   }
 
-  // ===== 8️⃣ Deteksi URL vs H1 + rekomendasi H1 baru =====
-  let urlNameRaw = window.location.pathname.split("/").filter(Boolean).pop() || "";
-  urlNameRaw = urlNameRaw.replace(/^p\//, "").replace(/\.html$/i, "").replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g, "")
-             .replace(/[-_]/g, " ").trim().toLowerCase();
-  const H1vsURLdiff = urlNameRaw !== h1Text.toLowerCase();
-  const recommendedH1 = H1vsURLdiff ? urlNameRaw.split(" ").map(w => w[0].toUpperCase() + w.slice(1)).join(" ") : h1Text;
+  // ===== 8️⃣ URL vs H1 =====
+  let urlName = window.location.pathname.split("/").filter(Boolean).pop() || "";
+  urlName = urlName.replace(/^p\//,"").replace(/\.html$/i,"").replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,"").replace(/[-_]/g," ").trim().toLowerCase();
+  const H1vsURLdiff = urlName !== h1Text.toLowerCase();
+  const recommendedH1 = H1vsURLdiff ? urlName.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") : h1Text;
 
-  // ===== 9️⃣ Rekomendasi Meta Description =====
+  // ===== 9️⃣ Meta Description =====
   const sentences = contentText.split(/\.|\n/).filter(Boolean);
   let metaDesc = sentences.slice(0,3).join(". ").substring(0,160).trim();
-  if(metaDesc.length < 50) metaDesc = recommendedH1 + " — " + sentences.slice(0,2).join(". ").trim();
+  if(metaDesc.length<50) metaDesc = recommendedH1+" — "+sentences.slice(0,2).join(". ").trim();
 
-  // ===== 🔟 SEO Advanced H2/H3 Insights & Missing Section =====
+  // ===== 🔟 Deteksi Struktur H2/H3 =====
   const existingH2 = [...h2Els].map(h=>h.innerText.trim());
   const existingH3 = [...h3Els].map(h=>h.innerText.trim());
-
-  // Hitung frekuensi kata relevan + TF-IDF style lightweight
   const wordFreq = {};
-  contentText.split(/\s+/).forEach(w => {
-    w=w.replace(/[^a-zA-Z0-9]/g,'').trim();
-    if(w.length>3) wordFreq[w] = (wordFreq[w]||0)+1;
+  contentText.split(/\s+/).forEach(w=>{
+    w=w.replace(/[^a-zA-Z0-9]/g,"").trim();
+    if(w.length>3) wordFreq[w]=(wordFreq[w]||0)+1;
   });
   const topKeywords = Object.entries(wordFreq).sort((a,b)=>b[1]-a[1]).slice(0,15).map(k=>k[0]);
+  const predictedH2 = topKeywords.filter(k=>!existingH2.join(" ").toLowerCase().includes(k));
+  const predictedH3 = predictedH2.map(k=>"Sub-topik "+k);
+  const highlightH2H3 = predictedH2.join(", ") + (predictedH3.length ? " | "+predictedH3.join(" | ") : "");
 
-  // Prediksi H2/H3 yang hilang
-  const predictedH2 = topKeywords.filter(k=>!existingH2.join(" ").toLowerCase().includes(k.toLowerCase()));
-  const predictedH3 = predictedH2.map(k=>"Sub-topik terkait "+k);
-  const highlightH2H3 = predictedH2.join(", ") + (predictedH3.length ? " | H3 tambahan: "+predictedH3.join(" | ") : "");
-
-  // ===== 1️⃣1️⃣ Highlight kata/angka penting =====
+  // ===== 1️⃣1️⃣ Highlight angka penting =====
   const highlightMatches = (fullText.match(/\d+(\.\d+)?|\d+\s?(m|cm|kg|m2|m3|m³|ton|kubik|liter)|rp|\%/gi) || []).join(", ");
 
-  // ===== 1️⃣2️⃣ Prediksi Evergreen & Solusi Lengkap =====
+  // ===== 1️⃣2️⃣ Solusi Lengkap =====
   const solution = H1vsURLdiff
-    ? `⚠️ H1 berbeda dari URL (${urlNameRaw}) → Sarankan revisi H1: "${recommendedH1}".\nHighlight penting konten: ${highlightMatches}\nH2/H3 bisa ditambah: ${highlightH2H3}\nTindakan: update angka/data, buat list/langkah-langkah jelas, review tiap 3-12 bulan sesuai status.`
-    : `✅ H1 sesuai URL.\nHighlight penting konten: ${highlightMatches}\nH2/H3 bisa ditambah: ${highlightH2H3}\nTindakan: pertahankan H1, perkuat subjudul, update angka/data rutin.`;
+    ? `⚠️ H1 ≠ URL (“${urlName}”) → revisi ke: “${recommendedH1}”.\nHighlight: ${highlightMatches}\nTambah H2/H3: ${highlightH2H3}\nUpdate data & angka tiap 3–12 bulan.`
+    : `✅ H1 sudah sesuai.\nHighlight: ${highlightMatches}\nPerkuat H2/H3: ${highlightH2H3}\nUpdate data & angka sesuai jadwal.`;
 
-  // ===== 1️⃣3️⃣ Saran Konten Otomatis =====
-  let suggestion = "";
-  if (typeKonten === "EVERGREEN") suggestion = `Konten evergreen: pertahankan H1 (${recommendedH1}), gunakan H2/H3 relevan, fokus tips/tutorial, update minimal tahunan.\n${solution}`;
-  else if (typeKonten === "SEMI-EVERGREEN") suggestion = `Konten semi-evergreen: perkuat H1 (${recommendedH1}), tambahkan data/angka terbaru, pertahankan list & langkah-langkah, update tiap 3-6 bulan.\n${solution}`;
-  else suggestion = `Konten non-evergreen: fokus update rutin, angka/harga terbaru, tampilkan tanggal jelas, review tiap 1-3 bulan.\n${solution}`;
+  // ===== 1️⃣3️⃣ Saran berdasarkan tipe =====
+  const suggestion =
+    typeKonten==="EVERGREEN" ? `Pertahankan panduan ${recommendedH1}, fokus tips & tutorial, update tahunan.\n${solution}` :
+    typeKonten==="SEMI-EVERGREEN" ? `Tambah data & angka terbaru, jaga list/langkah, update 3–6 bulan.\n${solution}` :
+    `Perbarui harga/data secara rutin & tampilkan tanggal jelas (1–3 bulan).\n${solution}`;
 
-  // ===== 1️⃣4️⃣ Dashboard Interaktif =====
-  let dashboardTable = document.getElementById("AEDv95U_dashboardTable");
-  if(!dashboardTable){
-    dashboardTable = document.createElement("table");
-    dashboardTable.id = "AEDv95U_dashboardTable";
-    dashboardTable.style.width = "100%";
-    dashboardTable.style.borderCollapse = "collapse";
-    dashboardTable.style.marginTop = "20px";
-    dashboardTable.innerHTML = `
-      <thead>
-        <tr style="background:#f0f0f0;">
-          <th style="padding:4px;border:1px solid #ccc;">Halaman</th>
-          <th style="padding:4px;border:1px solid #ccc;">Type</th>
-          <th style="padding:4px;border:1px solid #ccc;">Score</th>
-          <th style="padding:4px;border:1px solid #ccc;">Word</th>
-          <th style="padding:4px;border:1px solid #ccc;">Tanggal Publish</th>
-          <th style="padding:4px;border:1px solid #ccc;">Tanggal Update</th>
-          <th style="padding:4px;border:1px solid #ccc;">Rekom H1</th>
-          <th style="padding:4px;border:1px solid #ccc;">Meta Description</th>
-          <th style="padding:4px;border:1px solid #ccc;">Struktur Heading SEO</th>
-          <th style="padding:4px;border:1px solid #ccc;">Saran Konten</th>
-          <th style="padding:4px;border:1px solid #ccc;">Solusi Lengkap</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    `;
-    document.body.appendChild(dashboardTable);
+  // ===== 1️⃣4️⃣ Dashboard =====
+  let table = document.getElementById("AEDv95U_dashboard");
+  if(!table){
+    table = document.createElement("table");
+    table.id="AEDv95U_dashboard";
+    table.style.cssText="width:100%;border-collapse:collapse;margin-top:25px;font-size:.9em";
+    table.innerHTML=`<thead><tr style="background:#f7f7f7">
+      <th>Halaman</th><th>Tipe</th><th>Score</th><th>Word</th>
+      <th>Publish</th><th>Update</th><th>Rekom H1</th>
+      <th>Meta Description</th><th>Struktur SEO</th><th>Saran</th><th>Solusi</th>
+    </tr></thead><tbody></tbody>`;
+    document.body.appendChild(table);
   }
+  const tr=document.createElement("tr");
+  tr.innerHTML=`<td>${h1Text||document.title}</td>
+  <td>${typeKonten}</td>
+  <td>${score.toFixed(1)}</td>
+  <td>${wordCount}</td>
+  <td>${datePublishedStr}</td>
+  <td>${dateModifiedStr}</td>
+  <td>${recommendedH1}</td>
+  <td>${metaDesc}</td>
+  <td style="white-space:pre-wrap">${highlightH2H3}</td>
+  <td style="white-space:pre-wrap">${suggestion}</td>
+  <td style="white-space:pre-wrap">${solution}</td>`;
+  table.querySelector("tbody").appendChild(tr);
 
-  const tbody = dashboardTable.querySelector("tbody");
-  const pageTitle = h1Text || document.title || "Unknown Page";
-  const row = document.createElement("tr");
-  row.innerHTML = `
-    <td style="padding:4px;border:1px solid #ccc;">${pageTitle}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${typeKonten}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${score.toFixed(1)}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${wordCount}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${datePublishedStr}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${dateModifiedStr}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${recommendedH1}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${metaDesc}</td>
-    <td style="padding:4px;border:1px solid #ccc; white-space: pre-wrap;">${highlightH2H3}</td>
-    <td style="padding:4px;border:1px solid #ccc; white-space: pre-wrap;">${suggestion}</td>
-    <td style="padding:4px;border:1px solid #ccc; white-space: pre-wrap;">${solution}</td>
-  `;
-  tbody.appendChild(row);
-
-  // ===== 1️⃣5️⃣ Simpan ke Window =====
-  Object.assign(window, {
-    AEDv95U_typeKonten: typeKonten,
-    AEDv95U_nextUpdateStr: nextUpdateStr,
-    AEDv95U_dateModifiedStr: dateModifiedStr,
-    AEDv95U_evergreenScore: score.toFixed(1),
-    AEDv95U_wordCount: wordCount,
-    AEDv95U_contentSuggestion: suggestion,
-    AEDv95U_H1vsURLdiff: H1vsURLdiff,
-    AEDv95U_solution: solution,
-    AEDv95U_recommendedH1: recommendedH1,
-    AEDv95U_metaDescription: metaDesc,
-    AEDv95U_highlightH2H3: highlightH2H3
+  // ===== 1️⃣5️⃣ Simpan Global =====
+  Object.assign(window,{
+    AEDv95U_type:typeKonten,
+    AEDv95U_score:score,
+    AEDv95U_wordCount:wordCount,
+    AEDv95U_recommendedH1:recommendedH1,
+    AEDv95U_metaDesc:metaDesc,
+    AEDv95U_H2H3:highlightH2H3,
+    AEDv95U_solution:solution
   });
 
-  console.log(`🧠 [EvergreenAI v9.5 Pro Ultimate] ${typeKonten} | Score: ${score.toFixed(1)} | Word: ${wordCount}`);
-  console.log(`📅 Next Update: ${nextUpdateStr} | Last Modified: ${dateModifiedStr}`);
-  console.log(`💡 Rekom H1: ${recommendedH1}`);
-  console.log(`💡 Meta Description: ${metaDesc}`);
-  console.log(`💡 Struktur H2/H3 Prediksi: ${highlightH2H3}`);
-  console.log(`💡 Saran Konten: ${suggestion}`);
-  console.log(`💡 Solusi Lengkap: ${solution}`);
+  console.log(`✅ [Evergreen v9.5 Pro Ultimate] ${typeKonten} | Score ${score.toFixed(1)} | Next: ${nextUpdateStr}`);
 })();
   
   // ================== SCHEMA GENERATOR ==================
