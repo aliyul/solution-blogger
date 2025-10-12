@@ -65,109 +65,123 @@ if(oldHash && oldHash == currentHash){
 }
 
 // ================== DETEKSI TYPE KONTEN ==================
-// ⚡ Auto Evergreen Detector v9.3 Plus Complete
+// ⚡ Auto Evergreen Detector v9.4 Pro + H2/H3 Silo Lengkap — SEO Ultra Kompetitif
 (function() {
   // ===== 1️⃣ Elemen & Text Detector =====
-  const AEDv93_contentEl = document.querySelector("article, main, .post-body");
-  const AEDv93_h1El = document.querySelector("h1");
-  const AEDv93_h1Text = AEDv93_h1El ? AEDv93_h1El.innerText : "";
-  const AEDv93_contentText = (AEDv93_contentEl ? AEDv93_contentEl.innerText : document.body.innerText || "").toLowerCase();
-  const AEDv93_textDetector = (AEDv93_h1Text + " " + AEDv93_contentText);
+  const contentEl = document.querySelector("article, main, .post-body");
+  const h1El = document.querySelector("h1");
+  const h1Text = h1El ? h1El.innerText.trim() : "";
+  const contentText = (contentEl ? contentEl.innerText : document.body.innerText || "").toLowerCase();
+  const fullText = (h1Text + " " + contentText);
 
   // ===== 2️⃣ Hitung indikator alami =====
-  const AEDv93_wordCount = AEDv93_textDetector.split(/\s+/).filter(Boolean).length;
-  const AEDv93_numberCount = (AEDv93_textDetector.match(/\d{1,4}/g) || []).length;
-  const AEDv93_percentCount = (AEDv93_textDetector.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)/g) || []).length;
-  const AEDv93_tableCount = document.querySelectorAll("table").length;
-  const AEDv93_listCount = document.querySelectorAll("ul,ol").length;
-  const AEDv93_h2Count = document.querySelectorAll("h2").length;
+  const wordCount = fullText.split(/\s+/).filter(Boolean).length;
+  const numberCount = (fullText.match(/\d{1,4}/g) || []).length;
+  const percentCount = (fullText.match(/%|rp|\d+(\.\d+)?\s?(m|cm|kg|m2|m3|m³|ton|kubik|liter)/gi) || []).length;
+  const tableCount = document.querySelectorAll("table").length;
+  const listCount = document.querySelectorAll("ul,ol").length;
+  const h2Els = document.querySelectorAll("h2");
+  const h3Els = document.querySelectorAll("h3");
+  const h2Count = h2Els.length;
+  const h3Count = h3Els.length;
 
   // ===== 3️⃣ Keyword Pattern =====
-  const AEDv93_nonEvergreenKeywords = ["harga","update","terbaru","berita","jadwal","event","promo","diskon","proyek","progres","bulan","tahun","sementara","deadline","musiman"];
-  const AEDv93_evergreenKeywords = ["panduan","tutorial","tips","cara","definisi","pandangan","strategi","langkah","prosedur","manfaat","penjelasan","fungsi","teknik","contoh","jenis","panduan lengkap","arti","perbedaan","kegunaan"];
+  const nonEvergreenKeywords = ["harga","update","terbaru","berita","jadwal","event","promo","diskon","proyek","progres","bulan","tahun","sementara","deadline","musiman"];
+  const evergreenKeywords = ["panduan","tutorial","tips","cara","definisi","pandangan","strategi","langkah","prosedur","manfaat","penjelasan","fungsi","teknik","contoh","jenis","panduan lengkap","arti","perbedaan","kegunaan"];
 
-  const AEDv93_hasTimePattern = AEDv93_nonEvergreenKeywords.some(k => new RegExp(`\\b${k}\\b`, 'i').test(AEDv93_textDetector));
-  const AEDv93_evergreenIndicators = AEDv93_evergreenKeywords.reduce((acc, k) => acc + (new RegExp(`\\b${k}\\b`, 'i').test(AEDv93_textDetector) ? 1 : 0), 0);
+  const hasTimePattern = nonEvergreenKeywords.some(k => new RegExp(`\\b${k}\\b`, 'i').test(fullText));
+  const evergreenIndicators = evergreenKeywords.reduce((acc, k) => acc + (new RegExp(`\\b${k}\\b`, 'i').test(fullText) ? 1 : 0), 0);
 
   // ===== 4️⃣ Hitung Skor Hybrid =====
-  let AEDv93_score = 0;
-  AEDv93_score += AEDv93_numberCount * 0.3;
-  AEDv93_score += AEDv93_percentCount * 0.5;
-  AEDv93_score += AEDv93_tableCount * 1;
-  AEDv93_score -= (AEDv93_wordCount > 1000 ? 1 : 0);
-  AEDv93_score -= (AEDv93_h2Count > 2 ? 0.5 : 0);
-  AEDv93_score -= (AEDv93_listCount > 0 ? 0.5 : 0);
-  AEDv93_score -= AEDv93_evergreenIndicators * 0.5;
+  let score = 0;
+  score += numberCount * 0.3;
+  score += percentCount * 0.5;
+  score += tableCount * 1;
+  score -= (wordCount > 1000 ? 1 : 0);
+  score -= (h2Count > 2 ? 0.5 : 0);
+  score -= (listCount > 0 ? 0.5 : 0);
+  score -= evergreenIndicators * 0.5;
 
   // ===== 5️⃣ Klasifikasi Tipe Konten =====
-  let AEDv93_typeKonten = "SEMI-EVERGREEN";
-  if ((AEDv93_hasTimePattern && AEDv93_evergreenIndicators <= 1) || AEDv93_score >= 3) {
-    AEDv93_typeKonten = "NON-EVERGREEN";
-  } else if (AEDv93_evergreenIndicators >= 2 && AEDv93_score <= 1) {
-    AEDv93_typeKonten = "EVERGREEN";
-  }
+  let typeKonten = "SEMI-EVERGREEN";
+  if ((hasTimePattern && evergreenIndicators <= 1) || score >= 3) typeKonten = "NON-EVERGREEN";
+  else if (evergreenIndicators >= 2 && score <= 1) typeKonten = "EVERGREEN";
 
   // ===== 6️⃣ Hitung rekomendasi update =====
-  const AEDv93_nextUpdate = new Date();
-  if (AEDv93_typeKonten === "EVERGREEN") AEDv93_nextUpdate.setMonth(AEDv93_nextUpdate.getMonth() + 12);
-  else if (AEDv93_typeKonten === "SEMI-EVERGREEN") AEDv93_nextUpdate.setMonth(AEDv93_nextUpdate.getMonth() + 6);
-  else AEDv93_nextUpdate.setMonth(AEDv93_nextUpdate.getMonth() + 3);
-
-  const AEDv93_options = { day: "numeric", month: "long", year: "numeric" };
-  const AEDv93_nextUpdateStr = AEDv93_nextUpdate.toLocaleDateString("id-ID", AEDv93_options);
-  const AEDv93_dateModifiedStr = new Date(dateModified).toLocaleDateString("id-ID", AEDv93_options);
+  const nextUpdate = new Date();
+  if (typeKonten === "EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 12);
+  else if (typeKonten === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
+  else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
+  const options = { day: "numeric", month: "long", year: "numeric" };
+  const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", options);
+  const dateModifiedStr = new Date(dateModified).toLocaleDateString("id-ID", options);
+  const datePublishedStr = new Date(document.querySelector("meta[itemprop='datePublished']")?.content || Date.now()).toLocaleDateString("id-ID", options);
 
   // ===== 7️⃣ Label tipe konten di halaman =====
-  if (AEDv93_h1El) {
-    const AEDv93_label = document.createElement("div");
-    AEDv93_label.innerHTML = `<b>${AEDv93_typeKonten}</b> — pembaruan berikutnya: <b>${AEDv93_nextUpdateStr}</b>`;
-    AEDv93_label.setAttribute("data-nosnippet","true");
-    AEDv93_label.style.fontSize = "0.9em";
-    AEDv93_label.style.color = "#444";
-    AEDv93_label.style.marginTop = "4px";
-    AEDv93_label.style.marginBottom = "10px";
-
-    if (AEDv93_typeKonten === "NON-EVERGREEN") {
-      AEDv93_h1El.parentNode.insertBefore(AEDv93_label, AEDv93_h1El);
-    } else {
-      AEDv93_h1El.insertAdjacentElement("afterend", AEDv93_label);
-    }
+  if (h1El) {
+    const label = document.createElement("div");
+    label.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+    label.setAttribute("data-nosnippet","true");
+    label.style.fontSize = "0.9em";
+    label.style.color = "#444";
+    label.style.marginTop = "4px";
+    label.style.marginBottom = "10px";
+    h1El.insertAdjacentElement("afterend", label);
   }
 
-  // ===== 8️⃣ Author + Tanggal Update =====
-  const AEDv93_authorEl = document.querySelector(".post-author .fn");
-  if (AEDv93_authorEl) {
-    if (AEDv93_typeKonten === "SEMI-EVERGREEN") {
-      const AEDv93_dateEl = document.createElement("span");
-      AEDv93_dateEl.textContent = ` · Diperbarui: ${AEDv93_dateModifiedStr}`;
-      AEDv93_dateEl.style.fontSize = "0.85em";
-      AEDv93_dateEl.style.color = "#555";
-      AEDv93_dateEl.style.marginLeft = "4px";
-      AEDv93_authorEl.appendChild(AEDv93_dateEl);
-    } else if (AEDv93_typeKonten === "NON-EVERGREEN") {
-      const AEDv93_dateEl = document.createElement("div");
-      AEDv93_dateEl.textContent = `Diperbarui: ${AEDv93_dateModifiedStr}`;
-      AEDv93_dateEl.style.fontSize = "0.85em";
-      AEDv93_dateEl.style.color = "#555";
-      AEDv93_dateEl.style.marginBottom = "4px";
-      AEDv93_dateEl.setAttribute("data-nosnippet","true");
-      AEDv93_h1El.parentNode.insertBefore(AEDv93_dateEl, AEDv93_h1El);
-    } 
-    if (AEDv93_typeKonten === "EVERGREEN") {
-      const AEDv93_metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
-      AEDv93_metaBlocks.forEach(el => el.style.display = "none");
-    }
-  }
+  // ===== 8️⃣ Deteksi URL vs H1 + rekomendasi H1 baru =====
+  let urlNameRaw = window.location.pathname.split("/").filter(Boolean).pop() || "";
+  urlNameRaw = urlNameRaw.replace(/^p\//, "").replace(/\.html$/i, "")
+             .replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g, "")
+             .replace(/[-_]/g, " ").trim().toLowerCase();
+  const H1vsURLdiff = urlNameRaw !== h1Text.toLowerCase();
+  const recommendedH1 = H1vsURLdiff ? urlNameRaw.split(" ").map(w => w[0].toUpperCase() + w.slice(1)).join(" ") : h1Text;
 
-  // ===== 9️⃣ Dashboard Blogspot =====
-  let AEDv93_dashboardTable = document.getElementById("AEDv93_dashboardTable");
-  if (!AEDv93_dashboardTable) {
-    AEDv93_dashboardTable = document.createElement("table");
-    AEDv93_dashboardTable.id = "AEDv93_dashboardTable";
-    AEDv93_dashboardTable.style.width = "100%";
-    AEDv93_dashboardTable.style.borderCollapse = "collapse";
-    AEDv93_dashboardTable.style.marginTop = "20px";
-    AEDv93_dashboardTable.innerHTML = `
+  // ===== 9️⃣ Rekomendasi Meta Description =====
+  let metaDesc = "";
+  const sentences = contentText.split(/\.|\n/).filter(Boolean);
+  metaDesc = sentences.slice(0,3).join(". ").substring(0,160).trim();
+  if(metaDesc.length < 50) metaDesc = recommendedH1 + " — " + sentences.slice(0,2).join(". ").trim();
+
+  // ===== 🔟 Struktur H2/H3 SEO Silo Lengkap =====
+  const seoSiloH2 = ["Pendahuluan", "Manfaat", "Jenis", "Langkah / Tutorial", "Contoh / Studi Kasus", "FAQ"];
+  const seoSiloH3 = {
+    "Pendahuluan": ["Definisi", "Sejarah / Latar Belakang"],
+    "Manfaat": ["Kegunaan", "Keuntungan"],
+    "Jenis": ["Tipe 1", "Tipe 2", "Tipe 3"],
+    "Langkah / Tutorial": ["Persiapan", "Pelaksanaan", "Tips Tambahan"],
+    "Contoh / Studi Kasus": ["Kasus 1", "Kasus 2"],
+    "FAQ": ["Pertanyaan Umum 1", "Pertanyaan Umum 2"]
+  };
+
+  // Highlight H2/H3 yang kurang
+  const missingH2 = seoSiloH2.filter(h2 => ![...h2Els].some(el => el.innerText.toLowerCase().includes(h2.toLowerCase())));
+  const missingH3 = missingH2.map(h2 => seoSiloH3[h2] ? seoSiloH3[h2].join(", ") : "").filter(Boolean);
+  const highlightH2H3 = missingH2.join(", ") + (missingH3.length ? " | H3 tambahan: " + missingH3.join(" | ") : "");
+
+  // ===== 1️⃣1️⃣ Highlight kata/angka penting =====
+  const highlightMatches = (fullText.match(/\d+(\.\d+)?|\d+\s?(m|cm|kg|m2|m3|m³|ton|kubik|liter)|rp|\%/gi) || []).join(", ");
+
+  // ===== 1️⃣2️⃣ Prediksi Evergreen & Solusi Lengkap =====
+  let solution = H1vsURLdiff
+    ? `⚠️ H1 berbeda dari URL (${urlNameRaw}) → Sarankan revisi H1: "${recommendedH1}".\nHighlight penting konten: ${highlightMatches}\nH2/H3 bisa ditambah: ${highlightH2H3}\nTindakan: update angka/data, buat list/langkah-langkah jelas, review tiap 3-12 bulan sesuai status.`
+    : `✅ H1 sesuai URL.\nHighlight penting konten: ${highlightMatches}\nH2/H3 bisa ditambah: ${highlightH2H3}\nTindakan: pertahankan H1, perkuat subjudul, update angka/data rutin.`;
+
+  // ===== 1️⃣3️⃣ Saran Konten Otomatis =====
+  let suggestion = "";
+  if (typeKonten === "EVERGREEN") suggestion = `Konten evergreen: pertahankan H1 (${recommendedH1}), gunakan H2/H3 relevan, fokus tips/tutorial, update minimal tahunan. ${solution}`;
+  else if (typeKonten === "SEMI-EVERGREEN") suggestion = `Konten semi-evergreen: perkuat H1 (${recommendedH1}), tambahkan data/angka terbaru, pertahankan list & langkah-langkah, update tiap 3-6 bulan. ${solution}`;
+  else suggestion = `Konten non-evergreen: fokus update rutin, angka/harga terbaru, tampilkan tanggal jelas, review tiap 1-3 bulan. ${solution}`;
+
+  // ===== 1️⃣4️⃣ Dashboard Blogspot =====
+  let dashboardTable = document.getElementById("AEDv94_dashboardTable");
+  if(!dashboardTable){
+    dashboardTable = document.createElement("table");
+    dashboardTable.id = "AEDv94_dashboardTable";
+    dashboardTable.style.width = "100%";
+    dashboardTable.style.borderCollapse = "collapse";
+    dashboardTable.style.marginTop = "20px";
+    dashboardTable.innerHTML = `
       <thead>
         <tr style="background:#f0f0f0;">
           <th style="padding:4px;border:1px solid #ccc;">Halaman</th>
@@ -176,93 +190,55 @@ if(oldHash && oldHash == currentHash){
           <th style="padding:4px;border:1px solid #ccc;">Word</th>
           <th style="padding:4px;border:1px solid #ccc;">Tanggal Publish</th>
           <th style="padding:4px;border:1px solid #ccc;">Tanggal Update</th>
+          <th style="padding:4px;border:1px solid #ccc;">Rekom H1</th>
+          <th style="padding:4px;border:1px solid #ccc;">Meta Description</th>
+          <th style="padding:4px;border:1px solid #ccc;">Struktur Heading SEO</th>
           <th style="padding:4px;border:1px solid #ccc;">Saran Konten</th>
+          <th style="padding:4px;border:1px solid #ccc;">Solusi Lengkap</th>
         </tr>
       </thead>
+      <tbody></tbody>
     `;
-    const AEDv93_tbody = document.createElement("tbody");
-    AEDv93_dashboardTable.appendChild(AEDv93_tbody);
-    document.body.appendChild(AEDv93_dashboardTable);
+    document.body.appendChild(dashboardTable);
   }
-
-  let AEDv93_tbody = AEDv93_dashboardTable.querySelector("tbody");
-  if (!AEDv93_tbody) {
-    AEDv93_tbody = document.createElement("tbody");
-    AEDv93_dashboardTable.appendChild(AEDv93_tbody);
-  }
-
-  // ===== 10️⃣ Ambil tanggal publish & modified =====
-  const AEDv93_datePublishedEl = document.querySelector("meta[itemprop='datePublished']");
-  const AEDv93_datePublishedValue = AEDv93_datePublishedEl ? new Date(AEDv93_datePublishedEl.content) : new Date();
-  const AEDv93_datePublishedStr = AEDv93_datePublishedValue.toLocaleDateString("id-ID", AEDv93_options);
-  const AEDv93_dateModifiedValue = new Date(dateModified);
-  const AEDv93_dateModifiedStrtbody = AEDv93_dateModifiedValue.toLocaleDateString("id-ID", AEDv93_options);
-
-  // ===== 11️⃣ Deteksi URL vs H1 =====
- // const AEDv93_urlName = window.location.pathname.split("/").filter(Boolean).pop() || "";
-  let AEDv93_urlNameRaw = window.location.pathname.split("/").filter(Boolean).pop() || "";
-    // Hapus prefix "p/" jika ada
-    AEDv93_urlNameRaw = AEDv93_urlNameRaw.replace(/^p\//, "");
-    
-    // Hapus .html di akhir
-    AEDv93_urlNameRaw = AEDv93_urlNameRaw.replace(/\.html$/i, "");
-    
-    // Hapus angka bulan/tahun (format 01-12 atau 2020-2099)
-    AEDv93_urlNameRaw = AEDv93_urlNameRaw.replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g, "");
-    
-    // Ganti tanda - atau _ menjadi spasi
-    AEDv93_urlNameRaw = AEDv93_urlNameRaw.replace(/[-_]/g, " ");
-    
-    // Trim spasi ekstra
-    const AEDv93_urlName = AEDv93_urlNameRaw.trim().toLowerCase();
-
-    const AEDv93_urlWords = AEDv93_urlName.replace(/[-_]/g," ").toLowerCase();
-  
-  const AEDv93_H1vsURLdiff = AEDv93_urlWords !== AEDv93_h1Text.toLowerCase();
-
-  // ===== 12️⃣ Highlight kata/angka penting =====
-  const AEDv93_highlightMatches = (AEDv93_textDetector.match(/\d+(\.\d+)?|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)|rp|\%/gi) || []).join(", ");
-
-  // ===== 13️⃣ Saran Konten Otomatis =====
-  let AEDv93_suggestion = "";
-  if (AEDv93_typeKonten === "EVERGREEN") {
-    AEDv93_suggestion = `Konten evergreen: pertahankan H1 (${AEDv93_h1Text}), gunakan subjudul H2 relevan, fokus tips/tutorial, update minimal tahunan. Highlight penting: ${AEDv93_highlightMatches}`;
-    if(AEDv93_H1vsURLdiff) AEDv93_suggestion += ` | Catatan: H1 berbeda dari URL (${AEDv93_urlName})`;
-  } else if (AEDv93_typeKonten === "SEMI-EVERGREEN") {
-    AEDv93_suggestion = `Konten semi-evergreen: perkuat H1 (${AEDv93_h1Text}), tambahkan data/angka terbaru, pertahankan list & langkah-langkah, update tiap 3-6 bulan. Highlight penting: ${AEDv93_highlightMatches}`;
-    if(AEDv93_H1vsURLdiff) AEDv93_suggestion += ` | Catatan: H1 berbeda dari URL (${AEDv93_urlName})`;
-  } else {
-    AEDv93_suggestion = `Konten non-evergreen: fokus update rutin, angka/harga terbaru, tampilkan tanggal jelas, review konten tiap 1-3 bulan. Highlight penting: ${AEDv93_highlightMatches}`;
-    if(AEDv93_H1vsURLdiff) AEDv93_suggestion += ` | Catatan: H1 berbeda dari URL (${AEDv93_urlName})`;
-  }
-
-  // ===== 14️⃣ Tambahkan row ke dashboard =====
-  const AEDv93_pageTitle = AEDv93_h1Text || document.title || "Unknown Page";
-  const AEDv93_row = document.createElement("tr");
-  AEDv93_row.innerHTML = `
-    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_pageTitle}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_typeKonten}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_score.toFixed(1)}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_wordCount}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_datePublishedStr}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_dateModifiedStrtbody}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_suggestion}</td>
+  const tbody = dashboardTable.querySelector("tbody");
+  const pageTitle = h1Text || document.title || "Unknown Page";
+  const row = document.createElement("tr");
+  row.innerHTML = `
+    <td style="padding:4px;border:1px solid #ccc;">${pageTitle}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${typeKonten}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${score.toFixed(1)}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${wordCount}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${datePublishedStr}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${dateModifiedStr}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${recommendedH1}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${metaDesc}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${highlightH2H3}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${suggestion}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${solution}</td>
   `;
-  AEDv93_tbody.appendChild(AEDv93_row);
+  tbody.appendChild(row);
 
-  // ===== 15️⃣ Simpan ke Window untuk Schema / Automation =====
-  window.AEDv93_typeKonten = AEDv93_typeKonten;
-  window.AEDv93_nextUpdateStr = AEDv93_nextUpdateStr;
-  window.AEDv93_dateModifiedStr = AEDv93_dateModifiedStrtbody;
-  window.AEDv93_evergreenScore = AEDv93_score.toFixed(1);
-  window.AEDv93_wordCount = AEDv93_wordCount;
-  window.AEDv93_contentSuggestion = AEDv93_suggestion;
-  window.AEDv93_H1vsURLdiff = AEDv93_H1vsURLdiff;
+  // ===== 1️⃣5️⃣ Simpan ke Window =====
+  window.AEDv94_typeKonten = typeKonten;
+  window.AEDv94_nextUpdateStr = nextUpdateStr;
+  window.AEDv94_dateModifiedStr = dateModifiedStr;
+  window.AEDv94_evergreenScore = score.toFixed(1);
+  window.AEDv94_wordCount = wordCount;
+  window.AEDv94_contentSuggestion = suggestion;
+  window.AEDv94_H1vsURLdiff = H1vsURLdiff;
+  window.AEDv94_solution = solution;
+  window.AEDv94_recommendedH1 = recommendedH1;
+  window.AEDv94_metaDescription = metaDesc;
+  window.AEDv94_highlightH2H3 = highlightH2H3;
 
-  console.log(`🧠 [EvergreenAI v9.3 Plus Complete] ${AEDv93_typeKonten} | Score: ${AEDv93_score.toFixed(1)} | Word: ${AEDv93_wordCount}`);
-  console.log(`📅 Next Update: ${AEDv93_nextUpdateStr} | Last Modified: ${AEDv93_dateModifiedStrtbody}`);
-  console.log(`💡 Saran Konten: ${AEDv93_suggestion}`);
-  if(AEDv93_H1vsURLdiff) console.log(`⚠️ H1 berbeda dari URL (${AEDv93_urlName})`);
+  console.log(`🧠 [EvergreenAI v9.4 Pro SEO Silo] ${typeKonten} | Score: ${score.toFixed(1)} | Word: ${wordCount}`);
+  console.log(`📅 Next Update: ${nextUpdateStr} | Last Modified: ${dateModifiedStr}`);
+  console.log(`💡 Rekom H1: ${recommendedH1}`);
+  console.log(`💡 Meta Description: ${metaDesc}`);
+  console.log(`💡 Struktur H2/H3: ${highlightH2H3}`);
+  console.log(`💡 Saran Konten: ${suggestion}`);
+  console.log(`💡 Solusi Lengkap: ${solution}`);
 })();
   
   // ================== SCHEMA GENERATOR ==================
