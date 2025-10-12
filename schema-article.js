@@ -187,7 +187,7 @@ let datePublishedValue = datePublishedEl ? new Date(datePublishedEl.content) : n
 let datePublishedStr = datePublishedValue.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
 let dateModifiedValue = new Date(dateModified); // variable existing
-let dateModifiedStr = dateModifiedValue.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+let dateModifiedStrtbody = dateModifiedValue.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 
 // ===== 5️⃣ Tambahkan row baru ke dashboard =====
 const pageTitle = h1Text || document.title || "Unknown Page";
@@ -198,7 +198,7 @@ row.innerHTML = `
   <td style="padding:4px;border:1px solid #ccc;">${score.toFixed(1)}</td>
   <td style="padding:4px;border:1px solid #ccc;">${wordCount}</td>
   <td style="padding:4px;border:1px solid #ccc;">${datePublishedStr}</td>
-  <td style="padding:4px;border:1px solid #ccc;">${dateModifiedStr}</td>
+  <td style="padding:4px;border:1px solid #ccc;">${dateModifiedStrtbody}</td>
 `;
 tbody.appendChild(row);
 
@@ -206,12 +206,12 @@ tbody.appendChild(row);
 // ===== 6️⃣ Simpan ke Window untuk Schema / Automation =====
 window.typeKonten = typeKonten;
 window.nextUpdateStr = nextUpdateStr;
-window.dateModifiedStr = dateModifiedStr;
+window.dateModifiedStr = dateModifiedStrtbody;
 window.evergreenScore = score.toFixed(1);
 window.wordCount = wordCount;
 
 console.log(`🧠 [EvergreenAI v8.6 Enterprise] ${typeKonten} | Score: ${score.toFixed(1)} | Word: ${wordCount}`);
-console.log(`📅 Next Update: ${nextUpdateStr} | Last Modified: ${dateModifiedStr}`);
+console.log(`📅 Next Update: ${nextUpdateStr} | Last Modified: ${dateModifiedStrtbody}`);
   
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
