@@ -65,153 +65,182 @@ if(oldHash && oldHash == currentHash){
 }
 
 // ================== DETEKSI TYPE KONTEN ==================
-// ⚡ Auto Evergreen Detector v8.6 — Full Automation + Blogspot Dashboard
-const contentElDetector = document.querySelector("article, main, .post-body");
-const h1El = document.querySelector("h1");
-const h1Text = h1El ? h1El.innerText : "";
-const contentTextDetector = (contentElDetector ? contentElDetector.innerText : document.body.innerText || "").toLowerCase().slice(0, 5000);
-const textDetector = (h1Text + " " + contentTextDetector).toLowerCase();
+// ⚡ Auto Evergreen Detector v9.2 — Full Hybrid + Dashboard + Smart Suggestions
+(function() {
+  // ===== 1️⃣ Elemen & Text Detector =====
+  const AED_contentEl = document.querySelector("article, main, .post-body");
+  const AED_h1El = document.querySelector("h1");
+  const AED_h1Text = AED_h1El ? AED_h1El.innerText : "";
+  const AED_contentText = (AED_contentEl ? AED_contentEl.innerText : document.body.innerText || "").toLowerCase();
+  const AED_textDetector = (AED_h1Text + " " + AED_contentText);
 
-// 🔍 Hitung indikator alami
-const wordCount = textDetector.split(/\s+/).filter(Boolean).length;
-const numberCount = (textDetector.match(/\d{1,4}/g) || []).length;
-const percentCount = (textDetector.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)/g) || []).length;
-const tableCount = document.querySelectorAll("table").length;
-const listCount = document.querySelectorAll("ul,ol").length;
-const h2Count = document.querySelectorAll("h2").length;
+  // ===== 2️⃣ Hitung indikator alami =====
+  const AED_wordCount = AED_textDetector.split(/\s+/).filter(Boolean).length;
+  const AED_numberCount = (AED_textDetector.match(/\d{1,4}/g) || []).length;
+  const AED_percentCount = (AED_textDetector.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)/g) || []).length;
+  const AED_tableCount = document.querySelectorAll("table").length;
+  const AED_listCount = document.querySelectorAll("ul,ol").length;
+  const AED_h2Count = document.querySelectorAll("h2").length;
 
-// 🔢 Penilaian otomatis (Hybrid Logic)
-let score = 0;
-score += numberCount * 0.3;
-score += percentCount * 0.5;
-score += tableCount * 1;
-score -= (wordCount > 1000 ? 1 : 0);
-score -= (h2Count > 2 ? 0.5 : 0);
-score -= (listCount > 0 ? 0.5 : 0);
+  // ===== 3️⃣ Keyword Pattern =====
+  const AED_nonEvergreenKeywords = [
+    "harga","update","terbaru","berita","jadwal","event","promo","diskon",
+    "proyek","progres","bulan","tahun","sementara","deadline","musiman"
+  ];
+  const AED_evergreenKeywords = [
+    "panduan","tutorial","tips","cara","definisi","pandangan","strategi",
+    "langkah","prosedur","manfaat","penjelasan","fungsi","teknik","contoh",
+    "jenis","panduan lengkap","arti","perbedaan","kegunaan"
+  ];
 
-// 🧭 Klasifikasi otomatis
-let typeKonten = "SEMI-EVERGREEN";
-if (score >= 3) typeKonten = "NON-EVERGREEN";
-else if (score <= 1) typeKonten = "EVERGREEN";
+  const AED_hasTimePattern = AED_nonEvergreenKeywords.some(k => new RegExp(`\\b${k}\\b`, 'i').test(AED_textDetector));
+  const AED_evergreenIndicators = AED_evergreenKeywords.reduce((acc, k) => acc + (new RegExp(`\\b${k}\\b`, 'i').test(AED_textDetector) ? 1 : 0), 0);
 
-// 📅 Hitung rekomendasi update
-const nextUpdate = new Date();
-if (typeKonten === "EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 12);
-else if (typeKonten === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
-else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
+  // ===== 4️⃣ Hitung Skor Hybrid =====
+  let AED_score = 0;
+  AED_score += AED_numberCount * 0.3;
+  AED_score += AED_percentCount * 0.5;
+  AED_score += AED_tableCount * 1;
+  AED_score -= (AED_wordCount > 1000 ? 1 : 0);
+  AED_score -= (AED_h2Count > 2 ? 0.5 : 0);
+  AED_score -= (AED_listCount > 0 ? 0.5 : 0);
+  AED_score -= AED_evergreenIndicators * 0.5;
 
-const options = { day: "numeric", month: "long", year: "numeric" };
-const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", options);
-const dateModifiedStr = new Date(dateModified).toLocaleDateString("id-ID", options);
+  // ===== 5️⃣ Klasifikasi Tipe Konten =====
+  let AED_typeKonten = "SEMI-EVERGREEN";
+  if ((AED_hasTimePattern && AED_evergreenIndicators <= 1) || AED_score >= 3) {
+    AED_typeKonten = "NON-EVERGREEN";
+  } else if (AED_evergreenIndicators >= 2 && AED_score <= 1) {
+    AED_typeKonten = "EVERGREEN";
+  }
 
-// ===== 2️⃣ Tampilkan label tipe konten di halaman =====
-if (h1El) {
-  const label = document.createElement("div");
-  label.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
-  label.setAttribute("data-nosnippet","true");
-  label.style.fontSize = "0.9em";
-  label.style.color = "#444";
-  label.style.marginTop = "4px";
-  label.style.marginBottom = "10px";
+  // ===== 6️⃣ Hitung rekomendasi update =====
+  const AED_nextUpdate = new Date();
+  if (AED_typeKonten === "EVERGREEN") AED_nextUpdate.setMonth(AED_nextUpdate.getMonth() + 12);
+  else if (AED_typeKonten === "SEMI-EVERGREEN") AED_nextUpdate.setMonth(AED_nextUpdate.getMonth() + 6);
+  else AED_nextUpdate.setMonth(AED_nextUpdate.getMonth() + 3);
 
-  if (typeKonten === "NON-EVERGREEN") {
-    h1El.parentNode.insertBefore(label, h1El);
+  const AED_options = { day: "numeric", month: "long", year: "numeric" };
+  const AED_nextUpdateStr = AED_nextUpdate.toLocaleDateString("id-ID", AED_options);
+  const AED_dateModifiedStr = new Date(dateModified).toLocaleDateString("id-ID", AED_options);
+
+  // ===== 7️⃣ Label tipe konten di halaman =====
+  if (AED_h1El) {
+    const AED_label = document.createElement("div");
+    AED_label.innerHTML = `<b>${AED_typeKonten}</b> — pembaruan berikutnya: <b>${AED_nextUpdateStr}</b>`;
+    AED_label.setAttribute("data-nosnippet","true");
+    AED_label.style.fontSize = "0.9em";
+    AED_label.style.color = "#444";
+    AED_label.style.marginTop = "4px";
+    AED_label.style.marginBottom = "10px";
+
+    if (AED_typeKonten === "NON-EVERGREEN") {
+      AED_h1El.parentNode.insertBefore(AED_label, AED_h1El);
+    } else {
+      AED_h1El.insertAdjacentElement("afterend", AED_label);
+    }
+  }
+
+  // ===== 8️⃣ Author + Tanggal Update =====
+  const AED_authorEl = document.querySelector(".post-author .fn");
+  if (AED_authorEl) {
+    if (AED_typeKonten === "SEMI-EVERGREEN") {
+      const AED_dateEl = document.createElement("span");
+      AED_dateEl.textContent = ` · Diperbarui: ${AED_dateModifiedStr}`;
+      AED_dateEl.style.fontSize = "0.85em";
+      AED_dateEl.style.color = "#555";
+      AED_dateEl.style.marginLeft = "4px";
+      AED_authorEl.appendChild(AED_dateEl);
+    } else if (AED_typeKonten === "NON-EVERGREEN") {
+      const AED_dateEl = document.createElement("div");
+      AED_dateEl.textContent = `Diperbarui: ${AED_dateModifiedStr}`;
+      AED_dateEl.style.fontSize = "0.85em";
+      AED_dateEl.style.color = "#555";
+      AED_dateEl.style.marginBottom = "4px";
+      AED_dateEl.setAttribute("data-nosnippet","true");
+      AED_h1El.parentNode.insertBefore(AED_dateEl, AED_h1El);
+    } 
+    if (AED_typeKonten === "EVERGREEN") {
+      const AED_metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
+      AED_metaBlocks.forEach(el => el.style.display = "none");
+    }
+  }
+
+  // ===== 9️⃣ Dashboard Blogspot =====
+  let AED_dashboardTable = document.getElementById("AED_dashboardTable");
+  if (!AED_dashboardTable) {
+    AED_dashboardTable = document.createElement("table");
+    AED_dashboardTable.id = "AED_dashboardTable";
+    AED_dashboardTable.style.width = "100%";
+    AED_dashboardTable.style.borderCollapse = "collapse";
+    AED_dashboardTable.style.marginTop = "20px";
+    AED_dashboardTable.innerHTML = `
+      <thead>
+        <tr style="background:#f0f0f0;">
+          <th style="padding:4px;border:1px solid #ccc;">Halaman</th>
+          <th style="padding:4px;border:1px solid #ccc;">Type</th>
+          <th style="padding:4px;border:1px solid #ccc;">Score</th>
+          <th style="padding:4px;border:1px solid #ccc;">Word</th>
+          <th style="padding:4px;border:1px solid #ccc;">Tanggal Publish</th>
+          <th style="padding:4px;border:1px solid #ccc;">Tanggal Update</th>
+          <th style="padding:4px;border:1px solid #ccc;">Saran Konten</th>
+        </tr>
+      </thead>
+    `;
+    const AED_tbody = document.createElement("tbody");
+    AED_dashboardTable.appendChild(AED_tbody);
+    document.body.appendChild(AED_dashboardTable);
+  }
+
+  let AED_tbody = AED_dashboardTable.querySelector("tbody");
+  if (!AED_tbody) {
+    AED_tbody = document.createElement("tbody");
+    AED_dashboardTable.appendChild(AED_tbody);
+  }
+
+  // ===== 10️⃣ Ambil tanggal publish & modified =====
+  const AED_datePublishedEl = document.querySelector("meta[itemprop='datePublished']");
+  const AED_datePublishedValue = AED_datePublishedEl ? new Date(AED_datePublishedEl.content) : new Date();
+  const AED_datePublishedStr = AED_datePublishedValue.toLocaleDateString("id-ID", AED_options);
+  const AED_dateModifiedValue = new Date(dateModified);
+  const AED_dateModifiedStrtbody = AED_dateModifiedValue.toLocaleDateString("id-ID", AED_options);
+
+  // ===== 11️⃣ Saran Konten Otomatis =====
+  let AED_suggestion = "";
+  if (AED_typeKonten === "EVERGREEN") {
+    AED_suggestion = `Konten evergreen: pertahankan H1 (${AED_h1Text}), gunakan subjudul H2 relevan, fokus tips/tutorial, update minimal tahunan.`;
+  } else if (AED_typeKonten === "SEMI-EVERGREEN") {
+    AED_suggestion = `Konten semi-evergreen: perkuat H1 (${AED_h1Text}), tambahkan data/angka terbaru, pertahankan list & langkah-langkah, update tiap 3-6 bulan.`;
   } else {
-    h1El.insertAdjacentElement("afterend", label);
+    AED_suggestion = `Konten non-evergreen: fokus update rutin, angka/harga terbaru, tampilkan tanggal jelas, review konten tiap 1-3 bulan.`;
   }
-}
 
-// ===== 3️⃣ Author + Tanggal Update (Blogspot) =====
-const authorEl = document.querySelector(".post-author .fn");
-if (authorEl) {
-  if (typeKonten === "SEMI-EVERGREEN") {
-    const dateEl = document.createElement("span");
-    dateEl.textContent = ` · Diperbarui: ${dateModifiedStr}`;
-    dateEl.style.fontSize = "0.85em";
-    dateEl.style.color = "#555";
-    dateEl.style.marginLeft = "4px";
-    authorEl.appendChild(dateEl);
-  } else if (typeKonten === "NON-EVERGREEN") {
-    // Non-Evergreen: tampilkan dateModified di atas H1, author tetap di bawah H1
-    const dateEl = document.createElement("div");
-    dateEl.textContent = `Diperbarui: ${dateModifiedStr}`;
-    dateEl.style.fontSize = "0.85em";
-    dateEl.style.color = "#555";
-    dateEl.style.marginBottom = "4px";
-    dateEl.setAttribute("data-nosnippet","true");
-    h1El.parentNode.insertBefore(dateEl, h1El);
-  } 
-  // Evergreen → sembunyikan author & tanggal
-  if (typeKonten === "EVERGREEN") {
-    const metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
-    metaBlocks.forEach(el => el.style.display = "none");
-  }
-}
-
-// ===== 4️⃣ Siapkan Dashboard Blogspot =====
-// ===== 4️⃣ Siapkan Dashboard Blogspot (Update + Publish) =====
-let dashboardTable = document.getElementById("dashboardTable");
-if (!dashboardTable) {
-  dashboardTable = document.createElement("table");
-  dashboardTable.id = "dashboardTable";
-  dashboardTable.style.width = "100%";
-  dashboardTable.style.borderCollapse = "collapse";
-  dashboardTable.style.marginTop = "20px";
-  dashboardTable.innerHTML = `
-    <thead>
-      <tr style="background:#f0f0f0;">
-        <th style="padding:4px;border:1px solid #ccc;">Halaman</th>
-        <th style="padding:4px;border:1px solid #ccc;">Type</th>
-        <th style="padding:4px;border:1px solid #ccc;">Score</th>
-        <th style="padding:4px;border:1px solid #ccc;">Word</th>
-        <th style="padding:4px;border:1px solid #ccc;">Tanggal Publish</th>
-        <th style="padding:4px;border:1px solid #ccc;">Tanggal Update</th>
-      </tr>
-    </thead>
+  // ===== 12️⃣ Tambahkan row ke dashboard =====
+  const AED_pageTitle = AED_h1Text || document.title || "Unknown Page";
+  const AED_row = document.createElement("tr");
+  AED_row.innerHTML = `
+    <td style="padding:4px;border:1px solid #ccc;">${AED_pageTitle}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AED_typeKonten}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AED_score.toFixed(1)}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AED_wordCount}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AED_datePublishedStr}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AED_dateModifiedStrtbody}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AED_suggestion}</td>
   `;
-  const tbody = document.createElement("tbody");
-  dashboardTable.appendChild(tbody);
-  document.body.appendChild(dashboardTable);
-}
+  AED_tbody.appendChild(AED_row);
 
-// Pastikan tbody ada
-let tbody = dashboardTable.querySelector("tbody");
-if (!tbody) {
-  tbody = document.createElement("tbody");
-  dashboardTable.appendChild(tbody);
-}
+  // ===== 13️⃣ Simpan ke Window untuk Schema / Automation =====
+  window.AED_typeKonten = AED_typeKonten;
+  window.AED_nextUpdateStr = AED_nextUpdateStr;
+  window.AED_dateModifiedStr = AED_dateModifiedStrtbody;
+  window.AED_evergreenScore = AED_score.toFixed(1);
+  window.AED_wordCount = AED_wordCount;
+  window.AED_contentSuggestion = AED_suggestion;
 
-// Ambil tanggal publish & modified
-let datePublishedEl = document.querySelector("meta[itemprop='datePublished']");
-let datePublishedValue = datePublishedEl ? new Date(datePublishedEl.content) : new Date();
-let datePublishedStr = datePublishedValue.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
-
-let dateModifiedValue = new Date(dateModified); // variable existing
-let dateModifiedStrtbody = dateModifiedValue.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
-
-// ===== 5️⃣ Tambahkan row baru ke dashboard =====
-const pageTitle = h1Text || document.title || "Unknown Page";
-const row = document.createElement("tr");
-row.innerHTML = `
-  <td style="padding:4px;border:1px solid #ccc;">${pageTitle}</td>
-  <td style="padding:4px;border:1px solid #ccc;">${typeKonten}</td>
-  <td style="padding:4px;border:1px solid #ccc;">${score.toFixed(1)}</td>
-  <td style="padding:4px;border:1px solid #ccc;">${wordCount}</td>
-  <td style="padding:4px;border:1px solid #ccc;">${datePublishedStr}</td>
-  <td style="padding:4px;border:1px solid #ccc;">${dateModifiedStrtbody}</td>
-`;
-tbody.appendChild(row);
-
-
-// ===== 6️⃣ Simpan ke Window untuk Schema / Automation =====
-window.typeKonten = typeKonten;
-window.nextUpdateStr = nextUpdateStr;
-window.dateModifiedStr = dateModifiedStrtbody;
-window.evergreenScore = score.toFixed(1);
-window.wordCount = wordCount;
-
-console.log(`🧠 [EvergreenAI v8.6 Enterprise] ${typeKonten} | Score: ${score.toFixed(1)} | Word: ${wordCount}`);
-console.log(`📅 Next Update: ${nextUpdateStr} | Last Modified: ${dateModifiedStrtbody}`);
+  console.log(`🧠 [EvergreenAI v9.2 Insight] ${AED_typeKonten} | Score: ${AED_score.toFixed(1)} | Word: ${AED_wordCount}`);
+  console.log(`📅 Next Update: ${AED_nextUpdateStr} | Last Modified: ${AED_dateModifiedStrtbody}`);
+  console.log(`💡 Saran Konten: ${AED_suggestion}`);
+})();
   
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
