@@ -65,7 +65,7 @@ if(oldHash && oldHash == currentHash){
 }
 
 // ================== DETEKSI TYPE KONTEN ==================
-<!-- ⚡ Auto Evergreen Detector v9.5 Pro Ultimate — Full Hybrid + SEO Silo AI + Dashboard -->
+// ⚡ Auto Evergreen Detector v9.5 Pro Ultimate + Author Date Logic Integrated
 (function() {
   // ===== 1️⃣ Elemen & Text Detector =====
   const elContent = document.querySelector("article, main, .post-body");
@@ -124,18 +124,45 @@ if(oldHash && oldHash == currentHash){
     elH1.insertAdjacentElement("afterend", label);
   }
 
-  // ===== 8️⃣ Deteksi URL vs H1 + rekomendasi H1 =====
+  // ===== 🆕 8️⃣ Author + Tanggal Update (dari v9.2) =====
+  const dateModified = new Date(document.lastModified);
+  const AED_dateModifiedStr = dateModified.toLocaleDateString("id-ID", options);
+  const AED_authorEl = document.querySelector(".post-author .fn");
+  if (AED_authorEl) {
+    if (type === "SEMI-EVERGREEN") {
+      const AED_dateEl = document.createElement("span");
+      AED_dateEl.textContent = ` · Diperbarui: ${AED_dateModifiedStr}`;
+      AED_dateEl.style.fontSize = "0.85em";
+      AED_dateEl.style.color = "#555";
+      AED_dateEl.style.marginLeft = "4px";
+      AED_authorEl.appendChild(AED_dateEl);
+    } else if (type === "NON-EVERGREEN") {
+      const AED_dateEl = document.createElement("div");
+      AED_dateEl.textContent = `Diperbarui: ${AED_dateModifiedStr}`;
+      AED_dateEl.style.fontSize = "0.85em";
+      AED_dateEl.style.color = "#555";
+      AED_dateEl.style.marginBottom = "4px";
+      AED_dateEl.setAttribute("data-nosnippet","true");
+      elH1.parentNode.insertBefore(AED_dateEl, elH1);
+    } 
+    if (type === "EVERGREEN") {
+      const AED_metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
+      AED_metaBlocks.forEach(el => el.style.display = "none");
+    }
+  }
+
+  // ===== 9️⃣ Deteksi URL vs H1 + rekomendasi H1 =====
   let urlRaw = window.location.pathname.split("/").filter(Boolean).pop() || "";
   urlRaw = urlRaw.replace(/^p\//, "").replace(/\.html$/i, "").replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g, "").replace(/[-_]/g, " ").trim().toLowerCase();
   const h1Diff = urlRaw !== h1Text.toLowerCase();
   const recommendedH1 = h1Diff ? urlRaw.split(" ").map(w => w[0].toUpperCase() + w.slice(1)).join(" ") : h1Text;
 
-  // ===== 9️⃣ Meta Description Otomatis =====
+  // ===== 🔟 Meta Description Otomatis =====
   const sentences = textContent.split(/\.|\n/).filter(Boolean);
   let metaDesc = sentences.slice(0,3).join(". ").substring(0,160).trim();
   if (metaDesc.length < 50) metaDesc = recommendedH1 + " — " + sentences.slice(0,2).join(". ").trim();
 
-  // ===== 🔟 H2/H3 SEO Silo Dinamis & Missing Section =====
+  // ===== 1️⃣1️⃣ H2/H3 SEO Silo Dinamis & Missing Section =====
   const existingH2 = [...h2Els].map(h=>h.innerText.trim().toLowerCase());
   const wordFreq = {};
   textContent.split(/\s+/).forEach(w => {
@@ -146,10 +173,10 @@ if(oldHash && oldHash == currentHash){
   const predictedH2 = topWords.filter(k=>!existingH2.some(h=>h.includes(k.toLowerCase())));
   const predictedH3 = predictedH2.map(k=>"Sub-topik: "+k);
 
-  // ===== 1️⃣1️⃣ Highlight angka penting =====
+  // ===== 1️⃣2️⃣ Highlight angka penting =====
   const highlightMatches = (fullText.match(/\d+(\.\d+)?|\d+\s?(m|cm|kg|m2|m3|m³|ton|kubik|liter)|rp|\%/gi) || []).join(", ");
 
-  // ===== 1️⃣2️⃣ Solusi & Rekomendasi =====
+  // ===== 1️⃣3️⃣ Solusi & Rekomendasi =====
   const solution = h1Diff
     ? `⚠️ H1 berbeda dari URL (“${urlRaw}”) → Revisi H1: "${recommendedH1}".\nHighlight: ${highlightMatches}\nTambahkan H2/H3: ${predictedH2.join(", ")}`
     : `✅ H1 sesuai URL.\nHighlight: ${highlightMatches}\nTambahkan H2/H3: ${predictedH2.join(", ")}`;
@@ -162,7 +189,7 @@ if(oldHash && oldHash == currentHash){
   else
     suggestion = `Konten non-evergreen: fokus pada update harga/data terbaru, tampilkan tanggal jelas, update 1–3 bulan.\n${solution}`;
 
-  // ===== 1️⃣3️⃣ Dashboard Blogspot =====
+  // ===== 1️⃣4️⃣ Dashboard Blogspot =====
   let table = document.getElementById("AEDv95_dashboardTable");
   if (!table) {
     table = document.createElement("table");
@@ -200,7 +227,7 @@ if(oldHash && oldHash == currentHash){
     <td style="padding:4px;border:1px solid #ccc;white-space:pre-wrap;">${suggestion}</td>`;
   tbody.appendChild(row);
 
-  // ===== 1️⃣4️⃣ Simpan ke Window =====
+  // ===== 1️⃣5️⃣ Simpan ke Window =====
   Object.assign(window, {
     AEDv95_type: type,
     AEDv95_nextUpdate: nextUpdateStr,
@@ -212,7 +239,7 @@ if(oldHash && oldHash == currentHash){
     AEDv95_suggestion: suggestion
   });
 
-  console.log(`🧠 [EvergreenAI v9.5 Pro Ultimate] ${type} | Score ${score.toFixed(1)} | Word ${wordCount}`);
+  console.log(`🧠 [EvergreenAI v9.5 Pro Ultimate+] ${type} | Score ${score.toFixed(1)} | Word ${wordCount}`);
   console.log(`💡 H1: ${recommendedH1} | Meta: ${metaDesc}`);
   console.log(`💡 H2/H3 Prediksi: ${predictedH2.join(", ")}`);
   console.log(`💡 Saran: ${suggestion}`);
