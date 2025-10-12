@@ -65,116 +65,109 @@ if(oldHash && oldHash == currentHash){
 }
 
 // ================== DETEKSI TYPE KONTEN ==================
-// ⚡ Auto Evergreen Detector v9.2 — Full Hybrid + Dashboard + Smart Suggestions
+// ⚡ Auto Evergreen Detector v9.3 Plus Complete
 (function() {
   // ===== 1️⃣ Elemen & Text Detector =====
-  const AED_contentEl = document.querySelector("article, main, .post-body");
-  const AED_h1El = document.querySelector("h1");
-  const AED_h1Text = AED_h1El ? AED_h1El.innerText : "";
-  const AED_contentText = (AED_contentEl ? AED_contentEl.innerText : document.body.innerText || "").toLowerCase();
-  const AED_textDetector = (AED_h1Text + " " + AED_contentText);
+  const AEDv93_contentEl = document.querySelector("article, main, .post-body");
+  const AEDv93_h1El = document.querySelector("h1");
+  const AEDv93_h1Text = AEDv93_h1El ? AEDv93_h1El.innerText : "";
+  const AEDv93_contentText = (AEDv93_contentEl ? AEDv93_contentEl.innerText : document.body.innerText || "").toLowerCase();
+  const AEDv93_textDetector = (AEDv93_h1Text + " " + AEDv93_contentText);
 
   // ===== 2️⃣ Hitung indikator alami =====
-  const AED_wordCount = AED_textDetector.split(/\s+/).filter(Boolean).length;
-  const AED_numberCount = (AED_textDetector.match(/\d{1,4}/g) || []).length;
-  const AED_percentCount = (AED_textDetector.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)/g) || []).length;
-  const AED_tableCount = document.querySelectorAll("table").length;
-  const AED_listCount = document.querySelectorAll("ul,ol").length;
-  const AED_h2Count = document.querySelectorAll("h2").length;
+  const AEDv93_wordCount = AEDv93_textDetector.split(/\s+/).filter(Boolean).length;
+  const AEDv93_numberCount = (AEDv93_textDetector.match(/\d{1,4}/g) || []).length;
+  const AEDv93_percentCount = (AEDv93_textDetector.match(/%|rp|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)/g) || []).length;
+  const AEDv93_tableCount = document.querySelectorAll("table").length;
+  const AEDv93_listCount = document.querySelectorAll("ul,ol").length;
+  const AEDv93_h2Count = document.querySelectorAll("h2").length;
 
   // ===== 3️⃣ Keyword Pattern =====
-  const AED_nonEvergreenKeywords = [
-    "harga","update","terbaru","berita","jadwal","event","promo","diskon",
-    "proyek","progres","bulan","tahun","sementara","deadline","musiman"
-  ];
-  const AED_evergreenKeywords = [
-    "panduan","tutorial","tips","cara","definisi","pandangan","strategi",
-    "langkah","prosedur","manfaat","penjelasan","fungsi","teknik","contoh",
-    "jenis","panduan lengkap","arti","perbedaan","kegunaan"
-  ];
+  const AEDv93_nonEvergreenKeywords = ["harga","update","terbaru","berita","jadwal","event","promo","diskon","proyek","progres","bulan","tahun","sementara","deadline","musiman"];
+  const AEDv93_evergreenKeywords = ["panduan","tutorial","tips","cara","definisi","pandangan","strategi","langkah","prosedur","manfaat","penjelasan","fungsi","teknik","contoh","jenis","panduan lengkap","arti","perbedaan","kegunaan"];
 
-  const AED_hasTimePattern = AED_nonEvergreenKeywords.some(k => new RegExp(`\\b${k}\\b`, 'i').test(AED_textDetector));
-  const AED_evergreenIndicators = AED_evergreenKeywords.reduce((acc, k) => acc + (new RegExp(`\\b${k}\\b`, 'i').test(AED_textDetector) ? 1 : 0), 0);
+  const AEDv93_hasTimePattern = AEDv93_nonEvergreenKeywords.some(k => new RegExp(`\\b${k}\\b`, 'i').test(AEDv93_textDetector));
+  const AEDv93_evergreenIndicators = AEDv93_evergreenKeywords.reduce((acc, k) => acc + (new RegExp(`\\b${k}\\b`, 'i').test(AEDv93_textDetector) ? 1 : 0), 0);
 
   // ===== 4️⃣ Hitung Skor Hybrid =====
-  let AED_score = 0;
-  AED_score += AED_numberCount * 0.3;
-  AED_score += AED_percentCount * 0.5;
-  AED_score += AED_tableCount * 1;
-  AED_score -= (AED_wordCount > 1000 ? 1 : 0);
-  AED_score -= (AED_h2Count > 2 ? 0.5 : 0);
-  AED_score -= (AED_listCount > 0 ? 0.5 : 0);
-  AED_score -= AED_evergreenIndicators * 0.5;
+  let AEDv93_score = 0;
+  AEDv93_score += AEDv93_numberCount * 0.3;
+  AEDv93_score += AEDv93_percentCount * 0.5;
+  AEDv93_score += AEDv93_tableCount * 1;
+  AEDv93_score -= (AEDv93_wordCount > 1000 ? 1 : 0);
+  AEDv93_score -= (AEDv93_h2Count > 2 ? 0.5 : 0);
+  AEDv93_score -= (AEDv93_listCount > 0 ? 0.5 : 0);
+  AEDv93_score -= AEDv93_evergreenIndicators * 0.5;
 
   // ===== 5️⃣ Klasifikasi Tipe Konten =====
-  let AED_typeKonten = "SEMI-EVERGREEN";
-  if ((AED_hasTimePattern && AED_evergreenIndicators <= 1) || AED_score >= 3) {
-    AED_typeKonten = "NON-EVERGREEN";
-  } else if (AED_evergreenIndicators >= 2 && AED_score <= 1) {
-    AED_typeKonten = "EVERGREEN";
+  let AEDv93_typeKonten = "SEMI-EVERGREEN";
+  if ((AEDv93_hasTimePattern && AEDv93_evergreenIndicators <= 1) || AEDv93_score >= 3) {
+    AEDv93_typeKonten = "NON-EVERGREEN";
+  } else if (AEDv93_evergreenIndicators >= 2 && AEDv93_score <= 1) {
+    AEDv93_typeKonten = "EVERGREEN";
   }
 
   // ===== 6️⃣ Hitung rekomendasi update =====
-  const AED_nextUpdate = new Date();
-  if (AED_typeKonten === "EVERGREEN") AED_nextUpdate.setMonth(AED_nextUpdate.getMonth() + 12);
-  else if (AED_typeKonten === "SEMI-EVERGREEN") AED_nextUpdate.setMonth(AED_nextUpdate.getMonth() + 6);
-  else AED_nextUpdate.setMonth(AED_nextUpdate.getMonth() + 3);
+  const AEDv93_nextUpdate = new Date();
+  if (AEDv93_typeKonten === "EVERGREEN") AEDv93_nextUpdate.setMonth(AEDv93_nextUpdate.getMonth() + 12);
+  else if (AEDv93_typeKonten === "SEMI-EVERGREEN") AEDv93_nextUpdate.setMonth(AEDv93_nextUpdate.getMonth() + 6);
+  else AEDv93_nextUpdate.setMonth(AEDv93_nextUpdate.getMonth() + 3);
 
-  const AED_options = { day: "numeric", month: "long", year: "numeric" };
-  const AED_nextUpdateStr = AED_nextUpdate.toLocaleDateString("id-ID", AED_options);
-  const AED_dateModifiedStr = new Date(dateModified).toLocaleDateString("id-ID", AED_options);
+  const AEDv93_options = { day: "numeric", month: "long", year: "numeric" };
+  const AEDv93_nextUpdateStr = AEDv93_nextUpdate.toLocaleDateString("id-ID", AEDv93_options);
+  const AEDv93_dateModifiedStr = new Date(dateModified).toLocaleDateString("id-ID", AEDv93_options);
 
   // ===== 7️⃣ Label tipe konten di halaman =====
-  if (AED_h1El) {
-    const AED_label = document.createElement("div");
-    AED_label.innerHTML = `<b>${AED_typeKonten}</b> — pembaruan berikutnya: <b>${AED_nextUpdateStr}</b>`;
-    AED_label.setAttribute("data-nosnippet","true");
-    AED_label.style.fontSize = "0.9em";
-    AED_label.style.color = "#444";
-    AED_label.style.marginTop = "4px";
-    AED_label.style.marginBottom = "10px";
+  if (AEDv93_h1El) {
+    const AEDv93_label = document.createElement("div");
+    AEDv93_label.innerHTML = `<b>${AEDv93_typeKonten}</b> — pembaruan berikutnya: <b>${AEDv93_nextUpdateStr}</b>`;
+    AEDv93_label.setAttribute("data-nosnippet","true");
+    AEDv93_label.style.fontSize = "0.9em";
+    AEDv93_label.style.color = "#444";
+    AEDv93_label.style.marginTop = "4px";
+    AEDv93_label.style.marginBottom = "10px";
 
-    if (AED_typeKonten === "NON-EVERGREEN") {
-      AED_h1El.parentNode.insertBefore(AED_label, AED_h1El);
+    if (AEDv93_typeKonten === "NON-EVERGREEN") {
+      AEDv93_h1El.parentNode.insertBefore(AEDv93_label, AEDv93_h1El);
     } else {
-      AED_h1El.insertAdjacentElement("afterend", AED_label);
+      AEDv93_h1El.insertAdjacentElement("afterend", AEDv93_label);
     }
   }
 
   // ===== 8️⃣ Author + Tanggal Update =====
-  const AED_authorEl = document.querySelector(".post-author .fn");
-  if (AED_authorEl) {
-    if (AED_typeKonten === "SEMI-EVERGREEN") {
-      const AED_dateEl = document.createElement("span");
-      AED_dateEl.textContent = ` · Diperbarui: ${AED_dateModifiedStr}`;
-      AED_dateEl.style.fontSize = "0.85em";
-      AED_dateEl.style.color = "#555";
-      AED_dateEl.style.marginLeft = "4px";
-      AED_authorEl.appendChild(AED_dateEl);
-    } else if (AED_typeKonten === "NON-EVERGREEN") {
-      const AED_dateEl = document.createElement("div");
-      AED_dateEl.textContent = `Diperbarui: ${AED_dateModifiedStr}`;
-      AED_dateEl.style.fontSize = "0.85em";
-      AED_dateEl.style.color = "#555";
-      AED_dateEl.style.marginBottom = "4px";
-      AED_dateEl.setAttribute("data-nosnippet","true");
-      AED_h1El.parentNode.insertBefore(AED_dateEl, AED_h1El);
+  const AEDv93_authorEl = document.querySelector(".post-author .fn");
+  if (AEDv93_authorEl) {
+    if (AEDv93_typeKonten === "SEMI-EVERGREEN") {
+      const AEDv93_dateEl = document.createElement("span");
+      AEDv93_dateEl.textContent = ` · Diperbarui: ${AEDv93_dateModifiedStr}`;
+      AEDv93_dateEl.style.fontSize = "0.85em";
+      AEDv93_dateEl.style.color = "#555";
+      AEDv93_dateEl.style.marginLeft = "4px";
+      AEDv93_authorEl.appendChild(AEDv93_dateEl);
+    } else if (AEDv93_typeKonten === "NON-EVERGREEN") {
+      const AEDv93_dateEl = document.createElement("div");
+      AEDv93_dateEl.textContent = `Diperbarui: ${AEDv93_dateModifiedStr}`;
+      AEDv93_dateEl.style.fontSize = "0.85em";
+      AEDv93_dateEl.style.color = "#555";
+      AEDv93_dateEl.style.marginBottom = "4px";
+      AEDv93_dateEl.setAttribute("data-nosnippet","true");
+      AEDv93_h1El.parentNode.insertBefore(AEDv93_dateEl, AEDv93_h1El);
     } 
-    if (AED_typeKonten === "EVERGREEN") {
-      const AED_metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
-      AED_metaBlocks.forEach(el => el.style.display = "none");
+    if (AEDv93_typeKonten === "EVERGREEN") {
+      const AEDv93_metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
+      AEDv93_metaBlocks.forEach(el => el.style.display = "none");
     }
   }
 
   // ===== 9️⃣ Dashboard Blogspot =====
-  let AED_dashboardTable = document.getElementById("AED_dashboardTable");
-  if (!AED_dashboardTable) {
-    AED_dashboardTable = document.createElement("table");
-    AED_dashboardTable.id = "AED_dashboardTable";
-    AED_dashboardTable.style.width = "100%";
-    AED_dashboardTable.style.borderCollapse = "collapse";
-    AED_dashboardTable.style.marginTop = "20px";
-    AED_dashboardTable.innerHTML = `
+  let AEDv93_dashboardTable = document.getElementById("AEDv93_dashboardTable");
+  if (!AEDv93_dashboardTable) {
+    AEDv93_dashboardTable = document.createElement("table");
+    AEDv93_dashboardTable.id = "AEDv93_dashboardTable";
+    AEDv93_dashboardTable.style.width = "100%";
+    AEDv93_dashboardTable.style.borderCollapse = "collapse";
+    AEDv93_dashboardTable.style.marginTop = "20px";
+    AEDv93_dashboardTable.innerHTML = `
       <thead>
         <tr style="background:#f0f0f0;">
           <th style="padding:4px;border:1px solid #ccc;">Halaman</th>
@@ -187,59 +180,72 @@ if(oldHash && oldHash == currentHash){
         </tr>
       </thead>
     `;
-    const AED_tbody = document.createElement("tbody");
-    AED_dashboardTable.appendChild(AED_tbody);
-    document.body.appendChild(AED_dashboardTable);
+    const AEDv93_tbody = document.createElement("tbody");
+    AEDv93_dashboardTable.appendChild(AEDv93_tbody);
+    document.body.appendChild(AEDv93_dashboardTable);
   }
 
-  let AED_tbody = AED_dashboardTable.querySelector("tbody");
-  if (!AED_tbody) {
-    AED_tbody = document.createElement("tbody");
-    AED_dashboardTable.appendChild(AED_tbody);
+  let AEDv93_tbody = AEDv93_dashboardTable.querySelector("tbody");
+  if (!AEDv93_tbody) {
+    AEDv93_tbody = document.createElement("tbody");
+    AEDv93_dashboardTable.appendChild(AEDv93_tbody);
   }
 
   // ===== 10️⃣ Ambil tanggal publish & modified =====
-  const AED_datePublishedEl = document.querySelector("meta[itemprop='datePublished']");
-  const AED_datePublishedValue = AED_datePublishedEl ? new Date(AED_datePublishedEl.content) : new Date();
-  const AED_datePublishedStr = AED_datePublishedValue.toLocaleDateString("id-ID", AED_options);
-  const AED_dateModifiedValue = new Date(dateModified);
-  const AED_dateModifiedStrtbody = AED_dateModifiedValue.toLocaleDateString("id-ID", AED_options);
+  const AEDv93_datePublishedEl = document.querySelector("meta[itemprop='datePublished']");
+  const AEDv93_datePublishedValue = AEDv93_datePublishedEl ? new Date(AEDv93_datePublishedEl.content) : new Date();
+  const AEDv93_datePublishedStr = AEDv93_datePublishedValue.toLocaleDateString("id-ID", AEDv93_options);
+  const AEDv93_dateModifiedValue = new Date(dateModified);
+  const AEDv93_dateModifiedStrtbody = AEDv93_dateModifiedValue.toLocaleDateString("id-ID", AEDv93_options);
 
-  // ===== 11️⃣ Saran Konten Otomatis =====
-  let AED_suggestion = "";
-  if (AED_typeKonten === "EVERGREEN") {
-    AED_suggestion = `Konten evergreen: pertahankan H1 (${AED_h1Text}), gunakan subjudul H2 relevan, fokus tips/tutorial, update minimal tahunan.`;
-  } else if (AED_typeKonten === "SEMI-EVERGREEN") {
-    AED_suggestion = `Konten semi-evergreen: perkuat H1 (${AED_h1Text}), tambahkan data/angka terbaru, pertahankan list & langkah-langkah, update tiap 3-6 bulan.`;
+  // ===== 11️⃣ Deteksi URL vs H1 =====
+  const AEDv93_urlName = window.location.pathname.split("/").filter(Boolean).pop() || "";
+  const AEDv93_urlWords = AEDv93_urlName.replace(/[-_]/g," ").toLowerCase();
+  const AEDv93_H1vsURLdiff = AEDv93_urlWords !== AEDv93_h1Text.toLowerCase();
+
+  // ===== 12️⃣ Highlight kata/angka penting =====
+  const AEDv93_highlightMatches = (AEDv93_textDetector.match(/\d+(\.\d+)?|\d+\s?(m|cm|kg|m2|m3|ton|kubik|liter)|rp|\%/gi) || []).join(", ");
+
+  // ===== 13️⃣ Saran Konten Otomatis =====
+  let AEDv93_suggestion = "";
+  if (AEDv93_typeKonten === "EVERGREEN") {
+    AEDv93_suggestion = `Konten evergreen: pertahankan H1 (${AEDv93_h1Text}), gunakan subjudul H2 relevan, fokus tips/tutorial, update minimal tahunan. Highlight penting: ${AEDv93_highlightMatches}`;
+    if(AEDv93_H1vsURLdiff) AEDv93_suggestion += ` | Catatan: H1 berbeda dari URL (${AEDv93_urlName})`;
+  } else if (AEDv93_typeKonten === "SEMI-EVERGREEN") {
+    AEDv93_suggestion = `Konten semi-evergreen: perkuat H1 (${AEDv93_h1Text}), tambahkan data/angka terbaru, pertahankan list & langkah-langkah, update tiap 3-6 bulan. Highlight penting: ${AEDv93_highlightMatches}`;
+    if(AEDv93_H1vsURLdiff) AEDv93_suggestion += ` | Catatan: H1 berbeda dari URL (${AEDv93_urlName})`;
   } else {
-    AED_suggestion = `Konten non-evergreen: fokus update rutin, angka/harga terbaru, tampilkan tanggal jelas, review konten tiap 1-3 bulan.`;
+    AEDv93_suggestion = `Konten non-evergreen: fokus update rutin, angka/harga terbaru, tampilkan tanggal jelas, review konten tiap 1-3 bulan. Highlight penting: ${AEDv93_highlightMatches}`;
+    if(AEDv93_H1vsURLdiff) AEDv93_suggestion += ` | Catatan: H1 berbeda dari URL (${AEDv93_urlName})`;
   }
 
-  // ===== 12️⃣ Tambahkan row ke dashboard =====
-  const AED_pageTitle = AED_h1Text || document.title || "Unknown Page";
-  const AED_row = document.createElement("tr");
-  AED_row.innerHTML = `
-    <td style="padding:4px;border:1px solid #ccc;">${AED_pageTitle}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AED_typeKonten}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AED_score.toFixed(1)}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AED_wordCount}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AED_datePublishedStr}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AED_dateModifiedStrtbody}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${AED_suggestion}</td>
+  // ===== 14️⃣ Tambahkan row ke dashboard =====
+  const AEDv93_pageTitle = AEDv93_h1Text || document.title || "Unknown Page";
+  const AEDv93_row = document.createElement("tr");
+  AEDv93_row.innerHTML = `
+    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_pageTitle}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_typeKonten}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_score.toFixed(1)}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_wordCount}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_datePublishedStr}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_dateModifiedStrtbody}</td>
+    <td style="padding:4px;border:1px solid #ccc;">${AEDv93_suggestion}</td>
   `;
-  AED_tbody.appendChild(AED_row);
+  AEDv93_tbody.appendChild(AEDv93_row);
 
-  // ===== 13️⃣ Simpan ke Window untuk Schema / Automation =====
-  window.AED_typeKonten = AED_typeKonten;
-  window.AED_nextUpdateStr = AED_nextUpdateStr;
-  window.AED_dateModifiedStr = AED_dateModifiedStrtbody;
-  window.AED_evergreenScore = AED_score.toFixed(1);
-  window.AED_wordCount = AED_wordCount;
-  window.AED_contentSuggestion = AED_suggestion;
+  // ===== 15️⃣ Simpan ke Window untuk Schema / Automation =====
+  window.AEDv93_typeKonten = AEDv93_typeKonten;
+  window.AEDv93_nextUpdateStr = AEDv93_nextUpdateStr;
+  window.AEDv93_dateModifiedStr = AEDv93_dateModifiedStrtbody;
+  window.AEDv93_evergreenScore = AEDv93_score.toFixed(1);
+  window.AEDv93_wordCount = AEDv93_wordCount;
+  window.AEDv93_contentSuggestion = AEDv93_suggestion;
+  window.AEDv93_H1vsURLdiff = AEDv93_H1vsURLdiff;
 
-  console.log(`🧠 [EvergreenAI v9.2 Insight] ${AED_typeKonten} | Score: ${AED_score.toFixed(1)} | Word: ${AED_wordCount}`);
-  console.log(`📅 Next Update: ${AED_nextUpdateStr} | Last Modified: ${AED_dateModifiedStrtbody}`);
-  console.log(`💡 Saran Konten: ${AED_suggestion}`);
+  console.log(`🧠 [EvergreenAI v9.3 Plus Complete] ${AEDv93_typeKonten} | Score: ${AEDv93_score.toFixed(1)} | Word: ${AEDv93_wordCount}`);
+  console.log(`📅 Next Update: ${AEDv93_nextUpdateStr} | Last Modified: ${AEDv93_dateModifiedStrtbody}`);
+  console.log(`💡 Saran Konten: ${AEDv93_suggestion}`);
+  if(AEDv93_H1vsURLdiff) console.log(`⚠️ H1 berbeda dari URL (${AEDv93_urlName})`);
 })();
   
   // ================== SCHEMA GENERATOR ==================
