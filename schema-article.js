@@ -199,8 +199,25 @@ if(oldHash && oldHash == currentHash){
   const AEDv93_dateModifiedStrtbody = AEDv93_dateModifiedValue.toLocaleDateString("id-ID", AEDv93_options);
 
   // ===== 11️⃣ Deteksi URL vs H1 =====
-  const AEDv93_urlName = window.location.pathname.split("/").filter(Boolean).pop() || "";
-  const AEDv93_urlWords = AEDv93_urlName.replace(/[-_]/g," ").toLowerCase();
+ // const AEDv93_urlName = window.location.pathname.split("/").filter(Boolean).pop() || "";
+  let AEDv93_urlNameRaw = window.location.pathname.split("/").filter(Boolean).pop() || "";
+    // Hapus prefix "p/" jika ada
+    AEDv93_urlNameRaw = AEDv93_urlNameRaw.replace(/^p\//, "");
+    
+    // Hapus .html di akhir
+    AEDv93_urlNameRaw = AEDv93_urlNameRaw.replace(/\.html$/i, "");
+    
+    // Hapus angka bulan/tahun (format 01-12 atau 2020-2099)
+    AEDv93_urlNameRaw = AEDv93_urlNameRaw.replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g, "");
+    
+    // Ganti tanda - atau _ menjadi spasi
+    AEDv93_urlNameRaw = AEDv93_urlNameRaw.replace(/[-_]/g, " ");
+    
+    // Trim spasi ekstra
+    const AEDv93_urlName = AEDv93_urlNameRaw.trim().toLowerCase();
+
+    const AEDv93_urlWords = AEDv93_urlName.replace(/[-_]/g," ").toLowerCase();
+  
   const AEDv93_H1vsURLdiff = AEDv93_urlWords !== AEDv93_h1Text.toLowerCase();
 
   // ===== 12️⃣ Highlight kata/angka penting =====
