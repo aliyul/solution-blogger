@@ -65,12 +65,11 @@ if(oldHash && oldHash == currentHash){
 }
 
 // ================== DETEKSI TYPE KONTEN ==================
-<script>
+
 // ========== Auto Evergreen Detector v9.9-Pro Fusion AutoStructure ==========
 // Tetap mempertahankan semua fitur dari versi sebelumnya
 // + Builder struktur heading SEO ultra kompetitif otomatis berbasis H1 dinamis
 
-document.addEventListener("DOMContentLoaded", () => {
 
   // ===== 1️⃣ Ambil data utama =====
   const AED_url = window.location.pathname.toLowerCase();
@@ -188,8 +187,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnNext").onclick = () => {
     alert("📅 Saran update berikutnya disimpan. Tidak ada masalah besar terdeteksi.");
   };
-});
-</script>
+
   
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
