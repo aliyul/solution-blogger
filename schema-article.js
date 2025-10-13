@@ -66,128 +66,173 @@ if(oldHash && oldHash == currentHash){
 
 // ================== DETEKSI TYPE KONTEN ==================
 
-// ========== Auto Evergreen Detector v9.9-Pro Fusion AutoStructure ==========
-// Tetap mempertahankan semua fitur dari versi sebelumnya
-// + Builder struktur heading SEO ultra kompetitif otomatis berbasis H1 dinamis
 
+// ===================================================
+// ⚡ AUTO SEO BUILDER ULTRA KOMPETITIF v6.0 (FINAL+)
+// ===================================================
+  console.log("🚀 Auto SEO Builder Ultra Kompetitif v6.0 aktif");
 
-  // ===== 1️⃣ Ambil data utama =====
-  const AED_url = window.location.pathname.toLowerCase();
-  const AED_h1El = document.querySelector("h1");
-  const AED_h1 = AED_h1El ? AED_h1El.textContent.trim().toLowerCase() : "";
-  const AED_dateModifiedStr = new Date().toLocaleDateString("id-ID", {
-    day: "numeric", month: "long", year: "numeric"
+  // ==============================
+  // 1️⃣ DETEKSI TIPE KONTEN
+  // ==============================
+  const h1El = document.querySelector("h1");
+  const h1Text = h1El ? h1El.innerText.trim() : "";
+  let typeKonten = "EVERGREEN";
+
+  if (/harga|promo|diskon|terbaru|biaya|tarif|update/i.test(h1Text)) typeKonten = "NON-EVERGREEN";
+  else if (/panduan|cara|langkah|tips|tutorial/i.test(h1Text)) typeKonten = "SEMI-EVERGREEN";
+
+  // ==============================
+  // 2️⃣ BENTUK STRUKTUR ULTRA KOMPETITIF OTOMATIS
+  // ==============================
+  function autoBuildStructure(h1Text) {
+    const base = h1Text.toLowerCase();
+
+    if (base.includes("harga")) {
+      return [
+        { h2: "Harga Terbaru", h3: ["Daftar Harga", "Kisaran Wilayah", "Mutu & Volume"] },
+        { h2: "Faktor yang Mempengaruhi Harga", h3: ["Mutu Beton", "Jarak Pengiriman", "Kuantitas"] },
+        { h2: "Cara Pemesanan", h3: ["Kontak WhatsApp", "Proses Order", "Metode Pembayaran"] },
+        { h2: "FAQ", h3: ["Apakah harga termasuk PPN?", "Berapa minimal order?"] }
+      ];
+    }
+    if (base.includes("panduan") || base.includes("cara") || base.includes("tutorial")) {
+      return [
+        { h2: "Pendahuluan", h3: ["Tujuan Panduan", "Siapa yang Membutuhkan"] },
+        { h2: "Langkah-langkah Utama", h3: ["Persiapan", "Langkah 1", "Langkah 2"] },
+        { h2: "Tips & Kesalahan Umum", h3: ["Hal yang Harus Dihindari", "Saran Teknis"] },
+        { h2: "FAQ", h3: ["Pertanyaan Umum"] }
+      ];
+    }
+    if (base.includes("manfaat") || base.includes("fungsi")) {
+      return [
+        { h2: "Fungsi Utama", h3: ["Kelebihan Teknis", "Kelebihan Ekonomis"] },
+        { h2: "Manfaat Penggunaan", h3: ["Dalam Proyek Konstruksi", "Dalam Infrastruktur"] },
+        { h2: "FAQ", h3: ["Kapan sebaiknya digunakan?"] }
+      ];
+    }
+    return [
+      { h2: "Pendahuluan", h3: ["Latar Belakang", "Tujuan"] },
+      { h2: "Pembahasan Utama", h3: ["Subtopik 1", "Subtopik 2"] },
+      { h2: "Kesimpulan", h3: ["Rangkuman", "Saran"] },
+      { h2: "FAQ", h3: ["Pertanyaan Umum"] }
+    ];
+  }
+
+  const strukturSEO = autoBuildStructure(h1Text);
+  console.log("📑 Struktur SEO:", strukturSEO);
+
+  // ==============================
+  // 3️⃣ SEMBUNYIKAN / TAMPILKAN META SESUAI TIPE
+  // ==============================
+  const metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated");
+  const authorEl = document.querySelector(".post-author");
+  const updatedEl = document.querySelector(".post-updated");
+
+  if (typeKonten === "EVERGREEN") {
+    metaBlocks.forEach(el => el.style.display = "none");
+  } else if (typeKonten === "SEMI-EVERGREEN") {
+    if (authorEl && updatedEl) {
+      authorEl.style.display = "inline";
+      updatedEl.style.display = "inline";
+      updatedEl.style.marginLeft = "8px";
+      updatedEl.textContent = `· Diperbarui: ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`;
+    }
+  } else if (typeKonten === "NON-EVERGREEN") {
+    if (h1El) {
+      const dateDiv = document.createElement("div");
+      dateDiv.textContent = `🕒 Diperbarui: ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`;
+      dateDiv.style.fontSize = "0.85em";
+      dateDiv.style.color = "#666";
+      dateDiv.style.marginBottom = "4px";
+      h1El.parentNode.insertBefore(dateDiv, h1El);
+    }
+  }
+
+  // ==============================
+  // 4️⃣ REKOMENDASI JADWAL UPDATE
+  // ==============================
+  const dateModifiedEl = document.querySelector('meta[itemprop="dateModified"], time[itemprop="dateModified"]');
+  const dateModified = dateModifiedEl ? dateModifiedEl.getAttribute("content") || new Date() : new Date();
+  let nextUpdateDate = new Date(dateModified);
+  if (typeKonten === "EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 12);
+  else if (typeKonten === "SEMI-EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 6);
+  else nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 3);
+
+  const nextUpdateStr = nextUpdateDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+
+  const typeEl = document.createElement("div");
+  typeEl.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya paling lambat: <b>${nextUpdateStr}</b>`;
+  typeEl.setAttribute("data-nosnippet", "true");
+  typeEl.style = "font-size:0.85em;color:#555;margin-top:4px;margin-bottom:8px;";
+  if (h1El) h1El.parentNode.insertBefore(typeEl, h1El.nextSibling);
+
+  window.typeKonten = typeKonten;
+  window.nextUpdateStr = nextUpdateStr;
+
+  // ==============================
+  // 5️⃣ DASHBOARD SEO ASSISTANT
+  // ==============================
+  const dashboard = document.createElement("div");
+  dashboard.id = "seoAssistant";
+  dashboard.setAttribute("data-nosnippet", "true");
+  dashboard.style.cssText = `
+    border-top: 2px solid #ddd;
+    padding: 15px;
+    margin-top: 40px;
+    font-family: system-ui;
+    background: #fafafa;
+    font-size: 14px;
+  `;
+  dashboard.innerHTML = `
+    <h3>🧠 SEO Assistant (v6.0)</h3>
+    <p><b>Status:</b> ${typeKonten}</p>
+    <p><b>Update Berikutnya:</b> ${nextUpdateStr}</p>
+    <button id="btnPreview" style="padding:6px 10px;margin-right:6px;">🔍 Preview</button>
+    <button id="btnCopy" style="padding:6px 10px;margin-right:6px;" disabled>📋 Copy</button>
+    <button id="btnExport" style="padding:6px 10px;" disabled>💾 Export</button>
+    <div id="previewArea" style="display:none;margin-top:10px;border:1px solid #ccc;padding:10px;background:white;"></div>
+  `;
+
+  const footer = document.querySelector("footer");
+  if (footer && footer.parentNode) footer.parentNode.insertBefore(dashboard, footer.nextSibling);
+  else document.body.appendChild(dashboard);
+
+  // ==============================
+  // 6️⃣ FITUR: PREVIEW + COPY + EXPORT
+  // ==============================
+  const previewBtn = document.getElementById("btnPreview");
+  const copyBtn = document.getElementById("btnCopy");
+  const exportBtn = document.getElementById("btnExport");
+  const previewArea = document.getElementById("previewArea");
+
+  previewBtn.addEventListener("click", () => {
+    const struktur = autoBuildStructure(h1Text);
+    let html = `<article><h1>${h1Text}</h1>`;
+    struktur.forEach(s => {
+      html += `<h2>${s.h2}</h2>`;
+      s.h3.forEach(sub => html += `<h3>${sub}</h3>`);
+    });
+    html += `</article>`;
+    previewArea.innerHTML = html;
+    previewArea.style.display = "block";
+    copyBtn.disabled = false;
+    exportBtn.disabled = false;
   });
 
-  // ===== 2️⃣ Deteksi tipe konten (Evergreen / Semi / Non) =====
-  let AED_typeKonten = "EVERGREEN";
-  if (/harga|promo|diskon|update|terbaru|hari ini/.test(AED_url + AED_h1)) {
-    AED_typeKonten = "NON-EVERGREEN";
-  } else if (/panduan|cara|tips|langkah|tutorial|perbandingan|analisis/.test(AED_url + AED_h1)) {
-    AED_typeKonten = "SEMI-EVERGREEN";
-  }
+  copyBtn.addEventListener("click", () => {
+    navigator.clipboard.writeText(previewArea.innerHTML)
+      .then(() => alert("✅ Struktur berhasil disalin ke clipboard!"))
+      .catch(err => alert("❌ Gagal menyalin: " + err));
+  });
 
-  // ===== 3️⃣ Label status konten =====
-  const AED_label = document.createElement("div");
-  AED_label.className = "aed-label";
-  AED_label.textContent = `Status: ${AED_typeKonten}`;
-  AED_label.style = `
-    background:${AED_typeKonten==="EVERGREEN"?"#c8f7c5":AED_typeKonten==="SEMI-EVERGREEN"?"#fff3b0":"#fdd"};
-    padding:4px 8px;border-radius:6px;display:inline-block;
-    font-size:0.9em;margin-bottom:6px;font-weight:600;
-  `;
-
-  if (AED_h1El) {
-    if (AED_typeKonten === "NON-EVERGREEN") {
-      AED_h1El.parentNode.insertBefore(AED_label, AED_h1El);
-    } else {
-      AED_h1El.insertAdjacentElement("afterend", AED_label);
-    }
-  }
-
-  // ===== 4️⃣ Author + tanggal update =====
-  const AED_authorEl = document.querySelector(".post-author .fn");
-  if (AED_authorEl) {
-    if (AED_typeKonten === "SEMI-EVERGREEN") {
-      const AED_dateEl = document.createElement("span");
-      AED_dateEl.textContent = ` · Diperbarui: ${AED_dateModifiedStr}`;
-      AED_dateEl.style.cssText = "font-size:0.85em;color:#555;margin-left:4px";
-      AED_authorEl.appendChild(AED_dateEl);
-    } else if (AED_typeKonten === "NON-EVERGREEN") {
-      const AED_dateEl = document.createElement("div");
-      AED_dateEl.textContent = `Diperbarui: ${AED_dateModifiedStr}`;
-      AED_dateEl.style.cssText = "font-size:0.85em;color:#555;margin-bottom:4px";
-      AED_dateEl.setAttribute("data-nosnippet","true");
-      AED_h1El.parentNode.insertBefore(AED_dateEl, AED_h1El);
-    } else {
-      document.querySelectorAll(".post-author,.post-timestamp,.post-updated,.title-secondary")
-        .forEach(el => el.style.display="none");
-    }
-  }
-
-  // ===== 5️⃣ Analisis H1 → Bangun struktur SEO ultra kompetitif otomatis =====
-  function buildStructureFromH1(h1) {
-    const keywords = h1.toLowerCase();
-    const sections = [];
-
-    // deteksi kata kunci dominan dari H1
-    if (keywords.match(/harga|biaya|tarif|ongkos/)) {
-      sections.push("Harga & Rincian", "Faktor yang Mempengaruhi", "Area Layanan", "Cara Pemesanan");
-    } else if (keywords.match(/panduan|cara|tutorial|langkah/)) {
-      sections.push("Pendahuluan", "Langkah-langkah", "Kesalahan Umum", "Kesimpulan");
-    } else if (keywords.match(/manfaat|fungsi|kegunaan/)) {
-      sections.push("Manfaat Utama", "Kelebihan & Kekurangan", "Contoh Penerapan", "FAQ");
-    } else if (keywords.match(/produk|jasa|layanan/)) {
-      sections.push("Spesifikasi", "Kelebihan", "Harga & Pemesanan", "FAQ");
-    } else if (keywords.match(/perbandingan|vs|bandingkan/)) {
-      sections.push("Perbandingan Utama", "Kelebihan & Kekurangan", "Saran Penggunaan", "FAQ");
-    } else {
-      // default fallback
-      sections.push("Pendahuluan", "Pembahasan Utama", "Kesimpulan", "FAQ");
-    }
-
-    // bentuk H2/H3 final
-    return sections.map(s => `<h2>${s}</h2>\n<h3>Subtopik 1</h3>\n<h3>Subtopik 2</h3>`).join("\n");
-  }
-
-  const AED_structureHTML = buildStructureFromH1(AED_h1);
-
-  // ===== 6️⃣ Dashboard rekomendasi =====
-  const AED_panel = document.createElement("div");
-  AED_panel.className = "aed-dashboard";
-  AED_panel.innerHTML = `
-    <div style="border:2px solid #444;padding:12px;border-radius:10px;margin-top:12px;font-family:sans-serif;">
-      <h3 style="margin-top:0;">📊 Dashboard SEO Assistant</h3>
-      <p><b>Deteksi:</b> ${AED_typeKonten}</p>
-      <p><b>Rekomendasi Struktur (berdasarkan H1):</b></p>
-      <pre style="background:#f4f4f4;padding:8px;border-radius:6px;white-space:pre-wrap;">${AED_structureHTML}</pre>
-
-      <button id="btnApply" style="background:#007bff;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;margin-right:8px;">
-        Apply to Page
-      </button>
-      <button id="btnKoreksi" style="background:#ff5722;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;margin-right:8px;">
-        Koreksi Konten Sekarang
-      </button>
-      <button id="btnNext" style="background:#4caf50;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">
-        Saran Update Next
-      </button>
-    </div>
-  `;
-  AED_h1El ? AED_h1El.insertAdjacentElement("afterend", AED_panel) : document.body.appendChild(AED_panel);
-
-  // ===== 7️⃣ Fungsi tombol =====
-  document.getElementById("btnApply").onclick = () => {
-    alert("✅ Struktur SEO ultra kompetitif telah diterapkan berdasarkan H1.");
-  };
-
-  document.getElementById("btnKoreksi").onclick = () => {
-    alert("🔍 Sistem akan melakukan koreksi lengkap berdasarkan sinyal URL dan H1.\nTermasuk rekomendasi heading SEO & keputusan status Evergreen.");
-  };
-
-  document.getElementById("btnNext").onclick = () => {
-    alert("📅 Saran update berikutnya disimpan. Tidak ada masalah besar terdeteksi.");
-  };
-
+  exportBtn.addEventListener("click", () => {
+    const blob = new Blob([previewArea.innerHTML], { type: "text/html" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = h1Text.replace(/\s+/g, "-").toLowerCase() + "-seo.html";
+    link.click();
+  });
   
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
