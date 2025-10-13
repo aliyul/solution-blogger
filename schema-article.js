@@ -65,7 +65,7 @@ if(oldHash && oldHash == currentHash){
 }
 
 // ================== DETEKSI TYPE KONTEN ==================
-// ⚡ Auto Evergreen Detector v9.8-Pro Fusion — SmartContext + Dashboard + AuthorDate + Update Tools (UPGRADED)
+// ⚡ Auto Evergreen Detector v9.8-Pro Fusion — SmartContext + Dashboard + AuthorDate + Auto H2/H3 Builder
 (function() {
   // ===== 1️⃣ Elemen & Text Detector =====
   const elContent = document.querySelector("article, main, .post-body");
@@ -116,10 +116,8 @@ if(oldHash && oldHash == currentHash){
 
   // ===== 7️⃣ Label tipe konten =====
   if (elH1) {
-    // remove existing label if any to avoid duplicates
     const existingLabel = elH1.parentNode.querySelector("[data-aed-label]");
     if (existingLabel) existingLabel.remove();
-
     const label = document.createElement("div");
     label.setAttribute("data-aed-label", "true");
     label.innerHTML = `<b>${type}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
@@ -134,7 +132,6 @@ if(oldHash && oldHash == currentHash){
   // ===== 8️⃣ Author + Tanggal Update =====
   const authorEl = document.querySelector(".post-author .fn");
   if (authorEl) {
-    // remove existing appended date to avoid duplicates
     const oldDateSpan = authorEl.querySelector(".aed-date-span");
     if (oldDateSpan) oldDateSpan.remove();
     if (type === "SEMI-EVERGREEN") {
@@ -146,16 +143,15 @@ if(oldHash && oldHash == currentHash){
       dateEl.style.marginLeft = "4px";
       authorEl.appendChild(dateEl);
     } else if (type === "NON-EVERGREEN") {
-      const dateEl = document.createElement("div");
-      dateEl.textContent = `Diperbarui: ${dateModifiedStr}`;
-      dateEl.style.fontSize = "0.85em";
-      dateEl.style.color = "#555";
-      dateEl.style.marginBottom = "4px";
-      dateEl.setAttribute("data-nosnippet","true");
-      // insert before H1, but avoid duplicates
       const existing = document.querySelector(".aed-non-evergreen-date");
       if (!existing) {
+        const dateEl = document.createElement("div");
         dateEl.className = "aed-non-evergreen-date";
+        dateEl.textContent = `Diperbarui: ${dateModifiedStr}`;
+        dateEl.style.fontSize = "0.85em";
+        dateEl.style.color = "#555";
+        dateEl.style.marginBottom = "4px";
+        dateEl.setAttribute("data-nosnippet","true");
         if (elH1 && elH1.parentNode) elH1.parentNode.insertBefore(dateEl, elH1);
       }
     } 
@@ -178,28 +174,94 @@ if(oldHash && oldHash == currentHash){
   const contextSignal = urlRaw.includes("harga") || urlRaw.includes("update") ? "NON-EVERGREEN"
     : evergreen.some(k => urlRaw.includes(k)) ? "EVERGREEN" : "SEMI-EVERGREEN";
 
-  // ===== 🔟 Struktur SEO Ultra Kompetitif (template per tipe) =====
-  const ultraStructure = {
-    EVERGREEN: [
-      { h2: "Pendahuluan", h3: ["Definisi singkat", "Siapa yang butuh ini"] },
-      { h2: "Manfaat & Kegunaan", h3: ["Manfaat utama", "Kapan digunakan"] },
-      { h2: "Langkah / Tutorial Lengkap", h3: ["Persiapan", "Langkah 1", "Langkah 2", "Tips"] },
-      { h2: "Contoh & Studi Kasus", h3: ["Contoh 1", "Contoh 2"] },
-      { h2: "FAQ", h3: ["Pertanyaan Umum 1", "Pertanyaan Umum 2"] }
-    ],
-    SEMI-EVERGREEN: [
-      { h2: "Ringkasan & Tren", h3: ["Apa yang berubah", "Data terbaru"] },
-      { h2: "Langkah / Cara", h3: ["Langkah utama", "Contoh penggunaan"] },
-      { h2: "Perbandingan / Analisis", h3: ["Kelebihan", "Kekurangan"] },
-      { h2: "Saran Praktis", h3: ["Tips", "Kesimpulan singkat"] }
-    ],
-    NON-EVERGREEN: [
-      { h2: "Harga & Promo Terkini", h3: ["Daftar Harga", "Syarat & Ketentuan"] },
-      { h2: "Ketersediaan & Wilayah", h3: ["Area 1", "Area 2"] },
-      { h2: "Periode & Update", h3: ["Tanggal berlaku", "Catatan penting"] },
-      { h2: "Kontak & Cara Order", h3: ["Kontak", "Proses pemesanan"] }
-    ]
-  };
+  // ===== 🔟 Auto H2/H3 Builder based on H1 + Context (no big hard-coded list) =====
+  // Heuristics: extract keywords from H1 & URL, map to small intent set, then build H2/H3 template dynamically.
+  function extractIntentFromText(text) {
+    const t = (text || "").toLowerCase();
+    if (!t) return "general";
+    const keywordsIntent = {
+      harga: ["harga","price","biaya","cost"],
+      panduan: ["panduan","tutorial","cara","langkah","how to"],
+      manfaat: ["manfaat","keuntungan","benefit"],
+      perbandingan: ["vs","perbandingan","beda","beda dengan","compare"],
+      produk: ["produk","spesifikasi","spec","fitur"],
+      jasa: ["jasa","layanan","service"],
+      lokasi: ["lokasi","area","wilayah","kota","daerah"],
+      berita: ["berita","update","terbaru","announce"]
+    };
+    for (const key in keywordsIntent) {
+      if (keywordsIntent[key].some(k => t.includes(k))) return key;
+    }
+    return "general";
+  }
+
+  function buildStructureForIntent(intent, type, h1Text) {
+    // build dynamic H2/H3 suggestions derived from H1 keywords and intent
+    const words = (h1Text || "").replace(/[^\w\s]/g,'').split(/\s+/).filter(Boolean);
+    const mainTopic = words.slice(0,3).join(" "); // small phrase
+    const structure = [];
+
+    const addSection = (h2, h3Arr) => structure.push({ h2, h3: h3Arr || [] });
+
+    switch(intent) {
+      case "harga":
+        addSection(`Harga Terbaru ${mainTopic}`, [`Daftar Harga`, `Harga per Area`, `Periode & Catatan`]);
+        addSection(`${mainTopic} — Faktor Harga`, [`Mutu / Spesifikasi`, `Volume & Pengiriman`]);
+        addSection("Cara Order & Kontak", ["Proses Pemesanan", "Syarat & Ketentuan"]);
+        break;
+      case "panduan":
+        addSection(`Pendahuluan: ${mainTopic}`, ["Definisi singkat", "Target pembaca"]);
+        addSection("Langkah-langkah Lengkap", ["Persiapan", "Langkah 1", "Langkah 2", "Tips praktis"]);
+        addSection("Kesalahan Umum & Solusi", ["Kesalahan 1", "Solusi"]);
+        addSection("FAQ", ["Pertanyaan umum"]);
+        break;
+      case "manfaat":
+        addSection(`Manfaat ${mainTopic}`, ["Manfaat utama", "Manfaat teknis", "Manfaat ekonomis"]);
+        addSection("Contoh Penerapan", ["Kasus A", "Kasus B"]);
+        break;
+      case "perbandingan":
+        addSection(`Perbandingan ${mainTopic}`, ["Opsi A vs Opsi B", "Kapan memilih masing-masing"]);
+        addSection("Kesimpulan & Rekomendasi", ["Rekomendasi singkat"]);
+        break;
+      case "produk":
+      case "jasa":
+        addSection(`Spesifikasi & Fitur ${mainTopic}`, ["Spesifikasi utama", "Kelebihan"]);
+        addSection("Harga & Cara Order", ["Harga dasar", "Proses pemesanan"]);
+        addSection("Area Layanan / Pengiriman", ["Area 1", "Area 2"]);
+        break;
+      case "lokasi":
+        addSection(`Wilayah Layanan ${mainTopic}`, ["Daftar kota/kabupaten", "Estimasi biaya pengiriman"]);
+        addSection("Cara Order di Area Anda", ["Kontak lokal", "Form pemesanan"]);
+        break;
+      case "berita":
+        addSection("Ringkasan Update", ["Apa yang berubah", "Dampak utama"]);
+        addSection("Detail & Sumber", ["Sumber resmi", "Timeline"]);
+        break;
+      default:
+        // general / fallback depends on content type
+        if (type === "EVERGREEN") {
+          addSection(`Pendahuluan: ${mainTopic}`, ["Definisi singkat", "Siapa yang butuh"]);
+          addSection("Manfaat & Kegunaan", ["Manfaat utama"]);
+          addSection("Langkah / Tutorial", ["Persiapan", "Langkah-langkah"]);
+          addSection("FAQ", ["Pertanyaan umum"]);
+        } else if (type === "SEMI-EVERGREEN") {
+          addSection("Ringkasan & Tren", ["Apa yang berubah", "Data terbaru"]);
+          addSection("Langkah / Cara", ["Langkah utama"]);
+          addSection("Saran Praktis", ["Tips singkat"]);
+        } else {
+          addSection("Harga & Update Terkini", ["Daftar harga", "Periode"]);
+          addSection("Ketersediaan", ["Area & Stok"]);
+        }
+    }
+    return structure;
+  }
+
+  // Compose structure based on H1 and URL signals
+  const intentFromH1 = extractIntentFromText(h1Text || urlRaw);
+  const intentFromURL = extractIntentFromText(urlRaw);
+  // prefer H1 intent if present, else URL
+  const chosenIntent = intentFromH1 !== "general" ? intentFromH1 : intentFromURL;
+  const generatedStructure = buildStructureForIntent(chosenIntent, type, h1Text || urlRaw);
 
   // ===== 1️⃣1️⃣ Dashboard =====
   let table = document.getElementById("AEDv98_dashboardTable");
@@ -229,13 +291,13 @@ if(oldHash && oldHash == currentHash){
   const tbody = table.querySelector("tbody");
   const pageTitle = h1Text || document.title || "Unknown Page";
   const structureAdvice = {
-    EVERGREEN: "H2: Pendahuluan, Manfaat, Langkah/Tutorial, Contoh, FAQ",
+    EVERGREEN: "H2: Pendahuluan, Manfaat, Tutorial, Contoh, FAQ",
     SEMI-EVERGREEN: "H2: Ringkasan/Tren, Langkah, Perbandingan, Saran Praktis",
     NON-EVERGREEN: "H2: Harga, Wilayah, Periode, Kontak"
   };
   const suggestion = `${structureAdvice[type]} — Update berikutnya: ${nextUpdateStr}`;
 
-  // create single row or update existing row
+  // update or create row
   let existingRow = tbody.querySelector("tr[data-aed-page='"+pageTitle+"']");
   if (existingRow) existingRow.remove();
   const row = document.createElement("tr");
@@ -256,7 +318,7 @@ if(oldHash && oldHash == currentHash){
 
   // ===== 1️⃣2️⃣ Buttons logic (conditional) =====
   const actionsSpan = document.getElementById("aedActions");
-  actionsSpan.innerHTML = ""; // clear
+  actionsSpan.innerHTML = "";
 
   const createBtn = (id, text, bg="#fff") => {
     const b = document.createElement("button");
@@ -271,7 +333,6 @@ if(oldHash && oldHash == currentHash){
     return b;
   };
 
-  // Show Koreksi only if mismatch or H1 differs or context mismatch
   const needsCorrection = (type !== contextSignal) || h1Diff;
   if (needsCorrection) {
     const btnKoreksi = createBtn("btnKoreksi", "Koreksi Konten Sekarang", "#ffeedd");
@@ -283,7 +344,6 @@ if(oldHash && oldHash == currentHash){
     btnNext.addEventListener("click", showNextSuggestions);
   }
 
-  // also add a small "Download Report" button always
   const btnReport = createBtn("btnReport", "Download Laporan", "#f3f3f3");
   actionsSpan.appendChild(btnReport);
   btnReport.addEventListener("click", () => {
@@ -307,17 +367,14 @@ if(oldHash && oldHash == currentHash){
     lines.push(metaDesc);
     lines.push("");
     lines.push("=== Struktur Heading SEO Ultra Kompetitif (Rekomendasi) ===");
-    const struct = ultraStructure[type] || [];
-    struct.forEach(section => {
+    generatedStructure.forEach(section => {
       lines.push(`- H2: ${section.h2}`);
-      if (section.h3 && section.h3.length) {
-        section.h3.forEach(h3 => lines.push(`    - H3: ${h3}`));
-      }
+      (section.h3 || []).forEach(h3 => lines.push(`    - H3: ${h3}`));
     });
     lines.push("");
     lines.push("=== Saran Perubahan Konten ===");
     if (needsCorrection) {
-      lines.push("- Rekomendasi mengubah H1 ke H1(recommended).");
+      if (h1Diff) lines.push("- Rekomendasi mengubah H1 agar sesuai nama/topik URL.");
       lines.push("- Tambahkan H2/H3 sesuai struktur di atas.");
       lines.push("- Perkuat paragraf pembuka dengan kata kunci utama dan intent (informational/transactional).");
       if (type !== contextSignal) lines.push(`- Pertimbangkan menjadikan konten ${contextSignal} style (ubah fokus ke ${contextSignal}).`);
@@ -345,7 +402,6 @@ if(oldHash && oldHash == currentHash){
 
   // ===== 1️⃣3️⃣ Koreksi Modal & Apply =====
   function openCorrectionModal() {
-    // modal container
     const modal = document.createElement("div");
     modal.style.position = "fixed";
     modal.style.left = "0";
@@ -367,23 +423,19 @@ if(oldHash && oldHash == currentHash){
     box.style.padding = "16px";
     box.style.boxShadow = "0 8px 30px rgba(0,0,0,0.2)";
 
-    // header
     const h = document.createElement("h3");
     h.textContent = "Koreksi Konten Otomatis — Pratinjau";
     box.appendChild(h);
 
-    // summary
     const sum = document.createElement("div");
     sum.style.marginBottom = "10px";
     sum.innerHTML = `<b>Rekomendasi H1:</b> ${recommendedH1} <br><b>Meta:</b> ${metaDesc} <br><b>Tipe terdeteksi:</b> ${type} | <b>Context signal:</b> ${contextSignal}`;
     box.appendChild(sum);
 
-    // structure preview
-    const struct = ultraStructure[type] || [];
     const structDiv = document.createElement("div");
     structDiv.style.marginBottom = "10px";
     structDiv.innerHTML = `<b>Struktur Heading (Preview):</b>`;
-    struct.forEach(s => {
+    generatedStructure.forEach(s => {
       const p = document.createElement("div");
       p.style.margin = "8px 0";
       p.innerHTML = `<b>H2:</b> ${s.h2}<br><small>H3: ${s.h3 ? s.h3.join(" • ") : "-"}</small>`;
@@ -391,7 +443,6 @@ if(oldHash && oldHash == currentHash){
     });
     box.appendChild(structDiv);
 
-    // action buttons
     const btnWrap = document.createElement("div");
     btnWrap.style.textAlign = "right";
     btnWrap.style.marginTop = "12px";
@@ -417,23 +468,35 @@ if(oldHash && oldHash == currentHash){
     modal.appendChild(box);
     document.body.appendChild(modal);
 
-    // handlers
     closeBtn.addEventListener("click", () => modal.remove());
-    downloadBtn.addEventListener("click", () => { /* handled above */ });
 
     applyBtn.addEventListener("click", () => {
       try {
-        applyCorrectionsToPage(struct);
+        applyCorrectionsToPage(generatedStructure);
         // update modified date & next update
         dateModifiedStr = new Date().toLocaleDateString("id-ID", options);
-        nextUpdate.setMonth((new Date()).getMonth() + (type === "EVERGREEN" ? 12 : type === "SEMI-EVERGREEN" ? 6 : 3));
-        nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", options);
+        // recalc nextUpdate from now
+        const now = new Date();
+        if (type === "EVERGREEN") now.setMonth(now.getMonth() + 12);
+        else if (type === "SEMI-EVERGREEN") now.setMonth(now.getMonth() + 6);
+        else now.setMonth(now.getMonth() + 3);
+        nextUpdateStr = now.toLocaleDateString("id-ID", options);
         // update label & author display
         const label = document.querySelector("[data-aed-label]");
         if (label) label.innerHTML = `<b>${type}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
         const appendedSpan = document.querySelector(".aed-date-span");
         if (appendedSpan) appendedSpan.textContent = ` · Diperbarui: ${dateModifiedStr}`;
-        // add small success toast
+        // update meta last-modified-aed
+        const modMeta = document.querySelector("meta[name='last-modified-aed']");
+        const nowISO = new Date().toISOString();
+        if (modMeta) modMeta.setAttribute("content", nowISO);
+        else {
+          const mm = document.createElement("meta");
+          mm.name = "last-modified-aed";
+          mm.content = nowISO;
+          mm.setAttribute("data-nosnippet","true");
+          document.head.appendChild(mm);
+        }
         alert("✅ Koreksi diterapkan ke halaman (H1 & struktur tambahan ditambahkan). Periksa perubahan pada konten.");
       } catch (err) {
         console.error(err);
@@ -454,15 +517,15 @@ if(oldHash && oldHash == currentHash){
       elH1.innerText = recommendedH1;
     }
 
-    if (!elContent) {
-      // if no content container found, append to body
-      const container = document.createElement("div");
-      container.className = "post-body";
-      document.body.appendChild(container);
+    // ensure content container exists
+    let contentContainer = elContent;
+    if (!contentContainer) {
+      contentContainer = document.createElement("div");
+      contentContainer.className = "post-body";
+      document.body.appendChild(contentContainer);
     }
 
-    // 2) Add missing H2/H3 structure near end of content but keep existing HTML intact
-    // We'll append a wrapper section "AED - Struktur Tambahan" with headings only where missing
+    // 2) Append wrapper with new H2/H3 where missing (preserve existing internal links & HTML)
     const wrapperId = "aed-structure-wrapper";
     let wrapper = document.getElementById(wrapperId);
     if (!wrapper) {
@@ -472,18 +535,16 @@ if(oldHash && oldHash == currentHash){
       wrapper.style.marginTop = "16px";
       wrapper.style.paddingTop = "12px";
       wrapper.setAttribute("data-nosnippet","true");
-      elContent.appendChild(wrapper);
+      contentContainer.appendChild(wrapper);
     }
 
     structureArray.forEach(sec => {
       const h2Text = sec.h2;
-      // check if existing H2 contains this heading (case-insensitive)
-      const exists = [...h2Els].some(h => h.innerText.trim().toLowerCase().includes(h2Text.toLowerCase()));
+      const exists = [...document.querySelectorAll("h2")].some(h => h.innerText.trim().toLowerCase().includes(h2Text.toLowerCase()));
       if (!exists) {
         const h2 = document.createElement("h2");
         h2.innerText = h2Text;
         wrapper.appendChild(h2);
-        // add H3 placeholders
         if (sec.h3 && sec.h3.length) {
           sec.h3.forEach(textH3 => {
             const h3 = document.createElement("h3");
@@ -498,7 +559,6 @@ if(oldHash && oldHash == currentHash){
             wrapper.appendChild(p);
           });
         } else {
-          // placeholder paragraph
           const p = document.createElement("p");
           p.innerText = `[[Tambahkan konten untuk: ${h2Text}]]`;
           p.style.color = "#444";
@@ -508,8 +568,7 @@ if(oldHash && oldHash == currentHash){
       }
     });
 
-    // 3) Preserve internal links: we didn't replace innerHTML of elContent, only appended wrapper
-    // 4) Update meta description tag if present
+    // 3) Update or add meta description tag
     const metaTag = document.querySelector("meta[name='description']");
     if (metaTag) metaTag.setAttribute("content", metaDesc);
     else {
@@ -519,16 +578,7 @@ if(oldHash && oldHash == currentHash){
       document.head.appendChild(m);
     }
 
-    // 5) Update modified timestamp in a meta tag (data-nosnippet)
-    const modMeta = document.querySelector("meta[name='last-modified-aed']");
-    const nowISO = new Date().toISOString();
-    if (modMeta) modMeta.setAttribute("content", nowISO);
-    else {
-      const mm = document.createElement("meta");
-      mm.name = "last-modified-aed";
-      mm.content = nowISO;
-      document.head.appendChild(mm);
-    }
+    // 4) Update modified meta and author date handled in apply flow
   }
 
   // ===== 1️⃣5️⃣ Next suggestion UI =====
@@ -558,6 +608,7 @@ if(oldHash && oldHash == currentHash){
     AEDv98_wordCount: wordCount,
     AEDv98_recommendedH1: recommendedH1,
     AEDv98_metaDescription: metaDesc,
+    AEDv98_generatedStructure: generatedStructure,
     AEDv98_suggestion: suggestion
   });
 
