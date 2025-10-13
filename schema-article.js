@@ -153,8 +153,8 @@ if(oldHash && oldHash == currentHash){
   // 4️⃣ REKOMENDASI JADWAL UPDATE
   // ==============================
   const dateModifiedEl = document.querySelector('meta[itemprop="dateModified"], time[itemprop="dateModified"]');
-  const dateModified = dateModifiedEl ? dateModifiedEl.getAttribute("content") || new Date() : new Date();
-  let nextUpdateDate = new Date(dateModified);
+  const dateModifiedUPDATE = dateModifiedEl ? dateModifiedEl.getAttribute("content") || new Date() : new Date();
+  let nextUpdateDate = new Date(dateModifiedUPDATE);
   if (typeKonten === "EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 12);
   else if (typeKonten === "SEMI-EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 6);
   else nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 3);
