@@ -65,7 +65,7 @@ if(oldHash && oldHash == currentHash){
 }
 
 // ================== DETEKSI TYPE KONTEN ==================
-// ⚡ Auto Evergreen Detector v9.7 Visual Insight AI — SmartContext + Visual Highlight Dashboard
+// ⚡ Auto Evergreen Detector v10.0 — Visual Insight + SmartContext + Dual Action Dashboard
 (function() {
   // ===== 1️⃣ Elemen & Text Detector =====
   const elContent = document.querySelector("article, main, .post-body");
@@ -141,7 +141,7 @@ if(oldHash && oldHash == currentHash){
   const contextSignal = urlRaw.includes("harga") || urlRaw.includes("update") ? "NON-EVERGREEN"
     : evergreen.some(k => urlRaw.includes(k)) ? "EVERGREEN" : "SEMI-EVERGREEN";
 
-  // ===== 1️⃣1️⃣ Highlight Data & Visual Marker =====
+  // ===== 1️⃣1️⃣ Highlight Data =====
   const highlightMatches = (fullText.match(/\d+(\.\d+)?|\d+\s?(m|cm|kg|m2|m3|m³|ton|kubik|liter)|rp|\%/gi) || []);
   highlightMatches.forEach(m => {
     const regex = new RegExp(m, "gi");
@@ -151,13 +151,13 @@ if(oldHash && oldHash == currentHash){
   // ===== 1️⃣2️⃣ Visual Insight Bar =====
   const insightBar = document.createElement("div");
   insightBar.innerHTML = `
-    <div style="padding:10px;margin:15px 0;border:2px solid #0078ff;border-radius:8px;background:#e7f3ff;">
+    <div style="padding:10px;margin:15px 0;border:2px solid #0078ff;border-radius:8px;background:#e7f3ff;" data-nosnippet="true">
       <b>🔍 Visual Insight AI:</b> <span style="color:#0078ff;">${type}</span> vs URL Signal <b>${contextSignal}</b><br>
       <small>Score: ${score.toFixed(1)} | Words: ${wordCount} | Update berikutnya: ${nextUpdateStr}</small>
     </div>`;
   if (elContent) elContent.insertAdjacentElement("beforebegin", insightBar);
 
-  // ===== 1️⃣3️⃣ Rekomendasi Struktur =====
+  // ===== 1️⃣3️⃣ Struktur Heading Rekomendasi =====
   const structureAdvice = {
     EVERGREEN: "Gunakan H2 seperti 'Panduan', 'Langkah-langkah', 'Manfaat', lalu detail di H3.",
     "SEMI-EVERGREEN": "Gunakan H2 untuk 'Data', 'Analisis', atau 'Perbandingan', dan H3 untuk update ringan.",
@@ -166,30 +166,24 @@ if(oldHash && oldHash == currentHash){
 
   const optimizationSuggestion =
     type !== contextSignal
-      ? `⚠️ Konten terdeteksi ${type}, namun URL mengarah ke ${contextSignal}. Disarankan ubah gaya atau struktur konten agar sesuai dengan intent pencarian.`
-      : `✅ Struktur konten sudah sesuai intent ${type}. Pertahankan gaya & perbarui sesuai jadwal.`;
+      ? `⚠️ Konten terdeteksi ${type}, namun URL mengarah ke ${contextSignal}. Ubah gaya atau struktur konten agar sesuai intent.`
+      : `✅ Struktur konten sudah sesuai intent ${type}. Pertahankan gaya & update sesuai jadwal.`;
 
   const suggestion = `${optimizationSuggestion}\n${structureAdvice[type]}\nHighlight angka penting (${highlightMatches.length}): ${highlightMatches.join(", ")}`;
 
   // ===== 1️⃣4️⃣ Dashboard =====
-  let table = document.getElementById("AEDv97_dashboardTable");
+  let table = document.getElementById("AEDv10_dashboardTable");
   if (!table) {
     table = document.createElement("table");
-    table.id = "AEDv97_dashboardTable";
+    table.id = "AEDv10_dashboardTable";
     table.style.width = "100%";
     table.style.borderCollapse = "collapse";
     table.style.marginTop = "20px";
     table.innerHTML = `
       <thead>
         <tr style="background:#dff0ff;">
-          <th style="padding:6px;border:1px solid #ccc;">Halaman</th>
-          <th style="padding:6px;border:1px solid #ccc;">Tipe</th>
-          <th style="padding:6px;border:1px solid #ccc;">Score</th>
-          <th style="padding:6px;border:1px solid #ccc;">Kata</th>
-          <th style="padding:6px;border:1px solid #ccc;">Konteks URL</th>
-          <th style="padding:6px;border:1px solid #ccc;">Rekom H1</th>
-          <th style="padding:6px;border:1px solid #ccc;">Meta Desc</th>
-          <th style="padding:6px;border:1px solid #ccc;">Insight & Saran</th>
+          <th>Halaman</th><th>Tipe</th><th>Score</th><th>Kata</th><th>Konteks URL</th>
+          <th>Rekom H1</th><th>Meta Desc</th><th>Insight & Saran</th>
         </tr>
       </thead><tbody></tbody>`;
     document.body.appendChild(table);
@@ -199,30 +193,104 @@ if(oldHash && oldHash == currentHash){
   const pageTitle = h1Text || document.title || "Unknown Page";
   const row = document.createElement("tr");
   row.innerHTML = `
-    <td style="padding:6px;border:1px solid #ccc;">${pageTitle}</td>
-    <td style="padding:6px;border:1px solid #ccc;">${type}</td>
-    <td style="padding:6px;border:1px solid #ccc;">${score.toFixed(1)}</td>
-    <td style="padding:6px;border:1px solid #ccc;">${wordCount}</td>
-    <td style="padding:6px;border:1px solid #ccc;">${contextSignal}</td>
-    <td style="padding:6px;border:1px solid #ccc;">${recommendedH1}</td>
-    <td style="padding:6px;border:1px solid #ccc;">${metaDesc}</td>
-    <td style="padding:6px;border:1px solid #ccc;white-space:pre-wrap;">${suggestion}</td>`;
+    <td>${pageTitle}</td>
+    <td>${type}</td>
+    <td>${score.toFixed(1)}</td>
+    <td>${wordCount}</td>
+    <td>${contextSignal}</td>
+    <td>${recommendedH1}</td>
+    <td>${metaDesc}</td>
+    <td style="white-space:pre-wrap;">${suggestion}</td>`;
   tbody.appendChild(row);
 
-  // ===== 1️⃣5️⃣ Expose ke Window =====
+  // ===== 1️⃣5️⃣ Expose Global Var =====
   Object.assign(window, {
-    AEDv97_type: type,
-    AEDv97_contextSignal: contextSignal,
-    AEDv97_score: score.toFixed(1),
-    AEDv97_wordCount: wordCount,
-    AEDv97_recommendedH1: recommendedH1,
-    AEDv97_metaDescription: metaDesc,
-    AEDv97_suggestion: suggestion
+    AEDv10_type: type,
+    AEDv10_contextSignal: contextSignal,
+    AEDv10_score: score.toFixed(1),
+    AEDv10_wordCount: wordCount,
+    AEDv10_recommendedH1: recommendedH1,
+    AEDv10_metaDescription: metaDesc,
+    AEDv10_suggestion: suggestion
   });
 
-  console.log(`🧠 [EvergreenAI v9.7 Visual Insight] ${type} (${contextSignal}) | Score ${score.toFixed(1)} | Word ${wordCount}`);
-  console.log(`💡 H1: ${recommendedH1}`);
-  console.log(`💡 Saran: ${suggestion}`);
+  // ===== 1️⃣6️⃣ Tombol Aksi SEO =====
+  (function(){
+    const buttonContainer = document.createElement("div");
+    buttonContainer.style.margin = "25px 0";
+    buttonContainer.style.textAlign = "center";
+    buttonContainer.setAttribute("data-nosnippet","true");
+
+    const btnUpdateNow = document.createElement("button");
+    btnUpdateNow.textContent = "⚙️ Update & Download Koreksi Sekarang";
+    btnUpdateNow.style.background = "#0078ff";
+    btnUpdateNow.style.color = "#fff";
+    btnUpdateNow.style.padding = "10px 18px";
+    btnUpdateNow.style.margin = "6px";
+    btnUpdateNow.style.border = "none";
+    btnUpdateNow.style.borderRadius = "6px";
+    btnUpdateNow.style.cursor = "pointer";
+
+    const btnNextAdvice = document.createElement("button");
+    btnNextAdvice.textContent = "💡 Beri Saran Update Next";
+    btnNextAdvice.style.background = "#00b894";
+    btnNextAdvice.style.color = "#fff";
+    btnNextAdvice.style.padding = "10px 18px";
+    btnNextAdvice.style.margin = "6px";
+    btnNextAdvice.style.border = "none";
+    btnNextAdvice.style.borderRadius = "6px";
+    btnNextAdvice.style.cursor = "pointer";
+
+    buttonContainer.appendChild(btnUpdateNow);
+    buttonContainer.appendChild(btnNextAdvice);
+    document.body.appendChild(buttonContainer);
+
+    // === Tombol 1: Download Koreksi ===
+    btnUpdateNow.addEventListener("click", () => {
+      const correctedHTML = `
+        <article>
+          <h1>${AEDv10_recommendedH1}</h1>
+          <meta name="description" content="${AEDv10_metaDescription}">
+          <p><strong>Status:</strong> ${AEDv10_type} | <strong>Score:</strong> ${AEDv10_score}</p>
+          <p>${AEDv10_suggestion.replace(/\n/g,"<br>")}</p>
+          <p><small>© Koreksi otomatis oleh EvergreenAI v10.0 | ${new Date().toLocaleString("id-ID")}</small></p>
+        </article>
+      `;
+      const blob = new Blob([correctedHTML], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `koreksi-seo-${AEDv10_recommendedH1.toLowerCase().replace(/\s+/g,"-")}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // === Tombol 2: Tabel Saran Next Update ===
+    btnNextAdvice.addEventListener("click", () => {
+      const existing = document.getElementById("AEDv10_adviceTable");
+      if (existing) existing.remove();
+
+      const table2 = document.createElement("table");
+      table2.id = "AEDv10_adviceTable";
+      table2.style.width = "100%";
+      table2.style.borderCollapse = "collapse";
+      table2.style.marginTop = "20px";
+      table2.innerHTML = `
+        <thead><tr style="background:#f0f8ff;">
+          <th>Bagian</th><th>Masalah</th><th>Saran Perbaikan</th>
+        </tr></thead><tbody>
+          <tr><td>H1</td><td>${h1Diff ? "Berbeda dari URL" : "Sesuai"}</td><td>${h1Diff ? `Gunakan H1: "${AEDv10_recommendedH1}"` : "Pertahankan H1 sekarang"}</td></tr>
+          <tr><td>Meta Description</td><td>${AEDv10_metaDescription.length < 80 ? "Pendek" : "Baik"}</td><td>${AEDv10_metaDescription.length < 80 ? "Tambahkan CTA atau keyword lokasi" : "Sudah ideal"}</td></tr>
+          <tr><td>Heading (H2/H3)</td><td>${h2Els.length < 2 ? "Kurang" : "Cukup"}</td><td>${structureAdvice[AEDv10_type]}</td></tr>
+          <tr><td>Konten</td><td>${wordCount < 700 ? "Pendek" : "Cukup"}</td><td>${wordCount < 700 ? "Tambah data, studi kasus, dan referensi agar >1000 kata." : "Pertahankan."}</td></tr>
+          <tr><td>Intent URL</td><td>${AEDv10_type !== AEDv10_contextSignal ? "Tidak Selaras" : "Selaras"}</td><td>${optimizationSuggestion}</td></tr>
+        </tbody>`;
+      document.body.appendChild(table2);
+      window.scrollTo({ top: table2.offsetTop, behavior: "smooth" });
+    });
+  })();
+
+  console.log(`🧠 [EvergreenAI v10.0] ${type} (${contextSignal}) | Score ${score.toFixed(1)} | Word ${wordCount}`);
 })();
   
   // ================== SCHEMA GENERATOR ==================
