@@ -65,7 +65,7 @@ if(oldHash && oldHash == currentHash){
 }
 
 // ================== DETEKSI TYPE KONTEN ==================
-// ⚡ Auto Evergreen Detector v9.5 Pro Ultimate + Author Date Logic Integrated
+// ⚡ Auto Evergreen Detector v9.7 Visual Insight AI — SmartContext + Visual Highlight Dashboard
 (function() {
   // ===== 1️⃣ Elemen & Text Detector =====
   const elContent = document.querySelector("article, main, .post-body");
@@ -124,90 +124,72 @@ if(oldHash && oldHash == currentHash){
     elH1.insertAdjacentElement("afterend", label);
   }
 
-  // ===== 🆕 8️⃣ Author + Tanggal Update (dari v9.2) =====
-  const dateModified = new Date(document.lastModified);
-  const AED_dateModifiedStr = dateModified.toLocaleDateString("id-ID", options);
-  const AED_authorEl = document.querySelector(".post-author .fn");
-  if (AED_authorEl) {
-    if (type === "SEMI-EVERGREEN") {
-      const AED_dateEl = document.createElement("span");
-      AED_dateEl.textContent = ` · Diperbarui: ${AED_dateModifiedStr}`;
-      AED_dateEl.style.fontSize = "0.85em";
-      AED_dateEl.style.color = "#555";
-      AED_dateEl.style.marginLeft = "4px";
-      AED_authorEl.appendChild(AED_dateEl);
-    } else if (type === "NON-EVERGREEN") {
-      const AED_dateEl = document.createElement("div");
-      AED_dateEl.textContent = `Diperbarui: ${AED_dateModifiedStr}`;
-      AED_dateEl.style.fontSize = "0.85em";
-      AED_dateEl.style.color = "#555";
-      AED_dateEl.style.marginBottom = "4px";
-      AED_dateEl.setAttribute("data-nosnippet","true");
-      elH1.parentNode.insertBefore(AED_dateEl, elH1);
-    } 
-    if (type === "EVERGREEN") {
-      const AED_metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
-      AED_metaBlocks.forEach(el => el.style.display = "none");
-    }
-  }
-
-  // ===== 9️⃣ Deteksi URL vs H1 + rekomendasi H1 =====
+  // ===== 🧠 8️⃣ SmartContext — Analisis Nama URL & Konteks =====
   let urlRaw = window.location.pathname.split("/").filter(Boolean).pop() || "";
   urlRaw = urlRaw.replace(/^p\//, "").replace(/\.html$/i, "").replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g, "").replace(/[-_]/g, " ").trim().toLowerCase();
   const h1Diff = urlRaw !== h1Text.toLowerCase();
-  const recommendedH1 = h1Diff ? urlRaw.split(" ").map(w => w[0].toUpperCase() + w.slice(1)).join(" ") : h1Text;
+  const recommendedH1 = urlRaw
+    ? urlRaw.split(" ").map(w => w[0].toUpperCase() + w.slice(1)).join(" ")
+    : h1Text;
 
-  // ===== 🔟 Meta Description Otomatis =====
+  // ===== 9️⃣ Meta Description Otomatis =====
   const sentences = textContent.split(/\.|\n/).filter(Boolean);
   let metaDesc = sentences.slice(0,3).join(". ").substring(0,160).trim();
   if (metaDesc.length < 50) metaDesc = recommendedH1 + " — " + sentences.slice(0,2).join(". ").trim();
 
-  // ===== 1️⃣1️⃣ H2/H3 SEO Silo Dinamis & Missing Section =====
-  const existingH2 = [...h2Els].map(h=>h.innerText.trim().toLowerCase());
-  const wordFreq = {};
-  textContent.split(/\s+/).forEach(w => {
-    w=w.replace(/[^a-zA-Z0-9]/g,'').trim();
-    if(w.length>3) wordFreq[w] = (wordFreq[w]||0)+1;
+  // ===== 🔟 Smart Contextual Signal =====
+  const contextSignal = urlRaw.includes("harga") || urlRaw.includes("update") ? "NON-EVERGREEN"
+    : evergreen.some(k => urlRaw.includes(k)) ? "EVERGREEN" : "SEMI-EVERGREEN";
+
+  // ===== 1️⃣1️⃣ Highlight Data & Visual Marker =====
+  const highlightMatches = (fullText.match(/\d+(\.\d+)?|\d+\s?(m|cm|kg|m2|m3|m³|ton|kubik|liter)|rp|\%/gi) || []);
+  highlightMatches.forEach(m => {
+    const regex = new RegExp(m, "gi");
+    if (elContent) elContent.innerHTML = elContent.innerHTML.replace(regex, `<mark style="background:yellow;color:#000;">${m}</mark>`);
   });
-  const topWords = Object.entries(wordFreq).sort((a,b)=>b[1]-a[1]).slice(0,10).map(k=>k[0]);
-  const predictedH2 = topWords.filter(k=>!existingH2.some(h=>h.includes(k.toLowerCase())));
-  const predictedH3 = predictedH2.map(k=>"Sub-topik: "+k);
 
-  // ===== 1️⃣2️⃣ Highlight angka penting =====
-  const highlightMatches = (fullText.match(/\d+(\.\d+)?|\d+\s?(m|cm|kg|m2|m3|m³|ton|kubik|liter)|rp|\%/gi) || []).join(", ");
+  // ===== 1️⃣2️⃣ Visual Insight Bar =====
+  const insightBar = document.createElement("div");
+  insightBar.innerHTML = `
+    <div style="padding:10px;margin:15px 0;border:2px solid #0078ff;border-radius:8px;background:#e7f3ff;">
+      <b>🔍 Visual Insight AI:</b> <span style="color:#0078ff;">${type}</span> vs URL Signal <b>${contextSignal}</b><br>
+      <small>Score: ${score.toFixed(1)} | Words: ${wordCount} | Update berikutnya: ${nextUpdateStr}</small>
+    </div>`;
+  if (elContent) elContent.insertAdjacentElement("beforebegin", insightBar);
 
-  // ===== 1️⃣3️⃣ Solusi & Rekomendasi =====
-  const solution = h1Diff
-    ? `⚠️ H1 berbeda dari URL (“${urlRaw}”) → Revisi H1: "${recommendedH1}".\nHighlight: ${highlightMatches}\nTambahkan H2/H3: ${predictedH2.join(", ")}`
-    : `✅ H1 sesuai URL.\nHighlight: ${highlightMatches}\nTambahkan H2/H3: ${predictedH2.join(", ")}`;
+  // ===== 1️⃣3️⃣ Rekomendasi Struktur =====
+  const structureAdvice = {
+    EVERGREEN: "Gunakan H2 seperti 'Panduan', 'Langkah-langkah', 'Manfaat', lalu detail di H3.",
+    "SEMI-EVERGREEN": "Gunakan H2 untuk 'Data', 'Analisis', atau 'Perbandingan', dan H3 untuk update ringan.",
+    "NON-EVERGREEN": "Gunakan H2 seperti 'Harga', 'Wilayah', 'Periode', dan tabel dinamis dengan tanggal terbaru."
+  };
 
-  let suggestion = "";
-  if (type === "EVERGREEN")
-    suggestion = `Konten evergreen: pertahankan H1 (${recommendedH1}), gunakan H2/H3 relevan, fokus tips/tutorial, update tahunan.\n${solution}`;
-  else if (type === "SEMI-EVERGREEN")
-    suggestion = `Konten semi-evergreen: tambahkan data terbaru, pertahankan struktur & langkah-langkah, update tiap 3–6 bulan.\n${solution}`;
-  else
-    suggestion = `Konten non-evergreen: fokus pada update harga/data terbaru, tampilkan tanggal jelas, update 1–3 bulan.\n${solution}`;
+  const optimizationSuggestion =
+    type !== contextSignal
+      ? `⚠️ Konten terdeteksi ${type}, namun URL mengarah ke ${contextSignal}. Disarankan ubah gaya atau struktur konten agar sesuai dengan intent pencarian.`
+      : `✅ Struktur konten sudah sesuai intent ${type}. Pertahankan gaya & perbarui sesuai jadwal.`;
 
-  // ===== 1️⃣4️⃣ Dashboard Blogspot =====
-  let table = document.getElementById("AEDv95_dashboardTable");
+  const suggestion = `${optimizationSuggestion}\n${structureAdvice[type]}\nHighlight angka penting (${highlightMatches.length}): ${highlightMatches.join(", ")}`;
+
+  // ===== 1️⃣4️⃣ Dashboard =====
+  let table = document.getElementById("AEDv97_dashboardTable");
   if (!table) {
     table = document.createElement("table");
-    table.id = "AEDv95_dashboardTable";
+    table.id = "AEDv97_dashboardTable";
     table.style.width = "100%";
     table.style.borderCollapse = "collapse";
     table.style.marginTop = "20px";
     table.innerHTML = `
       <thead>
-        <tr style="background:#f0f0f0;">
-          <th style="padding:4px;border:1px solid #ccc;">Halaman</th>
-          <th style="padding:4px;border:1px solid #ccc;">Type</th>
-          <th style="padding:4px;border:1px solid #ccc;">Score</th>
-          <th style="padding:4px;border:1px solid #ccc;">Word</th>
-          <th style="padding:4px;border:1px solid #ccc;">Rekom H1</th>
-          <th style="padding:4px;border:1px solid #ccc;">Meta Description</th>
-          <th style="padding:4px;border:1px solid #ccc;">Struktur Heading</th>
-          <th style="padding:4px;border:1px solid #ccc;">Saran Konten</th>
+        <tr style="background:#dff0ff;">
+          <th style="padding:6px;border:1px solid #ccc;">Halaman</th>
+          <th style="padding:6px;border:1px solid #ccc;">Tipe</th>
+          <th style="padding:6px;border:1px solid #ccc;">Score</th>
+          <th style="padding:6px;border:1px solid #ccc;">Kata</th>
+          <th style="padding:6px;border:1px solid #ccc;">Konteks URL</th>
+          <th style="padding:6px;border:1px solid #ccc;">Rekom H1</th>
+          <th style="padding:6px;border:1px solid #ccc;">Meta Desc</th>
+          <th style="padding:6px;border:1px solid #ccc;">Insight & Saran</th>
         </tr>
       </thead><tbody></tbody>`;
     document.body.appendChild(table);
@@ -217,31 +199,29 @@ if(oldHash && oldHash == currentHash){
   const pageTitle = h1Text || document.title || "Unknown Page";
   const row = document.createElement("tr");
   row.innerHTML = `
-    <td style="padding:4px;border:1px solid #ccc;">${pageTitle}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${type}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${score.toFixed(1)}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${wordCount}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${recommendedH1}</td>
-    <td style="padding:4px;border:1px solid #ccc;">${metaDesc}</td>
-    <td style="padding:4px;border:1px solid #ccc;white-space:pre-wrap;">${predictedH2.join(", ")}</td>
-    <td style="padding:4px;border:1px solid #ccc;white-space:pre-wrap;">${suggestion}</td>`;
+    <td style="padding:6px;border:1px solid #ccc;">${pageTitle}</td>
+    <td style="padding:6px;border:1px solid #ccc;">${type}</td>
+    <td style="padding:6px;border:1px solid #ccc;">${score.toFixed(1)}</td>
+    <td style="padding:6px;border:1px solid #ccc;">${wordCount}</td>
+    <td style="padding:6px;border:1px solid #ccc;">${contextSignal}</td>
+    <td style="padding:6px;border:1px solid #ccc;">${recommendedH1}</td>
+    <td style="padding:6px;border:1px solid #ccc;">${metaDesc}</td>
+    <td style="padding:6px;border:1px solid #ccc;white-space:pre-wrap;">${suggestion}</td>`;
   tbody.appendChild(row);
 
-  // ===== 1️⃣5️⃣ Simpan ke Window =====
+  // ===== 1️⃣5️⃣ Expose ke Window =====
   Object.assign(window, {
-    AEDv95_type: type,
-    AEDv95_nextUpdate: nextUpdateStr,
-    AEDv95_score: score.toFixed(1),
-    AEDv95_wordCount: wordCount,
-    AEDv95_recommendedH1: recommendedH1,
-    AEDv95_metaDescription: metaDesc,
-    AEDv95_predictedH2: predictedH2,
-    AEDv95_suggestion: suggestion
+    AEDv97_type: type,
+    AEDv97_contextSignal: contextSignal,
+    AEDv97_score: score.toFixed(1),
+    AEDv97_wordCount: wordCount,
+    AEDv97_recommendedH1: recommendedH1,
+    AEDv97_metaDescription: metaDesc,
+    AEDv97_suggestion: suggestion
   });
 
-  console.log(`🧠 [EvergreenAI v9.5 Pro Ultimate+] ${type} | Score ${score.toFixed(1)} | Word ${wordCount}`);
-  console.log(`💡 H1: ${recommendedH1} | Meta: ${metaDesc}`);
-  console.log(`💡 H2/H3 Prediksi: ${predictedH2.join(", ")}`);
+  console.log(`🧠 [EvergreenAI v9.7 Visual Insight] ${type} (${contextSignal}) | Score ${score.toFixed(1)} | Word ${wordCount}`);
+  console.log(`💡 H1: ${recommendedH1}`);
   console.log(`💡 Saran: ${suggestion}`);
 })();
   
