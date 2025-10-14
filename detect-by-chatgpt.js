@@ -1,89 +1,123 @@
-(async function ASEO_v7_ULTRA(){
-  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycby9sDB5a6IkYAGZCJ3fwW6bijS-8LlyR8lk3e_vJStvmvPekSpFcZ3T3rgnPje8yGMqTA/exec"; // Ganti ke URL Web App kamu
-  const domain = location.hostname.replace("www.","");
-
+(async function AED_v63_Client(){
+  const API_URL = "https://script.google.com/macros/s/AKfycby9sDB5a6IkYAGZCJ3fwW6bijS-8LlyR8lk3e_vJStvmvPekSpFcZ3T3rgnPje8yGMqTA/exec"; // ganti dengan URL Web App Apps Script
   function el(tag, props={}, children=[]) {
-    const e=document.createElement(tag);
-    Object.entries(props).forEach(([k,v])=>{
-      if(k==="style") Object.assign(e.style,v); else e[k]=v;
-    });
+    const e = document.createElement(tag);
+    for (const k in props) {
+      if (k==="style") Object.assign(e.style, props[k]);
+      else if (k.startsWith("data-")) e.setAttribute(k, props[k]);
+      else e[k]=props[k];
+    }
     (Array.isArray(children)?children:[children]).forEach(c=>{
+      if(!c) return;
       if(typeof c==="string") e.insertAdjacentHTML("beforeend",c);
       else e.appendChild(c);
     });
     return e;
   }
+  function escapeHtml(s){ if(!s) return ""; return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
 
-  const footer=document.querySelector("footer");
-  const dashboard=el("div",{id:"aseo_v7",style:{
-    borderTop:"3px solid #ccc",padding:"14px",background:"#fff",
-    fontFamily:"Arial, sans-serif","data-nosnippet":"true"
+  const elContent = document.querySelector("article, main, .post-body") || document.body;
+  const elH1 = document.querySelector("h1");
+  const h1Text = elH1 ? elH1.innerText.trim() : "";
+  const snippet = (elContent ? elContent.innerText.trim().slice(0,1600) : "").trim();
+  const pageUrl = location.href;
+
+  const footer = document.querySelector("footer");
+  const dash = el("div",{id:"aed_v63_dash","data-nosnippet":"true", style:{
+    borderTop:"2px solid #ddd", padding:"14px", marginTop:"24px", background:"#fff", fontFamily:"system-ui", fontSize:"14px", color:"#222", zIndex:99999
   }});
-  dashboard.innerHTML=`<h3>🧠 Auto SEO Builder Ultra Kompetitif v7.0</h3>`;
+  dash.innerHTML = `<h3>🧠 Auto SEO Builder Ultra Kompetitif v6.3</h3>`;
+  const infoRow = el("div", {}, [`H1: <b>${escapeHtml(h1Text||"(no H1)")}</b> — URL: <small>${escapeHtml(pageUrl)}</small>`]);
+  dash.appendChild(infoRow);
 
-  const h1=document.querySelector("h1")?.innerText||"(no H1)";
-  const url=location.href;
-  const snippet=(document.querySelector("article,.post-body,main")?.innerText||"").slice(0,4000);
+  // Controls
+  const btnRow = el("div",{style:{marginTop:"8px"}});
+  const btnDetect = el("button",{style:{padding:"8px 12px", marginRight:"8px", background:"#ffeedd", cursor:"pointer"}}, "Deteksi & Koreksi SEO");
+  const btnPreview = el("button",{style:{padding:"8px 12px", marginRight:"8px", cursor:"pointer"}}, "Preview Struktur SEO");
+  const btnCopy = el("button",{style:{padding:"8px 12px", marginRight:"8px", display:"none", cursor:"pointer"}}, "Copy HTML");
+  const btnExport = el("button",{style:{padding:"8px 12px", marginRight:"8px", display:"none", cursor:"pointer"}}, "Export HTML");
+  const minWordsInput = el("input",{type:"number", value:600, style:{width:"70px",marginRight:"8px"}});
+  btnRow.appendChild(minWordsInput);
+  btnRow.appendChild(btnPreview);
+  btnRow.appendChild(btnDetect);
+  btnRow.appendChild(btnCopy);
+  btnRow.appendChild(btnExport);
+  dash.appendChild(btnRow);
 
-  const toneSel=el("select",{id:"tone"},["informatif","profesional","persuasif","teknis"].map(v=>el("option",{value:v,innerText:v})));
-  const minWordsInput=el("input",{type:"number",id:"minWords",value:700,style:{width:"80px",marginLeft:"6px"}});
-  const btnDetect=el("button",{style:{padding:"8px 12px",marginRight:"6px",cursor:"pointer"}}, "Deteksi & Koreksi SEO");
-  const resultDiv=el("div",{style:{marginTop:"12px"}});
-  const scoreDiv=el("div",{id:"seoScore",style:{fontWeight:"bold",margin:"10px 0"}});
-  const copyBtn=el("button",{style:{display:"none",padding:"8px 12px"}}, "Copy HTML");
-  const exportBtn=el("button",{style:{display:"none",padding:"8px 12px"}}, "Export HTML");
+  const resultDiv = el("div",{id:"aedResult", style:{marginTop:"12px"}}, "");
+  dash.appendChild(resultDiv);
 
-  dashboard.append(el("div",{} ,[
-    `Judul (H1): <b>${h1}</b><br>URL: <small>${url}</small><br>`,
-    "Tone:", toneSel, " | Min Words:", minWordsInput, el("br"), el("br"),
-    btnDetect, copyBtn, exportBtn, scoreDiv
-  ]), resultDiv);
+  if(footer && footer.parentNode) footer.parentNode.insertBefore(dash,footer.nextSibling);
+  else document.body.appendChild(dash);
 
-  (footer?footer.parentNode.insertBefore(dashboard,footer.nextSibling):document.body.appendChild(dashboard));
+  let lastResponse=null;
 
-  function show(html){ resultDiv.innerHTML=html; }
+  // Preview local structure
+  btnPreview.addEventListener("click",()=>{
+    const structure=localPreviewStructure(h1Text,pageUrl);
+    let html="<b>Preview Struktur (lokal):</b><ul>";
+    structure.forEach(s=>{ html+=`<li><b>${escapeHtml(s.h2)}</b><ul>`; (s.h3||[]).forEach(h3=>html+=`<li>${escapeHtml(h3)}</li>`); html+="</ul></li>"; });
+    html+="</ul>";
+    resultDiv.innerHTML=html;
+  });
 
-  btnDetect.onclick=async()=>{
-    show(`<em>Analisis SEO sedang berjalan...</em>`);
-    scoreDiv.innerHTML = "";
+  // DETEKSI & KOREKSI
+  btnDetect.addEventListener("click",async()=>{
+    resultDiv.innerHTML=`<em>Running semantic detection & corrections…</em>`;
     try{
-      const payload={ h1, snippet, url, origin:domain, tone:toneSel.value, minWords:minWordsInput.value };
-      const r=await fetch(API_ENDPOINT,{
+      const resp = await fetch(API_URL,{
         method:"POST",
-        body:JSON.stringify(payload),
-        headers:{"Content-Type":"application/json"}
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({h1:h1Text,snippet,pageUrl,minWords:minWordsInput.value})
       });
-      const j=await r.json();
-      if(!j.ok) throw new Error(j.error||"Error LLM");
-      const d=j.result;
+      const j = await resp.json();
+      if(!j.ok) throw new Error(j.error||"No result");
+      lastResponse=j.result;
 
-      const scoreColor = d.seoScore>=80?"#0a0":d.seoScore>=60?"#fa0":"#f00";
-      scoreDiv.innerHTML = `🔍 <b>SEO Score:</b> <span style="color:${scoreColor};font-size:18px">${d.seoScore}</span> / 100`;
+      // SEO Score visual (0-100) based on content length + internal links + structure completeness
+      let score=0;
+      if(lastResponse.fullHtml) score+=Math.min(40,(lastResponse.fullHtml.split(/\s+/).length/minWordsInput.value*40));
+      if(lastResponse.structure) score+=Math.min(40,(lastResponse.structure.length*10));
+      if(lastResponse.internalLinks) score+=Math.min(20,(lastResponse.internalLinks.length*2));
+      score=Math.min(100,Math.round(score));
 
-      show(`
-        <b>Tipe Konten:</b> ${d.type}<br>
-        <b>H1 Rekomendasi:</b> ${d.recommendedH1}<br>
-        <b>Meta Description:</b> ${d.metaDescription}<br>
-        <b>Audit Internal Links:</b><pre style="background:#f8f8f8;padding:6px;border:1px solid #ddd">${d.internalLinkAudit}</pre>
-        <h4>Struktur SEO:</h4>
-        ${(d.structure||[]).map(s=>`<b>${s.h2}</b><ul>${(s.h3||[]).map(h=>`<li>${h}</li>`).join("")}</ul>`).join("")}
-        <hr><h4>Konten Final (HTML):</h4>
-        <div style="background:#fafafa;padding:10px;border:1px solid #ccc"><pre>${escapeHtml(d.optimizedHtml||"")}</pre></div>
-      `);
+      resultDiv.innerHTML=`<b>Detected Type:</b> ${escapeHtml(lastResponse.type)} — SEO Score: ${score}/100<br>
+      <b>Recommended H1:</b> ${escapeHtml(lastResponse.recommendedH1)}<br>
+      <b>Meta:</b> ${escapeHtml(lastResponse.metaDescription)}<br>
+      <b>Internal Links:</b> ${lastResponse.internalLinks?lastResponse.internalLinks.length:0}<br>
+      <b>Suggestion:</b> ${escapeHtml(lastResponse.suggestion||"")}`;
 
-      copyBtn.style.display="inline-block";
-      exportBtn.style.display="inline-block";
+      // show fullHtml preview
+      const preArea=el("textarea",{id:"aed_full_html",style:{width:"100%",height:"300px",marginTop:"8px"}},lastResponse.fullHtml||"");
+      resultDiv.appendChild(preArea);
+      btnCopy.style.display="inline-block"; btnExport.style.display="inline-block";
+    }catch(err){
+      resultDiv.innerHTML=`<span style="color:red">Error: ${escapeHtml(err.message)}</span>`;
+    }
+  });
 
-      copyBtn.onclick=()=>{navigator.clipboard.writeText(d.optimizedHtml||""); alert("✅ HTML disalin.");};
-      exportBtn.onclick=()=>{
-        const blob=new Blob([d.optimizedHtml||""],{type:"text/html"});
-        const a=document.createElement("a");
-        a.href=URL.createObjectURL(blob);
-        a.download="optimized_seo.html";
-        a.click();
-      };
-    }catch(e){show(`<span style="color:red">${e.message}</span>`);}
-  };
+  // Copy
+  btnCopy.addEventListener("click", async()=>{
+    const ta=document.getElementById("aed_full_html");
+    try{ await navigator.clipboard.writeText(ta.value); alert("✅ HTML copied"); }
+    catch(e){ alert("❌ Failed: "+e.message); }
+  });
 
-  function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+  // Export
+  btnExport.addEventListener("click",()=>{
+    const ta=document.getElementById("aed_full_html");
+    const blob=new Blob([ta.value],{type:"text/html"});
+    const url=URL.createObjectURL(blob);
+    const a=el("a",{href:url,download:"aed_page.html"}); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+
+  function localPreviewStructure(h1,url){
+    const text=(h1||url||"").toLowerCase();
+    const out=[];
+    if(text.includes("harga")||text.includes("price")){ out.push({h2:"Harga Terbaru",h3:["Daftar Harga","Syarat & Ketentuan"]}); out.push({h2:"Cara Order",h3:["Proses Pemesanan","Kontak"]}); return out;}
+    if(text.includes("panduan")||text.includes("tutorial")){ out.push({h2:"Pendahuluan",h3:["Tujuan","Langkah"]}); return out;}
+    out.push({h2:"Pendahuluan",h3:["Latar Belakang"]}); out.push({h2:"Pembahasan",h3:["Subtopik 1","Subtopik 2"]});
+    return out;
+  }
+
 })();
