@@ -71,29 +71,33 @@ if(oldHash && oldHash == currentHash){
 // ⚡ AUTO SEO BUILDER ULTRA KOMPETITIF v6.0 (FINAL+)
 // ===================================================
   console.log("🚀 AutoEvergreenHybrid aktif");
-(async function AutoEvergreenHybrid(){
-  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbxgJJEKcx82H8o0vCiviYdMn-XafGot_8np6ZnT7tu_JMc3a5Dph80v7mMWml8RqnrA/exec"; // Ganti dengan URL Apps Script Web App kamu
-
-  const h1 = document.querySelector("h1")?.innerText || "(no H1)";
+  
+(async function AutoSEOBuilderUltra() {
+  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbxgJJEKcx82H8o0vCiviYdMn-XafGot_8np6ZnT7tu_JMc3a5Dph80v7mMWml8RqnrA/exec"; // dari Apps Script deploy
+  const h1El = document.querySelector("h1");
+  const h1 = h1El?.innerText || "(no H1)";
   const content = (document.querySelector("article,.post-body,main")?.innerText || "").slice(0, 5000);
   const metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated");
   const authorEl = document.querySelector(".post-author");
   const updatedEl = document.querySelector(".post-updated");
-  const h1El = document.querySelector("h1");
 
-  // 🔹 Kirim data ke Apps Script
+  // --- Loading indicator ---
+  console.log("🚀 Auto SEO Builder Ultra Kompetitif v6.3 mulai deteksi...");
+
   try {
     const res = await fetch(API_ENDPOINT, {
       method: "POST",
-      body: JSON.stringify({ h1, content }),
-      headers: { "Content-Type": "application/json" }
+      mode: "cors",
+      cache: "no-cache",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ h1, content })
     });
+
     const data = await res.json();
     const typeKonten = data.typeKonten || "SEMI-EVERGREEN";
+    console.log("📊 Hasil AI:", typeKonten);
 
-    console.log("📊 Deteksi AI:", typeKonten);
-
-    // ======== Tampilan front-end sesuai status ========
+    // ======= Tampilan Otomatis =======
     if (typeKonten === "EVERGREEN") {
       metaBlocks.forEach(el => el.style.display = "none");
     } else if (typeKonten === "SEMI-EVERGREEN") {
@@ -114,20 +118,21 @@ if(oldHash && oldHash == currentHash){
       }
     }
 
-    // Jadwal update otomatis
+    // Jadwal Update
     let nextUpdate = new Date();
     if (typeKonten === "EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 12);
     else if (typeKonten === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
     else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
 
     const info = document.createElement("div");
-    info.innerHTML = `<b>${typeKonten}</b> — update berikutnya paling lambat: <b>${nextUpdate.toLocaleDateString("id-ID")}</b>`;
+    info.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya paling lambat: <b>${nextUpdate.toLocaleDateString("id-ID")}</b>`;
     info.style.fontSize = "0.85em";
     info.style.color = "#555";
-    info.style.margin = "4px 0 8px 0";
+    info.style.margin = "6px 0 8px 0";
     info.setAttribute("data-nosnippet", "true");
     h1El.insertAdjacentElement("afterend", info);
 
+    // Simpan ke window (untuk schema & sistem lain)
     window.typeKonten = typeKonten;
     window.nextUpdateStr = nextUpdate.toLocaleDateString("id-ID");
 
