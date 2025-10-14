@@ -1,87 +1,89 @@
-// ===================================================
-// ⚡ AUTO SEO BUILDER ULTRA KOMPETITIF v6.0
-// 🚀 Smart Semantic Content Detector + GPT Integration
-// ===================================================
+(async function ASEO_v7_ULTRA(){
+  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycby9sDB5a6IkYAGZCJ3fwW6bijS-8LlyR8lk3e_vJStvmvPekSpFcZ3T3rgnPje8yGMqTA/exec"; // Ganti ke URL Web App kamu
+  const domain = location.hostname.replace("www.","");
 
-const PROXY_URL = "https://script.google.com/home :
-https://script.google.com/macros/s/AKfycby9sDB5a6IkYAGZCJ3fwW6bijS-8LlyR8lk3e_vJStvmvPekSpFcZ3T3rgnPje8yGMqTA/exec";
+  function el(tag, props={}, children=[]) {
+    const e=document.createElement(tag);
+    Object.entries(props).forEach(([k,v])=>{
+      if(k==="style") Object.assign(e.style,v); else e[k]=v;
+    });
+    (Array.isArray(children)?children:[children]).forEach(c=>{
+      if(typeof c==="string") e.insertAdjacentHTML("beforeend",c);
+      else e.appendChild(c);
+    });
+    return e;
+  }
 
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("🚀 SEO Builder v6.0 aktif dengan Smart GPT Detector");
+  const footer=document.querySelector("footer");
+  const dashboard=el("div",{id:"aseo_v7",style:{
+    borderTop:"3px solid #ccc",padding:"14px",background:"#fff",
+    fontFamily:"Arial, sans-serif","data-nosnippet":"true"
+  }});
+  dashboard.innerHTML=`<h3>🧠 Auto SEO Builder Ultra Kompetitif v7.0</h3>`;
 
-  const h1El = document.querySelector("h1");
-  const h1Text = h1El ? h1El.innerText.trim() : "Konten tanpa H1";
+  const h1=document.querySelector("h1")?.innerText||"(no H1)";
+  const url=location.href;
+  const snippet=(document.querySelector("article,.post-body,main")?.innerText||"").slice(0,4000);
 
-  // Buat dashboard SEO Assistant
-  const dashboard = document.createElement("div");
-  dashboard.id = "seoAssistant";
-  dashboard.style.cssText = `
-    border-top: 2px solid #ccc; padding: 15px; margin-top: 40px;
-    font-family: system-ui; font-size: 14px; background: #fafafa;
-  `;
-  dashboard.innerHTML = `
-    <h3>🧠 Smart SEO Assistant v6.0</h3>
-    <p><b>Analisis otomatis dengan GPT untuk:</b> "${h1Text}"</p>
-    <button id="btnAnalyze" style="padding:6px 12px;margin-right:8px;">🔍 Analisis Sekarang</button>
-    <button id="btnCopy" style="padding:6px 12px;margin-right:8px;">📋 Copy</button>
-    <button id="btnExport" style="padding:6px 12px;">💾 Export HTML</button>
-    <div id="seoOutput" style="margin-top:10px;color:#222;"></div>
-  `;
-  document.body.appendChild(dashboard);
+  const toneSel=el("select",{id:"tone"},["informatif","profesional","persuasif","teknis"].map(v=>el("option",{value:v,innerText:v})));
+  const minWordsInput=el("input",{type:"number",id:"minWords",value:700,style:{width:"80px",marginLeft:"6px"}});
+  const btnDetect=el("button",{style:{padding:"8px 12px",marginRight:"6px",cursor:"pointer"}}, "Deteksi & Koreksi SEO");
+  const resultDiv=el("div",{style:{marginTop:"12px"}});
+  const scoreDiv=el("div",{id:"seoScore",style:{fontWeight:"bold",margin:"10px 0"}});
+  const copyBtn=el("button",{style:{display:"none",padding:"8px 12px"}}, "Copy HTML");
+  const exportBtn=el("button",{style:{display:"none",padding:"8px 12px"}}, "Export HTML");
 
-  // Pindahkan ke bawah footer
-  const footer = document.querySelector("footer");
-  if (footer && footer.parentNode) footer.parentNode.insertBefore(dashboard, footer.nextSibling);
+  dashboard.append(el("div",{} ,[
+    `Judul (H1): <b>${h1}</b><br>URL: <small>${url}</small><br>`,
+    "Tone:", toneSel, " | Min Words:", minWordsInput, el("br"), el("br"),
+    btnDetect, copyBtn, exportBtn, scoreDiv
+  ]), resultDiv);
 
-  // ====== Tombol Analisis ======
-  document.getElementById("btnAnalyze").addEventListener("click", async () => {
-    document.getElementById("seoOutput").innerHTML = "⏳ Menganalisis struktur SEO...";
+  (footer?footer.parentNode.insertBefore(dashboard,footer.nextSibling):document.body.appendChild(dashboard));
 
-    const prompt = `
-Analisis konten dengan judul H1: "${h1Text}".
-1. Tentukan apakah konten ini bersifat: EVERGREEN, SEMI-EVERGREEN, atau NON-EVERGREEN.
-2. Berikan alasan singkat (maks 2 kalimat).
-3. Buat struktur heading SEO ultra-kompetitif (H2 & H3 lengkap) untuk topik tersebut.
-4. Tulis hasil dalam format HTML dengan heading & bullet.
-    `;
+  function show(html){ resultDiv.innerHTML=html; }
 
-    try {
-      const res = await fetch(PROXY_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt })
+  btnDetect.onclick=async()=>{
+    show(`<em>Analisis SEO sedang berjalan...</em>`);
+    scoreDiv.innerHTML = "";
+    try{
+      const payload={ h1, snippet, url, origin:domain, tone:toneSel.value, minWords:minWordsInput.value };
+      const r=await fetch(API_ENDPOINT,{
+        method:"POST",
+        body:JSON.stringify(payload),
+        headers:{"Content-Type":"application/json"}
       });
-      const data = await res.json();
-      const result = data.reply || "⚠️ Tidak ada hasil dari GPT.";
+      const j=await r.json();
+      if(!j.ok) throw new Error(j.error||"Error LLM");
+      const d=j.result;
 
-      document.getElementById("seoOutput").innerHTML = `
-        <div id="previewArea" style="border:1px solid #ddd;padding:10px;background:#fff;">
-          ${result}
-        </div>
-        <p style="margin-top:10px;font-size:12px;color:#666;">
-          💡 Saran SEO otomatis berdasarkan analisis semantik GPT.
-        </p>
-      `;
-    } catch (err) {
-      document.getElementById("seoOutput").innerHTML = "❌ Gagal memuat analisis: " + err.message;
-    }
-  });
+      const scoreColor = d.seoScore>=80?"#0a0":d.seoScore>=60?"#fa0":"#f00";
+      scoreDiv.innerHTML = `🔍 <b>SEO Score:</b> <span style="color:${scoreColor};font-size:18px">${d.seoScore}</span> / 100`;
 
-  // ====== Tombol Copy ======
-  document.getElementById("btnCopy").addEventListener("click", () => {
-    const content = document.getElementById("seoOutput").innerText;
-    navigator.clipboard.writeText(content)
-      .then(() => alert("✅ Hasil SEO berhasil disalin ke clipboard!"))
-      .catch(() => alert("⚠️ Gagal menyalin ke clipboard."));
-  });
+      show(`
+        <b>Tipe Konten:</b> ${d.type}<br>
+        <b>H1 Rekomendasi:</b> ${d.recommendedH1}<br>
+        <b>Meta Description:</b> ${d.metaDescription}<br>
+        <b>Audit Internal Links:</b><pre style="background:#f8f8f8;padding:6px;border:1px solid #ddd">${d.internalLinkAudit}</pre>
+        <h4>Struktur SEO:</h4>
+        ${(d.structure||[]).map(s=>`<b>${s.h2}</b><ul>${(s.h3||[]).map(h=>`<li>${h}</li>`).join("")}</ul>`).join("")}
+        <hr><h4>Konten Final (HTML):</h4>
+        <div style="background:#fafafa;padding:10px;border:1px solid #ccc"><pre>${escapeHtml(d.optimizedHtml||"")}</pre></div>
+      `);
 
-  // ====== Tombol Export ======
-  document.getElementById("btnExport").addEventListener("click", () => {
-    const content = document.getElementById("seoOutput").innerHTML;
-    const blob = new Blob([content], { type: "text/html" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `SEO-Analysis-${h1Text.replace(/\s+/g, "-")}.html`;
-    link.click();
-  });
-});
+      copyBtn.style.display="inline-block";
+      exportBtn.style.display="inline-block";
+
+      copyBtn.onclick=()=>{navigator.clipboard.writeText(d.optimizedHtml||""); alert("✅ HTML disalin.");};
+      exportBtn.onclick=()=>{
+        const blob=new Blob([d.optimizedHtml||""],{type:"text/html"});
+        const a=document.createElement("a");
+        a.href=URL.createObjectURL(blob);
+        a.download="optimized_seo.html";
+        a.click();
+      };
+    }catch(e){show(`<span style="color:red">${e.message}</span>`);}
+  };
+
+  function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));}
+})();
