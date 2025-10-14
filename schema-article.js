@@ -84,13 +84,11 @@ if(oldHash && oldHash == currentHash){
   // --- Loading indicator ---
   console.log("🚀 Auto SEO Builder Ultra Kompetitif v6.3 mulai deteksi...");
 
-  try {
+ try {
     const res = await fetch(API_ENDPOINT, {
       method: "POST",
-      mode: "cors",
-      cache: "no-cache",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ h1, content })
+      body: JSON.stringify({ h1, content }),
+      headers: { "Content-Type": "application/json" }
     });
 
     const data = await res.json();
