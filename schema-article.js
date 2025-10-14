@@ -70,169 +70,71 @@ if(oldHash && oldHash == currentHash){
 // ===================================================
 // ⚡ AUTO SEO BUILDER ULTRA KOMPETITIF v6.0 (FINAL+)
 // ===================================================
-  console.log("🚀 Auto SEO Builder Ultra Kompetitif v6.0 aktif");
+  console.log("🚀 AutoEvergreenHybrid aktif");
+(async function AutoEvergreenHybrid(){
+  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycby9sDB5a6IkYAGZCJ3fwW6bijS-8LlyR8lk3e_vJStvmvPekSpFcZ3T3rgnPje8yGMqTA/exec"; // Ganti dengan URL Apps Script Web App kamu
 
-  // ==============================
-  // 1️⃣ DETEKSI TIPE KONTEN
-  // ==============================
-  const h1El = document.querySelector("h1");
-  const h1Text = h1El ? h1El.innerText.trim() : "";
-  let typeKonten = "EVERGREEN";
-
-  if (/harga|promo|diskon|terbaru|biaya|tarif|update/i.test(h1Text)) typeKonten = "NON-EVERGREEN";
-  else if (/panduan|cara|langkah|tips|tutorial/i.test(h1Text)) typeKonten = "SEMI-EVERGREEN";
-
-  // ==============================
-  // 2️⃣ BENTUK STRUKTUR ULTRA KOMPETITIF OTOMATIS
-  // ==============================
-  function autoBuildStructure(h1Text) {
-    const base = h1Text.toLowerCase();
-
-    if (base.includes("harga")) {
-      return [
-        { h2: "Harga Terbaru", h3: ["Daftar Harga", "Kisaran Wilayah", "Mutu & Volume"] },
-        { h2: "Faktor yang Mempengaruhi Harga", h3: ["Mutu Beton", "Jarak Pengiriman", "Kuantitas"] },
-        { h2: "Cara Pemesanan", h3: ["Kontak WhatsApp", "Proses Order", "Metode Pembayaran"] },
-        { h2: "FAQ", h3: ["Apakah harga termasuk PPN?", "Berapa minimal order?"] }
-      ];
-    }
-    if (base.includes("panduan") || base.includes("cara") || base.includes("tutorial")) {
-      return [
-        { h2: "Pendahuluan", h3: ["Tujuan Panduan", "Siapa yang Membutuhkan"] },
-        { h2: "Langkah-langkah Utama", h3: ["Persiapan", "Langkah 1", "Langkah 2"] },
-        { h2: "Tips & Kesalahan Umum", h3: ["Hal yang Harus Dihindari", "Saran Teknis"] },
-        { h2: "FAQ", h3: ["Pertanyaan Umum"] }
-      ];
-    }
-    if (base.includes("manfaat") || base.includes("fungsi")) {
-      return [
-        { h2: "Fungsi Utama", h3: ["Kelebihan Teknis", "Kelebihan Ekonomis"] },
-        { h2: "Manfaat Penggunaan", h3: ["Dalam Proyek Konstruksi", "Dalam Infrastruktur"] },
-        { h2: "FAQ", h3: ["Kapan sebaiknya digunakan?"] }
-      ];
-    }
-    return [
-      { h2: "Pendahuluan", h3: ["Latar Belakang", "Tujuan"] },
-      { h2: "Pembahasan Utama", h3: ["Subtopik 1", "Subtopik 2"] },
-      { h2: "Kesimpulan", h3: ["Rangkuman", "Saran"] },
-      { h2: "FAQ", h3: ["Pertanyaan Umum"] }
-    ];
-  }
-
-  const strukturSEO = autoBuildStructure(h1Text);
-  console.log("📑 Struktur SEO:", strukturSEO);
-
-  // ==============================
-  // 3️⃣ SEMBUNYIKAN / TAMPILKAN META SESUAI TIPE
-  // ==============================
+  const h1 = document.querySelector("h1")?.innerText || "(no H1)";
+  const content = (document.querySelector("article,.post-body,main")?.innerText || "").slice(0, 5000);
   const metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated");
   const authorEl = document.querySelector(".post-author");
   const updatedEl = document.querySelector(".post-updated");
+  const h1El = document.querySelector("h1");
 
-  if (typeKonten === "EVERGREEN") {
-    metaBlocks.forEach(el => el.style.display = "none");
-  } else if (typeKonten === "SEMI-EVERGREEN") {
-    if (authorEl && updatedEl) {
-      authorEl.style.display = "inline";
-      updatedEl.style.display = "inline";
-      updatedEl.style.marginLeft = "8px";
-      updatedEl.textContent = `· Diperbarui: ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`;
-    }
-  } else if (typeKonten === "NON-EVERGREEN") {
-    if (h1El) {
-      const dateDiv = document.createElement("div");
-      dateDiv.textContent = `🕒 Diperbarui: ${new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`;
-      dateDiv.style.fontSize = "0.85em";
-      dateDiv.style.color = "#666";
-      dateDiv.style.marginBottom = "4px";
-      h1El.parentNode.insertBefore(dateDiv, h1El);
-    }
-  }
-
-  // ==============================
-  // 4️⃣ REKOMENDASI JADWAL UPDATE
-  // ==============================
-  const dateModifiedEl = document.querySelector('meta[itemprop="dateModified"], time[itemprop="dateModified"]');
-  const dateModifiedUPDATE = dateModifiedEl ? dateModifiedEl.getAttribute("content") || new Date() : new Date();
-  let nextUpdateDate = new Date(dateModifiedUPDATE);
-  if (typeKonten === "EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 12);
-  else if (typeKonten === "SEMI-EVERGREEN") nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 6);
-  else nextUpdateDate.setMonth(nextUpdateDate.getMonth() + 3);
-
-  const nextUpdateStr = nextUpdateDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
-
-  const typeEl = document.createElement("div");
-  typeEl.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya paling lambat: <b>${nextUpdateStr}</b>`;
-  typeEl.setAttribute("data-nosnippet", "true");
-  typeEl.style = "font-size:0.85em;color:#555;margin-top:4px;margin-bottom:8px;";
-  if (h1El) h1El.parentNode.insertBefore(typeEl, h1El.nextSibling);
-
-  window.typeKonten = typeKonten;
-  window.nextUpdateStr = nextUpdateStr;
-
-  // ==============================
-  // 5️⃣ DASHBOARD SEO ASSISTANT
-  // ==============================
-  const dashboard = document.createElement("div");
-  dashboard.id = "seoAssistant";
-  dashboard.setAttribute("data-nosnippet", "true");
-  dashboard.style.cssText = `
-    border-top: 2px solid #ddd;
-    padding: 15px;
-    margin-top: 40px;
-    font-family: system-ui;
-    background: #fafafa;
-    font-size: 14px;
-  `;
-  dashboard.innerHTML = `
-    <h3>🧠 SEO Assistant (v6.0)</h3>
-    <p><b>Status:</b> ${typeKonten}</p>
-    <p><b>Update Berikutnya:</b> ${nextUpdateStr}</p>
-    <button id="btnPreview" style="padding:6px 10px;margin-right:6px;">🔍 Preview</button>
-    <button id="btnCopy" style="padding:6px 10px;margin-right:6px;" disabled>📋 Copy</button>
-    <button id="btnExport" style="padding:6px 10px;" disabled>💾 Export</button>
-    <div id="previewArea" style="display:none;margin-top:10px;border:1px solid #ccc;padding:10px;background:white;"></div>
-  `;
-
-  const footer = document.querySelector("footer");
-  if (footer && footer.parentNode) footer.parentNode.insertBefore(dashboard, footer.nextSibling);
-  else document.body.appendChild(dashboard);
-
-  // ==============================
-  // 6️⃣ FITUR: PREVIEW + COPY + EXPORT
-  // ==============================
-  const previewBtn = document.getElementById("btnPreview");
-  const copyBtn = document.getElementById("btnCopy");
-  const exportBtn = document.getElementById("btnExport");
-  const previewArea = document.getElementById("previewArea");
-
-  previewBtn.addEventListener("click", () => {
-    const struktur = autoBuildStructure(h1Text);
-    let html = `<article><h1>${h1Text}</h1>`;
-    struktur.forEach(s => {
-      html += `<h2>${s.h2}</h2>`;
-      s.h3.forEach(sub => html += `<h3>${sub}</h3>`);
+  // 🔹 Kirim data ke Apps Script
+  try {
+    const res = await fetch(API_ENDPOINT, {
+      method: "POST",
+      body: JSON.stringify({ h1, content }),
+      headers: { "Content-Type": "application/json" }
     });
-    html += `</article>`;
-    previewArea.innerHTML = html;
-    previewArea.style.display = "block";
-    copyBtn.disabled = false;
-    exportBtn.disabled = false;
-  });
+    const data = await res.json();
+    const typeKonten = data.typeKonten || "SEMI-EVERGREEN";
 
-  copyBtn.addEventListener("click", () => {
-    navigator.clipboard.writeText(previewArea.innerHTML)
-      .then(() => alert("✅ Struktur berhasil disalin ke clipboard!"))
-      .catch(err => alert("❌ Gagal menyalin: " + err));
-  });
+    console.log("📊 Deteksi AI:", typeKonten);
 
-  exportBtn.addEventListener("click", () => {
-    const blob = new Blob([previewArea.innerHTML], { type: "text/html" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = h1Text.replace(/\s+/g, "-").toLowerCase() + "-seo.html";
-    link.click();
-  });
+    // ======== Tampilan front-end sesuai status ========
+    if (typeKonten === "EVERGREEN") {
+      metaBlocks.forEach(el => el.style.display = "none");
+    } else if (typeKonten === "SEMI-EVERGREEN") {
+      if (authorEl && updatedEl) {
+        authorEl.style.display = "inline";
+        updatedEl.style.display = "inline";
+        updatedEl.style.marginLeft = "8px";
+        updatedEl.textContent = `· Diperbarui: ${new Date().toLocaleDateString("id-ID")}`;
+      }
+    } else if (typeKonten === "NON-EVERGREEN") {
+      if (h1El) {
+        const dateDiv = document.createElement("div");
+        dateDiv.textContent = `🕒 Diperbarui: ${new Date().toLocaleDateString("id-ID")}`;
+        dateDiv.style.fontSize = "0.85em";
+        dateDiv.style.color = "#666";
+        dateDiv.style.marginBottom = "4px";
+        h1El.parentNode.insertBefore(dateDiv, h1El);
+      }
+    }
+
+    // Jadwal update otomatis
+    let nextUpdate = new Date();
+    if (typeKonten === "EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 12);
+    else if (typeKonten === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
+    else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
+
+    const info = document.createElement("div");
+    info.innerHTML = `<b>${typeKonten}</b> — update berikutnya paling lambat: <b>${nextUpdate.toLocaleDateString("id-ID")}</b>`;
+    info.style.fontSize = "0.85em";
+    info.style.color = "#555";
+    info.style.margin = "4px 0 8px 0";
+    info.setAttribute("data-nosnippet", "true");
+    h1El.insertAdjacentElement("afterend", info);
+
+    window.typeKonten = typeKonten;
+    window.nextUpdateStr = nextUpdate.toLocaleDateString("id-ID");
+
+  } catch (e) {
+    console.error("❌ Gagal deteksi:", e);
+  }
+})();
   
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
