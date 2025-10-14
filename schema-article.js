@@ -72,7 +72,7 @@ if(oldHash && oldHash == currentHash){
 // ===================================================
   console.log("🚀 AutoEvergreenHybrid aktif");
 (async function AutoEvergreenHybrid(){
-  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycby9sDB5a6IkYAGZCJ3fwW6bijS-8LlyR8lk3e_vJStvmvPekSpFcZ3T3rgnPje8yGMqTA/exec"; // Ganti dengan URL Apps Script Web App kamu
+  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycby_Xuk6-Ac7EmOY8samqaeFrt_MccN1QfCIcUApEYhVnVE0TpV7fw4gZGOROP3eqbUa1A/exec"; // Ganti dengan URL Apps Script Web App kamu
 
   const h1 = document.querySelector("h1")?.innerText || "(no H1)";
   const content = (document.querySelector("article,.post-body,main")?.innerText || "").slice(0, 5000);
