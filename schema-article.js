@@ -73,7 +73,7 @@ if(oldHash && oldHash == currentHash){
   console.log("🚀 AutoEvergreenHybrid aktif");
   
 (async function AutoSEOBuilderUltra() {
-  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbxgJJEKcx82H8o0vCiviYdMn-XafGot_8np6ZnT7tu_JMc3a5Dph80v7mMWml8RqnrA/exec"; // dari Apps Script deploy
+  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbzvpfii7q7ifhc7xYsM6Y4mGy5To6Q9-nR3agZe13UM7UlhZjUUnP3Eif1bmb1PtoRh/exec"; // dari Apps Script deploy
   const h1El = document.querySelector("h1");
   const h1 = h1El?.innerText || "(no H1)";
   const content = (document.querySelector("article,.post-body,main")?.innerText || "").slice(0, 5000);
