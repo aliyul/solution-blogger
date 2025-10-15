@@ -72,7 +72,8 @@ if(oldHash && oldHash == currentHash){
 // ===================================================
 console.log("🚀 AutoEvergreenHybrid aktif");
 (async function AutoSEOBuilderUltra() {
-  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyA0-OIDpZZ-uzhnum_Lze0xISyfwyS9Y7zRWpf4V5tcKccZ9CHNpDHzM4-zio4Zfk2/exec"; // ganti sesuai URL deploy kamu
+  // ⚡ Gunakan URL PROXY (bukan server utama)
+  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyA0-OIDpZZ-uzhnum_Lze0xISyfwyS9Y7zRWpf4V5tcKccZ9CHNpDHzM4-zio4Zfk2/exec"; // Ganti dengan URL proxy CORS kamu
 
   const h1El = document.querySelector("h1");
   const h1 = h1El?.innerText || "(no H1)";
@@ -81,7 +82,7 @@ console.log("🚀 AutoEvergreenHybrid aktif");
   const authorEl = document.querySelector(".post-author");
   const updatedEl = document.querySelector(".post-updated");
 
-  console.log("🚀 AutoSEOBuilderUltra v7.0 mulai analisis...");
+  console.log("🚀 AutoSEOBuilderUltra v7.6 mulai analisis...");
   console.log("🧩 Judul:", h1);
   console.log("📄 Cuplikan konten:", content.slice(0, 200));
 
@@ -134,13 +135,13 @@ console.log("🚀 AutoEvergreenHybrid aktif");
     info.setAttribute("data-nosnippet", "true");
     h1El.insertAdjacentElement("afterend", info);
 
-    // Simpan global (optional)
     window.typeKonten = typeKonten;
     window.nextUpdateStr = nextUpdate.toLocaleDateString("id-ID");
   } catch (e) {
     console.error("❌ Gagal deteksi:", e);
   }
 })();
+
 
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
