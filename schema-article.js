@@ -71,22 +71,30 @@ if(oldHash && oldHash == currentHash){
 // ⚡ AUTO SEO BUILDER ULTRA KOMPETITIF v6.0 (FINAL+)
 // ===================================================
 console.log("🚀 AutoEvergreenHybrid aktif");
-(function AutoSEOBuilderUltra() {
-  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbzvpfii7q7ifhc7xYsM6Y4mGy5To6Q9-nR3agZe13UM7UlhZjUUnP3Eif1bmb1PtoRh/exec"; // ganti dengan URL web app kamu
+(async function AutoSEOBuilderUltra() {
+  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbzvpfii7q7ifhc7xYsM6Y4mGy5To6Q9-nR3agZe13UM7UlhZjUUnP3Eif1bmb1PtoRh/exec"; // ganti sesuai URL deploy kamu
 
   const h1El = document.querySelector("h1");
   const h1 = h1El?.innerText || "(no H1)";
   const content = (document.querySelector("article,.post-body,main")?.innerText || "").slice(0, 5000);
-
   const metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated");
   const authorEl = document.querySelector(".post-author");
   const updatedEl = document.querySelector(".post-updated");
 
   console.log("🚀 AutoSEOBuilderUltra v7.0 mulai analisis...");
+  console.log("🧩 Judul:", h1);
+  console.log("📄 Cuplikan konten:", content.slice(0, 200));
 
-  // callback global JSONP
-  window.handleEvergreen = function (data) {
-    if (!data.ok) return console.error("❌ Gagal:", data.error);
+  try {
+    const res = await fetch(API_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ h1, content }),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || "Response error");
 
     const typeKonten = data.typeKonten || "SEMI-EVERGREEN";
     console.log("📊 Hasil AI:", typeKonten);
@@ -112,30 +120,28 @@ console.log("🚀 AutoEvergreenHybrid aktif");
       }
     }
 
-    // Jadwal Update
+    // ======= Jadwal Update =======
     let nextUpdate = new Date();
     if (typeKonten === "EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 12);
     else if (typeKonten === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
     else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
 
     const info = document.createElement("div");
-    info.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya paling lambat: <b>${nextUpdate.toLocaleDateString("id-ID")}</b>`;
+    info.innerHTML = `<b>${typeKonten}</b> — pembaruan berikutnya: <b>${nextUpdate.toLocaleDateString("id-ID")}</b>`;
     info.style.fontSize = "0.85em";
     info.style.color = "#555";
     info.style.margin = "6px 0 8px 0";
     info.setAttribute("data-nosnippet", "true");
     h1El.insertAdjacentElement("afterend", info);
 
-    // Simpan global
+    // Simpan global (optional)
     window.typeKonten = typeKonten;
     window.nextUpdateStr = nextUpdate.toLocaleDateString("id-ID");
-  };
+  } catch (e) {
+    console.error("❌ Gagal deteksi:", e);
+  }
+})();
 
-  // buat script JSONP
-  const script = document.createElement("script");
-  script.src = `${API_ENDPOINT}?callback=handleEvergreen&h1=${encodeURIComponent(h1)}&content=${encodeURIComponent(content)}`;
-  document.body.appendChild(script);
-})();  
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
 
