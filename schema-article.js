@@ -90,7 +90,7 @@ console.log("🚀 AutoEvergreenHybrid aktif");
     const res = await fetch(API_ENDPOINT, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ h1: "Test", content: "CORS OK" })
+    body: JSON.stringify({ h1, content })
   });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
