@@ -73,7 +73,7 @@ if(oldHash && oldHash == currentHash){
 console.log("🚀 AutoEvergreenHybrid aktif");
 (async function AutoSEOBuilderUltra() {
   // ⚡ Gunakan URL PROXY (bukan server utama)
-  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbyA0-OIDpZZ-uzhnum_Lze0xISyfwyS9Y7zRWpf4V5tcKccZ9CHNpDHzM4-zio4Zfk2/exec"; // Ganti dengan URL proxy CORS kamu
+  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbzLnRdhTys1Y0oIw3OdqgqD2XyDNlVRiCiH43ykLyCfLaNvQRaoEb6E4IVRGxU-a9O4/exec"; // Ganti dengan URL proxy CORS kamu
 
   const h1El = document.querySelector("h1");
   const h1 = h1El?.innerText || "(no H1)";
