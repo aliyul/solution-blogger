@@ -70,28 +70,24 @@ if(oldHash && oldHash == currentHash){
 // ===================================================
 // ⚡ AUTO SEO BUILDER ULTRA KOMPETITIF v6.0 (FINAL+)
 // ===================================================
-  console.log("🚀 AutoEvergreenHybrid aktif");
-  
-(async function AutoSEOBuilderUltra() {
-  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbzvpfii7q7ifhc7xYsM6Y4mGy5To6Q9-nR3agZe13UM7UlhZjUUnP3Eif1bmb1PtoRh/exec"; // dari Apps Script deploy
+console.log("🚀 AutoEvergreenHybrid aktif");
+(function AutoSEOBuilderUltra() {
+  const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbzvpfii7q7ifhc7xYsM6Y4mGy5To6Q9-nR3agZe13UM7UlhZjUUnP3Eif1bmb1PtoRh/exec"; // ganti dengan URL web app kamu
+
   const h1El = document.querySelector("h1");
   const h1 = h1El?.innerText || "(no H1)";
   const content = (document.querySelector("article,.post-body,main")?.innerText || "").slice(0, 5000);
+
   const metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated");
   const authorEl = document.querySelector(".post-author");
   const updatedEl = document.querySelector(".post-updated");
 
-  // --- Loading indicator ---
-  console.log("🚀 Auto SEO Builder Ultra Kompetitif v6.3 mulai deteksi...");
+  console.log("🚀 AutoSEOBuilderUltra v7.0 mulai analisis...");
 
- try {
-    const res = await fetch(API_ENDPOINT, {
-      method: "POST",
-      body: JSON.stringify({ h1, content }),
-      headers: { "Content-Type": "application/json" }
-    });
+  // callback global JSONP
+  window.handleEvergreen = function (data) {
+    if (!data.ok) return console.error("❌ Gagal:", data.error);
 
-    const data = await res.json();
     const typeKonten = data.typeKonten || "SEMI-EVERGREEN";
     console.log("📊 Hasil AI:", typeKonten);
 
@@ -130,15 +126,16 @@ if(oldHash && oldHash == currentHash){
     info.setAttribute("data-nosnippet", "true");
     h1El.insertAdjacentElement("afterend", info);
 
-    // Simpan ke window (untuk schema & sistem lain)
+    // Simpan global
     window.typeKonten = typeKonten;
     window.nextUpdateStr = nextUpdate.toLocaleDateString("id-ID");
+  };
 
-  } catch (e) {
-    console.error("❌ Gagal deteksi:", e);
-  }
-})();
-  
+  // buat script JSONP
+  const script = document.createElement("script");
+  script.src = `${API_ENDPOINT}?callback=handleEvergreen&h1=${encodeURIComponent(h1)}&content=${encodeURIComponent(content)}`;
+  document.body.appendChild(script);
+})();  
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
 
