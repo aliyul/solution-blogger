@@ -86,10 +86,54 @@ if(oldHash && oldHash == currentHash){
       else if(type === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
       else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
     }
-
+    
+    // ===== 3️⃣ Format tanggal =====
     const options = { day: "numeric", month: "long", year: "numeric" };
     const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", options);
     const dateModifiedStr = new Date().toLocaleDateString("id-ID", options);
+
+        // ===== 4️⃣ Label tipe konten =====
+    if(elH1) {
+      const existingLabel = elH1.parentNode.querySelector("[data-aed-label]");
+      if(existingLabel) existingLabel.remove();
+      const label = document.createElement("div");
+      label.setAttribute("data-aed-label","true");
+      label.setAttribute("data-nosnippet","true");
+      label.style.fontSize = "0.9em";
+      label.style.color = "#444";
+      label.style.marginTop = "4px";
+      label.innerHTML = `<b>${type}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+      elH1.insertAdjacentElement("afterend", label);
+    }
+
+    // ===== 5️⃣ Author + tanggal =====
+    const authorEl = document.querySelector(".post-author .fn");
+    if(authorEl) {
+      const oldDateSpan = authorEl.querySelector(".aed-date-span");
+      if(oldDateSpan) oldDateSpan.remove();
+      if(type === "SEMI-EVERGREEN") {
+        const dateEl = document.createElement("span");
+        dateEl.className = "aed-date-span";
+        dateEl.textContent = ` · Diperbarui: ${dateModifiedStr}`;
+        dateEl.style.fontSize = "0.85em";
+        dateEl.style.color = "#555";
+        dateEl.style.marginLeft = "4px";
+        authorEl.appendChild(dateEl);
+      } else if(type === "NON-EVERGREEN") {
+        const dateEl = document.createElement("div");
+        dateEl.className = "aed-non-evergreen-date";
+        dateEl.textContent = `Diperbarui: ${dateModifiedStr}`;
+        dateEl.style.fontSize = "0.85em";
+        dateEl.style.color = "#555";
+        dateEl.style.marginBottom = "4px";
+        dateEl.setAttribute("data-nosnippet","true");
+        if(elH1 && elH1.parentNode && !document.querySelector(".aed-non-evergreen-date"))
+          elH1.parentNode.insertBefore(dateEl, elH1);
+      } else if(type === "EVERGREEN") {
+        const metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
+        metaBlocks.forEach(el => el.style.display = "none");
+      }
+    }
 
     // ===== 3️⃣ Smart Context =====
     const urlRaw = window.location.pathname.split("/").filter(Boolean).pop()
