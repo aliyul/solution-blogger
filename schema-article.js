@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", function() {
   const contentText = contentEl ? contentEl.innerText : "";
 
  // ================== HASH DETECTION ==================
+/* ga perlu lagi karna udah di seting ke perubahan yg penting saja
 const currentHash = hashString(contentText);
 const oldHash = localStorage.getItem("articleHash");
 let datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content);
@@ -63,7 +64,7 @@ if(oldHash && oldHash == currentHash){
   localStorage.setItem("articleHash", currentHash);
   console.log("Konten berubah → dateModified diupdate ke sekarang");
 }
-
+*/
 // ================== DETEKSI TYPE KONTEN ==================
 (function() {
   try {
@@ -510,6 +511,201 @@ document.head.appendChild(style);
   existingDashboard.appendChild(wrapper);
 
   console.log("✅ Hybrid Evergreen Detector selesai & dateModified sinkron otomatis bila perlu.");
+})();
+
+/**
+ * 🌿 Hybrid Evergreen Detector v7.1
+ * ✅ Smart Section Update + Auto dateModified + Responsive Dashboard
+ * Beton Jaya Readymix ©2025
+ */
+(function () {
+  const SELECTOR_SECTIONS = "h2, h3, p, li";
+  const STORAGE_KEY = "content_hash_v7";
+  const PAGE_KEY = location.pathname;
+  const dateModifiedEl = document.querySelector('meta[property="article:modified_time"]') 
+    || document.querySelector('meta[name="dateModified"]');
+
+  // ==============================
+  // 🔹 UTILITIES
+  // ==============================
+  function cleanText(str) {
+    return (str || "").replace(/\s+/g, " ").trim();
+  }
+
+  function hashCode(str) {
+    let hash = 0, i, chr;
+    if (str.length === 0) return hash;
+    for (i = 0; i < str.length; i++) {
+      chr = str.charCodeAt(i);
+      hash = (hash << 5) - hash + chr;
+      hash |= 0;
+    }
+    return hash;
+  }
+
+  function getNowISO() {
+    return new Date().toISOString();
+  }
+
+  // ==============================
+  // 🔹 STEP 1: ANALISIS PER SECTION
+  // ==============================
+  const sections = Array.from(document.querySelectorAll(SELECTOR_SECTIONS));
+  const contentAnalysis = sections.map((el, i) => {
+    const text = cleanText(el.textContent);
+    const hash = hashCode(text);
+    let type = "NON";
+    const lower = text.toLowerCase();
+    if (lower.match(/harga|update|promo|baru|terbaru|diskon|periode|202\d|20\d\d/)) type = "SEMI";
+    if (lower.match(/spesifikasi|standar|jenis|fungsi|pengertian|komposisi|kualitas|mutu|material/)) type = "EVERGREEN";
+    return { i, tag: el.tagName, hash, type, text, el };
+  });
+
+  // ==============================
+  // 🔹 STEP 2: DETEKSI PERUBAHAN HASH
+  // ==============================
+  const prevHashData = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+  const newHashData = {};
+  let importantChanged = false;
+  let changedSections = [];
+
+  contentAnalysis.forEach((sec) => {
+    newHashData[sec.i] = sec.hash;
+    const prev = prevHashData[PAGE_KEY]?.[sec.i];
+    if (prev && prev !== sec.hash) {
+      changedSections.push(sec);
+      if (["EVERGREEN", "SEMI"].includes(sec.type)) {
+        importantChanged = true;
+      }
+    }
+  });
+
+  if (!prevHashData[PAGE_KEY]) prevHashData[PAGE_KEY] = {};
+  prevHashData[PAGE_KEY] = newHashData;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(prevHashData));
+
+  // ==============================
+  // 🔹 STEP 3: UPDATE dateModified JIKA PENTING BERUBAH
+  // ==============================
+  if (importantChanged) {
+    const newDate = getNowISO();
+    console.log("🕒 Konten penting berubah → update dateModified:", newDate);
+    if (dateModifiedEl) dateModifiedEl.setAttribute("content", newDate);
+
+    const ldScript = document.querySelector('script[type="application/ld+json"]');
+    if (ldScript) {
+      try {
+        const json = JSON.parse(ldScript.textContent);
+        if (json.dateModified) json.dateModified = newDate;
+        ldScript.textContent = JSON.stringify(json, null, 2);
+      } catch (err) {
+        console.warn("Gagal update JSON-LD dateModified:", err);
+      }
+    }
+  }
+
+  // ==============================
+  // 🔹 STEP 4: RENDER DASHBOARD RESPONSIVE
+  // ==============================
+  function renderDashboard() {
+    const dash = document.createElement("div");
+    dash.id = "evergreen-dashboard";
+    dash.innerHTML = `
+      <div class="dash-header">
+        <b>🧭 Evergreen Detector v7.1</b>
+        <div>Status: ${
+          importantChanged
+            ? '<span class="status-green">Konten penting berubah</span>'
+            : '<span class="status-gray">Tidak ada perubahan signifikan</span>'
+        }</div>
+        <div>Total Section: ${sections.length} | Berubah: ${changedSections.length}</div>
+      </div>
+      <div class="dash-table-wrap">
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th>Tag</th><th>Tipe</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${contentAnalysis
+              .map((s) => {
+                const isChanged = changedSections.find((c) => c.i === s.i);
+                return `
+                  <tr>
+                    <td>${s.tag}</td>
+                    <td>${s.type}</td>
+                    <td class="${isChanged ? "status-red" : "status-gray"}">
+                      ${isChanged ? "Perlu Update" : "Stabil"}
+                    </td>
+                  </tr>`;
+              })
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    // 🎨 CSS Responsive + Sticky Header
+    const style = document.createElement("style");
+    style.textContent = `
+      #evergreen-dashboard {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        z-index: 9999;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        padding: 10px;
+        max-height: 60vh;
+        width: 320px;
+        display: flex;
+        flex-direction: column;
+        font-family: system-ui, sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+      }
+      .dash-header { margin-bottom: 8px; }
+      .dash-table-wrap {
+        overflow-x: auto;
+        border-top: 1px solid #ddd;
+        border-bottom: 1px solid #ddd;
+        flex: 1;
+      }
+      .dash-table { border-collapse: collapse; width: 100%; min-width: 280px; }
+      .dash-table th, .dash-table td {
+        padding: 6px 8px;
+        border-bottom: 1px solid #eee;
+        text-align: left;
+      }
+      .dash-table th {
+        position: sticky;
+        top: 0;
+        background: #f9f9f9;
+        z-index: 1;
+      }
+      .status-green { color: green; font-weight: 600; }
+      .status-gray { color: gray; }
+      .status-red { color: red; font-weight: 600; }
+      @media (max-width: 480px) {
+        #evergreen-dashboard {
+          bottom: 0;
+          right: 0;
+          left: 0;
+          width: 100%;
+          border-radius: 0;
+          max-height: 50vh;
+          font-size: 12px;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+    document.body.appendChild(dash);
+  }
+
+  window.addEventListener("load", () => setTimeout(renderDashboard, 1000));
 })();
 
   // ================== SCHEMA GENERATOR ==================
