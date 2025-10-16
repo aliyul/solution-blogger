@@ -213,112 +213,113 @@ if(oldHash && oldHash == currentHash){
     }
 
     // ===== 10️⃣ Dashboard =====
-    // ===== 10️⃣ Dashboard Mobile-Friendly & Sticky Header =====
-    const btnContainer = document.createElement("div");
-    btnContainer.style.margin = "15px 0";
-    btnContainer.style.textAlign = "center";
-    
-    const createBtn = (text, color = "#fff") => {
-      const b = document.createElement("button");
-      b.textContent = text;
-      b.style.background = color;
-      b.style.color = "#000";
-      b.style.padding = "6px 12px";
-      b.style.margin = "3px";
-      b.style.borderRadius = "4px";
-      b.style.cursor = "pointer";
-      b.style.border = "none";
-      b.style.fontSize = "0.9em";
-      return b;
-    };
-    
-    const btnKoreksi = createBtn("⚙️ Koreksi & Preview", "#ffeedd");
-    const btnShowTable = createBtn("📊 Tampilkan Data Table", "#d1e7dd");
-    const btnReport = createBtn("📥 Download Laporan", "#f3f3f3");
-    
-    btnContainer.appendChild(btnKoreksi);
-    btnContainer.appendChild(btnShowTable);
-    btnContainer.appendChild(btnReport);
-    
-    const dashboardWrapper = document.createElement("div");
-    dashboardWrapper.style.width = "100%";
-    dashboardWrapper.style.maxWidth = "1200px";
-    dashboardWrapper.style.margin = "30px auto";
-    dashboardWrapper.style.padding = "15px";
-    dashboardWrapper.style.borderTop = "3px solid #0078ff";
-    dashboardWrapper.style.background = "#f0f8ff";
-    dashboardWrapper.style.boxSizing = "border-box";
-    dashboardWrapper.style.fontFamily = "Arial, sans-serif";
-    
-    const dashboardTitle = document.createElement("h3");
-    dashboardTitle.innerText = "📊 AED Dashboard — Ringkasan Halaman";
-    dashboardWrapper.appendChild(dashboardTitle);
-    dashboardWrapper.appendChild(btnContainer);
-    
-    // ===== Table Wrapper (responsive & sticky header) =====
-    const tableWrapper = document.createElement("div");
-    tableWrapper.style.width = "100%";
-    tableWrapper.style.overflowX = "auto";  // scroll horizontal di mobile
-    tableWrapper.style.display = "none";    // hidden default
-    tableWrapper.style.marginTop = "15px";
-    
-    const table = document.createElement("table");
-    table.style.width = "100%";
-    table.style.borderCollapse = "collapse";
-    table.style.minWidth = "800px";        // agar scroll muncul di layar kecil
-    table.style.fontSize = "0.9em";
-    
-    // Table head sticky
-    table.innerHTML = `<thead style="position: sticky; top: 0; background: #dff0ff; z-index: 2;">
-      <tr>
-        <th style="border:1px solid #ccc;padding:6px; min-width:100px">Halaman</th>
-        <th style="border:1px solid #ccc;padding:6px; min-width:80px">Tipe</th>
-        <th style="border:1px solid #ccc;padding:6px; min-width:150px">H1 Konten</th>
-        <th style="border:1px solid #ccc;padding:6px; min-width:150px">Rekom H1</th>
-        <th style="border:1px solid #ccc;padding:6px; min-width:120px">Status H1</th>
-        <th style="border:1px solid #ccc;padding:6px; min-width:120px">Struktur</th>
-        <th style="border:1px solid #ccc;padding:6px; min-width:150px">Saran Tambahan</th>
-        <th style="border:1px solid #ccc;padding:6px; min-width:100px">Next Update</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td style="border:1px solid #ccc;padding:6px">${document.title || h1Text}</td>
-        <td style="border:1px solid #ccc;padding:6px">${type}</td>
-        <td style="border:1px solid #ccc;padding:6px">${h1Text}</td>
-        <td style="border:1px solid #ccc;padding:6px">${recommendedH1}</td>
-        <td style="border:1px solid #ccc;padding:6px">${h1Status}</td>
-        <td style="border:1px solid #ccc;padding:6px">${structStatus}</td>
-        <td style="border:1px solid #ccc;padding:6px">${structSuggestion}</td>
-        <td style="border:1px solid #ccc;padding:6px">${nextUpdateStr}</td>
-      </tr>
-    </tbody>`;
-    
-    tableWrapper.appendChild(table);
-    dashboardWrapper.appendChild(tableWrapper);
-    document.body.appendChild(dashboardWrapper);
-    
-    // ===== Tombol tampilkan table =====
-    btnShowTable.onclick = () => {
-      tableWrapper.style.display = tableWrapper.style.display === "none" ? "block" : "none";
-    };
-    
-    // ===== Optional: Responsive font & padding =====
-    const style = document.createElement("style");
-    style.innerHTML = `
-    @media (max-width: 768px) {
-      table th, table td {
-        padding: 4px !important;
-        font-size: 0.8em !important;
-      }
-    }
-    @media (max-width: 480px) {
-      table th, table td {
-        min-width: 100px !important;
-      }
-    }
-    `;
-    document.head.appendChild(style);
+ // ===== 10️⃣ Dashboard Mobile-Friendly & Sticky Header (update tanpa hapus tombol) =====
+const btnContainer = document.createElement("div");
+btnContainer.style.margin = "15px 0";
+btnContainer.style.textAlign = "center";
+
+const createBtn = (text, color = "#fff") => {
+  const b = document.createElement("button");
+  b.textContent = text;
+  b.style.background = color;
+  b.style.color = "#000";
+  b.style.padding = "6px 12px";
+  b.style.margin = "3px";
+  b.style.borderRadius = "4px";
+  b.style.cursor = "pointer";
+  b.style.border = "none";
+  b.style.fontSize = "0.9em";
+  return b;
+};
+
+const btnKoreksi = createBtn("⚙️ Koreksi & Preview", "#ffeedd");
+const btnShowTable = createBtn("📊 Tampilkan Data Table", "#d1e7dd");
+const btnReport = createBtn("📥 Download Laporan", "#f3f3f3");
+
+btnContainer.appendChild(btnKoreksi);
+btnContainer.appendChild(btnShowTable);
+btnContainer.appendChild(btnReport);
+
+const dashboardWrapper = document.createElement("div");
+dashboardWrapper.style.width = "100%";
+dashboardWrapper.style.maxWidth = "1200px";
+dashboardWrapper.style.margin = "30px auto";
+dashboardWrapper.style.padding = "15px";
+dashboardWrapper.style.borderTop = "3px solid #0078ff";
+dashboardWrapper.style.background = "#f0f8ff";
+dashboardWrapper.style.boxSizing = "border-box";
+dashboardWrapper.style.fontFamily = "Arial, sans-serif";
+
+const dashboardTitle = document.createElement("h3");
+dashboardTitle.innerText = "📊 AED Dashboard — Ringkasan Halaman";
+dashboardWrapper.appendChild(dashboardTitle);
+dashboardWrapper.appendChild(btnContainer);
+
+// ===== Table Wrapper (responsive + sticky header) =====
+const tableWrapper = document.createElement("div");
+tableWrapper.style.width = "100%";
+tableWrapper.style.overflowX = "auto";  // scroll horizontal di mobile
+tableWrapper.style.display = "none";    // hidden default
+tableWrapper.style.marginTop = "15px";
+
+const table = document.createElement("table");
+table.style.width = "100%";
+table.style.borderCollapse = "collapse";
+table.style.minWidth = "800px";        // agar scroll muncul di layar kecil
+table.style.fontSize = "0.9em";
+
+// Table head sticky
+table.innerHTML = `<thead style="position: sticky; top: 0; background: #dff0ff; z-index: 2;">
+  <tr>
+    <th style="border:1px solid #ccc;padding:6px; min-width:100px">Halaman</th>
+    <th style="border:1px solid #ccc;padding:6px; min-width:80px">Tipe</th>
+    <th style="border:1px solid #ccc;padding:6px; min-width:150px">H1 Konten</th>
+    <th style="border:1px solid #ccc;padding:6px; min-width:150px">Rekom H1</th>
+    <th style="border:1px solid #ccc;padding:6px; min-width:120px">Status H1</th>
+    <th style="border:1px solid #ccc;padding:6px; min-width:120px">Struktur</th>
+    <th style="border:1px solid #ccc;padding:6px; min-width:150px">Saran Tambahan</th>
+    <th style="border:1px solid #ccc;padding:6px; min-width:100px">Next Update</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td style="border:1px solid #ccc;padding:6px">${document.title || h1Text}</td>
+    <td style="border:1px solid #ccc;padding:6px">${type}</td>
+    <td style="border:1px solid #ccc;padding:6px">${h1Text}</td>
+    <td style="border:1px solid #ccc;padding:6px">${recommendedH1}</td>
+    <td style="border:1px solid #ccc;padding:6px">${h1Status}</td>
+    <td style="border:1px solid #ccc;padding:6px">${structStatus}</td>
+    <td style="border:1px solid #ccc;padding:6px">${structSuggestion}</td>
+    <td style="border:1px solid #ccc;padding:6px">${nextUpdateStr}</td>
+  </tr>
+</tbody>`;
+
+tableWrapper.appendChild(table);
+dashboardWrapper.appendChild(tableWrapper);
+document.body.appendChild(dashboardWrapper);
+
+// ===== Tombol tampilkan table =====
+btnShowTable.onclick = () => {
+  tableWrapper.style.display = tableWrapper.style.display === "none" ? "block" : "none";
+};
+
+// ===== Responsive font & padding =====
+const style = document.createElement("style");
+style.innerHTML = `
+@media (max-width: 768px) {
+  table th, table td {
+    padding: 4px !important;
+    font-size: 0.8em !important;
+  }
+}
+@media (max-width: 480px) {
+  table th, table td {
+    min-width: 100px !important;
+  }
+}
+`;
+document.head.appendChild(style);
+
     // ===== 1️⃣2️⃣ Simpan hash =====
     localStorage.setItem("AutoEvergreenHash", currentHash);
     console.log("✅ AED Final Interaktif siap digunakan di bawah halaman");
