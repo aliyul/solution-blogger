@@ -328,8 +328,10 @@ document.head.appendChild(style);
 })();
 
 // ===== 🧩 Granular Section Detection + Smart Update Advisor (Add-on) =====
+<script>
+/* ===== 🧩 Hybrid Evergreen Detector + Smart DateModified Updater ===== */
 (function () {
-  console.log("🔍 Granular Section Analyzer running...");
+  console.log("🔍 Hybrid Evergreen Detector running with smart dateModified...");
 
   // ===== Util: bersihkan teks =====
   function cleanText(str) {
@@ -355,18 +357,26 @@ document.head.appendChild(style);
     } else if (h.tagName === "H3" && currentSection) {
       currentSection.content += "\n" + cleanText(h.innerText);
     }
+    // Ambil isi paragraf di bawah heading
+    let next = h.nextElementSibling;
+    while (next && !/^H[23]$/i.test(next.tagName)) {
+      if (next.innerText) currentSection.content += "\n" + cleanText(next.innerText);
+      next = next.nextElementSibling;
+    }
   });
   if (currentSection) allSections.push(currentSection);
 
-  // ===== Klasifikasi tipe konten (EVERGREEN / SEMI / NON) =====
+  // ===== Deteksi tipe konten =====
   function detectType(text) {
     const lower = text.toLowerCase();
-    if (/(harga|update|promo|diskon|biaya|daftar terbaru)/.test(lower)) return "NON-EVERGREEN";
-    if (/(proyek|spesifikasi|fitur|jenis|perbandingan)/.test(lower)) return "SEMI-EVERGREEN";
+    if (/(harga|update|promo|diskon|biaya|daftar terbaru|bulan ini|tahun)/.test(lower))
+      return "NON-EVERGREEN";
+    if (/(proyek|spesifikasi|fitur|jenis|perbandingan|keunggulan)/.test(lower))
+      return "SEMI-EVERGREEN";
     return "EVERGREEN";
   }
 
-  // ===== Deteksi perubahan teks (simulasi dengan localStorage hash) =====
+  // ===== Hash util =====
   function hashString(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -376,7 +386,10 @@ document.head.appendChild(style);
     return hash;
   }
 
+  // ===== Deteksi perubahan per section =====
   const sectionResults = [];
+  let importantChangeDetected = false;
+
   allSections.forEach((sec, i) => {
     const type = detectType(sec.title + " " + sec.content);
     const hash = hashString(sec.title + sec.content);
@@ -385,28 +398,27 @@ document.head.appendChild(style);
     const changed = prevHash && prevHash !== String(hash);
     localStorage.setItem(key, hash);
 
+    if (changed && (type === "NON-EVERGREEN" || type === "SEMI-EVERGREEN")) {
+      importantChangeDetected = true;
+    }
+
     let updateMonths =
       type === "EVERGREEN" ? 12 : type === "SEMI-EVERGREEN" ? 6 : 3;
     const nextUpdateDate = new Date();
     nextUpdateDate.setMonth(nextUpdateDate.getMonth() + updateMonths);
 
-    // ===== Analisis saran konten =====
     let advice = [];
     const txt = sec.content.toLowerCase();
-
-    if (/harga|biaya|tarif/.test(txt))
-      advice.push("Periksa ulang data harga agar tetap relevan.");
+    if (/harga|biaya|tarif/.test(txt)) advice.push("Perbarui data harga agar tetap akurat.");
     if (/spesifikasi|fitur|ukuran/.test(txt))
-      advice.push("Tambahkan tabel spesifikasi terbaru atau perbandingan produk.");
-    if (/manfaat|fungsi/.test(txt))
-      advice.push("Tambahkan contoh praktis atau ilustrasi visual agar menarik.");
-    if (txt.length < 400)
-      advice.push("Perluas isi section ini agar lebih komprehensif.");
+      advice.push("Tambahkan tabel spesifikasi terbaru atau bandingkan produk.");
+    if (/manfaat|fungsi/.test(txt)) advice.push("Tambahkan contoh penerapan nyata atau visual.");
+    if (txt.length < 400) advice.push("Perluas isi agar lebih komprehensif.");
     if (!/faq|pertanyaan|tanya/.test(txt) && i === allSections.length - 1)
-      advice.push("Pertimbangkan menambah FAQ untuk meningkatkan relevansi SEO.");
+      advice.push("Tambahkan FAQ di akhir artikel.");
 
     sectionResults.push({
-      section: sec.title,
+      section: sec.title || "(Tanpa Judul)",
       type,
       changed,
       nextUpdate: nextUpdateDate.toLocaleDateString(),
@@ -414,46 +426,93 @@ document.head.appendChild(style);
     });
   });
 
-  // ===== Tambahkan hasil ke dashboard (table tambahan) =====
+  // ===== Smart Global dateModified update =====
+  if (importantChangeDetected) {
+    const today = new Date().toISOString().split("T")[0];
+    console.log(`🕓 Penting! Update terdeteksi → Set dateModified: ${today}`);
+
+    // 1️⃣ Update JSON-LD schema jika ada
+    const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    scripts.forEach((script) => {
+      try {
+        const data = JSON.parse(script.textContent);
+        if (data && data.dateModified) {
+          data.dateModified = today;
+          script.textContent = JSON.stringify(data, null, 2);
+          console.log("✅ Schema dateModified diperbarui.");
+        }
+      } catch (e) {}
+    });
+
+    // 2️⃣ Update <meta itemprop="dateModified"> jika ada
+    let meta = document.querySelector('meta[itemprop="dateModified"]');
+    if (meta) {
+      meta.setAttribute("content", today);
+      console.log("✅ Meta dateModified diperbarui.");
+    }
+
+    // 3️⃣ Simpan waktu modifikasi terakhir di localStorage
+    localStorage.setItem("lastGlobalModified_" + location.pathname, today);
+  }
+
+  // ===== Tampilkan hasil ke tabel =====
+  const wrapper = document.createElement("div");
+  wrapper.style.overflowX = "auto";
+  wrapper.style.marginTop = "20px";
+  wrapper.style.border = "1px solid #ccc";
+  wrapper.style.borderRadius = "8px";
+  wrapper.style.background = "#fff";
+  wrapper.style.boxShadow = "0 2px 6px rgba(0,0,0,0.1)";
+
   const granularTable = document.createElement("table");
   granularTable.style.width = "100%";
   granularTable.style.borderCollapse = "collapse";
-  granularTable.style.marginTop = "20px";
   granularTable.style.fontSize = "0.9em";
+  granularTable.style.minWidth = "900px";
   granularTable.innerHTML = `
-  <thead style="position: sticky; top: 0; background: #eaf7ff; z-index: 2;">
-    <tr>
-      <th style="border:1px solid #ccc;padding:6px;">Section (H2/H3)</th>
-      <th style="border:1px solid #ccc;padding:6px;">Tipe</th>
-      <th style="border:1px solid #ccc;padding:6px;">Perubahan</th>
-      <th style="border:1px solid #ccc;padding:6px;">Next Update</th>
-      <th style="border:1px solid #ccc;padding:6px;">Saran Konten</th>
-    </tr>
-  </thead>
-  <tbody>
-    ${sectionResults
-      .map(
-        (s) => `
+    <thead style="position: sticky; top: 0; background: #eaf7ff; z-index: 5;">
       <tr>
-        <td style="border:1px solid #ccc;padding:6px;">${s.section}</td>
-        <td style="border:1px solid #ccc;padding:6px;">${s.type}</td>
-        <td style="border:1px solid #ccc;padding:6px;">${
-          s.changed ? "✅ Berubah" : "– Stabil"
-        }</td>
-        <td style="border:1px solid #ccc;padding:6px;">${s.nextUpdate}</td>
-        <td style="border:1px solid #ccc;padding:6px;">${s.advice}</td>
-      </tr>`
-      )
-      .join("")}
-  </tbody>
+        <th style="border:1px solid #ccc;padding:8px;">Section (H2/H3)</th>
+        <th style="border:1px solid #ccc;padding:8px;">Tipe</th>
+        <th style="border:1px solid #ccc;padding:8px;">Perubahan</th>
+        <th style="border:1px solid #ccc;padding:8px;">Next Update</th>
+        <th style="border:1px solid #ccc;padding:8px;">Saran Konten</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${sectionResults
+        .map(
+          (s) => `
+        <tr>
+          <td style="border:1px solid #eee;padding:6px;">${s.section}</td>
+          <td style="border:1px solid #eee;padding:6px;color:${
+            s.type === "EVERGREEN"
+              ? "green"
+              : s.type === "SEMI-EVERGREEN"
+              ? "orange"
+              : "red"
+          };font-weight:600;">${s.type}</td>
+          <td style="border:1px solid #eee;padding:6px;">${
+            s.changed ? "✅ Berubah" : "– Stabil"
+          }</td>
+          <td style="border:1px solid #eee;padding:6px;">${s.nextUpdate}</td>
+          <td style="border:1px solid #eee;padding:6px;">${s.advice}</td>
+        </tr>`
+        )
+        .join("")}
+    </tbody>
   `;
+  wrapper.appendChild(granularTable);
 
-  // ===== Tambahkan di bawah dashboard utama =====
-  const existingDashboard = document.querySelector("div[style*='AED Dashboard']") || document.body;
-  existingDashboard.appendChild(granularTable);
+  const existingDashboard =
+    document.querySelector("#aed-dashboard") ||
+    document.querySelector("div[style*='AED Dashboard']") ||
+    document.body;
+  existingDashboard.appendChild(wrapper);
 
-  console.log("✅ Granular Section Analysis selesai, data ditampilkan di dashboard.");
+  console.log("✅ Hybrid Evergreen Detector selesai & dateModified sinkron otomatis bila perlu.");
 })();
+</script>
 
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
