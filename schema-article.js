@@ -150,9 +150,16 @@ if(oldHash && oldHash == currentHash){
       }
     }
 
-    // ===== 7️⃣ Recommended H1 & Meta =====
-    const h1Diff = urlRaw !== h1Text.toLowerCase();
-    const recommendedH1 = h1Diff ? urlRaw.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") : h1Text;
+    // ===== 7️⃣ Recommended H1 & Meta (LOGIKA UPDATE) =====
+    const urlKeywords = urlRaw.split(" ").filter(Boolean); // ambil kata kunci URL
+    const h1Lower = h1Text.toLowerCase();
+    const allKeywordsPresent = urlKeywords.every(k=>h1Lower.includes(k));
+    const h1Diff = !allKeywordsPresent;
+
+    const recommendedH1 = h1Diff 
+      ? urlKeywords.map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") 
+      : h1Text;
+
     const sentences = textContent.split(/\.|\n/).filter(Boolean);
     let metaDesc = sentences.slice(0,3).join(". ").substring(0,160).trim();
     if(metaDesc.length < 50) metaDesc = recommendedH1 + " — " + sentences.slice(0,2).join(". ").trim();
@@ -188,7 +195,6 @@ if(oldHash && oldHash == currentHash){
       h1Status = `✅ H1 konten sudah sesuai SEO long-tail dari URL`;
     }
 
-    // Struktur: cek apakah konten sudah memiliki semua H2/H3 dari ultraStructure
     const headingsInContent = Array.from(elContent?.querySelectorAll("h2,h3")||[]).map(e=>e.innerText.trim());
     const structUltra = ultraStructure[type];
     let missingHeadings = [];
