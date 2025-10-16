@@ -151,22 +151,11 @@ if(oldHash && oldHash == currentHash){
     }
 
     // ===== 7️⃣ Recommended H1 & Meta =====
-    const h1Recommended = urlRaw ? urlRaw.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") : h1Text;
-    const h1Diff = h1Text.toLowerCase() !== h1Recommended.toLowerCase();
-
-    let h1Status = "";
-    let h1Suggestion = "";
-    if(h1Diff){
-      h1Status = "⚠️ H1 konten tidak sesuai long-tail keyword dari URL";
-      h1Suggestion = `Disarankan H1: "${h1Recommended}" (sesuaikan untuk SEO long-tail keyword)`;
-    } else {
-      h1Status = "✅ H1 konten sesuai SEO dengan URL long-tail";
-      h1Suggestion = "H1 sudah sesuai, periksa panjang dan relevansi kata jika perlu.";
-    }
-
+    const h1Diff = urlRaw !== h1Text.toLowerCase();
+    const recommendedH1 = h1Diff ? urlRaw.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") : h1Text;
     const sentences = textContent.split(/\.|\n/).filter(Boolean);
     let metaDesc = sentences.slice(0,3).join(". ").substring(0,160).trim();
-    if(metaDesc.length < 50) metaDesc = h1Recommended + " — " + sentences.slice(0,2).join(". ").trim();
+    if(metaDesc.length < 50) metaDesc = recommendedH1 + " — " + sentences.slice(0,2).join(". ").trim();
 
     // ===== 8️⃣ Struktur Heading =====
     const ultraStructure = {
@@ -191,7 +180,33 @@ if(oldHash && oldHash == currentHash){
       ]
     };
 
-    // ===== 9️⃣ Dashboard =====
+    // ===== 9️⃣ Analisis SEO H1 & Struktur =====
+    let h1Status, structStatus, structSuggestion="";
+    if(h1Diff) {
+      h1Status = `❌ H1 konten tidak sesuai SEO long-tail; sebaiknya diganti menjadi: "${recommendedH1}"`;
+    } else {
+      h1Status = `✅ H1 konten sudah sesuai SEO long-tail dari URL`;
+    }
+
+    // Struktur: cek apakah konten sudah memiliki semua H2/H3 dari ultraStructure
+    const headingsInContent = Array.from(elContent?.querySelectorAll("h2,h3")||[]).map(e=>e.innerText.trim());
+    const structUltra = ultraStructure[type];
+    let missingHeadings = [];
+    structUltra.forEach(sec=>{
+      if(!headingsInContent.includes(sec.h2)) missingHeadings.push(`H2: ${sec.h2}`);
+      sec.h3.forEach(h3Text=>{
+        if(!headingsInContent.includes(h3Text)) missingHeadings.push(`H3: ${h3Text}`);
+      });
+    });
+    if(missingHeadings.length===0) {
+      structStatus = "✅ Struktur heading ultra kompetitif sudah sesuai di konten";
+      structSuggestion = "Tambahkan internal link, meta tambahan, dan FAQ jika perlu untuk optimasi lebih lanjut";
+    } else {
+      structStatus = "❌ Struktur heading belum lengkap, perlu diterapkan seperti rekomendasi";
+      structSuggestion = missingHeadings.join(" • ");
+    }
+
+    // ===== 10️⃣ Dashboard =====
     const btnContainer = document.createElement("div");
     btnContainer.style.margin = "15px 0";
     btnContainer.style.textAlign = "center";
@@ -236,18 +251,20 @@ if(oldHash && oldHash == currentHash){
         <th style="border:1px solid #ccc;padding:6px">Halaman</th>
         <th style="border:1px solid #ccc;padding:6px">Tipe</th>
         <th style="border:1px solid #ccc;padding:6px">H1 Konten</th>
-        <th style="border:1px solid #ccc;padding:6px">H1 Rekomendasi</th>
-        <th style="border:1px solid #ccc;padding:6px">Status H1 SEO</th>
-        <th style="border:1px solid #ccc;padding:6px">Meta</th>
+        <th style="border:1px solid #ccc;padding:6px">Rekom H1</th>
+        <th style="border:1px solid #ccc;padding:6px">Status H1</th>
+        <th style="border:1px solid #ccc;padding:6px">Struktur</th>
+        <th style="border:1px solid #ccc;padding:6px">Saran Tambahan</th>
         <th style="border:1px solid #ccc;padding:6px">Next Update</th>
       </tr></thead><tbody>
         <tr>
           <td style="border:1px solid #ccc;padding:6px">${document.title || h1Text}</td>
           <td style="border:1px solid #ccc;padding:6px">${type}</td>
           <td style="border:1px solid #ccc;padding:6px">${h1Text}</td>
-          <td style="border:1px solid #ccc;padding:6px">${h1Recommended}</td>
-          <td style="border:1px solid #ccc;padding:6px">${h1Status}<br>${h1Suggestion}</td>
-          <td style="border:1px solid #ccc;padding:6px">${metaDesc}</td>
+          <td style="border:1px solid #ccc;padding:6px">${recommendedH1}</td>
+          <td style="border:1px solid #ccc;padding:6px">${h1Status}</td>
+          <td style="border:1px solid #ccc;padding:6px">${structStatus}</td>
+          <td style="border:1px solid #ccc;padding:6px">${structSuggestion}</td>
           <td style="border:1px solid #ccc;padding:6px">${nextUpdateStr}</td>
         </tr>
       </tbody>`;
@@ -273,27 +290,36 @@ if(oldHash && oldHash == currentHash){
       h.innerText="Koreksi Konten Otomatis — Pratinjau"; box.appendChild(h);
 
       const sum=document.createElement("div"); sum.style.marginBottom="10px";
-      sum.innerHTML=`<b>H1 Konten:</b> ${h1Text}<br>
-                       <b>H1 Rekomendasi (SEO Long-tail):</b> ${h1Recommended}<br>
-                       <b>Status:</b> ${h1Status}<br>
-                       <b>Meta:</b> ${metaDesc}<br>
-                       <b>Tipe:</b> ${type}`;
+      sum.innerHTML=`<b>H1 Konten:</b> ${h1Text}<br><b>Rekom H1:</b> ${recommendedH1}<br><b>Status H1:</b> ${h1Status}<br><b>Status Struktur:</b> ${structStatus}<br><b>Saran Tambahan:</b> ${structSuggestion}`;
       box.appendChild(sum);
 
       const structDiv=document.createElement("div"); structDiv.style.marginBottom="10px";
       structDiv.innerHTML="<b>Struktur Heading (Preview):</b>";
-      const struct=ultraStructure[type]||[];
-      struct.forEach(s=>{
+      structUltra.forEach(s=>{
         const p=document.createElement("div"); p.style.margin="6px 0";
         p.innerHTML=`<b>H2:</b> ${s.h2}<br><small>H3: ${s.h3?s.h3.join(" • "):"-"}</small>`;
         structDiv.appendChild(p);
       });
       box.appendChild(structDiv);
 
+      const btnWrap=document.createElement("div"); btnWrap.style.textAlign="right"; btnWrap.style.marginTop="12px";
+      const applyBtn=createBtn("💾 Terapkan H1 & Struktur", "#00b894");
+      applyBtn.onclick=()=>{
+        if(elH1 && h1Diff) elH1.innerText=recommendedH1;
+        if(elContent && structStatus.includes("❌")){
+          structUltra.forEach(s=>{
+            const h2=document.createElement("h2"); h2.innerText=s.h2; elContent.appendChild(h2);
+            s.h3.forEach(h3Text=>{ const h3=document.createElement("h3"); h3.innerText=h3Text; elContent.appendChild(h3); });
+          });
+        }
+        alert("✅ H1 dan Struktur Heading diterapkan ke halaman!");
+        document.body.removeChild(modal);
+      };
       const closeBtn=createBtn("❌ Tutup", "#f44336");
       closeBtn.onclick=()=>document.body.removeChild(modal);
-      box.appendChild(closeBtn);
 
+      btnWrap.appendChild(applyBtn); btnWrap.appendChild(closeBtn);
+      box.appendChild(btnWrap);
       document.body.appendChild(modal);
     };
 
@@ -304,13 +330,14 @@ if(oldHash && oldHash == currentHash){
       lines.push(`URL: ${location.href}`);
       lines.push(`Detected Type: ${type}`);
       lines.push(`H1 Konten: ${h1Text}`);
-      lines.push(`H1 Recommended: ${h1Recommended}`);
-      lines.push(`Status H1 SEO: ${h1Status}`);
-      lines.push(`Meta: ${metaDesc}`);
+      lines.push(`H1 Recommended: ${recommendedH1}`);
+      lines.push(`Status H1: ${h1Status}`);
+      lines.push(`Struktur Status: ${structStatus}`);
+      lines.push(`Saran Tambahan: ${structSuggestion}`);
       lines.push(`Next Update: ${nextUpdateStr}`);
       const blob=new Blob([lines.join("\n")],{type:"text/plain"});
       const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-      a.download=`AED_Report_${h1Recommended.replace(/\s+/g,"_")}.txt`;
+      a.download=`AED_Report_${recommendedH1.replace(/\s+/g,"_")}.txt`;
       a.click(); URL.revokeObjectURL(a.href);
     };
 
