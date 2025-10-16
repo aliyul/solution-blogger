@@ -71,14 +71,29 @@ if(oldHash && oldHash == currentHash){
     const elContent = document.querySelector("article, main, .post-body");
     const elH1 = document.querySelector("h1");
     const h1Text = elH1?.innerText || "(no H1)";
-    const textContent = (elContent?.innerText || "").slice(0, 4000);
+    const textContent = (elContent?.innerText || "").slice(0, 4000).toLowerCase();
 
     // ===== 2️⃣ Hash / Cache =====
     const oldHash = localStorage.getItem("AutoEvergreenHash");
     const currentHash = btoa(unescape(encodeURIComponent(h1Text + textContent)));
-    let type = "SEMI-EVERGREEN"; // default
-    let nextUpdate = new Date();
 
+    // ===== 3️⃣ Detect Type =====
+    const urlRaw = window.location.pathname.split("/").filter(Boolean).pop()
+      ?.replace(/^p\//,"").replace(/\.html$/i,"")
+      .replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,"")
+      .replace(/[-_]/g," ").trim().toLowerCase() || "";
+
+    const evergreenKeywords = ["panduan","tutorial","cara","manfaat"];
+    const nonEvergreenKeywords = ["harga","update"];
+
+    let type;
+    if(nonEvergreenKeywords.some(k=>urlRaw.includes(k))) type="NON-EVERGREEN";
+    else if(evergreenKeywords.some(k=>urlRaw.includes(k))) type="EVERGREEN";
+    else if(evergreenKeywords.some(k=>textContent.includes(k))) type="EVERGREEN";
+    else type="SEMI-EVERGREEN";
+
+    // ===== 4️⃣ Next Update =====
+    const nextUpdate = new Date();
     if(oldHash && oldHash === currentHash) {
       console.log("♻️ Konten sama, tidak perlu update nextUpdate");
     } else {
@@ -86,13 +101,12 @@ if(oldHash && oldHash == currentHash){
       else if(type === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
       else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
     }
-    
-    // ===== 3️⃣ Format tanggal =====
+
     const options = { day: "numeric", month: "long", year: "numeric" };
     const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", options);
     const dateModifiedStr = new Date().toLocaleDateString("id-ID", options);
 
-        // ===== 4️⃣ Label tipe konten =====
+    // ===== 5️⃣ Label tipe konten =====
     if(elH1) {
       const existingLabel = elH1.parentNode.querySelector("[data-aed-label]");
       if(existingLabel) existingLabel.remove();
@@ -106,11 +120,12 @@ if(oldHash && oldHash == currentHash){
       elH1.insertAdjacentElement("afterend", label);
     }
 
-    // ===== 5️⃣ Author + tanggal =====
+    // ===== 6️⃣ Author + tanggal =====
     const authorEl = document.querySelector(".post-author .fn");
     if(authorEl) {
       const oldDateSpan = authorEl.querySelector(".aed-date-span");
       if(oldDateSpan) oldDateSpan.remove();
+
       if(type === "SEMI-EVERGREEN") {
         const dateEl = document.createElement("span");
         dateEl.className = "aed-date-span";
@@ -135,22 +150,14 @@ if(oldHash && oldHash == currentHash){
       }
     }
 
-    // ===== 3️⃣ Smart Context =====
-    const urlRaw = window.location.pathname.split("/").filter(Boolean).pop()
-      ?.replace(/^p\//,"").replace(/\.html$/i,"").replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,"")
-      .replace(/[-_]/g," ").trim().toLowerCase() || "";
+    // ===== 7️⃣ Recommended H1 & Meta =====
     const h1Diff = urlRaw !== h1Text.toLowerCase();
     const recommendedH1 = urlRaw ? urlRaw.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") : h1Text;
-
-    // ===== 4️⃣ Meta Description =====
     const sentences = textContent.split(/\.|\n/).filter(Boolean);
     let metaDesc = sentences.slice(0,3).join(". ").substring(0,160).trim();
     if(metaDesc.length < 50) metaDesc = recommendedH1 + " — " + sentences.slice(0,2).join(". ").trim();
 
-    const evergreen = ["panduan","tutorial","cara","manfaat"];
-    const contextSignal = urlRaw.includes("harga")||urlRaw.includes("update") ? "NON-EVERGREEN"
-      : evergreen.some(k=>urlRaw.includes(k)) ? "EVERGREEN" : "SEMI-EVERGREEN";
-
+    // ===== 8️⃣ Struktur Heading =====
     const ultraStructure = {
       "EVERGREEN": [
         {h2:"Pendahuluan", h3:["Definisi singkat","Siapa yang butuh"]},
@@ -173,9 +180,9 @@ if(oldHash && oldHash == currentHash){
       ]
     };
 
-    const needsCorrection = (type !== contextSignal) || h1Diff;
+    const needsCorrection = (type !== "SEMI-EVERGREEN" && type !== "EVERGREEN" && type !== "NON-EVERGREEN") || h1Diff;
 
-    // ===== 5️⃣ Tombol Koreksi & Report =====
+    // ===== 9️⃣ Dashboard =====
     const btnContainer = document.createElement("div");
     btnContainer.style.margin = "15px 0";
     btnContainer.style.textAlign = "center";
@@ -194,11 +201,9 @@ if(oldHash && oldHash == currentHash){
 
     const btnKoreksi = createBtn("⚙️ Koreksi & Preview", "#ffeedd");
     const btnReport = createBtn("📥 Download Laporan", "#f3f3f3");
-
     btnContainer.appendChild(btnKoreksi);
     btnContainer.appendChild(btnReport);
 
-    // ===== 6️⃣ Tempatkan dashboard di bawah halaman =====
     const dashboardWrapper = document.createElement("div");
     dashboardWrapper.style.width = "100%";
     dashboardWrapper.style.marginTop = "30px";
@@ -231,14 +236,14 @@ if(oldHash && oldHash == currentHash){
           <td style="border:1px solid #ccc;padding:6px">${type}</td>
           <td style="border:1px solid #ccc;padding:6px">${recommendedH1}</td>
           <td style="border:1px solid #ccc;padding:6px">${metaDesc}</td>
-          <td style="border:1px solid #ccc;padding:6px">${contextSignal}</td>
+          <td style="border:1px solid #ccc;padding:6px">${type}</td>
           <td style="border:1px solid #ccc;padding:6px">${nextUpdateStr}</td>
         </tr>
       </tbody>`;
     dashboardWrapper.appendChild(table);
     document.body.appendChild(dashboardWrapper);
 
-    // ===== 7️⃣ Modal Koreksi =====
+    // ===== 🔟 Modal Koreksi =====
     btnKoreksi.onclick = ()=>{
       const modal = document.createElement("div");
       modal.style.position="fixed"; modal.style.left=0; modal.style.top=0;
@@ -257,7 +262,7 @@ if(oldHash && oldHash == currentHash){
       h.innerText="Koreksi Konten Otomatis — Pratinjau"; box.appendChild(h);
 
       const sum=document.createElement("div"); sum.style.marginBottom="10px";
-      sum.innerHTML=`<b>Rekom H1:</b> ${recommendedH1}<br><b>Meta:</b> ${metaDesc}<br><b>Tipe:</b> ${type} | <b>Context:</b> ${contextSignal}`;
+      sum.innerHTML=`<b>Rekom H1:</b> ${recommendedH1}<br><b>Meta:</b> ${metaDesc}<br><b>Tipe:</b> ${type}`;
       box.appendChild(sum);
 
       const structDiv=document.createElement("div"); structDiv.style.marginBottom="10px";
@@ -291,13 +296,12 @@ if(oldHash && oldHash == currentHash){
       document.body.appendChild(modal);
     };
 
-    // ===== 8️⃣ Download Laporan =====
+    // ===== 1️⃣1️⃣ Download Laporan =====
     btnReport.onclick=()=> {
       const lines=[];
       lines.push(`=== AED Report ===`);
       lines.push(`URL: ${location.href}`);
       lines.push(`Detected Type: ${type}`);
-      lines.push(`Context Signal: ${contextSignal}`);
       lines.push(`H1: ${h1Text}`);
       lines.push(`H1 Recommended: ${recommendedH1}`);
       lines.push(`Meta: ${metaDesc}`);
@@ -308,12 +312,13 @@ if(oldHash && oldHash == currentHash){
       a.click(); URL.revokeObjectURL(a.href);
     };
 
-    // ===== 9️⃣ Simpan hash =====
+    // ===== 1️⃣2️⃣ Simpan hash =====
     localStorage.setItem("AutoEvergreenHash", currentHash);
     console.log("✅ AED Final Interaktif siap digunakan di bawah halaman");
 
   } catch(e){ console.error("❌ Error AED Final:",e); }
 })();
+
 
 
   // ================== SCHEMA GENERATOR ==================
