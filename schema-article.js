@@ -101,6 +101,7 @@ if(oldHash && oldHash == currentHash){
       else if(type === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
       else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
     }
+
     const options = { day: "numeric", month: "long", year: "numeric" };
     const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", options);
     const dateModifiedStr = new Date().toLocaleDateString("id-ID", options);
@@ -109,21 +110,13 @@ if(oldHash && oldHash == currentHash){
     if(elH1) {
       const existingLabel = elH1.parentNode.querySelector("[data-aed-label]");
       if(existingLabel) existingLabel.remove();
-
-      // H1 SEO Check
-      const recommendedH1 = urlRaw ? urlRaw.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") : h1Text;
-      const h1Diff = urlRaw !== h1Text.toLowerCase();
-      const h1Message = h1Diff
-        ? `⚠️ H1 direkomendasikan: "${recommendedH1}" — alasan SEO: mencerminkan kata kunci utama URL, relevan, meningkatkan CTR.`
-        : `✅ H1 sudah sesuai SEO: mencerminkan kata kunci utama URL, relevan, mudah dibaca.`;
-
       const label = document.createElement("div");
       label.setAttribute("data-aed-label","true");
       label.setAttribute("data-nosnippet","true");
       label.style.fontSize = "0.9em";
       label.style.color = "#444";
       label.style.marginTop = "4px";
-      label.innerHTML = `<b>${type}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b><br>${h1Message}`;
+      label.innerHTML = `<b>${type}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
       elH1.insertAdjacentElement("afterend", label);
     }
 
@@ -157,7 +150,17 @@ if(oldHash && oldHash == currentHash){
       }
     }
 
-    // ===== 7️⃣ Recommended H1 & Meta =====
+    // ===== 7️⃣ Recommended H1 & Meta (Updated SEO logic) =====
+    const h1Diff = urlRaw !== h1Text.toLowerCase();
+    let recommendedH1 = h1Text;
+    let h1Reason = "Sudah sesuai SEO";
+
+    if(urlRaw && h1Text.toLowerCase() !== urlRaw){
+      // gunakan URL bersih sebagai long-tail H1
+      recommendedH1 = urlRaw.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ");
+      h1Reason = "Disarankan menggunakan long-tail keyword dari URL untuk SEO";
+    }
+
     const sentences = textContent.split(/\.|\n/).filter(Boolean);
     let metaDesc = sentences.slice(0,3).join(". ").substring(0,160).trim();
     if(metaDesc.length < 50) metaDesc = recommendedH1 + " — " + sentences.slice(0,2).join(". ").trim();
@@ -230,6 +233,7 @@ if(oldHash && oldHash == currentHash){
         <th style="border:1px solid #ccc;padding:6px">Halaman</th>
         <th style="border:1px solid #ccc;padding:6px">Tipe</th>
         <th style="border:1px solid #ccc;padding:6px">H1</th>
+        <th style="border:1px solid #ccc;padding:6px">Alasan SEO</th>
         <th style="border:1px solid #ccc;padding:6px">Meta</th>
         <th style="border:1px solid #ccc;padding:6px">Context</th>
         <th style="border:1px solid #ccc;padding:6px">Next Update</th>
@@ -238,6 +242,7 @@ if(oldHash && oldHash == currentHash){
           <td style="border:1px solid #ccc;padding:6px">${document.title || h1Text}</td>
           <td style="border:1px solid #ccc;padding:6px">${type}</td>
           <td style="border:1px solid #ccc;padding:6px">${recommendedH1}</td>
+          <td style="border:1px solid #ccc;padding:6px">${h1Reason}</td>
           <td style="border:1px solid #ccc;padding:6px">${metaDesc}</td>
           <td style="border:1px solid #ccc;padding:6px">${type}</td>
           <td style="border:1px solid #ccc;padding:6px">${nextUpdateStr}</td>
@@ -265,7 +270,7 @@ if(oldHash && oldHash == currentHash){
       h.innerText="Koreksi Konten Otomatis — Pratinjau"; box.appendChild(h);
 
       const sum=document.createElement("div"); sum.style.marginBottom="10px";
-      sum.innerHTML=`<b>Rekom H1:</b> ${recommendedH1}<br><b>Meta:</b> ${metaDesc}<br><b>Tipe:</b> ${type}`;
+      sum.innerHTML=`<b>Rekom H1:</b> ${recommendedH1}<br><b>Alasan SEO:</b> ${h1Reason}<br><b>Meta:</b> ${metaDesc}<br><b>Tipe:</b> ${type}`;
       box.appendChild(sum);
 
       const structDiv=document.createElement("div"); structDiv.style.marginBottom="10px";
@@ -307,6 +312,7 @@ if(oldHash && oldHash == currentHash){
       lines.push(`Detected Type: ${type}`);
       lines.push(`H1: ${h1Text}`);
       lines.push(`H1 Recommended: ${recommendedH1}`);
+      lines.push(`Alasan SEO: ${h1Reason}`);
       lines.push(`Meta: ${metaDesc}`);
       lines.push(`Next Update: ${nextUpdateStr}`);
       const blob=new Blob([lines.join("\n")],{type:"text/plain"});
