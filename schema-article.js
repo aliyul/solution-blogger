@@ -69,7 +69,7 @@ if(oldHash && oldHash == currentHash){
 (function() {
   // ===== 1️⃣ Elemen & Text Detector =====
   const elContent = document.querySelector("article, main, .post-body");
-@@ -111,186 +111,457 @@ if(oldHash && oldHash == currentHash){
+  if(oldHash && oldHash == currentHash){
   else if (type === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
   else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
   const options = { day: "numeric", month: "long", year: "numeric" };
