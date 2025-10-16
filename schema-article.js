@@ -328,7 +328,6 @@ document.head.appendChild(style);
 })();
 
 // ===== 🧩 Granular Section Detection + Smart Update Advisor (Add-on) =====
-<script>
 /* ===== 🧩 Hybrid Evergreen Detector + Smart DateModified Updater ===== */
 (function () {
   console.log("🔍 Hybrid Evergreen Detector running with smart dateModified...");
@@ -512,7 +511,6 @@ document.head.appendChild(style);
 
   console.log("✅ Hybrid Evergreen Detector selesai & dateModified sinkron otomatis bila perlu.");
 })();
-</script>
 
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
