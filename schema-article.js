@@ -285,7 +285,7 @@ URL: ${location.href}
  * 🌿 Hybrid Evergreen Detector v7.1
  * ✅ Smart Section Update + Auto dateModified + Responsive Dashboard
  * Beton Jaya Readymix ©2025
- */<script>
+ */
 /* ===== 🧩 Hybrid Evergreen Detector + Smart DateModified Updater v7.4 (Responsive Fix) ===== */
 (function runEvergreenDetector() {
   console.log("🔍 Hybrid Evergreen Detector running with smart dateModified...");
