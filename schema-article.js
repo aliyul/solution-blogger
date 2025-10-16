@@ -150,22 +150,36 @@ if(oldHash && oldHash == currentHash){
       }
     }
 
-    // ===== 7️⃣ Recommended H1 & Meta (Updated SEO logic) =====
-    const h1Diff = urlRaw !== h1Text.toLowerCase();
-    let recommendedH1 = h1Text;
-    let h1Reason = "Sudah sesuai SEO";
+    // ===== 7️⃣ Recommended H1 & SEO Logic =====
+    const h1Original = h1Text; // H1 asli konten
+    let recommendedH1 = urlRaw
+      ? urlRaw.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ")
+      : h1Original;
 
-    if(urlRaw && h1Text.toLowerCase() !== urlRaw){
-      // gunakan URL bersih sebagai long-tail H1
-      recommendedH1 = urlRaw.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ");
-      h1Reason = "Disarankan menggunakan long-tail keyword dari URL untuk SEO";
+    let h1Status = "";
+    let h1Suggestion = "";
+
+    // 1️⃣ Bandingkan H1 asli dengan H1 rekomendasi
+    if(h1Original.toLowerCase() === recommendedH1.toLowerCase()) {
+      h1Status = "Sesuai SEO";
+      h1Suggestion = "H1 sudah optimal, long-tail sesuai URL.";
+    } else {
+      h1Status = "Perlu Koreksi";
+      h1Suggestion = `Disarankan pakai long-tail keyword dari URL: "${recommendedH1}"`;
     }
 
+    // 2️⃣ Cek panjang H1 minimal 3 kata
+    if(recommendedH1.split(" ").length < 3){
+      h1Status += " & Pendek";
+      h1Suggestion += ". Pertimbangkan menambah kata agar H1 lebih panjang dan relevan.";
+    }
+
+    // ===== 8️⃣ Meta =====
     const sentences = textContent.split(/\.|\n/).filter(Boolean);
     let metaDesc = sentences.slice(0,3).join(". ").substring(0,160).trim();
     if(metaDesc.length < 50) metaDesc = recommendedH1 + " — " + sentences.slice(0,2).join(". ").trim();
 
-    // ===== 8️⃣ Struktur Heading =====
+    // ===== 9️⃣ Struktur Heading =====
     const ultraStructure = {
       "EVERGREEN": [
         {h2:"Pendahuluan", h3:["Definisi singkat","Siapa yang butuh"]},
@@ -188,7 +202,7 @@ if(oldHash && oldHash == currentHash){
       ]
     };
 
-    // ===== 9️⃣ Dashboard =====
+    // ===== 10️⃣ Dashboard =====
     const btnContainer = document.createElement("div");
     btnContainer.style.margin = "15px 0";
     btnContainer.style.textAlign = "center";
@@ -232,26 +246,28 @@ if(oldHash && oldHash == currentHash){
       <tr style="background:#dff0ff;">
         <th style="border:1px solid #ccc;padding:6px">Halaman</th>
         <th style="border:1px solid #ccc;padding:6px">Tipe</th>
-        <th style="border:1px solid #ccc;padding:6px">H1</th>
-        <th style="border:1px solid #ccc;padding:6px">Alasan SEO</th>
+        <th style="border:1px solid #ccc;padding:6px">H1 Asli</th>
+        <th style="border:1px solid #ccc;padding:6px">H1 Rekomendasi</th>
+        <th style="border:1px solid #ccc;padding:6px">Status H1</th>
+        <th style="border:1px solid #ccc;padding:6px">Saran Konten</th>
         <th style="border:1px solid #ccc;padding:6px">Meta</th>
-        <th style="border:1px solid #ccc;padding:6px">Context</th>
         <th style="border:1px solid #ccc;padding:6px">Next Update</th>
       </tr></thead><tbody>
         <tr>
           <td style="border:1px solid #ccc;padding:6px">${document.title || h1Text}</td>
           <td style="border:1px solid #ccc;padding:6px">${type}</td>
+          <td style="border:1px solid #ccc;padding:6px">${h1Original}</td>
           <td style="border:1px solid #ccc;padding:6px">${recommendedH1}</td>
-          <td style="border:1px solid #ccc;padding:6px">${h1Reason}</td>
+          <td style="border:1px solid #ccc;padding:6px">${h1Status}</td>
+          <td style="border:1px solid #ccc;padding:6px">${h1Suggestion}</td>
           <td style="border:1px solid #ccc;padding:6px">${metaDesc}</td>
-          <td style="border:1px solid #ccc;padding:6px">${type}</td>
           <td style="border:1px solid #ccc;padding:6px">${nextUpdateStr}</td>
         </tr>
       </tbody>`;
     dashboardWrapper.appendChild(table);
     document.body.appendChild(dashboardWrapper);
 
-    // ===== 🔟 Modal Koreksi =====
+    // ===== 11️⃣ Modal Koreksi =====
     btnKoreksi.onclick = ()=>{
       const modal = document.createElement("div");
       modal.style.position="fixed"; modal.style.left=0; modal.style.top=0;
@@ -270,7 +286,12 @@ if(oldHash && oldHash == currentHash){
       h.innerText="Koreksi Konten Otomatis — Pratinjau"; box.appendChild(h);
 
       const sum=document.createElement("div"); sum.style.marginBottom="10px";
-      sum.innerHTML=`<b>Rekom H1:</b> ${recommendedH1}<br><b>Alasan SEO:</b> ${h1Reason}<br><b>Meta:</b> ${metaDesc}<br><b>Tipe:</b> ${type}`;
+      sum.innerHTML=`<b>H1 Asli:</b> ${h1Original}<br>
+                      <b>H1 Rekom:</b> ${recommendedH1}<br>
+                      <b>Status:</b> ${h1Status}<br>
+                      <b>Saran Konten:</b> ${h1Suggestion}<br>
+                      <b>Meta:</b> ${metaDesc}<br>
+                      <b>Tipe:</b> ${type}`;
       box.appendChild(sum);
 
       const structDiv=document.createElement("div"); structDiv.style.marginBottom="10px";
@@ -304,15 +325,16 @@ if(oldHash && oldHash == currentHash){
       document.body.appendChild(modal);
     };
 
-    // ===== 1️⃣1️⃣ Download Laporan =====
+    // ===== 12️⃣ Download Laporan =====
     btnReport.onclick=()=> {
       const lines=[];
       lines.push(`=== AED Report ===`);
       lines.push(`URL: ${location.href}`);
       lines.push(`Detected Type: ${type}`);
-      lines.push(`H1: ${h1Text}`);
+      lines.push(`H1 Asli: ${h1Original}`);
       lines.push(`H1 Recommended: ${recommendedH1}`);
-      lines.push(`Alasan SEO: ${h1Reason}`);
+      lines.push(`Status H1: ${h1Status}`);
+      lines.push(`Saran Konten: ${h1Suggestion}`);
       lines.push(`Meta: ${metaDesc}`);
       lines.push(`Next Update: ${nextUpdateStr}`);
       const blob=new Blob([lines.join("\n")],{type:"text/plain"});
@@ -321,13 +343,12 @@ if(oldHash && oldHash == currentHash){
       a.click(); URL.revokeObjectURL(a.href);
     };
 
-    // ===== 1️⃣2️⃣ Simpan hash =====
+    // ===== 13️⃣ Simpan hash =====
     localStorage.setItem("AutoEvergreenHash", currentHash);
     console.log("✅ AED Final Interaktif siap digunakan di bawah halaman");
 
   } catch(e){ console.error("❌ Error AED Final:",e); }
 })();
-
 
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
