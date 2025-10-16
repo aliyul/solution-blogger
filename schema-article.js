@@ -65,7 +65,6 @@ if(oldHash && oldHash == currentHash){
 }
 
 // ================== DETEKSI TYPE KONTEN ==================
-// ⚡ Auto Evergreen Detector v9.8-Pro Fusion — SmartContext + Dashboard + AuthorDate + Update Tools (UPGRADED)
 (function() {
   try {
     // ===== 1️⃣ Elemen & Text Detector =====
@@ -109,7 +108,7 @@ if(oldHash && oldHash == currentHash){
       : evergreen.some(k=>urlRaw.includes(k)) ? "EVERGREEN" : "SEMI-EVERGREEN";
 
     const ultraStructure = {
-      'EVERGREEN": [
+      "EVERGREEN": [
         {h2:"Pendahuluan", h3:["Definisi singkat","Siapa yang butuh"]},
         {h2:"Manfaat & Kegunaan", h3:["Manfaat utama","Kapan digunakan"]},
         {h2:"Langkah / Tutorial Lengkap", h3:["Persiapan","Langkah 1","Langkah 2","Tips"]},
@@ -132,29 +131,7 @@ if(oldHash && oldHash == currentHash){
 
     const needsCorrection = (type !== contextSignal) || h1Diff;
 
-    // ===== 5️⃣ Dashboard =====
-    const dashboardId = "AEDv98_dashboardTable";
-    let table = document.getElementById(dashboardId);
-    if(!table) {
-      table = document.createElement("table");
-      table.id = dashboardId;
-      table.style.width = "100%";
-      table.style.borderCollapse = "collapse";
-      table.style.marginTop = "20px";
-      table.innerHTML = `<thead>
-        <tr style="background:#dff0ff;">
-          <th>Halaman</th><th>Tipe</th><th>H1</th><th>Meta</th><th>Context</th><th>Next Update</th>
-        </tr></thead><tbody></tbody>`;
-      document.body.insertBefore(table, document.body.firstChild);
-    }
-    const tbody = table.querySelector("tbody");
-    let row = document.createElement("tr");
-    row.innerHTML = `<td>${document.title || h1Text}</td>
-      <td>${type}</td><td>${recommendedH1}</td><td>${metaDesc}</td>
-      <td>${contextSignal}</td><td>${nextUpdateStr}</td>`;
-    tbody.appendChild(row);
-
-    // ===== 6️⃣ Tombol Koreksi & Report =====
+    // ===== 5️⃣ Tombol Koreksi & Report =====
     const btnContainer = document.createElement("div");
     btnContainer.style.margin = "15px 0";
     btnContainer.style.textAlign = "center";
@@ -174,12 +151,53 @@ if(oldHash && oldHash == currentHash){
     const btnKoreksi = createBtn("⚙️ Koreksi & Preview", "#ffeedd");
     const btnReport = createBtn("📥 Download Laporan", "#f3f3f3");
 
+    btnContainer.appendChild(btnKoreksi);
+    btnContainer.appendChild(btnReport);
+
+    // ===== 6️⃣ Tempatkan dashboard di bawah halaman =====
+    const dashboardWrapper = document.createElement("div");
+    dashboardWrapper.style.width = "100%";
+    dashboardWrapper.style.marginTop = "30px";
+    dashboardWrapper.style.padding = "15px";
+    dashboardWrapper.style.borderTop = "3px solid #0078ff";
+    dashboardWrapper.style.background = "#f0f8ff";
+    dashboardWrapper.style.boxSizing = "border-box";
+    dashboardWrapper.style.fontFamily = "Arial, sans-serif";
+
+    const dashboardTitle = document.createElement("h3");
+    dashboardTitle.innerText = "📊 AED Dashboard — Ringkasan Halaman";
+    dashboardWrapper.appendChild(dashboardTitle);
+    dashboardWrapper.appendChild(btnContainer);
+
+    const table = document.createElement("table");
+    table.style.width="100%";
+    table.style.borderCollapse="collapse";
+    table.style.marginTop="10px";
+    table.innerHTML = `<thead>
+      <tr style="background:#dff0ff;">
+        <th style="border:1px solid #ccc;padding:6px">Halaman</th>
+        <th style="border:1px solid #ccc;padding:6px">Tipe</th>
+        <th style="border:1px solid #ccc;padding:6px">H1</th>
+        <th style="border:1px solid #ccc;padding:6px">Meta</th>
+        <th style="border:1px solid #ccc;padding:6px">Context</th>
+        <th style="border:1px solid #ccc;padding:6px">Next Update</th>
+      </tr></thead><tbody>
+        <tr>
+          <td style="border:1px solid #ccc;padding:6px">${document.title || h1Text}</td>
+          <td style="border:1px solid #ccc;padding:6px">${type}</td>
+          <td style="border:1px solid #ccc;padding:6px">${recommendedH1}</td>
+          <td style="border:1px solid #ccc;padding:6px">${metaDesc}</td>
+          <td style="border:1px solid #ccc;padding:6px">${contextSignal}</td>
+          <td style="border:1px solid #ccc;padding:6px">${nextUpdateStr}</td>
+        </tr>
+      </tbody>`;
+    dashboardWrapper.appendChild(table);
+    document.body.appendChild(dashboardWrapper);
+
     // ===== 7️⃣ Modal Koreksi =====
     btnKoreksi.onclick = ()=>{
-      // modal overlay
       const modal = document.createElement("div");
-      modal.style.position="fixed";
-      modal.style.left=0; modal.style.top=0;
+      modal.style.position="fixed"; modal.style.left=0; modal.style.top=0;
       modal.style.right=0; modal.style.bottom=0;
       modal.style.background="rgba(0,0,0,0.45)";
       modal.style.display="flex"; modal.style.alignItems="center"; modal.style.justifyContent="center";
@@ -191,74 +209,66 @@ if(oldHash && oldHash == currentHash){
       box.style.boxShadow="0 8px 30px rgba(0,0,0,0.2)";
       modal.appendChild(box);
 
-      const h = document.createElement("h3");
-      h.textContent="Koreksi Konten Otomatis — Pratinjau";
-      box.appendChild(h);
+      const h=document.createElement("h3");
+      h.innerText="Koreksi Konten Otomatis — Pratinjau"; box.appendChild(h);
 
-      const sum = document.createElement("div");
-      sum.style.marginBottom="10px";
+      const sum=document.createElement("div"); sum.style.marginBottom="10px";
       sum.innerHTML=`<b>Rekom H1:</b> ${recommendedH1}<br><b>Meta:</b> ${metaDesc}<br><b>Tipe:</b> ${type} | <b>Context:</b> ${contextSignal}`;
       box.appendChild(sum);
 
-      const structDiv = document.createElement("div");
-      structDiv.style.marginBottom="10px";
+      const structDiv=document.createElement("div"); structDiv.style.marginBottom="10px";
       structDiv.innerHTML="<b>Struktur Heading (Preview):</b>";
       const struct=ultraStructure[type]||[];
       struct.forEach(s=>{
-        const p=document.createElement("div");
-        p.style.margin="6px 0";
+        const p=document.createElement("div"); p.style.margin="6px 0";
         p.innerHTML=`<b>H2:</b> ${s.h2}<br><small>H3: ${s.h3?s.h3.join(" • "):"-"}</small>`;
         structDiv.appendChild(p);
       });
       box.appendChild(structDiv);
 
-      // action buttons
-      const btnWrap=document.createElement("div");
-      btnWrap.style.textAlign="right"; btnWrap.style.marginTop="12px";
-
+      const btnWrap=document.createElement("div"); btnWrap.style.textAlign="right"; btnWrap.style.marginTop="12px";
       const applyBtn=createBtn("💾 Terapkan H1 & Struktur", "#00b894");
       applyBtn.onclick=()=>{
         if(elH1) elH1.innerText=recommendedH1;
-        // insert H2/H3 structure into article if content area exists
         if(elContent){
           struct.forEach(s=>{
             const h2=document.createElement("h2"); h2.innerText=s.h2; elContent.appendChild(h2);
             s.h3.forEach(h3Text=>{ const h3=document.createElement("h3"); h3.innerText=h3Text; elContent.appendChild(h3); });
           });
         }
-        alert("✅ H1 & Struktur Heading telah diterapkan di halaman.");
+        alert("✅ H1 dan Struktur Heading diterapkan ke halaman!");
+        document.body.removeChild(modal);
       };
+      const closeBtn=createBtn("❌ Tutup", "#f44336");
+      closeBtn.onclick=()=>document.body.removeChild(modal);
 
-      const closeBtn=createBtn("✖ Tutup", "#f66");
-      closeBtn.onclick=()=> modal.remove();
-
-      btnWrap.appendChild(applyBtn);
-      btnWrap.appendChild(closeBtn);
+      btnWrap.appendChild(applyBtn); btnWrap.appendChild(closeBtn);
       box.appendChild(btnWrap);
-
       document.body.appendChild(modal);
     };
 
-    btnReport.onclick=()=>{
-      const report = `URL: ${location.href}\nH1: ${recommendedH1}\nMeta: ${metaDesc}\nTipe: ${type}\nContext: ${contextSignal}\nNext Update: ${nextUpdateStr}`;
-      const blob=new Blob([report],{type:"text/plain"});
+    // ===== 8️⃣ Download Laporan =====
+    btnReport.onclick=()=> {
+      const lines=[];
+      lines.push(`=== AED Report ===`);
+      lines.push(`URL: ${location.href}`);
+      lines.push(`Detected Type: ${type}`);
+      lines.push(`Context Signal: ${contextSignal}`);
+      lines.push(`H1: ${h1Text}`);
+      lines.push(`H1 Recommended: ${recommendedH1}`);
+      lines.push(`Meta: ${metaDesc}`);
+      lines.push(`Next Update: ${nextUpdateStr}`);
+      const blob=new Blob([lines.join("\n")],{type:"text/plain"});
       const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
       a.download=`AED_Report_${recommendedH1.replace(/\s+/g,"_")}.txt`;
       a.click(); URL.revokeObjectURL(a.href);
     };
 
-    btnContainer.appendChild(btnKoreksi);
-    btnContainer.appendChild(btnReport);
-    document.body.insertBefore(btnContainer, table.nextSibling);
-
-    // ===== 8️⃣ Simpan hash =====
+    // ===== 9️⃣ Simpan hash =====
     localStorage.setItem("AutoEvergreenHash", currentHash);
+    console.log("✅ AED Final Interaktif siap digunakan di bawah halaman");
 
-    console.log("✅ Auto Evergreen Detector Final Interaktif siap digunakan");
-
-  } catch(e){
-    console.error("❌ Error Auto Evergreen Detector Final:",e);
-  }
+  } catch(e){ console.error("❌ Error AED Final:",e); }
 })();
 
 
