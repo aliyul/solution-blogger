@@ -126,20 +126,20 @@ if(oldHash && oldHash == currentHash){
 
     // ===== 7️⃣ Ultra Structure =====
     const ultraStructure={
-      EVERGREEN:[
+      "EVERGREEN":[
         {h2:"Pendahuluan",h3:["Definisi singkat","Siapa yang butuh"]},
         {h2:"Manfaat & Kegunaan",h3:["Manfaat utama","Kapan digunakan"]},
         {h2:"Langkah / Tutorial Lengkap",h3:["Persiapan","Langkah 1","Langkah 2","Tips"]},
         {h2:"Contoh & Studi Kasus",h3:["Contoh 1","Contoh 2"]},
         {h2:"FAQ",h3:["Pertanyaan Umum 1","Pertanyaan Umum 2"]}
       ],
-      SEMI-EVERGREEN:[
+      "SEMI-EVERGREEN":[
         {h2:"Ringkasan & Tren",h3:["Apa yang berubah","Data terbaru"]},
         {h2:"Langkah / Cara",h3:["Langkah utama","Contoh penggunaan"]},
         {h2:"Perbandingan / Analisis",h3:["Kelebihan","Kekurangan"]},
         {h2:"Saran Praktis",h3:["Tips","Kesimpulan singkat"]}
       ],
-      NON-EVERGREEN:[
+      "NON-EVERGREEN":[
         {h2:"Harga & Promo Terkini",h3:["Daftar Harga","Syarat & Ketentuan"]},
         {h2:"Ketersediaan & Wilayah",h3:["Area 1","Area 2"]},
         {h2:"Periode & Update",h3:["Tanggal berlaku","Catatan penting"]},
