@@ -101,7 +101,6 @@ if(oldHash && oldHash == currentHash){
       else if(type === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
       else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
     }
-
     const options = { day: "numeric", month: "long", year: "numeric" };
     const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", options);
     const dateModifiedStr = new Date().toLocaleDateString("id-ID", options);
@@ -110,13 +109,21 @@ if(oldHash && oldHash == currentHash){
     if(elH1) {
       const existingLabel = elH1.parentNode.querySelector("[data-aed-label]");
       if(existingLabel) existingLabel.remove();
+
+      // H1 SEO Check
+      const recommendedH1 = urlRaw ? urlRaw.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") : h1Text;
+      const h1Diff = urlRaw !== h1Text.toLowerCase();
+      const h1Message = h1Diff
+        ? `⚠️ H1 direkomendasikan: "${recommendedH1}" — alasan SEO: mencerminkan kata kunci utama URL, relevan, meningkatkan CTR.`
+        : `✅ H1 sudah sesuai SEO: mencerminkan kata kunci utama URL, relevan, mudah dibaca.`;
+
       const label = document.createElement("div");
       label.setAttribute("data-aed-label","true");
       label.setAttribute("data-nosnippet","true");
       label.style.fontSize = "0.9em";
       label.style.color = "#444";
       label.style.marginTop = "4px";
-      label.innerHTML = `<b>${type}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+      label.innerHTML = `<b>${type}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b><br>${h1Message}`;
       elH1.insertAdjacentElement("afterend", label);
     }
 
@@ -151,8 +158,6 @@ if(oldHash && oldHash == currentHash){
     }
 
     // ===== 7️⃣ Recommended H1 & Meta =====
-    const h1Diff = urlRaw !== h1Text.toLowerCase();
-    const recommendedH1 = urlRaw ? urlRaw.split(" ").map(w=>w[0].toUpperCase()+w.slice(1)).join(" ") : h1Text;
     const sentences = textContent.split(/\.|\n/).filter(Boolean);
     let metaDesc = sentences.slice(0,3).join(". ").substring(0,160).trim();
     if(metaDesc.length < 50) metaDesc = recommendedH1 + " — " + sentences.slice(0,2).join(". ").trim();
@@ -179,8 +184,6 @@ if(oldHash && oldHash == currentHash){
         {h2:"Kontak & Cara Order", h3:["Kontak","Proses pemesanan"]}
       ]
     };
-
-    const needsCorrection = (type !== "SEMI-EVERGREEN" && type !== "EVERGREEN" && type !== "NON-EVERGREEN") || h1Diff;
 
     // ===== 9️⃣ Dashboard =====
     const btnContainer = document.createElement("div");
@@ -318,7 +321,6 @@ if(oldHash && oldHash == currentHash){
 
   } catch(e){ console.error("❌ Error AED Final:",e); }
 })();
-
 
 
   // ================== SCHEMA GENERATOR ==================
