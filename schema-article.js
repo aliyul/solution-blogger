@@ -286,254 +286,207 @@ URL: ${location.href}
  * ✅ Smart Section Update + Auto dateModified + Responsive Dashboard
  * Beton Jaya Readymix ©2025
  */
-/* ===== 🧩 Hybrid Evergreen Detector + Smart DateModified Updater v7.4 (Responsive Fix) ===== */
-(function runEvergreenDetector() {
-  console.log("🔍 Hybrid Evergreen Detector running with smart dateModified...");
 
-  // ===== Inject responsive CSS langsung (agar selalu aktif) =====
+/* ===== 🧩 Hybrid Evergreen Detector + Smart Selective DateModified v7.6 ===== */
+(function runEvergreenDetector() {
+  console.log("🔍 Running Smart Selective Evergreen Detector v7.6...");
+
+  // === Inject responsive CSS ===
   const style = document.createElement("style");
   style.textContent = `
-  [data-nosnippet] {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  [data-nosnippet] table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 700px;
-  }
-  [data-nosnippet] th, [data-nosnippet] td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
-    vertical-align: top;
-  }
-  [data-nosnippet] thead {
-    position: sticky;
-    top: 0;
-    background: #f9fcff;
-    z-index: 5;
-  }
-  [data-nosnippet] tr:nth-child(even) {
-    background: #fafafa;
-  }
-  @media (max-width: 768px) {
-    [data-nosnippet] table { min-width: 600px; }
-    [data-nosnippet] td { font-size: 13px; word-break: break-word; }
-    [data-nosnippet] button { width: 100%; margin-top: 10px; }
-  }
-  `;
+  [data-nosnippet]{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  [data-nosnippet] table{width:100%;border-collapse:collapse;min-width:700px;}
+  [data-nosnippet] th,[data-nosnippet] td{border:1px solid #ddd;padding:8px;text-align:left;vertical-align:top;}
+  [data-nosnippet] thead{position:sticky;top:0;background:#f9fcff;z-index:5;}
+  [data-nosnippet] tr:nth-child(even){background:#fafafa;}
+  @media(max-width:768px){
+    [data-nosnippet] table{min-width:600px;}
+    [data-nosnippet] td{font-size:13px;word-break:break-word;}
+    [data-nosnippet] button{width:100%;margin-top:10px;}
+  }`;
   document.head.appendChild(style);
 
-  // ===== Util: bersihkan teks =====
-  function cleanText(str) {
-    if (!str) return "";
-    return str.replace(/\s+/g, " ").trim();
-  }
+  // === Util ===
+  const cleanText = (s) => (s ? s.replace(/\s+/g, " ").trim() : "");
+  const hashString = (s) => {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) {
+      h = (h << 5) - h + s.charCodeAt(i);
+      h |= 0;
+    }
+    return h;
+  };
+  const convertToWIB = (iso) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return new Date(d.getTime() + 7 * 60 * 60 * 1000).toISOString().split("T")[0];
+  };
 
-  // ===== Ambil seluruh section berdasarkan H2/H3 =====
-  const allSections = [];
+  // === Ambil konten utama ===
   const contentRoot =
     document.querySelector("article") ||
     document.querySelector(".post-body") ||
     document.querySelector("main") ||
     document.body;
 
-  const headings = contentRoot.querySelectorAll("h2, h3");
-  let currentSection = null;
+  // === Hash Global ===
+  const contentText = cleanText(contentRoot.innerText);
+  const globalHash = hashString(contentText);
+  const oldGlobalHash = localStorage.getItem("globalHash_" + location.pathname);
+  localStorage.setItem("globalHash_" + location.pathname, globalHash);
 
+  // === Meta datePublished & dateModified ===
+  const datePublished =
+    convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content) ||
+    "";
+  let dateModified =
+    convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content) ||
+    datePublished;
+
+  // === Ambil section berdasarkan H2/H3 ===
+  const sections = [];
+  const headings = contentRoot.querySelectorAll("h2, h3");
+  let current = null;
   headings.forEach((h) => {
     if (h.tagName === "H2") {
-      if (currentSection) allSections.push(currentSection);
-      currentSection = { title: cleanText(h.innerText), content: "" };
-    } else if (h.tagName === "H3" && currentSection) {
-      currentSection.content += "\n" + cleanText(h.innerText);
+      if (current) sections.push(current);
+      current = { title: cleanText(h.innerText), content: "" };
+    } else if (h.tagName === "H3" && current) {
+      current.content += "\n" + cleanText(h.innerText);
     }
-
-    // Ambil isi paragraf di bawah heading
     let next = h.nextElementSibling;
     while (next && !/^H[23]$/i.test(next.tagName)) {
-      if (next.innerText) currentSection.content += "\n" + cleanText(next.innerText);
+      if (next.innerText) current.content += "\n" + cleanText(next.innerText);
       next = next.nextElementSibling;
     }
   });
-  if (currentSection) allSections.push(currentSection);
+  if (current) sections.push(current);
 
-  // ===== Deteksi tipe konten =====
-  function detectType(text) {
-    const lower = text.toLowerCase();
-    if (/(harga|update|promo|diskon|biaya|daftar terbaru|bulan ini|tahun)/.test(lower))
-      return "NON-EVERGREEN";
-    if (/(proyek|spesifikasi|fitur|jenis|perbandingan|keunggulan)/.test(lower))
+  // === Deteksi tipe konten ===
+  const detectType = (t) => {
+    const l = t.toLowerCase();
+    if (/(harga|update|promo|diskon|biaya|bulan ini|tahun)/.test(l)) return "NON-EVERGREEN";
+    if (/(proyek|spesifikasi|fitur|jenis|perbandingan|keunggulan)/.test(l))
       return "SEMI-EVERGREEN";
     return "EVERGREEN";
-  }
+  };
 
-  // ===== Hash util =====
-  function hashString(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-      hash |= 0;
-    }
-    return hash;
-  }
-
-  // ===== Deteksi perubahan per section =====
-  const sectionResults = [];
-  let importantChangeDetected = false;
-
-  allSections.forEach((sec, i) => {
+  // === Analisis perubahan per-section ===
+  let importantChanged = false;
+  const results = [];
+  sections.forEach((sec, i) => {
     const type = detectType(sec.title + " " + sec.content);
     const hash = hashString(sec.title + sec.content);
-    const key = "sec_hash_" + i + "_" + location.pathname;
-    const prevHash = localStorage.getItem(key);
-    const changed = prevHash && prevHash !== String(hash);
+    const key = `sec_hash_${i}_${location.pathname}`;
+    const old = localStorage.getItem(key);
+    const changed = old && old !== String(hash);
     localStorage.setItem(key, hash);
 
-    if (changed && (type === "NON-EVERGREEN" || type === "SEMI-EVERGREEN")) {
-      importantChangeDetected = true;
+    if (changed && (type === "SEMI-EVERGREEN" || type === "NON-EVERGREEN")) {
+      importantChanged = true;
     }
 
-    let updateMonths =
-      type === "EVERGREEN" ? 12 : type === "SEMI-EVERGREEN" ? 6 : 3;
-    const nextUpdateDate = new Date();
-    nextUpdateDate.setMonth(nextUpdateDate.getMonth() + updateMonths);
+    const months = type === "EVERGREEN" ? 12 : type === "SEMI-EVERGREEN" ? 6 : 3;
+    const nextUpdate = new Date();
+    nextUpdate.setMonth(nextUpdate.getMonth() + months);
 
-    let advice = [];
     const txt = sec.content.toLowerCase();
-    if (/harga|biaya|tarif/.test(txt)) advice.push("Perbarui data harga agar tetap akurat.");
-    if (/spesifikasi|fitur|ukuran/.test(txt))
-      advice.push("Tambahkan tabel spesifikasi terbaru atau bandingkan produk.");
-    if (/manfaat|fungsi/.test(txt)) advice.push("Tambahkan contoh penerapan nyata atau visual.");
+    const advice = [];
+    if (/harga|biaya|tarif/.test(txt)) advice.push("Perbarui harga secara berkala.");
+    if (/spesifikasi|fitur|ukuran/.test(txt)) advice.push("Tambahkan update spesifikasi terbaru.");
+    if (/manfaat|fungsi/.test(txt)) advice.push("Sertakan contoh nyata penerapan.");
     if (txt.length < 400) advice.push("Perluas isi agar lebih komprehensif.");
-    if (!/faq|pertanyaan|tanya/.test(txt) && i === allSections.length - 1)
-      advice.push("Tambahkan FAQ di akhir artikel.");
+    if (!/faq|pertanyaan/.test(txt) && i === sections.length - 1)
+      advice.push("Tambahkan FAQ di bagian akhir.");
 
-    sectionResults.push({
+    results.push({
       section: sec.title || "(Tanpa Judul)",
       type,
       changed,
-      nextUpdate: nextUpdateDate.toLocaleDateString(),
-      advice: advice.length ? advice.join(" ") : "Konten stabil, tidak perlu pembaruan besar.",
+      nextUpdate: nextUpdate.toLocaleDateString(),
+      advice: advice.join(" ") || "Stabil, cukup review ringan.",
     });
   });
 
-  // ===== Smart Global dateModified update =====
-  if (importantChangeDetected) {
-    const today = new Date().toISOString().split("T")[0];
-    console.log(`🕓 Penting! Update terdeteksi → Set dateModified: ${today}`);
+  // === Selective dateModified Update ===
+  if (oldGlobalHash && oldGlobalHash !== String(globalHash) && importantChanged) {
+    dateModified = convertToWIB(new Date().toISOString());
+    console.log("⚡ Update signifikan pada section penting → update dateModified:", dateModified);
 
-    const scripts = document.querySelectorAll('script[type="application/ld+json"]');
-    scripts.forEach((script) => {
+    // Update schema & meta
+    document.querySelectorAll('script[type="application/ld+json"]').forEach((s) => {
       try {
-        const data = JSON.parse(script.textContent);
-        if (data && data.dateModified) {
-          data.dateModified = today;
-          script.textContent = JSON.stringify(data, null, 2);
-          console.log("✅ Schema dateModified diperbarui.");
+        const d = JSON.parse(s.textContent);
+        if (d.dateModified) {
+          d.dateModified = dateModified;
+          s.textContent = JSON.stringify(d, null, 2);
         }
-      } catch (e) {}
+      } catch {}
     });
-
-    let meta = document.querySelector('meta[itemprop="dateModified"]');
-    if (meta) {
-      meta.setAttribute("content", today);
-      console.log("✅ Meta dateModified diperbarui.");
-    }
-
-    localStorage.setItem("lastGlobalModified_" + location.pathname, today);
+    const meta = document.querySelector('meta[itemprop="dateModified"]');
+    if (meta) meta.setAttribute("content", dateModified);
+  } else {
+    console.log("ℹ Tidak ada perubahan penting → dateModified tidak diperbarui.");
   }
 
-  // ===== Tampilkan hasil ke tabel =====
-  const wrapper = document.createElement("div");
-  wrapper.setAttribute("data-nosnippet", "true");
-  Object.assign(wrapper.style, {
-    overflowX: "auto",
-    marginTop: "20px",
-    border: "1px solid #ccc",
-    borderRadius: "8px",
-    background: "#fff",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-    padding: "10px",
-    fontFamily: "system-ui, sans-serif",
-    fontSize: "0.9em",
-    maxWidth: "100%",
-  });
+  // === Render dashboard visual ===
+  const wrap = document.createElement("div");
+  wrap.setAttribute("data-nosnippet", "true");
+  wrap.style = "margin-top:20px;padding:10px;border:1px solid #ccc;border-radius:8px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.1);";
 
   const table = document.createElement("table");
-  table.style.width = "100%";
-  table.style.borderCollapse = "collapse";
-  table.style.minWidth = "900px";
   table.innerHTML = `
-    <thead>
-      <tr>
-        <th>Section</th>
-        <th>Tipe</th>
-        <th>Perubahan</th>
-        <th>Next Update</th>
-        <th>Saran</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${sectionResults
-        .map(
-          (s) => `
-        <tr>
-          <td>${s.section}</td>
-          <td style="font-weight:600;color:${
-            s.type === "EVERGREEN"
-              ? "green"
-              : s.type === "SEMI-EVERGREEN"
-              ? "orange"
-              : "red"
-          };">${s.type}</td>
-          <td>${s.changed ? "✅ Berubah" : "– Stabil"}</td>
-          <td>${s.nextUpdate}</td>
-          <td>${s.advice}</td>
-        </tr>`
-        )
-        .join("")}
-    </tbody>
-  `;
-  wrapper.appendChild(table);
-
-  const rerunBtn = document.createElement("button");
-  rerunBtn.textContent = "🔄 Deteksi Ulang Sekarang";
-  Object.assign(rerunBtn.style, {
-    marginTop: "15px",
-    padding: "10px 18px",
-    background: "#007BFF",
-    color: "#fff",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    fontWeight: "600",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-  });
-  rerunBtn.addEventListener("click", () => {
-    console.log("🔁 Deteksi ulang dijalankan manual...");
-    wrapper.remove();
-    runEvergreenDetector();
-  });
-  wrapper.appendChild(rerunBtn);
+  <thead><tr><th>Section</th><th>Tipe</th><th>Perubahan</th><th>Next Update</th><th>Saran</th></tr></thead>
+  <tbody>
+    ${results
+      .map(
+        (r) => `
+    <tr style="background:${
+      r.type === "EVERGREEN"
+        ? "#e8fce8"
+        : r.type === "SEMI-EVERGREEN"
+        ? "#fff5e0"
+        : "#ffeaea"
+    };">
+      <td>${r.section}</td>
+      <td><b>${r.type}</b></td>
+      <td>${r.changed ? "✅ Berubah" : "– Stabil"}</td>
+      <td>${r.nextUpdate}</td>
+      <td>${r.advice}</td>
+    </tr>`
+      )
+      .join("")}
+  </tbody>`;
+  wrap.appendChild(table);
 
   const info = document.createElement("div");
   info.style.marginTop = "8px";
   info.style.fontSize = "13px";
-  info.style.color = importantChangeDetected ? "green" : "gray";
-  info.textContent = importantChangeDetected
-    ? "✔ Konten penting telah diperbarui (dateModified sinkron)"
-    : "ℹ Tidak ada perubahan signifikan pada konten utama.";
-  wrapper.appendChild(info);
+  info.textContent = `📅 Published: ${datePublished || "-"} | Last Modified: ${dateModified}`;
+  wrap.appendChild(info);
 
-  const target =
-    document.querySelector("#aed-dashboard") ||
+  const btn = document.createElement("button");
+  btn.textContent = "🔄 Deteksi Ulang";
+  Object.assign(btn.style, {
+    marginTop: "10px",
+    padding: "8px 14px",
+    background: "#007bff",
+    color: "#fff",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+  });
+  btn.onclick = () => {
+    wrap.remove();
+    runEvergreenDetector();
+  };
+  wrap.appendChild(btn);
+
+  (document.querySelector("#aed-dashboard") ||
     document.querySelector("main") ||
-    document.body;
-  target.appendChild(wrapper);
+    document.body).appendChild(wrap);
 
-  console.log("✅ Hybrid Evergreen Detector selesai & dateModified sinkron otomatis bila perlu.");
+  console.log("✅ v7.6 selesai – Selective dateModified aktif & visual indikator ditampilkan.");
 })();
 
   // ================== SCHEMA GENERATOR ==================
