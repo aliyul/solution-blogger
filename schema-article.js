@@ -285,10 +285,45 @@ URL: ${location.href}
  * 🌿 Hybrid Evergreen Detector v7.1
  * ✅ Smart Section Update + Auto dateModified + Responsive Dashboard
  * Beton Jaya Readymix ©2025
- */
-/* ===== 🧩 Hybrid Evergreen Detector + Smart DateModified Updater v7.3 (data-nosnippet) ===== */
+ */<script>
+/* ===== 🧩 Hybrid Evergreen Detector + Smart DateModified Updater v7.4 (Responsive Fix) ===== */
 (function runEvergreenDetector() {
   console.log("🔍 Hybrid Evergreen Detector running with smart dateModified...");
+
+  // ===== Inject responsive CSS langsung (agar selalu aktif) =====
+  const style = document.createElement("style");
+  style.textContent = `
+  [data-nosnippet] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  [data-nosnippet] table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 700px;
+  }
+  [data-nosnippet] th, [data-nosnippet] td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  [data-nosnippet] thead {
+    position: sticky;
+    top: 0;
+    background: #f9fcff;
+    z-index: 5;
+  }
+  [data-nosnippet] tr:nth-child(even) {
+    background: #fafafa;
+  }
+  @media (max-width: 768px) {
+    [data-nosnippet] table { min-width: 600px; }
+    [data-nosnippet] td { font-size: 13px; word-break: break-word; }
+    [data-nosnippet] button { width: 100%; margin-top: 10px; }
+  }
+  `;
+  document.head.appendChild(style);
 
   // ===== Util: bersihkan teks =====
   function cleanText(str) {
@@ -389,7 +424,6 @@ URL: ${location.href}
     const today = new Date().toISOString().split("T")[0];
     console.log(`🕓 Penting! Update terdeteksi → Set dateModified: ${today}`);
 
-    // 1️⃣ Update JSON-LD schema jika ada
     const scripts = document.querySelectorAll('script[type="application/ld+json"]');
     scripts.forEach((script) => {
       try {
@@ -402,43 +436,43 @@ URL: ${location.href}
       } catch (e) {}
     });
 
-    // 2️⃣ Update <meta itemprop="dateModified"> jika ada
     let meta = document.querySelector('meta[itemprop="dateModified"]');
     if (meta) {
       meta.setAttribute("content", today);
       console.log("✅ Meta dateModified diperbarui.");
     }
 
-    // 3️⃣ Simpan waktu modifikasi terakhir di localStorage
     localStorage.setItem("lastGlobalModified_" + location.pathname, today);
   }
 
-  // ===== Tampilkan hasil ke tabel (noindexable snippet) =====
+  // ===== Tampilkan hasil ke tabel =====
   const wrapper = document.createElement("div");
   wrapper.setAttribute("data-nosnippet", "true");
-  wrapper.style.overflowX = "auto";
-  wrapper.style.marginTop = "20px";
-  wrapper.style.border = "1px solid #ccc";
-  wrapper.style.borderRadius = "8px";
-  wrapper.style.background = "#fff";
-  wrapper.style.boxShadow = "0 2px 6px rgba(0,0,0,0.1)";
-  wrapper.style.padding = "10px";
-  wrapper.style.fontFamily = "system-ui, sans-serif";
-  wrapper.style.fontSize = "0.9em";
-  wrapper.style.maxWidth = "100%";
+  Object.assign(wrapper.style, {
+    overflowX: "auto",
+    marginTop: "20px",
+    border: "1px solid #ccc",
+    borderRadius: "8px",
+    background: "#fff",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+    padding: "10px",
+    fontFamily: "system-ui, sans-serif",
+    fontSize: "0.9em",
+    maxWidth: "100%",
+  });
 
-  const granularTable = document.createElement("table");
-  granularTable.style.width = "100%";
-  granularTable.style.borderCollapse = "collapse";
-  granularTable.style.minWidth = "900px";
-  granularTable.innerHTML = `
-    <thead style="position: sticky; top: 0; background: #eaf7ff; z-index: 5;">
+  const table = document.createElement("table");
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+  table.style.minWidth = "900px";
+  table.innerHTML = `
+    <thead>
       <tr>
-        <th style="border:1px solid #ccc;padding:8px;">Section (H2/H3)</th>
-        <th style="border:1px solid #ccc;padding:8px;">Tipe</th>
-        <th style="border:1px solid #ccc;padding:8px;">Perubahan</th>
-        <th style="border:1px solid #ccc;padding:8px;">Next Update</th>
-        <th style="border:1px solid #ccc;padding:8px;">Saran Konten</th>
+        <th>Section</th>
+        <th>Tipe</th>
+        <th>Perubahan</th>
+        <th>Next Update</th>
+        <th>Saran</th>
       </tr>
     </thead>
     <tbody>
@@ -446,51 +480,58 @@ URL: ${location.href}
         .map(
           (s) => `
         <tr>
-          <td style="border:1px solid #eee;padding:6px;">${s.section}</td>
-          <td style="border:1px solid #eee;padding:6px;color:${
+          <td>${s.section}</td>
+          <td style="font-weight:600;color:${
             s.type === "EVERGREEN"
               ? "green"
               : s.type === "SEMI-EVERGREEN"
               ? "orange"
               : "red"
-          };font-weight:600;">${s.type}</td>
-          <td style="border:1px solid #eee;padding:6px;">${
-            s.changed ? "✅ Berubah" : "– Stabil"
-          }</td>
-          <td style="border:1px solid #eee;padding:6px;">${s.nextUpdate}</td>
-          <td style="border:1px solid #eee;padding:6px;">${s.advice}</td>
+          };">${s.type}</td>
+          <td>${s.changed ? "✅ Berubah" : "– Stabil"}</td>
+          <td>${s.nextUpdate}</td>
+          <td>${s.advice}</td>
         </tr>`
         )
         .join("")}
     </tbody>
   `;
-  wrapper.appendChild(granularTable);
+  wrapper.appendChild(table);
 
-  // ===== Tombol Deteksi Ulang Sekarang =====
   const rerunBtn = document.createElement("button");
   rerunBtn.textContent = "🔄 Deteksi Ulang Sekarang";
-  rerunBtn.style.marginTop = "15px";
-  rerunBtn.style.padding = "10px 18px";
-  rerunBtn.style.background = "#007BFF";
-  rerunBtn.style.color = "#fff";
-  rerunBtn.style.border = "none";
-  rerunBtn.style.borderRadius = "6px";
-  rerunBtn.style.cursor = "pointer";
-  rerunBtn.style.fontWeight = "600";
-  rerunBtn.style.boxShadow = "0 2px 6px rgba(0,0,0,0.1)";
+  Object.assign(rerunBtn.style, {
+    marginTop: "15px",
+    padding: "10px 18px",
+    background: "#007BFF",
+    color: "#fff",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontWeight: "600",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+  });
   rerunBtn.addEventListener("click", () => {
     console.log("🔁 Deteksi ulang dijalankan manual...");
     wrapper.remove();
     runEvergreenDetector();
   });
-
   wrapper.appendChild(rerunBtn);
 
-  const existingDashboard =
+  const info = document.createElement("div");
+  info.style.marginTop = "8px";
+  info.style.fontSize = "13px";
+  info.style.color = importantChangeDetected ? "green" : "gray";
+  info.textContent = importantChangeDetected
+    ? "✔ Konten penting telah diperbarui (dateModified sinkron)"
+    : "ℹ Tidak ada perubahan signifikan pada konten utama.";
+  wrapper.appendChild(info);
+
+  const target =
     document.querySelector("#aed-dashboard") ||
-    document.querySelector("div[style*='AED Dashboard']") ||
+    document.querySelector("main") ||
     document.body;
-  existingDashboard.appendChild(wrapper);
+  target.appendChild(wrapper);
 
   console.log("✅ Hybrid Evergreen Detector selesai & dateModified sinkron otomatis bila perlu.");
 })();
