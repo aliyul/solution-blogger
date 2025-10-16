@@ -213,139 +213,87 @@ if(oldHash && oldHash == currentHash){
     }
 
     // ===== 10️⃣ Dashboard =====
-    const btnContainer = document.createElement("div");
-    btnContainer.style.margin = "15px 0";
-    btnContainer.style.textAlign = "center";
+    // ===== 10️⃣ Dashboard (Modifikasi untuk table klik) =====
+const btnContainer = document.createElement("div");
+btnContainer.style.margin = "15px 0";
+btnContainer.style.textAlign = "center";
 
-    const createBtn = (text,color="#fff")=>{
-      const b = document.createElement("button");
-      b.textContent = text;
-      b.style.background=color;
-      b.style.color="#000";
-      b.style.padding="6px 12px";
-      b.style.margin="3px";
-      b.style.borderRadius="4px";
-      b.style.cursor="pointer";
-      return b;
-    };
+const createBtn = (text, color = "#fff") => {
+  const b = document.createElement("button");
+  b.textContent = text;
+  b.style.background = color;
+  b.style.color = "#000";
+  b.style.padding = "6px 12px";
+  b.style.margin = "3px";
+  b.style.borderRadius = "4px";
+  b.style.cursor = "pointer";
+  return b;
+};
 
-    const btnKoreksi = createBtn("⚙️ Koreksi & Preview", "#ffeedd");
-    const btnReport = createBtn("📥 Download Laporan", "#f3f3f3");
-    btnContainer.appendChild(btnKoreksi);
-    btnContainer.appendChild(btnReport);
+const btnKoreksi = createBtn("⚙️ Koreksi & Preview", "#ffeedd");
+const btnShowTable = createBtn("📊 Tampilkan Data Table", "#d1e7dd");
+const btnReport = createBtn("📥 Download Laporan", "#f3f3f3");
 
-    const dashboardWrapper = document.createElement("div");
-    dashboardWrapper.style.width = "100%";
-    dashboardWrapper.style.marginTop = "30px";
-    dashboardWrapper.style.padding = "15px";
-    dashboardWrapper.style.borderTop = "3px solid #0078ff";
-    dashboardWrapper.style.background = "#f0f8ff";
-    dashboardWrapper.style.boxSizing = "border-box";
-    dashboardWrapper.style.fontFamily = "Arial, sans-serif";
+btnContainer.appendChild(btnKoreksi);
+btnContainer.appendChild(btnShowTable);
+btnContainer.appendChild(btnReport);
 
-    const dashboardTitle = document.createElement("h3");
-    dashboardTitle.innerText = "📊 AED Dashboard — Ringkasan Halaman";
-    dashboardWrapper.appendChild(dashboardTitle);
-    dashboardWrapper.appendChild(btnContainer);
+const dashboardWrapper = document.createElement("div");
+dashboardWrapper.style.width = "100%";
+dashboardWrapper.style.marginTop = "30px";
+dashboardWrapper.style.padding = "15px";
+dashboardWrapper.style.borderTop = "3px solid #0078ff";
+dashboardWrapper.style.background = "#f0f8ff";
+dashboardWrapper.style.boxSizing = "border-box";
+dashboardWrapper.style.fontFamily = "Arial, sans-serif";
 
-    const table = document.createElement("table");
-    table.style.width="100%";
-    table.style.borderCollapse="collapse";
-    table.style.marginTop="10px";
-    table.innerHTML = `<thead>
-      <tr style="background:#dff0ff;">
-        <th style="border:1px solid #ccc;padding:6px">Halaman</th>
-        <th style="border:1px solid #ccc;padding:6px">Tipe</th>
-        <th style="border:1px solid #ccc;padding:6px">H1 Konten</th>
-        <th style="border:1px solid #ccc;padding:6px">Rekom H1</th>
-        <th style="border:1px solid #ccc;padding:6px">Status H1</th>
-        <th style="border:1px solid #ccc;padding:6px">Struktur</th>
-        <th style="border:1px solid #ccc;padding:6px">Saran Tambahan</th>
-        <th style="border:1px solid #ccc;padding:6px">Next Update</th>
-      </tr></thead><tbody>
-        <tr>
-          <td style="border:1px solid #ccc;padding:6px">${document.title || h1Text}</td>
-          <td style="border:1px solid #ccc;padding:6px">${type}</td>
-          <td style="border:1px solid #ccc;padding:6px">${h1Text}</td>
-          <td style="border:1px solid #ccc;padding:6px">${recommendedH1}</td>
-          <td style="border:1px solid #ccc;padding:6px">${h1Status}</td>
-          <td style="border:1px solid #ccc;padding:6px">${structStatus}</td>
-          <td style="border:1px solid #ccc;padding:6px">${structSuggestion}</td>
-          <td style="border:1px solid #ccc;padding:6px">${nextUpdateStr}</td>
-        </tr>
-      </tbody>`;
-    dashboardWrapper.appendChild(table);
-    document.body.appendChild(dashboardWrapper);
+const dashboardTitle = document.createElement("h3");
+dashboardTitle.innerText = "📊 AED Dashboard — Ringkasan Halaman";
+dashboardWrapper.appendChild(dashboardTitle);
+dashboardWrapper.appendChild(btnContainer);
 
-    // ===== 🔟 Modal Koreksi =====
-    btnKoreksi.onclick = ()=>{
-      const modal = document.createElement("div");
-      modal.style.position="fixed"; modal.style.left=0; modal.style.top=0;
-      modal.style.right=0; modal.style.bottom=0;
-      modal.style.background="rgba(0,0,0,0.45)";
-      modal.style.display="flex"; modal.style.alignItems="center"; modal.style.justifyContent="center";
-      modal.style.zIndex=99999;
+// ===== Table awal disembunyikan =====
+const tableWrapper = document.createElement("div");
+tableWrapper.style.width = "100%";
+tableWrapper.style.overflowX = "auto"; // scroll horizontal di mobile
+tableWrapper.style.display = "none";   // hidden default
 
-      const box=document.createElement("div");
-      box.style.width="760px"; box.style.maxHeight="80vh"; box.style.overflow="auto";
-      box.style.background="#fff"; box.style.borderRadius="8px"; box.style.padding="16px";
-      box.style.boxShadow="0 8px 30px rgba(0,0,0,0.2)";
-      modal.appendChild(box);
+const table = document.createElement("table");
+table.style.width = "100%";
+table.style.borderCollapse = "collapse";
+table.style.marginTop = "10px";
+table.style.minWidth = "800px"; // agar scroll muncul di layar kecil
+table.innerHTML = `<thead>
+  <tr style="background:#dff0ff;">
+    <th style="border:1px solid #ccc;padding:6px">Halaman</th>
+    <th style="border:1px solid #ccc;padding:6px">Tipe</th>
+    <th style="border:1px solid #ccc;padding:6px">H1 Konten</th>
+    <th style="border:1px solid #ccc;padding:6px">Rekom H1</th>
+    <th style="border:1px solid #ccc;padding:6px">Status H1</th>
+    <th style="border:1px solid #ccc;padding:6px">Struktur</th>
+    <th style="border:1px solid #ccc;padding:6px">Saran Tambahan</th>
+    <th style="border:1px solid #ccc;padding:6px">Next Update</th>
+  </tr></thead><tbody>
+    <tr>
+      <td style="border:1px solid #ccc;padding:6px">${document.title || h1Text}</td>
+      <td style="border:1px solid #ccc;padding:6px">${type}</td>
+      <td style="border:1px solid #ccc;padding:6px">${h1Text}</td>
+      <td style="border:1px solid #ccc;padding:6px">${recommendedH1}</td>
+      <td style="border:1px solid #ccc;padding:6px">${h1Status}</td>
+      <td style="border:1px solid #ccc;padding:6px">${structStatus}</td>
+      <td style="border:1px solid #ccc;padding:6px">${structSuggestion}</td>
+      <td style="border:1px solid #ccc;padding:6px">${nextUpdateStr}</td>
+    </tr>
+  </tbody>`;
+tableWrapper.appendChild(table);
+dashboardWrapper.appendChild(tableWrapper);
 
-      const h=document.createElement("h3");
-      h.innerText="Koreksi Konten Otomatis — Pratinjau"; box.appendChild(h);
+document.body.appendChild(dashboardWrapper);
 
-      const sum=document.createElement("div"); sum.style.marginBottom="10px";
-      sum.innerHTML=`<b>H1 Konten:</b> ${h1Text}<br><b>Rekom H1:</b> ${recommendedH1}<br><b>Status H1:</b> ${h1Status}<br><b>Status Struktur:</b> ${structStatus}<br><b>Saran Tambahan:</b> ${structSuggestion}`;
-      box.appendChild(sum);
-
-      const structDiv=document.createElement("div"); structDiv.style.marginBottom="10px";
-      structDiv.innerHTML="<b>Struktur Heading (Preview):</b>";
-      structUltra.forEach(s=>{
-        const p=document.createElement("div"); p.style.margin="6px 0";
-        p.innerHTML=`<b>H2:</b> ${s.h2}<br><small>H3: ${s.h3?s.h3.join(" • "):"-"}</small>`;
-        structDiv.appendChild(p);
-      });
-      box.appendChild(structDiv);
-
-      const btnWrap=document.createElement("div"); btnWrap.style.textAlign="right"; btnWrap.style.marginTop="12px";
-      const applyBtn=createBtn("💾 Terapkan H1 & Struktur", "#00b894");
-      applyBtn.onclick=()=>{
-        if(elH1 && h1Diff) elH1.innerText=recommendedH1;
-        if(elContent && structStatus.includes("❌")){
-          structUltra.forEach(s=>{
-            const h2=document.createElement("h2"); h2.innerText=s.h2; elContent.appendChild(h2);
-            s.h3.forEach(h3Text=>{ const h3=document.createElement("h3"); h3.innerText=h3Text; elContent.appendChild(h3); });
-          });
-        }
-        alert("✅ H1 dan Struktur Heading diterapkan ke halaman!");
-        document.body.removeChild(modal);
-      };
-      const closeBtn=createBtn("❌ Tutup", "#f44336");
-      closeBtn.onclick=()=>document.body.removeChild(modal);
-
-      btnWrap.appendChild(applyBtn); btnWrap.appendChild(closeBtn);
-      box.appendChild(btnWrap);
-      document.body.appendChild(modal);
-    };
-
-    // ===== 1️⃣1️⃣ Download Laporan =====
-    btnReport.onclick=()=> {
-      const lines=[];
-      lines.push(`=== AED Report ===`);
-      lines.push(`URL: ${location.href}`);
-      lines.push(`Detected Type: ${type}`);
-      lines.push(`H1 Konten: ${h1Text}`);
-      lines.push(`H1 Recommended: ${recommendedH1}`);
-      lines.push(`Status H1: ${h1Status}`);
-      lines.push(`Struktur Status: ${structStatus}`);
-      lines.push(`Saran Tambahan: ${structSuggestion}`);
-      lines.push(`Next Update: ${nextUpdateStr}`);
-      const blob=new Blob([lines.join("\n")],{type:"text/plain"});
-      const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-      a.download=`AED_Report_${recommendedH1.replace(/\s+/g,"_")}.txt`;
-      a.click(); URL.revokeObjectURL(a.href);
-    };
+// ===== Tombol tampilkan table =====
+btnShowTable.onclick = () => {
+  tableWrapper.style.display = tableWrapper.style.display === "none" ? "block" : "none";
+};
 
     // ===== 1️⃣2️⃣ Simpan hash =====
     localStorage.setItem("AutoEvergreenHash", currentHash);
