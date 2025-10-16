@@ -518,194 +518,213 @@ document.head.appendChild(style);
  * ✅ Smart Section Update + Auto dateModified + Responsive Dashboard
  * Beton Jaya Readymix ©2025
  */
-(function () {
-  const SELECTOR_SECTIONS = "h2, h3, p, li";
-  const STORAGE_KEY = "content_hash_v7";
-  const PAGE_KEY = location.pathname;
-  const dateModifiedEl = document.querySelector('meta[property="article:modified_time"]') 
-    || document.querySelector('meta[name="dateModified"]');
+/* ===== 🧩 Hybrid Evergreen Detector + Smart DateModified Updater v7.2 ===== */
+(function runEvergreenDetector() {
+  console.log("🔍 Hybrid Evergreen Detector running with smart dateModified...");
 
-  // ==============================
-  // 🔹 UTILITIES
-  // ==============================
+  // ===== Util: bersihkan teks =====
   function cleanText(str) {
-    return (str || "").replace(/\s+/g, " ").trim();
+    if (!str) return "";
+    return str.replace(/\s+/g, " ").trim();
   }
 
-  function hashCode(str) {
-    let hash = 0, i, chr;
-    if (str.length === 0) return hash;
-    for (i = 0; i < str.length; i++) {
-      chr = str.charCodeAt(i);
-      hash = (hash << 5) - hash + chr;
+  // ===== Ambil seluruh section berdasarkan H2/H3 =====
+  const allSections = [];
+  const contentRoot =
+    document.querySelector("article") ||
+    document.querySelector(".post-body") ||
+    document.querySelector("main") ||
+    document.body;
+
+  const headings = contentRoot.querySelectorAll("h2, h3");
+  let currentSection = null;
+
+  headings.forEach((h) => {
+    if (h.tagName === "H2") {
+      if (currentSection) allSections.push(currentSection);
+      currentSection = { title: cleanText(h.innerText), content: "" };
+    } else if (h.tagName === "H3" && currentSection) {
+      currentSection.content += "\n" + cleanText(h.innerText);
+    }
+
+    // Ambil isi paragraf di bawah heading
+    let next = h.nextElementSibling;
+    while (next && !/^H[23]$/i.test(next.tagName)) {
+      if (next.innerText) currentSection.content += "\n" + cleanText(next.innerText);
+      next = next.nextElementSibling;
+    }
+  });
+  if (currentSection) allSections.push(currentSection);
+
+  // ===== Deteksi tipe konten =====
+  function detectType(text) {
+    const lower = text.toLowerCase();
+    if (/(harga|update|promo|diskon|biaya|daftar terbaru|bulan ini|tahun)/.test(lower))
+      return "NON-EVERGREEN";
+    if (/(proyek|spesifikasi|fitur|jenis|perbandingan|keunggulan)/.test(lower))
+      return "SEMI-EVERGREEN";
+    return "EVERGREEN";
+  }
+
+  // ===== Hash util =====
+  function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
       hash |= 0;
     }
     return hash;
   }
 
-  function getNowISO() {
-    return new Date().toISOString();
-  }
+  // ===== Deteksi perubahan per section =====
+  const sectionResults = [];
+  let importantChangeDetected = false;
 
-  // ==============================
-  // 🔹 STEP 1: ANALISIS PER SECTION
-  // ==============================
-  const sections = Array.from(document.querySelectorAll(SELECTOR_SECTIONS));
-  const contentAnalysis = sections.map((el, i) => {
-    const text = cleanText(el.textContent);
-    const hash = hashCode(text);
-    let type = "NON";
-    const lower = text.toLowerCase();
-    if (lower.match(/harga|update|promo|baru|terbaru|diskon|periode|202\d|20\d\d/)) type = "SEMI";
-    if (lower.match(/spesifikasi|standar|jenis|fungsi|pengertian|komposisi|kualitas|mutu|material/)) type = "EVERGREEN";
-    return { i, tag: el.tagName, hash, type, text, el };
-  });
+  allSections.forEach((sec, i) => {
+    const type = detectType(sec.title + " " + sec.content);
+    const hash = hashString(sec.title + sec.content);
+    const key = "sec_hash_" + i + "_" + location.pathname;
+    const prevHash = localStorage.getItem(key);
+    const changed = prevHash && prevHash !== String(hash);
+    localStorage.setItem(key, hash);
 
-  // ==============================
-  // 🔹 STEP 2: DETEKSI PERUBAHAN HASH
-  // ==============================
-  const prevHashData = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-  const newHashData = {};
-  let importantChanged = false;
-  let changedSections = [];
-
-  contentAnalysis.forEach((sec) => {
-    newHashData[sec.i] = sec.hash;
-    const prev = prevHashData[PAGE_KEY]?.[sec.i];
-    if (prev && prev !== sec.hash) {
-      changedSections.push(sec);
-      if (["EVERGREEN", "SEMI"].includes(sec.type)) {
-        importantChanged = true;
-      }
+    if (changed && (type === "NON-EVERGREEN" || type === "SEMI-EVERGREEN")) {
+      importantChangeDetected = true;
     }
+
+    let updateMonths =
+      type === "EVERGREEN" ? 12 : type === "SEMI-EVERGREEN" ? 6 : 3;
+    const nextUpdateDate = new Date();
+    nextUpdateDate.setMonth(nextUpdateDate.getMonth() + updateMonths);
+
+    let advice = [];
+    const txt = sec.content.toLowerCase();
+    if (/harga|biaya|tarif/.test(txt)) advice.push("Perbarui data harga agar tetap akurat.");
+    if (/spesifikasi|fitur|ukuran/.test(txt))
+      advice.push("Tambahkan tabel spesifikasi terbaru atau bandingkan produk.");
+    if (/manfaat|fungsi/.test(txt)) advice.push("Tambahkan contoh penerapan nyata atau visual.");
+    if (txt.length < 400) advice.push("Perluas isi agar lebih komprehensif.");
+    if (!/faq|pertanyaan|tanya/.test(txt) && i === allSections.length - 1)
+      advice.push("Tambahkan FAQ di akhir artikel.");
+
+    sectionResults.push({
+      section: sec.title || "(Tanpa Judul)",
+      type,
+      changed,
+      nextUpdate: nextUpdateDate.toLocaleDateString(),
+      advice: advice.length ? advice.join(" ") : "Konten stabil, tidak perlu pembaruan besar.",
+    });
   });
 
-  if (!prevHashData[PAGE_KEY]) prevHashData[PAGE_KEY] = {};
-  prevHashData[PAGE_KEY] = newHashData;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(prevHashData));
+  // ===== Smart Global dateModified update =====
+  if (importantChangeDetected) {
+    const today = new Date().toISOString().split("T")[0];
+    console.log(`🕓 Penting! Update terdeteksi → Set dateModified: ${today}`);
 
-  // ==============================
-  // 🔹 STEP 3: UPDATE dateModified JIKA PENTING BERUBAH
-  // ==============================
-  if (importantChanged) {
-    const newDate = getNowISO();
-    console.log("🕒 Konten penting berubah → update dateModified:", newDate);
-    if (dateModifiedEl) dateModifiedEl.setAttribute("content", newDate);
-
-    const ldScript = document.querySelector('script[type="application/ld+json"]');
-    if (ldScript) {
+    // 1️⃣ Update JSON-LD schema jika ada
+    const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    scripts.forEach((script) => {
       try {
-        const json = JSON.parse(ldScript.textContent);
-        if (json.dateModified) json.dateModified = newDate;
-        ldScript.textContent = JSON.stringify(json, null, 2);
-      } catch (err) {
-        console.warn("Gagal update JSON-LD dateModified:", err);
-      }
-    }
-  }
-
-  // ==============================
-  // 🔹 STEP 4: RENDER DASHBOARD RESPONSIVE
-  // ==============================
-  function renderDashboard() {
-    const dash = document.createElement("div");
-    dash.id = "evergreen-dashboard";
-    dash.innerHTML = `
-      <div class="dash-header">
-        <b>🧭 Evergreen Detector v7.1</b>
-        <div>Status: ${
-          importantChanged
-            ? '<span class="status-green">Konten penting berubah</span>'
-            : '<span class="status-gray">Tidak ada perubahan signifikan</span>'
-        }</div>
-        <div>Total Section: ${sections.length} | Berubah: ${changedSections.length}</div>
-      </div>
-      <div class="dash-table-wrap">
-        <table class="dash-table">
-          <thead>
-            <tr>
-              <th>Tag</th><th>Tipe</th><th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${contentAnalysis
-              .map((s) => {
-                const isChanged = changedSections.find((c) => c.i === s.i);
-                return `
-                  <tr>
-                    <td>${s.tag}</td>
-                    <td>${s.type}</td>
-                    <td class="${isChanged ? "status-red" : "status-gray"}">
-                      ${isChanged ? "Perlu Update" : "Stabil"}
-                    </td>
-                  </tr>`;
-              })
-              .join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    // 🎨 CSS Responsive + Sticky Header
-    const style = document.createElement("style");
-    style.textContent = `
-      #evergreen-dashboard {
-        position: fixed;
-        bottom: 10px;
-        right: 10px;
-        z-index: 9999;
-        background: #fff;
-        border: 1px solid #ccc;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        padding: 10px;
-        max-height: 60vh;
-        width: 320px;
-        display: flex;
-        flex-direction: column;
-        font-family: system-ui, sans-serif;
-        font-size: 13px;
-        line-height: 1.4;
-      }
-      .dash-header { margin-bottom: 8px; }
-      .dash-table-wrap {
-        overflow-x: auto;
-        border-top: 1px solid #ddd;
-        border-bottom: 1px solid #ddd;
-        flex: 1;
-      }
-      .dash-table { border-collapse: collapse; width: 100%; min-width: 280px; }
-      .dash-table th, .dash-table td {
-        padding: 6px 8px;
-        border-bottom: 1px solid #eee;
-        text-align: left;
-      }
-      .dash-table th {
-        position: sticky;
-        top: 0;
-        background: #f9f9f9;
-        z-index: 1;
-      }
-      .status-green { color: green; font-weight: 600; }
-      .status-gray { color: gray; }
-      .status-red { color: red; font-weight: 600; }
-      @media (max-width: 480px) {
-        #evergreen-dashboard {
-          bottom: 0;
-          right: 0;
-          left: 0;
-          width: 100%;
-          border-radius: 0;
-          max-height: 50vh;
-          font-size: 12px;
+        const data = JSON.parse(script.textContent);
+        if (data && data.dateModified) {
+          data.dateModified = today;
+          script.textContent = JSON.stringify(data, null, 2);
+          console.log("✅ Schema dateModified diperbarui.");
         }
-      }
-    `;
-    document.head.appendChild(style);
-    document.body.appendChild(dash);
+      } catch (e) {}
+    });
+
+    // 2️⃣ Update <meta itemprop="dateModified"> jika ada
+    let meta = document.querySelector('meta[itemprop="dateModified"]');
+    if (meta) {
+      meta.setAttribute("content", today);
+      console.log("✅ Meta dateModified diperbarui.");
+    }
+
+    // 3️⃣ Simpan waktu modifikasi terakhir di localStorage
+    localStorage.setItem("lastGlobalModified_" + location.pathname, today);
   }
 
-  window.addEventListener("load", () => setTimeout(renderDashboard, 1000));
+  // ===== Tampilkan hasil ke tabel =====
+  const wrapper = document.createElement("div");
+  wrapper.style.overflowX = "auto";
+  wrapper.style.marginTop = "20px";
+  wrapper.style.border = "1px solid #ccc";
+  wrapper.style.borderRadius = "8px";
+  wrapper.style.background = "#fff";
+  wrapper.style.boxShadow = "0 2px 6px rgba(0,0,0,0.1)";
+  wrapper.style.padding = "10px";
+  wrapper.style.fontFamily = "system-ui, sans-serif";
+  wrapper.style.fontSize = "0.9em";
+  wrapper.style.maxWidth = "100%";
+
+  const granularTable = document.createElement("table");
+  granularTable.style.width = "100%";
+  granularTable.style.borderCollapse = "collapse";
+  granularTable.style.minWidth = "900px";
+  granularTable.innerHTML = `
+    <thead style="position: sticky; top: 0; background: #eaf7ff; z-index: 5;">
+      <tr>
+        <th style="border:1px solid #ccc;padding:8px;">Section (H2/H3)</th>
+        <th style="border:1px solid #ccc;padding:8px;">Tipe</th>
+        <th style="border:1px solid #ccc;padding:8px;">Perubahan</th>
+        <th style="border:1px solid #ccc;padding:8px;">Next Update</th>
+        <th style="border:1px solid #ccc;padding:8px;">Saran Konten</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${sectionResults
+        .map(
+          (s) => `
+        <tr>
+          <td style="border:1px solid #eee;padding:6px;">${s.section}</td>
+          <td style="border:1px solid #eee;padding:6px;color:${
+            s.type === "EVERGREEN"
+              ? "green"
+              : s.type === "SEMI-EVERGREEN"
+              ? "orange"
+              : "red"
+          };font-weight:600;">${s.type}</td>
+          <td style="border:1px solid #eee;padding:6px;">${
+            s.changed ? "✅ Berubah" : "– Stabil"
+          }</td>
+          <td style="border:1px solid #eee;padding:6px;">${s.nextUpdate}</td>
+          <td style="border:1px solid #eee;padding:6px;">${s.advice}</td>
+        </tr>`
+        )
+        .join("")}
+    </tbody>
+  `;
+
+  wrapper.appendChild(granularTable);
+
+  // ===== Tombol Deteksi Ulang Sekarang =====
+  const rerunBtn = document.createElement("button");
+  rerunBtn.textContent = "🔄 Deteksi Ulang Sekarang";
+  rerunBtn.style.marginTop = "15px";
+  rerunBtn.style.padding = "10px 18px";
+  rerunBtn.style.background = "#007BFF";
+  rerunBtn.style.color = "#fff";
+  rerunBtn.style.border = "none";
+  rerunBtn.style.borderRadius = "6px";
+  rerunBtn.style.cursor = "pointer";
+  rerunBtn.style.fontWeight = "600";
+  rerunBtn.style.boxShadow = "0 2px 6px rgba(0,0,0,0.1)";
+  rerunBtn.addEventListener("click", () => {
+    console.log("🔁 Deteksi ulang dijalankan manual...");
+    wrapper.remove();
+    runEvergreenDetector();
+  });
+
+  wrapper.appendChild(rerunBtn);
+
+  const existingDashboard =
+    document.querySelector("#aed-dashboard") ||
+    document.querySelector("div[style*='AED Dashboard']") ||
+    document.body;
+  existingDashboard.appendChild(wrapper);
+
+  console.log("✅ Hybrid Evergreen Detector selesai & dateModified sinkron otomatis bila perlu.");
 })();
 
   // ================== SCHEMA GENERATOR ==================
