@@ -327,6 +327,134 @@ document.head.appendChild(style);
   } catch(e){ console.error("❌ Error AED Final:",e); }
 })();
 
+// ===== 🧩 Granular Section Detection + Smart Update Advisor (Add-on) =====
+(function () {
+  console.log("🔍 Granular Section Analyzer running...");
+
+  // ===== Util: bersihkan teks =====
+  function cleanText(str) {
+    if (!str) return "";
+    return str.replace(/\s+/g, " ").trim();
+  }
+
+  // ===== Ambil seluruh section berdasarkan H2/H3 =====
+  const allSections = [];
+  const contentRoot =
+    document.querySelector("article") ||
+    document.querySelector(".post-body") ||
+    document.querySelector("main") ||
+    document.body;
+
+  const headings = contentRoot.querySelectorAll("h2, h3");
+  let currentSection = null;
+
+  headings.forEach((h) => {
+    if (h.tagName === "H2") {
+      if (currentSection) allSections.push(currentSection);
+      currentSection = { title: cleanText(h.innerText), content: "" };
+    } else if (h.tagName === "H3" && currentSection) {
+      currentSection.content += "\n" + cleanText(h.innerText);
+    }
+  });
+  if (currentSection) allSections.push(currentSection);
+
+  // ===== Klasifikasi tipe konten (EVERGREEN / SEMI / NON) =====
+  function detectType(text) {
+    const lower = text.toLowerCase();
+    if (/(harga|update|promo|diskon|biaya|daftar terbaru)/.test(lower)) return "NON-EVERGREEN";
+    if (/(proyek|spesifikasi|fitur|jenis|perbandingan)/.test(lower)) return "SEMI-EVERGREEN";
+    return "EVERGREEN";
+  }
+
+  // ===== Deteksi perubahan teks (simulasi dengan localStorage hash) =====
+  function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash;
+  }
+
+  const sectionResults = [];
+  allSections.forEach((sec, i) => {
+    const type = detectType(sec.title + " " + sec.content);
+    const hash = hashString(sec.title + sec.content);
+    const key = "sec_hash_" + i + "_" + location.pathname;
+    const prevHash = localStorage.getItem(key);
+    const changed = prevHash && prevHash !== String(hash);
+    localStorage.setItem(key, hash);
+
+    let updateMonths =
+      type === "EVERGREEN" ? 12 : type === "SEMI-EVERGREEN" ? 6 : 3;
+    const nextUpdateDate = new Date();
+    nextUpdateDate.setMonth(nextUpdateDate.getMonth() + updateMonths);
+
+    // ===== Analisis saran konten =====
+    let advice = [];
+    const txt = sec.content.toLowerCase();
+
+    if (/harga|biaya|tarif/.test(txt))
+      advice.push("Periksa ulang data harga agar tetap relevan.");
+    if (/spesifikasi|fitur|ukuran/.test(txt))
+      advice.push("Tambahkan tabel spesifikasi terbaru atau perbandingan produk.");
+    if (/manfaat|fungsi/.test(txt))
+      advice.push("Tambahkan contoh praktis atau ilustrasi visual agar menarik.");
+    if (txt.length < 400)
+      advice.push("Perluas isi section ini agar lebih komprehensif.");
+    if (!/faq|pertanyaan|tanya/.test(txt) && i === allSections.length - 1)
+      advice.push("Pertimbangkan menambah FAQ untuk meningkatkan relevansi SEO.");
+
+    sectionResults.push({
+      section: sec.title,
+      type,
+      changed,
+      nextUpdate: nextUpdateDate.toLocaleDateString(),
+      advice: advice.length ? advice.join(" ") : "Konten stabil, tidak perlu pembaruan besar.",
+    });
+  });
+
+  // ===== Tambahkan hasil ke dashboard (table tambahan) =====
+  const granularTable = document.createElement("table");
+  granularTable.style.width = "100%";
+  granularTable.style.borderCollapse = "collapse";
+  granularTable.style.marginTop = "20px";
+  granularTable.style.fontSize = "0.9em";
+  granularTable.innerHTML = `
+  <thead style="position: sticky; top: 0; background: #eaf7ff; z-index: 2;">
+    <tr>
+      <th style="border:1px solid #ccc;padding:6px;">Section (H2/H3)</th>
+      <th style="border:1px solid #ccc;padding:6px;">Tipe</th>
+      <th style="border:1px solid #ccc;padding:6px;">Perubahan</th>
+      <th style="border:1px solid #ccc;padding:6px;">Next Update</th>
+      <th style="border:1px solid #ccc;padding:6px;">Saran Konten</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${sectionResults
+      .map(
+        (s) => `
+      <tr>
+        <td style="border:1px solid #ccc;padding:6px;">${s.section}</td>
+        <td style="border:1px solid #ccc;padding:6px;">${s.type}</td>
+        <td style="border:1px solid #ccc;padding:6px;">${
+          s.changed ? "✅ Berubah" : "– Stabil"
+        }</td>
+        <td style="border:1px solid #ccc;padding:6px;">${s.nextUpdate}</td>
+        <td style="border:1px solid #ccc;padding:6px;">${s.advice}</td>
+      </tr>`
+      )
+      .join("")}
+  </tbody>
+  `;
+
+  // ===== Tambahkan di bawah dashboard utama =====
+  const existingDashboard = document.querySelector("div[style*='AED Dashboard']") || document.body;
+  existingDashboard.appendChild(granularTable);
+
+  console.log("✅ Granular Section Analysis selesai, data ditampilkan di dashboard.");
+})();
+
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
 
