@@ -301,11 +301,40 @@ if(oldHash && oldHash == currentHash){
 
   // === Skor SEO & Readability (versi sederhana) ===
   function calculateSEOScore(txt){
-    const wordCount=txt.split(/\s+/).length;
-    const keywordDensity=(txt.match(/(harga|beton|ready mix|minimix|jayamix)/gi)||[]).length/wordCount*100;
-    const score=Math.min(100,Math.max(0,50 + wordCount/10 + keywordDensity*5));
-    return Math.round(score);
-  }
+  const cleanText = s => s ? s.replace(/\s+/g," ").trim().toLowerCase() : "";
+  const content = cleanText(txt);
+
+  // Ambil H1, H2, H3 sebagai keyword utama
+  const h1 = cleanText(document.querySelector("h1")?.innerText || "");
+  const h2h3 = Array.from(document.querySelectorAll("h2,h3")).map(h=>cleanText(h.innerText)).join(" ");
+
+  // Ambil meta keywords jika ada
+  const metaKeywords = (document.querySelector("meta[name='keywords']")?.content || "").toLowerCase();
+
+  // Array keyword unik
+  let keywords = Array.from(new Set((h1 + " " + h2h3 + " " + metaKeywords).split(/\s+/).filter(Boolean)));
+
+  // Fallback jika tidak ada keyword
+  if(keywords.length === 0) keywords = ["artikel","informasi","detail"];
+
+  const words = content.split(/\s+/).length;
+
+  // Hitung jumlah kemunculan keyword
+  let hits = 0;
+  keywords.forEach(k=>{
+    const regex = new RegExp("\\b"+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+"\\b","gi");
+    hits += (content.match(regex) || []).length;
+  });
+
+  const density = words ? hits / words : 0;
+  const lengthBonus = Math.min(20, words/50); // max +20 pts
+  const uniqueHits = Math.min(20, keywords.filter(k=>content.includes(k)).length * 2); // max +20 pts
+
+  let score = 50 + density*30 + lengthBonus + uniqueHits;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  return score;
+}
   function calculateReadability(txt){
     const sentences=txt.split(/[.!?]/).filter(s=>s.trim().length>0).length||1;
     const words=txt.split(/\s+/).length;
