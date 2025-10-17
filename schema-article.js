@@ -80,30 +80,28 @@ if(oldHash && oldHash == currentHash){
     h1Selectors: ['h1', '.entry-title'],
     authorSelector: '.post-author .fn, .author vcard, .byline',
     intervals: { EVERGREEN: 12, SEMI_EVERGREEN: 6, NON_EVERGREEN: 3 },
-    const evergreenKeywords = [
+    evergreenKeywords : [
   "panduan", "tutorial", "cara", "manfaat", "pengertian", "definisi", "apa itu",
   "tips", "trik", "panduan lengkap", "langkah-langkah", "best practices", "praktik terbaik",
   "strategi", "studi kasus", "contoh", "referensi", "panduan SEO", "petunjuk",
   "instruksi", "tutorial video", "tutorial lengkap", "tips lanjutan", "cara efektif",
   "solusi", "teknik", "panduan praktis", "panduan langkah demi langkah"
-];
-
-const semiKeywords = [
-  "harga", "lokasi", "layanan", "pengiriman", "wilayah", "area", "order", "pesan",
-  "update harga", "harga terbaru", "pesan sekarang", "wilayah pengiriman", "biaya",
-  "tarif", "estimasi", "ongkir", "jasa", "servis", "opsi pengiriman", "promo harga",
-  "diskon terbatas", "info harga", "lokasi terdekat", "layanan cepat", "order online",
-  "penawaran khusus", "estimasi biaya", "biaya tambahan"
-];
-
-const nonEvergreenKeywords = [
-  "promo", "diskon", "event", "penawaran", "perdana", "periode", "terbaru", "update",
-  "spesial", "promo akhir tahun", "penawaran terbatas", "2020", "2021", "2022", "2023",
-  "2024", "2025", "2026", "2027", "2028", "hot deal", "penawaran musiman",  "flash sale",  "limited time", "waktu terbatas", 
-  "akhir tahun", "penjualan khusus", "promosi musiman", "diskon besar", 
-  "khusus pelanggan", "kampanye", "promo online"
-];
-
+  ],
+  semiKeywords : [
+    "harga", "lokasi", "layanan", "pengiriman", "wilayah", "area", "order", "pesan",
+    "update harga", "harga terbaru", "pesan sekarang", "wilayah pengiriman", "biaya",
+    "tarif", "estimasi", "ongkir", "jasa", "servis", "opsi pengiriman", "promo harga",
+    "diskon terbatas", "info harga", "lokasi terdekat", "layanan cepat", "order online",
+    "penawaran khusus", "estimasi biaya", "biaya tambahan"
+  ],
+  nonEvergreenKeywords : [
+    "promo", "diskon", "event", "penawaran", "perdana", "periode", "terbaru", "update",
+    "spesial", "promo akhir tahun", "penawaran terbatas", "2020", "2021", "2022", "2023",
+    "2024", "2025", "2026", "2027", "2028", "hot deal", "penawaran musiman",  "flash sale",  "limited time", "waktu terbatas", 
+    "akhir tahun", "penjualan khusus", "promosi musiman", "diskon besar", 
+    "khusus pelanggan", "kampanye", "promo online"
+  ],
+    
 updateJsonLd: true
   };
 
