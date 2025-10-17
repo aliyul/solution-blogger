@@ -67,12 +67,12 @@ if(oldHash && oldHash == currentHash){
 */
 // ================== DETEKSI TYPE KONTEN ==================
 /* ===== Auto Evergreen Detector v7.7 + Dashboard Interaktif ===== */
-(function AutoEvergreenV83UltraKMPTTF(window, document) {
+(function AutoEvergreenV831UltraKMPTTF(window, document) {
   'use strict';
 
   // ===================== CONFIG =====================
   const CONFIG = {
-    storageKey: 'AutoEvergreenHashV8_3_UltraKMPTTF',
+    storageKey: 'AutoEvergreenHashV8_3_1_UltraKMPTTF',
     labelAttr: 'data-aed-label',
     dateSpanClass: 'aed-date-span',
     checkLength: 5000,
@@ -81,16 +81,30 @@ if(oldHash && oldHash == currentHash){
     h1Selectors: ['h1', '.entry-title'],
     authorSelector: '.post-author .fn, .author vcard, .byline',
     intervals: { EVERGREEN: 12, SEMI_EVERGREEN: 6, NON_EVERGREEN: 3 },
-    evergreenKeywords: ["panduan","tutorial","cara","manfaat","pengertian","definisi","apa itu","tips","trik","panduan lengkap","langkah-langkah","praktik terbaik","strategi","studi kasus","contoh","referensi","panduan seo","petunjuk","instruksi","tutorial lengkap","solusi","teknik","panduan praktis"],
-    semiKeywords: ["harga","lokasi","layanan","pengiriman","wilayah","order","pesan","update harga","harga terbaru","pesan sekarang","biaya","tarif","estimasi","ongkir","jasa","servis","promo harga","diskon","info harga","lokasi terdekat","layanan cepat","order online","penawaran khusus","estimasi biaya"],
-    nonEvergreenKeywords: ["promo","diskon","event","penawaran","perdana","periode","terbaru","update","spesial","2020","2021","2022","2023","2024","2025","2026","2027","2028","hot deal","flash sale","limited time","akhir tahun","penjualan khusus","kampanye","promo online"],
+    evergreenKeywords: [
+      "panduan","tutorial","cara","manfaat","pengertian","definisi","apa itu","tips","trik",
+      "panduan lengkap","langkah-langkah","praktik terbaik","strategi","studi kasus","contoh",
+      "referensi","panduan seo","petunjuk","instruksi","tutorial lengkap","solusi","teknik",
+      "panduan praktis"
+    ],
+    semiKeywords: [
+      "harga","lokasi","layanan","pengiriman","wilayah","order","pesan","update harga",
+      "harga terbaru","pesan sekarang","biaya","tarif","estimasi","ongkir","jasa","servis",
+      "promo harga","diskon","info harga","lokasi terdekat","layanan cepat","order online",
+      "penawaran khusus","estimasi biaya"
+    ],
+    nonEvergreenKeywords: [
+      "promo","diskon","event","penawaran","perdana","periode","terbaru","update","spesial",
+      "hot deal","flash sale","limited time","akhir tahun","penjualan khusus","kampanye","promo online"
+    ],
     updateJsonLd: true
   };
 
   // ===================== Helper =====================
   function qsMany(sel){for(const s of sel){const e=document.querySelector(s);if(e)return e;}return null;}
   const sampleTextFrom=e=>e?(e.innerText||e.textContent||'').slice(0,CONFIG.checkLength).toLowerCase():'';
-  const normalizeUrlToken=p=>p? p.split('/').filter(Boolean).pop()?.replace(/^p\//,'').replace(/\.html$/i,'').replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,'').replace(/[-_]/g,' ').trim().toLowerCase()||'' : '';
+  const normalizeUrlToken=p=>p? p.split('/').filter(Boolean).pop()?.replace(/^p\//,'').replace(/\.html$/i,'')
+    .replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,'').replace(/[-_]/g,' ').trim().toLowerCase()||'' : '';
   const containsAny=(s,a)=>!!a?.length && a.some(k=>s.includes(k));
   const findYearInText=s=>s?.match(/\b(20\d{2})\b/)?.[1]||null;
   const makeHash=s=>{try{return btoa(unescape(encodeURIComponent(s)));}catch{let h=0;for(let i=0;i<s.length;i++)h=(h<<5)-h+s.charCodeAt(i)|0;return String(h);}};
@@ -128,13 +142,15 @@ if(oldHash && oldHash == currentHash){
 
     // ==== Tipe Konten ====
     let type;
-    if(isPillar) type='EVERGREEN';
-    else if(containsAny(h1+txt,CONFIG.nonEvergreenKeywords)||findYearInText(h1+txt)) type='NON_EVERGREEN';
-    else if(containsAny(h1+txt+urlRaw,CONFIG.semiKeywords)) type='SEMI_EVERGREEN';
-    else if(containsAny(h1+txt,CONFIG.evergreenKeywords)) type='EVERGREEN';
+    if (isPillar) type='EVERGREEN';
+    else if (containsAny(h1+txt, CONFIG.nonEvergreenKeywords)) type='NON_EVERGREEN';
+    else if (findYearInText(h1+txt)) type='SEMI_EVERGREEN'; // 🆕 ubahan penting: tahun = SEMI, bukan NON
+    else if (containsAny(h1+txt+urlRaw, CONFIG.semiKeywords)) type='SEMI_EVERGREEN';
+    else if (containsAny(h1+txt, CONFIG.evergreenKeywords)) type='EVERGREEN';
     else type='SEMI_EVERGREEN';
 
-    if(type==='EVERGREEN'&&!document.body.hasAttribute('data-force')) document.body.setAttribute('data-force','evergreen');
+    if (type==='EVERGREEN' && !document.body.hasAttribute('data-force')) 
+      document.body.setAttribute('data-force','evergreen');
 
     // ==== Tanggal ====
     const next=new Date();let mod=null;
@@ -170,12 +186,10 @@ if(oldHash && oldHash == currentHash){
     const urlK=urlRaw.split(' ').filter(Boolean);
     let rec='';
     if(type==='EVERGREEN'){
-      rec=ps.map(e=>e.innerText.trim()).filter(Boolean).join(' | ');
-      if(!containsAny(rec,urlK)) rec=urlK.map(w=>w[0].toUpperCase()+w.slice(1)).join(' ')+' – Tambahkan kata kunci utama di paragraf awal & subjudul.';
+      rec='Konten tetap relevan jangka panjang. Tambahkan kata kunci utama di paragraf pertama & subjudul.';
     }else if(type==='SEMI_EVERGREEN'){
-      rec=ps.map(e=>e.innerText.trim()).filter(Boolean)[0]||'';
-      if(!containsAny(rec,urlK)) rec=urlK.map(w=>w[0].toUpperCase()+w.slice(1)).join(' ')+' – Highlight keyword di paragraf awal/subheading.';
-    }else rec='Periksa update harga, promo, atau informasi terbaru.';
+      rec='Perbarui harga & data setiap '+m+' bulan untuk menjaga relevansi.';
+    }else rec='Konten bersifat temporer, cocok untuk promo jangka pendek.';
 
     // ==== Author Date ====
     const aEl=document.querySelector(CONFIG.authorSelector);
@@ -233,8 +247,8 @@ if(oldHash && oldHash == currentHash){
     st.innerHTML='@media(max-width:768px){table th,td{padding:4px;font-size:.8em;}table{min-width:600px;}}table th,td{border:1px solid #ccc;padding:6px;text-align:left;}thead{background:#dff0ff;position:sticky;top:0;}';
     document.head.appendChild(st);
 
-    console.log("✅ AED v8.3 Ultra KMPTTF aktif – Audit H1 + Dashboard SEO Lengkap");
-  }catch(e){console.error("❌ AED v8.3 Error:",e);}
+    console.log("✅ AED v8.3.1 Ultra KMPTTF aktif – Audit H1 + Dashboard SEO + Logika Tahun → SEMI");
+  }catch(e){console.error("❌ AED v8.3.1 Error:",e);}
 })(window, document);
 
 /**
