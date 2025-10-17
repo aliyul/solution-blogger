@@ -425,7 +425,15 @@ if(oldHash && oldHash == currentHash){
   btn.onclick=()=>{wrap.remove();runEvergreenDetector();};
   wrap.appendChild(btn);
 
-  (document.querySelector("main")||document.body).appendChild(wrap);
+  // === Tempatkan di luar konten utama (SEO-safe)
+const footerArea = document.querySelector("footer") || document.querySelector("#footer-wrapper");
+if (footerArea && footerArea.parentNode) {
+  footerArea.parentNode.insertBefore(wrap, footerArea);
+} else {
+  document.body.appendChild(wrap); // fallback terakhir
+}
+
+ // (document.querySelector("main")||document.body).appendChild(wrap);
   console.log("✅ AED v7.9 Ultimate Visual+KeywordList selesai");
 })();
 
