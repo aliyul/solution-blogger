@@ -221,7 +221,7 @@ if(oldHash && oldHash == currentHash){
 
 /* ===== 🧩 Hybrid Evergreen Detector + Smart Selective DateModified v7.6 ===== */
 (function runEvergreenDetector() {
-  console.log("🔍 Running Smart Selective Evergreen Detector v7.6...");
+  console.log("🔍 Running Smart Selective Evergreen Detector v7.9 Ultimate Visual...");
 
   // === Inject responsive CSS ===
   const style = document.createElement("style");
@@ -231,6 +231,9 @@ if(oldHash && oldHash == currentHash){
   [data-nosnippet] th,[data-nosnippet] td{border:1px solid #ddd;padding:8px;text-align:left;vertical-align:top;}
   [data-nosnippet] thead{position:sticky;top:0;background:#f9fcff;z-index:5;}
   [data-nosnippet] tr:nth-child(even){background:#fafafa;}
+  .score-green{background:#d4f7d4;color:#000;font-weight:bold;}
+  .score-orange{background:#fff4d1;color:#000;font-weight:bold;}
+  .score-red{background:#ffd6d6;color:#000;font-weight:bold;}
   @media(max-width:768px){
     [data-nosnippet] table{min-width:600px;}
     [data-nosnippet] td{font-size:13px;word-break:break-word;}
@@ -238,187 +241,176 @@ if(oldHash && oldHash == currentHash){
   }`;
   document.head.appendChild(style);
 
-  // === Util ===
-  const cleanText = (s) => (s ? s.replace(/\s+/g, " ").trim() : "");
-  const hashString = (s) => {
-    let h = 0;
-    for (let i = 0; i < s.length; i++) {
-      h = (h << 5) - h + s.charCodeAt(i);
-      h |= 0;
-    }
-    return h;
-  };
-  const convertToWIB = (iso) => {
-    if (!iso) return "";
-    const d = new Date(iso);
-    return new Date(d.getTime() + 7 * 60 * 60 * 1000).toISOString().split("T")[0];
-  };
+  // === Utils ===
+  const cleanText = s => s ? s.replace(/\s+/g," ").trim() : "";
+  const hashString = s => { let h=0; for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;} return h; };
+  const convertToWIB = iso => iso ? new Date(new Date(iso).getTime()+7*60*60*1000).toISOString().split("T")[0] : "";
+
+  // === Deteksi halaman pillar ===
+  const isPillar = document.body.dataset.pillar==="true" || /pillar|cornerstone|\/p\//.test(location.pathname.toLowerCase());
 
   // === Ambil konten utama ===
-  const contentRoot =
-    document.querySelector("article") ||
-    document.querySelector(".post-body") ||
-    document.querySelector("main") ||
-    document.body;
+  const contentRoot = document.querySelector("article") || document.querySelector(".post-body") || document.querySelector("main") || document.body;
 
   // === Hash Global ===
   const contentText = cleanText(contentRoot.innerText);
   const globalHash = hashString(contentText);
-  const oldGlobalHash = localStorage.getItem("globalHash_" + location.pathname);
-  localStorage.setItem("globalHash_" + location.pathname, globalHash);
+  const oldGlobalHash = localStorage.getItem("globalHash_"+location.pathname);
+  localStorage.setItem("globalHash_"+location.pathname, globalHash);
 
   // === Meta datePublished & dateModified ===
-  let datePublished =
-    convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content) ||
-    "";
-  let dateModified =
-    convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content) ||
-    datePublished;
+  let datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content) || "";
+  let dateModified = convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content) || datePublished;
 
-  // === Ambil section berdasarkan H2/H3 ===
+  // === Ambil section H2/H3 ===
   const sections = [];
-  const headings = contentRoot.querySelectorAll("h2, h3");
-  let current = null;
-  headings.forEach((h) => {
-    if (h.tagName === "H2") {
-      if (current) sections.push(current);
-      current = { title: cleanText(h.innerText), content: "" };
-    } else if (h.tagName === "H3" && current) {
-      current.content += "\n" + cleanText(h.innerText);
-    }
-    let next = h.nextElementSibling;
-    while (next && !/^H[23]$/i.test(next.tagName)) {
-      if (next.innerText) current.content += "\n" + cleanText(next.innerText);
-      next = next.nextElementSibling;
+  let current=null;
+  contentRoot.querySelectorAll("h2,h3").forEach(h=>{
+    if(h.tagName==="H2"){ if(current) sections.push(current); current={title:cleanText(h.innerText),content:""}; }
+    else if(h.tagName==="H3" && current) current.content+="\n"+cleanText(h.innerText);
+    let next=h.nextElementSibling;
+    while(next&&!/^H[23]$/i.test(next.tagName)){
+      if(next.innerText && current) current.content+="\n"+cleanText(next.innerText);
+      next=next.nextElementSibling;
     }
   });
-  if (current) sections.push(current);
+  if(current) sections.push(current);
 
-  // === Deteksi tipe konten ===
-  const detectType = (t) => {
-    const l = t.toLowerCase();
-    if (/(harga|update|promo|diskon|biaya|bulan ini|tahun)/.test(l)) return "NON-EVERGREEN";
-    if (/(proyek|spesifikasi|fitur|jenis|perbandingan|keunggulan)/.test(l))
-      return "SEMI-EVERGREEN";
+  // === Detect Type per-section ===
+  const detectType = t => {
+    if(isPillar) return "EVERGREEN";
+    const l=t.toLowerCase();
+    if(/(harga|update|promo|diskon|biaya|bulan ini|tahun)/.test(l)) return "NON-EVERGREEN";
+    if(/(proyek|spesifikasi|fitur|jenis|perbandingan|keunggulan)/.test(l)) return "SEMI-EVERGREEN";
     return "EVERGREEN";
   };
 
-  // === Analisis perubahan per-section ===
-  let importantChanged = false;
-  const results = [];
-  sections.forEach((sec, i) => {
-    const type = detectType(sec.title + " " + sec.content);
-    const hash = hashString(sec.title + sec.content);
-    const key = `sec_hash_${i}_${location.pathname}`;
-    const old = localStorage.getItem(key);
-    const changed = old && old !== String(hash);
-    localStorage.setItem(key, hash);
+  // === Advice Generator Cerdas ===
+  function generateAdvice(txt,type,length,isLast){
+    const adv=[];
+    if(/harga|biaya|tarif/.test(txt)) adv.push("Perbarui harga & tarif secara berkala");
+    if(/spesifikasi|fitur|ukuran/.test(txt)) adv.push("Periksa & update spesifikasi terbaru");
+    if(/manfaat|fungsi|keunggulan/.test(txt)) adv.push("Tambahkan contoh nyata penerapan");
+    if(/video|gambar|foto|diagram|chart/.test(txt)) adv.push("Sertakan media visual agar lebih menarik");
+    if(length<400) adv.push("Perluas konten agar lebih lengkap dan komprehensif");
+    if(!/faq|pertanyaan/.test(txt) && isLast) adv.push("Tambahkan FAQ atau pertanyaan umum di akhir");
+    if(type==="NON-EVERGREEN") adv.push("Periksa update rutin untuk menjaga akurasi informasi");
+    if(type==="SEMI-EVERGREEN") adv.push("Lakukan review berkala tiap 3-6 bulan");
+    return adv.length ? adv.join(". ") + "." : "Konten stabil, review ringan cukup.";
+  }
 
-    if (changed && (type === "SEMI-EVERGREEN" || type === "NON-EVERGREEN")) {
-      importantChanged = true;
-    }
+  // === Skor SEO & Readability (versi sederhana) ===
+  function calculateSEOScore(txt){
+    const wordCount=txt.split(/\s+/).length;
+    const keywordDensity=(txt.match(/(harga|beton|ready mix|minimix|jayamix)/gi)||[]).length/wordCount*100;
+    const score=Math.min(100,Math.max(0,50 + wordCount/10 + keywordDensity*5));
+    return Math.round(score);
+  }
+  function calculateReadability(txt){
+    const sentences=txt.split(/[.!?]/).filter(s=>s.trim().length>0).length||1;
+    const words=txt.split(/\s+/).length;
+    const avgWordsPerSentence=words/sentences;
+    const score=Math.max(0,100-Math.abs(avgWordsPerSentence-15)*5);
+    return Math.round(score);
+  }
+  function scoreColor(score){
+    if(score>=80) return "score-green";
+    if(score>=50) return "score-orange";
+    return "score-red";
+  }
 
-    const months = type === "EVERGREEN" ? 12 : type === "SEMI-EVERGREEN" ? 6 : 3;
-    const nextUpdate = new Date();
-    nextUpdate.setMonth(nextUpdate.getMonth() + months);
+  // === Analisis per-section & H1 Audit ===
+  let importantChanged=false;
+  const h1=cleanText(document.querySelector("h1")?.innerText||"");
+  const h1KeywordMismatch=isPillar && !location.pathname.toLowerCase().includes(h1.toLowerCase().replace(/\s+/g,"-"));
+  const results=[];
+  sections.forEach((sec,i)=>{
+    const type=detectType(sec.title+" "+sec.content);
+    const hash=hashString(sec.title+" "+sec.content);
+    const key=`sec_hash_${i}_${location.pathname}`;
+    const old=localStorage.getItem(key);
+    const changed=old && old!==String(hash);
+    localStorage.setItem(key,hash);
 
-    const txt = sec.content.toLowerCase();
-    const advice = [];
-    if (/harga|biaya|tarif/.test(txt)) advice.push("Perbarui harga secara berkala.");
-    if (/spesifikasi|fitur|ukuran/.test(txt)) advice.push("Tambahkan update spesifikasi terbaru.");
-    if (/manfaat|fungsi/.test(txt)) advice.push("Sertakan contoh nyata penerapan.");
-    if (txt.length < 400) advice.push("Perluas isi agar lebih komprehensif.");
-    if (!/faq|pertanyaan/.test(txt) && i === sections.length - 1)
-      advice.push("Tambahkan FAQ di bagian akhir.");
+    if(changed && (type==="SEMI-EVERGREEN" || type==="NON-EVERGREEN")) importantChanged=true;
+
+    const months=type==="EVERGREEN"?12:type==="SEMI-EVERGREEN"?6:3;
+    const nextUpdate=new Date(); nextUpdate.setMonth(nextUpdate.getMonth()+months);
+
+    const txt=sec.content.toLowerCase();
+    const advice=generateAdvice(txt,type,txt.length,i===sections.length-1);
+    const seoScore=calculateSEOScore(txt);
+    const readability=calculateReadability(txt);
 
     results.push({
-      section: sec.title || "(Tanpa Judul)",
+      section: sec.title||"(Tanpa Judul)",
       type,
       changed,
       nextUpdate: nextUpdate.toLocaleDateString(),
-      advice: advice.join(" ") || "Stabil, cukup review ringan.",
+      advice,
+      seoScore,
+      readability
     });
   });
 
-  // === Selective dateModified Update ===
-  if (oldGlobalHash && oldGlobalHash !== String(globalHash) && importantChanged) {
-    dateModified = convertToWIB(new Date().toISOString());
-    console.log("⚡ Update signifikan pada section penting → update dateModified:", dateModified);
-
-    // Update schema & meta
-    document.querySelectorAll('script[type="application/ld+json"]').forEach((s) => {
-      try {
-        const d = JSON.parse(s.textContent);
-        if (d.dateModified) {
-          d.dateModified = dateModified;
-          s.textContent = JSON.stringify(d, null, 2);
-        }
-      } catch {}
+  // === Selective dateModified & JSON-LD Update ===
+  if(oldGlobalHash && oldGlobalHash!==String(globalHash) && importantChanged){
+    dateModified=convertToWIB(new Date().toISOString());
+    console.log("⚡ Update signifikan → dateModified:",dateModified);
+    document.querySelectorAll('script[type="application/ld+json"]').forEach(s=>{
+      try{
+        const d=JSON.parse(s.textContent);
+        if(d.dateModified) d.dateModified=dateModified;
+        if(d.offers && d.offers.priceValidUntil) d.offers.priceValidUntil=dateModified;
+        s.textContent=JSON.stringify(d,null,2);
+      }catch{}
     });
-    const meta = document.querySelector('meta[itemprop="dateModified"]');
-    if (meta) meta.setAttribute("content", dateModified);
-  } else {
-    console.log("ℹ Tidak ada perubahan penting → dateModified tidak diperbarui.");
+    const meta=document.querySelector('meta[itemprop="dateModified"]');
+    if(meta) meta.setAttribute("content",dateModified);
   }
 
   // === Render dashboard visual ===
-  const wrap = document.createElement("div");
-  wrap.setAttribute("data-nosnippet", "true");
-  wrap.style = "margin-top:20px;padding:10px;border:1px solid #ccc;border-radius:8px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.1);";
+  const wrap=document.createElement("div");
+  wrap.setAttribute("data-nosnippet","true");
+  wrap.style="margin-top:20px;padding:10px;border:1px solid #ccc;border-radius:8px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.1);";
 
-  const table = document.createElement("table");
-  table.innerHTML = `
-  <thead><tr><th>Section</th><th>Tipe</th><th>Perubahan</th><th>Next Update</th><th>Saran</th></tr></thead>
+  let h1AuditMsg="";
+  if(h1KeywordMismatch) h1AuditMsg="⚠ H1 pillar tidak sesuai URL/keyword. Disarankan perbaiki agar cocok.";
+
+  const table=document.createElement("table");
+  table.innerHTML=`
+  <thead><tr>
+    <th>Section</th><th>Tipe</th><th>Perubahan</th><th>Next Update</th>
+    <th>Saran</th><th>SEO Score</th><th>Readability</th>
+  </tr></thead>
   <tbody>
-    ${results
-      .map(
-        (r) => `
-    <tr style="background:${
-      r.type === "EVERGREEN"
-        ? "#e8fce8"
-        : r.type === "SEMI-EVERGREEN"
-        ? "#fff5e0"
-        : "#ffeaea"
-    };">
-      <td>${r.section}</td>
-      <td><b>${r.type}</b></td>
-      <td>${r.changed ? "✅ Berubah" : "– Stabil"}</td>
-      <td>${r.nextUpdate}</td>
-      <td>${r.advice}</td>
-    </tr>`
-      )
-      .join("")}
+    ${results.map(r=>`
+      <tr style="background:${r.type==="EVERGREEN"?"#e8fce8":r.type==="SEMI-EVERGREEN"?"#fff5e0":"#ffeaea"}">
+        <td>${r.section}</td>
+        <td><b>${r.type}</b></td>
+        <td>${r.changed?"✅ Berubah":"– Stabil"}</td>
+        <td>${r.nextUpdate}</td>
+        <td>${r.advice}</td>
+        <td class="${scoreColor(r.seoScore)}">${r.seoScore}</td>
+        <td class="${scoreColor(r.readability)}">${r.readability}</td>
+      </tr>`).join("")}
   </tbody>`;
   wrap.appendChild(table);
 
-  const info = document.createElement("div");
-  info.style.marginTop = "8px";
-  info.style.fontSize = "13px";
-  info.textContent = `📅 Published: ${datePublished || "-"} | Last Modified: ${dateModified}`;
+  const info=document.createElement("div");
+  info.style.marginTop="8px"; info.style.fontSize="13px";
+  info.textContent=`📅 Published: ${datePublished || "-"} | Last Modified: ${dateModified} ${h1AuditMsg}`;
   wrap.appendChild(info);
 
-  const btn = document.createElement("button");
-  btn.textContent = "🔄 Deteksi Ulang";
-  Object.assign(btn.style, {
-    marginTop: "10px",
-    padding: "8px 14px",
-    background: "#007bff",
-    color: "#fff",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-  });
-  btn.onclick = () => {
-    wrap.remove();
-    runEvergreenDetector();
-  };
+  const btn=document.createElement("button");
+  btn.textContent="🔄 Deteksi Ulang";
+  Object.assign(btn.style,{marginTop:"10px",padding:"8px 14px",background:"#007bff",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer"});
+  btn.onclick=()=>{wrap.remove(); runEvergreenDetector();};
   wrap.appendChild(btn);
 
-  (document.querySelector("#aed-dashboard") ||
-    document.querySelector("main") ||
-    document.body).appendChild(wrap);
+  (document.querySelector("#aed-dashboard")||document.querySelector("main")||document.body).appendChild(wrap);
 
-  console.log("✅ v7.6 selesai – Selective dateModified aktif & visual indikator ditampilkan.");
+  console.log("✅ v7.9 Ultimate Visual selesai – Skor SEO & Readability dengan warna aktif.");
 })();
 
   // ================== SCHEMA GENERATOR ==================
