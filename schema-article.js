@@ -82,7 +82,7 @@ if(oldHash && oldHash == currentHash){
     intervals: { EVERGREEN: 12, SEMI_EVERGREEN: 6, NON_EVERGREEN: 3 },
     const evergreenKeywords = [
   "panduan", "tutorial", "cara", "manfaat", "pengertian", "definisi", "apa itu",
-  "tips", "trik", "panduan lengkap", "langkah-langkah", "praktik terbaik",
+  "tips", "trik", "panduan lengkap", "langkah-langkah", "best practices", "praktik terbaik",
   "strategi", "studi kasus", "contoh", "referensi", "panduan SEO", "petunjuk",
   "instruksi", "tutorial video", "tutorial lengkap", "tips lanjutan", "cara efektif",
   "solusi", "teknik", "panduan praktis", "panduan langkah demi langkah"
