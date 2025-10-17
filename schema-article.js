@@ -149,12 +149,18 @@ if(oldHash && oldHash == currentHash){
     let type=detectEvergreen(h1R,txt,window.location.pathname);
     if(isPillar)type='EVERGREEN';
 
-    // === Atur data-force di body ===
-    if(type==='EVERGREEN'){
-      document.body.setAttribute('data-force','evergreen');
-    } else {
-      document.body.removeAttribute('data-force');
-    }
+   // === Atur data-force di body berdasarkan status ===
+if (type === 'EVERGREEN') {
+  document.body.setAttribute('data-force', 'evergreen');
+} else if (type === 'SEMI_EVERGREEN') {
+  document.body.setAttribute('data-force', 'semi-evergreen');
+} else if (type === 'NON_EVERGREEN') {
+  document.body.setAttribute('data-force', 'non-evergreen');
+} else {
+  // fallback hapus jika status tidak dikenali
+  document.body.removeAttribute('data-force');
+}
+
 
     // === Perhitungan tanggal update ===
     const next=new Date();let mod=null;
