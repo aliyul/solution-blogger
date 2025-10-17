@@ -226,12 +226,24 @@ if(oldHash && oldHash == currentHash){
     elH1.insertAdjacentElement('afterend',sEl);
 
     // === Author Date ===
-    const aEl = document.querySelector(CONFIG.authorSelector);
-if(aEl && modStr) {
-  aEl.querySelector('.' + CONFIG.dateSpanClass)?.remove();
+const aEl = document.querySelector(CONFIG.authorSelector);
 
-  // ✅ Tampilkan tanggal hanya untuk Semi-Evergreen & Non-Evergreen
-  if(type !== 'EVERGREEN') {
+// Hapus tanggal lama jika ada
+aEl?.querySelector('.' + CONFIG.dateSpanClass)?.remove();
+
+if (type === 'NON_EVERGREEN') {
+  // Tampilkan di atas H1
+  if (elH1) {
+    const d = document.createElement('span');
+    d.className = CONFIG.dateSpanClass;
+    d.textContent = 'Diperbarui: ' + modStr;
+    d.style.cssText = 'display:block;font-size:.85em;color:#d9534f;margin-bottom:4px;';
+    d.setAttribute('data-nosnippet','true');
+    elH1.parentNode.insertBefore(d, elH1);
+  }
+} else if (type === 'SEMI_EVERGREEN') {
+  // Tampilkan sejajar author
+  if (aEl && modStr) {
     const d = document.createElement('span');
     d.className = CONFIG.dateSpanClass;
     d.textContent = ' · Diperbarui: ' + modStr;
@@ -240,6 +252,7 @@ if(aEl && modStr) {
     aEl.appendChild(d);
   }
 }
+// Evergreen tidak tampil tanggal
 
 
     // === Dashboard ===
