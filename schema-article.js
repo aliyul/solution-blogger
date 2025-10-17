@@ -196,7 +196,7 @@ if(oldHash && oldHash == currentHash){
       labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
       document.body.removeAttribute('data-force');
     } else {
-      labelText = `<b>NON-EVERGREEN</b> — tidak perlu pembaruan rutin`;
+      labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
       document.body.removeAttribute('data-force');
     }
   
