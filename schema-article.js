@@ -259,7 +259,7 @@ if(oldHash && oldHash == currentHash){
 
 /* ===== 🧩 Hybrid Evergreen Detector + Smart Selective DateModified v7.6 ===== */
 (function runEvergreenDetector() {
-  console.log("🔍 Running Smart Selective Evergreen Detector v7.9 Ultimate Visual+KeywordList...");
+  console.log("🔍 Running Smart Selective Evergreen Detector v8.0 UltraKMPTTF TrueSection Fix...");
 
   // === Inject responsive CSS ===
   const style = document.createElement("style");
@@ -293,7 +293,6 @@ if(oldHash && oldHash == currentHash){
   // === Hash Global ===
   const contentText = cleanText(contentRoot.innerText);
   const globalHash = hashString(contentText);
-  const oldGlobalHash = localStorage.getItem("globalHash_"+location.pathname);
   localStorage.setItem("globalHash_"+location.pathname, globalHash);
 
   // === Meta datePublished & dateModified ===
@@ -304,75 +303,68 @@ if(oldHash && oldHash == currentHash){
   const sections = [];
   let current=null;
   contentRoot.querySelectorAll("h2,h3").forEach(h=>{
-    if(h.tagName==="H2"){ if(current) sections.push(current); current={title:cleanText(h.innerText),content:""}; }
-    else if(h.tagName==="H3" && current) current.content+="\n"+cleanText(h.innerText);
+    if(h.tagName==="H2"){
+      if(current) sections.push(current);
+      current={title:cleanText(h.innerText),content:""};
+    } else if(h.tagName==="H3" && current){
+      current.content+="\n"+cleanText(h.innerText);
+    }
     let next=h.nextElementSibling;
-    while(next&&!/^H[23]$/i.test(next.tagName)){
+    while(next && !/^H[23]$/i.test(next.tagName)){
       if(next.innerText && current) current.content+="\n"+cleanText(next.innerText);
       next=next.nextElementSibling;
     }
   });
   if(current) sections.push(current);
 
-  // === Daftar kata acuan deteksi status ===
-  const evergreenWords = [
-    "panduan","tutorial","cara","manfaat","pengertian","definisi","apa itu",
-    "tips","trik","panduan lengkap","langkah-langkah","studi kasus","contoh nyata",
-    "best practice","checklist","strategi","tips lanjutan","faq","pertanyaan umum"
-  ];
-  const semiWords = [
-    "harga","lokasi","layanan","pengiriman","wilayah","area","order","pesan",
-    "update harga","harga terbaru","pesan sekarang","wilayah pengiriman","biaya",
-    "tarif","estimasi","ongkir","spesifikasi","fitur","jenis","keunggulan"
-  ];
-  const nonWords = [
-    "promo","diskon","event","penawaran","perdana","periode","terbaru","update",
-    "spesial","promo akhir tahun","penawaran terbatas","stok terbatas","preorder",
-    "flash sale","2020","2021","2022","2023","2024","2025","2026","2027","2028"
-  ];
+  // === Daftar kata acuan ===
+  const evergreenWords=["panduan","tutorial","cara","manfaat","pengertian","definisi","apa itu","tips","trik","panduan lengkap","langkah-langkah","studi kasus","contoh nyata","best practice","checklist","strategi","tips lanjutan","faq","pertanyaan umum"];
+  const semiWords=["harga","lokasi","layanan","pengiriman","wilayah","area","order","pesan","update harga","harga terbaru","pesan sekarang","wilayah pengiriman","biaya","tarif","estimasi","ongkir","spesifikasi","fitur","jenis","keunggulan"];
+  const nonWords=["promo","diskon","event","penawaran","perdana","periode","terbaru","update","spesial","promo akhir tahun","penawaran terbatas","stok terbatas","preorder","flash sale","2020","2021","2022","2023","2024","2025","2026","2027","2028"];
 
-  // === Deteksi tipe konten ===
-  const detectType = t => {
+  // === Deteksi tipe konten per-section (prioritas dinamis) ===
+  const detectType = (title, content) => {
     if(isPillar) return "EVERGREEN";
-    const l=t.toLowerCase();
-    if(nonWords.some(w=>l.includes(w))) return "NON-EVERGREEN";
-    if(semiWords.some(w=>l.includes(w))) return "SEMI-EVERGREEN";
-    if(evergreenWords.some(w=>l.includes(w))) return "EVERGREEN";
+    const txt = (title + " " + content).toLowerCase();
+
+    const score = {evergreen:0, semi:0, non:0};
+    evergreenWords.forEach(w=>{ if(txt.includes(w)) score.evergreen++; });
+    semiWords.forEach(w=>{ if(txt.includes(w)) score.semi++; });
+    nonWords.forEach(w=>{ if(txt.includes(w)) score.non++; });
+
+    // 💡 Prioritas: EVERGREEN > SEMI > NON kecuali NON jauh lebih kuat
+    if(score.non > (score.evergreen + score.semi + 1)) return "NON-EVERGREEN";
+    if(score.evergreen >= score.semi) return "EVERGREEN";
+    if(score.semi > score.evergreen) return "SEMI-EVERGREEN";
     return "EVERGREEN";
   };
 
   // === Generator Saran ===
-  function generateAdvice(txt,type,length,isLast){
+  const generateAdvice=(txt,type,length,isLast)=>{
     const adv=[];
     if(/harga|biaya|tarif/.test(txt)) adv.push("Perbarui harga & tarif secara berkala");
     if(/spesifikasi|fitur|ukuran/.test(txt)) adv.push("Periksa & update spesifikasi terbaru");
     if(/manfaat|fungsi|keunggulan/.test(txt)) adv.push("Tambahkan contoh nyata penerapan");
     if(/video|gambar|foto|diagram|chart/.test(txt)) adv.push("Sertakan media visual agar lebih menarik");
     if(length<400) adv.push("Perluas konten agar lebih lengkap dan komprehensif");
-    if(!/faq|pertanyaan/.test(txt) && isLast) adv.push("Tambahkan FAQ atau pertanyaan umum di akhir");
+    if(!/faq|pertanyaan/.test(txt)&&isLast) adv.push("Tambahkan FAQ atau pertanyaan umum di akhir");
     if(type==="NON-EVERGREEN") adv.push("Periksa update rutin untuk menjaga akurasi informasi");
     if(type==="SEMI-EVERGREEN") adv.push("Lakukan review berkala tiap 3-6 bulan");
-    return adv.length ? adv.join(". ") + "." : "Konten stabil, review ringan cukup.";
-  }
-
-  // === SEO + Readability ===
-  const calculateSEOScore = txt=>{
-    const content = cleanText(txt.toLowerCase());
-    const h1 = cleanText(document.querySelector("h1")?.innerText || "").toLowerCase();
-    const h2h3 = Array.from(document.querySelectorAll("h2,h3")).map(h=>cleanText(h.innerText)).join(" ");
-    const metaKeywords = (document.querySelector("meta[name='keywords']")?.content || "").toLowerCase();
-    let keywords = Array.from(new Set((h1+" "+h2h3+" "+metaKeywords).split(/\s+/).filter(Boolean)));
-    if(keywords.length===0) keywords=["artikel","informasi"];
-    const words = content.split(/\s+/).length;
-    let hits=0;
-    keywords.forEach(k=>{
-      const re=new RegExp("\\b"+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+"\\b","gi");
-      hits+=(content.match(re)||[]).length;
-    });
-    const density=words?hits/words:0;
-    const score=Math.max(0,Math.min(100,Math.round(50+density*30+Math.min(20,words/50))));
-    return score;
+    return adv.length?adv.join(". ") + ".":"Konten stabil, review ringan cukup.";
   };
+
+  const calculateSEOScore = txt=>{
+    const c=cleanText(txt.toLowerCase());
+    const h1=cleanText(document.querySelector("h1")?.innerText||"").toLowerCase();
+    const h2h3=Array.from(document.querySelectorAll("h2,h3")).map(h=>cleanText(h.innerText)).join(" ");
+    const meta=(document.querySelector("meta[name='keywords']")?.content||"").toLowerCase();
+    const words=c.split(/\s+/).length;
+    const keys=Array.from(new Set((h1+" "+h2h3+" "+meta).split(/\s+/).filter(Boolean)));
+    let hits=0; keys.forEach(k=>{const re=new RegExp("\\b"+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+"\\b","gi");hits+=(c.match(re)||[]).length;});
+    const density=words?hits/words:0;
+    return Math.max(0,Math.min(100,Math.round(50+density*30+Math.min(20,words/50))));
+  };
+
   const calculateReadability = txt=>{
     const s=txt.split(/[.!?]/).filter(x=>x.trim().length>0).length||1;
     const w=txt.split(/\s+/).length;
@@ -380,56 +372,44 @@ if(oldHash && oldHash == currentHash){
   };
   const scoreColor = n => n>=80?"score-green":n>=50?"score-orange":"score-red";
 
-  // === Audit + Tabel ===
+  // === Audit per-section ===
   const h1=cleanText(document.querySelector("h1")?.innerText||"");
   const h1Mismatch=isPillar && !location.pathname.toLowerCase().includes(h1.toLowerCase().replace(/\s+/g,"-"));
   const results=[];
   sections.forEach((sec,i)=>{
-    const type=detectType(sec.title+" "+sec.content);
+    const type=detectType(sec.title,sec.content);
     const hash=hashString(sec.title+" "+sec.content);
     const key=`sec_hash_${i}_${location.pathname}`;
     const old=localStorage.getItem(key);
     const changed=old && old!==String(hash);
     localStorage.setItem(key,hash);
     const months=type==="EVERGREEN"?12:type==="SEMI-EVERGREEN"?6:3;
-    const nextUpdate=new Date(); nextUpdate.setMonth(nextUpdate.getMonth()+months);
+    const next=new Date();next.setMonth(next.getMonth()+months);
     const txt=sec.content.toLowerCase();
     const advice=generateAdvice(txt,type,txt.length,i===sections.length-1);
     const seoScore=calculateSEOScore(txt);
     const readability=calculateReadability(txt);
-    results.push({section:sec.title||"(Tanpa Judul)",type,changed,nextUpdate:nextUpdate.toLocaleDateString(),advice,seoScore,readability});
+    results.push({section:sec.title||"(Tanpa Judul)",type,changed,nextUpdate:next.toLocaleDateString(),advice,seoScore,readability});
   });
 
-  // === Render visual ===
+  // === Render Dashboard (di bawah halaman, SEO-safe)
   const wrap=document.createElement("div");
   wrap.setAttribute("data-nosnippet","true");
-  wrap.style="margin-top:20px;padding:10px;border:1px solid #ccc;border-radius:8px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.1);";
-
-  const kwList=document.createElement("div");
-  kwList.innerHTML=`
-  <b>🔍 Daftar Kata Deteksi Evergreen:</b><br>
-  <b>Evergreen:</b> ${evergreenWords.join(", ")}<br>
-  <b>Semi-Evergreen:</b> ${semiWords.join(", ")}<br>
-  <b>Non-Evergreen:</b> ${nonWords.join(", ")}<br><br>`;
-  kwList.style="font-size:13px;line-height:1.5;margin-bottom:10px;";
-  wrap.appendChild(kwList);
+  wrap.style="margin-top:30px;padding:10px;border:1px solid #ccc;border-radius:8px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.1);";
 
   const table=document.createElement("table");
   table.innerHTML=`
   <thead><tr><th>Section</th><th>Tipe</th><th>Perubahan</th><th>Next Update</th><th>Saran</th><th>SEO</th><th>Readability</th></tr></thead>
-  <tbody>
-    ${results.map(r=>`
-      <tr style="background:${r.type==="EVERGREEN"?"#e8fce8":r.type==="SEMI-EVERGREEN"?"#fff5e0":"#ffeaea"}">
-        <td>${r.section}</td><td><b>${r.type}</b></td><td>${r.changed?"✅":"–"}</td>
-        <td>${r.nextUpdate}</td><td>${r.advice}</td>
-        <td class="${scoreColor(r.seoScore)}">${r.seoScore}</td>
-        <td class="${scoreColor(r.readability)}">${r.readability}</td>
-      </tr>`).join("")}
+  <tbody>${results.map(r=>`
+  <tr style="background:${r.type==="EVERGREEN"?"#e8fce8":r.type==="SEMI-EVERGREEN"?"#fff5e0":"#ffeaea"}">
+  <td>${r.section}</td><td><b>${r.type}</b></td><td>${r.changed?"✅":"–"}</td><td>${r.nextUpdate}</td><td>${r.advice}</td>
+  <td class="${scoreColor(r.seoScore)}">${r.seoScore}</td><td class="${scoreColor(r.readability)}">${r.readability}</td></tr>`).join("")}
   </tbody>`;
   wrap.appendChild(table);
 
   const info=document.createElement("div");
-  info.style.fontSize="13px"; info.style.marginTop="8px";
+  info.style.fontSize="13px";
+  info.style.marginTop="8px";
   info.textContent=`📅 Published: ${datePublished||"-"} | Last Modified: ${dateModified}${h1Mismatch?" ⚠ H1 tidak cocok URL.":""}`;
   wrap.appendChild(info);
 
@@ -440,15 +420,11 @@ if(oldHash && oldHash == currentHash){
   wrap.appendChild(btn);
 
   // === Tempatkan di luar konten utama (SEO-safe)
-const footerArea = document.querySelector("footer") || document.querySelector("#footer-wrapper");
-if (footerArea && footerArea.parentNode) {
-  footerArea.parentNode.insertBefore(wrap, footerArea);
-} else {
-  document.body.appendChild(wrap); // fallback terakhir
-}
+  const footerArea=document.querySelector("footer")||document.querySelector("#footer-wrapper");
+  if(footerArea&&footerArea.parentNode){footerArea.parentNode.insertBefore(wrap,footerArea);}
+  else{document.body.appendChild(wrap);}
 
- // (document.querySelector("main")||document.body).appendChild(wrap);
-  console.log("✅ AED v7.9 Ultimate Visual+KeywordList selesai");
+  console.log("✅ AED v8.0 UltraKMPTTF TrueSection Fix selesai");
 })();
 
 
