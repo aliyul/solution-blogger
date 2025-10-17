@@ -104,7 +104,7 @@ const nonEvergreenKeywords = [
   "khusus pelanggan", "kampanye", "promo online"
 ];
 
-    updateJsonLd: true
+updateJsonLd: true
   };
 
   function qsMany(selectors) { for (const s of selectors) { const el = document.querySelector(s); if (el) return el; } return null; }
