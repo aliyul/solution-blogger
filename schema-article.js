@@ -244,7 +244,6 @@ if(oldHash && oldHash == currentHash){
  */
 
 /* ===== 🧩 Hybrid Evergreen Detector + Smart Selective DateModified v7.6 ===== */
-<script>
 (function runEvergreenDetector() {
   console.log("🔍 Running Smart Selective Evergreen Detector v7.9 Ultimate Visual+KeywordList...");
 
@@ -315,7 +314,7 @@ if(oldHash && oldHash == currentHash){
   const nonWords = [
     "promo","diskon","event","penawaran","perdana","periode","terbaru","update",
     "spesial","promo akhir tahun","penawaran terbatas","stok terbatas","preorder",
-    "flash sale","2020","2021","2022","2023","2024","2025","2026"
+    "flash sale","2020","2021","2022","2023","2024","2025","2026","2027","2028"
   ];
 
   // === Deteksi tipe konten ===
@@ -429,7 +428,7 @@ if(oldHash && oldHash == currentHash){
   (document.querySelector("main")||document.body).appendChild(wrap);
   console.log("✅ AED v7.9 Ultimate Visual+KeywordList selesai");
 })();
-</script>
+
 
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
