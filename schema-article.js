@@ -66,220 +66,152 @@ if(oldHash && oldHash == currentHash){
 }
 */
 // ================== DETEKSI TYPE KONTEN ==================
-(function () {
-  try {
-    console.log("🚀 AED Final Interaktif v7.0 — Stable SEO Safe");
+/* ===== Auto Evergreen Detector v7.7 + Dashboard Interaktif ===== */
+(function AutoEvergreenDashboard(window, document){
+  'use strict';
 
-    // ===== 1️⃣ Elemen & Text Detector =====
-    const elContent = document.querySelector("article, main, .post-body");
-    const elH1 = document.querySelector("h1");
-    const h1Text = elH1?.innerText || "(no H1)";
-    const textContent = (elContent?.innerText || "").slice(0, 4000).toLowerCase();
+  const CONFIG = {
+    storageKey: 'AutoEvergreenHashV7_7',
+    labelAttr: 'data-aed-label',
+    dateSpanClass: 'aed-date-span',
+    checkLength: 4000,
+    locale: 'id-ID',
+    nonEvergreenKeywords: [
+      'promo','diskon','event','penawaran','perdana','periode','terbaru','update','spesial','promo akhir tahun','penawaran terbatas',
+      '2020','2021','2022','2023','2024','2025','2026'
+    ],
+    semiKeywords: [
+      'harga','lokasi','layanan','pengiriman','wilayah','area','order','pesan','update harga','harga terbaru','pesan sekarang','wilayah pengiriman','biaya','tarif','estimasi','ongkir'
+    ],
+    evergreenKeywords: [
+      'panduan','tutorial','cara','manfaat','pengertian','definisi','apa itu','tips','trik','panduan lengkap','langkah-langkah'
+    ],
+    contentSelectors: ['article','main','.post-body','.entry-content','#content'],
+    h1Selectors: ['h1','.entry-title'],
+    authorSelector: '.post-author .fn, .author vcard, .byline',
+    intervals: { EVERGREEN:12, SEMI_EVERGREEN:6, NON_EVERGREEN:3 },
+    updateJsonLd:true
+  };
 
-    // ===== 2️⃣ Hash / Cache =====
-    const oldHash = localStorage.getItem("AutoEvergreenHash");
-    const currentHash = btoa(unescape(encodeURIComponent(h1Text + textContent)));
+  function qsMany(selectors){ for(const s of selectors){ const el=document.querySelector(s); if(el) return el;} return null;}
+  function sampleTextFrom(el){ if(!el) return ''; return (el.innerText||el.textContent||'').slice(0, CONFIG.checkLength).toLowerCase();}
+  function normalizeUrlToken(path){ if(!path) return ''; return path.split('/').filter(Boolean).pop()?.replace(/^p\//,'').replace(/\.html$/i,'').replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,'').replace(/[-_]/g,' ').trim().toLowerCase()||'';}
+  function containsAny(source, arr){ if(!source||!arr||!arr.length) return false; return arr.some(k=>source.indexOf(k)!==-1);}
+  function findYearInText(s){ if(!s) return null; const m=s.match(/\b(20\d{2})\b/); return m?m[1]:null;}
+  function makeHash(str){ try{ return btoa(unescape(encodeURIComponent(str)));}catch(e){let h=0;for(let i=0;i<str.length;i++) h=(h<<5)-h+str.charCodeAt(i)|0; return String(h);}}
+  function formatDate(d){ if(!d) return null; const opt={day:'numeric',month:'long',year:'numeric'}; return d.toLocaleDateString(CONFIG.locale,opt);}
+  function addMonths(date, months){ const d=new Date(date.valueOf()); d.setMonth(d.getMonth()+months); return d;}
 
-    // ===== 3️⃣ Detect Type =====
-    const urlRaw = window.location.pathname
-      .split("/")
-      .filter(Boolean)
-      .pop()
-      ?.replace(/^p\//, "")
-      .replace(/\.html$/i, "")
-      .replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g, "")
-      .replace(/[-_]/g, " ")
-      .trim()
-      .toLowerCase() || "";
+  try{
+    const elContent = qsMany(CONFIG.contentSelectors)||document.body;
+    const elH1 = qsMany(CONFIG.h1Selectors)||document.querySelector('h1');
+    const h1TextRaw = elH1?elH1.innerText.trim():'(no h1)';
+    const h1Text = h1TextRaw.toLowerCase();
+    const textContent = sampleTextFrom(elContent);
+    const urlRaw = normalizeUrlToken(window.location.pathname);
 
-    const evergreenKeywords = ["panduan", "tutorial", "cara", "manfaat"];
-    const nonEvergreenKeywords = ["harga", "update"];
+    const oldHash = localStorage.getItem(CONFIG.storageKey);
+    const currentHash = makeHash(h1Text+'\n'+textContent+'\n'+urlRaw);
 
-    let type;
-    if (nonEvergreenKeywords.some((k) => urlRaw.includes(k))) type = "NON-EVERGREEN";
-    else if (evergreenKeywords.some((k) => urlRaw.includes(k))) type = "EVERGREEN";
-    else if (evergreenKeywords.some((k) => textContent.includes(k))) type = "EVERGREEN";
-    else type = "SEMI-EVERGREEN";
-
-    // ===== 4️⃣ Smart nextUpdate =====
-    const nextUpdate = new Date();
-    let dateModified = null;
-    if (!oldHash || oldHash !== currentHash) {
-      if (type === "EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 12);
-      else if (type === "SEMI-EVERGREEN") nextUpdate.setMonth(nextUpdate.getMonth() + 6);
-      else nextUpdate.setMonth(nextUpdate.getMonth() + 3);
-      dateModified = new Date(); // hanya update jika hash berubah signifikan
-    } else {
-      console.log("♻️ Tidak ada perubahan signifikan — dateModified tidak diperbarui.");
+    // ===== DETEKSI TIPE =====
+    let type = 'SEMI-EVERGREEN';
+    if(containsAny(h1Text+' '+textContent, CONFIG.nonEvergreenKeywords) || findYearInText(h1Text+' '+textContent)) type='NON-EVERGREEN';
+    if(type!=='NON-EVERGREEN' && containsAny(h1Text+' '+textContent+' '+urlRaw, CONFIG.semiKeywords)) type='SEMI-EVERGREEN';
+    if(type==='SEMI-EVERGREEN' && containsAny(h1Text+' '+textContent, CONFIG.evergreenKeywords) && !containsAny(h1Text+' '+textContent, CONFIG.semiKeywords)) type='EVERGREEN';
+    if(!containsAny(h1Text+' '+textContent, CONFIG.semiKeywords.concat(CONFIG.nonEvergreenKeywords, CONFIG.evergreenKeywords))){
+      if(containsAny(urlRaw, CONFIG.nonEvergreenKeywords)) type='NON-EVERGREEN';
+      else if(containsAny(urlRaw, CONFIG.evergreenKeywords)) type='EVERGREEN';
+      else if(containsAny(urlRaw, CONFIG.semiKeywords)) type='SEMI-EVERGREEN';
     }
 
-    const opt = { day: "numeric", month: "long", year: "numeric" };
-    const nextUpdateStr = nextUpdate.toLocaleDateString("id-ID", opt);
-    const dateModifiedStr = dateModified ? dateModified.toLocaleDateString("id-ID", opt) : null;
+    // ===== NEXT UPDATE & DATE MODIFIED =====
+    const nextUpdate=new Date();
+    let dateModified=null;
+    const intervalMonths=CONFIG.intervals[type==='EVERGREEN'?'EVERGREEN':(type==='SEMI-EVERGREEN'?'SEMI_EVERGREEN':'NON_EVERGREEN')];
+    if(!oldHash || oldHash!==currentHash){ nextUpdate.setMonth(nextUpdate.getMonth()+intervalMonths); dateModified=new Date(); try{ localStorage.setItem(CONFIG.storageKey,currentHash);}catch(e){}}
+    else{ const prevDateIso=localStorage.getItem(CONFIG.storageKey+'_date'); if(prevDateIso){const prev=new Date(prevDateIso); nextUpdate.setMonth(prev.getMonth()+intervalMonths);} else nextUpdate.setMonth(nextUpdate.getMonth()+intervalMonths);}
+    if(dateModified){ try{ localStorage.setItem(CONFIG.storageKey+'_date',dateModified.toISOString()); }catch(e){} }
+    const nextUpdateStr=formatDate(nextUpdate);
+    const dateModifiedStr=dateModified?formatDate(dateModified):null;
 
-    // ===== 5️⃣ Label Info (non-snippet) =====
-    if (elH1) {
-      const existingLabel = elH1.parentNode.querySelector("[data-aed-label]");
-      if (existingLabel) existingLabel.remove();
-      const label = document.createElement("div");
-      label.setAttribute("data-aed-label", "true");
-      label.setAttribute("data-nosnippet", "true");
-      label.style.fontSize = "0.9em";
-      label.style.color = "#444";
-      label.style.marginTop = "4px";
-      label.innerHTML = `<b>${type}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
-      elH1.insertAdjacentElement("afterend", label);
-    }
+    // ===== LABEL H1 =====
+    if(elH1){ try{ const existingLabel=elH1.parentNode.querySelector('['+CONFIG.labelAttr+']'); if(existingLabel) existingLabel.remove(); const label=document.createElement('div'); label.setAttribute(CONFIG.labelAttr,'true'); label.setAttribute('data-nosnippet','true'); label.style.fontSize='0.9em'; label.style.color='#444'; label.style.marginTop='6px'; label.style.marginBottom='10px'; label.innerHTML=`<b>${type}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`; elH1.insertAdjacentElement("afterend",label);}catch(e){console.warn('AED v7.7 Dashboard: gagal sisip label',e);}}
 
-    // ===== 6️⃣ Author & Date Modified =====
-    const authorEl = document.querySelector(".post-author .fn");
-    if (authorEl && dateModifiedStr) {
-      const oldDateSpan = authorEl.querySelector(".aed-date-span");
-      if (oldDateSpan) oldDateSpan.remove();
+    // ===== AUTHOR DATE =====
+    const authorEl=document.querySelector(CONFIG.authorSelector);
+    if(authorEl && dateModifiedStr){ try{ const oldDateSpan=authorEl.querySelector('.'+CONFIG.dateSpanClass); if(oldDateSpan) oldDateSpan.remove(); const dateEl=document.createElement('span'); dateEl.className=CONFIG.dateSpanClass; dateEl.textContent=` · Diperbarui: ${dateModifiedStr}`; dateEl.style.fontSize='0.85em'; dateEl.style.color='#555'; dateEl.style.marginLeft='6px'; dateEl.setAttribute('data-nosnippet','true'); authorEl.appendChild(dateEl);}catch(e){console.warn('AED v7.7 Dashboard: gagal append date',e);} }
 
-      const dateEl = document.createElement("span");
-      dateEl.className = "aed-date-span";
-      dateEl.textContent = ` · Diperbarui: ${dateModifiedStr}`;
-      dateEl.style.fontSize = "0.85em";
-      dateEl.style.color = "#555";
-      dateEl.style.marginLeft = "4px";
-      authorEl.appendChild(dateEl);
-    }
+    // ===== REKOMENDASI H1 =====
+    const urlKeywords=urlRaw.split(" ").filter(Boolean);
+    const h1Lower=h1Text.toLowerCase();
+    const allKeywordsPresent=urlKeywords.every(k=>h1Lower.includes(k));
+    const recommendedH1=!allKeywordsPresent?urlKeywords.map(w=>w[0].toUpperCase()+w.slice(1)).join(" "):h1Text;
 
-    // ===== 7️⃣ Rekomendasi H1 =====
-    const urlKeywords = urlRaw.split(" ").filter(Boolean);
-    const h1Lower = h1Text.toLowerCase();
-    const allKeywordsPresent = urlKeywords.every((k) => h1Lower.includes(k));
-    const h1Diff = !allKeywordsPresent;
-
-    const recommendedH1 = h1Diff
-      ? urlKeywords.map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")
-      : h1Text;
-
-    // ===== 8️⃣ Struktur Ultra =====
+    // ===== STRUKTUR ULTRA =====
     const ultraStructure = {
-      EVERGREEN: ["Pendahuluan", "Manfaat & Kegunaan", "Langkah / Tutorial Lengkap", "Contoh & Studi Kasus", "FAQ"],
-      SEMI: ["Ringkasan & Tren", "Langkah / Cara", "Perbandingan / Analisis", "Saran Praktis"],
-      NON: ["Harga & Promo Terkini", "Ketersediaan & Wilayah", "Periode & Update", "Kontak & Cara Order"],
+      EVERGREEN:["Pendahuluan","Manfaat & Kegunaan","Langkah / Tutorial Lengkap","Contoh & Studi Kasus","FAQ"],
+      SEMI:["Ringkasan & Tren","Langkah / Cara","Perbandingan / Analisis","Saran Praktis"],
+      NON:["Harga & Promo Terkini","Ketersediaan & Wilayah","Periode & Update","Kontak & Cara Order"]
     }[type.split("-")[0]];
 
-    // ===== 9️⃣ Dashboard =====
-    const dash = document.createElement("div");
-    dash.style.maxWidth = "1200px";
-    dash.style.margin = "30px auto";
-    dash.style.padding = "15px";
-    dash.style.background = "#f0f8ff";
-    dash.style.borderTop = "3px solid #0078ff";
-    dash.style.fontFamily = "Arial, sans-serif";
-    dash.setAttribute("data-nosnippet", "true");
+    // ===== DASHBOARD =====
+    const dash=document.createElement("div");
+    dash.style.maxWidth="1200px"; dash.style.margin="30px auto"; dash.style.padding="15px"; dash.style.background="#f0f8ff"; dash.style.borderTop="3px solid #0078ff"; dash.style.fontFamily="Arial,sans-serif"; dash.setAttribute('data-nosnippet','true');
+    const h3=document.createElement("h3"); h3.innerText="📊 AED Dashboard — Ringkasan Halaman"; dash.appendChild(h3);
 
-    const h3 = document.createElement("h3");
-    h3.innerText = "📊 AED Dashboard — Ringkasan Halaman";
-    dash.appendChild(h3);
+    const btnContainer=document.createElement("div"); btnContainer.style.textAlign="center"; btnContainer.style.marginBottom="10px";
+    const createBtn=(text,bg)=>{ const b=document.createElement("button"); b.textContent=text; b.style.background=bg; b.style.color="#000"; b.style.padding="6px 12px"; b.style.margin="3px"; b.style.borderRadius="4px"; b.style.cursor="pointer"; b.style.border="none"; b.style.fontSize="0.9em"; b.setAttribute("data-nosnippet","true"); return b;};
+    const btnKoreksi=createBtn("⚙️ Koreksi & Preview","#ffeedd");
+    const btnShowTable=createBtn("📊 Tampilkan Data Table","#d1e7dd");
+    const btnReport=createBtn("📥 Download Laporan","#f3f3f3");
+    btnContainer.append(btnKoreksi,btnShowTable,btnReport); dash.appendChild(btnContainer);
 
-    const btnContainer = document.createElement("div");
-    btnContainer.style.textAlign = "center";
-    btnContainer.style.marginBottom = "10px";
-
-    const createBtn = (text, bg) => {
-      const b = document.createElement("button");
-      b.textContent = text;
-      b.style.background = bg;
-      b.style.color = "#000";
-      b.style.padding = "6px 12px";
-      b.style.margin = "3px";
-      b.style.borderRadius = "4px";
-      b.style.cursor = "pointer";
-      b.style.border = "none";
-      b.style.fontSize = "0.9em";
-      b.setAttribute("data-nosnippet", "true");
-      return b;
-    };
-
-    const btnKoreksi = createBtn("⚙️ Koreksi & Preview", "#ffeedd");
-    const btnShowTable = createBtn("📊 Tampilkan Data Table", "#d1e7dd");
-    const btnReport = createBtn("📥 Download Laporan", "#f3f3f3");
-    btnContainer.append(btnKoreksi, btnShowTable, btnReport);
-    dash.appendChild(btnContainer);
-
-    // ===== Table (responsive) =====
-    const tableWrap = document.createElement("div");
-    tableWrap.style.overflowX = "auto";
-    tableWrap.style.display = "none";
-    tableWrap.innerHTML = `
+    const tableWrap=document.createElement("div"); tableWrap.style.overflowX="auto"; tableWrap.style.display="none"; tableWrap.innerHTML=`
       <table style="width:100%;border-collapse:collapse;min-width:800px;font-size:0.9em;">
         <thead style="position:sticky;top:0;background:#dff0ff;z-index:2;">
-          <tr>
-            <th>Halaman</th><th>Tipe</th><th>H1</th><th>Rekom H1</th><th>Next Update</th>
-          </tr>
+          <tr><th>Halaman</th><th>Tipe</th><th>H1</th><th>Rekom H1</th><th>Next Update</th></tr>
         </thead>
         <tbody>
-          <tr>
-            <td>${document.title}</td>
-            <td>${type}</td>
-            <td>${h1Text}</td>
-            <td>${recommendedH1}</td>
-            <td>${nextUpdateStr}</td>
-          </tr>
+          <tr><td>${document.title}</td><td>${type}</td><td>${h1Text}</td><td>${recommendedH1}</td><td>${nextUpdateStr}</td></tr>
         </tbody>
       </table>`;
     dash.appendChild(tableWrap);
     document.body.appendChild(dash);
 
-    // ===== Interaksi Tombol =====
-    btnShowTable.onclick = () => {
-      tableWrap.style.display = tableWrap.style.display === "none" ? "block" : "none";
-    };
+    // ===== INTERAKSI TOMBOL =====
+    btnShowTable.onclick=()=>{ tableWrap.style.display=tableWrap.style.display==="none"?"block":"none";};
+    btnKoreksi.onclick=()=>{ alert(`🔍 Koreksi & Preview\n\nRekomendasi H1:\n${recommendedH1}\n\nStruktur ideal (${type}):\n${ultraStructure.join(" → ")}\n\nNext Update: ${nextUpdateStr}`); };
+    btnReport.onclick=()=>{ const report=`AED REPORT — ${document.title}\nTipe Konten: ${type}\nH1 Saat Ini: ${h1Text}\nRekomendasi H1: ${recommendedH1}\n${dateModifiedStr?`Tanggal Diperbarui: ${dateModifiedStr}`:""}\nNext Update: ${nextUpdateStr}\n\nStruktur Ideal:\n${ultraStructure.join("\n")}\n\nURL: ${location.href}`.trim(); const blob=new Blob([report],{type:'text/plain'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`AED_Report_${document.title.replace(/\s+/g,"_")}.txt`; link.click();};
 
-    btnKoreksi.onclick = () => {
-      alert(
-        `🔍 Koreksi & Preview\n\nRekomendasi H1:\n${recommendedH1}\n\nStruktur ideal (${type}):\n${ultraStructure.join(
-          " → "
-        )}\n\nNext Update: ${nextUpdateStr}`
-      );
-    };
-
-    btnReport.onclick = () => {
-      const report = `
-AED REPORT — ${document.title}
-
-Tipe Konten: ${type}
-H1 Saat Ini: ${h1Text}
-Rekomendasi H1: ${recommendedH1}
-${dateModifiedStr ? `Tanggal Diperbarui: ${dateModifiedStr}` : ""}
-Next Update: ${nextUpdateStr}
-
-Struktur Ideal:
-${ultraStructure.join("\n")}
-
-URL: ${location.href}
-      `.trim();
-      const blob = new Blob([report], { type: "text/plain" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `AED_Report_${document.title.replace(/\s+/g, "_")}.txt`;
-      link.click();
-    };
-
-    // ===== Responsive tweak =====
-    const style = document.createElement("style");
-    style.innerHTML = `
-      @media(max-width:768px){
-        table th,table td{padding:4px;font-size:0.8em;}
-        table{min-width:600px;}
-      }
-      thead th{position:sticky;top:0;background:#dff0ff;}
-      table th,td{border:1px solid #ccc;padding:6px;text-align:left;}
-    `;
+    // ===== RESPONSIVE =====
+    const style=document.createElement("style");
+    style.innerHTML=`@media(max-width:768px){table th,table td{padding:4px;font-size:0.8em;}table{min-width:600px;}}thead th{position:sticky;top:0;background:#dff0ff;}table th,td{border:1px solid #ccc;padding:6px;text-align:left;}`;
     document.head.appendChild(style);
 
-    // ===== Save hash =====
-    localStorage.setItem("AutoEvergreenHash", currentHash);
-    console.log("✅ AED v7.0 — Final Stable, SEO-safe, responsive dashboard aktif.");
-  } catch (e) {
-    console.error("❌ AED Error:", e);
-  }
-})();
+    // ===== JSON-LD UPDATE =====
+    if(CONFIG.updateJsonLd){ 
+      try{
+        const ldEls=Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+        ldEls.forEach(el=>{
+          try{
+            const raw=el.innerText.trim(); if(!raw) return;
+            const data=JSON.parse(raw); const nodes=Array.isArray(data)?data:[data]; let mutated=false;
+            nodes.forEach(node=>{
+              if(node['@type'] && (node['@type'].toLowerCase().includes('product')||node['@type'].toLowerCase().includes('offer')||node['@type'].toLowerCase().includes('service'))){
+                if(dateModified) node.dateModified=new Date().toISOString();
+                if(type==='SEMI-EVERGREEN' && node.offers && node.offers.price) node.offers.priceValidUntil=addMonths(new Date(),CONFIG.intervals['SEMI_EVERGREEN']).toISOString();
+                mutated=true;
+              }
+            });
+            el.innerText=Array.isArray(data)?JSON.stringify(nodes,null,2):JSON.stringify(nodes,null,2);
+          }catch(e){console.warn('AED JSON-LD gagal update',e);}
+        });
+      }catch(e){console.warn('AED JSON-LD Error',e);}
+    }
+
+    console.log("✅ AED v7.7 + Dashboard aktif, SEO-safe, responsive.");
+  }catch(e){ console.error("❌ AED Error:",e);}
+})(window, document);
 
 /**
  * 🌿 Hybrid Evergreen Detector v7.1
