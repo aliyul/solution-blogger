@@ -67,6 +67,7 @@ if(oldHash && oldHash == currentHash){
 */
 // ================== DETEKSI TYPE KONTEN ==================
 /* ===== Auto Evergreen Detector v7.7 + Dashboard Interaktif ===== */
+
 (function AutoEvergreenV832UltraKMPTTF(window, document) {
   'use strict';
 
@@ -85,43 +86,48 @@ if(oldHash && oldHash == currentHash){
   };
 
   // ===================== Helper =====================
-  function qsMany(sel){for(const s of sel){const e=document.querySelector(s);if(e)return e;}return null;}
-  const sampleTextFrom=e=>e?(e.innerText||e.textContent||'').slice(0,CONFIG.checkLength).toLowerCase():'';
-  const normalizeUrlToken=p=>p? p.split('/').filter(Boolean).pop()?.replace(/^p\//,'').replace(/\.html$/i,'')
+  const qsMany = (sel)=>{for(const s of sel){const e=document.querySelector(s);if(e)return e;}return null;};
+  const sampleTextFrom = e => e?(e.innerText||e.textContent||'').slice(0,CONFIG.checkLength).toLowerCase():'';
+  const normalizeUrlToken = p => p ? p.split('/').filter(Boolean).pop()?.replace(/^p\//,'').replace(/\.html$/i,'')
     .replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,'').replace(/[-_]/g,' ').trim().toLowerCase()||'' : '';
-  const makeHash=s=>{try{return btoa(unescape(encodeURIComponent(s)));}catch{let h=0;for(let i=0;i<s.length;i++)h=(h<<5)-h+s.charCodeAt(i)|0;return String(h);}};
-  const formatDate=d=>d?d.toLocaleDateString(CONFIG.locale,{day:'numeric',month:'long',year:'numeric'}):null;
-  const addMonths=(d,m)=>{const x=new Date(d);x.setMonth(x.getMonth()+m);return x;};
-  const tokenize=s=>s?.toLowerCase().replace(/[^\p{L}\p{N}\s\-]/gu,' ').replace(/\s+/g,' ').trim().split(' ').filter(Boolean)||[];
-  const unique=a=>Array.from(new Set(a));
-  function clean(str){return str.replace(/\s+/g,' ').trim().toLowerCase();}
+  const makeHash = s => {try{return btoa(unescape(encodeURIComponent(s)));}catch{let h=0;for(let i=0;i<s.length;i++)h=(h<<5)-h+s.charCodeAt(i)|0;return String(h);}};
+  const formatDate = d => d ? d.toLocaleDateString(CONFIG.locale,{day:'numeric',month:'long',year:'numeric'}) : null;
+  const tokenize = s => s?.toLowerCase().replace(/[^\p{L}\p{N}\s\-]/gu,' ').replace(/\s+/g,' ').trim().split(' ').filter(Boolean)||[];
+  const unique = a => Array.from(new Set(a));
+  const clean = str => str.replace(/\s+/g,' ').trim().toLowerCase();
 
-  // ===================== NEW DETECTOR =====================
+  // ===================== DETECTOR =====================
   function detectEvergreen(title,text,url){
     let score=0;
     const t=clean(title+" "+text);
 
+    // +++++ Positif
     if(/\b(harga|spesifikasi|ukuran|jenis|mutu|standar|komposisi)\b/.test(t))score+=2;
     if(/\b(update|terbaru|202\d|2024|2025|info lengkap)\b/.test(t))score+=1;
     if(/\b(ready\s?mix|beton|jayamix|minimix|precast|material|produk|alat berat|konstruksi)\b/.test(t))score+=2;
-    if(t.length>1500)score+=2;
     if(/\b(harga\s+(beton|readymix|u-ditch|buis|box culvert|panel|saluran))\b/.test(t))score+=2;
+    if(t.length>1500)score+=2;
 
+    // 🔸Negatif ringan
     if(/\b(bogor|bekasi|depok|jakarta|bandung|tangerang|karawang|serang)\b/.test(t))score-=1;
     if(/\b(hari\s+ini|minggu\s+ini|bulan\s+ini|harga\s+per\s+hari)\b/.test(t))score-=1;
     if(/\/\d{4}\/\d{2}\//.test(url))score-=1;
     if(/\b(stok|pesan\s+sekarang|diskon|wa|whatsapp)\b/.test(t))score-=1;
 
+    // 🔻Negatif kuat
     if(/\b(berita|event|promo|pengumuman|laporan|seminar)\b/.test(t))score-=3;
     if(/\b(kemarin|besok|bulan\s+lalu)\b/.test(t))score-=2;
 
-    if(url.includes("/p/"))score+=1;
+    // Tambahan logika struktur URL
+    if(url.includes("/p/"))score+=2;
     if(/\/harga-|\/produk-|\/beton-|\/sewa-|\/readymix-/.test(url))score+=1;
 
+    // Struktur paragraf
     const paraCount=(text.match(/\n/g)||[]).length;
     if(paraCount>8)score+=1;
     if(paraCount<3)score-=1;
 
+    // Penilaian akhir
     let status="SEMI_EVERGREEN";
     if(score>=5)status="EVERGREEN";
     else if(score<=0)status="NON_EVERGREEN";
@@ -139,14 +145,18 @@ if(oldHash && oldHash == currentHash){
     const old=localStorage.getItem(CONFIG.storageKey);
     const hash=makeHash(h1R+'\n'+txt+'\n'+urlRaw);
 
-    // ==== Tipe Konten via Detektor Baru ====
+    // === Deteksi Evergreen ===
     let type=detectEvergreen(h1R,txt,window.location.pathname);
     if(isPillar)type='EVERGREEN';
 
-    if(type==='EVERGREEN'&&!document.body.hasAttribute('data-force'))
+    // === Atur data-force di body ===
+    if(type==='EVERGREEN'){
       document.body.setAttribute('data-force','evergreen');
+    } else {
+      document.body.removeAttribute('data-force');
+    }
 
-    // ==== Tanggal ====
+    // === Perhitungan tanggal update ===
     const next=new Date();let mod=null;
     const m=CONFIG.intervals[type];
     if(!old||old!==hash){
@@ -161,18 +171,41 @@ if(oldHash && oldHash == currentHash){
     }
     const nextStr=formatDate(next), modStr=formatDate(mod);
 
-    // ==== Label H1 ====
-    if(elH1){
-      elH1.parentNode.querySelector('['+CONFIG.labelAttr+']')?.remove();
-      const lb=document.createElement('div');
-      lb.setAttribute(CONFIG.labelAttr,'true');
-      lb.setAttribute('data-nosnippet','true');
-      lb.style.cssText='font-size:.95em;color:#222;margin-top:6px;margin-bottom:12px;padding:6px 12px;background:#f9f9f9;border:1px solid #ccc;border-radius:5px;';
-      lb.innerHTML='<b>'+type+(isPillar?' (Pillar)':'')+'</b> — pembaruan berikutnya: <b>'+nextStr+'</b>';
-      elH1.insertAdjacentElement('afterend',lb);
+    if (location.pathname.startsWith('/p/')) {
+      type = 'Evergreen';
     }
 
-    // ==== H1 Score + Saran ====
+    // === Label H1 ===
+   // ==== Label Status Evergreen ====
+  if (elH1) {
+    // hapus label lama
+    elH1.parentNode.querySelector('[' + CONFIG.labelAttr + ']')?.remove();
+  
+    const lb = document.createElement('div');
+    lb.setAttribute(CONFIG.labelAttr, 'true');
+    lb.setAttribute('data-nosnippet', 'true');
+    lb.style.cssText =
+      'font-size:.95em;color:#222;margin-top:6px;margin-bottom:12px;padding:6px 12px;background:#f9f9f9;border:1px solid #ccc;border-radius:5px;';
+  
+    // 🧩 Tentukan isi label berdasarkan hasil deteksi
+    let labelText = '';
+    if (type === 'Evergreen') {
+      labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextStr}</b>`;
+      document.body.setAttribute('data-force', 'evergreen'); // tambahkan penanda
+    } else if (type === 'Semi-Evergreen') {
+      labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
+      document.body.removeAttribute('data-force');
+    } else {
+      labelText = `<b>NON-EVERGREEN</b> — tidak perlu pembaruan rutin`;
+      document.body.removeAttribute('data-force');
+    }
+  
+    lb.innerHTML = labelText;
+    elH1.insertAdjacentElement('afterend', lb);
+  }
+
+
+    // === Skor H1 ===
     const computeH1UrlScore=(h1,url)=>{
       const u=unique(tokenize(url)),h=unique(tokenize(h1));
       if(!u.length)return 100;
@@ -192,7 +225,7 @@ if(oldHash && oldHash == currentHash){
       (sSug?'<div style="margin-top:6px;color:#444;"><b>Rekomendasi H1:</b> '+sSug+'</div>':'<div style="margin-top:6px;color:#666;">H1 sudah sesuai.</div>');
     elH1.insertAdjacentElement('afterend',sEl);
 
-    // ==== Author Date ====
+    // === Author Date ===
     const aEl=document.querySelector(CONFIG.authorSelector);
     if(aEl&&modStr){
       aEl.querySelector('.'+CONFIG.dateSpanClass)?.remove();
@@ -204,110 +237,61 @@ if(oldHash && oldHash == currentHash){
       aEl.appendChild(d);
     }
 
-    // ==== JSON-LD Update ====
-    if(CONFIG.updateJsonLd){
-      [...document.querySelectorAll('script[type="application/ld+json"]')].forEach(el=>{
-        try{
-          if(!el.innerText.trim())return;
-          const data=JSON.parse(el.innerText);
-          const arr=Array.isArray(data)?data:[data];
-          let change=false;
-          arr.forEach(n=>{
-            if(n['@type']&&['product','offer','service'].some(t=>n['@type'].toLowerCase().includes(t))){
-              n.dateModified=new Date().toISOString();
-              if(n.offers?.price)n.offers.priceValidUntil=addMonths(new Date(),m).toISOString();
-              change=true;
-            }
-          });
-          if(change)el.innerText=JSON.stringify(arr.length>1?arr:arr[0],null,2);
-        }catch(e){console.warn('AED JSON-LD err',e);}
-      });
-    }
+    // === Dashboard ===
+    const dash=document.createElement('div');
+    dash.style.cssText='max-width:1200px;margin:30px auto;padding:15px;background:#f0f8ff;border-top:3px solid #0078ff;font-family:Arial,sans-serif;';
+    dash.setAttribute('data-nosnippet','true');
 
-    // ==== Dashboard ====// ==== Dashboard ====
-const dash=document.createElement('div');
-dash.style.cssText='max-width:1200px;margin:30px auto;padding:15px;background:#f0f8ff;border-top:3px solid #0078ff;font-family:Arial,sans-serif;';
-dash.setAttribute('data-nosnippet','true');
+    const h3=document.createElement('h3');
+    h3.innerText="📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman";
+    dash.appendChild(h3);
 
-const h3=document.createElement('h3');
-h3.innerText="📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman";
-dash.appendChild(h3);
+    const btns=document.createElement('div');
+    btns.style.textAlign='center';
+    btns.style.marginBottom='10px';
 
-const btns=document.createElement('div');
-btns.style.textAlign='center';
-btns.style.marginBottom='10px';
+    const mkB=(t,bg)=>{
+      const x=document.createElement('button');
+      x.textContent=t;x.style.background=bg;x.style.padding='6px 12px';
+      x.style.margin='3px';x.style.border='none';x.style.borderRadius='4px';
+      x.style.cursor='pointer';x.setAttribute('data-nosnippet','true');
+      return x;
+    };
+    const koreksi=mkB("⚙️ Koreksi & Preview","#ffeedd"),
+          show=mkB("📊 Tampilkan Data Table","#d1e7dd"),
+          rep=mkB("📥 Download Laporan","#f3f3f3");
+    btns.append(koreksi,show,rep);
+    dash.appendChild(btns);
 
-const mkB=(t,bg)=>{
-  const x=document.createElement('button');
-  x.textContent=t;
-  x.style.background=bg;
-  x.style.padding='6px 12px';
-  x.style.margin='3px';
-  x.style.border='none';
-  x.style.borderRadius='4px';
-  x.style.cursor='pointer';
-  x.setAttribute('data-nosnippet','true');
-  return x;
-};
+    const tbl=document.createElement('div');
+    tbl.style.overflowX='auto';tbl.style.display='none';
+    tbl.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:1000px;font-size:.9em;">'+
+    '<thead><tr><th>Halaman</th><th>Status Evergreen</th><th>Tanggal Diperbarui</th><th>H1</th><th>Skor</th><th>Rekom H1</th><th>Next Update</th></tr></thead>'+
+    '<tbody><tr><td>'+document.title+'</td><td>'+type+'</td><td>'+(modStr||'—')+'</td><td>'+h1R+'</td><td>'+score+'/100</td><td>'+(sSug||'—')+'</td><td>'+nextStr+'</td></tr></tbody></table>';
+    dash.appendChild(tbl);
+    (document.querySelector('main')||document.body).appendChild(dash);
 
-const koreksi=mkB("⚙️ Koreksi & Preview","#ffeedd"),
-      show=mkB("📊 Tampilkan Data Table","#d1e7dd"),
-      rep=mkB("📥 Download Laporan","#f3f3f3");
+    // === Tombol interaksi ===
+    show.onclick=()=>tbl.style.display=tbl.style.display==='none'?'block':'none';
+    koreksi.onclick=()=>alert('🔍 Koreksi & Preview\nStatus: '+type+'\nSkor H1: '+score+'/100\nTanggal Diperbarui: '+modStr+'\nNext Update: '+nextStr);
+    rep.onclick=()=>{
+      const rpt='AED Ultra KMPTTF REPORT — '+document.title+
+      '\nStatus: '+type+'\nTanggal Diperbarui: '+modStr+'\nH1: '+h1R+
+      '\nSkor: '+score+'/100\nNext Update: '+nextStr+'\nURL: '+location.href;
+      const blob=new Blob([rpt],{type:'text/plain'});
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download='AED_Report_'+document.title.replace(/\s+/g,'_')+'.txt';
+      a.click();
+    };
 
-btns.append(koreksi,show,rep);
-dash.appendChild(btns);
+    // === CSS Table ===
+    const st=document.createElement('style');
+    st.innerHTML='@media(max-width:768px){table th,td{padding:4px;font-size:.8em;}table{min-width:700px;}}table th,td{border:1px solid #ccc;padding:6px;text-align:left;}thead{background:#dff0ff;position:sticky;top:0;}';
+    document.head.appendChild(st);
 
-// ✅ Tambahkan kolom “Status Evergreen” & “Tanggal Diperbarui”
-const tbl=document.createElement('div');
-tbl.style.overflowX='auto';
-tbl.style.display='none';
-tbl.innerHTML =
-  '<table style="width:100%;border-collapse:collapse;min-width:1000px;font-size:.9em;">' +
-  '<thead><tr>' +
-  '<th>Halaman</th><th>Status Evergreen</th><th>Tanggal Diperbarui</th>' +
-  '<th>H1</th><th>Skor</th><th>Rekom H1</th><th>Next Update</th>' +
-  '</tr></thead>' +
-  '<tbody><tr>' +
-  '<td>'+document.title+'</td>' +
-  '<td>'+type+'</td>' +
-  '<td>'+(modStr||'—')+'</td>' +
-  '<td>'+h1R+'</td>' +
-  '<td>'+score+'/100</td>' +
-  '<td>'+(sSug||'—')+'</td>' +
-  '<td>'+nextStr+'</td>' +
-  '</tr></tbody></table>';
-
-dash.appendChild(tbl);
-
-// 🔽 Tempatkan di bawah <main> jika ada, aman SEO
-(document.querySelector('main')||document.body).appendChild(dash);
-
-// ==== Interaksi tombol dashboard ====
-show.onclick=()=>tbl.style.display=tbl.style.display==='none'?'block':'none';
-koreksi.onclick=()=>alert('🔍 Koreksi & Preview\nTipe: '+type+'\nSkor H1: '+score+'/100\nTanggal Diperbarui: '+modStr+'\nNext Update: '+nextStr);
-rep.onclick=()=>{
-  const rpt='AED Ultra KMPTTF REPORT — '+document.title+
-  '\nTipe: '+type+
-  '\nTanggal Diperbarui: '+modStr+
-  '\nH1: '+h1R+
-  '\nSkor: '+score+'/100'+
-  '\nNext Update: '+nextStr+
-  '\nURL: '+location.href;
-  const blob=new Blob([rpt],{type:'text/plain'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='AED_Report_'+document.title.replace(/\s+/g,'_')+'.txt';
-  a.click();
-};
-
-// ==== Style responsif ====
-const st=document.createElement('style');
-st.innerHTML='@media(max-width:768px){table th,td{padding:4px;font-size:.8em;}table{min-width:700px;}}table th,td{border:1px solid #ccc;padding:6px;text-align:left;}thead{background:#dff0ff;position:sticky;top:0;}';
-document.head.appendChild(st);
-
-
-    console.log("✅ AED v8.3.2 Ultra KMPTTF aktif — Detektor baru + Dashboard fix + penempatan aman SEO");
-  }catch(e){console.error("❌ AED v8.3.2 Error:",e);}
+    console.log("✅ AED v8.3.2R Ultra KMPTTF aktif — Evergreen detector, data-force sync, dashboard fix.");
+  }catch(e){console.error("❌ AED v8.3.2R Error:",e);}
 })(window, document);
 
 /**
