@@ -70,6 +70,7 @@ if(oldHash && oldHash == currentHash){
 (function AutoEvergreenV77UltraKMPTTF(window, document) {
   'use strict';
 
+  // ===================== CONFIG (tetap dari kode Anda) =====================
   const CONFIG = {
     storageKey: 'AutoEvergreenHashV7_7_UltraKMPTTF',
     labelAttr: 'data-aed-label',
@@ -105,59 +106,76 @@ if(oldHash && oldHash == currentHash){
     updateJsonLd: true
   };
 
-  function qsMany(selectors) { 
-    for (const s of selectors) { 
-      const el = document.querySelector(s); 
-      if (el) return el; 
-    } 
-    return null; 
-  }
-  function sampleTextFrom(el) { 
-    if (!el) return ''; 
-    return (el.innerText || el.textContent || '').slice(0, CONFIG.checkLength).toLowerCase(); 
-  }
-  function normalizeUrlToken(path) { 
-    if (!path) return ''; 
-    return path.split('/').filter(Boolean).pop()?.replace(/^p\//,'').replace(/\.html$/i,'').replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,'').replace(/[-_]/g,' ').trim().toLowerCase() || ''; 
-  }
-  function containsAny(source, arr) { 
-    if (!source || !arr || !arr.length) return false; 
-    return arr.some(k => source.indexOf(k) !== -1); 
-  }
-  function findYearInText(s) { 
-    if (!s) return null; 
-    const m = s.match(/\b(20\d{2})\b/); 
-    return m ? m[1] : null; 
-  }
-  function makeHash(str) { 
-    try { 
-      return btoa(unescape(encodeURIComponent(str))); 
-    } catch (e) { 
-      let h=0; 
-      for (let i=0;i<str.length;i++) h=(h<<5)-h+str.charCodeAt(i)|0; 
-      return String(h); 
-    } 
-  }
-  function formatDate(d) { 
-    if (!d) return null; 
-    const opt={day:'numeric',month:'long',year:'numeric'}; 
-    return d.toLocaleDateString(CONFIG.locale,opt); 
-  }
-  function addMonths(date, months) { 
-    const d=new Date(date.valueOf()); 
-    d.setMonth(d.getMonth()+months); 
-    return d; 
+  // ===================== Helper functions (tetap) =====================
+  function qsMany(selectors) { for (const s of selectors) { const el = document.querySelector(s); if (el) return el; } return null; }
+  function sampleTextFrom(el) { if (!el) return ''; return (el.innerText || el.textContent || '').slice(0, CONFIG.checkLength).toLowerCase(); }
+  function normalizeUrlToken(path) { if (!path) return ''; return path.split('/').filter(Boolean).pop()?.replace(/^p\//,'').replace(/\.html$/i,'').replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,'').replace(/[-_]/g,' ').trim().toLowerCase() || ''; }
+  function containsAny(source, arr) { if (!source || !arr || !arr.length) return false; return arr.some(k => source.indexOf(k) !== -1); }
+  function findYearInText(s) { if (!s) return null; const m = s.match(/\b(20\d{2})\b/); return m ? m[1] : null; }
+  function makeHash(str) { try { return btoa(unescape(encodeURIComponent(str))); } catch (e) { let h=0; for (let i=0;i<str.length;i++) h=(h<<5)-h+str.charCodeAt(i)|0; return String(h); } }
+  function formatDate(d) { if (!d) return null; const opt={day:'numeric',month:'long',year:'numeric'}; return d.toLocaleDateString(CONFIG.locale,opt); }
+  function addMonths(date, months) { const d=new Date(date.valueOf()); d.setMonth(d.getMonth()+months); return d; }
+
+  // ===================== New: H1 <-> URL Scoring Utilities =====================
+  function tokenize(s) {
+    if (!s) return [];
+    return s
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s\-]/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .filter(Boolean);
   }
 
+  function unique(arr) {
+    return Array.from(new Set(arr));
+  }
+
+  // compute score 0..100
+  // approach: overlap ratio between url tokens and h1 tokens (weighted), plus bonus if first token of URL is at start of H1
+  function computeH1UrlScore(h1, urlTokenStr) {
+    const urlTokens = unique(tokenize(urlTokenStr));
+    const h1Tokens = unique(tokenize(h1));
+    if (!urlTokens.length) return 100; // if url has no tokens, treat as perfect
+    const matched = urlTokens.filter(t => h1Tokens.includes(t));
+    const overlapRatio = matched.length / urlTokens.length; // 0..1
+    // bonus: if h1 starts with first url token
+    const firstUrlToken = urlTokens[0] || '';
+    const startsWithBonus = h1.trim().toLowerCase().startsWith(firstUrlToken) ? 0.15 : 0;
+    const score = Math.round(Math.min(1, overlapRatio + startsWithBonus) * 100);
+    return score;
+  }
+
+  function scoreToLabel(score, type) {
+    if (score >= 90) return 'Sangat Baik';
+    if (score >= 75) return 'Baik';
+    if (score >= 50) return type === 'EVERGREEN' ? 'Perlu Perbaikan' : 'Cukup';
+    return 'Perlu Perbaikan';
+  }
+
+  function makeH1Suggestion(h1, urlRaw) {
+    const urlTokens = unique(tokenize(urlRaw));
+    if (!urlTokens.length) return null;
+    // Try to build suggested H1 by ensuring url tokens appear in front, then original h1
+    const suggested = (urlTokens.join(' ') + ' ' + h1).replace(/\s+/g, ' ').trim();
+    // Return a concise suggestion: if includes already, return null
+    const h1Low = (h1 || '').toLowerCase();
+    const containsAll = urlTokens.every(t => h1Low.includes(t));
+    return containsAll ? null : suggested;
+  }
+
+  // ===================== Main try-catch (core logic) =====================
   try {
+    // ===== existing detection code (unchanged logic) =====
     const elContent = qsMany(CONFIG.contentSelectors) || document.body;
     const elH1 = qsMany(CONFIG.h1Selectors) || document.querySelector('h1');
     const h1TextRaw = elH1 ? elH1.innerText.trim() : '(no h1)';
     const h1Text = h1TextRaw.toLowerCase();
     const textContent = sampleTextFrom(elContent);
     const urlRaw = normalizeUrlToken(window.location.pathname);
-
     const isPillar = window.location.pathname.includes('/p/');
+
     const oldHash = localStorage.getItem(CONFIG.storageKey);
     const currentHash = makeHash(h1Text + '\n' + textContent + '\n' + urlRaw);
 
@@ -169,17 +187,19 @@ if(oldHash && oldHash == currentHash){
     else if (containsAny(h1Text + ' ' + textContent, CONFIG.evergreenKeywords)) type='EVERGREEN';
     else type='SEMI_EVERGREEN';
 
-    // ===== Smart nextUpdate & dateModified =====
+    // Auto set data-force for evergreen (kept from earlier)
+    if (type === 'EVERGREEN' && !document.body.hasAttribute('data-force')) {
+      try { document.body.setAttribute('data-force', 'evergreen'); console.log('🌿 data-force="evergreen" applied'); } catch(e) {}
+    }
+
+    // ===== Smart nextUpdate & dateModified (unchanged) =====
     const nextUpdate = new Date();
     let dateModified = null;
     const intervalMonths = CONFIG.intervals[type==='EVERGREEN'?'EVERGREEN':(type==='SEMI_EVERGREEN'?'SEMI_EVERGREEN':'NON_EVERGREEN')];
     if (!oldHash || oldHash!==currentHash) {
       nextUpdate.setMonth(nextUpdate.getMonth()+intervalMonths);
       dateModified = new Date();
-      try { 
-        localStorage.setItem(CONFIG.storageKey,currentHash); 
-        localStorage.setItem(CONFIG.storageKey+'_date',dateModified.toISOString()); 
-      } catch(e){}
+      try { localStorage.setItem(CONFIG.storageKey,currentHash); localStorage.setItem(CONFIG.storageKey+'_date',dateModified.toISOString()); } catch(e){}
     } else {
       const prevDateIso = localStorage.getItem(CONFIG.storageKey+'_date');
       if(prevDateIso){ const prev=new Date(prevDateIso); nextUpdate.setMonth(prev.getMonth()+intervalMonths); }
@@ -188,27 +208,65 @@ if(oldHash && oldHash == currentHash){
     const nextUpdateStr=formatDate(nextUpdate);
     const dateModifiedStr=dateModified?formatDate(dateModified):null;
 
-    // ===== Label H1 (AMAN) =====
-    if(elH1){ 
-      const parentNode = elH1.parentNode || document.body; // ✅ Perbaikan: pastikan parentNode ada
-      const existingLabel = parentNode.querySelector('['+CONFIG.labelAttr+']'); 
+    // ===== Label H1 (existing) =====
+    if(elH1){
+      const existingLabel=elH1.parentNode.querySelector('['+CONFIG.labelAttr+']');
       if(existingLabel) existingLabel.remove();
       const label=document.createElement('div');
-      label.setAttribute(CONFIG.labelAttr,'true'); 
+      label.setAttribute(CONFIG.labelAttr,'true');
       label.setAttribute('data-nosnippet','true');
-      label.style.fontSize='0.95em'; 
-      label.style.color='#222'; 
-      label.style.marginTop='6px'; 
-      label.style.marginBottom='12px'; 
-      label.style.padding='6px 12px'; 
-      label.style.background='#f9f9f9'; 
-      label.style.border='1px solid #ccc'; 
+      label.style.fontSize='0.95em';
+      label.style.color='#222';
+      label.style.marginTop='6px';
+      label.style.marginBottom='12px';
+      label.style.padding='6px 12px';
+      label.style.background='#f9f9f9';
+      label.style.border='1px solid #ccc';
       label.style.borderRadius='5px';
-      label.innerHTML=`<b>${type}${isPillar?' (Pillar)':''}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+      label.innerHTML = '<b>' + type + (isPillar? ' (Pillar)' : '') + '</b> — pembaruan berikutnya: <b>' + nextUpdateStr + '</b>';
       elH1.insertAdjacentElement('afterend',label);
     }
 
-    // ===== Audit H1 untuk Pillar =====
+    // ===== New: H1 <-> URL Scoring & Label tambahan (non-snippet) =====
+    // compute score and suggestion
+    const h1Score = computeH1UrlScore(h1TextRaw, urlRaw); // 0..100
+    const scoreLabel = scoreToLabel(h1Score, type);
+    const h1Suggestion = makeH1Suggestion(h1TextRaw, urlRaw); // may be null
+
+    // attach score label under H1 (as separate element, non-snippet)
+    try {
+      const scoreExisting = elH1.parentNode.querySelector('[data-aed-h1score]');
+      if (scoreExisting) scoreExisting.remove();
+
+      const scoreEl = document.createElement('div');
+      scoreEl.setAttribute('data-aed-h1score', 'true');
+      scoreEl.setAttribute('data-nosnippet', 'true');
+      scoreEl.style.fontSize = '0.9em';
+      scoreEl.style.color = '#0b644b';
+      scoreEl.style.marginTop = '4px';
+      scoreEl.style.marginBottom = '10px';
+      scoreEl.style.padding = '6px 10px';
+      scoreEl.style.background = '#f0fff7';
+      scoreEl.style.border = '1px solid #cfeee0';
+      scoreEl.style.borderRadius = '6px';
+
+      // build html content
+      let scoreHtml = '<b>Skor Kecocokan H1 ↔ URL: ' + h1Score + '/100</b> — ' + scoreLabel + '';
+      scoreHtml += '<br><small>Rekomendasi tingkat: ' + (type || 'N/A') + '</small>';
+      if (h1Suggestion) {
+        // provide suggestion only (non-snippet) and a short actionable note
+        scoreHtml += '<div style="margin-top:6px;color:#444;"><b>Rekomendasi H1:</b> <span style="font-weight:600;">' + h1Suggestion + '</span></div>';
+      } else {
+        scoreHtml += '<div style="margin-top:6px;color:#666;">H1 sudah sesuai dengan kata kunci URL.</div>';
+      }
+
+      scoreEl.innerHTML = scoreHtml;
+      elH1.insertAdjacentElement('afterend', scoreEl);
+    } catch (e) {
+      console.warn('AED: gagal sisipkan H1 score label', e);
+    }
+
+    // ===== Audit H1 untuk Pillar (existing warning) =====
     const urlKeywords = urlRaw.split(' ').filter(Boolean);
     const h1Lower = h1Text.toLowerCase();
     const allKeywordsPresent = urlKeywords.every((k)=>h1Lower.includes(k));
@@ -217,28 +275,39 @@ if(oldHash && oldHash == currentHash){
       console.warn('⚠️ AED Ultra KMPTTF Pillar H1 Audit: H1 tidak sesuai keyword URL', recommendedH1);
     }
 
-    // ===== Rekomendasi Konten Otomatis =====
+    // ===== Rekomendasi Konten Otomatis (ALL TYPE) (existing logic) =====
     let recommendedContent = '';
-    if(isPillar){
-      const pEls = Array.from(elContent.querySelectorAll('p,h2,h3')).slice(0,5);
+    const pEls = Array.from(elContent.querySelectorAll('p,h2,h3')).slice(0,5);
+    if(type==='EVERGREEN'){
       recommendedContent = pEls.map(el=>el.innerText.trim()).filter(Boolean).join(' | ');
       if(!containsAny(recommendedContent, urlKeywords)){
         recommendedContent = urlKeywords.map(w=>w[0].toUpperCase()+w.slice(1)).join(' ') + ' – Tambahkan kata kunci utama di paragraf awal dan subjudul.';
       }
+    } else if(type==='SEMI_EVERGREEN'){
+      recommendedContent = pEls.map(el=>el.innerText.trim()).filter(Boolean).slice(0,1).join(' ');
+      if(!containsAny(recommendedContent, urlKeywords)){
+        recommendedContent = urlKeywords.map(w=>w[0].toUpperCase()+w.slice(1)).join(' ') + ' – Highlight kata kunci utama di paragraf awal/subheading.';
+      }
+    } else { // NON_EVERGREEN
+      recommendedContent = 'Periksa update harga, promo, atau informasi terbaru di konten ini.';
     }
 
-    // ===== Author & dateModified =====
+    // ===== Author & dateModified (existing) =====
     const authorEl=document.querySelector(CONFIG.authorSelector);
-    if(authorEl && dateModifiedStr){ 
-      const oldDateSpan=authorEl.querySelector('.'+CONFIG.dateSpanClass); if(oldDateSpan) oldDateSpan.remove();
-      const dateEl=document.createElement('span'); dateEl.className=CONFIG.dateSpanClass;
-      dateEl.textContent=` · Diperbarui: ${dateModifiedStr}`;
-      dateEl.style.fontSize='0.85em'; dateEl.style.color='#555'; dateEl.style.marginLeft='6px';
+    if(authorEl && dateModifiedStr){
+      const oldDateSpan=authorEl.querySelector('.'+CONFIG.dateSpanClass);
+      if(oldDateSpan) oldDateSpan.remove();
+      const dateEl=document.createElement('span');
+      dateEl.className=CONFIG.dateSpanClass;
+      dateEl.textContent = ' · Diperbarui: ' + dateModifiedStr;
+      dateEl.style.fontSize='0.85em';
+      dateEl.style.color='#555';
+      dateEl.style.marginLeft='6px';
       dateEl.setAttribute('data-nosnippet','true');
       authorEl.appendChild(dateEl);
     }
 
-    // ===== Update JSON-LD =====
+    // ===== Update JSON-LD (existing) =====
     if(CONFIG.updateJsonLd){
       const ldEls=Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
       ldEls.forEach(el=>{
@@ -258,63 +327,71 @@ if(oldHash && oldHash == currentHash){
       });
     }
 
-    // ===== Dashboard & UltraStructure =====
+    // ===== Dashboard & UltraStructure (existing) but add score column & recommendation =====
     const ultraStructure = {
       EVERGREEN: [
-        "Pendahuluan / Definisi", "Sejarah & Latar Belakang", "Manfaat & Kegunaan", 
-        "Langkah / Tutorial Lengkap", "Tips & Trik Praktis", "Studi Kasus / Contoh Nyata", 
-        "FAQ / Pertanyaan Umum", "Kesalahan Umum & Cara Menghindari", 
-        "Referensi / Sumber Terpercaya", "Alat / Software / Resource Pendukung", 
-        "Checklist / Ringkasan Langkah", "Best Practices / Praktik Terbaik", 
-        "Panduan Lengkap vs Ringkasan Cepat", "Tips Lanjutan / Strategi Lanjut", 
-        "Alternatif / Opsi Lain", "Infografis / Visual Pendukung", 
-        "Tips SEO / Optimasi Konten", "Video / Tutorial Multimedia", 
-        "Kesimpulan & Ringkasan", "Call to Action / Next Steps / Ajakan Tindakan / Langkah Selanjutnya"
+        "Pendahuluan / Definisi", "Sejarah & Latar Belakang", "Manfaat & Kegunaan", "Langkah / Tutorial Lengkap", "Tips & Trik Praktis", "Studi Kasus / Contoh Nyata", "FAQ / Pertanyaan Umum", "Kesalahan Umum & Cara Menghindari", "Referensi / Sumber Terpercaya", "Alat / Software / Resource Pendukung", "Checklist / Ringkasan Langkah", "Best Practices / Praktik Terbaik", "Panduan Lengkap vs Ringkasan Cepat", "Tips Lanjutan / Strategi Lanjut", "Alternatif / Opsi Lain", "Infografis / Visual Pendukung", "Tips SEO / Optimasi Konten", "Video / Tutorial Multimedia", "Kesimpulan & Ringkasan", "Call to Action / Next Steps / Ajakan Tindakan / Langkah Selanjutnya"
       ],
       SEMI: [
-        "Ringkasan & Tren Terkini", "Langkah / Cara", "Perbandingan / Analisis", 
-        "Tips Praktis / Rekomendasi", "Kelebihan & Kekurangan", "FAQ Spesifik Topik", 
-        "Referensi / Link Terkait", "Saran Lanjutan / Langkah Selanjutnya", 
-        "Update Harga / Tarif / Biaya", "Update Wilayah / Lokasi", 
-        "Panduan Singkat vs Detail", "Tips Implementasi Cepat", "Studi Kasus Singkat", 
-        "Checklist / Ringkasan Praktis", "Visualisasi / Diagram", 
-        "Alternatif Produk / Layanan", "Best Practices & Strategi / Praktik Terbaik & Strategi", 
-        "Peringatan / Notifikasi Pembaruan", "Testimoni / Review Pengguna", 
-        "Ajakan Tindakan / Kontak"
+        "Ringkasan & Tren Terkini", "Langkah / Cara", "Perbandingan / Analisis", "Tips Praktis / Rekomendasi", "Kelebihan & Kekurangan", "FAQ Spesifik Topik", "Referensi / Link Terkait", "Saran Lanjutan / Langkah Selanjutnya", "Update Harga / Tarif / Biaya", "Update Wilayah / Lokasi", "Panduan Singkat vs Detail", "Tips Implementasi Cepat", "Studi Kasus Singkat", "Checklist / Ringkasan Praktis", "Visualisasi / Diagram", "Alternatif Produk / Layanan", "Best Practices & Strategi / Praktik Terbaik & Strategi", "Peringatan / Notifikasi Pembaruan", "Testimoni / Review Pengguna", "Ajakan Tindakan / Kontak"
       ],
       NON: [
-        "Harga & Promo Terkini", "Ketersediaan & Wilayah", "Periode & Update", 
-        "Kontak & Cara Order", "Ketentuan / Syarat & Ketentuan", "Biaya / Tarif / Ongkir", 
-        "Promo / Diskon Spesial", "FAQ Transaksi / Order", "Cara Pembayaran / Metode", 
-        "Garansi / Jaminan Produk", "Stok / Persediaan", "Update Produk / Layanan", 
-        "Link Pemesanan Cepat", "Referensi / Info Tambahan", "Instruksi Penggunaan / Setup", 
-        "Testimoni / Review Pelanggan", "Tips Pemesanan Aman", 
-        "Alert / Notifikasi Update / Notifikasi Promo / Event", "Visual Produk / Spanduk", 
-        "Call to Action / Ajakan Tindakan / Pesan Sekarang"
+        "Harga & Promo Terkini", "Ketersediaan & Wilayah", "Periode & Update", "Kontak & Cara Order", "Ketentuan / Syarat & Ketentuan", "Biaya / Tarif / Ongkir", "Promo / Diskon Spesial", "FAQ Transaksi / Order", "Cara Pembayaran / Metode", "Garansi / Jaminan Produk", "Stok / Persediaan", "Update Produk / Layanan", "Link Pemesanan Cepat", "Referensi / Info Tambahan", "Instruksi Penggunaan / Setup", "Testimoni / Review Pelanggan", "Tips Pemesanan Aman", "Alert / Notifikasi Update / Notifikasi Promo / Event", "Visual Produk / Spanduk", "Call to Action / Ajakan Tindakan / Pesan Sekarang"
       ]
     }[type.split("-")[0]];
 
-    const dash=document.createElement('div'); dash.style.maxWidth='1200px'; dash.style.margin='30px auto'; dash.style.padding='15px'; dash.style.background='#f0f8ff'; dash.style.borderTop='3px solid #0078ff'; dash.style.fontFamily='Arial, sans-serif'; dash.setAttribute('data-nosnippet','true');
+    // Build dashboard (existing) but include score + H1 rec
+    const dash = document.createElement('div');
+    dash.style.maxWidth='1200px';
+    dash.style.margin='30px auto';
+    dash.style.padding='15px';
+    dash.style.background='#f0f8ff';
+    dash.style.borderTop='3px solid #0078ff';
+    dash.style.fontFamily='Arial, sans-serif';
+    dash.setAttribute('data-nosnippet','true');
+
     const h3=document.createElement('h3'); h3.innerText="📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman"; dash.appendChild(h3);
 
     const btnContainer=document.createElement('div'); btnContainer.style.textAlign='center'; btnContainer.style.marginBottom='10px';
     const createBtn=(text,bg)=>{ const b=document.createElement('button'); b.textContent=text; b.style.background=bg; b.style.color='#000'; b.style.padding='6px 12px'; b.style.margin='3px'; b.style.borderRadius='4px'; b.style.cursor='pointer'; b.style.border='none'; b.style.fontSize='0.9em'; b.setAttribute('data-nosnippet','true'); return b; };
-    const btnKoreksi=createBtn("⚙️ Koreksi & Preview","#ffeedd"); const btnShowTable=createBtn("📊 Tampilkan Data Table","#d1e7dd"); const btnReport=createBtn("📥 Download Laporan","#f3f3f3"); btnContainer.append(btnKoreksi,btnShowTable,btnReport); dash.appendChild(btnContainer);
+    const btnKoreksi=createBtn("⚙️ Koreksi & Preview","#ffeedd"); const btnShowTable=createBtn("📊 Tampilkan Data Table","#d1e7dd"); const btnReport=createBtn("📥 Download Laporan","#f3f3f3");
+    btnContainer.append(btnKoreksi,btnShowTable,btnReport);
+    dash.appendChild(btnContainer);
 
     const tableWrap=document.createElement('div'); tableWrap.style.overflowX='auto'; tableWrap.style.display='none';
-    tableWrap.innerHTML=`<table style="width:100%;border-collapse:collapse;min-width:800px;font-size:0.9em;">
-      <thead style="position:sticky;top:0;background:#dff0ff;z-index:2;"><tr><th>Halaman</th><th>Tipe</th><th>H1</th><th>Rekom H1</th><th>Rekom Konten</th><th>Next Update</th></tr></thead>
-      <tbody><tr><td>${document.title}</td><td>${type}${isPillar?' (Pillar)':''}</td><td>${h1Text}</td><td>${recommendedH1}</td><td>${recommendedContent}</td><td>${nextUpdateStr}</td></tr></tbody></table>`;
-    dash.appendChild(tableWrap); document.body.appendChild(dash);
+    const tableHtml = '<table style="width:100%;border-collapse:collapse;min-width:900px;font-size:0.9em;">' +
+      '<thead style="position:sticky;top:0;background:#dff0ff;z-index:2;"><tr>' +
+      '<th>Halaman</th><th>Tipe</th><th>H1</th><th>Skor H1</th><th>Rekom H1</th><th>Rekom Konten</th><th>Next Update</th>' +
+      '</tr></thead>' +
+      '<tbody>' +
+      '<tr>' +
+      '<td>' + document.title + '</td>' +
+      '<td>' + type + (isPillar? ' (Pillar)' : '') + '</td>' +
+      '<td>' + (h1Text || '(no h1)') + '</td>' +
+      '<td>' + h1Score + '/100</td>' +
+      '<td>' + (h1Suggestion? h1Suggestion : '—') + '</td>' +
+      '<td>' + (recommendedContent || '—') + '</td>' +
+      '<td>' + nextUpdateStr + '</td>' +
+      '</tr>' +
+      '</tbody></table>';
+    tableWrap.innerHTML = tableHtml;
+    dash.appendChild(tableWrap);
+    document.body.appendChild(dash);
 
     btnShowTable.onclick=()=>{tableWrap.style.display=tableWrap.style.display==='none'?'block':'none';};
-    btnKoreksi.onclick=()=>{alert(`🔍 Koreksi & Preview\n\nRekomendasi H1:\n${recommendedH1}\n\nRekomendasi Konten:\n${recommendedContent}\n\nStruktur ideal (${type}):\n${ultraStructure.join(" → ")}\n\nNext Update: ${nextUpdateStr}`);};
-    btnReport.onclick=()=>{ const report=`AED Ultra KMPTTF REPORT — ${document.title}\n\nTipe Konten: ${type}${isPillar?' (Pillar)':''}\nH1 Saat Ini: ${h1Text}\nRekomendasi H1: ${recommendedH1}\nRekomendasi Konten: ${recommendedContent}\n${dateModifiedStr?`Tanggal Diperbarui: ${dateModifiedStr}`:''}\nNext Update: ${nextUpdateStr}\n\nStruktur Ideal:\n${ultraStructure.join("\n")}\n\nURL: ${location.href}`.trim(); const blob=new Blob([report],{type:'text/plain'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`AED_Report_${document.title.replace(/\s+/g,"_")}.txt`; link.click(); };
+    btnKoreksi.onclick=()=>{ alert('🔍 Koreksi & Preview\n\nSkor H1: ' + h1Score + '/100\n\nRekomendasi H1:\n' + (h1Suggestion || 'H1 sudah sesuai') + '\n\nRekomendasi Konten:\n' + recommendedContent + '\n\nStruktur ideal (' + type + '):\n' + ultraStructure.join(' → ') + '\n\nNext Update: ' + nextUpdateStr); };
+    btnReport.onclick=()=>{ const report = 'AED Ultra KMPTTF REPORT — ' + document.title + '\n\nTipe Konten: ' + type + (isPillar? ' (Pillar)' : '') + '\nH1 Saat Ini: ' + h1Text + '\nSkor H1: ' + h1Score + '/100\nRekomendasi H1: ' + (h1Suggestion || '—') + '\nRekomendasi Konten: ' + recommendedContent + (dateModifiedStr? '\nTanggal Diperbarui: ' + dateModifiedStr : '') + '\nNext Update: ' + nextUpdateStr + '\n\nStruktur Ideal:\n' + ultraStructure.join('\n') + '\n\nURL: ' + location.href; const blob=new Blob([report],{type:'text/plain'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='AED_Report_' + document.title.replace(/\s+/g,'_') + '.txt'; link.click(); };
 
-    const style=document.createElement('style'); style.innerHTML=`@media(max-width:768px){table th,table td{padding:4px;font-size:0.8em;} table{min-width:600px;} } thead th{position:sticky;top:0;background:#dff0ff;} table th,td{border:1px solid #ccc;padding:6px;text-align:left;}`; document.head.appendChild(style);
+    const style=document.createElement('style');
+    style.innerHTML = '@media(max-width:768px){table th,table td{padding:4px;font-size:0.8em;} table{min-width:600px;} } thead th{position:sticky;top:0;background:#dff0ff;} table th,td{border:1px solid #ccc;padding:6px;text-align:left;}';
+    document.head.appendChild(style);
 
-    console.log("✅ AED v7.7 Ultra KMPTTF AMAN aktif — Pillar-Safe + H1 Audit + Rekomendasi Konten + JSON-LD + Dashboard");
-  }catch(e){console.error("❌ AED v7.7 Ultra KMPTTF Error:",e);}
+    console.log("✅ AED v8.3 Ultra KMPTTF aktif — H1 Audit + Scoring ditambahkan ke Dashboard & label.");
+
+  } catch (e) {
+    console.error("❌ AED v8.3 Ultra KMPTTF Error:", e);
+  }
+
 })(window, document);
 
 /**
