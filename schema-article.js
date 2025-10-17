@@ -336,7 +336,7 @@ URL: ${location.href}
   localStorage.setItem("globalHash_" + location.pathname, globalHash);
 
   // === Meta datePublished & dateModified ===
-  const datePublished =
+  let datePublished =
     convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content) ||
     "";
   let dateModified =
