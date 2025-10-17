@@ -226,16 +226,21 @@ if(oldHash && oldHash == currentHash){
     elH1.insertAdjacentElement('afterend',sEl);
 
     // === Author Date ===
-    const aEl=document.querySelector(CONFIG.authorSelector);
-    if(aEl&&modStr){
-      aEl.querySelector('.'+CONFIG.dateSpanClass)?.remove();
-      const d=document.createElement('span');
-      d.className=CONFIG.dateSpanClass;
-      d.textContent=' · Diperbarui: '+modStr;
-      d.style.cssText='font-size:.85em;color:#555;margin-left:6px;';
-      d.setAttribute('data-nosnippet','true');
-      aEl.appendChild(d);
-    }
+    const aEl = document.querySelector(CONFIG.authorSelector);
+if(aEl && modStr) {
+  aEl.querySelector('.' + CONFIG.dateSpanClass)?.remove();
+
+  // ✅ Tampilkan tanggal hanya untuk Semi-Evergreen & Non-Evergreen
+  if(type !== 'EVERGREEN') {
+    const d = document.createElement('span');
+    d.className = CONFIG.dateSpanClass;
+    d.textContent = ' · Diperbarui: ' + modStr;
+    d.style.cssText = 'font-size:.85em;color:#555;margin-left:6px;';
+    d.setAttribute('data-nosnippet','true');
+    aEl.appendChild(d);
+  }
+}
+
 
     // === Dashboard ===
     const dash=document.createElement('div');
