@@ -67,36 +67,20 @@ if(oldHash && oldHash == currentHash){
 */
 // ================== DETEKSI TYPE KONTEN ==================
 /* ===== Auto Evergreen Detector v7.7 + Dashboard Interaktif ===== */
-(function AutoEvergreenV831UltraKMPTTF(window, document) {
+(function AutoEvergreenV832UltraKMPTTF(window, document) {
   'use strict';
 
   // ===================== CONFIG =====================
   const CONFIG = {
-    storageKey: 'AutoEvergreenHashV8_3_1_UltraKMPTTF',
+    storageKey: 'AutoEvergreenHashV8_3_2_UltraKMPTTF',
     labelAttr: 'data-aed-label',
     dateSpanClass: 'aed-date-span',
     checkLength: 5000,
     locale: 'id-ID',
-    contentSelectors: ['article', 'main', '.post-body', '.entry-content', '#content'],
-    h1Selectors: ['h1', '.entry-title'],
+    contentSelectors: ['main','article','.post-body','.entry-content','#content'],
+    h1Selectors: ['h1','.entry-title'],
     authorSelector: '.post-author .fn, .author vcard, .byline',
     intervals: { EVERGREEN: 12, SEMI_EVERGREEN: 6, NON_EVERGREEN: 3 },
-    evergreenKeywords: [
-      "panduan","tutorial","cara","manfaat","pengertian","definisi","apa itu","tips","trik",
-      "panduan lengkap","langkah-langkah","praktik terbaik","strategi","studi kasus","contoh",
-      "referensi","panduan seo","petunjuk","instruksi","tutorial lengkap","solusi","teknik",
-      "panduan praktis"
-    ],
-    semiKeywords: [
-      "harga","lokasi","layanan","pengiriman","wilayah","order","pesan","update harga",
-      "harga terbaru","pesan sekarang","biaya","tarif","estimasi","ongkir","jasa","servis",
-      "promo harga","diskon","info harga","lokasi terdekat","layanan cepat","order online",
-      "penawaran khusus","estimasi biaya"
-    ],
-    nonEvergreenKeywords: [
-      "promo","diskon","event","penawaran","perdana","periode","terbaru","update","spesial",
-      "hot deal","flash sale","limited time","akhir tahun","penjualan khusus","kampanye","promo online"
-    ],
     updateJsonLd: true
   };
 
@@ -105,27 +89,43 @@ if(oldHash && oldHash == currentHash){
   const sampleTextFrom=e=>e?(e.innerText||e.textContent||'').slice(0,CONFIG.checkLength).toLowerCase():'';
   const normalizeUrlToken=p=>p? p.split('/').filter(Boolean).pop()?.replace(/^p\//,'').replace(/\.html$/i,'')
     .replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,'').replace(/[-_]/g,' ').trim().toLowerCase()||'' : '';
-  const containsAny=(s,a)=>!!a?.length && a.some(k=>s.includes(k));
-  const findYearInText=s=>s?.match(/\b(20\d{2})\b/)?.[1]||null;
   const makeHash=s=>{try{return btoa(unescape(encodeURIComponent(s)));}catch{let h=0;for(let i=0;i<s.length;i++)h=(h<<5)-h+s.charCodeAt(i)|0;return String(h);}};
   const formatDate=d=>d?d.toLocaleDateString(CONFIG.locale,{day:'numeric',month:'long',year:'numeric'}):null;
   const addMonths=(d,m)=>{const x=new Date(d);x.setMonth(x.getMonth()+m);return x;};
   const tokenize=s=>s?.toLowerCase().replace(/[^\p{L}\p{N}\s\-]/gu,' ').replace(/\s+/g,' ').trim().split(' ').filter(Boolean)||[];
   const unique=a=>Array.from(new Set(a));
+  function clean(str){return str.replace(/\s+/g,' ').trim().toLowerCase();}
 
-  // ===================== H1 ↔ URL Scoring =====================
-  function computeH1UrlScore(h1,url){
-    const u=unique(tokenize(url)), h=unique(tokenize(h1));
-    if(!u.length) return 100;
-    const m=u.filter(t=>h.includes(t)), ratio=m.length/u.length;
-    const bonus=h1.toLowerCase().startsWith(u[0]||'')?0.15:0;
-    return Math.round(Math.min(1,ratio+bonus)*100);
-  }
-  function scoreToLabel(s,t){if(s>=90)return"Sangat Baik";if(s>=75)return"Baik";if(s>=50)return t==="EVERGREEN"?"Perlu Perbaikan":"Cukup";return"Perlu Perbaikan";}
-  function makeH1Suggestion(h1,url){
-    const u=unique(tokenize(url));if(!u.length)return null;
-    const s=(u.join(' ')+' '+h1).replace(/\s+/g,' ').trim();
-    return u.every(t=>h1.toLowerCase().includes(t))?null:s;
+  // ===================== NEW DETECTOR =====================
+  function detectEvergreen(title,text,url){
+    let score=0;
+    const t=clean(title+" "+text);
+
+    if(/\b(harga|spesifikasi|ukuran|jenis|mutu|standar|komposisi)\b/.test(t))score+=2;
+    if(/\b(update|terbaru|202\d|2024|2025|info lengkap)\b/.test(t))score+=1;
+    if(/\b(ready\s?mix|beton|jayamix|minimix|precast|material|produk|alat berat|konstruksi)\b/.test(t))score+=2;
+    if(t.length>1500)score+=2;
+    if(/\b(harga\s+(beton|readymix|u-ditch|buis|box culvert|panel|saluran))\b/.test(t))score+=2;
+
+    if(/\b(bogor|bekasi|depok|jakarta|bandung|tangerang|karawang|serang)\b/.test(t))score-=1;
+    if(/\b(hari\s+ini|minggu\s+ini|bulan\s+ini|harga\s+per\s+hari)\b/.test(t))score-=1;
+    if(/\/\d{4}\/\d{2}\//.test(url))score-=1;
+    if(/\b(stok|pesan\s+sekarang|diskon|wa|whatsapp)\b/.test(t))score-=1;
+
+    if(/\b(berita|event|promo|pengumuman|laporan|seminar)\b/.test(t))score-=3;
+    if(/\b(kemarin|besok|bulan\s+lalu)\b/.test(t))score-=2;
+
+    if(url.includes("/p/"))score+=1;
+    if(/\/harga-|\/produk-|\/beton-|\/sewa-|\/readymix-/.test(url))score+=1;
+
+    const paraCount=(text.match(/\n/g)||[]).length;
+    if(paraCount>8)score+=1;
+    if(paraCount<3)score-=1;
+
+    let status="SEMI_EVERGREEN";
+    if(score>=5)status="EVERGREEN";
+    else if(score<=0)status="NON_EVERGREEN";
+    return status;
   }
 
   // ===================== CORE =====================
@@ -133,31 +133,33 @@ if(oldHash && oldHash == currentHash){
     const elC=qsMany(CONFIG.contentSelectors)||document.body;
     const elH1=qsMany(CONFIG.h1Selectors)||document.querySelector('h1');
     const h1R=elH1?elH1.innerText.trim():'(no h1)';
-    const h1=h1R.toLowerCase();
     const txt=sampleTextFrom(elC);
     const urlRaw=normalizeUrlToken(window.location.pathname);
     const isPillar=window.location.pathname.includes('/p/');
     const old=localStorage.getItem(CONFIG.storageKey);
-    const hash=makeHash(h1+'\n'+txt+'\n'+urlRaw);
+    const hash=makeHash(h1R+'\n'+txt+'\n'+urlRaw);
 
-    // ==== Tipe Konten ====
-    let type;
-    if (isPillar) type='EVERGREEN';
-    else if (containsAny(h1+txt, CONFIG.nonEvergreenKeywords)) type='NON_EVERGREEN';
-    else if (findYearInText(h1+txt)) type='SEMI_EVERGREEN'; // 🆕 ubahan penting: tahun = SEMI, bukan NON
-    else if (containsAny(h1+txt+urlRaw, CONFIG.semiKeywords)) type='SEMI_EVERGREEN';
-    else if (containsAny(h1+txt, CONFIG.evergreenKeywords)) type='EVERGREEN';
-    else type='SEMI_EVERGREEN';
+    // ==== Tipe Konten via Detektor Baru ====
+    let type=detectEvergreen(h1R,txt,window.location.pathname);
+    if(isPillar)type='EVERGREEN';
 
-    if (type==='EVERGREEN' && !document.body.hasAttribute('data-force')) 
+    if(type==='EVERGREEN'&&!document.body.hasAttribute('data-force'))
       document.body.setAttribute('data-force','evergreen');
 
     // ==== Tanggal ====
     const next=new Date();let mod=null;
-    const m=CONFIG.intervals[type==='EVERGREEN'?'EVERGREEN':type==='SEMI_EVERGREEN'?'SEMI_EVERGREEN':'NON_EVERGREEN'];
-    if(!old||old!==hash){next.setMonth(next.getMonth()+m);mod=new Date();localStorage.setItem(CONFIG.storageKey,hash);localStorage.setItem(CONFIG.storageKey+'_date',mod.toISOString());}
-    else{const prev=localStorage.getItem(CONFIG.storageKey+'_date');if(prev){const d=new Date(prev);next.setMonth(d.getMonth()+m);}else next.setMonth(next.getMonth()+m);}
-    const nextStr=formatDate(next), modStr=mod?formatDate(mod):null;
+    const m=CONFIG.intervals[type];
+    if(!old||old!==hash){
+      next.setMonth(next.getMonth()+m);
+      mod=new Date();
+      localStorage.setItem(CONFIG.storageKey,hash);
+      localStorage.setItem(CONFIG.storageKey+'_date',mod.toISOString());
+    }else{
+      const prev=localStorage.getItem(CONFIG.storageKey+'_date');
+      mod=prev?new Date(prev):new Date();
+      next.setMonth(mod.getMonth()+m);
+    }
+    const nextStr=formatDate(next), modStr=formatDate(mod);
 
     // ==== Label H1 ====
     if(elH1){
@@ -171,25 +173,24 @@ if(oldHash && oldHash == currentHash){
     }
 
     // ==== H1 Score + Saran ====
-    const score=computeH1UrlScore(h1R,urlRaw), sLbl=scoreToLabel(score,type), sSug=makeH1Suggestion(h1R,urlRaw);
-    const oldScore=elH1.parentNode.querySelector('[data-aed-h1score]');oldScore?.remove();
-    const sEl=document.createElement('div');
-    sEl.setAttribute('data-aed-h1score','true');sEl.setAttribute('data-nosnippet','true');
-    sEl.style.cssText='font-size:.9em;color:#0b644b;margin-top:4px;margin-bottom:10px;padding:6px 10px;background:#f0fff7;border:1px solid #cfeee0;border-radius:6px;';
-    sEl.innerHTML='<b>Skor Kecocokan H1 ↔ URL: '+score+'/100</b> — '+sLbl+
-      '<br><small>Rekomendasi tingkat: '+type+'</small>'+
-      (sSug?'<div style="margin-top:6px;color:#444;"><b>Rekomendasi H1:</b> '+sSug+'</div>':'<div style="margin-top:6px;color:#666;">H1 sudah sesuai dengan kata kunci URL.</div>');
-    elH1.insertAdjacentElement('afterend',sEl);
+    const computeH1UrlScore=(h1,url)=>{
+      const u=unique(tokenize(url)),h=unique(tokenize(h1));
+      if(!u.length)return 100;
+      const m=u.filter(t=>h.includes(t)),ratio=m.length/u.length;
+      const bonus=h1.toLowerCase().startsWith(u[0]||'')?0.15:0;
+      return Math.round(Math.min(1,ratio+bonus)*100);
+    };
+    const score=computeH1UrlScore(h1R,urlRaw);
+    const sSug=urlRaw&&!h1R.toLowerCase().includes(urlRaw.split(' ')[0])?urlRaw+' '+h1R:null;
+    const sLbl=score>=90?"Sangat Baik":score>=75?"Baik":score>=50?"Cukup":"Perlu Perbaikan";
 
-    // ==== Rekomendasi konten ====
-    const ps=[...elC.querySelectorAll('p,h2,h3')].slice(0,5);
-    const urlK=urlRaw.split(' ').filter(Boolean);
-    let rec='';
-    if(type==='EVERGREEN'){
-      rec='Konten tetap relevan jangka panjang. Tambahkan kata kunci utama di paragraf pertama & subjudul.';
-    }else if(type==='SEMI_EVERGREEN'){
-      rec='Perbarui harga & data setiap '+m+' bulan untuk menjaga relevansi.';
-    }else rec='Konten bersifat temporer, cocok untuk promo jangka pendek.';
+    const sEl=document.createElement('div');
+    sEl.setAttribute('data-aed-h1score','true');
+    sEl.setAttribute('data-nosnippet','true');
+    sEl.style.cssText='font-size:.9em;color:#0b644b;margin-top:4px;margin-bottom:10px;padding:6px 10px;background:#f0fff7;border:1px solid #cfeee0;border-radius:6px;';
+    sEl.innerHTML='<b>Skor H1 ↔ URL: '+score+'/100</b> — '+sLbl+
+      (sSug?'<div style="margin-top:6px;color:#444;"><b>Rekomendasi H1:</b> '+sSug+'</div>':'<div style="margin-top:6px;color:#666;">H1 sudah sesuai.</div>');
+    elH1.insertAdjacentElement('afterend',sEl);
 
     // ==== Author Date ====
     const aEl=document.querySelector(CONFIG.authorSelector);
@@ -213,42 +214,100 @@ if(oldHash && oldHash == currentHash){
           let change=false;
           arr.forEach(n=>{
             if(n['@type']&&['product','offer','service'].some(t=>n['@type'].toLowerCase().includes(t))){
-              if(mod){n.dateModified=new Date().toISOString();change=true;}
-              if(n.offers?.price){n.offers.priceValidUntil=addMonths(new Date(),m).toISOString();change=true;}
+              n.dateModified=new Date().toISOString();
+              if(n.offers?.price)n.offers.priceValidUntil=addMonths(new Date(),m).toISOString();
+              change=true;
             }
           });
-          if(change) el.innerText=JSON.stringify(arr.length>1?arr:arr[0],null,2);
+          if(change)el.innerText=JSON.stringify(arr.length>1?arr:arr[0],null,2);
         }catch(e){console.warn('AED JSON-LD err',e);}
       });
     }
 
-    // ==== Dashboard ====
-    const dash=document.createElement('div');
-    dash.style.cssText='max-width:1200px;margin:30px auto;padding:15px;background:#f0f8ff;border-top:3px solid #0078ff;font-family:Arial,sans-serif;';
-    dash.setAttribute('data-nosnippet','true');
-    const h3=document.createElement('h3');h3.innerText="📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman";dash.appendChild(h3);
+    // ==== Dashboard ====// ==== Dashboard ====
+const dash=document.createElement('div');
+dash.style.cssText='max-width:1200px;margin:30px auto;padding:15px;background:#f0f8ff;border-top:3px solid #0078ff;font-family:Arial,sans-serif;';
+dash.setAttribute('data-nosnippet','true');
 
-    const btns=document.createElement('div');btns.style.textAlign='center';btns.style.marginBottom='10px';
-    const mkB=(t,bg)=>{const x=document.createElement('button');x.textContent=t;x.style.background=bg;x.style.padding='6px 12px';x.style.margin='3px';x.style.border='none';x.style.borderRadius='4px';x.style.cursor='pointer';x.setAttribute('data-nosnippet','true');return x;};
-    const koreksi=mkB("⚙️ Koreksi & Preview","#ffeedd"), show=mkB("📊 Tampilkan Data Table","#d1e7dd"), rep=mkB("📥 Download Laporan","#f3f3f3");
-    btns.append(koreksi,show,rep);dash.appendChild(btns);
+const h3=document.createElement('h3');
+h3.innerText="📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman";
+dash.appendChild(h3);
 
-    const tbl=document.createElement('div');tbl.style.overflowX='auto';tbl.style.display='none';
-    tbl.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:900px;font-size:.9em;">'+
-    '<thead><tr><th>Halaman</th><th>Tipe</th><th>H1</th><th>Skor H1</th><th>Rekom H1</th><th>Rekom Konten</th><th>Next Update</th></tr></thead>'+
-    '<tbody><tr><td>'+document.title+'</td><td>'+type+'</td><td>'+h1+'</td><td>'+score+'/100</td><td>'+(sSug||'—')+'</td><td>'+rec+'</td><td>'+nextStr+'</td></tr></tbody></table>';
-    dash.appendChild(tbl);document.body.appendChild(dash);
+const btns=document.createElement('div');
+btns.style.textAlign='center';
+btns.style.marginBottom='10px';
 
-    show.onclick=()=>tbl.style.display=tbl.style.display==='none'?'block':'none';
-    koreksi.onclick=()=>alert('🔍 Koreksi & Preview\nSkor H1: '+score+'/100\nRekom H1: '+(sSug||'OK')+'\nRekom Konten: '+rec+'\nNext Update: '+nextStr);
-    rep.onclick=()=>{const rpt='AED Ultra KMPTTF REPORT — '+document.title+'\nTipe: '+type+'\nH1: '+h1+'\nSkor: '+score+'/100\nRekom H1: '+(sSug||'-')+'\nRekom Konten: '+rec+'\nNext Update: '+nextStr+'\nURL: '+location.href;const blob=new Blob([rpt],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='AED_Report_'+document.title.replace(/\s+/g,'_')+'.txt';a.click();};
+const mkB=(t,bg)=>{
+  const x=document.createElement('button');
+  x.textContent=t;
+  x.style.background=bg;
+  x.style.padding='6px 12px';
+  x.style.margin='3px';
+  x.style.border='none';
+  x.style.borderRadius='4px';
+  x.style.cursor='pointer';
+  x.setAttribute('data-nosnippet','true');
+  return x;
+};
 
-    const st=document.createElement('style');
-    st.innerHTML='@media(max-width:768px){table th,td{padding:4px;font-size:.8em;}table{min-width:600px;}}table th,td{border:1px solid #ccc;padding:6px;text-align:left;}thead{background:#dff0ff;position:sticky;top:0;}';
-    document.head.appendChild(st);
+const koreksi=mkB("⚙️ Koreksi & Preview","#ffeedd"),
+      show=mkB("📊 Tampilkan Data Table","#d1e7dd"),
+      rep=mkB("📥 Download Laporan","#f3f3f3");
 
-    console.log("✅ AED v8.3.1 Ultra KMPTTF aktif – Audit H1 + Dashboard SEO + Logika Tahun → SEMI");
-  }catch(e){console.error("❌ AED v8.3.1 Error:",e);}
+btns.append(koreksi,show,rep);
+dash.appendChild(btns);
+
+// ✅ Tambahkan kolom “Status Evergreen” & “Tanggal Diperbarui”
+const tbl=document.createElement('div');
+tbl.style.overflowX='auto';
+tbl.style.display='none';
+tbl.innerHTML =
+  '<table style="width:100%;border-collapse:collapse;min-width:1000px;font-size:.9em;">' +
+  '<thead><tr>' +
+  '<th>Halaman</th><th>Status Evergreen</th><th>Tanggal Diperbarui</th>' +
+  '<th>H1</th><th>Skor</th><th>Rekom H1</th><th>Next Update</th>' +
+  '</tr></thead>' +
+  '<tbody><tr>' +
+  '<td>'+document.title+'</td>' +
+  '<td>'+type+'</td>' +
+  '<td>'+(modStr||'—')+'</td>' +
+  '<td>'+h1R+'</td>' +
+  '<td>'+score+'/100</td>' +
+  '<td>'+(sSug||'—')+'</td>' +
+  '<td>'+nextStr+'</td>' +
+  '</tr></tbody></table>';
+
+dash.appendChild(tbl);
+
+// 🔽 Tempatkan di bawah <main> jika ada, aman SEO
+(document.querySelector('main')||document.body).appendChild(dash);
+
+// ==== Interaksi tombol dashboard ====
+show.onclick=()=>tbl.style.display=tbl.style.display==='none'?'block':'none';
+koreksi.onclick=()=>alert('🔍 Koreksi & Preview\nTipe: '+type+'\nSkor H1: '+score+'/100\nTanggal Diperbarui: '+modStr+'\nNext Update: '+nextStr);
+rep.onclick=()=>{
+  const rpt='AED Ultra KMPTTF REPORT — '+document.title+
+  '\nTipe: '+type+
+  '\nTanggal Diperbarui: '+modStr+
+  '\nH1: '+h1R+
+  '\nSkor: '+score+'/100'+
+  '\nNext Update: '+nextStr+
+  '\nURL: '+location.href;
+  const blob=new Blob([rpt],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='AED_Report_'+document.title.replace(/\s+/g,'_')+'.txt';
+  a.click();
+};
+
+// ==== Style responsif ====
+const st=document.createElement('style');
+st.innerHTML='@media(max-width:768px){table th,td{padding:4px;font-size:.8em;}table{min-width:700px;}}table th,td{border:1px solid #ccc;padding:6px;text-align:left;}thead{background:#dff0ff;position:sticky;top:0;}';
+document.head.appendChild(st);
+
+
+    console.log("✅ AED v8.3.2 Ultra KMPTTF aktif — Detektor baru + Dashboard fix + penempatan aman SEO");
+  }catch(e){console.error("❌ AED v8.3.2 Error:",e);}
 })(window, document);
 
 /**
