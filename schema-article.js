@@ -67,39 +67,40 @@ if(oldHash && oldHash == currentHash){
 */
 // ================== DETEKSI TYPE KONTEN ==================
 /* ===== Auto Evergreen Detector v7.7 + Dashboard Interaktif ===== */
-(function AutoEvergreenV77Pillar(window, document) {
+(function AutoEvergreenV77UltraKMPTTF(window, document) {
   'use strict';
 
   const CONFIG = {
-    storageKey: 'AutoEvergreenHashV7_7_Pillar',
+    storageKey: 'AutoEvergreenHashV7_7_UltraKMPTTF',
     labelAttr: 'data-aed-label',
     dateSpanClass: 'aed-date-span',
-    checkLength: 4000,
+    checkLength: 5000,
     locale: 'id-ID',
     contentSelectors: ['article', 'main', '.post-body', '.entry-content', '#content'],
     h1Selectors: ['h1', '.entry-title'],
     authorSelector: '.post-author .fn, .author vcard, .byline',
     intervals: { EVERGREEN: 12, SEMI_EVERGREEN: 6, NON_EVERGREEN: 3 },
     evergreenKeywords: [
-      "panduan","tutorial","cara","manfaat","pengertian","definisi","apa itu",
-      "tips","trik","panduan lengkap","langkah-langkah","praktik terbaik",
-      "strategi","studi kasus","contoh","referensi","panduan SEO","petunjuk",
-      "instruksi","tutorial video","tutorial lengkap","tips lanjutan","cara efektif",
-      "solusi","teknik","panduan praktis","panduan langkah demi langkah"
+      "panduan", "tutorial", "cara", "manfaat", "pengertian", "definisi", "apa itu",
+      "tips", "trik", "panduan lengkap", "langkah-langkah", "best practices",
+      "praktik terbaik", "strategi", "studi kasus", "contoh", "referensi",
+      "panduan SEO", "petunjuk", "instruksi", "tutorial video", "tutorial lengkap",
+      "tips lanjutan", "cara efektif", "solusi", "teknik", "panduan praktis",
+      "panduan langkah demi langkah"
     ],
     semiKeywords: [
-      "harga","lokasi","layanan","pengiriman","wilayah","area","order","pesan",
-      "update harga","harga terbaru","pesan sekarang","wilayah pengiriman","biaya",
-      "tarif","estimasi","ongkir","jasa","servis","opsi pengiriman","promo harga",
-      "diskon terbatas","info harga","lokasi terdekat","layanan cepat","order online",
-      "penawaran khusus","estimasi biaya","biaya tambahan"
+      "harga", "lokasi", "layanan", "pengiriman", "wilayah", "area", "order", "pesan",
+      "update harga", "harga terbaru", "pesan sekarang", "wilayah pengiriman", "biaya",
+      "tarif", "estimasi", "ongkir", "jasa", "servis", "opsi pengiriman", "promo harga",
+      "diskon terbatas", "info harga", "lokasi terdekat", "layanan cepat", "order online",
+      "penawaran khusus", "estimasi biaya", "biaya tambahan"
     ],
     nonEvergreenKeywords: [
-      "promo","diskon","event","penawaran","perdana","periode","terbaru","update",
-      "spesial","promo akhir tahun","penawaran terbatas","2020","2021","2022","2023",
-      "2024","2025","2026","2027","2028","hot deal","penawaran musiman","flash sale",
-      "limited time","waktu terbatas","akhir tahun","penjualan khusus","promosi musiman",
-      "diskon besar","khusus pelanggan","kampanye","promo online"
+      "promo", "diskon", "event", "penawaran", "perdana", "periode", "terbaru", "update",
+      "spesial", "promo akhir tahun", "penawaran terbatas", "2020", "2021", "2022",
+      "2023", "2024", "2025", "2026", "2027", "2028", "hot deal", "penawaran musiman",
+      "flash sale", "limited time", "waktu terbatas", "akhir tahun", "penjualan khusus",
+      "promosi musiman", "diskon besar", "khusus pelanggan", "kampanye", "promo online"
     ],
     updateJsonLd: true
   };
@@ -128,9 +129,9 @@ if(oldHash && oldHash == currentHash){
     // ===== Deteksi Tipe Konten =====
     let type;
     if (isPillar) type='EVERGREEN';
-    else if (containsAny(h1Text + ' ' + textContent, CONFIG.evergreenKeywords)) type='EVERGREEN';
-    else if (containsAny(h1Text + ' ' + textContent + ' ' + urlRaw, CONFIG.semiKeywords)) type='SEMI_EVERGREEN';
     else if (containsAny(h1Text + ' ' + textContent, CONFIG.nonEvergreenKeywords) || findYearInText(h1Text + ' ' + textContent)) type='NON_EVERGREEN';
+    else if (containsAny(h1Text + ' ' + textContent + ' ' + urlRaw, CONFIG.semiKeywords)) type='SEMI_EVERGREEN';
+    else if (containsAny(h1Text + ' ' + textContent, CONFIG.evergreenKeywords)) type='EVERGREEN';
     else type='SEMI_EVERGREEN';
 
     // ===== Smart nextUpdate & dateModified =====
@@ -154,17 +155,19 @@ if(oldHash && oldHash == currentHash){
       const existingLabel=elH1.parentNode.querySelector('['+CONFIG.labelAttr+']'); if(existingLabel) existingLabel.remove();
       const label=document.createElement('div');
       label.setAttribute(CONFIG.labelAttr,'true'); label.setAttribute('data-nosnippet','true');
-      label.style.fontSize='0.9em'; label.style.color='#444'; label.style.marginTop='6px'; label.style.marginBottom='10px';
+      label.style.fontSize='0.95em'; label.style.color='#222'; label.style.marginTop='6px'; label.style.marginBottom='12px'; label.style.padding='6px 12px'; label.style.background='#f9f9f9'; label.style.border='1px solid #ccc'; label.style.borderRadius='5px';
       label.innerHTML=`<b>${type}${isPillar?' (Pillar)':''}</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
       elH1.insertAdjacentElement('afterend',label);
     }
 
-    // ===== H1 Audit Pillar =====
+    // ===== Audit H1 untuk Pillar =====
     const urlKeywords = urlRaw.split(' ').filter(Boolean);
     const h1Lower = h1Text.toLowerCase();
     const allKeywordsPresent = urlKeywords.every((k)=>h1Lower.includes(k));
     const recommendedH1 = allKeywordsPresent ? h1Text : urlKeywords.map((w)=>w[0].toUpperCase()+w.slice(1)).join(' ');
-    if(isPillar && !allKeywordsPresent){ console.warn('⚠️ AED Pillar H1 Audit: H1 tidak sesuai keyword URL', recommendedH1); }
+    if(isPillar && !allKeywordsPresent){
+      console.warn('⚠️ AED Ultra KMPTTF Pillar H1 Audit: H1 tidak sesuai keyword URL', recommendedH1);
+    }
 
     // ===== Rekomendasi Konten Otomatis =====
     let recommendedContent = '';
@@ -207,86 +210,48 @@ if(oldHash && oldHash == currentHash){
       });
     }
 
-    // ===== Dashboard & ultraStructure =====
+    // ===== Dashboard & UltraStructure =====
     const ultraStructure = {
       EVERGREEN: [
-        "Pendahuluan / Definisi", 
-        "Sejarah & Latar Belakang", 
-        "Manfaat & Kegunaan", 
-        "Langkah / Tutorial Lengkap", 
-        "Tips & Trik Praktis", 
-        "Studi Kasus / Contoh Nyata", 
-        "FAQ / Pertanyaan Umum", 
-        "Kesalahan Umum & Cara Menghindari", 
-        "Referensi / Sumber Terpercaya", 
-        "Alat / Software / Resource Pendukung", 
-        "Checklist / Ringkasan Langkah", 
-        "Praktik Terbaik", 
-        "Panduan Lengkap vs Ringkasan Cepat", 
-        "Tips Lanjutan / Strategi Lanjut", 
-        "Alternatif / Opsi Lain", 
-        "Infografis / Visual Pendukung", 
-        "Tips SEO / Optimasi Konten", 
-        "Video / Tutorial Multimedia", 
-        "Kesimpulan & Ringkasan", 
-        "Ajakan Tindakan / Langkah Selanjutnya"
+        "Pendahuluan / Definisi", "Sejarah & Latar Belakang", "Manfaat & Kegunaan", 
+        "Langkah / Tutorial Lengkap", "Tips & Trik Praktis", "Studi Kasus / Contoh Nyata", 
+        "FAQ / Pertanyaan Umum", "Kesalahan Umum & Cara Menghindari", 
+        "Referensi / Sumber Terpercaya", "Alat / Software / Resource Pendukung", 
+        "Checklist / Ringkasan Langkah", "Best Practices / Praktik Terbaik", 
+        "Panduan Lengkap vs Ringkasan Cepat", "Tips Lanjutan / Strategi Lanjut", 
+        "Alternatif / Opsi Lain", "Infografis / Visual Pendukung", 
+        "Tips SEO / Optimasi Konten", "Video / Tutorial Multimedia", 
+        "Kesimpulan & Ringkasan", "Call to Action / Next Steps / Ajakan Tindakan / Langkah Selanjutnya"
       ],
       SEMI: [
-        "Ringkasan & Tren Terkini", 
-        "Langkah / Cara", 
-        "Perbandingan / Analisis", 
-        "Tips Praktis / Rekomendasi", 
-        "Kelebihan & Kekurangan", 
-        "FAQ Spesifik Topik", 
-        "Referensi / Link Terkait", 
-        "Saran Lanjutan / Langkah Selanjutnya", 
-        "Update Harga / Tarif / Biaya", 
-        "Update Wilayah / Lokasi", 
-        "Panduan Singkat vs Detail", 
-        "Tips Implementasi Cepat", 
-        "Studi Kasus Singkat", 
-        "Checklist / Ringkasan Praktis", 
-        "Visualisasi / Diagram", 
-        "Alternatif Produk / Layanan", 
-        "Praktik Terbaik & Strategi", 
-        "Notifikasi / Peringatan", 
-        "Testimoni / Review Pengguna", 
+        "Ringkasan & Tren Terkini", "Langkah / Cara", "Perbandingan / Analisis", 
+        "Tips Praktis / Rekomendasi", "Kelebihan & Kekurangan", "FAQ Spesifik Topik", 
+        "Referensi / Link Terkait", "Saran Lanjutan / Langkah Selanjutnya", 
+        "Update Harga / Tarif / Biaya", "Update Wilayah / Lokasi", 
+        "Panduan Singkat vs Detail", "Tips Implementasi Cepat", "Studi Kasus Singkat", 
+        "Checklist / Ringkasan Praktis", "Visualisasi / Diagram", 
+        "Alternatif Produk / Layanan", "Best Practices & Strategi / Praktik Terbaik & Strategi", 
+        "Peringatan / Notifikasi Pembaruan", "Testimoni / Review Pengguna", 
         "Ajakan Tindakan / Kontak"
       ],
       NON: [
-        "Harga & Promo Terkini", 
-        "Ketersediaan & Wilayah", 
-        "Periode & Update", 
-        "Kontak & Cara Order", 
-        "Ketentuan / Syarat & Ketentuan", 
-        "Biaya / Tarif / Ongkir", 
-        "Promo / Diskon Spesial", 
-        "FAQ Transaksi / Order", 
-        "Cara Pembayaran / Metode", 
-        "Garansi / Jaminan Produk", 
-        "Stok / Persediaan", 
-        "Update Produk / Layanan", 
-        "Link Pemesanan Cepat", 
-        "Referensi / Info Tambahan", 
-        "Instruksi Penggunaan / Setup", 
-        "Testimoni / Review Pelanggan", 
-        "Tips Pemesanan Aman", 
-        "Notifikasi / Event", 
-        "Visual Produk / Spanduk", 
-        "Ajakan Tindakan / Pesan Sekarang"
+        "Harga & Promo Terkini", "Ketersediaan & Wilayah", "Periode & Update", 
+        "Kontak & Cara Order", "Ketentuan / Syarat & Ketentuan", "Biaya / Tarif / Ongkir", 
+        "Promo / Diskon Spesial", "FAQ Transaksi / Order", "Cara Pembayaran / Metode", 
+        "Garansi / Jaminan Produk", "Stok / Persediaan", "Update Produk / Layanan", 
+        "Link Pemesanan Cepat", "Referensi / Info Tambahan", "Instruksi Penggunaan / Setup", 
+        "Testimoni / Review Pelanggan", "Tips Pemesanan Aman", 
+        "Alert / Notifikasi Update / Notifikasi Promo / Event", "Visual Produk / Spanduk", 
+        "Call to Action / Ajakan Tindakan / Pesan Sekarang"
       ]
     }[type.split("-")[0]];
 
-    // ===== Render Dashboard =====
-    const dash = document.createElement('div'); dash.style.maxWidth='1200px'; dash.style.margin='30px auto'; dash.style.padding='15px'; dash.style.background='#f0f8ff'; dash.style.borderTop='3px solid #0078ff'; dash.style.fontFamily='Arial, sans-serif'; dash.setAttribute('data-nosnippet','true');
-    const h3=document.createElement('h3'); h3.innerText="📊 AED Dashboard — Ringkasan Halaman"; dash.appendChild(h3);
+    const dash=document.createElement('div'); dash.style.maxWidth='1200px'; dash.style.margin='30px auto'; dash.style.padding='15px'; dash.style.background='#f0f8ff'; dash.style.borderTop='3px solid #0078ff'; dash.style.fontFamily='Arial, sans-serif'; dash.setAttribute('data-nosnippet','true');
+    const h3=document.createElement('h3'); h3.innerText="📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman"; dash.appendChild(h3);
 
     const btnContainer=document.createElement('div'); btnContainer.style.textAlign='center'; btnContainer.style.marginBottom='10px';
     const createBtn=(text,bg)=>{ const b=document.createElement('button'); b.textContent=text; b.style.background=bg; b.style.color='#000'; b.style.padding='6px 12px'; b.style.margin='3px'; b.style.borderRadius='4px'; b.style.cursor='pointer'; b.style.border='none'; b.style.fontSize='0.9em'; b.setAttribute('data-nosnippet','true'); return b; };
-    const btnKoreksi=createBtn("⚙️ Koreksi & Preview","#ffeedd"); 
-    const btnShowTable=createBtn("📊 Tampilkan Data Table","#d1e7dd"); 
-    const btnReport=createBtn("📥 Download Laporan","#f3f3f3"); 
-    btnContainer.append(btnKoreksi,btnShowTable,btnReport); dash.appendChild(btnContainer);
+    const btnKoreksi=createBtn("⚙️ Koreksi & Preview","#ffeedd"); const btnShowTable=createBtn("📊 Tampilkan Data Table","#d1e7dd"); const btnReport=createBtn("📥 Download Laporan","#f3f3f3"); btnContainer.append(btnKoreksi,btnShowTable,btnReport); dash.appendChild(btnContainer);
 
     const tableWrap=document.createElement('div'); tableWrap.style.overflowX='auto'; tableWrap.style.display='none';
     tableWrap.innerHTML=`<table style="width:100%;border-collapse:collapse;min-width:800px;font-size:0.9em;">
@@ -296,14 +261,13 @@ if(oldHash && oldHash == currentHash){
 
     btnShowTable.onclick=()=>{tableWrap.style.display=tableWrap.style.display==='none'?'block':'none';};
     btnKoreksi.onclick=()=>{alert(`🔍 Koreksi & Preview\n\nRekomendasi H1:\n${recommendedH1}\n\nRekomendasi Konten:\n${recommendedContent}\n\nStruktur ideal (${type}):\n${ultraStructure.join(" → ")}\n\nNext Update: ${nextUpdateStr}`);};
-    btnReport.onclick=()=>{ const report=`AED REPORT — ${document.title}\n\nTipe Konten: ${type}${isPillar?' (Pillar)':''}\nH1 Saat Ini: ${h1Text}\nRekomendasi H1: ${recommendedH1}\nRekomendasi Konten: ${recommendedContent}\n${dateModifiedStr?`Tanggal Diperbarui: ${dateModifiedStr}`:''}\nNext Update: ${nextUpdateStr}\n\nStruktur Ideal:\n${ultraStructure.join("\n")}\n\nURL: ${location.href}`.trim(); const blob=new Blob([report],{type:'text/plain'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`AED_Report_${document.title.replace(/\s+/g,"_")}.txt`; link.click(); };
+    btnReport.onclick=()=>{ const report=`AED Ultra KMPTTF REPORT — ${document.title}\n\nTipe Konten: ${type}${isPillar?' (Pillar)':''}\nH1 Saat Ini: ${h1Text}\nRekomendasi H1: ${recommendedH1}\nRekomendasi Konten: ${recommendedContent}\n${dateModifiedStr?`Tanggal Diperbarui: ${dateModifiedStr}`:''}\nNext Update: ${nextUpdateStr}\n\nStruktur Ideal:\n${ultraStructure.join("\n")}\n\nURL: ${location.href}`.trim(); const blob=new Blob([report],{type:'text/plain'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=`AED_Report_${document.title.replace(/\s+/g,"_")}.txt`; link.click(); };
 
     const style=document.createElement('style'); style.innerHTML=`@media(max-width:768px){table th,table td{padding:4px;font-size:0.8em;} table{min-width:600px;} } thead th{position:sticky;top:0;background:#dff0ff;} table th,td{border:1px solid #ccc;padding:6px;text-align:left;}`; document.head.appendChild(style);
 
-    console.log("✅ AED v7.7 Pillar-Safe + H1 Audit + Rekomendasi Konten + JSON-LD Dashboard aktif.");
-
-  }catch(e){console.error("❌ AED v7.7 Pillar-Safe + H1 Audit + Rekomendasi Konten + JSON-LD Error:",e);}
-})();
+    console.log("✅ AED v7.7 Ultra KMPTTF aktif — Pillar-Safe + H1 Audit + Rekomendasi Konten + JSON-LD + Dashboard");
+  }catch(e){console.error("❌ AED v7.7 Ultra KMPTTF Error:",e);}
+})(window, document);
 
 /**
  * 🌿 Hybrid Evergreen Detector v7.1
