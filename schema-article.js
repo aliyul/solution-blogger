@@ -67,12 +67,12 @@ if(oldHash && oldHash == currentHash){
 */
 // ================== DETEKSI TYPE KONTEN ==================
 /* ===== Auto Evergreen Detector v7.7 + Dashboard Interaktif ===== */
-(function AutoEvergreenV77UltraKMPTTF(window, document) {
+(function AutoEvergreenV83UltraKMPTTF(window, document) {
   'use strict';
 
-  // ===================== CONFIG (tetap dari kode Anda) =====================
+  // ===================== CONFIG =====================
   const CONFIG = {
-    storageKey: 'AutoEvergreenHashV7_7_UltraKMPTTF',
+    storageKey: 'AutoEvergreenHashV8_3_UltraKMPTTF',
     labelAttr: 'data-aed-label',
     dateSpanClass: 'aed-date-span',
     checkLength: 5000,
@@ -81,317 +81,160 @@ if(oldHash && oldHash == currentHash){
     h1Selectors: ['h1', '.entry-title'],
     authorSelector: '.post-author .fn, .author vcard, .byline',
     intervals: { EVERGREEN: 12, SEMI_EVERGREEN: 6, NON_EVERGREEN: 3 },
-    evergreenKeywords: [
-      "panduan", "tutorial", "cara", "manfaat", "pengertian", "definisi", "apa itu",
-      "tips", "trik", "panduan lengkap", "langkah-langkah", "best practices",
-      "praktik terbaik", "strategi", "studi kasus", "contoh", "referensi",
-      "panduan SEO", "petunjuk", "instruksi", "tutorial video", "tutorial lengkap",
-      "tips lanjutan", "cara efektif", "solusi", "teknik", "panduan praktis",
-      "panduan langkah demi langkah"
-    ],
-    semiKeywords: [
-      "harga", "lokasi", "layanan", "pengiriman", "wilayah", "area", "order", "pesan",
-      "update harga", "harga terbaru", "pesan sekarang", "wilayah pengiriman", "biaya",
-      "tarif", "estimasi", "ongkir", "jasa", "servis", "opsi pengiriman", "promo harga",
-      "diskon terbatas", "info harga", "lokasi terdekat", "layanan cepat", "order online",
-      "penawaran khusus", "estimasi biaya", "biaya tambahan"
-    ],
-    nonEvergreenKeywords: [
-      "promo", "diskon", "event", "penawaran", "perdana", "periode", "terbaru", "update",
-      "spesial", "promo akhir tahun", "penawaran terbatas", "2020", "2021", "2022",
-      "2023", "2024", "2025", "2026", "2027", "2028", "hot deal", "penawaran musiman",
-      "flash sale", "limited time", "waktu terbatas", "akhir tahun", "penjualan khusus",
-      "promosi musiman", "diskon besar", "khusus pelanggan", "kampanye", "promo online"
-    ],
+    evergreenKeywords: ["panduan","tutorial","cara","manfaat","pengertian","definisi","apa itu","tips","trik","panduan lengkap","langkah-langkah","praktik terbaik","strategi","studi kasus","contoh","referensi","panduan seo","petunjuk","instruksi","tutorial lengkap","solusi","teknik","panduan praktis"],
+    semiKeywords: ["harga","lokasi","layanan","pengiriman","wilayah","order","pesan","update harga","harga terbaru","pesan sekarang","biaya","tarif","estimasi","ongkir","jasa","servis","promo harga","diskon","info harga","lokasi terdekat","layanan cepat","order online","penawaran khusus","estimasi biaya"],
+    nonEvergreenKeywords: ["promo","diskon","event","penawaran","perdana","periode","terbaru","update","spesial","2020","2021","2022","2023","2024","2025","2026","2027","2028","hot deal","flash sale","limited time","akhir tahun","penjualan khusus","kampanye","promo online"],
     updateJsonLd: true
   };
 
-  // ===================== Helper functions (tetap) =====================
-  function qsMany(selectors) { for (const s of selectors) { const el = document.querySelector(s); if (el) return el; } return null; }
-  function sampleTextFrom(el) { if (!el) return ''; return (el.innerText || el.textContent || '').slice(0, CONFIG.checkLength).toLowerCase(); }
-  function normalizeUrlToken(path) { if (!path) return ''; return path.split('/').filter(Boolean).pop()?.replace(/^p\//,'').replace(/\.html$/i,'').replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,'').replace(/[-_]/g,' ').trim().toLowerCase() || ''; }
-  function containsAny(source, arr) { if (!source || !arr || !arr.length) return false; return arr.some(k => source.indexOf(k) !== -1); }
-  function findYearInText(s) { if (!s) return null; const m = s.match(/\b(20\d{2})\b/); return m ? m[1] : null; }
-  function makeHash(str) { try { return btoa(unescape(encodeURIComponent(str))); } catch (e) { let h=0; for (let i=0;i<str.length;i++) h=(h<<5)-h+str.charCodeAt(i)|0; return String(h); } }
-  function formatDate(d) { if (!d) return null; const opt={day:'numeric',month:'long',year:'numeric'}; return d.toLocaleDateString(CONFIG.locale,opt); }
-  function addMonths(date, months) { const d=new Date(date.valueOf()); d.setMonth(d.getMonth()+months); return d; }
+  // ===================== Helper =====================
+  function qsMany(sel){for(const s of sel){const e=document.querySelector(s);if(e)return e;}return null;}
+  const sampleTextFrom=e=>e?(e.innerText||e.textContent||'').slice(0,CONFIG.checkLength).toLowerCase():'';
+  const normalizeUrlToken=p=>p? p.split('/').filter(Boolean).pop()?.replace(/^p\//,'').replace(/\.html$/i,'').replace(/\b(0?[1-9]|1[0-2]|20\d{2})\b/g,'').replace(/[-_]/g,' ').trim().toLowerCase()||'' : '';
+  const containsAny=(s,a)=>!!a?.length && a.some(k=>s.includes(k));
+  const findYearInText=s=>s?.match(/\b(20\d{2})\b/)?.[1]||null;
+  const makeHash=s=>{try{return btoa(unescape(encodeURIComponent(s)));}catch{let h=0;for(let i=0;i<s.length;i++)h=(h<<5)-h+s.charCodeAt(i)|0;return String(h);}};
+  const formatDate=d=>d?d.toLocaleDateString(CONFIG.locale,{day:'numeric',month:'long',year:'numeric'}):null;
+  const addMonths=(d,m)=>{const x=new Date(d);x.setMonth(x.getMonth()+m);return x;};
+  const tokenize=s=>s?.toLowerCase().replace(/[^\p{L}\p{N}\s\-]/gu,' ').replace(/\s+/g,' ').trim().split(' ').filter(Boolean)||[];
+  const unique=a=>Array.from(new Set(a));
 
-  // ===================== New: H1 <-> URL Scoring Utilities =====================
-  function tokenize(s) {
-    if (!s) return [];
-    return s
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s\-]/gu, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .split(' ')
-      .filter(Boolean);
+  // ===================== H1 ↔ URL Scoring =====================
+  function computeH1UrlScore(h1,url){
+    const u=unique(tokenize(url)), h=unique(tokenize(h1));
+    if(!u.length) return 100;
+    const m=u.filter(t=>h.includes(t)), ratio=m.length/u.length;
+    const bonus=h1.toLowerCase().startsWith(u[0]||'')?0.15:0;
+    return Math.round(Math.min(1,ratio+bonus)*100);
+  }
+  function scoreToLabel(s,t){if(s>=90)return"Sangat Baik";if(s>=75)return"Baik";if(s>=50)return t==="EVERGREEN"?"Perlu Perbaikan":"Cukup";return"Perlu Perbaikan";}
+  function makeH1Suggestion(h1,url){
+    const u=unique(tokenize(url));if(!u.length)return null;
+    const s=(u.join(' ')+' '+h1).replace(/\s+/g,' ').trim();
+    return u.every(t=>h1.toLowerCase().includes(t))?null:s;
   }
 
-  function unique(arr) {
-    return Array.from(new Set(arr));
-  }
+  // ===================== CORE =====================
+  try{
+    const elC=qsMany(CONFIG.contentSelectors)||document.body;
+    const elH1=qsMany(CONFIG.h1Selectors)||document.querySelector('h1');
+    const h1R=elH1?elH1.innerText.trim():'(no h1)';
+    const h1=h1R.toLowerCase();
+    const txt=sampleTextFrom(elC);
+    const urlRaw=normalizeUrlToken(window.location.pathname);
+    const isPillar=window.location.pathname.includes('/p/');
+    const old=localStorage.getItem(CONFIG.storageKey);
+    const hash=makeHash(h1+'\n'+txt+'\n'+urlRaw);
 
-  // compute score 0..100
-  // approach: overlap ratio between url tokens and h1 tokens (weighted), plus bonus if first token of URL is at start of H1
-  function computeH1UrlScore(h1, urlTokenStr) {
-    const urlTokens = unique(tokenize(urlTokenStr));
-    const h1Tokens = unique(tokenize(h1));
-    if (!urlTokens.length) return 100; // if url has no tokens, treat as perfect
-    const matched = urlTokens.filter(t => h1Tokens.includes(t));
-    const overlapRatio = matched.length / urlTokens.length; // 0..1
-    // bonus: if h1 starts with first url token
-    const firstUrlToken = urlTokens[0] || '';
-    const startsWithBonus = h1.trim().toLowerCase().startsWith(firstUrlToken) ? 0.15 : 0;
-    const score = Math.round(Math.min(1, overlapRatio + startsWithBonus) * 100);
-    return score;
-  }
-
-  function scoreToLabel(score, type) {
-    if (score >= 90) return 'Sangat Baik';
-    if (score >= 75) return 'Baik';
-    if (score >= 50) return type === 'EVERGREEN' ? 'Perlu Perbaikan' : 'Cukup';
-    return 'Perlu Perbaikan';
-  }
-
-  function makeH1Suggestion(h1, urlRaw) {
-    const urlTokens = unique(tokenize(urlRaw));
-    if (!urlTokens.length) return null;
-    // Try to build suggested H1 by ensuring url tokens appear in front, then original h1
-    const suggested = (urlTokens.join(' ') + ' ' + h1).replace(/\s+/g, ' ').trim();
-    // Return a concise suggestion: if includes already, return null
-    const h1Low = (h1 || '').toLowerCase();
-    const containsAll = urlTokens.every(t => h1Low.includes(t));
-    return containsAll ? null : suggested;
-  }
-
-  // ===================== Main try-catch (core logic) =====================
-  try {
-    // ===== existing detection code (unchanged logic) =====
-    const elContent = qsMany(CONFIG.contentSelectors) || document.body;
-    const elH1 = qsMany(CONFIG.h1Selectors) || document.querySelector('h1');
-    const h1TextRaw = elH1 ? elH1.innerText.trim() : '(no h1)';
-    const h1Text = h1TextRaw.toLowerCase();
-    const textContent = sampleTextFrom(elContent);
-    const urlRaw = normalizeUrlToken(window.location.pathname);
-    const isPillar = window.location.pathname.includes('/p/');
-
-    const oldHash = localStorage.getItem(CONFIG.storageKey);
-    const currentHash = makeHash(h1Text + '\n' + textContent + '\n' + urlRaw);
-
-    // ===== Deteksi Tipe Konten =====
+    // ==== Tipe Konten ====
     let type;
-    if (isPillar) type='EVERGREEN';
-    else if (containsAny(h1Text + ' ' + textContent, CONFIG.nonEvergreenKeywords) || findYearInText(h1Text + ' ' + textContent)) type='NON_EVERGREEN';
-    else if (containsAny(h1Text + ' ' + textContent + ' ' + urlRaw, CONFIG.semiKeywords)) type='SEMI_EVERGREEN';
-    else if (containsAny(h1Text + ' ' + textContent, CONFIG.evergreenKeywords)) type='EVERGREEN';
+    if(isPillar) type='EVERGREEN';
+    else if(containsAny(h1+txt,CONFIG.nonEvergreenKeywords)||findYearInText(h1+txt)) type='NON_EVERGREEN';
+    else if(containsAny(h1+txt+urlRaw,CONFIG.semiKeywords)) type='SEMI_EVERGREEN';
+    else if(containsAny(h1+txt,CONFIG.evergreenKeywords)) type='EVERGREEN';
     else type='SEMI_EVERGREEN';
 
-    // Auto set data-force for evergreen (kept from earlier)
-    if (type === 'EVERGREEN' && !document.body.hasAttribute('data-force')) {
-      try { document.body.setAttribute('data-force', 'evergreen'); console.log('🌿 data-force="evergreen" applied'); } catch(e) {}
-    }
+    if(type==='EVERGREEN'&&!document.body.hasAttribute('data-force')) document.body.setAttribute('data-force','evergreen');
 
-    // ===== Smart nextUpdate & dateModified (unchanged) =====
-    const nextUpdate = new Date();
-    let dateModified = null;
-    const intervalMonths = CONFIG.intervals[type==='EVERGREEN'?'EVERGREEN':(type==='SEMI_EVERGREEN'?'SEMI_EVERGREEN':'NON_EVERGREEN')];
-    if (!oldHash || oldHash!==currentHash) {
-      nextUpdate.setMonth(nextUpdate.getMonth()+intervalMonths);
-      dateModified = new Date();
-      try { localStorage.setItem(CONFIG.storageKey,currentHash); localStorage.setItem(CONFIG.storageKey+'_date',dateModified.toISOString()); } catch(e){}
-    } else {
-      const prevDateIso = localStorage.getItem(CONFIG.storageKey+'_date');
-      if(prevDateIso){ const prev=new Date(prevDateIso); nextUpdate.setMonth(prev.getMonth()+intervalMonths); }
-      else nextUpdate.setMonth(nextUpdate.getMonth()+intervalMonths);
-    }
-    const nextUpdateStr=formatDate(nextUpdate);
-    const dateModifiedStr=dateModified?formatDate(dateModified):null;
+    // ==== Tanggal ====
+    const next=new Date();let mod=null;
+    const m=CONFIG.intervals[type==='EVERGREEN'?'EVERGREEN':type==='SEMI_EVERGREEN'?'SEMI_EVERGREEN':'NON_EVERGREEN'];
+    if(!old||old!==hash){next.setMonth(next.getMonth()+m);mod=new Date();localStorage.setItem(CONFIG.storageKey,hash);localStorage.setItem(CONFIG.storageKey+'_date',mod.toISOString());}
+    else{const prev=localStorage.getItem(CONFIG.storageKey+'_date');if(prev){const d=new Date(prev);next.setMonth(d.getMonth()+m);}else next.setMonth(next.getMonth()+m);}
+    const nextStr=formatDate(next), modStr=mod?formatDate(mod):null;
 
-    // ===== Label H1 (existing) =====
+    // ==== Label H1 ====
     if(elH1){
-      const existingLabel=elH1.parentNode.querySelector('['+CONFIG.labelAttr+']');
-      if(existingLabel) existingLabel.remove();
-      const label=document.createElement('div');
-      label.setAttribute(CONFIG.labelAttr,'true');
-      label.setAttribute('data-nosnippet','true');
-      label.style.fontSize='0.95em';
-      label.style.color='#222';
-      label.style.marginTop='6px';
-      label.style.marginBottom='12px';
-      label.style.padding='6px 12px';
-      label.style.background='#f9f9f9';
-      label.style.border='1px solid #ccc';
-      label.style.borderRadius='5px';
-      label.innerHTML = '<b>' + type + (isPillar? ' (Pillar)' : '') + '</b> — pembaruan berikutnya: <b>' + nextUpdateStr + '</b>';
-      elH1.insertAdjacentElement('afterend',label);
+      elH1.parentNode.querySelector('['+CONFIG.labelAttr+']')?.remove();
+      const lb=document.createElement('div');
+      lb.setAttribute(CONFIG.labelAttr,'true');
+      lb.setAttribute('data-nosnippet','true');
+      lb.style.cssText='font-size:.95em;color:#222;margin-top:6px;margin-bottom:12px;padding:6px 12px;background:#f9f9f9;border:1px solid #ccc;border-radius:5px;';
+      lb.innerHTML='<b>'+type+(isPillar?' (Pillar)':'')+'</b> — pembaruan berikutnya: <b>'+nextStr+'</b>';
+      elH1.insertAdjacentElement('afterend',lb);
     }
 
-    // ===== New: H1 <-> URL Scoring & Label tambahan (non-snippet) =====
-    // compute score and suggestion
-    const h1Score = computeH1UrlScore(h1TextRaw, urlRaw); // 0..100
-    const scoreLabel = scoreToLabel(h1Score, type);
-    const h1Suggestion = makeH1Suggestion(h1TextRaw, urlRaw); // may be null
+    // ==== H1 Score + Saran ====
+    const score=computeH1UrlScore(h1R,urlRaw), sLbl=scoreToLabel(score,type), sSug=makeH1Suggestion(h1R,urlRaw);
+    const oldScore=elH1.parentNode.querySelector('[data-aed-h1score]');oldScore?.remove();
+    const sEl=document.createElement('div');
+    sEl.setAttribute('data-aed-h1score','true');sEl.setAttribute('data-nosnippet','true');
+    sEl.style.cssText='font-size:.9em;color:#0b644b;margin-top:4px;margin-bottom:10px;padding:6px 10px;background:#f0fff7;border:1px solid #cfeee0;border-radius:6px;';
+    sEl.innerHTML='<b>Skor Kecocokan H1 ↔ URL: '+score+'/100</b> — '+sLbl+
+      '<br><small>Rekomendasi tingkat: '+type+'</small>'+
+      (sSug?'<div style="margin-top:6px;color:#444;"><b>Rekomendasi H1:</b> '+sSug+'</div>':'<div style="margin-top:6px;color:#666;">H1 sudah sesuai dengan kata kunci URL.</div>');
+    elH1.insertAdjacentElement('afterend',sEl);
 
-    // attach score label under H1 (as separate element, non-snippet)
-    try {
-      const scoreExisting = elH1.parentNode.querySelector('[data-aed-h1score]');
-      if (scoreExisting) scoreExisting.remove();
-
-      const scoreEl = document.createElement('div');
-      scoreEl.setAttribute('data-aed-h1score', 'true');
-      scoreEl.setAttribute('data-nosnippet', 'true');
-      scoreEl.style.fontSize = '0.9em';
-      scoreEl.style.color = '#0b644b';
-      scoreEl.style.marginTop = '4px';
-      scoreEl.style.marginBottom = '10px';
-      scoreEl.style.padding = '6px 10px';
-      scoreEl.style.background = '#f0fff7';
-      scoreEl.style.border = '1px solid #cfeee0';
-      scoreEl.style.borderRadius = '6px';
-
-      // build html content
-      let scoreHtml = '<b>Skor Kecocokan H1 ↔ URL: ' + h1Score + '/100</b> — ' + scoreLabel + '';
-      scoreHtml += '<br><small>Rekomendasi tingkat: ' + (type || 'N/A') + '</small>';
-      if (h1Suggestion) {
-        // provide suggestion only (non-snippet) and a short actionable note
-        scoreHtml += '<div style="margin-top:6px;color:#444;"><b>Rekomendasi H1:</b> <span style="font-weight:600;">' + h1Suggestion + '</span></div>';
-      } else {
-        scoreHtml += '<div style="margin-top:6px;color:#666;">H1 sudah sesuai dengan kata kunci URL.</div>';
-      }
-
-      scoreEl.innerHTML = scoreHtml;
-      elH1.insertAdjacentElement('afterend', scoreEl);
-    } catch (e) {
-      console.warn('AED: gagal sisipkan H1 score label', e);
-    }
-
-    // ===== Audit H1 untuk Pillar (existing warning) =====
-    const urlKeywords = urlRaw.split(' ').filter(Boolean);
-    const h1Lower = h1Text.toLowerCase();
-    const allKeywordsPresent = urlKeywords.every((k)=>h1Lower.includes(k));
-    const recommendedH1 = allKeywordsPresent ? h1Text : urlKeywords.map((w)=>w[0].toUpperCase()+w.slice(1)).join(' ');
-    if(isPillar && !allKeywordsPresent){
-      console.warn('⚠️ AED Ultra KMPTTF Pillar H1 Audit: H1 tidak sesuai keyword URL', recommendedH1);
-    }
-
-    // ===== Rekomendasi Konten Otomatis (ALL TYPE) (existing logic) =====
-    let recommendedContent = '';
-    const pEls = Array.from(elContent.querySelectorAll('p,h2,h3')).slice(0,5);
+    // ==== Rekomendasi konten ====
+    const ps=[...elC.querySelectorAll('p,h2,h3')].slice(0,5);
+    const urlK=urlRaw.split(' ').filter(Boolean);
+    let rec='';
     if(type==='EVERGREEN'){
-      recommendedContent = pEls.map(el=>el.innerText.trim()).filter(Boolean).join(' | ');
-      if(!containsAny(recommendedContent, urlKeywords)){
-        recommendedContent = urlKeywords.map(w=>w[0].toUpperCase()+w.slice(1)).join(' ') + ' – Tambahkan kata kunci utama di paragraf awal dan subjudul.';
-      }
-    } else if(type==='SEMI_EVERGREEN'){
-      recommendedContent = pEls.map(el=>el.innerText.trim()).filter(Boolean).slice(0,1).join(' ');
-      if(!containsAny(recommendedContent, urlKeywords)){
-        recommendedContent = urlKeywords.map(w=>w[0].toUpperCase()+w.slice(1)).join(' ') + ' – Highlight kata kunci utama di paragraf awal/subheading.';
-      }
-    } else { // NON_EVERGREEN
-      recommendedContent = 'Periksa update harga, promo, atau informasi terbaru di konten ini.';
+      rec=ps.map(e=>e.innerText.trim()).filter(Boolean).join(' | ');
+      if(!containsAny(rec,urlK)) rec=urlK.map(w=>w[0].toUpperCase()+w.slice(1)).join(' ')+' – Tambahkan kata kunci utama di paragraf awal & subjudul.';
+    }else if(type==='SEMI_EVERGREEN'){
+      rec=ps.map(e=>e.innerText.trim()).filter(Boolean)[0]||'';
+      if(!containsAny(rec,urlK)) rec=urlK.map(w=>w[0].toUpperCase()+w.slice(1)).join(' ')+' – Highlight keyword di paragraf awal/subheading.';
+    }else rec='Periksa update harga, promo, atau informasi terbaru.';
+
+    // ==== Author Date ====
+    const aEl=document.querySelector(CONFIG.authorSelector);
+    if(aEl&&modStr){
+      aEl.querySelector('.'+CONFIG.dateSpanClass)?.remove();
+      const d=document.createElement('span');
+      d.className=CONFIG.dateSpanClass;
+      d.textContent=' · Diperbarui: '+modStr;
+      d.style.cssText='font-size:.85em;color:#555;margin-left:6px;';
+      d.setAttribute('data-nosnippet','true');
+      aEl.appendChild(d);
     }
 
-    // ===== Author & dateModified (existing) =====
-    const authorEl=document.querySelector(CONFIG.authorSelector);
-    if(authorEl && dateModifiedStr){
-      const oldDateSpan=authorEl.querySelector('.'+CONFIG.dateSpanClass);
-      if(oldDateSpan) oldDateSpan.remove();
-      const dateEl=document.createElement('span');
-      dateEl.className=CONFIG.dateSpanClass;
-      dateEl.textContent = ' · Diperbarui: ' + dateModifiedStr;
-      dateEl.style.fontSize='0.85em';
-      dateEl.style.color='#555';
-      dateEl.style.marginLeft='6px';
-      dateEl.setAttribute('data-nosnippet','true');
-      authorEl.appendChild(dateEl);
-    }
-
-    // ===== Update JSON-LD (existing) =====
+    // ==== JSON-LD Update ====
     if(CONFIG.updateJsonLd){
-      const ldEls=Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-      ldEls.forEach(el=>{
+      [...document.querySelectorAll('script[type="application/ld+json"]')].forEach(el=>{
         try{
-          if(!el.innerText.trim()) return;
+          if(!el.innerText.trim())return;
           const data=JSON.parse(el.innerText);
-          const nodes=Array.isArray(data)?data:[data];
-          let mutated=false;
-          nodes.forEach(node=>{
-            if(node['@type'] && ['product','offer','service'].some(t=>node['@type'].toLowerCase().includes(t))){
-              if(dateModified) { node.dateModified=new Date().toISOString(); mutated=true; }
-              if(node.offers && node.offers.price) { node.offers.priceValidUntil=addMonths(new Date(), intervalMonths).toISOString(); mutated=true; }
+          const arr=Array.isArray(data)?data:[data];
+          let change=false;
+          arr.forEach(n=>{
+            if(n['@type']&&['product','offer','service'].some(t=>n['@type'].toLowerCase().includes(t))){
+              if(mod){n.dateModified=new Date().toISOString();change=true;}
+              if(n.offers?.price){n.offers.priceValidUntil=addMonths(new Date(),m).toISOString();change=true;}
             }
           });
-          if(mutated) el.innerText=JSON.stringify(Array.isArray(data)?nodes:nodes[0],null,2);
-        }catch(e){ console.warn('AED JSON-LD update error',e);}
+          if(change) el.innerText=JSON.stringify(arr.length>1?arr:arr[0],null,2);
+        }catch(e){console.warn('AED JSON-LD err',e);}
       });
     }
 
-    // ===== Dashboard & UltraStructure (existing) but add score column & recommendation =====
-    const ultraStructure = {
-      EVERGREEN: [
-        "Pendahuluan / Definisi", "Sejarah & Latar Belakang", "Manfaat & Kegunaan", "Langkah / Tutorial Lengkap", "Tips & Trik Praktis", "Studi Kasus / Contoh Nyata", "FAQ / Pertanyaan Umum", "Kesalahan Umum & Cara Menghindari", "Referensi / Sumber Terpercaya", "Alat / Software / Resource Pendukung", "Checklist / Ringkasan Langkah", "Best Practices / Praktik Terbaik", "Panduan Lengkap vs Ringkasan Cepat", "Tips Lanjutan / Strategi Lanjut", "Alternatif / Opsi Lain", "Infografis / Visual Pendukung", "Tips SEO / Optimasi Konten", "Video / Tutorial Multimedia", "Kesimpulan & Ringkasan", "Call to Action / Next Steps / Ajakan Tindakan / Langkah Selanjutnya"
-      ],
-      SEMI: [
-        "Ringkasan & Tren Terkini", "Langkah / Cara", "Perbandingan / Analisis", "Tips Praktis / Rekomendasi", "Kelebihan & Kekurangan", "FAQ Spesifik Topik", "Referensi / Link Terkait", "Saran Lanjutan / Langkah Selanjutnya", "Update Harga / Tarif / Biaya", "Update Wilayah / Lokasi", "Panduan Singkat vs Detail", "Tips Implementasi Cepat", "Studi Kasus Singkat", "Checklist / Ringkasan Praktis", "Visualisasi / Diagram", "Alternatif Produk / Layanan", "Best Practices & Strategi / Praktik Terbaik & Strategi", "Peringatan / Notifikasi Pembaruan", "Testimoni / Review Pengguna", "Ajakan Tindakan / Kontak"
-      ],
-      NON: [
-        "Harga & Promo Terkini", "Ketersediaan & Wilayah", "Periode & Update", "Kontak & Cara Order", "Ketentuan / Syarat & Ketentuan", "Biaya / Tarif / Ongkir", "Promo / Diskon Spesial", "FAQ Transaksi / Order", "Cara Pembayaran / Metode", "Garansi / Jaminan Produk", "Stok / Persediaan", "Update Produk / Layanan", "Link Pemesanan Cepat", "Referensi / Info Tambahan", "Instruksi Penggunaan / Setup", "Testimoni / Review Pelanggan", "Tips Pemesanan Aman", "Alert / Notifikasi Update / Notifikasi Promo / Event", "Visual Produk / Spanduk", "Call to Action / Ajakan Tindakan / Pesan Sekarang"
-      ]
-    }[type.split("-")[0]];
-
-    // Build dashboard (existing) but include score + H1 rec
-    const dash = document.createElement('div');
-    dash.style.maxWidth='1200px';
-    dash.style.margin='30px auto';
-    dash.style.padding='15px';
-    dash.style.background='#f0f8ff';
-    dash.style.borderTop='3px solid #0078ff';
-    dash.style.fontFamily='Arial, sans-serif';
+    // ==== Dashboard ====
+    const dash=document.createElement('div');
+    dash.style.cssText='max-width:1200px;margin:30px auto;padding:15px;background:#f0f8ff;border-top:3px solid #0078ff;font-family:Arial,sans-serif;';
     dash.setAttribute('data-nosnippet','true');
+    const h3=document.createElement('h3');h3.innerText="📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman";dash.appendChild(h3);
 
-    const h3=document.createElement('h3'); h3.innerText="📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman"; dash.appendChild(h3);
+    const btns=document.createElement('div');btns.style.textAlign='center';btns.style.marginBottom='10px';
+    const mkB=(t,bg)=>{const x=document.createElement('button');x.textContent=t;x.style.background=bg;x.style.padding='6px 12px';x.style.margin='3px';x.style.border='none';x.style.borderRadius='4px';x.style.cursor='pointer';x.setAttribute('data-nosnippet','true');return x;};
+    const koreksi=mkB("⚙️ Koreksi & Preview","#ffeedd"), show=mkB("📊 Tampilkan Data Table","#d1e7dd"), rep=mkB("📥 Download Laporan","#f3f3f3");
+    btns.append(koreksi,show,rep);dash.appendChild(btns);
 
-    const btnContainer=document.createElement('div'); btnContainer.style.textAlign='center'; btnContainer.style.marginBottom='10px';
-    const createBtn=(text,bg)=>{ const b=document.createElement('button'); b.textContent=text; b.style.background=bg; b.style.color='#000'; b.style.padding='6px 12px'; b.style.margin='3px'; b.style.borderRadius='4px'; b.style.cursor='pointer'; b.style.border='none'; b.style.fontSize='0.9em'; b.setAttribute('data-nosnippet','true'); return b; };
-    const btnKoreksi=createBtn("⚙️ Koreksi & Preview","#ffeedd"); const btnShowTable=createBtn("📊 Tampilkan Data Table","#d1e7dd"); const btnReport=createBtn("📥 Download Laporan","#f3f3f3");
-    btnContainer.append(btnKoreksi,btnShowTable,btnReport);
-    dash.appendChild(btnContainer);
+    const tbl=document.createElement('div');tbl.style.overflowX='auto';tbl.style.display='none';
+    tbl.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:900px;font-size:.9em;">'+
+    '<thead><tr><th>Halaman</th><th>Tipe</th><th>H1</th><th>Skor H1</th><th>Rekom H1</th><th>Rekom Konten</th><th>Next Update</th></tr></thead>'+
+    '<tbody><tr><td>'+document.title+'</td><td>'+type+'</td><td>'+h1+'</td><td>'+score+'/100</td><td>'+(sSug||'—')+'</td><td>'+rec+'</td><td>'+nextStr+'</td></tr></tbody></table>';
+    dash.appendChild(tbl);document.body.appendChild(dash);
 
-    const tableWrap=document.createElement('div'); tableWrap.style.overflowX='auto'; tableWrap.style.display='none';
-    const tableHtml = '<table style="width:100%;border-collapse:collapse;min-width:900px;font-size:0.9em;">' +
-      '<thead style="position:sticky;top:0;background:#dff0ff;z-index:2;"><tr>' +
-      '<th>Halaman</th><th>Tipe</th><th>H1</th><th>Skor H1</th><th>Rekom H1</th><th>Rekom Konten</th><th>Next Update</th>' +
-      '</tr></thead>' +
-      '<tbody>' +
-      '<tr>' +
-      '<td>' + document.title + '</td>' +
-      '<td>' + type + (isPillar? ' (Pillar)' : '') + '</td>' +
-      '<td>' + (h1Text || '(no h1)') + '</td>' +
-      '<td>' + h1Score + '/100</td>' +
-      '<td>' + (h1Suggestion? h1Suggestion : '—') + '</td>' +
-      '<td>' + (recommendedContent || '—') + '</td>' +
-      '<td>' + nextUpdateStr + '</td>' +
-      '</tr>' +
-      '</tbody></table>';
-    tableWrap.innerHTML = tableHtml;
-    dash.appendChild(tableWrap);
-    document.body.appendChild(dash);
+    show.onclick=()=>tbl.style.display=tbl.style.display==='none'?'block':'none';
+    koreksi.onclick=()=>alert('🔍 Koreksi & Preview\nSkor H1: '+score+'/100\nRekom H1: '+(sSug||'OK')+'\nRekom Konten: '+rec+'\nNext Update: '+nextStr);
+    rep.onclick=()=>{const rpt='AED Ultra KMPTTF REPORT — '+document.title+'\nTipe: '+type+'\nH1: '+h1+'\nSkor: '+score+'/100\nRekom H1: '+(sSug||'-')+'\nRekom Konten: '+rec+'\nNext Update: '+nextStr+'\nURL: '+location.href;const blob=new Blob([rpt],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='AED_Report_'+document.title.replace(/\s+/g,'_')+'.txt';a.click();};
 
-    btnShowTable.onclick=()=>{tableWrap.style.display=tableWrap.style.display==='none'?'block':'none';};
-    btnKoreksi.onclick=()=>{ alert('🔍 Koreksi & Preview\n\nSkor H1: ' + h1Score + '/100\n\nRekomendasi H1:\n' + (h1Suggestion || 'H1 sudah sesuai') + '\n\nRekomendasi Konten:\n' + recommendedContent + '\n\nStruktur ideal (' + type + '):\n' + ultraStructure.join(' → ') + '\n\nNext Update: ' + nextUpdateStr); };
-    btnReport.onclick=()=>{ const report = 'AED Ultra KMPTTF REPORT — ' + document.title + '\n\nTipe Konten: ' + type + (isPillar? ' (Pillar)' : '') + '\nH1 Saat Ini: ' + h1Text + '\nSkor H1: ' + h1Score + '/100\nRekomendasi H1: ' + (h1Suggestion || '—') + '\nRekomendasi Konten: ' + recommendedContent + (dateModifiedStr? '\nTanggal Diperbarui: ' + dateModifiedStr : '') + '\nNext Update: ' + nextUpdateStr + '\n\nStruktur Ideal:\n' + ultraStructure.join('\n') + '\n\nURL: ' + location.href; const blob=new Blob([report],{type:'text/plain'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download='AED_Report_' + document.title.replace(/\s+/g,'_') + '.txt'; link.click(); };
+    const st=document.createElement('style');
+    st.innerHTML='@media(max-width:768px){table th,td{padding:4px;font-size:.8em;}table{min-width:600px;}}table th,td{border:1px solid #ccc;padding:6px;text-align:left;}thead{background:#dff0ff;position:sticky;top:0;}';
+    document.head.appendChild(st);
 
-    const style=document.createElement('style');
-    style.innerHTML = '@media(max-width:768px){table th,table td{padding:4px;font-size:0.8em;} table{min-width:600px;} } thead th{position:sticky;top:0;background:#dff0ff;} table th,td{border:1px solid #ccc;padding:6px;text-align:left;}';
-    document.head.appendChild(style);
-
-    console.log("✅ AED v8.3 Ultra KMPTTF aktif — H1 Audit + Scoring ditambahkan ke Dashboard & label.");
-
-  } catch (e) {
-    console.error("❌ AED v8.3 Ultra KMPTTF Error:", e);
-  }
-
+    console.log("✅ AED v8.3 Ultra KMPTTF aktif – Audit H1 + Dashboard SEO Lengkap");
+  }catch(e){console.error("❌ AED v8.3 Error:",e);}
 })(window, document);
 
 /**
