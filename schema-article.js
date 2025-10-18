@@ -344,7 +344,8 @@ function detectEvergreen(title, text, url) {
     const score=computeH1UrlScore(h1R,urlRaw);
     const sSug=urlRaw&&!h1R.toLowerCase().includes(urlRaw.split(' ')[0])?urlRaw+' '+h1R:null;
     const sLbl=score>=90?"Sangat Baik":score>=75?"Baik":score>=50?"Cukup":"Perlu Perbaikan";
-
+//label score di bawah h1
+/*
     const sEl=document.createElement('div');
     sEl.setAttribute('data-aed-h1score','true');
     sEl.setAttribute('data-nosnippet','true');
@@ -352,7 +353,7 @@ function detectEvergreen(title, text, url) {
     sEl.innerHTML='<b>Skor H1 ↔ URL: '+score+'/100</b> — '+sLbl+
       (sSug?'<div style="margin-top:6px;color:#444;"><b>Rekomendasi H1:</b> '+sSug+'</div>':'<div style="margin-top:6px;color:#666;">H1 sudah sesuai.</div>');
     elH1.insertAdjacentElement('afterend',sEl);
-
+*/
     // === Author Date ===
 const aEl = document.querySelector(CONFIG.authorSelector);
 
