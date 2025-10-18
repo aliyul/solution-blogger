@@ -149,7 +149,23 @@ if(oldHash && oldHash == currentHash){
     let type=detectEvergreen(h1R,txt,urlRaw);
     if(isPillar)type='EVERGREEN';
 
-  
+    // Jika URL termasuk /p/, otomatis Evergreen (pillar page)
+    if (isPillar) {
+      type = 'EVERGREEN';
+    } else {
+      // ✅ Cek kecocokan H1 dengan URL bersih
+      const h1Clean = h1R.toLowerCase().trim();
+      const urlClean = urlRaw.toLowerCase().trim();
+    
+      // Evergreen hanya jika H1 mengandung token URL bersih
+      const urlTokens = urlClean.split(' ').filter(Boolean);
+      const h1MatchesUrl = urlTokens.every(tok => h1Clean.includes(tok));
+    
+      if (!h1MatchesUrl && type === 'EVERGREEN') {
+        // Jika H1 tidak sesuai URL, downgrade ke Semi-Evergreen
+        type = 'SEMI_EVERGREEN';
+      }
+    }
     // === Perhitungan tanggal update ===
     const next=new Date();let mod=null;
     const m=CONFIG.intervals[type];
