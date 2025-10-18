@@ -217,40 +217,58 @@ const negKuat = [
 */
 
 //DETEKKSI TANPA DAFTARR KKEYWORD
-function clean(str) {
+function cleanDEG(str) {
   return (str || '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
-function tokenize(str) {
-  return clean(str).split(/[\s\-_]/).filter(Boolean);
+function tokenizeDEG(str) {
+  return cleanDEG(str).split(/[\s\-_]/).filter(Boolean);
 }
 
 function detectEvergreen(title, text, url) {
+  // ===================== UTILS =====================
+  const cleanText = str => (str||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
+  const tokenizeDEG = str => cleanText(str).split(' ').filter(Boolean);
+  
+  const t = cleanText(title + ' ' + text);
+  const contentTokens = tokenizeDEG(t);
+  const urlTokens = tokenizeDEG(url.split('/').pop()?.replace(/\.html$/i,'') || '');
+  
+  // ===================== SCORE =====================
   let score = 0;
-  const content = clean(title + " " + text);
 
-  // ===== Struktur konten =====
-  const paraCount = (text.match(/\n/g) || []).length;
-  if (content.length > 1500) score += 2;  // konten panjang = mendalam
-  if (paraCount > 8) score += 1;         // banyak paragraf = relevan
-  if (paraCount < 3) score -= 1;         // sedikit paragraf = semi/non
+  // 1️⃣ Relevansi konten ↔ URL
+  let matchCount = 0;
+  for(const ut of urlTokens){
+    if(contentTokens.includes(ut)) matchCount++;
+  }
+  score += Math.min(matchCount, 3); // Maks +3
 
-  // ===== Kecocokan H1 ↔ URL =====
-  const cleanUrl = url.split('/').filter(Boolean).pop()?.replace(/\.html$/i,'') || '';
-  const urlTokens = tokenize(cleanUrl);
-  const h1Tokens = tokenize(title);
-  const matchCount = urlTokens.filter(t => h1Tokens.includes(t)).length;
-  const ratio = urlTokens.length ? matchCount / urlTokens.length : 0;
-  if (ratio > 0.6) score += 2;           // H1 sesuai URL
-  else if (ratio > 0.3) score += 1;      // sebagian sesuai
+  // 2️⃣ Panjang konten mendukung
+  if(t.length > 1500) score += 2; // konten detail
 
-  // ===== Pola URL =====
-  if(url.includes("/p/")) score += 1;     // pillar page
-  if(/\d{4}\/\d{2}/.test(url)) score -= 1; // tanggal di URL = temporal
-  if(url.includes("harga") || url.includes("produk") || url.includes("beton")) score += 1; // URL relevan
+  // 3️⃣ Struktur paragraf
+  const paraCount = (text.match(/\n/g)||[]).length;
+  if(paraCount > 8) score += 1;
+  if(paraCount < 3) score -= 1;
 
-  // ===== Penilaian akhir =====
-  let status = "SEMI_EVERGREEN";
+  // 4️⃣ Logika URL tambahan
+  if(url.includes("/p/")) score += 2; // Pilar / halaman penting
+  // Cek apakah URL relevan dengan kata di H1 + konten
+  if(urlTokens.some(tk => contentTokens.includes(tk))) score += 1;
+  // URL bertanggal cenderung NON evergreen
+  if(/\/\d{4}\/\d{2}\//.test(url)) score -= 1;
+
+  // 5️⃣ Kata temporal / spammy di konten (negatif ringan)
+  const negLight = ["hari ini","minggu ini","bulan ini","harga per hari","stok","tersedia","pesan sekarang","diskon","promo","wa","whatsapp"];
+  if(negLight.some(kw => t.includes(kw))) score -= 1;
+
+  // 6️⃣ Kata berita / cepat basi (negatif kuat)
+  const negStrong = ["berita","event","pengumuman","laporan","seminar","acara","konferensi","kemarin","besok","bulan lalu"];
+  if(negStrong.some(kw => t.includes(kw))) score -= 2;
+
+  // ===================== STATUS =====================
+  let status = "SEMI_EVERGREEN"; // default
   if(score >= 5) status = "EVERGREEN";
   else if(score <= 0) status = "NON_EVERGREEN";
 
