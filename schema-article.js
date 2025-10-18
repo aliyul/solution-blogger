@@ -324,10 +324,6 @@ function detectEvergreen(title, text, url) {
     }
     const nextStr=formatDate(next), modStr=formatDate(mod);
 
-    if (location.pathname.startsWith('/p/')) {
-      type = 'Evergreen';
-    }
-
     // === Label H1 ===
    // ==== Label Status Evergreen ====
   if (elH1) {
