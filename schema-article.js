@@ -190,7 +190,7 @@ function detectEvergreen(title, text, url) {
       }
     
       // Jika skor deteksi ≤ 0 → Non-Evergreen
-      const score = computeScore(h1R, txt, urlRaw); // panggil fungsi skor
+      const score = computeH1UrlScore(h1R, txt, urlRaw); // panggil fungsi skor
       if (score <= 0) type = 'NON_EVERGREEN';
     }
 
