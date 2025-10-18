@@ -146,22 +146,10 @@ if(oldHash && oldHash == currentHash){
     const hash=makeHash(h1R+'\n'+txt+'\n'+urlRaw);
 
     // === Deteksi Evergreen ===
-    let type=detectEvergreen(h1R,txt,window.location.pathname);
+    let type=detectEvergreen(h1R,txt,urlRaw);
     if(isPillar)type='EVERGREEN';
 
-   // === Atur data-force di body berdasarkan status ===
-if (type === 'EVERGREEN') {
-  document.body.setAttribute('data-force', 'evergreen');
-} else if (type === 'SEMI_EVERGREEN') {
-  document.body.setAttribute('data-force', 'semi-evergreen');
-} else if (type === 'NON_EVERGREEN') {
-  document.body.setAttribute('data-force', 'non-evergreen');
-} else {
-  // fallback hapus jika status tidak dikenali
-  document.body.removeAttribute('data-force');
-}
-
-
+  
     // === Perhitungan tanggal update ===
     const next=new Date();let mod=null;
     const m=CONFIG.intervals[type];
@@ -195,14 +183,16 @@ if (type === 'EVERGREEN') {
   
     // 🧩 Tentukan isi label berdasarkan hasil deteksi
     let labelText = '';
-    if (type === 'Evergreen') {
+    if (type === 'EVERGREEN') {
       labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextStr}</b>`;
       document.body.setAttribute('data-force', 'evergreen'); // tambahkan penanda
-    } else if (type === 'Semi-Evergreen') {
+    } else if (type === 'SEMI_EVERGREEN') {
       labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
-      document.body.removeAttribute('data-force');
+      document.body.setAttribute('data-force', 'semi-evergreen'); // tambahkan penanda
+    } else if (type === 'NON_EVERGREEN') {
+      labelText = `<b>NON_EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
+      document.body.setAttribute('data-force', 'semi-evergreen'); // tambahkan penanda
     } else {
-      labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
       document.body.removeAttribute('data-force');
     }
   
