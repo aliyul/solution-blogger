@@ -146,18 +146,15 @@ if(oldHash && oldHash == currentHash){
     const hash=makeHash(h1R+'\n'+txt+'\n'+urlRaw);
 
     // === Deteksi Evergreen ===
-    let type=detectEvergreen(h1R,txt,urlRaw);
-    if(isPillar)type='EVERGREEN';
+    let type = detectEvergreen(h1R, txt, urlRaw);
 
     // Jika URL termasuk /p/, otomatis Evergreen (pillar page)
     if (isPillar) {
       type = 'EVERGREEN';
     } else {
-      // ✅ Cek kecocokan H1 dengan URL bersih
+      // Cek kecocokan H1 dengan URL bersih
       const h1Clean = h1R.toLowerCase().trim();
       const urlClean = urlRaw.toLowerCase().trim();
-    
-      // Evergreen hanya jika H1 mengandung token URL bersih
       const urlTokens = urlClean.split(' ').filter(Boolean);
       const h1MatchesUrl = urlTokens.every(tok => h1Clean.includes(tok));
     
@@ -165,7 +162,12 @@ if(oldHash && oldHash == currentHash){
         // Jika H1 tidak sesuai URL, downgrade ke Semi-Evergreen
         type = 'SEMI_EVERGREEN';
       }
+    
+      // Jika skor deteksi ≤ 0 → Non-Evergreen
+      const score = computeScore(h1R, txt, urlRaw); // panggil fungsi skor
+      if (score <= 0) type = 'NON_EVERGREEN';
     }
+
     // === Perhitungan tanggal update ===
     const next=new Date();let mod=null;
     const m=CONFIG.intervals[type];
