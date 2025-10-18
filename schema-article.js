@@ -50,12 +50,12 @@ document.addEventListener("DOMContentLoaded", function() {
   const contentText = contentEl ? contentEl.innerText : "";
 
  // ================== HASH DETECTION ==================
-/* ga perlu lagi karna udah di seting ke perubahan yg penting saja
+/*
 const currentHash = hashString(contentText);
 const oldHash = localStorage.getItem("articleHash");
 let datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content);
 let dateModified = datePublished;
-
+  
 if(oldHash && oldHash == currentHash){
   dateModified = convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content || datePublished);
   console.log("Konten tidak berubah → dateModified tetap");
@@ -64,6 +64,7 @@ if(oldHash && oldHash == currentHash){
   localStorage.setItem("articleHash", currentHash);
   console.log("Konten berubah → dateModified diupdate ke sekarang");
 }
+*/
 */
 // ================== DETEKSI TYPE KONTEN ==================
 /* ===== Auto Evergreen Detector v7.7 + Dashboard Interaktif ===== */
@@ -465,57 +466,61 @@ if (type === 'NON_EVERGREEN') {
  */
 
 /* ===== 🧩 Hybrid Evergreen Detector + Smart Selective DateModified v7.6 ===== */
+/* ============================================================
+   🧩 Smart Selective Evergreen Detector v8.1 UltraKMPTTF TrueSection+SchemaSync
+   Fitur:
+   - Deteksi perubahan konten & saran update
+   - Auto-update <meta itemprop="dateModified">
+   - Auto-sync JSON-LD Article schema (datePublished/dateModified)
+   - Auto-update Product schema PriceValidUntil jika konten harga berubah
+   ============================================================ */
 (function runEvergreenDetector() {
-  console.log("🔍 Running Smart Selective Evergreen Detector v8.0 UltraKMPTTF TrueSection Fix...");
+  console.log("🔍 Running Smart Selective Evergreen Detector v8.1 UltraKMPTTF TrueSection+SchemaSync...");
 
-  // === Inject responsive CSS ===
-  const style = document.createElement("style");
-  style.textContent = `
-  [data-nosnippet]{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-  [data-nosnippet] table{width:100%;border-collapse:collapse;min-width:700px;}
-  [data-nosnippet] th,[data-nosnippet] td{border:1px solid #ddd;padding:8px;text-align:left;vertical-align:top;}
-  [data-nosnippet] thead{position:sticky;top:0;background:#f9fcff;z-index:5;}
-  [data-nosnippet] tr:nth-child(even){background:#fafafa;}
-  .score-green{background:#d4f7d4;color:#000;font-weight:bold;}
-  .score-orange{background:#fff4d1;color:#000;font-weight:bold;}
-  .score-red{background:#ffd6d6;color:#000;font-weight:bold;}
-  @media(max-width:768px){
-    [data-nosnippet] table{min-width:600px;}
-    [data-nosnippet] td{font-size:13px;word-break:break-word;}
-    [data-nosnippet] button{width:100%;margin-top:10px;}
-  }`;
-  document.head.appendChild(style);
-
-  // === Utils ===
-  const cleanText = s => s ? s.replace(/\s+/g," ").trim() : "";
+  // === Utility ===
+  const cleanText = s => s ? s.replace(/\s+/g, " ").trim() : "";
   const hashString = s => { let h=0; for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i);h|=0;} return h; };
   const convertToWIB = iso => iso ? new Date(new Date(iso).getTime()+7*60*60*1000).toISOString().split("T")[0] : "";
 
-  // === Deteksi halaman pillar ===
-  const isPillar = document.body.dataset.pillar==="true" || /pillar|cornerstone|\/p\//.test(location.pathname.toLowerCase());
-
   // === Ambil konten utama ===
-  const contentRoot = document.querySelector("article") || document.querySelector(".post-body") || document.querySelector("main") || document.body;
+  const contentEl = document.querySelector(".post-body.entry-content") || 
+                    document.querySelector("[id^='post-body-']") || 
+                    document.querySelector(".post-body") ||
+                    document.querySelector("article") ||
+                    document.querySelector("main");
+  const contentText = contentEl ? cleanText(contentEl.innerText) : "";
 
-  // === Hash Global ===
-  const contentText = cleanText(contentRoot.innerText);
-  const globalHash = hashString(contentText);
-  localStorage.setItem("globalHash_"+location.pathname, globalHash);
-
-  // === Meta datePublished & dateModified ===
+  // === Ambil meta tanggal awal ===
   let datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content) || "";
-  let dateModified = convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content) || datePublished;
+  let dateModified  = convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content) || datePublished;
 
-  // === Ambil section H2/H3 ===
-  const sections = [];
+  // === Deteksi hash global ===
+  const currentHash = hashString(contentText);
+  const oldHash = localStorage.getItem("articleHash_"+location.pathname);
+
+  let shouldUpdateDate = false;
+
+  if (!oldHash) {
+    localStorage.setItem("articleHash_"+location.pathname, currentHash);
+    console.log("🆕 Hash pertama kali disimpan");
+  } else if (oldHash !== String(currentHash)) {
+    console.log("📄 Konten berubah → kandidat update dateModified");
+    shouldUpdateDate = true;
+    localStorage.setItem("articleHash_"+location.pathname, currentHash);
+  } else {
+    console.log("✅ Tidak ada perubahan konten utama → dateModified tetap");
+  }
+
+  // === Deteksi perubahan saran per-section ===
+  const evergreenWords=["panduan","tutorial","cara","manfaat","pengertian","definisi","tips","langkah","strategi"];
+  const semiWords=["harga","biaya","tarif","spesifikasi","fitur","keunggulan","jenis","order"];
+  const nonWords=["promo","diskon","event","penawaran","stok","flash sale"];
+
+  const sections=[];
   let current=null;
-  contentRoot.querySelectorAll("h2,h3").forEach(h=>{
-    if(h.tagName==="H2"){
-      if(current) sections.push(current);
-      current={title:cleanText(h.innerText),content:""};
-    } else if(h.tagName==="H3" && current){
-      current.content+="\n"+cleanText(h.innerText);
-    }
+  contentEl.querySelectorAll("h2,h3").forEach(h=>{
+    if(h.tagName==="H2"){ if(current) sections.push(current); current={title:cleanText(h.innerText),content:""}; }
+    else if(h.tagName==="H3" && current){ current.content+="\n"+cleanText(h.innerText); }
     let next=h.nextElementSibling;
     while(next && !/^H[23]$/i.test(next.tagName)){
       if(next.innerText && current) current.content+="\n"+cleanText(next.innerText);
@@ -524,116 +529,165 @@ if (type === 'NON_EVERGREEN') {
   });
   if(current) sections.push(current);
 
-  // === Daftar kata acuan ===
-  const evergreenWords=["panduan","tutorial","cara","manfaat","pengertian","definisi","apa itu","tips","trik","panduan lengkap","langkah-langkah","studi kasus","contoh nyata","best practice","checklist","strategi","tips lanjutan","faq","pertanyaan umum"];
-  const semiWords=["harga","lokasi","layanan","pengiriman","wilayah","area","order","pesan","update harga","harga terbaru","pesan sekarang","wilayah pengiriman","biaya","tarif","estimasi","ongkir","spesifikasi","fitur","jenis","keunggulan"];
-  const nonWords=["promo","diskon","event","penawaran","perdana","periode","terbaru","update","spesial","promo akhir tahun","penawaran terbatas","stok terbatas","preorder","flash sale","2020","2021","2022","2023","2024","2025","2026","2027","2028"];
-
-  // === Deteksi tipe konten per-section (prioritas dinamis) ===
-  const detectType = (title, content) => {
-    if(isPillar) return "EVERGREEN";
-    const txt = (title + " " + content).toLowerCase();
-
-    const score = {evergreen:0, semi:0, non:0};
-    evergreenWords.forEach(w=>{ if(txt.includes(w)) score.evergreen++; });
-    semiWords.forEach(w=>{ if(txt.includes(w)) score.semi++; });
-    nonWords.forEach(w=>{ if(txt.includes(w)) score.non++; });
-
-    // 💡 Prioritas: EVERGREEN > SEMI > NON kecuali NON jauh lebih kuat
-    if(score.non > (score.evergreen + score.semi + 1)) return "NON-EVERGREEN";
-    if(score.evergreen >= score.semi) return "EVERGREEN";
-    if(score.semi > score.evergreen) return "SEMI-EVERGREEN";
-    return "EVERGREEN";
+  const detectType=(title,content)=>{
+    const txt=(title+" "+content).toLowerCase();
+    const score={evergreen:0,semi:0,non:0};
+    evergreenWords.forEach(w=>{if(txt.includes(w))score.evergreen++;});
+    semiWords.forEach(w=>{if(txt.includes(w))score.semi++;});
+    nonWords.forEach(w=>{if(txt.includes(w))score.non++;});
+    if(score.non>(score.evergreen+score.semi))return"NON-EVERGREEN";
+    if(score.semi>score.evergreen)return"SEMI-EVERGREEN";
+    return"EVERGREEN";
   };
 
-  // === Generator Saran ===
-  const generateAdvice=(txt,type,length,isLast)=>{
+  const generateAdvice=(txt,type)=>{
     const adv=[];
     if(/harga|biaya|tarif/.test(txt)) adv.push("Perbarui harga & tarif secara berkala");
-    if(/spesifikasi|fitur|ukuran/.test(txt)) adv.push("Periksa & update spesifikasi terbaru");
-    if(/manfaat|fungsi|keunggulan/.test(txt)) adv.push("Tambahkan contoh nyata penerapan");
-    if(/video|gambar|foto|diagram|chart/.test(txt)) adv.push("Sertakan media visual agar lebih menarik");
-    if(length<400) adv.push("Perluas konten agar lebih lengkap dan komprehensif");
-    if(!/faq|pertanyaan/.test(txt)&&isLast) adv.push("Tambahkan FAQ atau pertanyaan umum di akhir");
-    if(type==="NON-EVERGREEN") adv.push("Periksa update rutin untuk menjaga akurasi informasi");
-    if(type==="SEMI-EVERGREEN") adv.push("Lakukan review berkala tiap 3-6 bulan");
-    return adv.length?adv.join(". ") + ".":"Konten stabil, review ringan cukup.";
+    if(/spesifikasi|fitur|ukuran/.test(txt)) adv.push("Periksa spesifikasi terbaru");
+    if(/manfaat|fungsi/.test(txt)) adv.push("Tambahkan contoh penerapan");
+    if(type==="SEMI-EVERGREEN") adv.push("Lakukan review tiap 3-6 bulan");
+    if(type==="NON-EVERGREEN") adv.push("Periksa update rutin bulanan");
+    return adv.join(". ");
   };
 
-  const calculateSEOScore = txt=>{
-    const c=cleanText(txt.toLowerCase());
-    const h1=cleanText(document.querySelector("h1")?.innerText||"").toLowerCase();
-    const h2h3=Array.from(document.querySelectorAll("h2,h3")).map(h=>cleanText(h.innerText)).join(" ");
-    const meta=(document.querySelector("meta[name='keywords']")?.content||"").toLowerCase();
-    const words=c.split(/\s+/).length;
-    const keys=Array.from(new Set((h1+" "+h2h3+" "+meta).split(/\s+/).filter(Boolean)));
-    let hits=0; keys.forEach(k=>{const re=new RegExp("\\b"+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+"\\b","gi");hits+=(c.match(re)||[]).length;});
-    const density=words?hits/words:0;
-    return Math.max(0,Math.min(100,Math.round(50+density*30+Math.min(20,words/50))));
-  };
-
-  const calculateReadability = txt=>{
-    const s=txt.split(/[.!?]/).filter(x=>x.trim().length>0).length||1;
-    const w=txt.split(/\s+/).length;
-    return Math.round(Math.max(0,100-Math.abs((w/s)-15)*5));
-  };
-  const scoreColor = n => n>=80?"score-green":n>=50?"score-orange":"score-red";
-
-  // === Audit per-section ===
-  const h1=cleanText(document.querySelector("h1")?.innerText||"");
-  const h1Mismatch=isPillar && !location.pathname.toLowerCase().includes(h1.toLowerCase().replace(/\s+/g,"-"));
   const results=[];
-  sections.forEach((sec,i)=>{
-    const type=detectType(sec.title,sec.content);
-    const hash=hashString(sec.title+" "+sec.content);
-    const key=`sec_hash_${i}_${location.pathname}`;
-    const old=localStorage.getItem(key);
-    const changed=old && old!==String(hash);
-    localStorage.setItem(key,hash);
-    const months=type==="EVERGREEN"?12:type==="SEMI-EVERGREEN"?6:3;
-    const next=new Date();next.setMonth(next.getMonth()+months);
-    const txt=sec.content.toLowerCase();
-    const advice=generateAdvice(txt,type,txt.length,i===sections.length-1);
-    const seoScore=calculateSEOScore(txt);
-    const readability=calculateReadability(txt);
-    results.push({section:sec.title||"(Tanpa Judul)",type,changed,nextUpdate:next.toLocaleDateString(),advice,seoScore,readability});
+  sections.forEach(s=>{
+    const type=detectType(s.title,s.content);
+    const adv=generateAdvice(s.content.toLowerCase(),type);
+    results.push({section:s.title,type,advice:adv});
   });
 
-  // === Render Dashboard (di bawah halaman, SEO-safe)
-  const wrap=document.createElement("div");
-  wrap.setAttribute("data-nosnippet","true");
-  wrap.style="margin-top:30px;padding:10px;border:1px solid #ccc;border-radius:8px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.1);";
+  // === Cek perubahan saran dari hasil analisis ===
+  let adviceChanged=false;
+  try{
+    const oldAdviceHash=localStorage.getItem("adviceHash_"+location.pathname);
+    const currentAdviceText=results.map(r=>r.advice).join("|");
+    const currentAdviceHash=hashString(currentAdviceText);
+    if(oldAdviceHash && oldAdviceHash!==String(currentAdviceHash)){
+      console.log("💡 Ada saran update baru → kandidat update dateModified");
+      adviceChanged=true;
+    }
+    localStorage.setItem("adviceHash_"+location.pathname,currentAdviceHash);
+  }catch(e){console.warn("⚠ Gagal bandingkan saran:",e);}
 
-  const table=document.createElement("table");
-  table.innerHTML=`
-  <thead><tr><th>Section</th><th>Tipe</th><th>Perubahan</th><th>Next Update</th><th>Saran</th><th>SEO</th><th>Readability</th></tr></thead>
-  <tbody>${results.map(r=>`
-  <tr style="background:${r.type==="EVERGREEN"?"#e8fce8":r.type==="SEMI-EVERGREEN"?"#fff5e0":"#ffeaea"}">
-  <td>${r.section}</td><td><b>${r.type}</b></td><td>${r.changed?"✅":"–"}</td><td>${r.nextUpdate}</td><td>${r.advice}</td>
-  <td class="${scoreColor(r.seoScore)}">${r.seoScore}</td><td class="${scoreColor(r.readability)}">${r.readability}</td></tr>`).join("")}
-  </tbody>`;
-  wrap.appendChild(table);
+  // === Tentukan final dateModified ===
+  if(shouldUpdateDate || adviceChanged){
+    const nowISO=new Date().toISOString();
+    dateModified=convertToWIB(nowISO);
+    console.log("🕒 dateModified diperbarui:", dateModified);
 
-  const info=document.createElement("div");
-  info.style.fontSize="13px";
-  info.style.marginTop="8px";
-  info.textContent=`📅 Published: ${datePublished||"-"} | Last Modified: ${dateModified}${h1Mismatch?" ⚠ H1 tidak cocok URL.":""}`;
-  wrap.appendChild(info);
+    // Update <meta itemprop="dateModified">
+    let metaMod=document.querySelector("meta[itemprop='dateModified']");
+    if(!metaMod){
+      metaMod=document.createElement("meta");
+      metaMod.setAttribute("itemprop","dateModified");
+      document.head.appendChild(metaMod);
+    }
+    metaMod.content=nowISO;
 
-  const btn=document.createElement("button");
-  btn.textContent="🔄 Deteksi Ulang";
-  Object.assign(btn.style,{marginTop:"10px",padding:"8px 14px",background:"#007bff",color:"#fff",border:"none",borderRadius:"6px",cursor:"pointer"});
-  btn.onclick=()=>{wrap.remove();runEvergreenDetector();};
-  wrap.appendChild(btn);
+    // === Update JSON-LD Article Schema ===
+    document.querySelectorAll('script[type="application/ld+json"]').forEach(el=>{
+      try{
+        const data=JSON.parse(el.textContent);
+        if(data["@type"]==="Article"||data["@type"]==="NewsArticle"||data["@type"]==="BlogPosting"){
+          data.dateModified=nowISO;
+          if(!data.datePublished) data.datePublished=datePublished?new Date(datePublished).toISOString():nowISO;
+          el.textContent=JSON.stringify(data,null,2);
+          console.log("📘 Schema Article diperbarui otomatis");
+        }
 
-  // === Tempatkan di luar konten utama (SEO-safe)
-  const footerArea=document.querySelector("#AEDDashboard");
-  if(footerArea&&footerArea.parentNode){footerArea.parentNode.insertBefore(wrap,footerArea);}
-  else{document.body.appendChild(wrap);}
+        // === Jika schema adalah Product ===
+        if(data["@type"]==="Product" && data.offers){
+          const txtLower=contentText.toLowerCase();
+          if(/harga|biaya|tarif/.test(txtLower)){
+            // Sesuaikan masa berlaku harga berdasar tipe konten
+            const typeDominant=results.some(r=>r.type==="SEMI-EVERGREEN")?"SEMI":"EVERGREEN";
+            const now=new Date();
+            if(typeDominant==="SEMI"){ now.setMonth(now.getMonth()+6); } 
+            else { now.setFullYear(now.getFullYear()+1); }
+            const untilISO=now.toISOString().split("T")[0];
+            if(Array.isArray(data.offers)){
+              data.offers.forEach(o=>o.priceValidUntil=untilISO);
+            } else {
+              data.offers.priceValidUntil=untilISO;
+            }
+            el.textContent=JSON.stringify(data,null,2);
+            console.log("💰 Product schema PriceValidUntil diupdate:", untilISO);
+          }
+        }
+      }catch(e){/* skip invalid JSON-LD */}
+    });
 
-  console.log("✅ AED v8.0 UltraKMPTTF TrueSection Fix selesai");
+  } else {
+    console.log("🔁 Tidak ada perubahan signifikan → dateModified tetap:", dateModified);
+  }
+
+  console.log("✅ AED v8.1 UltraKMPTTF TrueSection+SchemaSync selesai");
+
+   window.EvergreenResults = {
+    dateModified,
+    datePublished,
+    results
+  }; // <— disediakan agar dashboard bisa ambil datanya
 })();
 
+/* ============================================================
+   📊 Evergreen Dashboard v8.1 — UI Terpisah
+   ============================================================ */
+(function showEvergreenDashboard() {
+  console.log("📊 Menampilkan Dashboard Evergreen...");
+
+  // Tunggu hasil core siap
+  function waitForResults() {
+    if (window.EvergreenResults && window.EvergreenResults.results) {
+      renderDashboard(window.EvergreenResults);
+    } else {
+      setTimeout(waitForResults, 300);
+    }
+  }
+
+  function renderDashboard(data) {
+    const dash = document.createElement("div");
+    dash.id = "EvergreenDashboard";
+    dash.style.cssText = `
+      max-width:1200px;margin:40px auto;padding:15px;
+      background:#f8fbff;border-top:4px solid #0066cc;
+      border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);
+      font-family:system-ui;
+    `;
+
+    dash.innerHTML = `
+      <h2 style="text-align:center;margin-bottom:10px;">🧩 Evergreen Content Report</h2>
+      <p style="text-align:center;margin-bottom:20px;color:#444;">
+        <b>Date Published:</b> ${data.datePublished || '-'} |
+        <b>Last Modified:</b> ${data.dateModified || '-'}
+      </p>
+      <table style="width:100%;border-collapse:collapse;font-size:15px;">
+        <thead>
+          <tr style="background:#eaf3ff;">
+            <th style="padding:8px;border:1px solid #ccc;">Bagian</th>
+            <th style="padding:8px;border:1px solid #ccc;">Tipe</th>
+            <th style="padding:8px;border:1px solid #ccc;">Saran Update</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.results.map(r=>`
+            <tr>
+              <td style="border:1px solid #ddd;padding:6px;"><b>${r.section}</b></td>
+              <td style="border:1px solid #ddd;padding:6px;text-align:center;">${r.type}</td>
+              <td style="border:1px solid #ddd;padding:6px;color:#333;">${r.advice||'-'}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+
+    document.body.appendChild(dash);
+    console.log("✅ Dashboard Evergreen tampil di halaman");
+  }
+
+  waitForResults();
+})();
 
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
