@@ -96,6 +96,15 @@ if(oldHash && oldHash == currentHash){
   const unique = a => Array.from(new Set(a));
   const clean = str => str.replace(/\s+/g,' ').trim().toLowerCase();
 
+ // === Skor H1 ===
+    const computeH1UrlScore=(h1,url)=>{
+      const u=unique(tokenize(url)),h=unique(tokenize(h1));
+      if(!u.length)return 100;
+      const m=u.filter(t=>h.includes(t)),ratio=m.length/u.length;
+      const bonus=h1.toLowerCase().startsWith(u[0]||'')?0.15:0;
+      return Math.round(Math.min(1,ratio+bonus)*100);
+    };
+  
  // ===================== DETECTOR TERBARU =====================
 function detectEvergreen(title, text, url) {
   let score = 0;
@@ -244,15 +253,6 @@ function detectEvergreen(title, text, url) {
     elH1.insertAdjacentElement('afterend', lb);
   }
 
-
-    // === Skor H1 ===
-    const computeH1UrlScore=(h1,url)=>{
-      const u=unique(tokenize(url)),h=unique(tokenize(h1));
-      if(!u.length)return 100;
-      const m=u.filter(t=>h.includes(t)),ratio=m.length/u.length;
-      const bonus=h1.toLowerCase().startsWith(u[0]||'')?0.15:0;
-      return Math.round(Math.min(1,ratio+bonus)*100);
-    };
     const score=computeH1UrlScore(h1R,urlRaw);
     const sSug=urlRaw&&!h1R.toLowerCase().includes(urlRaw.split(' ')[0])?urlRaw+' '+h1R:null;
     const sLbl=score>=90?"Sangat Baik":score>=75?"Baik":score>=50?"Cukup":"Perlu Perbaikan";
