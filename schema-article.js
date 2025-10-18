@@ -96,43 +96,69 @@ if(oldHash && oldHash == currentHash){
   const unique = a => Array.from(new Set(a));
   const clean = str => str.replace(/\s+/g,' ').trim().toLowerCase();
 
-  // ===================== DETECTOR =====================
-  function detectEvergreen(title,text,url){
-    let score=0;
-    const t=clean(title+" "+text);
+ // ===================== DETECTOR TERBARU =====================
+function detectEvergreen(title, text, url) {
+  let score = 0;
+  const t = clean(title + " " + text);
 
-    // +++++ Positif
-    if(/\b(harga|spesifikasi|ukuran|jenis|mutu|standar|komposisi)\b/.test(t))score+=2;
-    if(/\b(update|terbaru|202\d|2024|2025|info lengkap)\b/.test(t))score+=1;
-    if(/\b(ready\s?mix|beton|jayamix|minimix|precast|material|produk|alat berat|konstruksi)\b/.test(t))score+=2;
-    if(/\b(harga\s+(beton|readymix|u-ditch|buis|box culvert|panel|saluran))\b/.test(t))score+=2;
-    if(t.length>1500)score+=2;
+  // ===================== KEYWORDS =====================
+  const keywordsPositif = [
+    "harga","spesifikasi","ukuran","jenis","mutu","standar","komposisi",
+    "update","terbaru","info lengkap","panduan","tutorial","cara","tips",
+    "ready mix","beton","jayamix","minimix","precast","panel beton","material",
+    "produk","buis beton","gorong-gorong","u-ditch","box culvert","alat berat",
+    "sewa excavator","sewa bulldozer","crane","vibro roller","tandem roller",
+    "pionir tiga roda","admixture","dynamix holcim","lokasi","kapasitas","volume",
+    "dimensi","kualitas","standar SNI","beton cor","ready mix Jayamix"
+  ];
 
-    // 🔸Negatif ringan
-    if(/\b(bogor|bekasi|depok|jakarta|bandung|tangerang|karawang|serang)\b/.test(t))score-=1;
-    if(/\b(hari\s+ini|minggu\s+ini|bulan\s+ini|harga\s+per\s+hari)\b/.test(t))score-=1;
-    if(/\/\d{4}\/\d{2}\//.test(url))score-=1;
-    if(/\b(stok|pesan\s+sekarang|diskon|wa|whatsapp)\b/.test(t))score-=1;
+  const keywordsNegRingan = [
+    "hari ini","minggu ini","bulan ini","harga per hari","stok","tersedia",
+    "pesan sekarang","diskon","promo terbatas","wa","whatsapp","call","hotline",
+    "bogor","bekasi","depok","jakarta","bandung","tangerang","karawang","serang",
+    "cilegon","subang","purwakarta","ciamis","tasikmalaya"
+  ];
 
-    // 🔻Negatif kuat
-    if(/\b(berita|event|promo|pengumuman|laporan|seminar)\b/.test(t))score-=3;
-    if(/\b(kemarin|besok|bulan\s+lalu)\b/.test(t))score-=2;
+  const keywordsNegKuat = [
+    "berita","event","acara","pengumuman","laporan","seminar","konferensi",
+    "kemarin","besok","bulan lalu","tren terbaru","update harian","breaking news",
+    "diskon besar","flash sale","promo hari ini","peringatan","lowongan kerja",
+    "kontes","giveaway"
+  ];
 
-    // Tambahan logika struktur URL
-    if(url.includes("/p/"))score+=2;
-    if(/\/harga-|\/produk-|\/beton-|\/sewa-|\/readymix-/.test(url))score+=1;
-
-    // Struktur paragraf
-    const paraCount=(text.match(/\n/g)||[]).length;
-    if(paraCount>8)score+=1;
-    if(paraCount<3)score-=1;
-
-    // Penilaian akhir
-    let status="SEMI_EVERGREEN";
-    if(score>=5)status="EVERGREEN";
-    else if(score<=0)status="NON_EVERGREEN";
-    return status;
+  // ===================== HITUNG SKOR =====================
+  // Positif
+  for (const kw of keywordsPositif) {
+    if (t.includes(kw)) score += 2;
   }
+
+  // Negatif ringan
+  for (const kw of keywordsNegRingan) {
+    if (t.includes(kw)) score -= 1;
+  }
+
+  // Negatif kuat
+  for (const kw of keywordsNegKuat) {
+    if (t.includes(kw)) score -= 2;
+  }
+
+  // Tambahan logika URL
+  if (url.includes("/p/")) score += 2;
+  if (/\/harga-|\/produk-|\/beton-|\/sewa-|\/readymix-/.test(url)) score += 1;
+  if (/\/\d{4}\/\d{2}\//.test(url)) score -= 1;
+
+  // Struktur paragraf
+  const paraCount = (text.match(/\n/g) || []).length;
+  if (paraCount > 8) score += 1;
+  if (paraCount < 3) score -= 1;
+
+  // ===================== STATUS =====================
+  let status = "SEMI_EVERGREEN";
+  if (score >= 5) status = "EVERGREEN";
+  else if (score <= 0) status = "NON_EVERGREEN";
+
+  return status;
+}
 
   // ===================== CORE =====================
   try{
