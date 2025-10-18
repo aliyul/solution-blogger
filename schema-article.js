@@ -400,9 +400,11 @@ if (type === 'NON_EVERGREEN') {
 
 
     // === Dashboard ===
-    const dash=document.createElement('div');
-    dash.style.cssText='max-width:1200px;margin:30px auto;padding:15px;background:#f0f8ff;border-top:3px solid #0078ff;font-family:Arial,sans-serif;';
-    dash.setAttribute('data-nosnippet','true');
+    const dash = document.createElement('div');
+    dash.style.cssText = 'max-width:1200px;margin:30px auto;padding:15px;background:#f0f8ff;border-top:3px solid #0078ff;font-family:Arial,sans-serif;';
+    dash.setAttribute('data-nosnippet', 'true');
+    dash.setAttribute('id', 'AEDDashboard'); // ✅ Tambahkan ID
+
 
     const h3=document.createElement('h3');
     h3.innerText="📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman";
@@ -625,7 +627,7 @@ if (type === 'NON_EVERGREEN') {
   wrap.appendChild(btn);
 
   // === Tempatkan di luar konten utama (SEO-safe)
-  const footerArea=document.querySelector("footer")||document.querySelector("#footer-wrapper");
+  const footerArea=document.querySelector("#AEDDashboard");
   if(footerArea&&footerArea.parentNode){footerArea.parentNode.insertBefore(wrap,footerArea);}
   else{document.body.appendChild(wrap);}
 
