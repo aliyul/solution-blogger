@@ -106,48 +106,94 @@ if(oldHash && oldHash == currentHash){
     };
   
  // ===================== DETECTOR TERBARU =====================
+/* pakai daftar keywod */
+
+/*
 function detectEvergreen(title, text, url) {
   let score = 0;
-  const t = clean(title + " " + text);
+  const t = clean(title + " " + text); // gabungkan title + konten
 
-  // ===================== KEYWORDS =====================
-  const keywordsPositif = [
+  // ===================== KATEGORI =====================
+const categories = {
+  // ===================== POSITIF =====================
+  // Material dan struktur bangunan
+  materialStruktur: [
+    "baja","beton","semen","pasir","agregat","papan","buis","gorong-gorong",
+    "panel beton","u-ditch","box culvert","saluran beton","bata","batako",
+    "keramik","cat","admixture","dynamix holcim","pionir tiga roda","beton ringan",
+    "beton pracetak","precast","tiang pancang","pondasi","fondasi","balok","kolom",
+    "slab","lattice girder","bekisting","cetak beton","plat lantai","tiang beton",
+    "genteng","atap","kayu","konstruksi baja ringan"
+  ],
+
+  // Alat berat dan alat konstruksi
+  alatBerat: [
+    "excavator","bulldozer","crane","vibro roller","tandem roller","dump truck",
+    "concrete mixer","pump beton","loader","grader","forklift","compactor",
+    "road roller","scraper","backhoe","wheel loader","crawler crane","tower crane"
+  ],
+
+  // Produk beton dan ready mix
+  produk: [
+    "ready mix","jayamix","minimix","beton cor","beton siap pakai","precast",
+    "panel beton","admixture","dynamix holcim","pionir tiga roda","sandwich panel",
+    "u-ditch","box culvert","gorong-gorong","buis beton","panel pracetak",
+    "slab precast","tiang pracetak","pondasi pracetak"
+  ],
+
+  // Umum + SEO + Informasi
+  umum: [
     "harga","spesifikasi","ukuran","jenis","mutu","standar","komposisi",
     "update","terbaru","info lengkap","panduan","tutorial","cara","tips",
-    "ready mix","beton","jayamix","minimix","precast","panel beton","material",
-    "produk","buis beton","gorong-gorong","u-ditch","box culvert","alat berat",
-    "sewa excavator","sewa bulldozer","crane","vibro roller","tandem roller",
-    "pionir tiga roda","admixture","dynamix holcim","lokasi","kapasitas","volume",
-    "dimensi","kualitas","standar SNI","beton cor","ready mix Jayamix"
-  ];
+    "lokasi","kapasitas","volume","dimensi","kualitas","standar SNI",
+    "instruksi","manual","review","evaluasi","estimasi biaya","perhitungan",
+    "simulasi","kontraktor","jasa konstruksi","rencana pembangunan","proyek",
+    "konstruksi jalan","konstruksi gedung","pembangunan rumah","pembangunan fasilitas",
+    "beton cor Jayamix","ready mix Jayamix","harga ready mix","harga beton cor"
+  ]
+};
 
-  const keywordsNegRingan = [
-    "hari ini","minggu ini","bulan ini","harga per hari","stok","tersedia",
-    "pesan sekarang","diskon","promo terbatas","wa","whatsapp","call","hotline",
-    "bogor","bekasi","depok","jakarta","bandung","tangerang","karawang","serang",
-    "cilegon","subang","purwakarta","ciamis","tasikmalaya"
-  ];
+// ===================== NEGATIF RINGAN =====================
+// Topik yang sifatnya sementara, lokasi spesifik, stok, harga harian, call-to-action ringan
+const negRingan = [
+  // Waktu terbatas
+  "hari ini","minggu ini","bulan ini","harga per hari","diskon harian","promo terbatas","flash sale",
+  // Stok & ketersediaan
+  "stok","tersedia","tersedia sekarang","cek stok","pesan sekarang","pre-order","call","hotline","whatsapp","wa",
+  // Lokasi spesifik (Indonesia)
+  "bogor","bekasi","depok","jakarta","bandung","tangerang","karawang","serang","cilegon","subang","purwakarta","ciamis","tasikmalaya",
+  // Kata terkait penawaran
+  "harga khusus","promo","penawaran terbatas","diskon kecil","voucher","kode promo"
+];
 
-  const keywordsNegKuat = [
-    "berita","event","acara","pengumuman","laporan","seminar","konferensi",
-    "kemarin","besok","bulan lalu","tren terbaru","update harian","breaking news",
-    "diskon besar","flash sale","promo hari ini","peringatan","lowongan kerja",
-    "kontes","giveaway"
-  ];
+// ===================== NEGATIF KUAT =====================
+// Topik yang cepat basi, event, berita, pengumuman, seminar, kontes, lowongan, dll
+const negKuat = [
+  // Berita dan event
+  "berita","news","update harian","breaking news","tren terbaru","acara","event","seminar","konferensi","pengumuman","laporan","peringatan",
+  // Penawaran agresif & iklan
+  "diskon besar","flash sale","promo hari ini","super sale","hot deal","giveaway","kontes","lomba","undian","lowongan kerja","karir","rekrutmen",
+  // Kata waktu relatif negatif
+  "kemarin","besok","bulan lalu","tahun lalu","minggu lalu","hari lalu",
+  // Konten sementara
+  "peringatan","peringatan penting","urgent","terbatas","expiring","limited time","deadline","hanya hari ini","last chance"
+];
 
   // ===================== HITUNG SKOR =====================
-  // Positif
-  for (const kw of keywordsPositif) {
-    if (t.includes(kw)) score += 2;
+  // Positif berdasarkan kategori
+  for (const cat in categories) {
+    for (const kw of categories[cat]) {
+      if (t.includes(kw)) score += 2;
+    }
   }
 
   // Negatif ringan
-  for (const kw of keywordsNegRingan) {
+  for (const kw of negRingan) {
     if (t.includes(kw)) score -= 1;
   }
 
   // Negatif kuat
-  for (const kw of keywordsNegKuat) {
+  for (const kw of negKuat) {
     if (t.includes(kw)) score -= 2;
   }
 
@@ -165,6 +211,48 @@ function detectEvergreen(title, text, url) {
   let status = "SEMI_EVERGREEN";
   if (score >= 5) status = "EVERGREEN";
   else if (score <= 0) status = "NON_EVERGREEN";
+
+  return status;
+}
+*/
+
+//DETEKKSI TANPA DAFTARR KKEYWORD
+function clean(str) {
+  return (str || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function tokenize(str) {
+  return clean(str).split(/[\s\-_]/).filter(Boolean);
+}
+
+function detectEvergreen(title, text, url) {
+  let score = 0;
+  const content = clean(title + " " + text);
+
+  // ===== Struktur konten =====
+  const paraCount = (text.match(/\n/g) || []).length;
+  if (content.length > 1500) score += 2;  // konten panjang = mendalam
+  if (paraCount > 8) score += 1;         // banyak paragraf = relevan
+  if (paraCount < 3) score -= 1;         // sedikit paragraf = semi/non
+
+  // ===== Kecocokan H1 ↔ URL =====
+  const cleanUrl = url.split('/').filter(Boolean).pop()?.replace(/\.html$/i,'') || '';
+  const urlTokens = tokenize(cleanUrl);
+  const h1Tokens = tokenize(title);
+  const matchCount = urlTokens.filter(t => h1Tokens.includes(t)).length;
+  const ratio = urlTokens.length ? matchCount / urlTokens.length : 0;
+  if (ratio > 0.6) score += 2;           // H1 sesuai URL
+  else if (ratio > 0.3) score += 1;      // sebagian sesuai
+
+  // ===== Pola URL =====
+  if(url.includes("/p/")) score += 1;     // pillar page
+  if(/\d{4}\/\d{2}/.test(url)) score -= 1; // tanggal di URL = temporal
+  if(url.includes("harga") || url.includes("produk") || url.includes("beton")) score += 1; // URL relevan
+
+  // ===== Penilaian akhir =====
+  let status = "SEMI_EVERGREEN";
+  if(score >= 5) status = "EVERGREEN";
+  else if(score <= 0) status = "NON_EVERGREEN";
 
   return status;
 }
