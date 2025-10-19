@@ -486,14 +486,16 @@ if (type === 'NON_EVERGREEN') {
    - priceValidUntil: evergreen=365d, semi=180d, non=90d
    - Results available on window.EvergreenDetectorResults
    ============================================================ */
-(function detectEvergreenHybrid() {
+/* ============================================================
+   🧠 Smart Evergreen Detector v8.3.1 — Precision Hybrid
+   ============================================================ */
+function detectEvergreenHybrid() {
   console.log("🧠 Running Smart Evergreen Detector v8.3.1 Precision Hybrid...");
 
   // ---------- Utilities ----------
   const nowISODate = (d = new Date()) => d.toISOString().split("T")[0];
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
   const hashString = s => {
-    // simple stable hash (32-bit)
     let h = 2166136261 >>> 0;
     for (let i = 0; i < s.length; i++) {
       h ^= s.charCodeAt(i);
@@ -501,348 +503,190 @@ if (type === 'NON_EVERGREEN') {
     }
     return (h >>> 0).toString(36);
   };
-  const isJSONLDScript = el => el && el.tagName === "SCRIPT" && el.type === "application/ld+json";
 
-  // ---------- Grab main elements & text ----------
+  // ---------- Grab main content ----------
   const h1 = clean(document.querySelector("h1")?.innerText || "").toLowerCase();
   const contentEl =
     document.querySelector(".post-body.entry-content") ||
     document.querySelector("[id^='post-body-']") ||
-    document.querySelector(".post-body") ||
     document.querySelector("article") ||
     document.querySelector("main") ||
     document.body;
   const contentTextRaw = clean(contentEl ? contentEl.innerText : "");
   const contentText = (h1 + " " + contentTextRaw).toLowerCase();
-  const words = contentText.split(/\s+/).filter(Boolean);
-  const wordCount = words.length;
+  const wordCount = contentText.split(/\s+/).filter(Boolean).length;
 
   // ---------- Patterns ----------
-  const nonEvergreenPattern = /\b(update|terbaru|berita|jadwal|event|promo|diskon|progres|proyek|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|kontrak|laporan|penawaran|info pasar|analisis pasar|fluktuasi|forecast|revisi|minggu\s?ini|hari\s?ini|flash sale)\b/;
-  const semiEvergreenPattern = /\b(harga\s?(per\s?(m3|meter|hari|jam|unit)|sewa|jual|cor|tarif)?|sewa|rental|kontraktor|jasa|pembangunan|borongan|analisa harga satuan|estimasi biaya|kalkulasi|penyewaan|layanan|tarif|biaya|harga)\b/;
-  const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|strategi|langkah|prosedur|manfaat|fungsi|jenis|contoh|teknik|pengertian|kegunaan|struktur|standar|material|spesifikasi|apa itu|arti|perbedaan|konsep|metode|keunggulan|kelebihan|kekurangan|komponen|prinsip kerja|proses)\b/;
+  const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
+  const semiEvergreenPattern = /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/;
+  const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
+  const priceTokenPattern = /\b(harga|rp|per\s?(m3|m2|unit|kubik|meter)|biaya|tarif)\b/i;
 
-  const priceTokenPattern = /\b(harga|rp|per\s?(m3|m²|m2|meter|m|kubik|kubikasi|kubikasi|kubikasi|kubik|ton|unit|tarif|biaya|ongkos|harga mulai)\b)/i;
-
-  // ---------- Section-based extraction (H2/H3 + paragraph grouping) ----------
-  // Build sections array with title & aggregated content
+  // ---------- Section-based ----------
   const sections = [];
-  const headingSelector = "h2,h3";
-  const headings = Array.from(contentEl.querySelectorAll(headingSelector));
+  const headings = Array.from(contentEl.querySelectorAll("h2,h3"));
   if (headings.length === 0) {
-    // fallback: treat whole content as single section
     sections.push({ title: h1 || "artikel", content: contentTextRaw });
   } else {
-    // iterate headings and gather following siblings until next heading of same/higher level
     for (let i = 0; i < headings.length; i++) {
       const head = headings[i];
-      const title = clean(head.innerText || "");
-      let cur = head.nextElementSibling;
-      let body = "";
-      while (cur && !(cur.matches && cur.matches(headingSelector))) {
+      const title = clean(head.innerText);
+      let cur = head.nextElementSibling, body = "";
+      while (cur && !(cur.matches && cur.matches("h2,h3"))) {
         if (cur.innerText) body += "\n" + clean(cur.innerText);
         cur = cur.nextElementSibling;
       }
-      sections.push({ title, content: body || "" });
+      sections.push({ title, content: body });
     }
   }
 
-  // also compute counts: paragraphs, lists, tables
-  const paragraphs = Array.from(contentEl.querySelectorAll("p")).map(p => clean(p.innerText || ""));
-  const paragraphCount = paragraphs.filter(p => p.length > 50).length;
-  const listCount = (contentEl.querySelectorAll("ol, ul") || []).length;
-  const tableCount = (contentEl.querySelectorAll("table") || []).length;
-
-  // ---------- Per-section scoring ----------
+  // ---------- Section Scoring ----------
   let sectionScores = { evergreen: 0, semi: 0, non: 0 };
   const sectionDetails = sections.map(sec => {
-    const title = sec.title.toLowerCase();
-    const body = sec.content.toLowerCase();
-    const combined = (title + " " + body).replace(/\s+/g, " ");
+    const t = sec.title.toLowerCase(), b = sec.content.toLowerCase();
     let sEver = 0, sSemi = 0, sNon = 0;
-
-    // title weighting stronger
-    if (evergreenPattern.test(title)) sEver += 2;
-    if (semiEvergreenPattern.test(title)) sSemi += 2;
-    if (nonEvergreenPattern.test(title)) sNon += 1.5;
-
-    // body checks (weaker)
-    if (evergreenPattern.test(body)) sEver += (body.match(evergreenPattern) || []).length * 0.8;
-    if (semiEvergreenPattern.test(body)) sSemi += (body.match(semiEvergreenPattern) || []).length * 0.9;
-    if (nonEvergreenPattern.test(body)) sNon += (body.match(nonEvergreenPattern) || []).length * 1;
-
-    // price-local detection for the section
-    const hasPriceTokens = priceTokenPattern.test(combined);
-    if (hasPriceTokens) sSemi += 1.5; // price tokens bias toward semi
-
-    // aggregate
+    if (evergreenPattern.test(t)) sEver += 2;
+    if (semiEvergreenPattern.test(t)) sSemi += 2;
+    if (nonEvergreenPattern.test(t)) sNon += 1.5;
+    if (evergreenPattern.test(b)) sEver += (b.match(evergreenPattern) || []).length * 0.8;
+    if (semiEvergreenPattern.test(b)) sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
+    if (nonEvergreenPattern.test(b)) sNon += (b.match(nonEvergreenPattern) || []).length * 1;
+    const hasPriceTokens = priceTokenPattern.test(t + " " + b);
+    if (hasPriceTokens) sSemi += 1.5;
     sectionScores.evergreen += sEver;
     sectionScores.semi += sSemi;
     sectionScores.non += sNon;
-
-    return {
-      title: sec.title,
-      hasPriceTokens,
-      sEver, sSemi, sNon,
-      summary: combined.slice(0, 180)
-    };
+    return { section: sec.title, hasPriceTokens, sEver, sSemi, sNon };
   });
 
-  // ---------- Aggregate scoring & heuristics ----------
-  let evergreenScore =
-    sectionScores.evergreen * 2 +
-    sectionScores.semi * 1 +
-    paragraphCount * 0.6 +
-    listCount * 0.5 -
-    tableCount * 0.8;
-
-  if (wordCount > 800) evergreenScore += 2;
-  if (wordCount > 1500) evergreenScore += 2;
-
-  // time-sensitivity detection (global)
-  const hasTimePattern = /\b(20\d{2}|harga\s?bulan|update|promo|diskon|deadline|agenda|sementara|terbaru|minggu|bulan|hari\s?ini|minggu\s?ini|q[1-4]|kuartal)\b/.test(contentText);
-
-  // initial result decision based on section dominance
+  // ---------- Result Classification ----------
+  const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
   let resultType = "semi-evergreen";
-  if (sectionScores.non > sectionScores.semi && sectionScores.non > sectionScores.evergreen) {
-    resultType = "non-evergreen";
-  } else if (sectionScores.evergreen > sectionScores.semi + 2 && evergreenScore > 6 && !hasTimePattern) {
-    resultType = "evergreen";
-  } else if (sectionScores.semi >= sectionScores.evergreen) {
-    resultType = "semi-evergreen";
-  }
+  if (sectionScores.non > sectionScores.semi && sectionScores.non > sectionScores.evergreen) resultType = "non-evergreen";
+  else if (sectionScores.evergreen > sectionScores.semi + 2 && !hasTimePattern) resultType = "evergreen";
 
-  // final corrections
-  if (resultType === "semi-evergreen" && evergreenScore >= 7 && !hasTimePattern) resultType = "evergreen";
-  if (resultType === "evergreen" && hasTimePattern && evergreenScore <= 3) resultType = "semi-evergreen";
-  if (resultType === "semi-evergreen" && hasTimePattern && evergreenScore < 2) resultType = "non-evergreen";
+  // ---------- DateModified Sync ----------
+  const currentHash = hashString(h1 + contentText.slice(0, 20000));
+  const prevHash = localStorage.getItem("aed_hash_" + location.pathname);
+  const shouldUpdateDate = prevHash !== currentHash;
+  if (shouldUpdateDate) localStorage.setItem("aed_hash_" + location.pathname, currentHash);
 
-  // ---------- Hash-check for content change (dateModified control) ----------
-  const pageKey = "aed_hash_" + location.pathname;
-  const adviceKey = "aed_advicehash_" + location.pathname;
-  const currentHash = hashString(h1 + "||" + contentText.slice(0, 20000)); // limit for hashing performance
-  const prevHash = localStorage.getItem(pageKey);
-
-  let shouldUpdateDate = false;
-  if (!prevHash) {
-    localStorage.setItem(pageKey, currentHash);
-    shouldUpdateDate = true;
-    // first time we consider as updated so that dateModified exists
-  } else if (prevHash !== currentHash) {
-    shouldUpdateDate = true;
-    localStorage.setItem(pageKey, currentHash);
-  }
-
-  // ---------- Determine price-validity days based on final result ----------
-  const validityDaysByType = { "evergreen": 365, "semi-evergreen": 180, "non-evergreen": 90 };
-  const validityDays = validityDaysByType[resultType] || 90;
-
-  // ---------- Update meta[itemprop="dateModified"] if needed ----------
-  const nowDate = nowISODate();
-  const metaDateEl = document.querySelector('meta[itemprop="dateModified"]');
+  const metaEl = document.querySelector('meta[itemprop="dateModified"]');
   if (shouldUpdateDate) {
-    if (metaDateEl) {
-      metaDateEl.setAttribute("content", new Date().toISOString());
-    } else {
-      // create meta tag with full ISO
-      const m = document.createElement("meta");
-      m.setAttribute("itemprop", "dateModified");
-      m.setAttribute("content", new Date().toISOString());
-      document.head.appendChild(m);
-    }
-  }
-
-  // ---------- JSON-LD Sync: update Article/BlogPosting dateModified and Product/Service priceValidUntil ----------
-  const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-  jsonldScripts.forEach(script => {
-    if (!script || !script.textContent) return;
-    try {
-      // JSON-LD could be an array or object
-      const raw = script.textContent.trim();
-      const parsed = JSON.parse(raw);
-      const nowISOFull = new Date().toISOString();
-
-      const applyToObject = obj => {
-        if (!obj || typeof obj !== "object") return;
-        const type = obj["@type"] || obj["@type"] && obj["@type"][0];
-        // Normalize type to string if array
-        const t = Array.isArray(obj["@type"]) ? obj["@type"][0] : obj["@type"];
-
-        if (!t) return;
-
-        const ttl = t.toLowerCase();
-        if (ttl === "article" || ttl === "blogposting" || ttl === "newsarticle") {
-          // update dateModified only when shouldUpdateDate true
-          if (shouldUpdateDate) obj.dateModified = nowISOFull;
-        }
-
-        // Product or Service => update offers.priceValidUntil if price section exists
-        if (ttl === "product" || ttl === "service") {
-          // detect presence of price-related section globally and locally
-          const hasPriceGlobal = priceTokenPattern.test(contentText);
-          // additional: check if any section explicitly contains price tokens
-          const hasPriceSection = sectionDetails.some(s => s.hasPriceTokens);
-          if (hasPriceGlobal || hasPriceSection) {
-            const days = validityDays;
-            const until = new Date(Date.now() + days * 86400000).toISOString().split("T")[0];
-            if (obj.offers) {
-              if (Array.isArray(obj.offers)) {
-                obj.offers.forEach(o => { if (o) o.priceValidUntil = until; });
-              } else {
-                obj.offers.priceValidUntil = until;
-              }
-            } else {
-              // create minimal offers structure to include priceValidUntil
-              obj.offers = { "@type": "Offer", priceValidUntil: until };
-            }
-          }
-        }
-
-        // If object contains nested graph or itemListElement etc, attempt to recurse
-        for (const k in obj) {
-          if (obj.hasOwnProperty(k) && typeof obj[k] === "object") {
-            // avoid infinite recursion by simple depth guard not necessary here, small JSON-LD typical
-            applyToObject(obj[k]);
-          }
-        }
-      };
-
-      if (Array.isArray(parsed)) {
-        parsed.forEach(entry => applyToObject(entry));
-      } else {
-        applyToObject(parsed);
-      }
-
-      // write back updated jsonld
-      script.textContent = JSON.stringify(parsed, null, 2);
-    } catch (e) {
-      // ignore invalid JSON-LD
-      // console.warn("AED v8.3.1: failed to parse JSON-LD", e);
-    }
-  });
-
-  // ---------- Advice generation (optional) ----------
-  const generateAdviceForType = (type) => {
-    const adv = [];
-    if (type === "non-evergreen") adv.push("Konten bersifat time-sensitive — review & perbarui tiap 1-3 bulan.");
-    if (type === "semi-evergreen") adv.push("Konten semi-evergreen — review tiap 3-6 bulan atau bila ada perubahan harga signifikan.");
-    if (type === "evergreen") adv.push("Konten evergreen — review berkala 9-12 bulan.");
-    if (sectionDetails.some(s => s.hasPriceTokens)) adv.push("Bagian harga terdeteksi — pastikan angka & satuan jelas (Rp, per m³, per unit).");
-    return adv.join(" ");
-  };
-  const adviceText = generateAdviceForType(resultType);
-  const adviceHash = hashString(adviceText);
-
-  // compare stored advice hash for changes (so we can also use it as trigger)
-  const prevAdviceHash = localStorage.getItem(adviceKey);
-  let adviceChanged = false;
-  if (!prevAdviceHash || prevAdviceHash !== adviceHash) {
-    localStorage.setItem(adviceKey, adviceHash);
-    adviceChanged = true;
-  }
-
-  // If advice changed but content didn't, we may still want to update dateModified (optional policy)
-  if (adviceChanged && !shouldUpdateDate) {
-    // treat advice change as mild update: update meta dateModified too
-    if (metaDateEl) metaDateEl.setAttribute("content", new Date().toISOString());
+    const iso = new Date().toISOString();
+    if (metaEl) metaEl.setAttribute("content", iso);
     else {
       const m = document.createElement("meta");
       m.setAttribute("itemprop", "dateModified");
-      m.setAttribute("content", new Date().toISOString());
+      m.setAttribute("content", iso);
       document.head.appendChild(m);
     }
   }
 
-  // ---------- Final log + export ----------
-  const logColor = resultType === "evergreen" ? "color:green" : resultType === "semi-evergreen" ? "color:orange" : "color:red";
-  console.log(`%c[AED v8.3.1] Type: ${resultType.toUpperCase()} | Score: ${evergreenScore.toFixed(2)} | Words: ${wordCount} | PriceValidityDays: ${validityDays}`, logColor);
-  console.log("Section summary:", sectionDetails.map(s => ({ title: s.title, price: s.hasPriceTokens, sEver: s.sEver, sSemi: s.sSemi, sNon: s.sNon })));
-  console.log("Advice:", adviceText);
+  // ---------- Price Validity ----------
+  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[resultType] || 90;
+  const until = new Date(Date.now() + validityDays * 86400000).toISOString().split("T")[0];
+  const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+  jsonldScripts.forEach(script => {
+    try {
+      const parsed = JSON.parse(script.textContent.trim());
+      const apply = obj => {
+        if (obj["@type"] === "Product" || obj["@type"] === "Service") {
+          if (!obj.offers) obj.offers = { "@type": "Offer" };
+          obj.offers.priceValidUntil = until;
+        }
+        for (const k in obj) if (typeof obj[k] === "object") apply(obj[k]);
+      };
+      if (Array.isArray(parsed)) parsed.forEach(apply);
+      else apply(parsed);
+      script.textContent = JSON.stringify(parsed, null, 2);
+    } catch {}
+  });
 
-  // expose results to window for dashboard / external scripts
+  // ---------- Output ----------
+  const advice =
+    resultType === "evergreen"
+      ? "Konten evergreen — review tiap 9–12 bulan."
+      : resultType === "semi-evergreen"
+      ? "Konten semi-evergreen — review tiap 3–6 bulan."
+      : "Konten non-evergreen — perbarui tiap 1–3 bulan.";
+
   window.EvergreenDetectorResults = {
-    generatedAt: new Date().toISOString(),
     resultType,
-    evergreenScore,
-    wordCount,
-    paragraphCount,
-    listCount,
-    tableCount,
     validityDays,
     sections: sectionDetails,
-    advice: adviceText,
-    contentHash: currentHash,
-    adviceHash,
-    updatedDateModified: shouldUpdateDate || adviceChanged ? new Date().toISOString() : null
+    advice,
+    dateModified: nowISODate(),
   };
-
-  return window.EvergreenDetectorResults;
-})();
-  
-//panggil fungsi detect nya
+  console.log(`✅ [AED v8.3.1] ${resultType.toUpperCase()} | PriceValidUntil +${validityDays} hari`);
+}
 detectEvergreenHybrid();
+
 /* ============================================================
-   📊 Evergreen Dashboard v8.1 — UI Terpisah
+   📊 Evergreen Dashboard v8.1 — Auto Placement
    ============================================================ */
 (function showEvergreenDashboard() {
   console.log("📊 Menampilkan Dashboard Evergreen...");
 
-  // Tunggu hasil core siap
   function waitForResults() {
-    if (window.EvergreenDetectorResults && window.EvergreenDetectorResults.results) {
+    if (window.EvergreenDetectorResults) {
       renderDashboard(window.EvergreenDetectorResults);
-    } else {
-      setTimeout(waitForResults, 300);
-    }
+    } else setTimeout(waitForResults, 300);
   }
 
   function renderDashboard(data) {
-    const dash = document.createElement("div");
-    dash.id = "EvergreenDashboard";
-    dash.style.cssText = `
+    const wrap = document.createElement("div");
+    wrap.id = "EvergreenDashboard";
+    wrap.style.cssText = `
       max-width:1200px;margin:40px auto;padding:15px;
       background:#f8fbff;border-top:4px solid #0066cc;
       border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);
       font-family:system-ui;
     `;
-
-    dash.innerHTML = `
+    wrap.innerHTML = `
       <h2 style="text-align:center;margin-bottom:10px;">🧩 Evergreen Content Report</h2>
       <p style="text-align:center;margin-bottom:20px;color:#444;">
-        <b>Date Published:</b> ${data.datePublished || '-'} |
-        <b>Last Modified:</b> ${data.dateModified || '-'}
+        <b>Status:</b> ${data.resultType.toUpperCase()} |
+        <b>Review:</b> ${data.validityDays} hari |
+        <b>Terakhir Ubah:</b> ${data.dateModified}
       </p>
       <table style="width:100%;border-collapse:collapse;font-size:15px;">
-        <thead>
-          <tr style="background:#eaf3ff;">
-            <th style="padding:8px;border:1px solid #ccc;">Bagian</th>
-            <th style="padding:8px;border:1px solid #ccc;">Tipe</th>
-            <th style="padding:8px;border:1px solid #ccc;">Saran Update</th>
-          </tr>
-        </thead>
+        <thead><tr style="background:#eaf3ff;">
+          <th style="padding:8px;border:1px solid #ccc;">Bagian</th>
+          <th style="padding:8px;border:1px solid #ccc;">Ever</th>
+          <th style="padding:8px;border:1px solid #ccc;">Semi</th>
+          <th style="padding:8px;border:1px solid #ccc;">Non</th>
+        </tr></thead>
         <tbody>
-          ${data.results.map(r=>`
-            <tr>
-              <td style="border:1px solid #ddd;padding:6px;"><b>${r.section}</b></td>
-              <td style="border:1px solid #ddd;padding:6px;text-align:center;">${r.type}</td>
-              <td style="border:1px solid #ddd;padding:6px;color:#333;">${r.advice||'-'}</td>
-            </tr>
-          `).join("")}
+          ${data.sections
+            .map(
+              s => `<tr>
+                <td style="border:1px solid #ddd;padding:6px;">${s.section}</td>
+                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sEver?.toFixed(1)||0}</td>
+                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sSemi?.toFixed(1)||0}</td>
+                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sNon?.toFixed(1)||0}</td>
+              </tr>`
+            )
+            .join("")}
         </tbody>
       </table>
+      <p style="text-align:center;margin-top:15px;">${data.advice}</p>
     `;
- // === Tempatkan di bawah elemen ID #AEDDashboard ===
-  const footerArea = document.querySelector("#AEDDashboard");
-  if (footerArea && footerArea.parentNode) {
-    footerArea.parentNode.insertBefore(wrap, footerArea.nextSibling);
-    console.log("✅ Dashboard Evergreen tampil di bawah #AEDDashboard");
-  } else {
-    document.body.appendChild(wrap);
-    console.warn("⚠️ #AEDDashboard tidak ditemukan, dashboard ditempatkan di akhir body.");
+
+    // === Tempatkan di bawah #AEDDashboard bila ada ===
+    const anchor = document.querySelector("#AEDDashboard");
+    if (anchor && anchor.parentNode) {
+      anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
+      console.log("✅ Dashboard Evergreen ditempatkan di bawah #AEDDashboard");
+    } else {
+      document.body.appendChild(wrap);
+      console.warn("⚠️ #AEDDashboard tidak ditemukan, dashboard ditaruh di akhir body.");
+    }
   }
-    
+
   waitForResults();
 })();
+
 //panggil fungsi shw dasboarrd
 showEvergreenDashboard();
   
