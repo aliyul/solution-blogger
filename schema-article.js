@@ -316,7 +316,7 @@ function detectEvergreen(title, text, url) {
     const h1R=elH1?elH1.innerText.trim():'(no h1)';
     const txt=sampleTextFrom(elC);
     const urlRaw=normalizeUrlToken(window.location.pathname);
-    const isPillar=window.location.pathname.includes('/p/');
+    //const isPillar=window.location.pathname.includes('/p/');
     const old=localStorage.getItem(CONFIG.storageKey);
     const hash=makeHash(h1R+'\n'+txt+'\n'+urlRaw);
 
@@ -326,8 +326,8 @@ function detectEvergreen(title, text, url) {
     const aiScore = result.score;
     const priceValidUntil = result.priceValidUntil;
     
-    // Jika URL termasuk /p/, otomatis Evergreen (pillar page)
-    if (isPillar) type = 'EVERGREEN';
+    // Jika URL termasuk /p/, otomatis Evergreen (pillar page) ini hapus aja pakai detect otomatis
+    //if (isPillar) type = 'EVERGREEN';
     
     console.log("[detectEvergreen AI ✅]", type, aiScore, priceValidUntil);
    // === Perhitungan tanggal update ===
