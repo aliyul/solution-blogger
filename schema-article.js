@@ -484,7 +484,7 @@ if (type === 'NON_EVERGREEN') {
    - priceValidUntil: evergreen=365d, semi=180d, non=90d
    - Results available on window.EvergreenDetectorResults
    ============================================================ */
-(function detectEvergreenHybrid_v8_3_1() {
+(function detectEvergreenHybrid() {
   console.log("🧠 Running Smart Evergreen Detector v8.3.1 Precision Hybrid...");
 
   // ---------- Utilities ----------
@@ -776,7 +776,9 @@ if (type === 'NON_EVERGREEN') {
 
   return window.EvergreenDetectorResults;
 })();
-
+  
+//panggil fungsi detect nya
+detectEvergreenHybrid();
 /* ============================================================
    📊 Evergreen Dashboard v8.1 — UI Terpisah
    ============================================================ */
@@ -834,7 +836,9 @@ if (type === 'NON_EVERGREEN') {
 
   waitForResults();
 })();
-
+//panggil fungsi shw dasboarrd
+showEvergreenDashboard();
+  
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
 
