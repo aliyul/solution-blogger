@@ -495,8 +495,17 @@ if (type === 'NON_EVERGREEN') {
 /* ============================================================
    🧠 Smart Evergreen Detector v8.3.2 — Precision+ Per Section Analyzer
    ============================================================ */
+/* ============================================================
+   🧠 Smart Evergreen Detector v8.3.4R — Precision+ Parity-Stable Fix
+   Fitur:
+   - Analisis per section (harga, produk, konten utama)
+   - Auto sync <meta itemprop="dateModified">
+   - Auto update priceValidUntil sesuai status evergreen
+   - Penempatan dashboard otomatis di bawah #AEDDashboard
+   ============================================================ */
+
 function detectEvergreenHybrid() {
-  console.log("🧠 Running Smart Evergreen Detector v8.3.3R Precision+ Parity...");
+  console.log("🧠 Running Smart Evergreen Detector v8.3.4R Precision+ Parity-Stable...");
 
   // ---------- Utilities ----------
   const nowISODate = (d = new Date()) => d.toISOString().split("T")[0];
@@ -521,7 +530,7 @@ function detectEvergreenHybrid() {
   const contentTextRaw = clean(contentEl ? contentEl.innerText : "");
   const contentText = (h1 + " " + contentTextRaw).toLowerCase();
 
-  // ---------- Keyword Pattern (Precision Set) ----------
+  // ---------- Keyword Pattern ----------
   const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
   const semiEvergreenPattern = /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/;
   const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
@@ -545,7 +554,7 @@ function detectEvergreenHybrid() {
     }
   }
 
-  // ---------- Section Scoring + Classification ----------
+  // ---------- Section Scoring ----------
   let totalScores = { evergreen: 0, semi: 0, non: 0 };
   const sectionDetails = sections.map(sec => {
     const t = sec.title.toLowerCase(), b = sec.content.toLowerCase();
@@ -555,9 +564,9 @@ function detectEvergreenHybrid() {
     if (semiEvergreenPattern.test(t)) sSemi += 2;
     if (nonEvergreenPattern.test(t)) sNon += 1.5;
 
-    if (evergreenPattern.test(b)) sEver += (b.match(evergreenPattern) || []).length * 0.8;
-    if (semiEvergreenPattern.test(b)) sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
-    if (nonEvergreenPattern.test(b)) sNon += (b.match(nonEvergreenPattern) || []).length * 1;
+    sEver += (b.match(evergreenPattern) || []).length * 0.8;
+    sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
+    sNon += (b.match(nonEvergreenPattern) || []).length * 1.0;
 
     const hasPriceTokens = priceTokenPattern.test(t + " " + b);
     if (hasPriceTokens) sSemi += 1.5;
@@ -570,40 +579,29 @@ function detectEvergreenHybrid() {
     if (sNon > sSemi && sNon > sEver) sectionType = "non-evergreen";
     else if (sEver > sSemi + 2 && sEver > sNon) sectionType = "evergreen";
 
-    const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[sectionType];
+    const validityDays = { "evergreen": 365, "semi-evergreen": 180, "non-evergreen": 90 }[sectionType];
+    const sectionAdvice =
+      sectionType === "evergreen" ? "Tinjau ulang tiap 9–12 bulan." :
+      sectionType === "semi-evergreen" ?
+        (hasPriceTokens ? "Perbarui harga setiap 3–6 bulan." : "Review tiap 4–6 bulan.") :
+        "Konten cepat berubah — update tiap 1–3 bulan.";
 
-    let sectionAdvice = "";
-    if (sectionType === "evergreen")
-      sectionAdvice = "Tinjau ulang tiap 9–12 bulan untuk memastikan isi tetap relevan.";
-    else if (sectionType === "semi-evergreen")
-      sectionAdvice = hasPriceTokens
-        ? "Perbarui harga setiap 3–6 bulan agar data tetap valid."
-        : "Tinjau ulang konten ini setiap 4–6 bulan.";
-    else
-      sectionAdvice = "Konten cepat berubah — perbarui tiap 1–3 bulan.";
-
-    return {
-      section: sec.title,
-      sEver, sSemi, sNon,
-      sectionType,
-      validityDays,
-      sectionAdvice
-    };
+    return { section: sec.title, sEver, sSemi, sNon, sectionType, validityDays, sectionAdvice };
   });
 
-  // ---------- Global Classification + Parity Mode ----------
+  // ---------- Global Classification + Parity ----------
   const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
   let resultType = "semi-evergreen";
   if (totalScores.non > totalScores.semi && totalScores.non > totalScores.evergreen) resultType = "non-evergreen";
   else if (totalScores.evergreen > totalScores.semi + 2 && !hasTimePattern) resultType = "evergreen";
 
-  // Parity Mode Adjustment → jika section harga dominan non/semi maka override
-  const sectionDominant = sectionDetails.filter(s => /harga|produk|spesifikasi/.test(s.section.toLowerCase()));
-  const parityStatus = sectionDominant.some(s => s.sectionType === "non-evergreen")
+  // Parity Mode: harga/produk lebih prioritas
+  const priceSections = sectionDetails.filter(s => /harga|produk|spesifikasi/.test(s.section.toLowerCase()));
+  const parityStatus = priceSections.some(s => s.sectionType === "non-evergreen")
     ? "non-evergreen"
-    : sectionDominant.some(s => s.sectionType === "semi-evergreen")
-    ? "semi-evergreen"
-    : resultType;
+    : priceSections.some(s => s.sectionType === "semi-evergreen")
+      ? "semi-evergreen"
+      : resultType;
 
   const finalType = parityStatus;
   const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
@@ -648,10 +646,10 @@ function detectEvergreenHybrid() {
   // ---------- Output ----------
   const advice =
     finalType === "evergreen"
-      ? "Konten utama bersifat evergreen — cukup review 9–12 bulan sekali."
+      ? "Konten bersifat evergreen — review tiap 9–12 bulan."
       : finalType === "semi-evergreen"
-      ? "Konten utama bersifat semi-evergreen — sebaiknya dicek ulang setiap 3–6 bulan."
-      : "Konten cepat berubah — update rutin tiap 1–3 bulan.";
+        ? "Konten semi-evergreen — periksa 3–6 bulan sekali."
+        : "Konten cepat berubah — update tiap 1–3 bulan.";
 
   window.EvergreenDetectorResults = {
     resultType: finalType,
@@ -661,12 +659,12 @@ function detectEvergreenHybrid() {
     dateModified: nowISODate(),
   };
 
-  console.log(`✅ [AED v8.3.3R Precision+] ${finalType.toUpperCase()} | Parity Section OK`);
+  console.log(`✅ [AED v8.3.4R] ${finalType.toUpperCase()} | Parity-Logic Stable`);
 }
 detectEvergreenHybrid();
 
 /* ============================================================
-   📊 Evergreen Dashboard v8.2 — Per Section View
+   📊 Evergreen Dashboard v8.3.4R — Smart Placement
    ============================================================ */
 (function showEvergreenDashboard() {
   console.log("📊 Menampilkan Dashboard Evergreen (per section)...");
@@ -711,7 +709,8 @@ detectEvergreenHybrid();
               <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sSemi.toFixed(1)}</td>
               <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sNon.toFixed(1)}</td>
               <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:bold;color:${
-                s.sectionType === "evergreen" ? "#007700" : s.sectionType === "semi-evergreen" ? "#cc8800" : "#cc0000"
+                s.sectionType === "evergreen" ? "#007700" :
+                s.sectionType === "semi-evergreen" ? "#cc8800" : "#cc0000"
               };">${s.sectionType.toUpperCase()}</td>
               <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.validityDays}</td>
               <td style="border:1px solid #ddd;padding:6px;">${s.sectionAdvice}</td>
@@ -721,14 +720,14 @@ detectEvergreenHybrid();
       <p style="text-align:center;margin-top:15px;">${data.advice}</p>
     `;
 
-    // === Tempatkan di bawah #AEDDashboard bila ada ===
+    // === Tempatkan dashboard di bawah #AEDDashboard bila ada ===
     const anchor = document.querySelector("#AEDDashboard");
     if (anchor && anchor.parentNode) {
       anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
       console.log("✅ Dashboard Evergreen ditempatkan di bawah #AEDDashboard");
     } else {
       document.body.appendChild(wrap);
-      console.warn("⚠️ #AEDDashboard tidak ditemukan, dashboard ditaruh di akhir body.");
+      console.warn("⚠️ #AEDDashboard tidak ditemukan — dashboard ditaruh di akhir body.");
     }
   }
 
