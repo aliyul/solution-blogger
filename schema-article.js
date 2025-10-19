@@ -44,10 +44,11 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 
   // ================== Ambil konten utama ==================
-  const contentEl = document.querySelector(".post-body.entry-content") || 
+/* const contentEl = document.querySelector(".post-body.entry-content") || 
                     document.querySelector("[id^='post-body-']") || 
                     document.querySelector(".post-body");
   const contentText = contentEl ? contentEl.innerText : "";
+  */
 
  // ================== HASH DETECTION ==================
 /*
@@ -64,7 +65,6 @@ if(oldHash && oldHash == currentHash){
   localStorage.setItem("articleHash", currentHash);
   console.log("Konten berubah → dateModified diupdate ke sekarang");
 }
-*/
 */
 // ================== DETEKSI TYPE KONTEN ==================
 /* ===== Auto Evergreen Detector v7.7 + Dashboard Interaktif ===== */
