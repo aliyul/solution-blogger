@@ -528,8 +528,8 @@ if (type === 'NON_EVERGREEN') {
    - Auto update priceValidUntil sesuai status evergreen
    - Penempatan dashboard otomatis di bawah #AEDDashboard
    ============================================================ */
-function detectEvergreenHybridFull() {
-  console.log("🧠 Running Smart Evergreen Detector v8.4 — Full Integrated Version with Dashboard...");
+function detectEvergreenHybridFullResponsive() {
+  console.log("🧠 Running AED v8.6 — Full + Dashboard Responsive + Sticky Table...");
 
   // ---------- Utilities ----------
   const now = new Date();
@@ -629,106 +629,98 @@ function detectEvergreenHybridFull() {
   const finalType = parityStatus;
   const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
 
-  // ---------- Meta dateModified / nextUpdate ----------
+  // ---------- Meta dateModified & datePublished ----------
   const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
   const dateModified = metaDateModified?.getAttribute("content") || nowISODate();
   const datePublished = metaDatePublished?.getAttribute("content") || nowISODate();
 
+  // ---------- Hash + Next Update ----------
   const currentHash = hashString(h1 + contentText.slice(0, 20000));
   const prevHash = localStorage.getItem("aed_hash_" + location.pathname);
   const metaNextUpdate = localStorage.getItem("aed_nextupdate_" + location.pathname);
-  let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(now.getTime() + validityDays * 86400000);
+  let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(now.getTime() + validityDays*86400000);
 
-  if (now >= nextUpdate || prevHash !== currentHash) {
+  if(now >= nextUpdate || prevHash !== currentHash){
     localStorage.setItem("aed_hash_" + location.pathname, currentHash);
-    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+    nextUpdate = new Date(now.getTime() + validityDays*86400000);
     localStorage.setItem("aed_nextupdate_" + location.pathname, nextUpdate.toISOString());
-    if (metaDateModified) metaDateModified.setAttribute("content", nowISODate());
+    if(metaDateModified) metaDateModified.setAttribute("content", nowISODate());
     else {
       const m = document.createElement("meta");
-      m.setAttribute("itemprop", "dateModified");
+      m.setAttribute("itemprop","dateModified");
       m.setAttribute("content", nowISODate());
       document.head.appendChild(m);
     }
   }
 
-  // ---------- Alert seminggu sebelum nextUpdate ----------
-  const oneWeekBefore = new Date(nextUpdate.getTime() - 7 * 86400000);
-  if (now >= oneWeekBefore && now < nextUpdate && !document.getElementById("aed-update-alert")) {
+  // ---------- Alert seminggu ----------
+  const oneWeekBefore = new Date(nextUpdate.getTime() - 7*86400000);
+  if(now >= oneWeekBefore && now < nextUpdate && !document.getElementById("aed-update-alert")){
     const alertDiv = document.createElement("div");
     alertDiv.id = "aed-update-alert";
-    alertDiv.setAttribute("data-nosnippet", "true");
+    alertDiv.setAttribute("data-nosnippet","true");
     alertDiv.style.cssText = "background:#fff3cd;color:#856404;padding:12px;border:1px solid #ffeeba;margin:15px 0;border-radius:6px;font-size:14px;text-align:center;";
     alertDiv.textContent = "⚠️ Konten ini akan direview segera (menjelang jadwal update).";
     const h1El = document.querySelector("h1");
-    if (h1El && h1El.parentNode) h1El.parentNode.insertBefore(alertDiv, h1El.nextSibling);
+    if(h1El && h1El.parentNode) h1El.parentNode.insertBefore(alertDiv, h1El.nextSibling);
   }
 
-  // ---------- PriceValidUntil Auto-Update ----------
-  const until = new Date(Date.now() + validityDays * 86400000).toISOString().split("T")[0];
+  // ---------- PriceValidUntil & JSON-LD update ----------
+  const until = new Date(Date.now() + validityDays*86400000).toISOString().split("T")[0];
   const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-  jsonldScripts.forEach(script => {
-    try {
+  jsonldScripts.forEach(script=>{
+    try{
       const parsed = JSON.parse(script.textContent.trim());
-      const apply = obj => {
-        if (obj["@type"] === "Product" || obj["@type"] === "Service") {
-          if (!obj.offers) obj.offers = { "@type": "Offer" };
-          obj.offers.priceValidUntil = until;
-          if (metaDateModified) obj.dateModified = metaDateModified.getAttribute("content");
-          if (metaDatePublished) obj.datePublished = metaDatePublished.getAttribute("content");
+      const apply=obj=>{
+        if(["Product","Service","Article","BlogPosting"].includes(obj["@type"])){
+          if(obj["@type"]==="Product"||obj["@type"]==="Service"){
+            if(!obj.offers)obj.offers={ "@type":"Offer" };
+            obj.offers.priceValidUntil = until;
+          }
+          obj.dateModified = dateModified;
+          obj.datePublished = datePublished;
         }
-        for (const k in obj) if (typeof obj[k] === "object") apply(obj[k]);
+        for(const k in obj)if(typeof obj[k]==="object")apply(obj[k]);
       };
-      if (Array.isArray(parsed)) parsed.forEach(apply);
+      if(Array.isArray(parsed))parsed.forEach(apply);
       else apply(parsed);
-      script.textContent = JSON.stringify(parsed, null, 2);
-    } catch {}
+      script.textContent = JSON.stringify(parsed,null,2);
+    }catch{}
   });
 
   // ---------- Save Results ----------
   const advice =
-    finalType === "evergreen"
-      ? "Konten bersifat evergreen — review tiap 9–12 bulan."
-      : finalType === "semi-evergreen"
-        ? "Konten semi-evergreen — periksa 3–6 bulan sekali."
-        : "Konten cepat berubah — update tiap 1–3 bulan.";
+    finalType==="evergreen"?"Konten bersifat evergreen — review tiap 9–12 bulan.":
+    finalType==="semi-evergreen"?"Konten semi-evergreen — periksa 3–6 bulan sekali.":
+    "Konten cepat berubah — update tiap 1–3 bulan.";
 
-  window.EvergreenDetectorResults = {
-    resultType: finalType,
+  window.EvergreenDetectorResults={
+    resultType:finalType,
     validityDays,
-    sections: sectionDetails,
+    sections:sectionDetails,
     advice,
-    dateModified: nowISODate(),
-    nextUpdate: nextUpdate.toISOString()
+    dateModified,
+    datePublished
   };
 
-  console.log(`✅ [AED v8.4 Full+Dashboard] ${finalType.toUpperCase()} | Parity & Auto-Update Ready`);
-
   // ---------- Dashboard ----------
-  (function showEvergreenDashboard() {
-    function waitForResults() {
-      if (window.EvergreenDetectorResults) renderDashboard(window.EvergreenDetectorResults);
-      else setTimeout(waitForResults, 300);
-    }
-    function renderDashboard(data) {
-      const wrap = document.createElement("div");
-      wrap.id = "EvergreenDashboard";
-      wrap.style.cssText = `
-        max-width:1200px;margin:40px auto;padding:15px;
-        background:#f8fbff;border-top:4px solid #0066cc;
-        border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);
-        font-family:system-ui;
-      `;
-      wrap.innerHTML = `
-        <h2 style="text-align:center;margin-bottom:10px;">🧩 Evergreen Content Report</h2>
-        <p style="text-align:center;margin-bottom:20px;color:#444;">
-          <b>Status Global:</b> ${data.resultType.toUpperCase()} |
-          <b>Review:</b> ${data.validityDays} hari |
-          <b>Terakhir Ubah:</b> ${data.dateModified}
-        </p>
-        <table style="width:100%;border-collapse:collapse;font-size:15px;">
-          <thead><tr style="background:#eaf3ff;">
+  function showDashboard(data){
+    const wrap=document.createElement("div");
+    wrap.id="EvergreenDashboard";
+    wrap.style.cssText=`max-width:1200px;margin:20px auto;padding:15px;background:#f8fbff;border-top:4px solid #0066cc;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-family:system-ui;overflow-x:auto;`;
+
+    wrap.innerHTML=`
+      <h2 style="text-align:center;margin-bottom:10px;">🧩 Evergreen Content Report</h2>
+      <p style="text-align:center;margin-bottom:10px;color:#444;">
+        <b>Status Global:</b> ${data.resultType.toUpperCase()} |
+        <b>Review:</b> ${data.validityDays} hari |
+        <b>Terakhir Ubah:</b> ${data.dateModified}
+      </p>
+      <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead style="position:sticky;top:0;background:#eaf3ff;z-index:10;">
+          <tr>
             <th style="padding:8px;border:1px solid #ccc;">Bagian</th>
             <th style="padding:8px;border:1px solid #ccc;">Ever</th>
             <th style="padding:8px;border:1px solid #ccc;">Semi</th>
@@ -736,34 +728,37 @@ function detectEvergreenHybridFull() {
             <th style="padding:8px;border:1px solid #ccc;">Status</th>
             <th style="padding:8px;border:1px solid #ccc;">Review (hari)</th>
             <th style="padding:8px;border:1px solid #ccc;">Saran</th>
-          </tr></thead>
-          <tbody>
-            ${data.sections.map(s => `
-              <tr>
-                <td style="border:1px solid #ddd;padding:6px;">${s.section}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sEver.toFixed(1)}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sSemi.toFixed(1)}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sNon.toFixed(1)}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:bold;color:${
-                  s.sectionType === "evergreen" ? "#007700" :
-                  s.sectionType === "semi-evergreen" ? "#cc8800" : "#cc0000"
-                };">${s.sectionType.toUpperCase()}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.validityDays}</td>
-                <td style="border:1px solid #ddd;padding:6px;">${s.sectionAdvice}</td>
-              </tr>`).join("")}
-          </tbody>
-        </table>
-        <p style="text-align:center;margin-top:15px;">${data.advice}</p>
-      `;
-      const anchor = document.querySelector("#AEDDashboard");
-      if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
-      else document.body.appendChild(wrap);
-    }
-    waitForResults();
-  })();
-}
+          </tr>
+        </thead>
+        <tbody>
+        ${data.sections.map(s=>`
+          <tr>
+            <td style="border:1px solid #ddd;padding:6px;">${s.section}</td>
+            <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sEver.toFixed(1)}</td>
+            <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sSemi.toFixed(1)}</td>
+            <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sNon.toFixed(1)}</td>
+            <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:bold;color:${
+              s.sectionType==="evergreen"?"#007700":
+              s.sectionType==="semi-evergreen"?"#cc8800":"#cc0000"
+            }">${s.sectionType.toUpperCase()}</td>
+            <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.validityDays}</td>
+            <td style="border:1px solid #ddd;padding:6px;">${s.sectionAdvice}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+      </div>
+      <p style="text-align:center;margin-top:10px;">${data.advice}</p>
+    `;
 
-detectEvergreenHybridFull();
+    const anchor=document.querySelector("#AEDDashboard");
+    if(anchor && anchor.parentNode) anchor.parentNode.insertBefore(wrap,anchor.nextSibling);
+    else document.body.appendChild(wrap);
+  }
+
+  showDashboard(window.EvergreenDetectorResults);
+  console.log("✅ AED Dashboard responsive + sticky table siap tampil");
+}
+detectEvergreenHybridFullResponsive();
 
 //panggil fungsi shw dasboarrd
 //showEvergreenDashboard();
