@@ -228,12 +228,18 @@ function tokenizeDEG(str) {
 
 function detectEvergreen(title, text, url) {
   // ===================== 🧩 UTILITIES =====================
-  const cleanText = str => (str||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g, ' ').trim();
-  const tokenize = str => cleanText(str).split(' ').filter(Boolean);
+  const cleanText = str =>
+    (str || "")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
-  const t = cleanText(title + ' ' + text);
+  const tokenize = str => cleanText(str).split(" ").filter(Boolean);
+
+  const t = cleanText(title + " " + text);
   const tokens = tokenize(t);
-  const urlTokens = tokenize(url.split('/').pop()?.replace(/\.html$/i,'') || '');
+  const urlTokens = tokenize(url.split("/").pop()?.replace(/\.html$/i, "") || "");
 
   // ===================== ⚖️ SCORING =====================
   let score = 0;
@@ -253,12 +259,17 @@ function detectEvergreen(title, text, url) {
   if (document.querySelectorAll("table").length > 0) score -= 1; // sering menandakan data harga
 
   // 4️⃣ Pola Evergreen / Edukatif
-  const evergreenWords = ["panduan","tutorial","tips","cara","fungsi","jenis","pengertian","struktur","standar","material","spesifikasi","teknik","manfaat","perbedaan","arti"];
+  const evergreenWords = [
+    "panduan","tutorial","tips","cara","fungsi","jenis","pengertian",
+    "struktur","standar","material","spesifikasi","teknik","manfaat",
+    "perbedaan","arti"
+  ];
   if (evergreenWords.some(k => t.includes(k))) score += 3;
 
   // 5️⃣ Pola Semi-Evergreen (harga, jasa, produk)
   const semiWords = ["harga","sewa","rental","kontraktor","jasa","produk","layanan","biaya","estimasi"];
-  if (semiWords.some(k => t.includes(k))) score += 1; // tidak negatif, dianggap semi stabil
+  const hasSemiKeyword = semiWords.some(k => t.includes(k));
+  if (hasSemiKeyword) score += 1; // tidak negatif, dianggap semi stabil
 
   // 6️⃣ Pola Negatif (time-sensitive)
   const temporal = ["update","terbaru","hari ini","minggu ini","bulan ini","promo","diskon","stok","sementara","proyek berjalan","deadline"];
@@ -269,7 +280,8 @@ function detectEvergreen(title, text, url) {
   if (news.some(k => t.includes(k))) score -= 3;
 
   // 8️⃣ Logika URL
-  if (url.includes("/p/")) score += 2;
+  const isPage = url.includes("/p/");
+  if (isPage) score += 2;
   if (/\/\d{4}\/\d{2}\//.test(url)) score -= 2; // URL bertanggal → bukan evergreen
 
   // ===================== 🧠 STATUS =====================
@@ -277,13 +289,17 @@ function detectEvergreen(title, text, url) {
   if (score >= 6) status = "EVERGREEN";
   else if (score <= 1) status = "NON_EVERGREEN";
 
+  // 🔁 Override: jika konten ada elemen harga/jasa/produk → semi-evergreen
+  if (status === "EVERGREEN" && hasSemiKeyword) {
+    status = "SEMI_EVERGREEN";
+  }
+
   // ===================== 📦 PRICE VALID UNTIL =====================
-  let priceValidUntil = null;
   const now = new Date();
   if (status === "EVERGREEN") now.setFullYear(now.getFullYear() + 1);
   else if (status === "SEMI_EVERGREEN") now.setMonth(now.getMonth() + 6);
   else now.setMonth(now.getMonth() + 3);
-  priceValidUntil = now.toISOString().split("T")[0];
+  const priceValidUntil = now.toISOString().split("T")[0];
 
   console.log(`🧩 Evergreen Detection:
   - Status: ${status}
