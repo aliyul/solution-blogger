@@ -785,8 +785,8 @@ if (type === 'NON_EVERGREEN') {
 
   // Tunggu hasil core siap
   function waitForResults() {
-    if (window.EvergreenResults && window.EvergreenResults.results) {
-      renderDashboard(window.EvergreenResults);
+    if (window.EvergreenDetectorResults && window.EvergreenDetectorResults.results) {
+      renderDashboard(window.EvergreenDetectorResults);
     } else {
       setTimeout(waitForResults, 300);
     }
