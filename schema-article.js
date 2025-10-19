@@ -829,11 +829,16 @@ detectEvergreenHybrid();
         </tbody>
       </table>
     `;
-
-    document.body.appendChild(dash);
-    console.log("✅ Dashboard Evergreen tampil di halaman");
+ // === Tempatkan di bawah elemen ID #AEDDashboard ===
+  const footerArea = document.querySelector("#AEDDashboard");
+  if (footerArea && footerArea.parentNode) {
+    footerArea.parentNode.insertBefore(wrap, footerArea.nextSibling);
+    console.log("✅ Dashboard Evergreen tampil di bawah #AEDDashboard");
+  } else {
+    document.body.appendChild(wrap);
+    console.warn("⚠️ #AEDDashboard tidak ditemukan, dashboard ditempatkan di akhir body.");
   }
-
+    
   waitForResults();
 })();
 //panggil fungsi shw dasboarrd
