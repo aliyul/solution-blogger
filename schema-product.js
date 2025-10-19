@@ -121,53 +121,86 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
 
     // ⚡ Auto Evergreen Detector v7.0 — 100% Otomatis untuk Semua Jenis Artikel
-    function detectEvergreenAI() {
-      const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
-      const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
-                           .map(p => p.innerText)
-                           .join(" ")
-                           .toLowerCase();
-      const text = (h1 + " " + content).replace(/\s+/g, " ");
-    
-      // ===== 🧠 Pola Deteksi Otomatis =====
-      const nonEvergreenPattern = /\b(update|terbaru|berita|jadwal|event|promo|diskon|progres|proyek|bulan\s\d{4}|tahun\s\d{4}|sementara|musiman|stok|kontrak|laporan|penawaran|sementara|perubahan|info pasar|analisis pasar|fluktuasi|forecast)\b/;
-      const semiEvergreenPattern = /\b(harga\s(beton|ready mix|u ditch|precast|besi|baja|semen|aspal|cor|tanah|alat)|sewa|rental|kontraktor|jasa|pembangunan|borongan|analisa harga satuan|estimasi biaya|kalkulasi|penyewaan|layanan)\b/;
-      const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|strategi|langkah|prosedur|manfaat|fungsi|jenis|contoh|teknik|pengertian|kegunaan|struktur|standar|material|spesifikasi|apa itu|arti|perbedaan|konsep|metode)\b/;
-    
-      // ===== 1️⃣ Struktur & Pola Time-sensitive
-      const hasTimePattern = /\b(20\d{2}|harga|tarif|update|promo|diskon|deadline|agenda|sementara|terbaru|bulan|minggu)\b/.test(text);
-    
-      // ===== 2️⃣ Deteksi Tipe Konten Berdasarkan Pola
-      let resultType = "semi-evergreen";
-      if (nonEvergreenPattern.test(text)) resultType = "non-evergreen";
-      else if (semiEvergreenPattern.test(text)) resultType = "semi-evergreen";
-      else if (evergreenPattern.test(text)) resultType = "evergreen";
-      else if (/harga|jasa|sewa|rental/.test(text)) resultType = "semi-evergreen";
-    
-      // ===== 3️⃣ Skor Tambahan (kualitas konten)
-      const paragraphCount = content.split(/\n{2,}/).filter(p => p.trim().length > 50).length;
-      const tableCount = document.querySelectorAll("table").length;
-      const listCount = document.querySelectorAll("article ol, article ul").length;
-      const wordCount = content.split(/\s+/).length;
-    
-      let evergreenScore = (content.match(evergreenPattern) || []).length + paragraphCount + listCount;
-      if (wordCount > 800) evergreenScore += 2;
-      if (tableCount > 0) evergreenScore -= 1;
-    
-      // ===== 4️⃣ Koreksi Berdasarkan Skor & Pola
-      if (resultType === "semi-evergreen" && evergreenScore >= 5 && !hasTimePattern) {
-        resultType = "evergreen";
-      } else if (resultType === "evergreen" && hasTimePattern && evergreenScore <= 2) {
-        resultType = "semi-evergreen";
-      }
-    
-      console.log(`[Evergreen AI ✅] Type: ${resultType.toUpperCase()}, Score: ${evergreenScore}, TimeSensitive: ${hasTimePattern}`);
-      return resultType;
-    }
-    
-    // === 🚀 Jalankan Deteksi
-    const evergreenType = detectEvergreenAI();
-    
+    /* ============================================================
+   🧠 Smart Evergreen Detector v8.2 — Ultra Accurate SEO Version
+   Fitur:
+   - Deteksi otomatis konten evergreen, semi-evergreen, non-evergreen
+   - Analisis struktur dan kedalaman konten
+   - Koreksi otomatis berdasarkan skor dan sensitivitas waktu
+   - Didesain untuk niche SEO harga, jasa, beton, dan alat berat
+   ============================================================ */
+
+function detectEvergreenAI() {
+  const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
+  const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
+    .map(p => p.innerText)
+    .join(" ")
+    .toLowerCase();
+  const text = (h1 + " " + content).replace(/\s+/g, " ");
+
+  // ===== 1️⃣ Pola Deteksi Otomatis =====
+  const nonEvergreenPattern =
+    /\b(update|terbaru|berita|jadwal|event|promo|diskon|progres|proyek|bulan\s\d{4}|tahun\s\d{4}|sementara|musiman|stok|kontrak|laporan|penawaran|perubahan|info pasar|analisis pasar|fluktuasi|forecast|revisi|minggu\sini|hari\sini|mingguan|bulanan|kuartal|q\d|tahunan)\b/;
+
+  const semiEvergreenPattern =
+    /\b(harga\s(beton|ready mix|jayamix|minimix|u ditch|precast|baja|besi|semen|aspal|cor|tanah|alat)|harga\s(per\s(m3|meter|hari|jam|unit))|harga\s(sewa|jual|cor|tarif)|sewa|rental|kontraktor|jasa|pembangunan|borongan|analisa harga satuan|estimasi biaya|kalkulasi|penyewaan|layanan|tarif)\b/;
+
+  const evergreenPattern =
+    /\b(panduan|tutorial|tips|cara|definisi|strategi|langkah|prosedur|manfaat|fungsi|jenis|contoh|teknik|pengertian|kegunaan|struktur|standar|material|spesifikasi|apa itu|arti|perbedaan|konsep|metode|keunggulan|kelebihan|kekurangan|komponen|prinsip kerja|proses)\b/;
+
+  // ===== 2️⃣ Pola Sensitivitas Waktu =====
+  const hasTimePattern =
+    /\b(20\d{2}|harga\sbulan|update|promo|diskon|deadline|agenda|sementara|terbaru|minggu|bulan|hari\sini|minggu\sini|q\d|kuartal)\b/.test(text);
+
+  // ===== 3️⃣ Deteksi Awal Berdasarkan Pola =====
+  let resultType = "semi-evergreen";
+  if (nonEvergreenPattern.test(text)) resultType = "non-evergreen";
+  else if (semiEvergreenPattern.test(text)) resultType = "semi-evergreen";
+  else if (evergreenPattern.test(text)) resultType = "evergreen";
+  else if (/harga|jasa|sewa|rental/.test(text)) resultType = "semi-evergreen";
+
+  // ===== 4️⃣ Pengukuran Struktur & Kedalaman =====
+  const paragraphCount = content.split(/\n{2,}/).filter(p => p.trim().length > 50).length;
+  const tableCount = document.querySelectorAll("table").length;
+  const listCount = document.querySelectorAll("article ol, article ul, main ol, main ul").length;
+  const wordCount = content.split(/\s+/).length;
+
+  let evergreenScore = (content.match(evergreenPattern) || []).length + paragraphCount + listCount;
+
+  // Bobot tambahan
+  if (wordCount > 800) evergreenScore += 2;     // panjang konten
+  if (wordCount > 1500) evergreenScore += 2;    // artikel mendalam
+  if (tableCount > 0) evergreenScore -= 1;      // tabel = indikasi konten harga (semi)
+  if (nonEvergreenPattern.test(text)) evergreenScore -= 3; // penalti update time-sensitive
+
+  // ===== 5️⃣ Koreksi Berdasarkan Skor & Pola =====
+  if (resultType === "semi-evergreen" && evergreenScore >= 6 && !hasTimePattern) {
+    resultType = "evergreen";
+  } else if (resultType === "evergreen" && hasTimePattern && evergreenScore <= 3) {
+    resultType = "semi-evergreen";
+  } else if (resultType === "semi-evergreen" && hasTimePattern && evergreenScore < 2) {
+    resultType = "non-evergreen";
+  }
+
+  // ===== 6️⃣ Log Hasil Deteksi ke Console =====
+  const logColor =
+    resultType === "evergreen"
+      ? "color:green"
+      : resultType === "semi-evergreen"
+      ? "color:orange"
+      : "color:red";
+
+  console.log(
+    `%c[Evergreen AI 🔍] Type: ${resultType.toUpperCase()} | Score: ${evergreenScore} | Words: ${wordCount} | TimeSensitive: ${hasTimePattern}`,
+    logColor
+  );
+
+  return resultType;
+}
+
+// === 🚀 Jalankan Deteksi ===
+const evergreenType = detectEvergreenAI();
+
     // === 📆 AUTO PRICE VALID UNTIL (Berdasarkan Jenis Konten)
     const now = new Date();
     const priceValidUntil = new Date(now);
