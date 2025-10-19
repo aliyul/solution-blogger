@@ -688,7 +688,7 @@ detectEvergreenHybrid();
 })();
 
 //panggil fungsi shw dasboarrd
-showEvergreenDashboard();
+//showEvergreenDashboard();
   
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
