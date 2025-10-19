@@ -527,8 +527,7 @@ if (type === 'NON_EVERGREEN') {
    - Auto sync <meta itemprop="dateModified">
    - Auto update priceValidUntil sesuai status evergreen
    - Penempatan dashboard otomatis di bawah #AEDDashboard
-   ============================================================ */
-function detectEvergreenFullDashboard() {
+   ============================================================ */function detectEvergreenFullDashboard() {
   console.log("🧠 Running Smart Evergreen Detector v8.6 Full + Dashboard Responsive...");
 
   // ---------- Utilities ----------
@@ -636,6 +635,9 @@ function detectEvergreenFullDashboard() {
   const dateModified = metaDateModified?.getAttribute("content") || nowISODate();
   const datePublished = metaDatePublished?.getAttribute("content") || nowISODate();
 
+  // ---------- Simpan global supaya bisa dipakai di fungsi lain ----------
+  window.AEDMetaDates = { dateModified, datePublished };
+
   // ---------- Hash + Next Update ----------
   const currentHash = hashString(h1 + contentText.slice(0, 20000));
   const prevHash = localStorage.getItem("aed_hash_" + location.pathname);
@@ -697,7 +699,6 @@ function detectEvergreenFullDashboard() {
 
   window.EvergreenDetectorResults = { resultType: finalType, validityDays, sections: sectionDetails, advice, dateModified, datePublished };
 
-  // ---------- Show Dashboard ----------
   (function showDashboard(){
     const renderDashboard=data=>{
       const wrap=document.createElement("div");
@@ -753,6 +754,7 @@ function detectEvergreenFullDashboard() {
 
 detectEvergreenFullDashboard();
 
+
 //panggil fungsi shw dasboarrd
 //showEvergreenDashboard();
   
@@ -787,33 +789,42 @@ detectEvergreenFullDashboard();
   const descMeta = document.querySelector("meta[name='description']")?.content || "";
   const firstImg = document.querySelector(".post-body img")?.src || "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
-  // ===== POST =====
-  const schemaPost = document.getElementById("auto-schema");
-  if(schemaPost){
-    const postSchema = {
-      "@context": "https://schema.org",
-      "@type": "Article",
-      "isAccessibleForFree": true,
-      "mainEntityOfPage": { "@type": "WebPage", "@id": url+"#webpage" },
-      "headline": escapeJSON(title),
-      "description": escapeJSON(descMeta),
-      "image": [firstImg],
-      "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
-      "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix", "logo": { "@type": "ImageObject", "url": firstImg } },
-      "datePublished": datePublished,
-      "dateModified": dateModified,
-      "articleSection": articleSectionStr,
-      "keywords": keywordsStr,
-      "wordCount": getArticleWordCount(content),
-      "articleBody": cleanText(content ? content.textContent : ""),
-      "inLanguage": "id-ID"
-    };
-    schemaPost.textContent = JSON.stringify(postSchema, null, 2);
-  }
+ // ===== POST =====
+const schemaPost = document.getElementById("auto-schema");
+if(schemaPost){
+  const { datePublished, dateModified } = window.AEDMetaDates || {
+    datePublished: new Date().toISOString().split("T")[0],
+    dateModified: new Date().toISOString().split("T")[0]
+  };
+
+  const postSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "isAccessibleForFree": true,
+    "mainEntityOfPage": { "@type": "WebPage", "@id": url+"#webpage" },
+    "headline": escapeJSON(title),
+    "description": escapeJSON(descMeta),
+    "image": [firstImg],
+    "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
+    "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix", "logo": { "@type": "ImageObject", "url": firstImg } },
+    "datePublished": datePublished,
+    "dateModified": dateModified,
+    "articleSection": articleSectionStr,
+    "keywords": keywordsStr,
+    "wordCount": getArticleWordCount(content),
+    "articleBody": cleanText(content ? content.textContent : ""),
+    "inLanguage": "id-ID"
+  };
+  schemaPost.textContent = JSON.stringify(postSchema, null, 2);
+}
 
   // ===== STATIC PAGE =====
   const schemaStatic = document.getElementById("auto-schema-static-page");
   if(schemaStatic){
+    const { datePublished, dateModified } = window.AEDMetaDates || {
+    datePublished: new Date().toISOString().split("T")[0],
+    dateModified: new Date().toISOString().split("T")[0]
+  };
     const staticSchema = {
       "@context": "https://schema.org",
       "@type": "Article",
