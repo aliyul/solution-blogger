@@ -227,53 +227,70 @@ function tokenizeDEG(str) {
 }
 
 function detectEvergreen(title, text, url) {
-  // ===================== UTILS =====================
-  const cleanText = str => (str||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
-  const tokenizeDEG = str => cleanText(str).split(' ').filter(Boolean);
-  
+  // ===================== 🧩 UTILITIES =====================
+  const cleanText = str => (str||'').toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g, ' ').trim();
+  const tokenize = str => cleanText(str).split(' ').filter(Boolean);
+
   const t = cleanText(title + ' ' + text);
-  const contentTokens = tokenizeDEG(t);
-  const urlTokens = tokenizeDEG(url.split('/').pop()?.replace(/\.html$/i,'') || '');
-  
-  // ===================== SCORE =====================
+  const tokens = tokenize(t);
+  const urlTokens = tokenize(url.split('/').pop()?.replace(/\.html$/i,'') || '');
+
+  // ===================== ⚖️ SCORING =====================
   let score = 0;
 
-  // 1️⃣ Relevansi konten ↔ URL
-  let matchCount = 0;
-  for(const ut of urlTokens){
-    if(contentTokens.includes(ut)) matchCount++;
-  }
-  score += Math.min(matchCount, 3); // Maks +3
+  // 1️⃣ Relevansi URL ↔ Konten
+  const matchCount = urlTokens.filter(ut => tokens.includes(ut)).length;
+  score += Math.min(matchCount, 3);
 
-  // 2️⃣ Panjang konten mendukung
-  if(t.length > 1500) score += 2; // konten detail
+  // 2️⃣ Panjang & Struktur
+  if (t.length > 1500) score += 2;
+  const paraCount = (text.match(/\n/g) || []).length;
+  if (paraCount > 8) score += 1;
+  if (paraCount < 3) score -= 1;
 
-  // 3️⃣ Struktur paragraf
-  const paraCount = (text.match(/\n/g)||[]).length;
-  if(paraCount > 8) score += 1;
-  if(paraCount < 3) score -= 1;
+  // 3️⃣ Struktur SEO positif
+  if (document.querySelectorAll("h2, h3").length >= 3) score += 1;
+  if (document.querySelectorAll("table").length > 0) score -= 1; // sering menandakan data harga
 
-  // 4️⃣ Logika URL tambahan
-  if(url.includes("/p/")) score += 2; // Pilar / halaman penting
-  // Cek apakah URL relevan dengan kata di H1 + konten
-  if(urlTokens.some(tk => contentTokens.includes(tk))) score += 1;
-  // URL bertanggal cenderung NON evergreen
-  if(/\/\d{4}\/\d{2}\//.test(url)) score -= 1;
+  // 4️⃣ Pola Evergreen / Edukatif
+  const evergreenWords = ["panduan","tutorial","tips","cara","fungsi","jenis","pengertian","struktur","standar","material","spesifikasi","teknik","manfaat","perbedaan","arti"];
+  if (evergreenWords.some(k => t.includes(k))) score += 3;
 
-  // 5️⃣ Kata temporal / spammy di konten (negatif ringan)
-  const negLight = ["hari ini","minggu ini","bulan ini","harga per hari","stok","tersedia","pesan sekarang","diskon","promo","wa","whatsapp"];
-  if(negLight.some(kw => t.includes(kw))) score -= 1;
+  // 5️⃣ Pola Semi-Evergreen (harga, jasa, produk)
+  const semiWords = ["harga","sewa","rental","kontraktor","jasa","produk","layanan","biaya","estimasi"];
+  if (semiWords.some(k => t.includes(k))) score += 1; // tidak negatif, dianggap semi stabil
 
-  // 6️⃣ Kata berita / cepat basi (negatif kuat)
-  const negStrong = ["berita","event","pengumuman","laporan","seminar","acara","konferensi","kemarin","besok","bulan lalu"];
-  if(negStrong.some(kw => t.includes(kw))) score -= 2;
+  // 6️⃣ Pola Negatif (time-sensitive)
+  const temporal = ["update","terbaru","hari ini","minggu ini","bulan ini","promo","diskon","stok","sementara","proyek berjalan","deadline"];
+  if (temporal.some(k => t.includes(k))) score -= 2;
 
-  // ===================== STATUS =====================
-  let status = "SEMI_EVERGREEN"; // default
-  if(score >= 5) status = "EVERGREEN";
-  else if(score <= 0) status = "NON_EVERGREEN";
+  // 7️⃣ Pola Berita/Event
+  const news = ["berita","laporan","event","konferensi","seminar","pengumuman"];
+  if (news.some(k => t.includes(k))) score -= 3;
 
-  return status;
+  // 8️⃣ Logika URL
+  if (url.includes("/p/")) score += 2;
+  if (/\/\d{4}\/\d{2}\//.test(url)) score -= 2; // URL bertanggal → bukan evergreen
+
+  // ===================== 🧠 STATUS =====================
+  let status = "SEMI_EVERGREEN";
+  if (score >= 6) status = "EVERGREEN";
+  else if (score <= 1) status = "NON_EVERGREEN";
+
+  // ===================== 📦 PRICE VALID UNTIL =====================
+  let priceValidUntil = null;
+  const now = new Date();
+  if (status === "EVERGREEN") now.setFullYear(now.getFullYear() + 1);
+  else if (status === "SEMI_EVERGREEN") now.setMonth(now.getMonth() + 6);
+  else now.setMonth(now.getMonth() + 3);
+  priceValidUntil = now.toISOString().split("T")[0];
+
+  console.log(`🧩 Evergreen Detection:
+  - Status: ${status}
+  - Score: ${score}
+  - PriceValidUntil: ${priceValidUntil}`);
+
+  return { status, score, priceValidUntil };
 }
 
   // ===================== CORE =====================
