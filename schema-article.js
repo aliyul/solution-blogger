@@ -305,30 +305,16 @@ function detectEvergreen(title, text, url) {
     const hash=makeHash(h1R+'\n'+txt+'\n'+urlRaw);
 
     // === Deteksi Evergreen ===
-    let type = detectEvergreen(h1R, txt, urlRaw);
+    const result = detectEvergreen(h1R, txt, urlRaw);
+    let type = result.status;
+    const aiScore = result.score;
+    const priceValidUntil = result.priceValidUntil;
     
     // Jika URL termasuk /p/, otomatis Evergreen (pillar page)
-    if (isPillar) {
-      type = 'EVERGREEN';
-    } else {
-      // Cek kecocokan H1 dengan URL bersih
-     /* const h1Clean = h1R.toLowerCase().trim();
-      const urlClean = urlRaw.toLowerCase().trim();
-      const urlTokens = urlClean.split(' ').filter(Boolean);
-      const h1MatchesUrl = urlTokens.every(tok => h1Clean.includes(tok));
+    if (isPillar) type = 'EVERGREEN';
     
-      if (!h1MatchesUrl && type === 'EVERGREEN') {
-        // Jika H1 tidak sesuai URL, downgrade ke Semi-Evergreen
-        type = 'SEMI_EVERGREEN';
-      }
-    
-      // Jika skor deteksi ≤ 0 → Non-Evergreen
-      const score = computeH1UrlScore(h1R, urlRaw); // panggil fungsi skor
-      if (score <= 0) type = 'NON_EVERGREEN';
-      */
-    }
-    console.log("[detectEvergreen AI ✅]", type);
-    // === Perhitungan tanggal update ===
+    console.log("[detectEvergreen AI ✅]", type, aiScore, priceValidUntil);
+   // === Perhitungan tanggal update ===
     const next=new Date();let mod=null;
     const m=CONFIG.intervals[type];
     if(!old||old!==hash){
@@ -449,7 +435,7 @@ if (type === 'NON_EVERGREEN') {
     tbl.style.overflowX='auto';tbl.style.display='none';
     tbl.innerHTML='<table style="width:100%;border-collapse:collapse;min-width:1000px;font-size:.9em;">'+
     '<thead><tr><th>Halaman</th><th>Status Evergreen</th><th>Tanggal Diperbarui</th><th>H1</th><th>Skor</th><th>Rekom H1</th><th>Next Update</th></tr></thead>'+
-    '<tbody><tr><td>'+document.title+'</td><td>'+type+'</td><td>'+(modStr||'—')+'</td><td>'+h1R+'</td><td>'+score+'/100</td><td>'+(sSug||'—')+'</td><td>'+nextStr+'</td></tr></tbody></table>';
+    '<tbody><tr><td>'+document.title+'</td><td>'+type+'</td><td>'+(modStr||'—')+'</td><td>'+h1R+'</td><td>'+aiScore+'/100</td><td>'+(sSug||'—')+'</td><td>'+nextStr+'</td></tr></tbody></table>';
     dash.appendChild(tbl);
     //(document.querySelector('main')||document.body).appendChild(dash);
      document.body.insertAdjacentElement('beforeend', dash);
