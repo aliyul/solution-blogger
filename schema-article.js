@@ -496,7 +496,7 @@ if (type === 'NON_EVERGREEN') {
    🧠 Smart Evergreen Detector v8.3.2 — Precision+ Per Section Analyzer
    ============================================================ */
 function detectEvergreenHybrid() {
-  console.log("🧠 Running Smart Evergreen Detector v8.3.2 Precision+...");
+  console.log("🧠 Running Smart Evergreen Detector v8.3.3R Precision+ Parity...");
 
   // ---------- Utilities ----------
   const nowISODate = (d = new Date()) => d.toISOString().split("T")[0];
@@ -521,7 +521,7 @@ function detectEvergreenHybrid() {
   const contentTextRaw = clean(contentEl ? contentEl.innerText : "");
   const contentText = (h1 + " " + contentTextRaw).toLowerCase();
 
-  // ---------- Patterns ----------
+  // ---------- Keyword Pattern (Precision Set) ----------
   const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
   const semiEvergreenPattern = /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/;
   const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
@@ -566,35 +566,47 @@ function detectEvergreenHybrid() {
     totalScores.semi += sSemi;
     totalScores.non += sNon;
 
-    // Tentukan status section
     let sectionType = "semi-evergreen";
     if (sNon > sSemi && sNon > sEver) sectionType = "non-evergreen";
     else if (sEver > sSemi + 2 && sEver > sNon) sectionType = "evergreen";
 
     const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[sectionType];
 
-    // Saran per section
     let sectionAdvice = "";
-    if (sectionType === "evergreen") sectionAdvice = "Cukup tinjau ulang tiap 9–12 bulan untuk memastikan isi tetap relevan.";
-    else if (sectionType === "semi-evergreen") sectionAdvice = hasPriceTokens
-      ? "Perbarui harga atau data pasar setiap 3–6 bulan."
-      : "Tinjau ulang konten ini setiap 4–6 bulan.";
-    else sectionAdvice = "Konten cepat berubah — pastikan diperbarui tiap 1–3 bulan.";
+    if (sectionType === "evergreen")
+      sectionAdvice = "Tinjau ulang tiap 9–12 bulan untuk memastikan isi tetap relevan.";
+    else if (sectionType === "semi-evergreen")
+      sectionAdvice = hasPriceTokens
+        ? "Perbarui harga setiap 3–6 bulan agar data tetap valid."
+        : "Tinjau ulang konten ini setiap 4–6 bulan.";
+    else
+      sectionAdvice = "Konten cepat berubah — perbarui tiap 1–3 bulan.";
 
-    return { 
-      section: sec.title, 
-      sEver, sSemi, sNon, 
-      sectionType, 
-      validityDays, 
-      sectionAdvice 
+    return {
+      section: sec.title,
+      sEver, sSemi, sNon,
+      sectionType,
+      validityDays,
+      sectionAdvice
     };
   });
 
-  // ---------- Global Classification ----------
+  // ---------- Global Classification + Parity Mode ----------
   const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
   let resultType = "semi-evergreen";
   if (totalScores.non > totalScores.semi && totalScores.non > totalScores.evergreen) resultType = "non-evergreen";
   else if (totalScores.evergreen > totalScores.semi + 2 && !hasTimePattern) resultType = "evergreen";
+
+  // Parity Mode Adjustment → jika section harga dominan non/semi maka override
+  const sectionDominant = sectionDetails.filter(s => /harga|produk|spesifikasi/.test(s.section.toLowerCase()));
+  const parityStatus = sectionDominant.some(s => s.sectionType === "non-evergreen")
+    ? "non-evergreen"
+    : sectionDominant.some(s => s.sectionType === "semi-evergreen")
+    ? "semi-evergreen"
+    : resultType;
+
+  const finalType = parityStatus;
+  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
 
   // ---------- DateModified Auto-Sync ----------
   const currentHash = hashString(h1 + contentText.slice(0, 20000));
@@ -615,7 +627,6 @@ function detectEvergreenHybrid() {
   }
 
   // ---------- PriceValidUntil Auto-Update ----------
-  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[resultType];
   const until = new Date(Date.now() + validityDays * 86400000).toISOString().split("T")[0];
   const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
   jsonldScripts.forEach(script => {
@@ -636,20 +647,21 @@ function detectEvergreenHybrid() {
 
   // ---------- Output ----------
   const advice =
-    resultType === "evergreen"
+    finalType === "evergreen"
       ? "Konten utama bersifat evergreen — cukup review 9–12 bulan sekali."
-      : resultType === "semi-evergreen"
+      : finalType === "semi-evergreen"
       ? "Konten utama bersifat semi-evergreen — sebaiknya dicek ulang setiap 3–6 bulan."
       : "Konten cepat berubah — update rutin tiap 1–3 bulan.";
 
   window.EvergreenDetectorResults = {
-    resultType,
+    resultType: finalType,
     validityDays,
     sections: sectionDetails,
     advice,
     dateModified: nowISODate(),
   };
-  console.log(`✅ [AED v8.3.2] ${resultType.toUpperCase()} | Section-analyzed`);
+
+  console.log(`✅ [AED v8.3.3R Precision+] ${finalType.toUpperCase()} | Parity Section OK`);
 }
 detectEvergreenHybrid();
 
