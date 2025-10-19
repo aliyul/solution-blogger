@@ -434,7 +434,8 @@ if (type === 'NON_EVERGREEN') {
     '<thead><tr><th>Halaman</th><th>Status Evergreen</th><th>Tanggal Diperbarui</th><th>H1</th><th>Skor</th><th>Rekom H1</th><th>Next Update</th></tr></thead>'+
     '<tbody><tr><td>'+document.title+'</td><td>'+type+'</td><td>'+(modStr||'—')+'</td><td>'+h1R+'</td><td>'+score+'/100</td><td>'+(sSug||'—')+'</td><td>'+nextStr+'</td></tr></tbody></table>';
     dash.appendChild(tbl);
-    (document.querySelector('main')||document.body).appendChild(dash);
+    //(document.querySelector('main')||document.body).appendChild(dash);
+     document.body.insertAdjacentElement('beforeend', dash);
 
     // === Tombol interaksi ===
     show.onclick=()=>tbl.style.display=tbl.style.display==='none'?'block':'none';
@@ -455,6 +456,7 @@ if (type === 'NON_EVERGREEN') {
     st.innerHTML='@media(max-width:768px){table th,td{padding:4px;font-size:.8em;}table{min-width:700px;}}table th,td{border:1px solid #ccc;padding:6px;text-align:left;}thead{background:#dff0ff;position:sticky;top:0;}';
     document.head.appendChild(st);
 
+   
     console.log("✅ AED v8.3.2R Ultra KMPTTF aktif — Evergreen detector, data-force sync, dashboard fix.");
   }catch(e){console.error("❌ AED v8.3.2R Error:",e);}
 })(window, document);
