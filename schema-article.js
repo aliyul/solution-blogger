@@ -504,6 +504,15 @@ if (type === 'NON_EVERGREEN') {
    - Penempatan dashboard otomatis di bawah #AEDDashboard
    ============================================================ */
 
+/* ============================================================
+   🧠 Smart Evergreen Detector v8.3.4R — Precision+ Parity-Stable Fix
+   Fitur:
+   - Analisis per section (harga, produk, konten utama)
+   - Auto sync <meta itemprop="dateModified">
+   - Auto update priceValidUntil sesuai status evergreen
+   - Penempatan dashboard otomatis di bawah #AEDDashboard
+   ============================================================ */
+
 function detectEvergreenHybrid() {
   console.log("🧠 Running Smart Evergreen Detector v8.3.4R Precision+ Parity-Stable...");
 
