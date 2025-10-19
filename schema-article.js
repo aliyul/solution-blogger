@@ -489,8 +489,11 @@ if (type === 'NON_EVERGREEN') {
 /* ============================================================
    🧠 Smart Evergreen Detector v8.3.1 — Precision Hybrid
    ============================================================ */
+/* ============================================================
+   🧠 Smart Evergreen Detector v8.3.2 — Precision+ Per Section Analyzer
+   ============================================================ */
 function detectEvergreenHybrid() {
-  console.log("🧠 Running Smart Evergreen Detector v8.3.1 Precision Hybrid...");
+  console.log("🧠 Running Smart Evergreen Detector v8.3.2 Precision+...");
 
   // ---------- Utilities ----------
   const nowISODate = (d = new Date()) => d.toISOString().split("T")[0];
@@ -514,7 +517,6 @@ function detectEvergreenHybrid() {
     document.body;
   const contentTextRaw = clean(contentEl ? contentEl.innerText : "");
   const contentText = (h1 + " " + contentTextRaw).toLowerCase();
-  const wordCount = contentText.split(/\s+/).filter(Boolean).length;
 
   // ---------- Patterns ----------
   const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
@@ -522,7 +524,7 @@ function detectEvergreenHybrid() {
   const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
   const priceTokenPattern = /\b(harga|rp|per\s?(m3|m2|unit|kubik|meter)|biaya|tarif)\b/i;
 
-  // ---------- Section-based ----------
+  // ---------- Section Extraction ----------
   const sections = [];
   const headings = Array.from(contentEl.querySelectorAll("h2,h3"));
   if (headings.length === 0) {
@@ -540,32 +542,58 @@ function detectEvergreenHybrid() {
     }
   }
 
-  // ---------- Section Scoring ----------
-  let sectionScores = { evergreen: 0, semi: 0, non: 0 };
+  // ---------- Section Scoring + Classification ----------
+  let totalScores = { evergreen: 0, semi: 0, non: 0 };
   const sectionDetails = sections.map(sec => {
     const t = sec.title.toLowerCase(), b = sec.content.toLowerCase();
     let sEver = 0, sSemi = 0, sNon = 0;
+
     if (evergreenPattern.test(t)) sEver += 2;
     if (semiEvergreenPattern.test(t)) sSemi += 2;
     if (nonEvergreenPattern.test(t)) sNon += 1.5;
+
     if (evergreenPattern.test(b)) sEver += (b.match(evergreenPattern) || []).length * 0.8;
     if (semiEvergreenPattern.test(b)) sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
     if (nonEvergreenPattern.test(b)) sNon += (b.match(nonEvergreenPattern) || []).length * 1;
+
     const hasPriceTokens = priceTokenPattern.test(t + " " + b);
     if (hasPriceTokens) sSemi += 1.5;
-    sectionScores.evergreen += sEver;
-    sectionScores.semi += sSemi;
-    sectionScores.non += sNon;
-    return { section: sec.title, hasPriceTokens, sEver, sSemi, sNon };
+
+    totalScores.evergreen += sEver;
+    totalScores.semi += sSemi;
+    totalScores.non += sNon;
+
+    // Tentukan status section
+    let sectionType = "semi-evergreen";
+    if (sNon > sSemi && sNon > sEver) sectionType = "non-evergreen";
+    else if (sEver > sSemi + 2 && sEver > sNon) sectionType = "evergreen";
+
+    const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[sectionType];
+
+    // Saran per section
+    let sectionAdvice = "";
+    if (sectionType === "evergreen") sectionAdvice = "Cukup tinjau ulang tiap 9–12 bulan untuk memastikan isi tetap relevan.";
+    else if (sectionType === "semi-evergreen") sectionAdvice = hasPriceTokens
+      ? "Perbarui harga atau data pasar setiap 3–6 bulan."
+      : "Tinjau ulang konten ini setiap 4–6 bulan.";
+    else sectionAdvice = "Konten cepat berubah — pastikan diperbarui tiap 1–3 bulan.";
+
+    return { 
+      section: sec.title, 
+      sEver, sSemi, sNon, 
+      sectionType, 
+      validityDays, 
+      sectionAdvice 
+    };
   });
 
-  // ---------- Result Classification ----------
+  // ---------- Global Classification ----------
   const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
   let resultType = "semi-evergreen";
-  if (sectionScores.non > sectionScores.semi && sectionScores.non > sectionScores.evergreen) resultType = "non-evergreen";
-  else if (sectionScores.evergreen > sectionScores.semi + 2 && !hasTimePattern) resultType = "evergreen";
+  if (totalScores.non > totalScores.semi && totalScores.non > totalScores.evergreen) resultType = "non-evergreen";
+  else if (totalScores.evergreen > totalScores.semi + 2 && !hasTimePattern) resultType = "evergreen";
 
-  // ---------- DateModified Sync ----------
+  // ---------- DateModified Auto-Sync ----------
   const currentHash = hashString(h1 + contentText.slice(0, 20000));
   const prevHash = localStorage.getItem("aed_hash_" + location.pathname);
   const shouldUpdateDate = prevHash !== currentHash;
@@ -583,8 +611,8 @@ function detectEvergreenHybrid() {
     }
   }
 
-  // ---------- Price Validity ----------
-  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[resultType] || 90;
+  // ---------- PriceValidUntil Auto-Update ----------
+  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[resultType];
   const until = new Date(Date.now() + validityDays * 86400000).toISOString().split("T")[0];
   const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
   jsonldScripts.forEach(script => {
@@ -606,10 +634,10 @@ function detectEvergreenHybrid() {
   // ---------- Output ----------
   const advice =
     resultType === "evergreen"
-      ? "Konten evergreen — review tiap 9–12 bulan."
+      ? "Konten utama bersifat evergreen — cukup review 9–12 bulan sekali."
       : resultType === "semi-evergreen"
-      ? "Konten semi-evergreen — review tiap 3–6 bulan."
-      : "Konten non-evergreen — perbarui tiap 1–3 bulan.";
+      ? "Konten utama bersifat semi-evergreen — sebaiknya dicek ulang setiap 3–6 bulan."
+      : "Konten cepat berubah — update rutin tiap 1–3 bulan.";
 
   window.EvergreenDetectorResults = {
     resultType,
@@ -618,20 +646,19 @@ function detectEvergreenHybrid() {
     advice,
     dateModified: nowISODate(),
   };
-  console.log(`✅ [AED v8.3.1] ${resultType.toUpperCase()} | PriceValidUntil +${validityDays} hari`);
+  console.log(`✅ [AED v8.3.2] ${resultType.toUpperCase()} | Section-analyzed`);
 }
 detectEvergreenHybrid();
 
 /* ============================================================
-   📊 Evergreen Dashboard v8.1 — Auto Placement
+   📊 Evergreen Dashboard v8.2 — Per Section View
    ============================================================ */
 (function showEvergreenDashboard() {
-  console.log("📊 Menampilkan Dashboard Evergreen...");
+  console.log("📊 Menampilkan Dashboard Evergreen (per section)...");
 
   function waitForResults() {
-    if (window.EvergreenDetectorResults) {
-      renderDashboard(window.EvergreenDetectorResults);
-    } else setTimeout(waitForResults, 300);
+    if (window.EvergreenDetectorResults) renderDashboard(window.EvergreenDetectorResults);
+    else setTimeout(waitForResults, 300);
   }
 
   function renderDashboard(data) {
@@ -643,10 +670,11 @@ detectEvergreenHybrid();
       border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);
       font-family:system-ui;
     `;
+
     wrap.innerHTML = `
       <h2 style="text-align:center;margin-bottom:10px;">🧩 Evergreen Content Report</h2>
       <p style="text-align:center;margin-bottom:20px;color:#444;">
-        <b>Status:</b> ${data.resultType.toUpperCase()} |
+        <b>Status Global:</b> ${data.resultType.toUpperCase()} |
         <b>Review:</b> ${data.validityDays} hari |
         <b>Terakhir Ubah:</b> ${data.dateModified}
       </p>
@@ -656,18 +684,23 @@ detectEvergreenHybrid();
           <th style="padding:8px;border:1px solid #ccc;">Ever</th>
           <th style="padding:8px;border:1px solid #ccc;">Semi</th>
           <th style="padding:8px;border:1px solid #ccc;">Non</th>
+          <th style="padding:8px;border:1px solid #ccc;">Status</th>
+          <th style="padding:8px;border:1px solid #ccc;">Review (hari)</th>
+          <th style="padding:8px;border:1px solid #ccc;">Saran</th>
         </tr></thead>
         <tbody>
-          ${data.sections
-            .map(
-              s => `<tr>
-                <td style="border:1px solid #ddd;padding:6px;">${s.section}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sEver?.toFixed(1)||0}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sSemi?.toFixed(1)||0}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sNon?.toFixed(1)||0}</td>
-              </tr>`
-            )
-            .join("")}
+          ${data.sections.map(s => `
+            <tr>
+              <td style="border:1px solid #ddd;padding:6px;">${s.section}</td>
+              <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sEver.toFixed(1)}</td>
+              <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sSemi.toFixed(1)}</td>
+              <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sNon.toFixed(1)}</td>
+              <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:bold;color:${
+                s.sectionType === "evergreen" ? "#007700" : s.sectionType === "semi-evergreen" ? "#cc8800" : "#cc0000"
+              };">${s.sectionType.toUpperCase()}</td>
+              <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.validityDays}</td>
+              <td style="border:1px solid #ddd;padding:6px;">${s.sectionAdvice}</td>
+            </tr>`).join("")}
         </tbody>
       </table>
       <p style="text-align:center;margin-top:15px;">${data.advice}</p>
