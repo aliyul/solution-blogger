@@ -107,7 +107,13 @@ function updateArticleDates(type, pubStr, modStr, nextStr) {
       aEl.appendChild(d);
     }
   }
-
+const { datePublished, dateModified, priceValidUntil } = window.AEDMetaDates || {
+    datePublished: convertToWIB(new Date().toISOString()),
+    dateModified: convertToWIB(new Date().toISOString()),
+    priceValidUntil: convertToWIB(new Date(Date.now() + 1000 * 60 * 60 * 24 * 180)) // default 6 bulan
+  };
+updateArticleDates(type, datePublished, dateModified, nextUpdate);
+  
   // === Update JSON-LD Article Schema ===
 /*  const schemaEl = document.getElementById('auto-schema');
   if (schemaEl) {
@@ -266,18 +272,20 @@ if(oldHash && oldHash == currentHash){
   }
 
   // ===================== 📦 PRICE VALID UNTIL =====================
+  /*
   const now = new Date();
   if (status === "EVERGREEN") now.setFullYear(now.getFullYear() + 1);
   else if (status === "SEMI_EVERGREEN") now.setMonth(now.getMonth() + 6);
   else now.setMonth(now.getMonth() + 3);
   const priceValidUntil = now.toISOString().split("T")[0];
-
+*/
   console.log(`🧩 Evergreen Detection:
   - Status: ${status}
-  - Score: ${score}
-  - PriceValidUntil: ${priceValidUntil}`);
+  - Score: ${score}`);
+  //- PriceValidUntil: ${priceValidUntil}`);
 
-  return { status, score, priceValidUntil };
+ // return { status, score, priceValidUntil };
+  return { status, score };
 }
 
   // ===================== CORE =====================
@@ -498,8 +506,9 @@ function detectEvergreenFullDashboard() {
 
   const finalType = parityStatus;
   const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
-
-  // ---------- Meta dateModified & datePublished ----------
+  const type = finalType;
+  window.AEDMetaDates = { Type };
+     // ---------- Meta dateModified & datePublished ----------
   const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
   const dateModified = metaDateModified?.getAttribute("content") || nowISODate();
@@ -521,7 +530,9 @@ function detectEvergreenFullDashboard() {
 
   if (now >= nextUpdate || prevHash !== currentHash) {
     localStorage.setItem("aed_hash_" + location.pathname, currentHash);
-    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+    //nextUpdate = new Date(now.getTime() + validityDays * 86400000);    
+    nextUpdate = dateModified + validityDays * 86400000);
+    
     localStorage.setItem("aed_nextupdate_" + location.pathname, nextUpdate.toISOString());
     if (metaDateModified) metaDateModified.setAttribute("content", nowISODate());
     else {
