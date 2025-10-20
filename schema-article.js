@@ -521,9 +521,6 @@ showEvergreenDashboard();
   
   
 function updateArticleDates() {
-  
-  console.log(window.AEDMetaDates);
-  
   const d = window.AEDMetaDates || {};
   const { type, datePublished, dateModified, nextUpdate } = d;
 
@@ -534,10 +531,18 @@ function updateArticleDates() {
 
   console.log("🧩 updateArticleDates() loaded:", d);
 
-  // === Update tampilan label di halaman ===
-  const elH1 = document.querySelector("h1");
-  if (!elH1) return;
+  // === Cari elemen H1 ===
+  const elH1 =
+    document.querySelector("h1") ||
+    document.querySelector(".post-title") ||
+    document.querySelector(".page-title");
 
+  if (!elH1) {
+    console.warn("⚠️ Tidak menemukan elemen judul (H1/post-title/page-title)");
+    return;
+  }
+
+  // === Label status evergreen ===
   let lb = document.getElementById("evergreen-label");
   if (!lb) {
     lb = document.createElement("div");
@@ -552,7 +557,7 @@ function updateArticleDates() {
   } else if (type === "SEMI_EVERGREEN") {
     labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextUpdate}</b>`;
     document.body.setAttribute("data-force", "semi-evergreen");
-  } else if (type === "NON_EVERGREEN") {
+  } else {
     labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextUpdate}</b>`;
     document.body.setAttribute("data-force", "non-evergreen");
   }
@@ -560,26 +565,29 @@ function updateArticleDates() {
   lb.innerHTML = labelText;
   elH1.insertAdjacentElement("afterend", lb);
 
-  // === Author Date Display ===
-  const aEl = document.querySelector(".author-info");
+  // === Tanggal di area penulis ===
+  const aEl =
+    document.querySelector(".author-info") ||
+    document.querySelector(".post-author") ||
+    document.querySelector(".entry-meta");
+
   aEl?.querySelector(".article-date")?.remove();
 
   if (type === "NON_EVERGREEN") {
     const dSpan = document.createElement("span");
     dSpan.className = "article-date";
     dSpan.textContent = "Diperbarui: " + dateModified;
-    dSpan.style.cssText = "display:block;font-size:.85em;color:#d9534f;margin-bottom:4px;";
+    dSpan.style.cssText =
+      "display:block;font-size:.85em;color:#d9534f;margin-bottom:4px;";
     dSpan.setAttribute("data-nosnippet", "true");
     elH1.parentNode.insertBefore(dSpan, elH1);
-  } else if (type === "SEMI_EVERGREEN") {
-    if (aEl && dateModified) {
-      const dSpan = document.createElement("span");
-      dSpan.className = "article-date";
-      dSpan.textContent = " · Diperbarui: " + dateModified;
-      dSpan.style.cssText = "font-size:.85em;color:#555;margin-left:6px;";
-      dSpan.setAttribute("data-nosnippet", "true");
-      aEl.appendChild(dSpan);
-    }
+  } else if (type === "SEMI_EVERGREEN" && aEl && dateModified) {
+    const dSpan = document.createElement("span");
+    dSpan.className = "article-date";
+    dSpan.textContent = " · Diperbarui: " + dateModified;
+    dSpan.style.cssText = "font-size:.85em;color:#555;margin-left:6px;";
+    dSpan.setAttribute("data-nosnippet", "true");
+    aEl.appendChild(dSpan);
   }
 }
 updateArticleDates();
