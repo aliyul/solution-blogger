@@ -236,59 +236,6 @@ function detectEvergreen() {
 // Jalankan deteksi di awal halaman
 detectEvergreen();
 
-// =================== DASHBOARD FUNCTION ===================
-function showEvergreenDashboard() {
-  const renderDashboard = data => {
-    const wrap = document.createElement("div");
-    wrap.id = "EvergreenDashboard";
-    wrap.style.cssText = "max-width:1200px;margin:20px auto;padding:10px;background:#f8fbff;border-top:4px solid #0066cc;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-family:system-ui;overflow-x:auto;";
-    wrap.innerHTML = `
-      <h2 style="text-align:center;margin-bottom:10px;">🧩 Evergreen Content Report</h2>
-      <p style="text-align:center;margin-bottom:15px;color:#444;">
-        <b>Status Global:</b> ${data.resultType.toUpperCase()} |
-        <b>Review:</b> ${data.validityDays} hari |
-        <b>Terakhir Ubah:</b> ${data.dateModified}
-      </p>
-      <table style="width:100%;border-collapse:collapse;font-size:14px;">
-        <thead style="position:sticky;top:0;background:#eaf3ff;z-index:1;">
-          <tr>
-            <th>Bagian</th><th>Ever</th><th>Semi</th><th>Non</th>
-            <th>Status</th><th>Review (hari)</th><th>Saran</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${data.sections.map(s => `
-            <tr>
-              <td>${s.section}</td>
-              <td>${s.sEver.toFixed(1)}</td>
-              <td>${s.sSemi.toFixed(1)}</td>
-              <td>${s.sNon.toFixed(1)}</td>
-              <td style="font-weight:bold;color:${
-                s.sectionType === "evergreen" ? "#007700" :
-                s.sectionType === "semi-evergreen" ? "#cc8800" : "#cc0000"
-              }">${s.sectionType.toUpperCase()}</td>
-              <td>${s.validityDays}</td>
-              <td>${s.sectionAdvice}</td>
-            </tr>`).join("")}
-        </tbody>
-      </table>
-      <p style="text-align:center;margin-top:12px;">${data.advice}</p>
-    `;
-    const anchor = document.querySelector("#AEDDashboard");
-    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
-    else document.body.appendChild(wrap);
-  };
-
-  const waitForResults = () => {
-    if (window.EvergreenDetectorResults) renderDashboard(window.EvergreenDetectorResults);
-    else setTimeout(waitForResults, 300);
-  };
-  waitForResults();
-}
-
-// Tampilkan dashboard di bawah ID tertentu
-showEvergreenDashboard();
-  
 // ================== DETEKSI TYPE KONTEN ==================
 /* ===== Auto Evergreen Detector v7.7 + Dashboard Interaktif ===== */
 (function AutoEvergreenV832UltraKMPTTF(window, document) {
@@ -518,6 +465,60 @@ URL: ${location.href}`;
 
 })(window, document);
 
+
+// =================== DASHBOARD FUNCTION ===================
+function showEvergreenDashboard() {
+  const renderDashboard = data => {
+    const wrap = document.createElement("div");
+    wrap.id = "EvergreenDashboard";
+    wrap.style.cssText = "max-width:1200px;margin:20px auto;padding:10px;background:#f8fbff;border-top:4px solid #0066cc;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-family:system-ui;overflow-x:auto;";
+    wrap.innerHTML = `
+      <h2 style="text-align:center;margin-bottom:10px;">🧩 Evergreen Content Report</h2>
+      <p style="text-align:center;margin-bottom:15px;color:#444;">
+        <b>Status Global:</b> ${data.resultType.toUpperCase()} |
+        <b>Review:</b> ${data.validityDays} hari |
+        <b>Terakhir Ubah:</b> ${data.dateModified}
+      </p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead style="position:sticky;top:0;background:#eaf3ff;z-index:1;">
+          <tr>
+            <th>Bagian</th><th>Ever</th><th>Semi</th><th>Non</th>
+            <th>Status</th><th>Review (hari)</th><th>Saran</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.sections.map(s => `
+            <tr>
+              <td>${s.section}</td>
+              <td>${s.sEver.toFixed(1)}</td>
+              <td>${s.sSemi.toFixed(1)}</td>
+              <td>${s.sNon.toFixed(1)}</td>
+              <td style="font-weight:bold;color:${
+                s.sectionType === "evergreen" ? "#007700" :
+                s.sectionType === "semi-evergreen" ? "#cc8800" : "#cc0000"
+              }">${s.sectionType.toUpperCase()}</td>
+              <td>${s.validityDays}</td>
+              <td>${s.sectionAdvice}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+      <p style="text-align:center;margin-top:12px;">${data.advice}</p>
+    `;
+    const anchor = document.querySelector("#AEDDashboard");
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
+    else document.body.appendChild(wrap);
+  };
+
+  const waitForResults = () => {
+    if (window.EvergreenDetectorResults) renderDashboard(window.EvergreenDetectorResults);
+    else setTimeout(waitForResults, 300);
+  };
+  waitForResults();
+}
+
+// Tampilkan dashboard di bawah ID tertentu
+showEvergreenDashboard();
+  
   
 // === Function untuk update tanggal & schema ===
 function updateArticleDates(type, pubStr, modStr, nextStr) {
