@@ -46,116 +46,8 @@ document.addEventListener("DOMContentLoaded", function() {
 let datePublished = '';
 let dateModified = '';
 
-// === Function untuk update tanggal & schema ===
-function updateArticleDates(type, pubStr, modStr, nextStr) {
-  // Simpan ke variabel global agar bisa digunakan di schema
-  datePublished = pubStr;
-  dateModified = modStr;
-
-  // 🧩 Tentukan isi label berdasarkan hasil deteksi
-  const elH1 = document.querySelector('h1');
-  if (!elH1) return;
-
-  let lb = document.getElementById('evergreen-label');
-  if (!lb) {
-    lb = document.createElement('div');
-    lb.id = 'evergreen-label';
-    lb.style.cssText = 'font-size:.9em;margin-bottom:8px;color:#333;';
-  }
-
-  let labelText = '';
-  if (type === 'EVERGREEN') {
-    labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextStr}</b>`;
-    document.body.setAttribute('data-force', 'evergreen');
-  } else if (type === 'SEMI_EVERGREEN') {
-    labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
-    document.body.setAttribute('data-force', 'semi-evergreen');
-  } else if (type === 'NON_EVERGREEN') {
-    labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
-    document.body.setAttribute('data-force', 'non-evergreen');
-  } else {
-    document.body.removeAttribute('data-force');
-  }
-
-  lb.innerHTML = labelText;
-  elH1.insertAdjacentElement('afterend', lb);
-
-  // === Author Date Display ===
-  const CONFIG = {
-    authorSelector: '.author-info',
-    dateSpanClass: 'article-date',
-  };
-  const aEl = document.querySelector(CONFIG.authorSelector);
-
-  // Hapus tanggal lama jika ada
-  aEl?.querySelector('.' + CONFIG.dateSpanClass)?.remove();
-
-  if (type === 'NON_EVERGREEN') {
-    const d = document.createElement('span');
-    d.className = CONFIG.dateSpanClass;
-    d.textContent = 'Diperbarui: ' + modStr;
-    d.style.cssText = 'display:block;font-size:.85em;color:#d9534f;margin-bottom:4px;';
-    d.setAttribute('data-nosnippet', 'true');
-    elH1.parentNode.insertBefore(d, elH1);
-  } else if (type === 'SEMI_EVERGREEN') {
-    if (aEl && modStr) {
-      const d = document.createElement('span');
-      d.className = CONFIG.dateSpanClass;
-      d.textContent = ' · Diperbarui: ' + modStr;
-      d.style.cssText = 'font-size:.85em;color:#555;margin-left:6px;';
-      d.setAttribute('data-nosnippet', 'true');
-      aEl.appendChild(d);
-    }
-  }
-const { datePublished, dateModified, priceValidUntil } = window.AEDMetaDates || {
-    datePublished: convertToWIB(new Date().toISOString()),
-    dateModified: convertToWIB(new Date().toISOString()),
-    priceValidUntil: convertToWIB(new Date(Date.now() + 1000 * 60 * 60 * 24 * 180)) // default 6 bulan
-  };
-updateArticleDates(type, datePublished, dateModified, nextUpdate);
-  
-  // === Update JSON-LD Article Schema ===
-/*  const schemaEl = document.getElementById('auto-schema');
-  if (schemaEl) {
-    try {
-      const schemaObj = JSON.parse(schemaEl.textContent);
-      schemaObj.datePublished = datePublished;
-      schemaObj.dateModified = dateModified;
-      schemaEl.textContent = JSON.stringify(schemaObj, null, 2);
-      console.log('✅ Schema Article diperbarui:', { datePublished, dateModified });
-    } catch (err) {
-      console.warn('⚠️ Gagal update schema:', err);
-    }
-  }*/
-  
-}
-
-  // ================== Ambil konten utama ==================
-/* const contentEl = document.querySelector(".post-body.entry-content") || 
-                    document.querySelector("[id^='post-body-']") || 
-                    document.querySelector(".post-body");
-  const contentText = contentEl ? contentEl.innerText : "";
-  */
-
- // ================== HASH DETECTION ==================
-/*
-const currentHash = hashString(contentText);
-const oldHash = localStorage.getItem("articleHash");
-let datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content);
-let dateModified = datePublished;
-  
-if(oldHash && oldHash == currentHash){
-  dateModified = convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content || datePublished);
-  console.log("Konten tidak berubah → dateModified tetap");
-} else {
-  dateModified = convertToWIB(new Date().toISOString());
-  localStorage.setItem("articleHash", currentHash);
-  console.log("Konten berubah → dateModified diupdate ke sekarang");
-}
-*/
 // ================== DETEKSI TYPE KONTEN ==================
 /* ===== Auto Evergreen Detector v7.7 + Dashboard Interaktif ===== */
-
 (function AutoEvergreenV832UltraKMPTTF(window, document) {
   'use strict';
 
@@ -203,110 +95,79 @@ if(oldHash && oldHash == currentHash){
     return Math.round(Math.min(1,ratio+bonus)*100);
   };
 
-  // ===================== DETECTOR =====================function detectEvergreen(title, text, url) {
-  // ===================== 🧩 UTILITIES =====================
-  const cleanText = str =>
-    (str || "")
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s]/gu, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+  // ===================== DETECTOR =====================
+  function detectEvergreen(title, text, url) {
+    // ===================== 🧩 UTILITIES =====================
+    const cleanText = str =>
+      (str || "")
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s]/gu, " ")
+        .replace(/\s+/g, " ")
+        .trim();
 
- // const tokenize = str => cleanText(str).split(" ").filter(Boolean);
+    const t = cleanText(title + " " + text);
+    const tokens = tokenize(t);
+    const urlTokens = tokenize(url.split("/").pop()?.replace(/\.html$/i, "") || "");
 
-  const t = cleanText(title + " " + text);
-  const tokens = tokenize(t);
-  const urlTokens = tokenize(url.split("/").pop()?.replace(/\.html$/i, "") || "");
+    // ===================== ⚖️ SCORING =====================
+    let score = 0;
 
-  // ===================== ⚖️ SCORING =====================
-  let score = 0;
+    // 1️⃣ Relevansi URL ↔ Konten
+    const matchCount = urlTokens.filter(ut => tokens.includes(ut)).length;
+    score += Math.min(matchCount, 3);
 
-  // 1️⃣ Relevansi URL ↔ Konten
-  const matchCount = urlTokens.filter(ut => tokens.includes(ut)).length;
-  score += Math.min(matchCount, 3);
+    // 2️⃣ Panjang & Struktur
+    if (t.length > 1500) score += 2;
+    const paraCount = (text.match(/\n/g) || []).length;
+    if (paraCount > 8) score += 1;
+    if (paraCount < 3) score -= 1;
 
-  // 2️⃣ Panjang & Struktur
-  if (t.length > 1500) score += 2;
-  const paraCount = (text.match(/\n/g) || []).length;
-  if (paraCount > 8) score += 1;
-  if (paraCount < 3) score -= 1;
+    // 3️⃣ Struktur SEO positif
+    if (document.querySelectorAll("h2, h3").length >= 3) score += 1;
+    if (document.querySelectorAll("table").length > 0) score -= 1;
 
-  // 3️⃣ Struktur SEO positif
-  if (document.querySelectorAll("h2, h3").length >= 3) score += 1;
-  if (document.querySelectorAll("table").length > 0) score -= 1; // sering menandakan data harga
+    // 4️⃣ Pola Evergreen / Edukatif
+    const evergreenWords = [
+      "panduan","tutorial","tips","cara","fungsi","jenis","pengertian",
+      "struktur","standar","material","spesifikasi","teknik","manfaat",
+      "perbedaan","arti"
+    ];
+    if (evergreenWords.some(k => t.includes(k))) score += 3;
 
-  // 4️⃣ Pola Evergreen / Edukatif
-  const evergreenWords = [
-    "panduan","tutorial","tips","cara","fungsi","jenis","pengertian",
-    "struktur","standar","material","spesifikasi","teknik","manfaat",
-    "perbedaan","arti"
-  ];
-  if (evergreenWords.some(k => t.includes(k))) score += 3;
+    // 5️⃣ Pola Semi-Evergreen
+    const semiWords = ["harga","sewa","rental","kontraktor","jasa","produk","layanan","biaya","estimasi"];
+    const hasSemiKeyword = semiWords.some(k => t.includes(k));
+    if (hasSemiKeyword) score += 1;
 
-  // 5️⃣ Pola Semi-Evergreen (harga, jasa, produk)
-  const semiWords = ["harga","sewa","rental","kontraktor","jasa","produk","layanan","biaya","estimasi"];
-  const hasSemiKeyword = semiWords.some(k => t.includes(k));
-  if (hasSemiKeyword) score += 1; // tidak negatif, dianggap semi stabil
+    // 6️⃣ Pola Negatif (time-sensitive)
+    const temporal = ["update","terbaru","hari ini","minggu ini","bulan ini","promo","diskon","stok","sementara","proyek berjalan","deadline"];
+    if (temporal.some(k => t.includes(k))) score -= 2;
 
-  // 6️⃣ Pola Negatif (time-sensitive)
-  const temporal = ["update","terbaru","hari ini","minggu ini","bulan ini","promo","diskon","stok","sementara","proyek berjalan","deadline"];
-  if (temporal.some(k => t.includes(k))) score -= 2;
+    // 7️⃣ Pola Berita/Event
+    const news = ["berita","laporan","event","konferensi","seminar","pengumuman"];
+    if (news.some(k => t.includes(k))) score -= 3;
 
-  // 7️⃣ Pola Berita/Event
-  const news = ["berita","laporan","event","konferensi","seminar","pengumuman"];
-  if (news.some(k => t.includes(k))) score -= 3;
+    // 8️⃣ Logika URL
+    const isPage = url.includes("/p/");
+    if (isPage) score += 2;
+    if (/\/\d{4}\/\d{2}\//.test(url)) score -= 2;
 
-  // 8️⃣ Logika URL
-  const isPage = url.includes("/p/");
-  if (isPage) score += 2;
-  if (/\/\d{4}\/\d{2}\//.test(url)) score -= 2; // URL bertanggal → bukan evergreen
+    // ===================== 🧠 STATUS =====================
+    let status = "SEMI_EVERGREEN";
+    if (score >= 6) status = "EVERGREEN";
+    else if (score <= 1) status = "NON_EVERGREEN";
 
-  // ===================== 🧠 STATUS =====================
-  let status = "SEMI_EVERGREEN";
-  if (score >= 6) status = "EVERGREEN";
-  else if (score <= 1) status = "NON_EVERGREEN";
+    // Override ke SEMI_EVERGREEN jika mengandung keyword jasa/produk
+    if (status === "EVERGREEN" && hasSemiKeyword) status = "SEMI_EVERGREEN";
 
-  // 🔁 Override: jika konten ada elemen harga/jasa/produk → semi-evergreen
-  if (status === "EVERGREEN" && hasSemiKeyword) {
-    status = "SEMI_EVERGREEN";
+    console.log(`🧩 Evergreen Detection:\n- Status: ${status}\n- Score: ${score}`);
+    return { status, score };
   }
-
-  // ===================== 📦 PRICE VALID UNTIL =====================
-  /*
-  const now = new Date();
-  if (status === "EVERGREEN") now.setFullYear(now.getFullYear() + 1);
-  else if (status === "SEMI_EVERGREEN") now.setMonth(now.getMonth() + 6);
-  else now.setMonth(now.getMonth() + 3);
-  const priceValidUntil = now.toISOString().split("T")[0];
-*/
-  console.log(`🧩 Evergreen Detection:
-  - Status: ${status}
-  - Score: ${score}`);
-  //- PriceValidUntil: ${priceValidUntil}`);
-
- // return { status, score, priceValidUntil };
-  return { status, score };
-}
 
   // ===================== CORE =====================
   try {
     console.log("🚀 Running AED v8.3.2R Ultra KMPTTF...");
 
-    // ===================== CONFIG & UTILS =====================
-    const qsMany = sel => document.querySelector(sel);
-    const CONFIG = {
-      h1Selectors: "h1, .post-title, .entry-title",
-      contentSelectors: ".post-body, article, main, .entry-content"
-    };
-
-    function normalizeUrlToken(url) {
-      return url.replace(/\/$/, "").replace(/\.html$/i, "").toLowerCase();
-    }
-    function sampleTextFrom(el) {
-      return el ? el.innerText.slice(0, 5000) : "";
-    }
-
-    // ===================== DETECTION CORE =====================
     const elC = qsMany(CONFIG.contentSelectors) || document.body;
     const elH1 = qsMany(CONFIG.h1Selectors) || document.querySelector("h1");
     const h1R = elH1 ? elH1.innerText.trim() : "(no h1)";
@@ -316,16 +177,14 @@ if(oldHash && oldHash == currentHash){
     const result = detectEvergreen(h1R, txt, urlRaw);
     const type = result.status;
     const aiScore = result.score;
-    const priceValidUntil = result.priceValidUntil;
 
-    // ambil tanggal asli
     const metaPub = document.querySelector('meta[itemprop="datePublished"]');
     const metaMod = document.querySelector('meta[itemprop="dateModified"]');
     const datePublished = metaPub ? metaPub.getAttribute("content") : "(not set)";
     const dateModified = metaMod ? metaMod.getAttribute("content") : "(not set)";
 
     console.log("[AED] Type:", type, "Score:", aiScore);
-    console.log("📅 datePublished:", datePublished, "dateModified:", dateModified, "priceValidUntil:", priceValidUntil);
+    console.log("📅 datePublished:", datePublished, "dateModified:", dateModified);
 
     // ===================== DASHBOARD =====================
     const dash = document.createElement("div");
@@ -353,7 +212,7 @@ if(oldHash && oldHash == currentHash){
     };
 
     const show = mkBtn("📊 Lihat Tabel", "#d1e7dd"),
-      rep = mkBtn("📥 Unduh Laporan", "#f3f3f3");
+          rep = mkBtn("📥 Unduh Laporan", "#f3f3f3");
     btns.append(show, rep);
     dash.appendChild(btns);
 
@@ -413,6 +272,7 @@ URL: ${location.href}`;
   } catch (e) {
     console.error("❌ AED v8.3.2R Error:", e);
   }
+
 })(window, document);
 
 /**
@@ -701,6 +561,116 @@ detectEvergreenFullDashboard();
 
 //panggil fungsi shw dasboarrd
 //showEvergreenDashboard();
+  
+// === Function untuk update tanggal & schema ===
+function updateArticleDates(type, pubStr, modStr, nextStr) {
+  // Simpan ke variabel global agar bisa digunakan di schema
+  datePublished = pubStr;
+  dateModified = modStr;
+
+  // 🧩 Tentukan isi label berdasarkan hasil deteksi
+  const elH1 = document.querySelector('h1');
+  if (!elH1) return;
+
+  let lb = document.getElementById('evergreen-label');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'evergreen-label';
+    lb.style.cssText = 'font-size:.9em;margin-bottom:8px;color:#333;';
+  }
+
+  let labelText = '';
+  if (type === 'EVERGREEN') {
+    labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextStr}</b>`;
+    document.body.setAttribute('data-force', 'evergreen');
+  } else if (type === 'SEMI_EVERGREEN') {
+    labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
+    document.body.setAttribute('data-force', 'semi-evergreen');
+  } else if (type === 'NON_EVERGREEN') {
+    labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
+    document.body.setAttribute('data-force', 'non-evergreen');
+  } else {
+    document.body.removeAttribute('data-force');
+  }
+
+  lb.innerHTML = labelText;
+  elH1.insertAdjacentElement('afterend', lb);
+
+  // === Author Date Display ===
+  const CONFIG = {
+    authorSelector: '.author-info',
+    dateSpanClass: 'article-date',
+  };
+  const aEl = document.querySelector(CONFIG.authorSelector);
+
+  // Hapus tanggal lama jika ada
+  aEl?.querySelector('.' + CONFIG.dateSpanClass)?.remove();
+
+  if (type === 'NON_EVERGREEN') {
+    const d = document.createElement('span');
+    d.className = CONFIG.dateSpanClass;
+    d.textContent = 'Diperbarui: ' + modStr;
+    d.style.cssText = 'display:block;font-size:.85em;color:#d9534f;margin-bottom:4px;';
+    d.setAttribute('data-nosnippet', 'true');
+    elH1.parentNode.insertBefore(d, elH1);
+  } else if (type === 'SEMI_EVERGREEN') {
+    if (aEl && modStr) {
+      const d = document.createElement('span');
+      d.className = CONFIG.dateSpanClass;
+      d.textContent = ' · Diperbarui: ' + modStr;
+      d.style.cssText = 'font-size:.85em;color:#555;margin-left:6px;';
+      d.setAttribute('data-nosnippet', 'true');
+      aEl.appendChild(d);
+    }
+  }
+const { datePublished, dateModified, priceValidUntil } = window.AEDMetaDates || {
+    datePublished: convertToWIB(new Date().toISOString()),
+    dateModified: convertToWIB(new Date().toISOString()),
+    priceValidUntil: convertToWIB(new Date(Date.now() + 1000 * 60 * 60 * 24 * 180)) // default 6 bulan
+  };
+updateArticleDates(type, datePublished, dateModified, nextUpdate);
+  
+  // === Update JSON-LD Article Schema ===
+/*  const schemaEl = document.getElementById('auto-schema');
+  if (schemaEl) {
+    try {
+      const schemaObj = JSON.parse(schemaEl.textContent);
+      schemaObj.datePublished = datePublished;
+      schemaObj.dateModified = dateModified;
+      schemaEl.textContent = JSON.stringify(schemaObj, null, 2);
+      console.log('✅ Schema Article diperbarui:', { datePublished, dateModified });
+    } catch (err) {
+      console.warn('⚠️ Gagal update schema:', err);
+    }
+  }*/
+  
+}
+
+  // ================== Ambil konten utama ==================
+/* const contentEl = document.querySelector(".post-body.entry-content") || 
+                    document.querySelector("[id^='post-body-']") || 
+                    document.querySelector(".post-body");
+  const contentText = contentEl ? contentEl.innerText : "";
+  */
+
+ // ================== HASH DETECTION ==================
+/*
+const currentHash = hashString(contentText);
+const oldHash = localStorage.getItem("articleHash");
+let datePublished = convertToWIB(document.querySelector("meta[itemprop='datePublished']")?.content);
+let dateModified = datePublished;
+  
+if(oldHash && oldHash == currentHash){
+  dateModified = convertToWIB(document.querySelector("meta[itemprop='dateModified']")?.content || datePublished);
+  console.log("Konten tidak berubah → dateModified tetap");
+} else {
+  dateModified = convertToWIB(new Date().toISOString());
+  localStorage.setItem("articleHash", currentHash);
+  console.log("Konten berubah → dateModified diupdate ke sekarang");
+}
+*/
+
+
   
   // ================== SCHEMA GENERATOR ==================
   console.log("Auto-schema ARTICLE SCHEMA JS running");
