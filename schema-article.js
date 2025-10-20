@@ -212,7 +212,7 @@ if(oldHash && oldHash == currentHash){
       .replace(/\s+/g, " ")
       .trim();
 
-  const tokenize = str => cleanText(str).split(" ").filter(Boolean);
+ // const tokenize = str => cleanText(str).split(" ").filter(Boolean);
 
   const t = cleanText(title + " " + text);
   const tokens = tokenize(t);
