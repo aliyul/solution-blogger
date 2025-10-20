@@ -447,7 +447,7 @@ function detectEvergreenFullDashboard() {
   if (now >= nextUpdate || prevHash !== currentHash) {
     localStorage.setItem("aed_hash_" + location.pathname, currentHash);
     //nextUpdate = new Date(now.getTime() + validityDays * 86400000);    
-    nextUpdate = dateModified + validityDays * 86400000);
+    nextUpdate = new Date(dateModified.getTime() + validityDays * 86400000);
     
     localStorage.setItem("aed_nextupdate_" + location.pathname, nextUpdate.toISOString());
     if (metaDateModified) metaDateModified.setAttribute("content", nowISODate());
