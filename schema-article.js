@@ -440,9 +440,7 @@ function detectEvergreenFullDashboard() {
   const prevHash = localStorage.getItem("aed_hash_" + location.pathname);
   const metaNextUpdate = localStorage.getItem("aed_nextupdate_" + location.pathname);
   let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(now.getTime() + validityDays * 86400000);
-  
-  // ---------- Meta nextUpdate ---------
-  const nextUpdate = metaNextUpdate?.getAttribute("content") || nowISODate();
+
    // ---------- Simpan global supaya bisa dipakai di fungsi lain ----------
   window.AEDMetaDates = { nextUpdate };
 
