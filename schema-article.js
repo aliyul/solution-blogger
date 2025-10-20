@@ -527,14 +527,7 @@ function updateArticleDates(type, pubStr, modStr, nextStr) {
   const dateModified = modStr;
   const nextUpdate = nextStr;
 
-  // 🧩 Simpan ke window agar bisa dibaca script schema lainnya
-  window.AEDMetaDates = {
-    type,
-    datePublished,
-    dateModified,
-    nextUpdate
-  };
-
+  
   console.log("🧩 AEDMetaDates updated:", window.AEDMetaDates);
 
   // === Update tampilan label di halaman ===
@@ -595,7 +588,11 @@ function updateArticleDates(type, pubStr, modStr, nextStr) {
   }
 }
 
-updateArticleDates(finalType, datePublished, dateModified, nextUpdate);
+if (window.AEDMetaDates) {
+  const { type, datePublished, dateModified, nextUpdate } = window.AEDMetaDates;
+  updateArticleDates(type, datePublished, dateModified, nextUpdate);
+}
+
 
   // === Update JSON-LD Article Schema ===
 /*  const schemaEl = document.getElementById('auto-schema');
