@@ -523,71 +523,80 @@ showEvergreenDashboard();
 // === Function untuk update tanggal & schema ===
 function updateArticleDates(type, pubStr, modStr, nextStr) {
   // Simpan ke variabel global agar bisa digunakan di schema
-  datePublished = pubStr;
-  dateModified = modStr;
+  const datePublished = pubStr;
+  const dateModified = modStr;
+  const nextUpdate = nextStr;
 
-  // 🧩 Tentukan isi label berdasarkan hasil deteksi
-  const elH1 = document.querySelector('h1');
+  // 🧩 Simpan ke window agar bisa dibaca script schema lainnya
+  window.AEDMetaDates = {
+    type,
+    datePublished,
+    dateModified,
+    nextUpdate
+  };
+
+  console.log("🧩 AEDMetaDates updated:", window.AEDMetaDates);
+
+  // === Update tampilan label di halaman ===
+  const elH1 = document.querySelector("h1");
   if (!elH1) return;
 
-  let lb = document.getElementById('evergreen-label');
+  let lb = document.getElementById("evergreen-label");
   if (!lb) {
-    lb = document.createElement('div');
-    lb.id = 'evergreen-label';
-    lb.style.cssText = 'font-size:.9em;margin-bottom:8px;color:#333;';
+    lb = document.createElement("div");
+    lb.id = "evergreen-label";
+    lb.style.cssText = "font-size:.9em;margin-bottom:8px;color:#333;";
   }
 
-  let labelText = '';
-  if (type === 'EVERGREEN') {
+  let labelText = "";
+  if (type === "EVERGREEN") {
     labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextStr}</b>`;
-    document.body.setAttribute('data-force', 'evergreen');
-  } else if (type === 'SEMI_EVERGREEN') {
+    document.body.setAttribute("data-force", "evergreen");
+  } else if (type === "SEMI_EVERGREEN") {
     labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
-    document.body.setAttribute('data-force', 'semi-evergreen');
-  } else if (type === 'NON_EVERGREEN') {
+    document.body.setAttribute("data-force", "semi-evergreen");
+  } else if (type === "NON_EVERGREEN") {
     labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
-    document.body.setAttribute('data-force', 'non-evergreen');
+    document.body.setAttribute("data-force", "non-evergreen");
   } else {
-    document.body.removeAttribute('data-force');
+    document.body.removeAttribute("data-force");
   }
 
   lb.innerHTML = labelText;
-  elH1.insertAdjacentElement('afterend', lb);
+  elH1.insertAdjacentElement("afterend", lb);
 
   // === Author Date Display ===
   const CONFIG = {
-    authorSelector: '.author-info',
-    dateSpanClass: 'article-date',
+    authorSelector: ".author-info",
+    dateSpanClass: "article-date",
   };
   const aEl = document.querySelector(CONFIG.authorSelector);
 
   // Hapus tanggal lama jika ada
-  aEl?.querySelector('.' + CONFIG.dateSpanClass)?.remove();
+  aEl?.querySelector("." + CONFIG.dateSpanClass)?.remove();
 
-  if (type === 'NON_EVERGREEN') {
-    const d = document.createElement('span');
+  if (type === "NON_EVERGREEN") {
+    const d = document.createElement("span");
     d.className = CONFIG.dateSpanClass;
-    d.textContent = 'Diperbarui: ' + modStr;
-    d.style.cssText = 'display:block;font-size:.85em;color:#d9534f;margin-bottom:4px;';
-    d.setAttribute('data-nosnippet', 'true');
+    d.textContent = "Diperbarui: " + modStr;
+    d.style.cssText =
+      "display:block;font-size:.85em;color:#d9534f;margin-bottom:4px;";
+    d.setAttribute("data-nosnippet", "true");
     elH1.parentNode.insertBefore(d, elH1);
-  } else if (type === 'SEMI_EVERGREEN') {
+  } else if (type === "SEMI_EVERGREEN") {
     if (aEl && modStr) {
-      const d = document.createElement('span');
+      const d = document.createElement("span");
       d.className = CONFIG.dateSpanClass;
-      d.textContent = ' · Diperbarui: ' + modStr;
-      d.style.cssText = 'font-size:.85em;color:#555;margin-left:6px;';
-      d.setAttribute('data-nosnippet', 'true');
+      d.textContent = " · Diperbarui: " + modStr;
+      d.style.cssText = "font-size:.85em;color:#555;margin-left:6px;";
+      d.setAttribute("data-nosnippet", "true");
       aEl.appendChild(d);
     }
   }
-const { datePublished, dateModified, priceValidUntil } = window.AEDMetaDates || {
-    datePublished: convertToWIB(new Date().toISOString()),
-    dateModified: convertToWIB(new Date().toISOString()),
-    priceValidUntil: convertToWIB(new Date(Date.now() + 1000 * 60 * 60 * 24 * 180)) // default 6 bulan
-  };
-updateArticleDates(type, datePublished, dateModified, nextUpdate);
-  
+}
+
+updateArticleDates(finalType, datePublished, dateModified, nextUpdate);
+
   // === Update JSON-LD Article Schema ===
 /*  const schemaEl = document.getElementById('auto-schema');
   if (schemaEl) {
@@ -601,8 +610,6 @@ updateArticleDates(type, datePublished, dateModified, nextUpdate);
       console.warn('⚠️ Gagal update schema:', err);
     }
   }*/
-  
-}
 
   // ================== Ambil konten utama ==================
 /* const contentEl = document.querySelector(".post-body.entry-content") || 
