@@ -290,68 +290,126 @@ if(oldHash && oldHash == currentHash){
 
   // ===================== CORE =====================
   try {
+    console.log("🚀 Running AED v8.3.2R Ultra KMPTTF...");
+
+    // ===================== CONFIG & UTILS =====================
+    const qsMany = sel => document.querySelector(sel);
+    const CONFIG = {
+      h1Selectors: "h1, .post-title, .entry-title",
+      contentSelectors: ".post-body, article, main, .entry-content"
+    };
+
+    function normalizeUrlToken(url) {
+      return url.replace(/\/$/, "").replace(/\.html$/i, "").toLowerCase();
+    }
+    function sampleTextFrom(el) {
+      return el ? el.innerText.slice(0, 5000) : "";
+    }
+
+    // ===================== DETECTION CORE =====================
     const elC = qsMany(CONFIG.contentSelectors) || document.body;
-    const elH1 = qsMany(CONFIG.h1Selectors) || document.querySelector('h1');
-    const h1R = elH1?elH1.innerText.trim():'(no h1)';
+    const elH1 = qsMany(CONFIG.h1Selectors) || document.querySelector("h1");
+    const h1R = elH1 ? elH1.innerText.trim() : "(no h1)";
     const txt = sampleTextFrom(elC);
     const urlRaw = normalizeUrlToken(window.location.pathname);
 
     const result = detectEvergreen(h1R, txt, urlRaw);
     const type = result.status;
     const aiScore = result.score;
+    const priceValidUntil = result.priceValidUntil;
+
+    // ambil tanggal asli
+    const metaPub = document.querySelector('meta[itemprop="datePublished"]');
+    const metaMod = document.querySelector('meta[itemprop="dateModified"]');
+    const datePublished = metaPub ? metaPub.getAttribute("content") : "(not set)";
+    const dateModified = metaMod ? metaMod.getAttribute("content") : "(not set)";
 
     console.log("[AED] Type:", type, "Score:", aiScore);
     console.log("📅 datePublished:", datePublished, "dateModified:", dateModified, "priceValidUntil:", priceValidUntil);
 
     // ===================== DASHBOARD =====================
-    const dash = document.createElement('div');
-    dash.id = 'AEDDashboard';
-    dash.setAttribute('data-nosnippet','true');
+    const dash = document.createElement("div");
+    dash.id = "AEDDashboard";
+    dash.setAttribute("data-nosnippet", "true");
     dash.style.cssText = `
       max-width:1200px;margin:30px auto;padding:15px;
       background:#f0f8ff;border-top:3px solid #0078ff;
       font-family:Arial,sans-serif;border-radius:10px;
     `;
 
-    const h3 = document.createElement('h3');
-    h3.textContent = '📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman';
+    const h3 = document.createElement("h3");
+    h3.textContent = "📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman";
     dash.appendChild(h3);
 
-    const btns = document.createElement('div');
-    btns.style.textAlign = 'center';
-    btns.style.marginBottom = '10px';
-    const mkBtn = (t,bg)=>{const b=document.createElement('button');b.textContent=t;b.style.cssText=`background:${bg};padding:6px 12px;margin:3px;border:none;border-radius:4px;cursor:pointer;`;return b;};
-    const show=mkBtn("📊 Lihat Tabel","#d1e7dd"), rep=mkBtn("📥 Unduh Laporan","#f3f3f3");
-    btns.append(show,rep);
+    const btns = document.createElement("div");
+    btns.style.textAlign = "center";
+    btns.style.marginBottom = "10px";
+
+    const mkBtn = (t, bg) => {
+      const b = document.createElement("button");
+      b.textContent = t;
+      b.style.cssText = `background:${bg};padding:6px 12px;margin:3px;border:none;border-radius:4px;cursor:pointer;`;
+      return b;
+    };
+
+    const show = mkBtn("📊 Lihat Tabel", "#d1e7dd"),
+      rep = mkBtn("📥 Unduh Laporan", "#f3f3f3");
+    btns.append(show, rep);
     dash.appendChild(btns);
 
-    const tbl = document.createElement('div');
-    tbl.style.overflowX='auto';tbl.style.display='none';
-    tbl.innerHTML=`<table style="width:100%;border-collapse:collapse;min-width:1000px;font-size:.9em;">
-      <thead><tr><th>Halaman</th><th>Status</th><th>Tanggal Diperbarui</th><th>H1</th><th>Skor</th></tr></thead>
-      <tbody><tr><td>${document.title}</td><td>${type}</td><td>${dateModified}</td><td>${h1R}</td><td>${aiScore}/100</td></tr></tbody>
-    </table>`;
+    const tbl = document.createElement("div");
+    tbl.style.overflowX = "auto";
+    tbl.style.display = "none";
+    tbl.innerHTML = `
+      <table style="width:100%;border-collapse:collapse;min-width:1000px;font-size:.9em;">
+        <thead>
+          <tr><th>Halaman</th><th>Status</th><th>Tanggal Diperbarui</th><th>H1</th><th>Skor</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>${document.title}</td>
+            <td>${type}</td>
+            <td>${dateModified}</td>
+            <td>${h1R}</td>
+            <td>${aiScore}/100</td>
+          </tr>
+        </tbody>
+      </table>
+    `;
     dash.appendChild(tbl);
 
-    // === Sisipkan ke bawah konten utama ===
-    const mainArea = document.querySelector("#AEDDashboard") || document.querySelector("main") || document.body;
+    const mainArea = document.querySelector("main") || document.body;
     mainArea.appendChild(dash);
 
-    show.onclick=()=>tbl.style.display=tbl.style.display==='none'?'block':'none';
-    rep.onclick=()=>{
-      const txtRpt=`AED Ultra KMPTTF REPORT\nHalaman: ${document.title}\nStatus: ${type}\nTanggal Update: ${dateModified}\nSkor: ${aiScore}\nURL: ${location.href}`;
-      const blob=new Blob([txtRpt],{type:'text/plain'});
-      const a=document.createElement('a');
-      a.href=URL.createObjectURL(blob);
-      a.download='AED_Report_'+document.title.replace(/\s+/g,'_')+'.txt';
+    show.onclick = () => {
+      tbl.style.display = tbl.style.display === "none" ? "block" : "none";
+    };
+    rep.onclick = () => {
+      const txtRpt = `AED Ultra KMPTTF REPORT
+Halaman: ${document.title}
+Status: ${type}
+Tanggal Update: ${dateModified}
+Skor: ${aiScore}
+URL: ${location.href}`;
+      const blob = new Blob([txtRpt], { type: "text/plain" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "AED_Report_" + document.title.replace(/\s+/g, "_") + ".txt";
       a.click();
     };
 
-    const st=document.createElement('style');
-    st.textContent=`@media(max-width:768px){table th,td{padding:4px;font-size:.8em;}table{min-width:700px;}}table th,td{border:1px solid #ccc;padding:6px;text-align:left;}thead{background:#dff0ff;position:sticky;top:0;}`;
+    const st = document.createElement("style");
+    st.textContent = `
+      @media(max-width:768px){
+        table th,td{padding:4px;font-size:.8em;}
+        table{min-width:700px;}
+      }
+      table th,td{border:1px solid #ccc;padding:6px;text-align:left;}
+      thead{background:#dff0ff;position:sticky;top:0;}
+    `;
     document.head.appendChild(st);
 
-    console.log("✅ AED v8.3.2R Ultra KMPTTF aktif — schema skip, dashboard sticky responsive.");
+    console.log("✅ AED v8.3.2R Ultra KMPTTF aktif — dashboard responsif stabil.");
   } catch (e) {
     console.error("❌ AED v8.3.2R Error:", e);
   }
