@@ -46,6 +46,249 @@ document.addEventListener("DOMContentLoaded", function() {
 let datePublished = '';
 let dateModified = '';
 
+/* ============================================================
+ 🧠 Smart Evergreen Detector v8.6.2 Hybrid Modular
+ Fitur:
+ - Analisis konten, harga, produk, dan stabilitas
+ - Tidak menimpa dateModified/datePublished asli
+ - Auto nextUpdate & PriceValidUntil
+ - Dashboard responsif modular (terpisah)
+============================================================ */
+
+function detectEvergreen() {
+  console.log("🧩 Running detectEvergreen() v8.6.2...");
+
+  // ---------- Utilities ----------
+  const now = new Date();
+  const nowISODate = () => now.toISOString().split("T")[0];
+  const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
+  const hashString = s => {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return (h >>> 0).toString(36);
+  };
+
+  // ---------- Grab content ----------
+  const h1El = document.querySelector("h1");
+  const h1 = clean(h1El?.innerText || "").toLowerCase();
+  const contentEl =
+    document.querySelector(".post-body.entry-content") ||
+    document.querySelector("[id^='post-body-']") ||
+    document.querySelector("article") ||
+    document.querySelector("main") ||
+    document.body;
+  const contentTextRaw = clean(contentEl ? contentEl.innerText : "");
+  const contentText = (h1 + " " + contentTextRaw).toLowerCase();
+
+  // ---------- Keyword Pattern ----------
+  const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
+  const semiEvergreenPattern = /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/;
+  const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
+  const priceTokenPattern = /\b(harga|rp|per\s?(m3|m2|unit|kubik|meter)|biaya|tarif)\b/i;
+
+  // ---------- Section Extraction ----------
+  const sections = [];
+  const headings = Array.from(contentEl.querySelectorAll("h2,h3"));
+  if (headings.length === 0) sections.push({ title: h1 || "artikel", content: contentTextRaw });
+  else {
+    for (let i = 0; i < headings.length; i++) {
+      const head = headings[i];
+      const title = clean(head.innerText);
+      let cur = head.nextElementSibling, body = "";
+      while (cur && !(cur.matches && cur.matches("h2,h3"))) {
+        if (cur.innerText) body += "\n" + clean(cur.innerText);
+        cur = cur.nextElementSibling;
+      }
+      sections.push({ title, content: body });
+    }
+  }
+
+  // ---------- Section Scoring ----------
+  let totalScores = { evergreen: 0, semi: 0, non: 0 };
+  const sectionDetails = sections.map(sec => {
+    const t = sec.title.toLowerCase(), b = sec.content.toLowerCase();
+    let sEver = 0, sSemi = 0, sNon = 0;
+
+    if (evergreenPattern.test(t)) sEver += 2;
+    if (semiEvergreenPattern.test(t)) sSemi += 2;
+    if (nonEvergreenPattern.test(t)) sNon += 1.5;
+
+    sEver += (b.match(evergreenPattern) || []).length * 0.8;
+    sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
+    sNon += (b.match(nonEvergreenPattern) || []).length * 1.0;
+
+    const hasPriceTokens = priceTokenPattern.test(t + " " + b);
+    if (hasPriceTokens) sSemi += 1.5;
+
+    totalScores.evergreen += sEver;
+    totalScores.semi += sSemi;
+    totalScores.non += sNon;
+
+    let sectionType = "semi-evergreen";
+    if (sNon > sSemi && sNon > sEver) sectionType = "non-evergreen";
+    else if (sEver > sSemi + 2 && sEver > sNon) sectionType = "evergreen";
+
+    const validityDays = { "evergreen": 365, "semi-evergreen": 180, "non-evergreen": 90 }[sectionType];
+    const sectionAdvice =
+      sectionType === "evergreen" ? "Tinjau ulang tiap 9–12 bulan." :
+      sectionType === "semi-evergreen" ?
+        (hasPriceTokens ? "Perbarui harga setiap 3–6 bulan." : "Review tiap 4–6 bulan.") :
+        "Konten cepat berubah — update tiap 1–3 bulan.";
+
+    return { section: sec.title, sEver, sSemi, sNon, sectionType, validityDays, sectionAdvice };
+  });
+
+  // ---------- Global Classification ----------
+  const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
+  let resultType = "semi-evergreen";
+  if (totalScores.non > totalScores.semi && totalScores.non > totalScores.evergreen) resultType = "non-evergreen";
+  else if (totalScores.evergreen > totalScores.semi + 2 && !hasTimePattern) resultType = "evergreen";
+
+  const priceSections = sectionDetails.filter(s => /harga|produk|spesifikasi/.test(s.section.toLowerCase()));
+  const parityStatus = priceSections.some(s => s.sectionType === "non-evergreen")
+    ? "non-evergreen"
+    : priceSections.some(s => s.sectionType === "semi-evergreen")
+      ? "semi-evergreen"
+      : resultType;
+
+  const finalType = parityStatus;
+  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
+
+  // ---------- Meta Dates ----------
+  const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
+  const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
+  const dateModified = metaDateModified?.getAttribute("content") || nowISODate();
+  const datePublished = metaDatePublished?.getAttribute("content") || nowISODate();
+
+  window.AEDMetaDates = { dateModified, datePublished };
+
+  // ---------- Hash + Next Update ----------
+  const currentHash = hashString(h1 + contentText.slice(0, 20000));
+  const prevHash = localStorage.getItem("aed_hash_" + location.pathname);
+  const metaNextUpdate = localStorage.getItem("aed_nextupdate_" + location.pathname);
+  let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(new Date(dateModified).getTime() + validityDays * 86400000);
+
+  if (now >= nextUpdate || prevHash !== currentHash) {
+    localStorage.setItem("aed_hash_" + location.pathname, currentHash);
+    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+    localStorage.setItem("aed_nextupdate_" + location.pathname, nextUpdate.toISOString());
+  }
+
+  // ---------- JSON-LD Auto Update ----------
+  const until = nextUpdate.toISOString().split("T")[0];
+  const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+  jsonldScripts.forEach(script => {
+    try {
+      const parsed = JSON.parse(script.textContent.trim());
+      const apply = obj => {
+        if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
+          if (obj["@type"] === "Product" || obj["@type"] === "Service") {
+            if (!obj.offers) obj.offers = { "@type": "Offer" };
+            obj.offers.priceValidUntil = until;
+          }
+          obj.dateModified = dateModified;
+          obj.datePublished = datePublished;
+        }
+        for (const k in obj) if (typeof obj[k] === "object") apply(obj[k]);
+      };
+      if (Array.isArray(parsed)) parsed.forEach(apply);
+      else apply(parsed);
+      script.textContent = JSON.stringify(parsed, null, 2);
+    } catch {}
+  });
+
+  // ---------- Global Result ----------
+  const advice =
+    finalType === "evergreen" ? "Konten bersifat evergreen — review tiap 9–12 bulan." :
+    finalType === "semi-evergreen" ? "Konten semi-evergreen — periksa 3–6 bulan sekali." :
+    "Konten cepat berubah — update tiap 1–3 bulan.";
+  window.EvergreenDetectorResults = {
+    resultType: finalType,
+    validityDays,
+    sections: sectionDetails,
+    advice,
+    dateModified,
+    datePublished,
+    nextUpdate
+  };
+
+  window.AEDStatus = {
+    type: finalType,
+    score: totalScores,
+    nextUpdate,              // ✅ tambahkan agar bisa diakses langsung
+    validityDays,            // ✅ lama validitas
+  };
+
+  window.AEDMetaDates = {
+    dateModified,
+    datePublished,
+    nextUpdate: nextUpdate.toISOString().split("T")[0], // ✅ simpan tanggal string
+    type: finalType                                    // ✅ simpan tipe global
+  };
+
+  console.log(`✅ [AED v8.6.2] ${finalType.toUpperCase()} detected — ${validityDays} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`);
+
+}
+
+// Jalankan deteksi di awal halaman
+detectEvergreen();
+
+// =================== DASHBOARD FUNCTION ===================
+function showEvergreenDashboard() {
+  const renderDashboard = data => {
+    const wrap = document.createElement("div");
+    wrap.id = "EvergreenDashboard";
+    wrap.style.cssText = "max-width:1200px;margin:20px auto;padding:10px;background:#f8fbff;border-top:4px solid #0066cc;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-family:system-ui;overflow-x:auto;";
+    wrap.innerHTML = `
+      <h2 style="text-align:center;margin-bottom:10px;">🧩 Evergreen Content Report</h2>
+      <p style="text-align:center;margin-bottom:15px;color:#444;">
+        <b>Status Global:</b> ${data.resultType.toUpperCase()} |
+        <b>Review:</b> ${data.validityDays} hari |
+        <b>Terakhir Ubah:</b> ${data.dateModified}
+      </p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px;">
+        <thead style="position:sticky;top:0;background:#eaf3ff;z-index:1;">
+          <tr>
+            <th>Bagian</th><th>Ever</th><th>Semi</th><th>Non</th>
+            <th>Status</th><th>Review (hari)</th><th>Saran</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.sections.map(s => `
+            <tr>
+              <td>${s.section}</td>
+              <td>${s.sEver.toFixed(1)}</td>
+              <td>${s.sSemi.toFixed(1)}</td>
+              <td>${s.sNon.toFixed(1)}</td>
+              <td style="font-weight:bold;color:${
+                s.sectionType === "evergreen" ? "#007700" :
+                s.sectionType === "semi-evergreen" ? "#cc8800" : "#cc0000"
+              }">${s.sectionType.toUpperCase()}</td>
+              <td>${s.validityDays}</td>
+              <td>${s.sectionAdvice}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+      <p style="text-align:center;margin-top:12px;">${data.advice}</p>
+    `;
+    const anchor = document.querySelector("#AEDDashboard");
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
+    else document.body.appendChild(wrap);
+  };
+
+  const waitForResults = () => {
+    if (window.EvergreenDetectorResults) renderDashboard(window.EvergreenDetectorResults);
+    else setTimeout(waitForResults, 300);
+  };
+  waitForResults();
+}
+
+// Tampilkan dashboard di bawah ID tertentu
+showEvergreenDashboard();
+  
 // ================== DETEKSI TYPE KONTEN ==================
 /* ===== Auto Evergreen Detector v7.7 + Dashboard Interaktif ===== */
 (function AutoEvergreenV832UltraKMPTTF(window, document) {
@@ -275,290 +518,6 @@ URL: ${location.href}`;
 
 })(window, document);
 
-/**
- * 🌿 Hybrid Evergreen Detector v7.1
- * ✅ Smart Section Update + Auto dateModified + Responsive Dashboard
- * Beton Jaya Readymix ©2025
- */
-
-/* ===== 🧩 Hybrid Evergreen Detector + Smart Selective DateModified v7.6 ===== */
-/* ============================================================
-   🧩 Smart Selective Evergreen Detector v8.1 UltraKMPTTF TrueSection+SchemaSync
-   Fitur:
-   - Deteksi perubahan konten & saran update
-   - Auto-update <meta itemprop="dateModified">
-   - Auto-sync JSON-LD Article schema (datePublished/dateModified)
-   - Auto-update Product schema PriceValidUntil jika konten harga berubah
-   ============================================================ */
-/* ============================================================
-   🧩 Smart Evergreen Detector v8.3.1 — Precision Hybrid
-   Fitur:
-   - Global + section-based detection (H1,H2,H3,paragraphs)
-   - Weighted scoring (judul, paragraf, daftar, tabel)
-   - Hash-check => update <meta itemprop="dateModified"> hanya bila berubah
-   - Auto-sync JSON-LD (Article/BlogPosting dateModified; Product/Service priceValidUntil)
-   - priceValidUntil: evergreen=365d, semi=180d, non=90d
-   - Results available on window.EvergreenDetectorResults
-   ============================================================ */
-/* ============================================================
-   🧠 Smart Evergreen Detector v8.3.1 — Precision Hybrid
-   ============================================================ */
-/* ============================================================
-   🧠 Smart Evergreen Detector v8.3.2 — Precision+ Per Section Analyzer
-   ============================================================ */
-/* ============================================================
-   🧠 Smart Evergreen Detector v8.3.4R — Precision+ Parity-Stable Fix
-   Fitur:
-   - Analisis per section (harga, produk, konten utama)
-   - Auto sync <meta itemprop="dateModified">
-   - Auto update priceValidUntil sesuai status evergreen
-   - Penempatan dashboard otomatis di bawah #AEDDashboard
-   ============================================================ */
-
-/* ============================================================
-   🧠 Smart Evergreen Detector v8.3.4R — Precision+ Parity-Stable Fix
-   Fitur:
-   - Analisis per section (harga, produk, konten utama)
-   - Auto sync <meta itemprop="dateModified">
-   - Auto update priceValidUntil sesuai status evergreen
-   - Penempatan dashboard otomatis di bawah #AEDDashboard
-   ============================================================ */
-function detectEvergreenFullDashboard() {
-  console.log("🧠 Running Smart Evergreen Detector v8.6 Full + Dashboard Responsive...");
-
-  // ---------- Utilities ----------
-  const now = new Date();
-  const nowISODate = () => now.toISOString().split("T")[0];
-  const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
-  const hashString = s => {
-    let h = 2166136261 >>> 0;
-    for (let i = 0; i < s.length; i++) {
-      h ^= s.charCodeAt(i);
-      h = Math.imul(h, 16777619) >>> 0;
-    }
-    return (h >>> 0).toString(36);
-  };
-
-  // ---------- Grab content ----------
-  const h1El = document.querySelector("h1");
-  const h1 = clean(h1El?.innerText || "").toLowerCase();
-  const contentEl =
-    document.querySelector(".post-body.entry-content") ||
-    document.querySelector("[id^='post-body-']") ||
-    document.querySelector("article") ||
-    document.querySelector("main") ||
-    document.body;
-  const contentTextRaw = clean(contentEl ? contentEl.innerText : "");
-  const contentText = (h1 + " " + contentTextRaw).toLowerCase();
-
-  // ---------- Keyword Pattern ----------
-  const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
-  const semiEvergreenPattern = /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/;
-  const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
-  const priceTokenPattern = /\b(harga|rp|per\s?(m3|m2|unit|kubik|meter)|biaya|tarif)\b/i;
-
-  // ---------- Section Extraction ----------
-  const sections = [];
-  const headings = Array.from(contentEl.querySelectorAll("h2,h3"));
-  if (headings.length === 0) sections.push({ title: h1 || "artikel", content: contentTextRaw });
-  else {
-    for (let i = 0; i < headings.length; i++) {
-      const head = headings[i];
-      const title = clean(head.innerText);
-      let cur = head.nextElementSibling, body = "";
-      while (cur && !(cur.matches && cur.matches("h2,h3"))) {
-        if (cur.innerText) body += "\n" + clean(cur.innerText);
-        cur = cur.nextElementSibling;
-      }
-      sections.push({ title, content: body });
-    }
-  }
-
-  // ---------- Section Scoring ----------
-  let totalScores = { evergreen: 0, semi: 0, non: 0 };
-  const sectionDetails = sections.map(sec => {
-    const t = sec.title.toLowerCase(), b = sec.content.toLowerCase();
-    let sEver = 0, sSemi = 0, sNon = 0;
-
-    if (evergreenPattern.test(t)) sEver += 2;
-    if (semiEvergreenPattern.test(t)) sSemi += 2;
-    if (nonEvergreenPattern.test(t)) sNon += 1.5;
-
-    sEver += (b.match(evergreenPattern) || []).length * 0.8;
-    sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
-    sNon += (b.match(nonEvergreenPattern) || []).length * 1.0;
-
-    const hasPriceTokens = priceTokenPattern.test(t + " " + b);
-    if (hasPriceTokens) sSemi += 1.5;
-
-    totalScores.evergreen += sEver;
-    totalScores.semi += sSemi;
-    totalScores.non += sNon;
-
-    let sectionType = "semi-evergreen";
-    if (sNon > sSemi && sNon > sEver) sectionType = "non-evergreen";
-    else if (sEver > sSemi + 2 && sEver > sNon) sectionType = "evergreen";
-
-    const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[sectionType];
-    const sectionAdvice =
-      sectionType === "evergreen" ? "Tinjau ulang tiap 9–12 bulan." :
-      sectionType === "semi-evergreen" ?
-        (hasPriceTokens ? "Perbarui harga setiap 3–6 bulan." : "Review tiap 4–6 bulan.") :
-        "Konten cepat berubah — update tiap 1–3 bulan.";
-
-    return { section: sec.title, sEver, sSemi, sNon, sectionType, validityDays, sectionAdvice };
-  });
-
-  // ---------- Global Classification + Parity ----------
-  const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
-  let resultType = "semi-evergreen";
-  if (totalScores.non > totalScores.semi && totalScores.non > totalScores.evergreen) resultType = "non-evergreen";
-  else if (totalScores.evergreen > totalScores.semi + 2 && !hasTimePattern) resultType = "evergreen";
-
-  const priceSections = sectionDetails.filter(s => /harga|produk|spesifikasi/.test(s.section.toLowerCase()));
-  const parityStatus = priceSections.some(s => s.sectionType === "non-evergreen")
-    ? "non-evergreen"
-    : priceSections.some(s => s.sectionType === "semi-evergreen")
-      ? "semi-evergreen"
-      : resultType;
-
-  const finalType = parityStatus;
-  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
-  const type = finalType;
-  window.AEDMetaDates = { Type };
-     // ---------- Meta dateModified & datePublished ----------
-  const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
-  const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
-  const dateModified = metaDateModified?.getAttribute("content") || nowISODate();
-  const datePublished = metaDatePublished?.getAttribute("content") || nowISODate();
-
-  // ---------- Simpan global supaya bisa dipakai di fungsi lain ----------
-  window.AEDMetaDates = { dateModified, datePublished };
-
-  // ---------- Hash + Next Update ----------
-  const currentHash = hashString(h1 + contentText.slice(0, 20000));
-  const prevHash = localStorage.getItem("aed_hash_" + location.pathname);
-  const metaNextUpdate = localStorage.getItem("aed_nextupdate_" + location.pathname);
-  let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(now.getTime() + validityDays * 86400000);
-
-   // ---------- Simpan global supaya bisa dipakai di fungsi lain ----------
-  window.AEDMetaDates = { nextUpdate };
-
-  if (now >= nextUpdate || prevHash !== currentHash) {
-    localStorage.setItem("aed_hash_" + location.pathname, currentHash);
-    //nextUpdate = new Date(now.getTime() + validityDays * 86400000);    
-    nextUpdate = new Date(dateModified.getTime() + validityDays * 86400000);
-    
-    localStorage.setItem("aed_nextupdate_" + location.pathname, nextUpdate.toISOString());
-    if (metaDateModified) metaDateModified.setAttribute("content", nowISODate());
-    else {
-      const m = document.createElement("meta");
-      m.setAttribute("itemprop","dateModified");
-      m.setAttribute("content", nowISODate());
-      document.head.appendChild(m);
-    }
-  }
-
-  // ---------- Alert seminggu ----------
-  const oneWeekBefore = new Date(nextUpdate.getTime() - 7*86400000);
-  if (now >= oneWeekBefore && now < nextUpdate && !document.getElementById("aed-update-alert")) {
-    const alertDiv = document.createElement("div");
-    alertDiv.id = "aed-update-alert";
-    alertDiv.setAttribute("data-nosnippet","true");
-    alertDiv.style.cssText = "background:#fff3cd;color:#856404;padding:12px;border:1px solid #ffeeba;margin:15px 0;border-radius:6px;font-size:14px;text-align:center;";
-    alertDiv.textContent = "⚠️ Konten ini akan direview segera (menjelang jadwal update).";
-    if (h1El && h1El.parentNode) h1El.parentNode.insertBefore(alertDiv,h1El.nextSibling);
-  }
-
-  // ---------- PriceValidUntil & JSON-LD update ----------
-  const until = dateModified + validityDays*86400000).toISOString().split("T")[0];
-  const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-  jsonldScripts.forEach(script=>{
-    try{
-      const parsed=JSON.parse(script.textContent.trim());
-      const apply=obj=>{
-        if(["Product","Service","Article","BlogPosting"].includes(obj["@type"])){
-          if(obj["@type"]==="Product"||obj["@type"]==="Service"){
-            if(!obj.offers) obj.offers={ "@type":"Offer" };
-            obj.offers.priceValidUntil=until;
-          }
-          obj.dateModified=dateModified;
-          obj.datePublished=datePublished;
-        }
-        for(const k in obj) if(typeof obj[k]==="object") apply(obj[k]);
-      };
-      if(Array.isArray(parsed)) parsed.forEach(apply);
-      else apply(parsed);
-      script.textContent=JSON.stringify(parsed,null,2);
-    }catch{}
-  });
-
-  // ---------- Dashboard ----------
-  const advice =
-    finalType==="evergreen" ? "Konten bersifat evergreen — review tiap 9–12 bulan." :
-    finalType==="semi-evergreen" ? "Konten semi-evergreen — periksa 3–6 bulan sekali." :
-    "Konten cepat berubah — update tiap 1–3 bulan.";
-
-  window.EvergreenDetectorResults = { resultType: finalType, validityDays, sections: sectionDetails, advice, dateModified, datePublished };
-
-  (function showDashboard(){
-    const renderDashboard=data=>{
-      const wrap=document.createElement("div");
-      wrap.id="EvergreenDashboard";
-      wrap.style.cssText="max-width:1200px;margin:20px auto;padding:10px;background:#f8fbff;border-top:4px solid #0066cc;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-family:system-ui;overflow-x:auto;";
-      wrap.innerHTML=`
-        <h2 style="text-align:center;margin-bottom:10px;">🧩 Evergreen Content Report</h2>
-        <p style="text-align:center;margin-bottom:15px;color:#444;">
-          <b>Status Global:</b> ${data.resultType.toUpperCase()} |
-          <b>Review:</b> ${data.validityDays} hari |
-          <b>Terakhir Ubah:</b> ${data.dateModified}
-        </p>
-        <table style="width:100%;border-collapse:collapse;font-size:14px;">
-          <thead style="position:sticky;top:0;background:#eaf3ff;z-index:1;">
-            <tr>
-              <th style="padding:8px;border:1px solid #ccc;">Bagian</th>
-              <th style="padding:8px;border:1px solid #ccc;">Ever</th>
-              <th style="padding:8px;border:1px solid #ccc;">Semi</th>
-              <th style="padding:8px;border:1px solid #ccc;">Non</th>
-              <th style="padding:8px;border:1px solid #ccc;">Status</th>
-              <th style="padding:8px;border:1px solid #ccc;">Review (hari)</th>
-              <th style="padding:8px;border:1px solid #ccc;">Saran</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${data.sections.map(s=>`
-              <tr>
-                <td style="border:1px solid #ddd;padding:6px;">${s.section}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sEver.toFixed(1)}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sSemi.toFixed(1)}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.sNon.toFixed(1)}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;font-weight:bold;color:${
-                  s.sectionType==="evergreen"?"#007700":
-                  s.sectionType==="semi-evergreen"?"#cc8800":"#cc0000"
-                };">${s.sectionType.toUpperCase()}</td>
-                <td style="border:1px solid #ddd;padding:6px;text-align:center;">${s.validityDays}</td>
-                <td style="border:1px solid #ddd;padding:6px;">${s.sectionAdvice}</td>
-              </tr>`).join("")}
-          </tbody>
-        </table>
-        <p style="text-align:center;margin-top:12px;">${data.advice}</p>
-      `;
-      const anchor=document.querySelector("#AEDDashboard");
-      if(anchor&&anchor.parentNode) anchor.parentNode.insertBefore(wrap,anchor.nextSibling);
-      else document.body.appendChild(wrap);
-    };
-    const waitForResults=()=>{window.EvergreenDetectorResults?renderDashboard(window.EvergreenDetectorResults):setTimeout(waitForResults,300);};
-    waitForResults();
-  })();
-
-  console.log(`✅ [AED v8.6 Full] ${finalType.toUpperCase()} | Dashboard & JSON-LD updated`);
-}
-
-detectEvergreenFullDashboard();
-
-
-//panggil fungsi shw dasboarrd
-//showEvergreenDashboard();
   
 // === Function untuk update tanggal & schema ===
 function updateArticleDates(type, pubStr, modStr, nextStr) {
