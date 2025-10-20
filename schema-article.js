@@ -520,15 +520,19 @@ function showEvergreenDashboard() {
 showEvergreenDashboard();
   
   
-// === Function untuk update tanggal & schema ===
-function updateArticleDates(type, pubStr, modStr, nextStr) {
-  // Simpan ke variabel global agar bisa digunakan di schema
-  const datePublished = pubStr;
-  const dateModified = modStr;
-  const nextUpdate = nextStr;
-
+function updateArticleDates() {
   
-  console.log("🧩 AEDMetaDates updated:", window.AEDMetaDates);
+  console.log(window.AEDMetaDates);
+  
+  const d = window.AEDMetaDates || {};
+  const { type, datePublished, dateModified, nextUpdate } = d;
+
+  if (!type || !dateModified || !nextUpdate) {
+    console.warn("⚠️ AEDMetaDates belum lengkap:", d);
+    return;
+  }
+
+  console.log("🧩 updateArticleDates() loaded:", d);
 
   // === Update tampilan label di halaman ===
   const elH1 = document.querySelector("h1");
@@ -543,56 +547,49 @@ function updateArticleDates(type, pubStr, modStr, nextStr) {
 
   let labelText = "";
   if (type === "EVERGREEN") {
-    labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextStr}</b>`;
+    labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextUpdate}</b>`;
     document.body.setAttribute("data-force", "evergreen");
   } else if (type === "SEMI_EVERGREEN") {
-    labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
+    labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextUpdate}</b>`;
     document.body.setAttribute("data-force", "semi-evergreen");
   } else if (type === "NON_EVERGREEN") {
-    labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextStr}</b>`;
+    labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextUpdate}</b>`;
     document.body.setAttribute("data-force", "non-evergreen");
-  } else {
-    document.body.removeAttribute("data-force");
   }
 
   lb.innerHTML = labelText;
   elH1.insertAdjacentElement("afterend", lb);
 
   // === Author Date Display ===
-  const CONFIG = {
-    authorSelector: ".author-info",
-    dateSpanClass: "article-date",
-  };
-  const aEl = document.querySelector(CONFIG.authorSelector);
-
-  // Hapus tanggal lama jika ada
-  aEl?.querySelector("." + CONFIG.dateSpanClass)?.remove();
+  const aEl = document.querySelector(".author-info");
+  aEl?.querySelector(".article-date")?.remove();
 
   if (type === "NON_EVERGREEN") {
-    const d = document.createElement("span");
-    d.className = CONFIG.dateSpanClass;
-    d.textContent = "Diperbarui: " + modStr;
-    d.style.cssText =
-      "display:block;font-size:.85em;color:#d9534f;margin-bottom:4px;";
-    d.setAttribute("data-nosnippet", "true");
-    elH1.parentNode.insertBefore(d, elH1);
+    const dSpan = document.createElement("span");
+    dSpan.className = "article-date";
+    dSpan.textContent = "Diperbarui: " + dateModified;
+    dSpan.style.cssText = "display:block;font-size:.85em;color:#d9534f;margin-bottom:4px;";
+    dSpan.setAttribute("data-nosnippet", "true");
+    elH1.parentNode.insertBefore(dSpan, elH1);
   } else if (type === "SEMI_EVERGREEN") {
-    if (aEl && modStr) {
-      const d = document.createElement("span");
-      d.className = CONFIG.dateSpanClass;
-      d.textContent = " · Diperbarui: " + modStr;
-      d.style.cssText = "font-size:.85em;color:#555;margin-left:6px;";
-      d.setAttribute("data-nosnippet", "true");
-      aEl.appendChild(d);
+    if (aEl && dateModified) {
+      const dSpan = document.createElement("span");
+      dSpan.className = "article-date";
+      dSpan.textContent = " · Diperbarui: " + dateModified;
+      dSpan.style.cssText = "font-size:.85em;color:#555;margin-left:6px;";
+      dSpan.setAttribute("data-nosnippet", "true");
+      aEl.appendChild(dSpan);
     }
   }
 }
+updateArticleDates();
 
+/*
 if (window.AEDMetaDates) {
   const { type, datePublished, dateModified, nextUpdate } = window.AEDMetaDates;
   updateArticleDates(type, datePublished, dateModified, nextUpdate);
 }
-
+*/
 
   // === Update JSON-LD Article Schema ===
 /*  const schemaEl = document.getElementById('auto-schema');
