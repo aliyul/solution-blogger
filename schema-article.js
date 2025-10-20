@@ -595,7 +595,7 @@ function updateArticleDates(type, pubStr, modStr, nextStr) {
   }
 }
 
-updateArticleDates(finalType, datePublished, dateModified, nextUpdate);
+updateArticleDates(type, datePublished, dateModified, nextUpdate);
 
   // === Update JSON-LD Article Schema ===
 /*  const schemaEl = document.getElementById('auto-schema');
