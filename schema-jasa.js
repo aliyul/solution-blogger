@@ -181,7 +181,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       seenItems.add(k);
     
       // === 🕒 Ambil tanggal validUntil dari AEDMetaDates jika ada ===
-      let validUntil = autoPriceValidUntil; // default fallback
+      //let validUntil = autoPriceValidUntil; // default fallback
       try {
         if (window.AEDMetaDates?.nextUpdate) {
           validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
