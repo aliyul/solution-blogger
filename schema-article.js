@@ -573,7 +573,7 @@ function updateArticleDates() {
 
   aEl?.querySelector(".article-date")?.remove();
 
-  if (type === "NON_EVERGREEN") {
+  if (type === "non_evergeen") {
     const dSpan = document.createElement("span");
     dSpan.className = "article-date";
     dSpan.textContent = "Diperbarui: " + dateModified;
@@ -581,7 +581,7 @@ function updateArticleDates() {
       "display:block;font-size:.85em;color:#d9534f;margin-bottom:4px;";
     dSpan.setAttribute("data-nosnippet", "true");
     elH1.parentNode.insertBefore(dSpan, elH1);
-  } else if (type === "SEMI_EVERGREEN" && aEl && dateModified) {
+  } else if (type === "semi_evergeen" && aEl && dateModified) {
     const dSpan = document.createElement("span");
     dSpan.className = "article-date";
     dSpan.textContent = " · Diperbarui: " + dateModified;
