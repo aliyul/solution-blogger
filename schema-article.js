@@ -179,25 +179,17 @@ function detectEvergreen() {
 
  // ---------- JSON-LD Auto Update ----------
 try {
-  const dateModified = new Date().toISOString();
-  const datePublished = document.querySelector('meta[itemprop="datePublished"]')?.content || dateModified;
-  const nextUpdate = typeof nextUpdate !== "undefined" && nextUpdate instanceof Date
-    ? nextUpdate
-    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   const until = nextUpdate.toISOString().split("T")[0];
-
   const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-
   jsonldScripts.forEach(script => {
     try {
       const parsed = JSON.parse(script.textContent.trim());
-
       const apply = obj => {
         if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
           if (obj["@type"] === "Product" || obj["@type"] === "Service") {
-            if (Array.isArray(obj.offers)) {
+              if (Array.isArray(obj.offers)) {
               obj.offers.forEach(o => {
-                if (o["@type"] === "Offer") o.priceValidUntil = until;
+              if (o["@type"] === "Offer") o.priceValidUntil = until;
               });
             } else {
               if (!obj.offers) obj.offers = { "@type": "Offer" };
@@ -207,17 +199,12 @@ try {
           obj.dateModified = dateModified;
           obj.datePublished = datePublished;
         }
-        for (const k in obj) if (typeof obj[k] === "object" && obj[k] !== null) apply(obj[k]);
+        for (const k in obj) if (typeof obj[k] === "object") apply(obj[k]);
       };
-
       if (Array.isArray(parsed)) parsed.forEach(apply);
       else apply(parsed);
-
       script.textContent = JSON.stringify(parsed, null, 2);
-      console.log("✅ Updated JSON-LD:", parsed);
-    } catch (e) {
-      console.warn("❌ JSON-LD update failed:", e);
-    }
+    } catch {}
   });
 } catch (e) {
   console.error("Error in JSON-LD Auto Update:", e);
