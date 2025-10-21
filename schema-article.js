@@ -582,10 +582,21 @@ function updateArticleDates() {
 
   lb.innerHTML = labelText;
   elH1.insertAdjacentElement("afterend", lb);
+function convertToWIBDate(dateString) {
+  try {
+    const date = new Date(dateString);
+    // Format tanggal ke format Indonesia tanpa waktu
+    const options = { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Jakarta" };
+    return date.toLocaleDateString("id-ID", options);
+  } catch (e) {
+    console.warn("convertToWIB() error:", e);
+    return dateString;
+  }
+}
 
   // === Tanggal di area penulis ===
    // ===== 8️⃣ Author + Tanggal Update =====
-  dateModifiedStr = convertToWIB(dateModified);
+  dateModifiedStr = convertToWIBDate(dateModified);
   const authorEl = document.querySelector(".post-author .fn");
   if (authorEl) {
     // remove existing appended date to avoid duplicates
