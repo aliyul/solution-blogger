@@ -489,6 +489,7 @@ function showEvergreenDashboard() {
   const renderDashboard = data => {
     const wrap = document.createElement("div");
     wrap.id = "EvergreenDashboard";
+    wrap.setAttribute("data-nosnippet", "true");
     wrap.style.cssText = "max-width:1200px;margin:20px auto;padding:10px;background:#f8fbff;border-top:4px solid #0066cc;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);font-family:system-ui;overflow-x:auto;";
     wrap.innerHTML = `
       <h2 style="text-align:center;margin-bottom:10px;">🧩 Evergreen Content Report</h2>
