@@ -560,43 +560,50 @@ function updateArticleDates() {
     return;
   }
 
-  // === Label status evergreen ===
-  let lb = document.getElementById("evergreen-label");
-  if (!lb) {
-    lb = document.createElement("div");
-    lb.id = "evergreen-label";
-    lb.style.cssText = "font-size:.9em;margin-bottom:8px;color:#333;";
-  }
+ // === Label status evergreen ===
+// === Label status evergreen ===
+let lb = document.getElementById("evergreen-label");
+if (!lb) {
+  lb = document.createElement("div");
+  lb.id = "evergreen-label";
+  lb.style.cssText = "font-size:.9em;margin-bottom:8px;color:#333;";
+  lb.setAttribute("data-nosnippet", "true"); // 🚫 no snippet
+}
 
-  let labelText = "";
-  if (type === "evergreen") {
-    labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextUpdate}</b>`;
-    document.body.setAttribute("data-force", "evergreen");
-  } else if (type === "semi-evergreen") {
-    labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextUpdate}</b>`;
-    document.body.setAttribute("data-force", "semi-evergreen");
-  } else {
-    labelText = `<b>non-evergreen</b> — disarankan update: <b>${nextUpdate}</b>`;
-    document.body.setAttribute("data-force", "non-evergreen");
-  }
-
-  lb.innerHTML = labelText;
-  elH1.insertAdjacentElement("afterend", lb);
-function convertToWIBDate(dateString) {
+// Konversi nextUpdate ke tanggal normal WIB tanpa jam
+function formatTanggalNormal(dateString) {
   try {
     const date = new Date(dateString);
-    // Format tanggal ke format Indonesia tanpa waktu
     const options = { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Jakarta" };
     return date.toLocaleDateString("id-ID", options);
   } catch (e) {
-    console.warn("convertToWIB() error:", e);
+    console.warn("formatTanggalNormal() error:", e);
     return dateString;
   }
 }
 
+const nextUpdateStr = formatTanggalNormal(nextUpdate);
+
+// === Tentukan label sesuai status ===
+let labelText = "";
+if (type === "evergreen") {
+  labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+  document.body.setAttribute("data-force", "evergreen");
+} else if (type === "semi-evergreen") {
+  labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextUpdateStr}</b>`;
+  document.body.setAttribute("data-force", "semi-evergreen");
+} else {
+  labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextUpdateStr}</b>`;
+  document.body.setAttribute("data-force", "non-evergreen");
+}
+
+lb.innerHTML = labelText;
+elH1.insertAdjacentElement("afterend", lb);
+
+
   // === Tanggal di area penulis ===
    // ===== 8️⃣ Author + Tanggal Update =====
-  dateModifiedStr = convertToWIBDate(dateModified);
+  dateModifiedStr = formatTanggalNormal(dateModified);
   const authorEl = document.querySelector(".post-author .fn");
   if (authorEl) {
     // remove existing appended date to avoid duplicates
