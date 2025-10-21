@@ -245,7 +245,7 @@ function addOffer(name, key, price, desc = "") {
   seenItems.add(k);
 
   // ========== 🕒 Ambil next update date dari Evergreen Detector ==========
-  let validUntil = autoPriceValidUntil; // fallback default
+//  let validUntil = autoPriceValidUntil; // fallback default
   try {
     if (window.AEDMetaDates && window.AEDMetaDates.nextUpdate) {
       // Gunakan hasil hitungan dari evergreen detector
