@@ -142,7 +142,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       const productSameAs = productCategory==="BuildingMaterial"?"https://id.wikipedia.org/wiki/Material_konstruksi":productCategory==="ConstructionEquipment"?"https://id.wikipedia.org/wiki/Alat_berat":"https://id.wikipedia.org/wiki/Konstruksi";
 
       // === 8️⃣ DETEKSI EVERGREEN ===
-      function detectEvergreenAI(){
+    /*  function detectEvergreenAI(){
         const h1 = document.querySelector("h1")?.innerText||"";
         const content = Array.from(document.querySelectorAll("article p, main p, .post-body p")).map(p=>p.innerText).join(" ");
         const text = (h1+" "+content).toLowerCase();
@@ -156,37 +156,58 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
       const isEvergreen = detectEvergreenAI();
       console.log("[Evergreen AI ✅]", isEvergreen);
-
+  */
       // === 9️⃣ priceValidUntil ===
-      const now = new Date();
+      /*const now = new Date();
       const priceValidUntil = new Date(now);
       if(isEvergreen) priceValidUntil.setFullYear(now.getFullYear()+1);
       else priceValidUntil.setMonth(now.getMonth()+3);
       const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
-
+      */
+      
       // === 7️⃣ PRICE DETECTION & OFFERS ===
-      const seenItems = new Set();
-      const tableOffers = [];
-      function addOffer(name,key,price,desc=""){
-        let finalName = productName;
-        if(name && name.toLowerCase()!==productName.toLowerCase()) finalName += " "+name;
-        const k = finalName+"|"+key+"|"+price;
-        if(!seenItems.has(k)){
-          seenItems.add(k);
-          tableOffers.push({
-            "@type":"Offer",
-            name:finalName,
-            url:cleanUrl,
-            priceCurrency:"IDR",
-            price:price.toString(),
-            itemCondition:"https://schema.org/NewCondition",
-            availability:"https://schema.org/InStock",
-            priceValidUntil:autoPriceValidUntil,
-            seller:{ "@id": PAGE.business.url+"#localbusiness" },
-            description: desc||undefined
-          });
+      // ======================================================
+    // 🧩 Smart Offer Builder + Auto Sync with Evergreen Detector
+    // ======================================================
+    const seenItems = new Set();
+    const tableOffers = [];
+    
+    function addOffer(name, key, price, desc = "") {
+      let finalName = productName;
+      if (name && name.toLowerCase() !== productName.toLowerCase()) finalName += " " + name;
+    
+      const k = finalName + "|" + key + "|" + price;
+      if (seenItems.has(k)) return;
+      seenItems.add(k);
+    
+      // === 🕒 Ambil tanggal validUntil dari AEDMetaDates jika ada ===
+      let validUntil = autoPriceValidUntil; // default fallback
+      try {
+        if (window.AEDMetaDates?.nextUpdate) {
+          validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
+        } else if (window.AEDMetaDates?.dateModified) {
+          const dt = new Date(window.AEDMetaDates.dateModified);
+          dt.setDate(dt.getDate() + 90); // default 3 bulan
+          validUntil = dt.toISOString().split("T")[0];
         }
+      } catch (err) {
+        console.warn("[Offer Builder] Gagal baca AEDMetaDates:", err);
       }
+    
+      // === 💰 Push ke Offer Table ===
+      tableOffers.push({
+        "@type": "Offer",
+        name: finalName,
+        url: cleanUrl,
+        priceCurrency: "IDR",
+        price: price.toString(),
+        itemCondition: "https://schema.org/NewCondition",
+        availability: "https://schema.org/InStock",
+        priceValidUntil: validUntil,
+        seller: { "@id": PAGE.business.url + "#localbusiness" },
+        description: desc || undefined
+      });
+    }
 
       Array.from(document.querySelectorAll("table")).forEach(table=>{
         Array.from(table.querySelectorAll("tr")).forEach(row=>{
