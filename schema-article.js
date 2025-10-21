@@ -585,6 +585,7 @@ function updateArticleDates() {
 
   // === Tanggal di area penulis ===
    // ===== 8️⃣ Author + Tanggal Update =====
+  dateModifiedStr = convertToWIB(dateModified);
   const authorEl = document.querySelector(".post-author .fn");
   if (authorEl) {
     // remove existing appended date to avoid duplicates
@@ -593,14 +594,14 @@ function updateArticleDates() {
     if (type === "semi-evergreen") {
       const dateEl = document.createElement("span");
       dateEl.className = "aed-date-span";
-      dateEl.textContent = ` · Diperbarui: ${dateModified}`;
+      dateEl.textContent = ` · Diperbarui: ${dateModifiedStr}`;
       dateEl.style.fontSize = "0.85em";
       dateEl.style.color = "#555";
       dateEl.style.marginLeft = "4px";
       authorEl.appendChild(dateEl);
     } else if (type === "non-evergreen") {
       const dateEl = document.createElement("div");
-      dateEl.textContent = `Diperbarui: ${dateModified}`;
+      dateEl.textContent = `Diperbarui: ${dateModifiedStr}`;
       dateEl.style.fontSize = "0.85em";
       dateEl.style.color = "#555";
       dateEl.style.marginBottom = "4px";
