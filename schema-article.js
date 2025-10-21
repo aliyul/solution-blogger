@@ -56,7 +56,7 @@ let dateModified = '';
 ============================================================ */
 
 function detectEvergreen() {
-  console.log("🧩 Running detectEvergreen() v8.6.2...");
+  console.log("🧩 Running detectEvergreen() v8.6.3R...");
 
   // ---------- Utilities ----------
   const now = new Date();
@@ -154,7 +154,12 @@ function detectEvergreen() {
       ? "semi-evergreen"
       : resultType;
 
-  const finalType = parityStatus;
+  // ---------- Override agar konten harga/jasa tetap semi-evergreen ----------
+  let finalType = parityStatus;
+  if (/\bharga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan\b/i.test(h1 + contentText)) {
+    if (finalType === "non-evergreen") finalType = "semi-evergreen";
+  }
+
   const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
 
   // ---------- Meta Dates ----------
@@ -177,44 +182,45 @@ function detectEvergreen() {
     localStorage.setItem("aed_nextupdate_" + location.pathname, nextUpdate.toISOString());
   }
 
- // ---------- JSON-LD Auto Update ----------
-try {
-  const until = nextUpdate.toISOString().split("T")[0];
-  const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-  jsonldScripts.forEach(script => {
-    try {
-      const parsed = JSON.parse(script.textContent.trim());
-      const apply = obj => {
-        if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
-          if (obj["@type"] === "Product" || obj["@type"] === "Service") {
+  // ---------- JSON-LD Auto Update ----------
+  try {
+    const until = nextUpdate.toISOString().split("T")[0];
+    const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+    jsonldScripts.forEach(script => {
+      try {
+        const parsed = JSON.parse(script.textContent.trim());
+        const apply = obj => {
+          if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
+            if (obj["@type"] === "Product" || obj["@type"] === "Service") {
               if (Array.isArray(obj.offers)) {
-              obj.offers.forEach(o => {
-              if (o["@type"] === "Offer") o.priceValidUntil = until;
-              });
-            } else {
-              if (!obj.offers) obj.offers = { "@type": "Offer" };
-              obj.offers.priceValidUntil = until;
+                obj.offers.forEach(o => {
+                  if (o["@type"] === "Offer") o.priceValidUntil = until;
+                });
+              } else {
+                if (!obj.offers) obj.offers = { "@type": "Offer" };
+                obj.offers.priceValidUntil = until;
+              }
             }
+            obj.dateModified = dateModified;
+            obj.datePublished = datePublished;
           }
-          obj.dateModified = dateModified;
-          obj.datePublished = datePublished;
-        }
-        for (const k in obj) if (typeof obj[k] === "object") apply(obj[k]);
-      };
-      if (Array.isArray(parsed)) parsed.forEach(apply);
-      else apply(parsed);
-      script.textContent = JSON.stringify(parsed, null, 2);
-    } catch {}
-  });
-} catch (e) {
-  console.error("Error in JSON-LD Auto Update:", e);
-}
+          for (const k in obj) if (typeof obj[k] === "object") apply(obj[k]);
+        };
+        if (Array.isArray(parsed)) parsed.forEach(apply);
+        else apply(parsed);
+        script.textContent = JSON.stringify(parsed, null, 2);
+      } catch {}
+    });
+  } catch (e) {
+    console.error("Error in JSON-LD Auto Update:", e);
+  }
 
   // ---------- Global Result ----------
   const advice =
     finalType === "evergreen" ? "Konten bersifat evergreen — review tiap 9–12 bulan." :
     finalType === "semi-evergreen" ? "Konten semi-evergreen — periksa 3–6 bulan sekali." :
     "Konten cepat berubah — update tiap 1–3 bulan.";
+  
   window.EvergreenDetectorResults = {
     resultType: finalType,
     validityDays,
@@ -228,19 +234,18 @@ try {
   window.AEDStatus = {
     type: finalType,
     score: totalScores,
-    nextUpdate,              // ✅ tambahkan agar bisa diakses langsung
-    validityDays,            // ✅ lama validitas
+    nextUpdate,
+    validityDays,
   };
 
   window.AEDMetaDates = {
     dateModified,
     datePublished,
-    nextUpdate: nextUpdate.toISOString().split("T")[0], // ✅ simpan tanggal string
-    type: finalType                                    // ✅ simpan tipe global
+    nextUpdate: nextUpdate.toISOString().split("T")[0],
+    type: finalType
   };
 
-  console.log(`✅ [AED v8.6.2] ${finalType.toUpperCase()} detected — ${validityDays} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`);
-
+  console.log(`✅ [AED v8.6.3R] ${finalType.toUpperCase()} detected — ${validityDays} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`);
 }
 
 // Jalankan deteksi di awal halaman
