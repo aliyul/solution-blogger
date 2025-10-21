@@ -182,6 +182,9 @@ function detectEvergreen() {
     localStorage.setItem("aed_nextupdate_" + location.pathname, nextUpdate.toISOString());
   }
 
+  // ---------- Alert seminggu ---------- 
+  const oneWeekBefore = new Date(nextUpdate.getTime() - 7*86400000); if (now >= oneWeekBefore && now < nextUpdate && !document.getElementById("aed-update-alert")) { const alertDiv = document.createElement("div"); alertDiv.id = "aed-update-alert"; alertDiv.setAttribute("data-nosnippet","true"); alertDiv.style.cssText = "background:#fff3cd;color:#856404;padding:12px;border:1px solid #ffeeba;margin:15px 0;border-radius:6px;font-size:14px;text-align:center;"; alertDiv.textContent = "⚠️ Konten ini akan direview segera (menjelang jadwal update)."; if (h1El && h1El.parentNode) h1El.parentNode.insertBefore(alertDiv,h1El.nextSibling); }
+ 
   // ---------- JSON-LD Auto Update ----------
   try {
     const until = nextUpdate.toISOString().split("T")[0];
@@ -581,28 +584,38 @@ function updateArticleDates() {
   elH1.insertAdjacentElement("afterend", lb);
 
   // === Tanggal di area penulis ===
-  const aEl =
-    document.querySelector(".author-info") ||
-    document.querySelector(".post-author") ||
-    document.querySelector(".entry-meta");
-
-  aEl?.querySelector(".article-date")?.remove();
-
-  if (type === "non_evergeen") {
-    const dSpan = document.createElement("span");
-    dSpan.className = "article-date";
-    dSpan.textContent = "Diperbarui: " + dateModified;
-    dSpan.style.cssText =
-      "display:block;font-size:.85em;color:#d9534f;margin-bottom:4px;";
-    dSpan.setAttribute("data-nosnippet", "true");
-    elH1.parentNode.insertBefore(dSpan, elH1);
-  } else if (type === "semi_evergeen" && aEl && dateModified) {
-    const dSpan = document.createElement("span");
-    dSpan.className = "article-date";
-    dSpan.textContent = " · Diperbarui: " + dateModified;
-    dSpan.style.cssText = "font-size:.85em;color:#555;margin-left:6px;";
-    dSpan.setAttribute("data-nosnippet", "true");
-    aEl.appendChild(dSpan);
+   // ===== 8️⃣ Author + Tanggal Update =====
+  const authorEl = document.querySelector(".post-author .fn");
+  if (authorEl) {
+    // remove existing appended date to avoid duplicates
+    const oldDateSpan = authorEl.querySelector(".aed-date-span");
+    if (oldDateSpan) oldDateSpan.remove();
+    if (type === "semi-evergreen") {
+      const dateEl = document.createElement("span");
+      dateEl.className = "aed-date-span";
+      dateEl.textContent = ` · Diperbarui: ${dateModified}`;
+      dateEl.style.fontSize = "0.85em";
+      dateEl.style.color = "#555";
+      dateEl.style.marginLeft = "4px";
+      authorEl.appendChild(dateEl);
+    } else if (type === "non-evergreen") {
+      const dateEl = document.createElement("div");
+      dateEl.textContent = `Diperbarui: ${dateModified}`;
+      dateEl.style.fontSize = "0.85em";
+      dateEl.style.color = "#555";
+      dateEl.style.marginBottom = "4px";
+      dateEl.setAttribute("data-nosnippet","true");
+      // insert before H1, but avoid duplicates
+      const existing = document.querySelector(".aed-non-evergreen-date");
+      if (!existing) {
+        dateEl.className = "aed-non-evergreen-date";
+        if (elH1 && elH1.parentNode) elH1.parentNode.insertBefore(dateEl, elH1);
+      }
+    } 
+    if (type === "EVERGREEN") {
+      const metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
+      metaBlocks.forEach(el => el.style.display = "none");
+    }
   }
 }
 updateArticleDates();
