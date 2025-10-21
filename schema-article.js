@@ -551,14 +551,14 @@ function updateArticleDates() {
   }
 
   let labelText = "";
-  if (type === "EVERGREEN") {
+  if (type === "evergreen") {
     labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextUpdate}</b>`;
     document.body.setAttribute("data-force", "evergreen");
-  } else if (type === "SEMI_EVERGREEN") {
+  } else if (type === "semi-evergreen") {
     labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextUpdate}</b>`;
     document.body.setAttribute("data-force", "semi-evergreen");
   } else {
-    labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextUpdate}</b>`;
+    labelText = `<b>non-evergreen</b> — disarankan update: <b>${nextUpdate}</b>`;
     document.body.setAttribute("data-force", "non-evergreen");
   }
 
