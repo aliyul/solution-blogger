@@ -177,28 +177,51 @@ function detectEvergreen() {
     localStorage.setItem("aed_nextupdate_" + location.pathname, nextUpdate.toISOString());
   }
 
-  // ---------- JSON-LD Auto Update ----------
+ // ---------- JSON-LD Auto Update ----------
+try {
+  const dateModified = new Date().toISOString();
+  const datePublished = document.querySelector('meta[itemprop="datePublished"]')?.content || dateModified;
+  const nextUpdate = typeof nextUpdate !== "undefined" && nextUpdate instanceof Date
+    ? nextUpdate
+    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   const until = nextUpdate.toISOString().split("T")[0];
+
   const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+
   jsonldScripts.forEach(script => {
     try {
       const parsed = JSON.parse(script.textContent.trim());
+
       const apply = obj => {
         if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
           if (obj["@type"] === "Product" || obj["@type"] === "Service") {
-            if (!obj.offers) obj.offers = { "@type": "Offer" };
-            obj.offers.priceValidUntil = until;
+            if (Array.isArray(obj.offers)) {
+              obj.offers.forEach(o => {
+                if (o["@type"] === "Offer") o.priceValidUntil = until;
+              });
+            } else {
+              if (!obj.offers) obj.offers = { "@type": "Offer" };
+              obj.offers.priceValidUntil = until;
+            }
           }
           obj.dateModified = dateModified;
           obj.datePublished = datePublished;
         }
-        for (const k in obj) if (typeof obj[k] === "object") apply(obj[k]);
+        for (const k in obj) if (typeof obj[k] === "object" && obj[k] !== null) apply(obj[k]);
       };
+
       if (Array.isArray(parsed)) parsed.forEach(apply);
       else apply(parsed);
+
       script.textContent = JSON.stringify(parsed, null, 2);
-    } catch {}
+      console.log("✅ Updated JSON-LD:", parsed);
+    } catch (e) {
+      console.warn("❌ JSON-LD update failed:", e);
+    }
   });
+} catch (e) {
+  console.error("Error in JSON-LD Auto Update:", e);
+}
 
   // ---------- Global Result ----------
   const advice =
