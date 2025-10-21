@@ -129,7 +129,7 @@ document.addEventListener("DOMContentLoaded", async function () {
    - Koreksi otomatis berdasarkan skor dan sensitivitas waktu
    - Didesain untuk niche SEO harga, jasa, beton, dan alat berat
    ============================================================ */
-
+/*
 function detectEvergreenAI() {
   const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
   const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
@@ -197,20 +197,21 @@ function detectEvergreenAI() {
 
   return resultType;
 }
-
+*/
 // === 🚀 Jalankan Deteksi ===
-const evergreenType = detectEvergreenAI();
+//const evergreenType = detectEvergreenAI();
 
     // === 📆 AUTO PRICE VALID UNTIL (Berdasarkan Jenis Konten)
-    const now = new Date();
+  /*  const now = new Date();
     const priceValidUntil = new Date(now);
-    
+   */ 
     /*
     📘 Standar pakar SEO:
     - Evergreen → relevan ≥12 bulan (update tahunan)
     - Semi-evergreen → relevan 3–6 bulan (update triwulan–semester)
     - Non-evergreen → relevan <3 bulan (update bulanan)
     */
+  /*
     if (evergreenType === "evergreen") {
       priceValidUntil.setFullYear(now.getFullYear() + 1);
     } else if (evergreenType === "semi-evergreen") {
@@ -222,30 +223,56 @@ const evergreenType = detectEvergreenAI();
     const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
     console.log(`[Auto PriceValidUntil 📅] ${autoPriceValidUntil} (${evergreenType.toUpperCase()})`);
 
-
+*/
+    
     // === 🔟 PARSER TABLE, TEKS, & LI HARGA v3 ===
+// ======================================================
+// 🧩 Smart Offer Builder + Auto priceValidUntil Sync
+// Terhubung dengan window.AEDMetaDates (Evergreen Detector)
+// ======================================================
+
 const seenItems = new Set();
 const tableOffers = [];
 
-function addOffer(name, key, price, desc="") {
+function addOffer(name, key, price, desc = "") {
   let finalName = productName;
-  if(name && name.toLowerCase() !== productName.toLowerCase()) finalName += " " + name;
-  const k = finalName + "|" + key + "|" + price;
-  if (!seenItems.has(k)) {
-    seenItems.add(k);
-    tableOffers.push({
-      "@type":"Offer",
-      "name": finalName,
-      "url": cleanUrl,
-      "priceCurrency":"IDR",
-      "price": price.toString(),
-      "itemCondition":"https://schema.org/NewCondition",
-      "availability":"https://schema.org/InStock",
-      "priceValidUntil": autoPriceValidUntil,
-      "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
-      "description": desc || undefined
-    });
+  if (name && name.toLowerCase() !== productName.toLowerCase()) {
+    finalName += " " + name;
   }
+
+  const k = finalName + "|" + key + "|" + price;
+  if (seenItems.has(k)) return;
+  seenItems.add(k);
+
+  // ========== 🕒 Ambil next update date dari Evergreen Detector ==========
+  let validUntil = autoPriceValidUntil; // fallback default
+  try {
+    if (window.AEDMetaDates && window.AEDMetaDates.nextUpdate) {
+      // Gunakan hasil hitungan dari evergreen detector
+      validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
+    } else if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
+      // Jika belum ada nextUpdate, hitung manual dari dateModified + 90 hari
+      const dt = new Date(window.AEDMetaDates.dateModified);
+      dt.setDate(dt.getDate() + 90);
+      validUntil = dt.toISOString().split("T")[0];
+    }
+  } catch (err) {
+    console.warn("[Offer Builder] Gagal ambil AEDMetaDates:", err);
+  }
+
+  // ========== 💰 Tambahkan Offer ==========
+  tableOffers.push({
+    "@type": "Offer",
+    "name": finalName,
+    "url": cleanUrl,
+    "priceCurrency": "IDR",
+    "price": price.toString(),
+    "itemCondition": "https://schema.org/NewCondition",
+    "availability": "https://schema.org/InStock",
+    "priceValidUntil": validUntil,
+    "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
+    "description": desc || undefined
+  });
 }
 
 // 1️⃣ Deteksi dari tabel tetap
