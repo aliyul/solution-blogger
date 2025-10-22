@@ -262,14 +262,14 @@ try {
     throw new Error("Invalid nextUpdate date");
 
   const until = nextUpdate.toISOString().split("T")[0];
-  // const dateModified = document.querySelector('meta[itemprop="dateModified"]')?.content || null;
-  // const datePublished = document.querySelector('meta[itemprop="datePublished"]')?.content || dateModified;
-
   const visited = new WeakSet();
 
   document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
     try {
-      const parsed = JSON.parse(script.textContent.trim());
+      const text = script.textContent.trim();
+      if (!text || text.length < 10) return; // 🧹 skip JSON kosong atau pendek
+
+      const parsed = JSON.parse(text);
 
       const apply = obj => {
         if (!obj || typeof obj !== "object" || visited.has(obj)) return;
@@ -296,11 +296,16 @@ try {
 
       script.textContent = JSON.stringify(parsed, null, 2);
     } catch (err) {
-      console.warn("⚠️ JSON-LD invalid, skip:", err);
+      console.warn("⚠️ JSON-LD invalid, skip:", err.message);
     }
   });
 
   console.log("✅ JSON-LD Sync berhasil diperbarui dengan dateModified & priceValidUntil:", until);
+
+} catch (e) {
+  console.error("❌ Error JSON-LD Sync:", e);
+}
+
 
 } catch (e) {
   console.error("❌ Error JSON-LD Sync:", e);
