@@ -62,14 +62,14 @@ function detectEvergreen() {
   const now = new Date();
   const nowISODate = () => now.toISOString().split("T")[0];
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
-  const hashString = s => {
+ /* const hashString = s => {
     let h = 2166136261 >>> 0;
     for (let i = 0; i < s.length; i++) {
       h ^= s.charCodeAt(i);
       h = Math.imul(h, 16777619) >>> 0;
     }
     return (h >>> 0).toString(36);
-  };
+  };*/
 
 // ---------- Grab content ----------
 const h1El = document.querySelector("h1");
