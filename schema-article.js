@@ -256,30 +256,53 @@ function detectEvergreen() {
 
   console.log("🧭 [AED] Sinkronisasi selesai — next update:", nextUpdate.toISOString());
   
-  // ---------- JSON-LD Sync ----------
-  try {
-    const until = nextUpdate.toISOString().split("T")[0];
-    document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+  // ---------- JSON-LD Sync ----------try {
+  if (!nextUpdate || !(nextUpdate instanceof Date)) throw new Error("Invalid nextUpdate date");
+
+  const until = nextUpdate.toISOString().split("T")[0];
+  const dateModified = document.querySelector('meta[itemprop="dateModified"]')?.content || null;
+  const datePublished = document.querySelector('meta[itemprop="datePublished"]')?.content || dateModified;
+
+  const visited = new WeakSet();
+
+  document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+    try {
       const parsed = JSON.parse(script.textContent.trim());
+
       const apply = obj => {
+        if (!obj || typeof obj !== "object" || visited.has(obj)) return;
+        visited.add(obj);
+
         if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
-          obj.dateModified = dateModified;
-          obj.datePublished = datePublished;
+          if (dateModified) obj.dateModified = dateModified;
+          if (datePublished) obj.datePublished = datePublished;
+
           if (obj.offers) {
-            if (Array.isArray(obj.offers))
-              obj.offers.forEach(o => o.priceValidUntil = until);
-            else obj.offers.priceValidUntil = until;
+            if (Array.isArray(obj.offers)) {
+              obj.offers.forEach(o => { if (o) o.priceValidUntil = until; });
+            } else if (typeof obj.offers === "object") {
+              obj.offers.priceValidUntil = until;
+            }
           }
         }
-        for (const k in obj) if (typeof obj[k] === "object") apply(obj[k]);
+
+        for (const k in obj) apply(obj[k]);
       };
+
       if (Array.isArray(parsed)) parsed.forEach(apply);
       else apply(parsed);
+
       script.textContent = JSON.stringify(parsed, null, 2);
-    });
-  } catch (e) {
-    console.error("Error JSON-LD Sync:", e);
-  }
+    } catch (err) {
+      console.warn("⚠️ JSON-LD invalid, skip:", err);
+    }
+  });
+
+  console.log("✅ JSON-LD Sync berhasil diperbarui dengan dateModified & priceValidUntil:", until);
+} catch (e) {
+  console.error("❌ Error JSON-LD Sync:", e);
+}
+
 
   // ---------- Global Result ----------
   const validityDaysFinal = validityDays || 180;
