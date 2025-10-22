@@ -307,11 +307,6 @@ try {
 }
 
 
-} catch (e) {
-  console.error("❌ Error JSON-LD Sync:", e);
-}
-
-
 
   // ---------- Global Result ----------
   const validityDaysFinal = validityDays || 180;
