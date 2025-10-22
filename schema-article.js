@@ -241,8 +241,15 @@ if (/\bharga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan\b/i.test(h1 + cont
   const validityDays = window.AEDType === "evergreen" ? 365 : window.AEDType === "semi-evergreen" ? 180 : 90;
   let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(new Date(dateModified).getTime() + validityDays * 86400000);
 
-  // === Jika waktunya update ATAU konten berubah ===
-  if (now >= nextUpdate || prevHash !== currentHash) {
+  // === Jika waktunya update ATAU konten berubah ===// --- Logika Update ---
+const contentChanged = prevHash && prevHash !== currentHash;
+const timeAllowed = now >= nextUpdate;
+
+// --- Update hanya jika dua kondisi aman ---
+// 1️⃣ Sudah waktunya update  ✅
+// 2️⃣ Konten benar-benar berubah (bukan sekadar HTML/script luar)
+if (timeAllowed && contentChanged) {
+  
     console.log("🔁 [AED] Updating meta dateModified karena konten berubah atau waktu update tercapai");
 
     // Perbarui hash & next update
