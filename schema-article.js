@@ -177,24 +177,23 @@ function detectEvergreen() {
   const prevHash = localStorage.getItem(keyPrefix + "hash_" + location.pathname);
   //const metaNextUpdate = localStorage.getItem(keyPrefix + "nextupdate_" + location.pathname);
   //let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(new Date(dateModified).getTime() + validityDays * 86400000);
-    const key = keyPrefix + "nextupdate_" + location.pathname;
+ const key = keyPrefix + "nextupdate_" + location.pathname;
 
-  // 🧩 Hitung nextUpdate ideal berdasarkan meta dateModified + validityDays
+  // 🧩 Hitung nextUpdate ideal berdasarkan dateModified + validityDays
   const baseDate = new Date(dateModified);
   const idealNextUpdate = new Date(baseDate.getTime() + validityDays * 86400000);
 
-  // 🗄️ Ambil nextUpdate tersimpan (jika ada)
+  // 🗄️ Ambil nextUpdate tersimpan
   const storedNextUpdateStr = localStorage.getItem(key);
   const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
 
-  // 🧠 Bandingkan apakah nextUpdate tersimpan selaras dengan meta dateModified
+  // 🧠 Bandingkan apakah tersimpan sesuai meta
   let nextUpdate;
-
   if (
     !storedNextUpdate ||
     Math.abs(storedNextUpdate.getTime() - idealNextUpdate.getTime()) > 86400000 // beda > 1 hari
   ) {
-    console.log("🧹 nextUpdate tersimpan tidak sesuai dengan meta dateModified — disinkronkan ulang...");
+    console.log("🧹 nextUpdate tersimpan tidak sesuai meta dateModified — disinkronkan ulang...");
     localStorage.removeItem(key);
     localStorage.setItem(key, idealNextUpdate.toISOString());
     nextUpdate = idealNextUpdate;
@@ -202,33 +201,61 @@ function detectEvergreen() {
     nextUpdate = storedNextUpdate;
   }
 
-  // 💾 Simpan hash konten jika belum ada (agar tidak dianggap 'baru terus')
-  if (!localStorage.getItem(keyPrefix + "hash_" + location.pathname)) {
-    localStorage.setItem(keyPrefix + "hash_" + location.pathname, currentHash);
+  // 💾 Simpan hash awal bila belum ada
+  const hashKey = keyPrefix + "hash_" + location.pathname;
+  if (!localStorage.getItem(hashKey)) {
+    localStorage.setItem(hashKey, currentHash);
   }
 
- // const prevHash = localStorage.getItem(keyPrefix + "hash_" + location.pathname);
+  const prevHash = localStorage.getItem(hashKey);
   const contentChanged = prevHash && prevHash !== currentHash;
   const timeAllowed = now >= nextUpdate;
 
+  // === 1️⃣ Jika waktunya dan konten berubah: update dateModified + nextUpdate ===
   if (timeAllowed && contentChanged) {
-    console.log("🔁 [AED] Updating dateModified karena waktu update sudah tiba dan konten berubah...");
-    localStorage.setItem(keyPrefix + "hash_" + location.pathname, currentHash);
+    console.log("🔁 [AED] Updating dateModified — waktunya update & konten berubah.");
+
+    localStorage.setItem(hashKey, currentHash);
+
+    // Hitung next update baru
     nextUpdate = new Date(now.getTime() + validityDays * 86400000);
     localStorage.setItem(key, nextUpdate.toISOString());
 
     const newDate = nowISODate();
-    if (metaDateModified) metaDateModified.setAttribute("content", newDate);
-    else {
+    if (metaDateModified) {
+      metaDateModified.setAttribute("content", newDate);
+    } else {
       const m = document.createElement("meta");
       m.setAttribute("itemprop", "dateModified");
       m.setAttribute("content", newDate);
       document.head.appendChild(m);
     }
-  } else {
-    console.log("✅ [AED] Belum waktu update — dateModified dan nextUpdate dipertahankan.");
   }
 
+  // === 2️⃣ Jika belum waktunya atau konten tidak berubah: sinkronkan ulang ===
+  else {
+    console.log("✅ [AED] Belum waktunya update — kembalikan dateModified sesuai siklus.");
+
+    // Hitung ulang tanggal semula dari nextUpdate - validityDays
+    const syncBase = new Date(nextUpdate.getTime() - validityDays * 86400000);
+    const syncDate = syncBase.toISOString().split("T")[0];
+
+    // Pastikan meta tidak ikut update ke hari ini
+    if (metaDateModified) {
+      metaDateModified.setAttribute("content", syncDate);
+    } else {
+      const m = document.createElement("meta");
+      m.setAttribute("itemprop", "dateModified");
+      m.setAttribute("content", syncDate);
+      document.head.appendChild(m);
+    }
+
+    // ⛔ Jangan ubah nextUpdate ke hari ini, cukup simpan yang lama
+    localStorage.setItem(key, nextUpdate.toISOString());
+  }
+
+  console.log("🧭 [AED] Sinkronisasi selesai — next update:", nextUpdate.toISOString());
+  
   // ---------- JSON-LD Sync ----------
   try {
     const until = nextUpdate.toISOString().split("T")[0];
