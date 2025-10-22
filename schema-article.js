@@ -71,45 +71,37 @@ function detectEvergreen() {
     return (h >>> 0).toString(36);
   };
 
-  // ---------- Grab content ----------
-  const h1El = document.querySelector("h1");
-  const h1 = clean(h1El?.innerText || "").toLowerCase();
-  const contentEl =
-    document.querySelector(".post-body.entry-content") ||
-    document.querySelector("[id^='post-body-']") ||
-    document.querySelector("article") ||
-    document.querySelector("main") ||
-    document.body;
-  const contentTextRaw = clean(contentEl ? contentEl.innerText : "");
-  const contentText = (h1 + " " + contentTextRaw).toLowerCase();
+// ---------- Grab content ----------
+const h1El = document.querySelector("h1");
+const h1 = clean(h1El?.innerText || "").toLowerCase();
 
-  // ---------- Keyword Pattern ----------
-  const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
-  const semiEvergreenPattern = /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/;
-  const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
-  const priceTokenPattern = /\b(harga|rp|per\s?(m3|m2|unit|kubik|meter)|biaya|tarif)\b/i;
-
-// ---------- Section Extraction (Aman dari JS, Sidebar, dan Footer) ----------
-const sections = [];
-
-// 🔒 Pastikan contentEl hanya dari area utama artikel
 const contentEl =
   document.querySelector(".post-body.entry-content") ||
   document.querySelector("[id^='post-body-']") ||
   document.querySelector("article") ||
   document.querySelector("main") ||
-  document.querySelector("section.post") ||
-  null;
+  document.body;
 
+// ---------- Keyword Pattern ----------
+const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
+const semiEvergreenPattern = /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/;
+const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
+const priceTokenPattern = /\b(harga|rp|per\s?(m3|m2|unit|kubik|meter)|biaya|tarif)\b/i;
+
+// ---------- Section Extraction (Aman dari JS, Sidebar, dan Footer) ----------
+const sections = [];
 if (!contentEl) {
   console.warn("⚠️ contentEl tidak ditemukan, fallback ke document.body (mungkin tidak akurat).");
 }
 
-// Ambil heading-level 2 & 3 untuk pembagian sub-bagian artikel
 const validRoot = contentEl || document.body;
 const headings = Array.from(validRoot.querySelectorAll("h2,h3"));
 
-// Jika tidak ada heading, anggap seluruh isi artikel sebagai satu section
+// ✅ Ambil teks artikel utama dengan pembersihan ketat
+const contentTextRaw = clean(validRoot.innerText || "");
+const contentText = (h1 + " " + contentTextRaw).toLowerCase();
+
+// Jika tidak ada heading, treat seluruh isi artikel sebagai satu section
 if (headings.length === 0) {
   const safeText = validRoot.innerText || "";
   sections.push({ title: h1 || "artikel", content: clean(safeText) });
@@ -117,11 +109,11 @@ if (headings.length === 0) {
   for (let i = 0; i < headings.length; i++) {
     const head = headings[i];
     const title = clean(head.innerText);
-    let cur = head.nextElementSibling, body = "";
+    let cur = head.nextElementSibling;
+    let body = "";
 
-    // Loop antar heading
     while (cur && !(cur.matches && cur.matches("h2,h3"))) {
-      // 🚫 Hindari elemen non-konten
+      // 🚫 Skip elemen non-konten
       if (
         cur.innerText &&
         !cur.matches("script,style,nav,footer,header,aside,form,iframe,[role='banner'],[role='complementary']")
@@ -131,66 +123,76 @@ if (headings.length === 0) {
       cur = cur.nextElementSibling;
     }
 
-    // Hanya tambahkan jika ada isi yang layak
     if (title && body.trim().length > 30) {
       sections.push({ title, content: body });
     }
   }
 }
-  // ---------- Section Scoring ----------
-  let totalScores = { evergreen: 0, semi: 0, non: 0 };
-  const sectionDetails = sections.map(sec => {
-    const t = sec.title.toLowerCase(), b = sec.content.toLowerCase();
-    let sEver = 0, sSemi = 0, sNon = 0;
 
-    if (evergreenPattern.test(t)) sEver += 2;
-    if (semiEvergreenPattern.test(t)) sSemi += 2;
-    if (nonEvergreenPattern.test(t)) sNon += 1.5;
+// ---------- Section Scoring ----------
+let totalScores = { evergreen: 0, semi: 0, non: 0 };
+const sectionDetails = sections.map(sec => {
+  const t = sec.title.toLowerCase();
+  const b = sec.content.toLowerCase();
+  let sEver = 0,
+    sSemi = 0,
+    sNon = 0;
 
-    sEver += (b.match(evergreenPattern) || []).length * 0.8;
-    sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
-    sNon += (b.match(nonEvergreenPattern) || []).length * 1.0;
+  if (evergreenPattern.test(t)) sEver += 2;
+  if (semiEvergreenPattern.test(t)) sSemi += 2;
+  if (nonEvergreenPattern.test(t)) sNon += 1.5;
 
-    const hasPriceTokens = priceTokenPattern.test(t + " " + b);
-    if (hasPriceTokens) sSemi += 1.5;
+  sEver += (b.match(evergreenPattern) || []).length * 0.8;
+  sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
+  sNon += (b.match(nonEvergreenPattern) || []).length * 1.0;
 
-    totalScores.evergreen += sEver;
-    totalScores.semi += sSemi;
-    totalScores.non += sNon;
+  const hasPriceTokens = priceTokenPattern.test(t + " " + b);
+  if (hasPriceTokens) sSemi += 1.5;
 
-    let sectionType = "semi-evergreen";
-    if (sNon > sSemi && sNon > sEver) sectionType = "non-evergreen";
-    else if (sEver > sSemi + 2 && sEver > sNon) sectionType = "evergreen";
+  totalScores.evergreen += sEver;
+  totalScores.semi += sSemi;
+  totalScores.non += sNon;
 
-    const validityDays = { "evergreen": 365, "semi-evergreen": 180, "non-evergreen": 90 }[sectionType];
-    const sectionAdvice =
-      sectionType === "evergreen" ? "Tinjau ulang tiap 9–12 bulan." :
-      sectionType === "semi-evergreen" ?
-        (hasPriceTokens ? "Perbarui harga setiap 3–6 bulan." : "Review tiap 4–6 bulan.") :
-        "Konten cepat berubah — update tiap 1–3 bulan.";
+  let sectionType = "semi-evergreen";
+  if (sNon > sSemi && sNon > sEver) sectionType = "non-evergreen";
+  else if (sEver > sSemi + 2 && sEver > sNon) sectionType = "evergreen";
 
-    return { section: sec.title, sEver, sSemi, sNon, sectionType, validityDays, sectionAdvice };
-  });
+  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[sectionType];
+  const sectionAdvice =
+    sectionType === "evergreen"
+      ? "Tinjau ulang tiap 9–12 bulan."
+      : sectionType === "semi-evergreen"
+      ? hasPriceTokens
+        ? "Perbarui harga setiap 3–6 bulan."
+        : "Review tiap 4–6 bulan."
+      : "Konten cepat berubah — update tiap 1–3 bulan.";
 
-  // ---------- Global Classification ----------
-  const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
-  let resultType = "semi-evergreen";
-  if (totalScores.non > totalScores.semi && totalScores.non > totalScores.evergreen) resultType = "non-evergreen";
-  else if (totalScores.evergreen > totalScores.semi + 2 && !hasTimePattern) resultType = "evergreen";
+  return { section: sec.title, sEver, sSemi, sNon, sectionType, validityDays, sectionAdvice };
+});
 
-  const priceSections = sectionDetails.filter(s => /harga|produk|spesifikasi/.test(s.section.toLowerCase()));
-  const parityStatus = priceSections.some(s => s.sectionType === "non-evergreen")
-    ? "non-evergreen"
-    : priceSections.some(s => s.sectionType === "semi-evergreen")
-      ? "semi-evergreen"
-      : resultType;
+// ---------- Global Classification ----------
+const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
+let resultType = "semi-evergreen";
+if (totalScores.non > totalScores.semi && totalScores.non > totalScores.evergreen)
+  resultType = "non-evergreen";
+else if (totalScores.evergreen > totalScores.semi + 2 && !hasTimePattern)
+  resultType = "evergreen";
 
-  // ---------- Override agar konten harga/jasa tetap semi-evergreen ----------
-  let finalType = parityStatus;
-  if (/\bharga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan\b/i.test(h1 + contentText)) {
-    if (finalType === "non-evergreen") finalType = "semi-evergreen";
-  }
+// ---------- Parity Override untuk konten harga/jasa ----------
+const priceSections = sectionDetails.filter(s =>
+  /harga|produk|spesifikasi/.test(s.section.toLowerCase())
+);
+const parityStatus = priceSections.some(s => s.sectionType === "non-evergreen")
+  ? "non-evergreen"
+  : priceSections.some(s => s.sectionType === "semi-evergreen")
+  ? "semi-evergreen"
+  : resultType;
 
+// Pastikan semua konten harga/jasa minimal "semi-evergreen"
+let finalType = parityStatus;
+if (/\bharga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan\b/i.test(h1 + contentText)) {
+  if (finalType === "non-evergreen") finalType = "semi-evergreen";
+}
   const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
 
    // === Ambil meta datePublished & dateModified ===
