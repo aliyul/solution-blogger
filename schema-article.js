@@ -63,9 +63,12 @@ let dateModified = '';
  - Auto nextUpdate & PriceValidUntil
  - Dashboard responsif modular (terpisah)
 ============================================================ */
-
+/* ===========================================================
+   🧩 Auto Evergreen Detector v8.6.5F — Stable Final
+   Fix: duplicate definitions removed, stable execution
+   =========================================================== */
 function detectEvergreen() {
-  console.log("🧩 Running detectEvergreen() v8.6.4S...");
+  console.log("🧩 Running detectEvergreen() v8.6.5F...");
 
   // ---------- Utilities ----------
   const now = new Date();
@@ -221,14 +224,12 @@ function detectEvergreen() {
   }
 
   // ---------- Global Result ----------
-  // Pastikan validityDays sudah ada sebelum digunakan
-  const validityDaysFinal = typeof validityDays !== "undefined"
-    ? validityDays
-    : ({ evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType] || 180);
+  const validityDaysFinal = validityDays || 180;
+  const advice =
+    finalType === "evergreen" ? "Konten bersifat evergreen — review tiap 9–12 bulan." :
+    finalType === "semi-evergreen" ? "Konten semi-evergreen — periksa 3–6 bulan sekali." :
+    "Konten cepat berubah — update tiap 1–3 bulan.";
 
-const advice = finalType === "evergreen" ? "Konten bersifat evergreen — review tiap 9–12 bulan." : finalType === "semi-evergreen" ? "Konten semi-evergreen — periksa 3–6 bulan sekali." : "Konten cepat berubah — update tiap 1–3 bulan.";
-  
- // ---------- Simpan hasil ke window ----------
   window.EvergreenDetectorResults = {
     resultType: finalType,
     validityDays: validityDaysFinal,
@@ -239,13 +240,6 @@ const advice = finalType === "evergreen" ? "Konten bersifat evergreen — review
     nextUpdate
   };
 
-  window.AEDStatus = {
-    type: finalType,
-    score: totalScores,
-    nextUpdate,
-    validityDays: validityDaysFinal
-  };
-
   window.AEDMetaDates = {
     dateModified,
     datePublished,
@@ -254,9 +248,8 @@ const advice = finalType === "evergreen" ? "Konten bersifat evergreen — review
   };
 
   console.log(
-    `✅ [AED v8.6.3R] ${finalType.toUpperCase()} detected — ${validityDaysFinal} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`
+    `✅ [AED v8.6.5F] ${finalType.toUpperCase()} detected — ${validityDaysFinal} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`
   );
-  
 }
 
 // Jalankan deteksi di awal halaman
