@@ -175,9 +175,21 @@ function detectEvergreen() {
   const currentHash = hashString(contentForHash);
   const keyPrefix = "aed_";
   const prevHash = localStorage.getItem(keyPrefix + "hash_" + location.pathname);
-  const metaNextUpdate = localStorage.getItem(keyPrefix + "nextupdate_" + location.pathname);
-  let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(new Date(dateModified).getTime() + validityDays * 86400000);
+  //const metaNextUpdate = localStorage.getItem(keyPrefix + "nextupdate_" + location.pathname);
+  //let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(new Date(dateModified).getTime() + validityDays * 86400000);
+  const key = keyPrefix + "nextupdate_" + location.pathname;
 
+    // 🧹 Hapus meta lama dari localStorage jika ada
+    if (localStorage.getItem(key)) {
+      console.log("🧹 Menghapus nextUpdate lama dari localStorage...");
+      localStorage.removeItem(key);
+    }
+
+    // 🕒 Hitung ulang nextUpdate berdasarkan dateModified + validityDays
+    const baseDate = new Date(dateModified);
+    const nextUpdate = new Date(baseDate.getTime() + (validityDays * 86400000));
+    //const nextUpdateStr = nextUpdate.toISOString().split("T")[0];
+  
   const contentChanged = prevHash && prevHash !== currentHash;
   const timeAllowed = now >= nextUpdate;
 
@@ -186,19 +198,17 @@ function detectEvergreen() {
     localStorage.setItem(keyPrefix + "hash_" + location.pathname, currentHash);
     nextUpdate = new Date(now.getTime() + validityDays * 86400000);
     localStorage.setItem(keyPrefix + "nextupdate_" + location.pathname, nextUpdate.toISOString());
-    
-    if (timeAllowed) {
-      const newDate = nowISODate();
-      if (metaDateModified) metaDateModified.setAttribute("content", newDate);
+  
+    const newDate = nowISODate();
+    if (metaDateModified) metaDateModified.setAttribute("content", newDate);
       else {
         const m = document.createElement("meta");
         m.setAttribute("itemprop", "dateModified");
         m.setAttribute("content", newDate);
         document.head.appendChild(m);
-      }
     }
   } else {
-    console.log("✅ [AED] Tidak ada perubahan signifikan — dateModified dipertahankan.");
+    console.log("✅ [AED] Belum Waktu Update dan Tidak ada perubahan signifikan — dateModified dipertahankan.");
   }
 
   // ---------- JSON-LD Sync ----------
