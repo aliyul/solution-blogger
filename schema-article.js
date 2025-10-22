@@ -207,7 +207,7 @@ function detectEvergreen() {
     localStorage.setItem(keyPrefix + "hash_" + location.pathname, currentHash);
   }
 
-  const prevHash = localStorage.getItem(keyPrefix + "hash_" + location.pathname);
+ // const prevHash = localStorage.getItem(keyPrefix + "hash_" + location.pathname);
   const contentChanged = prevHash && prevHash !== currentHash;
   const timeAllowed = now >= nextUpdate;
 
