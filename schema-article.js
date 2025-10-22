@@ -260,8 +260,8 @@ function detectEvergreen() {
   if (!nextUpdate || !(nextUpdate instanceof Date)) throw new Error("Invalid nextUpdate date");
 
   const until = nextUpdate.toISOString().split("T")[0];
-  const dateModified = document.querySelector('meta[itemprop="dateModified"]')?.content || null;
-  const datePublished = document.querySelector('meta[itemprop="datePublished"]')?.content || dateModified;
+  //const dateModified = document.querySelector('meta[itemprop="dateModified"]')?.content || null;
+ // const datePublished = document.querySelector('meta[itemprop="datePublished"]')?.content || dateModified;
 
   const visited = new WeakSet();
 
