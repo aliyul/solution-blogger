@@ -177,38 +177,56 @@ function detectEvergreen() {
   const prevHash = localStorage.getItem(keyPrefix + "hash_" + location.pathname);
   //const metaNextUpdate = localStorage.getItem(keyPrefix + "nextupdate_" + location.pathname);
   //let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(new Date(dateModified).getTime() + validityDays * 86400000);
-  const key = keyPrefix + "nextupdate_" + location.pathname;
+    const key = keyPrefix + "nextupdate_" + location.pathname;
 
-    // 🧹 Hapus meta lama dari localStorage jika ada
-    if (localStorage.getItem(key)) {
-      console.log("🧹 Menghapus nextUpdate lama dari localStorage...");
-      localStorage.removeItem(key);
-    }
+  // 🧩 Hitung nextUpdate ideal berdasarkan meta dateModified + validityDays
+  const baseDate = new Date(dateModified);
+  const idealNextUpdate = new Date(baseDate.getTime() + validityDays * 86400000);
 
-    // 🕒 Hitung ulang nextUpdate berdasarkan dateModified + validityDays
-    const baseDate = new Date(dateModified);
-    const nextUpdate = new Date(baseDate.getTime() + (validityDays * 86400000));
-    //const nextUpdateStr = nextUpdate.toISOString().split("T")[0];
-  
+  // 🗄️ Ambil nextUpdate tersimpan (jika ada)
+  const storedNextUpdateStr = localStorage.getItem(key);
+  const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
+
+  // 🧠 Bandingkan apakah nextUpdate tersimpan selaras dengan meta dateModified
+  let nextUpdate;
+
+  if (
+    !storedNextUpdate ||
+    Math.abs(storedNextUpdate.getTime() - idealNextUpdate.getTime()) > 86400000 // beda > 1 hari
+  ) {
+    console.log("🧹 nextUpdate tersimpan tidak sesuai dengan meta dateModified — disinkronkan ulang...");
+    localStorage.removeItem(key);
+    localStorage.setItem(key, idealNextUpdate.toISOString());
+    nextUpdate = idealNextUpdate;
+  } else {
+    nextUpdate = storedNextUpdate;
+  }
+
+  // 💾 Simpan hash konten jika belum ada (agar tidak dianggap 'baru terus')
+  if (!localStorage.getItem(keyPrefix + "hash_" + location.pathname)) {
+    localStorage.setItem(keyPrefix + "hash_" + location.pathname, currentHash);
+  }
+
+  const prevHash = localStorage.getItem(keyPrefix + "hash_" + location.pathname);
   const contentChanged = prevHash && prevHash !== currentHash;
   const timeAllowed = now >= nextUpdate;
 
   if (timeAllowed && contentChanged) {
-    console.log("🔁 [AED] Updating dateModified");
+    console.log("🔁 [AED] Updating dateModified karena waktu update sudah tiba dan konten berubah...");
     localStorage.setItem(keyPrefix + "hash_" + location.pathname, currentHash);
     nextUpdate = new Date(now.getTime() + validityDays * 86400000);
-    localStorage.setItem(keyPrefix + "nextupdate_" + location.pathname, nextUpdate.toISOString());
-  
+    localStorage.setItem(key, nextUpdate.toISOString());
+
     const newDate = nowISODate();
     if (metaDateModified) metaDateModified.setAttribute("content", newDate);
-      else {
-        const m = document.createElement("meta");
-        m.setAttribute("itemprop", "dateModified");
-        m.setAttribute("content", newDate);
-        document.head.appendChild(m);
+    else {
+      const m = document.createElement("meta");
+      m.setAttribute("itemprop", "dateModified");
+      m.setAttribute("content", newDate);
+      document.head.appendChild(m);
     }
   } else {
-    console.log("✅ [AED] Belum Waktu Update dan Tidak ada perubahan signifikan — dateModified dipertahankan.");
+    console.log("✅ [AED] Belum waktu update — dateModified dan nextUpdate dipertahankan.");
   }
 
   // ---------- JSON-LD Sync ----------
