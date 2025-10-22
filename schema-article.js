@@ -82,6 +82,7 @@ function detectEvergreen() {
 
 // ---------- Grab content ----------
 const h1El = document.querySelector("h1");
+//const h1 = document.querySelector("h1")?.textContent.trim() || "";
 const h1 = clean(h1El?.innerText || "").toLowerCase();
 
 const contentEl =
@@ -230,7 +231,7 @@ if (/\bharga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan\b/i.test(h1 + cont
     return hash.toString();
   }
 
-  const h1 = document.querySelector("h1")?.textContent?.trim() || "";
+  //const h1 = document.querySelector("h1")?.textContent?.trim() || "";
   const contentForHash = (h1 + joinedSectionshash).slice(0, 30000); // ambil max 30K karakter
   const currentHash = hashString(contentForHash);
 
