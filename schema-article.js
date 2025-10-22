@@ -256,12 +256,13 @@ function detectEvergreen() {
 
   console.log("🧭 [AED] Sinkronisasi selesai — next update:", nextUpdate.toISOString());
   
-  // ---------- JSON-LD Sync ----------try {
-  if (!nextUpdate || !(nextUpdate instanceof Date)) throw new Error("Invalid nextUpdate date");
+  // ---------- JSON-LD Sync ----------try {try {
+  if (!nextUpdate || !(nextUpdate instanceof Date))
+    throw new Error("Invalid nextUpdate date");
 
   const until = nextUpdate.toISOString().split("T")[0];
-  //const dateModified = document.querySelector('meta[itemprop="dateModified"]')?.content || null;
- // const datePublished = document.querySelector('meta[itemprop="datePublished"]')?.content || dateModified;
+  // const dateModified = document.querySelector('meta[itemprop="dateModified"]')?.content || null;
+  // const datePublished = document.querySelector('meta[itemprop="datePublished"]')?.content || dateModified;
 
   const visited = new WeakSet();
 
@@ -299,9 +300,11 @@ function detectEvergreen() {
   });
 
   console.log("✅ JSON-LD Sync berhasil diperbarui dengan dateModified & priceValidUntil:", until);
+
 } catch (e) {
   console.error("❌ Error JSON-LD Sync:", e);
 }
+
 
 
   // ---------- Global Result ----------
