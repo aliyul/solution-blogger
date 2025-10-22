@@ -89,23 +89,54 @@ function detectEvergreen() {
   const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
   const priceTokenPattern = /\b(harga|rp|per\s?(m3|m2|unit|kubik|meter)|biaya|tarif)\b/i;
 
-  // ---------- Section Extraction ----------
-  const sections = [];
-  const headings = Array.from(contentEl.querySelectorAll("h2,h3"));
-  if (headings.length === 0) sections.push({ title: h1 || "artikel", content: contentTextRaw });
-  else {
-    for (let i = 0; i < headings.length; i++) {
-      const head = headings[i];
-      const title = clean(head.innerText);
-      let cur = head.nextElementSibling, body = "";
-      while (cur && !(cur.matches && cur.matches("h2,h3"))) {
-        if (cur.innerText) body += "\n" + clean(cur.innerText);
-        cur = cur.nextElementSibling;
+// ---------- Section Extraction (Aman dari JS, Sidebar, dan Footer) ----------
+const sections = [];
+
+// 🔒 Pastikan contentEl hanya dari area utama artikel
+const contentEl =
+  document.querySelector(".post-body.entry-content") ||
+  document.querySelector("[id^='post-body-']") ||
+  document.querySelector("article") ||
+  document.querySelector("main") ||
+  document.querySelector("section.post") ||
+  null;
+
+if (!contentEl) {
+  console.warn("⚠️ contentEl tidak ditemukan, fallback ke document.body (mungkin tidak akurat).");
+}
+
+// Ambil heading-level 2 & 3 untuk pembagian sub-bagian artikel
+const validRoot = contentEl || document.body;
+const headings = Array.from(validRoot.querySelectorAll("h2,h3"));
+
+// Jika tidak ada heading, anggap seluruh isi artikel sebagai satu section
+if (headings.length === 0) {
+  const safeText = validRoot.innerText || "";
+  sections.push({ title: h1 || "artikel", content: clean(safeText) });
+} else {
+  for (let i = 0; i < headings.length; i++) {
+    const head = headings[i];
+    const title = clean(head.innerText);
+    let cur = head.nextElementSibling, body = "";
+
+    // Loop antar heading
+    while (cur && !(cur.matches && cur.matches("h2,h3"))) {
+      // 🚫 Hindari elemen non-konten
+      if (
+        cur.innerText &&
+        !cur.matches("script,style,nav,footer,header,aside,form,iframe,[role='banner'],[role='complementary']")
+      ) {
+        body += "\n" + clean(cur.innerText);
       }
+      cur = cur.nextElementSibling;
+    }
+
+    // Hanya tambahkan jika ada isi yang layak
+    if (title && body.trim().length > 30) {
       sections.push({ title, content: body });
     }
   }
-
+}
   // ---------- Section Scoring ----------
   let totalScores = { evergreen: 0, semi: 0, non: 0 };
   const sectionDetails = sections.map(sec => {
@@ -171,10 +202,10 @@ function detectEvergreen() {
   window.AEDMetaDates = { dateModified, datePublished };
 
   // === Ambil semua section penting untuk hash ===
-  const sections = Array.from(document.querySelectorAll("article section, .content section, main section"))
+  const sectionshash = Array.from(document.querySelectorAll("article section, .content section, main section"))
     .map(sec => sec.textContent.trim())
     .filter(txt => txt.length > 50); // hindari section kosong
-  const joinedSections = sections.join("\n\n");
+  const joinedSectionshash = sectionshash.join("\n\n");
 
   // === Hash unik berdasarkan konten tiap section ===
   function hashString(str) {
@@ -189,7 +220,7 @@ function detectEvergreen() {
   }
 
   const h1 = document.querySelector("h1")?.textContent?.trim() || "";
-  const contentForHash = (h1 + joinedSections).slice(0, 30000); // ambil max 30K karakter
+  const contentForHash = (h1 + joinedSectionshash).slice(0, 30000); // ambil max 30K karakter
   const currentHash = hashString(contentForHash);
 
   const keyPrefix = "aed_";
