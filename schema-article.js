@@ -256,7 +256,8 @@ function detectEvergreen() {
 
   console.log("🧭 [AED] Sinkronisasi selesai — next update:", nextUpdate.toISOString());
   
-  // ---------- JSON-LD Sync ----------try {try {
+  // ---------- JSON-LD Sync ----------
+try {
   if (!nextUpdate || !(nextUpdate instanceof Date))
     throw new Error("Invalid nextUpdate date");
 
