@@ -181,18 +181,21 @@ function detectEvergreen() {
   const contentChanged = prevHash && prevHash !== currentHash;
   const timeAllowed = now >= nextUpdate;
 
-  if (timeAllowed || contentChanged) {
+  if (timeAllowed && contentChanged) {
     console.log("🔁 [AED] Updating dateModified");
     localStorage.setItem(keyPrefix + "hash_" + location.pathname, currentHash);
     nextUpdate = new Date(now.getTime() + validityDays * 86400000);
     localStorage.setItem(keyPrefix + "nextupdate_" + location.pathname, nextUpdate.toISOString());
-    const newDate = nowISODate();
-    if (metaDateModified) metaDateModified.setAttribute("content", newDate);
-    else {
-      const m = document.createElement("meta");
-      m.setAttribute("itemprop", "dateModified");
-      m.setAttribute("content", newDate);
-      document.head.appendChild(m);
+    
+    if (timeAllowed) {
+      const newDate = nowISODate();
+      if (metaDateModified) metaDateModified.setAttribute("content", newDate);
+      else {
+        const m = document.createElement("meta");
+        m.setAttribute("itemprop", "dateModified");
+        m.setAttribute("content", newDate);
+        document.head.appendChild(m);
+      }
     }
   } else {
     console.log("✅ [AED] Tidak ada perubahan signifikan — dateModified dipertahankan.");
