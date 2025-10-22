@@ -182,17 +182,32 @@ document.addEventListener("DOMContentLoaded", async function () {
     
       // === 🕒 Ambil tanggal validUntil dari AEDMetaDates jika ada ===
       //let validUntil = autoPriceValidUntil; // default fallback
-      try {
-        if (window.AEDMetaDates?.nextUpdate) {
-          validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
-        } else if (window.AEDMetaDates?.dateModified) {
-          const dt = new Date(window.AEDMetaDates.dateModified);
-          dt.setDate(dt.getDate() + 90); // default 3 bulan
-          validUntil = dt.toISOString().split("T")[0];
-        }
-      } catch (err) {
-        console.warn("[Offer Builder] Gagal baca AEDMetaDates:", err);
+      // === 🕒 Ambil tanggal validUntil dari AEDMetaDates jika ada ===
+    let validUntil = ""; // 🩵 deklarasi awal supaya tidak undefined
+
+    try {
+      if (window.AEDMetaDates?.nextUpdate) {
+        // Gunakan nextUpdate dari deteksi evergreen
+        validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
+      } else if (window.AEDMetaDates?.dateModified) {
+        // Jika belum ada nextUpdate, estimasi 90 hari dari dateModified
+        const dt = new Date(window.AEDMetaDates.dateModified);
+        dt.setDate(dt.getDate() + 90);
+        validUntil = dt.toISOString().split("T")[0];
+      } else {
+        // Fallback terakhir: hari ini + 90 hari
+        const fallback = new Date();
+        fallback.setDate(fallback.getDate() + 90);
+        validUntil = fallback.toISOString().split("T")[0];
       }
+    } catch (err) {
+      console.warn("⚠️ [AED] Gagal menentukan validUntil:", err);
+      const fallback = new Date();
+      fallback.setDate(fallback.getDate() + 90);
+      validUntil = fallback.toISOString().split("T")[0];
+    }
+    
+    console.log("✅ [AED] validUntil:", validUntil);
     
       // === 💰 Push ke Offer Table ===
       tableOffers.push({
