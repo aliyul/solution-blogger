@@ -203,7 +203,7 @@ let finalType = parityStatus;
 if (/\bharga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan\b/i.test(h1 + contentText)) {
   if (finalType === "non-evergreen") finalType = "semi-evergreen";
 }
-  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
+ // const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
 
    // === Ambil meta datePublished & dateModified ===
   const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
