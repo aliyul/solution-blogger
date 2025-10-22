@@ -162,7 +162,7 @@ function detectEvergreen() {
 
   const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
 
-  // ---------- Meta Dates ----------
+   // === Ambil meta datePublished & dateModified ===
   const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
   const dateModified = metaDateModified?.getAttribute("content") || nowISODate();
@@ -170,18 +170,60 @@ function detectEvergreen() {
 
   window.AEDMetaDates = { dateModified, datePublished };
 
-  // ---------- Hash + Next Update ----------
-  const currentHash = hashString(h1 + contentText.slice(0, 20000));
-  const prevHash = localStorage.getItem("aed_hash_" + location.pathname);
-  const metaNextUpdate = localStorage.getItem("aed_nextupdate_" + location.pathname);
-  let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(new Date(dateModified).getTime() + validityDays * 86400000);
+  // === Ambil semua section penting untuk hash ===
+  const sections = Array.from(document.querySelectorAll("article section, .content section, main section"))
+    .map(sec => sec.textContent.trim())
+    .filter(txt => txt.length > 50); // hindari section kosong
+  const joinedSections = sections.join("\n\n");
 
-  if (now >= nextUpdate || prevHash !== currentHash) {
-    localStorage.setItem("aed_hash_" + location.pathname, currentHash);
-    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
-    localStorage.setItem("aed_nextupdate_" + location.pathname, nextUpdate.toISOString());
+  // === Hash unik berdasarkan konten tiap section ===
+  function hashString(str) {
+    let hash = 0, i, chr;
+    if (str.length === 0) return hash;
+    for (i = 0; i < str.length; i++) {
+      chr = str.charCodeAt(i);
+      hash = (hash << 5) - hash + chr;
+      hash |= 0;
+    }
+    return hash.toString();
   }
 
+  const h1 = document.querySelector("h1")?.textContent?.trim() || "";
+  const contentForHash = (h1 + joinedSections).slice(0, 30000); // ambil max 30K karakter
+  const currentHash = hashString(contentForHash);
+
+  const keyPrefix = "aed_";
+  const prevHash = localStorage.getItem(keyPrefix + "hash_" + location.pathname);
+  const metaNextUpdate = localStorage.getItem(keyPrefix + "nextupdate_" + location.pathname);
+  const validityDays = window.AEDType === "evergreen" ? 365 : window.AEDType === "semi-evergreen" ? 180 : 90;
+  let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(new Date(dateModified).getTime() + validityDays * 86400000);
+
+  // === Jika waktunya update ATAU konten berubah ===
+  if (now >= nextUpdate || prevHash !== currentHash) {
+    console.log("🔁 [AED] Updating meta dateModified karena konten berubah atau waktu update tercapai");
+
+    // Perbarui hash & next update
+    localStorage.setItem(keyPrefix + "hash_" + location.pathname, currentHash);
+    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+    localStorage.setItem(keyPrefix + "nextupdate_" + location.pathname, nextUpdate.toISOString());
+
+    // Update meta dateModified
+    const newDate = nowISODate();
+    if (metaDateModified) metaDateModified.setAttribute("content", newDate);
+    else {
+      const m = document.createElement("meta");
+      m.setAttribute("itemprop", "dateModified");
+      m.setAttribute("content", newDate);
+      document.head.appendChild(m);
+    }
+
+    window.AEDMetaDates.dateModified = newDate;
+  } else {
+    console.log("✅ [AED] Tidak ada perubahan signifikan — meta dateModified dipertahankan.");
+  }
+
+  // Simpan nextUpdate ke window global
+  window.AEDMetaDates.nextUpdate = nextUpdate.toISOString();
   // ---------- Alert seminggu ---------- 
   const oneWeekBefore = new Date(nextUpdate.getTime() - 7*86400000); if (now >= oneWeekBefore && now < nextUpdate && !document.getElementById("aed-update-alert")) { const alertDiv = document.createElement("div"); alertDiv.id = "aed-update-alert"; alertDiv.setAttribute("data-nosnippet","true"); alertDiv.style.cssText = "background:#fff3cd;color:#856404;padding:12px;border:1px solid #ffeeba;margin:15px 0;border-radius:6px;font-size:14px;text-align:center;"; alertDiv.textContent = "⚠️ Konten ini akan direview segera (menjelang jadwal update)."; if (h1El && h1El.parentNode) h1El.parentNode.insertBefore(alertDiv,h1El.nextSibling); }
  
