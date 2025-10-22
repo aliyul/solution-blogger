@@ -65,199 +65,124 @@ let dateModified = '';
 ============================================================ */
 
 function detectEvergreen() {
-  console.log("🧩 Running detectEvergreen() v8.6.3R...");
+  console.log("🧩 Running detectEvergreen() v8.6.4S...");
 
   // ---------- Utilities ----------
   const now = new Date();
   const nowISODate = () => now.toISOString().split("T")[0];
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
- /* const hashString = s => {
+  const hashString = s => {
     let h = 2166136261 >>> 0;
     for (let i = 0; i < s.length; i++) {
       h ^= s.charCodeAt(i);
       h = Math.imul(h, 16777619) >>> 0;
     }
     return (h >>> 0).toString(36);
-  };*/
+  };
 
-// ---------- Grab content ----------
-const h1El = document.querySelector("h1");
-//const h1 = document.querySelector("h1")?.textContent.trim() || "";
-const h1 = clean(h1El?.innerText || "").toLowerCase();
+  // ---------- Grab content ----------
+  const h1El = document.querySelector("h1");
+  const h1 = clean(h1El?.innerText || "").toLowerCase();
+  const contentEl =
+    document.querySelector(".post-body.entry-content") ||
+    document.querySelector("[id^='post-body-']") ||
+    document.querySelector("article") ||
+    document.querySelector("main") ||
+    document.body;
 
-const contentEl =
-  document.querySelector(".post-body.entry-content") ||
-  document.querySelector("[id^='post-body-']") ||
-  document.querySelector("article") ||
-  document.querySelector("main") ||
-  document.body;
+  // ---------- Keyword Pattern ----------
+  const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
+  const semiEvergreenPattern = /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/;
+  const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
+  const priceTokenPattern = /\b(harga|rp|per\s?(m3|m2|unit|kubik|meter)|biaya|tarif)\b/i;
 
-// ---------- Keyword Pattern ----------
-const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
-const semiEvergreenPattern = /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/;
-const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
-const priceTokenPattern = /\b(harga|rp|per\s?(m3|m2|unit|kubik|meter)|biaya|tarif)\b/i;
+  // ---------- Section Extraction ----------
+  const sections = [];
+  const validRoot = contentEl || document.body;
+  const headings = Array.from(validRoot.querySelectorAll("h2,h3"));
+  const contentTextRaw = clean(validRoot.innerText || "");
+  const contentText = (h1 + " " + contentTextRaw).toLowerCase();
 
-// ---------- Section Extraction (Aman dari JS, Sidebar, dan Footer) ----------
-const sections = [];
-if (!contentEl) {
-  console.warn("⚠️ contentEl tidak ditemukan, fallback ke document.body (mungkin tidak akurat).");
-}
-
-const validRoot = contentEl || document.body;
-const headings = Array.from(validRoot.querySelectorAll("h2,h3"));
-
-// ✅ Ambil teks artikel utama dengan pembersihan ketat
-const contentTextRaw = clean(validRoot.innerText || "");
-const contentText = (h1 + " " + contentTextRaw).toLowerCase();
-
-// Jika tidak ada heading, treat seluruh isi artikel sebagai satu section
-if (headings.length === 0) {
-  const safeText = validRoot.innerText || "";
-  sections.push({ title: h1 || "artikel", content: clean(safeText) });
-} else {
-  for (let i = 0; i < headings.length; i++) {
-    const head = headings[i];
-    const title = clean(head.innerText);
-    let cur = head.nextElementSibling;
-    let body = "";
-
-    while (cur && !(cur.matches && cur.matches("h2,h3"))) {
-      // 🚫 Skip elemen non-konten
-      if (
-        cur.innerText &&
-        !cur.matches("script,style,nav,footer,header,aside,form,iframe,[role='banner'],[role='complementary']")
-      ) {
-        body += "\n" + clean(cur.innerText);
+  if (headings.length === 0) {
+    sections.push({ title: h1 || "artikel", content: clean(validRoot.innerText || "") });
+  } else {
+    for (const head of headings) {
+      const title = clean(head.innerText);
+      let cur = head.nextElementSibling, body = "";
+      while (cur && !(cur.matches && cur.matches("h2,h3"))) {
+        if (
+          cur.innerText &&
+          !cur.matches("script,style,nav,footer,header,aside,form,iframe,[role='banner'],[role='complementary']")
+        ) body += "\n" + clean(cur.innerText);
+        cur = cur.nextElementSibling;
       }
-      cur = cur.nextElementSibling;
-    }
-
-    if (title && body.trim().length > 30) {
-      sections.push({ title, content: body });
+      if (title && body.trim().length > 30) sections.push({ title, content: body });
     }
   }
-}
 
-// ---------- Section Scoring ----------
-let totalScores = { evergreen: 0, semi: 0, non: 0 };
-const sectionDetails = sections.map(sec => {
-  const t = sec.title.toLowerCase();
-  const b = sec.content.toLowerCase();
-  let sEver = 0,
-    sSemi = 0,
-    sNon = 0;
+  // ---------- Section Scoring ----------
+  let totalScores = { evergreen: 0, semi: 0, non: 0 };
+  const sectionDetails = sections.map(sec => {
+    const t = sec.title.toLowerCase(), b = sec.content.toLowerCase();
+    let sEver = 0, sSemi = 0, sNon = 0;
+    if (evergreenPattern.test(t)) sEver += 2;
+    if (semiEvergreenPattern.test(t)) sSemi += 2;
+    if (nonEvergreenPattern.test(t)) sNon += 1.5;
+    sEver += (b.match(evergreenPattern) || []).length * 0.8;
+    sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
+    sNon += (b.match(nonEvergreenPattern) || []).length * 1.0;
+    if (priceTokenPattern.test(t + " " + b)) sSemi += 1.5;
 
-  if (evergreenPattern.test(t)) sEver += 2;
-  if (semiEvergreenPattern.test(t)) sSemi += 2;
-  if (nonEvergreenPattern.test(t)) sNon += 1.5;
+    totalScores.evergreen += sEver;
+    totalScores.semi += sSemi;
+    totalScores.non += sNon;
 
-  sEver += (b.match(evergreenPattern) || []).length * 0.8;
-  sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
-  sNon += (b.match(nonEvergreenPattern) || []).length * 1.0;
+    const sectionType =
+      sNon > sSemi && sNon > sEver ? "non-evergreen" :
+      sEver > sSemi + 2 && sEver > sNon ? "evergreen" :
+      "semi-evergreen";
+    const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[sectionType];
+    const sectionAdvice =
+      sectionType === "evergreen" ? "Tinjau ulang tiap 9–12 bulan." :
+      sectionType === "semi-evergreen" ? (priceTokenPattern.test(b) ? "Perbarui harga 3–6 bulan." : "Review tiap 4–6 bulan.") :
+      "Konten cepat berubah — update tiap 1–3 bulan.";
 
-  const hasPriceTokens = priceTokenPattern.test(t + " " + b);
-  if (hasPriceTokens) sSemi += 1.5;
+    return { section: sec.title, sectionType, validityDays, sectionAdvice };
+  });
 
-  totalScores.evergreen += sEver;
-  totalScores.semi += sSemi;
-  totalScores.non += sNon;
+  // ---------- Global Classification ----------
+  const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
+  let finalType =
+    totalScores.non > totalScores.semi && totalScores.non > totalScores.evergreen ? "non-evergreen" :
+    totalScores.evergreen > totalScores.semi + 2 && !hasTimePattern ? "evergreen" :
+    "semi-evergreen";
+  if (/\bharga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan\b/i.test(h1 + contentText))
+    if (finalType === "non-evergreen") finalType = "semi-evergreen";
 
-  let sectionType = "semi-evergreen";
-  if (sNon > sSemi && sNon > sEver) sectionType = "non-evergreen";
-  else if (sEver > sSemi + 2 && sEver > sNon) sectionType = "evergreen";
+  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
 
-  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[sectionType];
-  const sectionAdvice =
-    sectionType === "evergreen"
-      ? "Tinjau ulang tiap 9–12 bulan."
-      : sectionType === "semi-evergreen"
-      ? hasPriceTokens
-        ? "Perbarui harga setiap 3–6 bulan."
-        : "Review tiap 4–6 bulan."
-      : "Konten cepat berubah — update tiap 1–3 bulan.";
-
-  return { section: sec.title, sEver, sSemi, sNon, sectionType, validityDays, sectionAdvice };
-});
-
-// ---------- Global Classification ----------
-const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
-let resultType = "semi-evergreen";
-if (totalScores.non > totalScores.semi && totalScores.non > totalScores.evergreen)
-  resultType = "non-evergreen";
-else if (totalScores.evergreen > totalScores.semi + 2 && !hasTimePattern)
-  resultType = "evergreen";
-
-// ---------- Parity Override untuk konten harga/jasa ----------
-const priceSections = sectionDetails.filter(s =>
-  /harga|produk|spesifikasi/.test(s.section.toLowerCase())
-);
-const parityStatus = priceSections.some(s => s.sectionType === "non-evergreen")
-  ? "non-evergreen"
-  : priceSections.some(s => s.sectionType === "semi-evergreen")
-  ? "semi-evergreen"
-  : resultType;
-
-// Pastikan semua konten harga/jasa minimal "semi-evergreen"
-let finalType = parityStatus;
-if (/\bharga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan\b/i.test(h1 + contentText)) {
-  if (finalType === "non-evergreen") finalType = "semi-evergreen";
-}
- // const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
-
-   // === Ambil meta datePublished & dateModified ===
+  // ---------- Meta Dates ----------
   const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
   const dateModified = metaDateModified?.getAttribute("content") || nowISODate();
   const datePublished = metaDatePublished?.getAttribute("content") || nowISODate();
 
-  window.AEDMetaDates = { dateModified, datePublished };
-
-  // === Ambil semua section penting untuk hash ===
-  const sectionshash = Array.from(document.querySelectorAll("article section, .content section, main section"))
-    .map(sec => sec.textContent.trim())
-    .filter(txt => txt.length > 50); // hindari section kosong
-  const joinedSectionshash = sectionshash.join("\n\n");
-
-  // === Hash unik berdasarkan konten tiap section ===
-  function hashString(str) {
-    let hash = 0, i, chr;
-    if (str.length === 0) return hash;
-    for (i = 0; i < str.length; i++) {
-      chr = str.charCodeAt(i);
-      hash = (hash << 5) - hash + chr;
-      hash |= 0;
-    }
-    return hash.toString();
-  }
-
-  //const h1 = document.querySelector("h1")?.textContent?.trim() || "";
-  const contentForHash = (h1 + joinedSectionshash).slice(0, 30000); // ambil max 30K karakter
+  // ---------- Hash + Update ----------
+  const contentForHash = (h1 + sections.map(s => s.content).join(" ")).slice(0, 30000);
   const currentHash = hashString(contentForHash);
-
   const keyPrefix = "aed_";
   const prevHash = localStorage.getItem(keyPrefix + "hash_" + location.pathname);
   const metaNextUpdate = localStorage.getItem(keyPrefix + "nextupdate_" + location.pathname);
-  const validityDays = window.AEDType === "evergreen" ? 365 : window.AEDType === "semi-evergreen" ? 180 : 90;
   let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(new Date(dateModified).getTime() + validityDays * 86400000);
 
-  // === Jika waktunya update ATAU konten berubah ===// --- Logika Update ---
-const contentChanged = prevHash && prevHash !== currentHash;
-const timeAllowed = now >= nextUpdate;
+  const contentChanged = prevHash && prevHash !== currentHash;
+  const timeAllowed = now >= nextUpdate;
 
-// --- Update hanya jika dua kondisi aman ---
-// 1️⃣ Sudah waktunya update  ✅
-// 2️⃣ Konten benar-benar berubah (bukan sekadar HTML/script luar)
-if (timeAllowed && contentChanged) {
-  
-    console.log("🔁 [AED] Updating meta dateModified karena konten berubah atau waktu update tercapai");
-
-    // Perbarui hash & next update
+  if (timeAllowed || contentChanged) {
+    console.log("🔁 [AED] Updating dateModified");
     localStorage.setItem(keyPrefix + "hash_" + location.pathname, currentHash);
     nextUpdate = new Date(now.getTime() + validityDays * 86400000);
     localStorage.setItem(keyPrefix + "nextupdate_" + location.pathname, nextUpdate.toISOString());
-
-    // Update meta dateModified
     const newDate = nowISODate();
     if (metaDateModified) metaDateModified.setAttribute("content", newDate);
     else {
@@ -266,59 +191,45 @@ if (timeAllowed && contentChanged) {
       m.setAttribute("content", newDate);
       document.head.appendChild(m);
     }
-
-    window.AEDMetaDates.dateModified = newDate;
   } else {
-    console.log("✅ [AED] Tidak ada perubahan signifikan — meta dateModified dipertahankan.");
+    console.log("✅ [AED] Tidak ada perubahan signifikan — dateModified dipertahankan.");
   }
 
-  // Simpan nextUpdate ke window global
-  window.AEDMetaDates.nextUpdate = nextUpdate.toISOString();
-  // ---------- Alert seminggu ---------- 
-  const oneWeekBefore = new Date(nextUpdate.getTime() - 7*86400000); if (now >= oneWeekBefore && now < nextUpdate && !document.getElementById("aed-update-alert")) { const alertDiv = document.createElement("div"); alertDiv.id = "aed-update-alert"; alertDiv.setAttribute("data-nosnippet","true"); alertDiv.style.cssText = "background:#fff3cd;color:#856404;padding:12px;border:1px solid #ffeeba;margin:15px 0;border-radius:6px;font-size:14px;text-align:center;"; alertDiv.textContent = "⚠️ Konten ini akan direview segera (menjelang jadwal update)."; if (h1El && h1El.parentNode) h1El.parentNode.insertBefore(alertDiv,h1El.nextSibling); }
- 
-  // ---------- JSON-LD Auto Update ----------
+  // ---------- JSON-LD Sync ----------
   try {
     const until = nextUpdate.toISOString().split("T")[0];
-    const jsonldScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-    jsonldScripts.forEach(script => {
-      try {
-        const parsed = JSON.parse(script.textContent.trim());
-        const apply = obj => {
-          if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
-            if (obj["@type"] === "Product" || obj["@type"] === "Service") {
-              if (Array.isArray(obj.offers)) {
-                obj.offers.forEach(o => {
-                  if (o["@type"] === "Offer") o.priceValidUntil = until;
-                });
-              } else {
-                if (!obj.offers) obj.offers = { "@type": "Offer" };
-                obj.offers.priceValidUntil = until;
-              }
-            }
-            obj.dateModified = dateModified;
-            obj.datePublished = datePublished;
+    document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+      const parsed = JSON.parse(script.textContent.trim());
+      const apply = obj => {
+        if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
+          obj.dateModified = dateModified;
+          obj.datePublished = datePublished;
+          if (obj.offers) {
+            if (Array.isArray(obj.offers))
+              obj.offers.forEach(o => o.priceValidUntil = until);
+            else obj.offers.priceValidUntil = until;
           }
-          for (const k in obj) if (typeof obj[k] === "object") apply(obj[k]);
-        };
-        if (Array.isArray(parsed)) parsed.forEach(apply);
-        else apply(parsed);
-        script.textContent = JSON.stringify(parsed, null, 2);
-      } catch {}
+        }
+        for (const k in obj) if (typeof obj[k] === "object") apply(obj[k]);
+      };
+      if (Array.isArray(parsed)) parsed.forEach(apply);
+      else apply(parsed);
+      script.textContent = JSON.stringify(parsed, null, 2);
     });
   } catch (e) {
-    console.error("Error in JSON-LD Auto Update:", e);
+    console.error("Error JSON-LD Sync:", e);
   }
+  // Pastikan validityDays sudah ada sebelum digunakan
+  const validityDaysFinal = typeof validityDays !== "undefined"
+    ? validityDays
+    : ({ evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType] || 180);
+
 
   // ---------- Global Result ----------
-  const advice =
-    finalType === "evergreen" ? "Konten bersifat evergreen — review tiap 9–12 bulan." :
-    finalType === "semi-evergreen" ? "Konten semi-evergreen — periksa 3–6 bulan sekali." :
-    "Konten cepat berubah — update tiap 1–3 bulan.";
-  
+ // ---------- Simpan hasil ke window ----------
   window.EvergreenDetectorResults = {
     resultType: finalType,
-    validityDays,
+    validityDays: validityDaysFinal,
     sections: sectionDetails,
     advice,
     dateModified,
@@ -330,7 +241,7 @@ if (timeAllowed && contentChanged) {
     type: finalType,
     score: totalScores,
     nextUpdate,
-    validityDays,
+    validityDays: validityDaysFinal
   };
 
   window.AEDMetaDates = {
@@ -340,7 +251,10 @@ if (timeAllowed && contentChanged) {
     type: finalType
   };
 
-  console.log(`✅ [AED v8.6.3R] ${finalType.toUpperCase()} detected — ${validityDays} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`);
+  console.log(
+    `✅ [AED v8.6.3R] ${finalType.toUpperCase()} detected — ${validityDaysFinal} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`
+  );
+  
 }
 
 // Jalankan deteksi di awal halaman
