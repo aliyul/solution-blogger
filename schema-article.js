@@ -21,14 +21,23 @@ document.addEventListener("DOMContentLoaded", function() {
     return wib.toISOString().replace("Z","+07:00");
   }
 
-  function hashString(str){
+ /* function hashString(str){
     let hash = 0;
     for (let i=0; i<str.length; i++){
       hash = (hash<<5)-hash + str.charCodeAt(i);
       hash |= 0;
     }
     return hash;
+  }*/
+  const hashString = s => {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
   }
+  return (h >>> 0).toString(36);
+};
+
 
   function getArticleWordCount(content){
     if(!content) return 0;
