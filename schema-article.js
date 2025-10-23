@@ -251,7 +251,7 @@ function detectEvergreen() {
     }
 
     // ⛔ Jangan ubah nextUpdate ke hari ini, cukup simpan yang lama
-    localStorage.setItem(key, nextUpdate.toISOString());
+    nextUpdate = localStorage.setItem(key, nextUpdate.toISOString());
   }
 
   console.log("🧭 [AED] Sinkronisasi selesai — next update:", nextUpdate.toISOString());
