@@ -261,6 +261,13 @@ function detectEvergreen() {
   } catch (e) {
     console.error("❌ JSON-LD Sync Error:", e);
   }
+
+  // ---------- Hasil ---------- 
+  window.EvergreenDetectorResults = { resultType: finalType, validityDays, sections: sectionDetails, advice: finalType === "evergreen" ? "Konten evergreen — review tiap 9–12 bulan." : finalType === "semi-evergreen" ? "Konten semi-evergreen — review 3–6 bulan sekali." : "Konten cepat berubah — update tiap 1–3 bulan.", dateModified, datePublished, nextUpdate }; 
+ 
+  //console.log(✅ [AED v8.6.6] ${finalType.toUpperCase()} | Valid ${validityDays} hari | nextUpdate: ${nextUpdate.toISOString().split("T")[0]});
+  window.AEDMetaDates = { dateModified, datePublished, nextUpdate: nextUpdate.toISOString().split("T")[0], type: finalType }; 
+  console.log( ✅ [AED v8.6.5F] ${finalType.toUpperCase()} detected — ${validityDaysFinal} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]} );
 }
 detectEvergreen();
 
