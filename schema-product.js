@@ -17,24 +17,16 @@ document.addEventListener("DOMContentLoaded", async function () {
     // === 2️⃣ SMART MULTI isPartOf DETECTION ===
     function detectParentUrls() {
       const urls = new Set();
-
-      // 🧩 1️⃣ Breadcrumb detection
       const breadcrumbLinks = Array.from(document.querySelectorAll(".breadcrumbs a"))
         .map(a => a.href)
         .filter(href => href && href !== location.href);
       breadcrumbLinks.forEach(url => urls.add(url));
 
-      // 🧩 2️⃣ Meta parent-url
       const metaParent = document.querySelector('meta[name="parent-url"]')?.content?.trim();
       if (metaParent && !urls.has(metaParent)) urls.add(metaParent);
-
-      // 🧩 3️⃣ Fallback ke domain utama
       if (urls.size === 0) urls.add(location.origin);
-
-      // 🧩 4️⃣ Convert ke array objek schema
       return Array.from(urls).map(u => ({ "@type": "WebPage", "@id": u }));
     }
-
     const parentUrls = detectParentUrls();
 
     // === 3️⃣ IMAGE DETECTION ===
@@ -43,7 +35,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (imgEl && imgEl.src && !/favicon|blank|logo/i.test(imgEl.src)) contentImage = imgEl.src.trim();
     if (!contentImage) contentImage = fallbackImage;
 
-    // === 4️⃣ AREA DASAR ===
+    // === 4️⃣ AREA SERVED ===
     const areaProv = {
       "Kabupaten Bogor": "Jawa Barat","Kota Bogor": "Jawa Barat",
       "Kota Depok": "Jawa Barat","Kabupaten Bekasi": "Jawa Barat",
@@ -55,7 +47,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     };
     const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type":"Place", name: a }));
 
-    // === 🧠 4B️⃣ DETEKSI AREA SERVED OTOMATIS ===
     async function detectAreaServed() {
       const h1 = titleRaw.toLowerCase();
       for (const [kota, prov] of Object.entries(areaProv)) {
@@ -64,31 +55,8 @@ document.addEventListener("DOMContentLoaded", async function () {
           return [{ "@type": "Place", name: kota, addressRegion: prov }];
         }
       }
-      const match = h1.match(/\b([a-z]{3,15})\b/i);
-      if (match) {
-        const kecamatanGuess = match[1];
-        try {
-          const response = await fetch(`https://id.wikipedia.org/w/rest.php/v1/search/title?q=${encodeURIComponent(kecamatanGuess)}&limit=1`);
-          const data = await response.json();
-          if (data?.pages?.[0]?.description?.toLowerCase().includes("kecamatan")) {
-            const desc = data.pages[0].description;
-            const parts = desc.split(",").map(p => p.trim());
-            const kec = parts[0] || kecamatanGuess;
-            const city = parts[1] || "Wilayah Sekitarnya";
-            const prov = parts[2] || "Jawa Barat";
-            return [
-              { "@type": "Place", name: "Kecamatan " + kec },
-              { "@type": "Place", name: city, addressRegion: prov }
-            ];
-          }
-        } catch (e) {
-          console.warn("⚠️ Area auto detection fallback", e);
-        }
-      }
       return defaultAreaServed;
     }
-    
-    // ✅ WAJIB gunakan await di sini
     const productAreaServed = await detectAreaServed();
 
     // === 5️⃣ BRAND DETECTION ===
@@ -120,299 +88,77 @@ document.addEventListener("DOMContentLoaded", async function () {
       }
     }
 
-    // ⚡ Auto Evergreen Detector v7.0 — 100% Otomatis untuk Semua Jenis Artikel
-    /* ============================================================
-   🧠 Smart Evergreen Detector v8.2 — Ultra Accurate SEO Version
-   Fitur:
-   - Deteksi otomatis konten evergreen, semi-evergreen, non-evergreen
-   - Analisis struktur dan kedalaman konten
-   - Koreksi otomatis berdasarkan skor dan sensitivitas waktu
-   - Didesain untuk niche SEO harga, jasa, beton, dan alat berat
-   ============================================================ */
-/*
-function detectEvergreenAI() {
-  const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
-  const content = Array.from(document.querySelectorAll("article p, main p, .post-body p"))
-    .map(p => p.innerText)
-    .join(" ")
-    .toLowerCase();
-  const text = (h1 + " " + content).replace(/\s+/g, " ");
+    // === 🧩 PARSER TABLE, TEKS, & LI HARGA ===
+    const seenItems = new Set();
+    const tableOffers = [];
 
-  // ===== 1️⃣ Pola Deteksi Otomatis =====
-  const nonEvergreenPattern =
-    /\b(update|terbaru|berita|jadwal|event|promo|diskon|progres|proyek|bulan\s\d{4}|tahun\s\d{4}|sementara|musiman|stok|kontrak|laporan|penawaran|perubahan|info pasar|analisis pasar|fluktuasi|forecast|revisi|minggu\sini|hari\sini|mingguan|bulanan|kuartal|q\d|tahunan)\b/;
-
-  const semiEvergreenPattern =
-    /\b(harga\s(beton|ready mix|jayamix|minimix|u ditch|precast|baja|besi|semen|aspal|cor|tanah|alat)|harga\s(per\s(m3|meter|hari|jam|unit))|harga\s(sewa|jual|cor|tarif)|sewa|rental|kontraktor|jasa|pembangunan|borongan|analisa harga satuan|estimasi biaya|kalkulasi|penyewaan|layanan|tarif)\b/;
-
-  const evergreenPattern =
-    /\b(panduan|tutorial|tips|cara|definisi|strategi|langkah|prosedur|manfaat|fungsi|jenis|contoh|teknik|pengertian|kegunaan|struktur|standar|material|spesifikasi|apa itu|arti|perbedaan|konsep|metode|keunggulan|kelebihan|kekurangan|komponen|prinsip kerja|proses)\b/;
-
-  // ===== 2️⃣ Pola Sensitivitas Waktu =====
-  const hasTimePattern =
-    /\b(20\d{2}|harga\sbulan|update|promo|diskon|deadline|agenda|sementara|terbaru|minggu|bulan|hari\sini|minggu\sini|q\d|kuartal)\b/.test(text);
-
-  // ===== 3️⃣ Deteksi Awal Berdasarkan Pola =====
-  let resultType = "semi-evergreen";
-  if (nonEvergreenPattern.test(text)) resultType = "non-evergreen";
-  else if (semiEvergreenPattern.test(text)) resultType = "semi-evergreen";
-  else if (evergreenPattern.test(text)) resultType = "evergreen";
-  else if (/harga|jasa|sewa|rental/.test(text)) resultType = "semi-evergreen";
-
-  // ===== 4️⃣ Pengukuran Struktur & Kedalaman =====
-  const paragraphCount = content.split(/\n{2,}/).filter(p => p.trim().length > 50).length;
-  const tableCount = document.querySelectorAll("table").length;
-  const listCount = document.querySelectorAll("article ol, article ul, main ol, main ul").length;
-  const wordCount = content.split(/\s+/).length;
-
-  let evergreenScore = (content.match(evergreenPattern) || []).length + paragraphCount + listCount;
-
-  // Bobot tambahan
-  if (wordCount > 800) evergreenScore += 2;     // panjang konten
-  if (wordCount > 1500) evergreenScore += 2;    // artikel mendalam
-  if (tableCount > 0) evergreenScore -= 1;      // tabel = indikasi konten harga (semi)
-  if (nonEvergreenPattern.test(text)) evergreenScore -= 3; // penalti update time-sensitive
-
-  // ===== 5️⃣ Koreksi Berdasarkan Skor & Pola =====
-  if (resultType === "semi-evergreen" && evergreenScore >= 6 && !hasTimePattern) {
-    resultType = "evergreen";
-  } else if (resultType === "evergreen" && hasTimePattern && evergreenScore <= 3) {
-    resultType = "semi-evergreen";
-  } else if (resultType === "semi-evergreen" && hasTimePattern && evergreenScore < 2) {
-    resultType = "non-evergreen";
-  }
-
-  // ===== 6️⃣ Log Hasil Deteksi ke Console =====
-  const logColor =
-    resultType === "evergreen"
-      ? "color:green"
-      : resultType === "semi-evergreen"
-      ? "color:orange"
-      : "color:red";
-
-  console.log(
-    `%c[Evergreen AI 🔍] Type: ${resultType.toUpperCase()} | Score: ${evergreenScore} | Words: ${wordCount} | TimeSensitive: ${hasTimePattern}`,
-    logColor
-  );
-
-  return resultType;
-}
-*/
-// === 🚀 Jalankan Deteksi ===
-//const evergreenType = detectEvergreenAI();
-
-    // === 📆 AUTO PRICE VALID UNTIL (Berdasarkan Jenis Konten)
-  /*  const now = new Date();
-    const priceValidUntil = new Date(now);
-   */ 
-    /*
-    📘 Standar pakar SEO:
-    - Evergreen → relevan ≥12 bulan (update tahunan)
-    - Semi-evergreen → relevan 3–6 bulan (update triwulan–semester)
-    - Non-evergreen → relevan <3 bulan (update bulanan)
-    */
-  /*
-    if (evergreenType === "evergreen") {
-      priceValidUntil.setFullYear(now.getFullYear() + 1);
-    } else if (evergreenType === "semi-evergreen") {
-      priceValidUntil.setMonth(now.getMonth() + 6);
-    } else {
-      priceValidUntil.setMonth(now.getMonth() + 3);
-    }
-    
-    const autoPriceValidUntil = priceValidUntil.toISOString().split("T")[0];
-    console.log(`[Auto PriceValidUntil 📅] ${autoPriceValidUntil} (${evergreenType.toUpperCase()})`);
-
-*/
-    
-    // === 🔟 PARSER TABLE, TEKS, & LI HARGA v3 ===
-// ======================================================
-// 🧩 Smart Offer Builder + Auto priceValidUntil Sync
-// Terhubung dengan window.AEDMetaDates (Evergreen Detector)
-// ======================================================
-
-const seenItems = new Set();
-const tableOffers = [];
-
-function addOffer(name, key, price, desc = "") {
-  let finalName = productName;
-  if (name && name.toLowerCase() !== productName.toLowerCase()) {
-    finalName += " " + name;
-  }
-
-  const k = finalName + "|" + key + "|" + price;
-  if (seenItems.has(k)) return;
-  seenItems.add(k);
-
-  // ========== 🕒 Ambil next update date dari Evergreen Detector ==========
-//  let validUntil = autoPriceValidUntil; // fallback default
-let validUntil = "";
-  try {
-    if (window.AEDMetaDates && window.AEDMetaDates.nextUpdate) {
-      // Gunakan hasil hitungan dari evergreen detector
-      validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
-    } else if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
-      // Jika belum ada nextUpdate, hitung manual dari dateModified + 90 hari
-      const dt = new Date(window.AEDMetaDates.dateModified);
-      dt.setDate(dt.getDate() + 90);
-      validUntil = dt.toISOString().split("T")[0];
-    }
-  } catch (err) {
-    console.warn("[Offer Builder] Gagal ambil AEDMetaDates:", err);
-  }
-
-  // ========== 💰 Tambahkan Offer ==========
-  tableOffers.push({
-    "@type": "Offer",
-    "name": finalName,
-    "url": cleanUrl,
-    "priceCurrency": "IDR",
-    "price": price.toString(),
-    "itemCondition": "https://schema.org/NewCondition",
-    "availability": "https://schema.org/InStock",
-    "priceValidUntil": validUntil,
-    "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
-    "description": desc || undefined
-  });
-}
-
-// 1️⃣ Deteksi dari tabel tetap
-Array.from(document.querySelectorAll("table")).forEach(table=>{
-  Array.from(table.querySelectorAll("tr")).forEach(row=>{
-    const cells = Array.from(row.querySelectorAll("td, th")).slice(0,6);
-    if(cells.length>=2){
-      let col1 = cells[0].innerText.trim();
-      let uniqueKey = cells.slice(1).map(c=>c.innerText.trim()).join(" ");
-      let price = null;
-      for(let c of cells){
-        const m = c.innerText.match(/Rp\s*([\d.,]+)/);
-        if(m){ price = parseInt(m[1].replace(/[.\s,]/g,"")); break; }
+    function addOffer(name, key, price, desc = "") {
+      let finalName = productName;
+      if (name && name.toLowerCase() !== productName.toLowerCase()) {
+        finalName += " " + name;
       }
-      if(price) addOffer(col1, uniqueKey, price, cells[1]?.innerText.trim()||"");
-    }
-  });
-});
+      const k = finalName + "|" + key + "|" + price;
+      if (seenItems.has(k)) return;
+      seenItems.add(k);
 
-// 2️⃣ Deteksi dari teks artikel (<article>)
-document.querySelectorAll("article").forEach(article=>{
-  article.innerText.split("\n").forEach(line=>{
-    const m = line.match(/Rp\s*([\d.,]{4,})/);
-    if(m){
-      const price = parseInt(m[1].replace(/[.\s,]/g,""));
-      if(price>=10000 && price<=500000000){
-        const words = line.split(/\s+/);
-        const idx = words.findIndex(w=>w.includes(m[1].replace(/[.,]/g,"")));
-        let name = words.slice(Math.max(0, idx-3), idx).join(" ").trim();
-        if(!name || name.toLowerCase() === productName.toLowerCase()) name="";
-        addOffer(name, "", price);
+      let validUntil = "";
+      try {
+        if (window.AEDMetaDates && window.AEDMetaDates.nextUpdate) {
+          validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
+        }
+      } catch (err) {
+        console.warn("[Offer Builder] Gagal ambil AEDMetaDates:", err);
       }
-    }
-  });
-});
 
-// 3️⃣ Deteksi langsung dari <li>
-document.querySelectorAll("li").forEach(li=>{
-  const text = li.innerText;
-  const m = text.match(/Rp\s*([\d.,]{4,})/);
-  if(m){
-    const price = parseInt(m[1].replace(/[.\s,]/g,""));
-    if(price>=10000 && price<=500000000){
-      let name = text.replace(m[0],"").trim(); // ambil sisa teks sebagai nama
-      if(!name || name.toLowerCase() === productName.toLowerCase()) name="";
-      addOffer(name, "", price);
-    }
-  }
-});
-
-console.log("[Parser v3] Total detected offers:", tableOffers.length);
-
-
-// === 11️⃣ INTERNAL LINK (Auto-Clean + Relevance + Unique + Max 50 + Name Cleaned v3 + Blacklist) ===
-    function generateCleanInternalLinksV3() {
-      const h1 = (document.querySelector("h1")?.innerText || "")
-        .toLowerCase()
-        .replace(/\d{4}|\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, ""); // buang bulan & tahun
-    
-      // Daftar URL yang dikecualikan
-      const blacklist = [
-        "https://www.betonjayareadymix.com/p/hubungi-kami.html",
-        "https://www.betonjayareadymix.com/p/portofolio.html",
-        "https://www.betonjayareadymix.com/p/disclaimer.html",
-        "https://www.betonjayareadymix.com/p/privacy-policy.html",
-        "https://www.betonjayareadymix.com/p/terms-of-service.html",
-        "https://www.betonjayareadymix.com/p/useful-links.html",
-        "https://www.betonjayareadymix.com/p/about.html",
-        "https://www.betonjayareadymix.com/p/sitemap.html"
-      ];
-    
-      // Ambil semua link internal dari konten <article> saja
-      const rawLinks = Array.from(document.querySelectorAll("article a"))
-        .map(a => a.href)
-        .filter(href =>
-          href &&
-          href.includes(location.hostname) &&
-          !href.includes("#") &&
-          href !== location.href &&
-          !href.match(/(\/search|\/feed|\/label)/i) &&
-          !blacklist.includes(href)  // ❌ cek blacklist
-        )
-        .map(url => url.split("?")[0].replace(/\/$/, "")); // bersihkan query & slash akhir
-    
-      // Unik
-      const uniqueUrls = [...new Set(rawLinks)];
-    
-      // Hitung relevansi terhadap H1
-      const relevancyScores = uniqueUrls.map(url => {
-        // ambil slug tanpa /p/ di path untuk name
-        let slugText = url.replace(location.origin, "")
-          .replace(".html", "")
-          .replace(/^\/p\//, "") // HILANGKAN /p/ jika ada
-          .replace(/^\/+|\/+$/g, "")
-          .replace(/-/g, " ")
-          .replace(/\b\d{1,2}\b/g, "") // hapus angka 1-2 digit (bulan/hari)
-          .replace(/\d{4}/g, "")        // hapus tahun 4 digit
-          .replace(/\b(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b/gi, "") // hapus nama bulan
-          .replace(/\s+/g, " ")
-          .trim()
-          .toLowerCase();
-    
-        let score = 0;
-        h1.split(" ").forEach(word => {
-          if (word && slugText.includes(word)) score++;
-        });
-    
-        return { url, score, slugText };
+      tableOffers.push({
+        "@type": "Offer",
+        "name": finalName,
+        "url": cleanUrl,
+        "priceCurrency": "IDR",
+        "price": price.toString(),
+        "itemCondition": "https://schema.org/NewCondition",
+        "availability": "https://schema.org/InStock",
+        "priceValidUntil": validUntil,
+        "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
+        "description": desc || undefined
       });
-    
-      // Urutkan berdasarkan relevansi tertinggi
-      relevancyScores.sort((a, b) => b.score - a.score);
-    
-      // Ambil 50 link paling relevan
-      const topLinks = relevancyScores.slice(0, 50);
-    
-      // Buat itemListElement schema
-      const itemList = topLinks.map((item, i) => {
-        let nameClean = item.slugText
-          .replace(/\//g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
-    
-        if(nameClean) nameClean = nameClean.charAt(0).toUpperCase() + nameClean.slice(1);
-    
-        return {
-          "@type": "ListItem",
-          position: i + 1,
-          url: item.url,
-          name: nameClean || `Tautan ${i + 1}`
-        };
-      });
-    
-      return itemList;
     }
-    
-    // Jalankan
-    const internalLinks = generateCleanInternalLinksV3();
-    console.log("[InternalLinks v3 ✅]", internalLinks);
+
+    // === 🧩 DETEKSI HARGA DARI TABEL / TEKS ===
+    document.querySelectorAll("table tr").forEach(row=>{
+      const cells = Array.from(row.querySelectorAll("td, th"));
+      const m = row.innerText.match(/Rp\s*([\d.,]+)/);
+      if(m){
+        const price = parseInt(m[1].replace(/[.\s,]/g,""));
+        if(price) addOffer(cells[0]?.innerText.trim()||"", "", price);
+      }
+    });
+
+    document.querySelectorAll("li").forEach(li=>{
+      const m = li.innerText.match(/Rp\s*([\d.,]+)/);
+      if(m){
+        const price = parseInt(m[1].replace(/[.\s,]/g,""));
+        if(price) addOffer(li.innerText.replace(m[0], "").trim(), "", price);
+      }
+    });
+
+    console.log("[Parser v3] Total detected offers:", tableOffers.length);
+
+    // === 🩺  Fallback schema OFFER kalau tidak ada ===
+    if (tableOffers.length === 0) {
+      console.warn("[Fallback Offer] Tidak ada offers terdeteksi — membuat fallback schema otomatis.");
+      tableOffers.push({
+        "@type": "Offer",
+        "name": productName + " (Estimasi Harga)",
+        "url": cleanUrl,
+        "priceCurrency": "IDR",
+        "price": "0",
+        "availability": "https://schema.org/PreOrder",
+        "itemCondition": "https://schema.org/NewCondition",
+        "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
+        "description": "Hubungi Beton Jaya Readymix untuk informasi harga terbaru dan penawaran khusus."
+      });
+    }
 
     // === 12️⃣ BUSINESS ENTITY ===
     const business = {
@@ -455,21 +201,11 @@ console.log("[Parser v3] Total detected offers:", tableOffers.length);
       image: [ contentImage || fallbackImage ],
       mainEntity: { "@id": mainEntity["@id"] },
       publisher: { "@id": business["@id"] },
-      "isPartOf": parentUrls,
-      ...(internalLinks.length && { hasPart: { "@id": cleanUrl + "#daftar-internal-link" } })
+      "isPartOf": parentUrls
     };
 
-    // === 15️⃣ GRAPH BUILD ===
+    // === 15️⃣ BUILD GRAPH + OUTPUT JSON-LD ===
     const graph = [webpage, business, mainEntity];
-    if(internalLinks.length) graph.push({
-      "@type":"ItemList",
-      "@id": cleanUrl+"#daftar-internal-link",
-      name:"Daftar Halaman Terkait",
-      numberOfItems: internalLinks.length,
-      itemListElement: internalLinks
-    });
-
-    // === 16️⃣ OUTPUT JSON-LD ===
     let scriptEl = document.querySelector("#auto-schema-product");
     if(!scriptEl){
       scriptEl = document.createElement("script");
@@ -478,7 +214,6 @@ console.log("[Parser v3] Total detected offers:", tableOffers.length);
       document.head.appendChild(scriptEl);
     }
     scriptEl.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
-
-    console.log(`[AutoSchema v4.53+ ✅] Product: ${productName} | Offers: ${tableOffers.length} | Parent(s): ${parentUrls.map(p=>p["@id"]).join(", ")}`);
+    console.log(`[AutoSchema v4.53+ ✅] Product: ${productName} | Offers: ${tableOffers.length}`);
   }, 500);
 });
