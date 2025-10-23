@@ -242,19 +242,27 @@ if (timeAllowed && contentChanged) {
 else {
   console.log("✅ [AED] Belum waktunya update — sinkronkan dateModified berdasar nextUpdate (tanpa mengubah nextUpdate).");
 
-  // Hitung tanggal dateModified semula dari nextUpdate - validityDays
+  // Hitung ulang tanggal semula dari nextUpdate - validityDays
   const syncBase = new Date(nextUpdate.getTime() - validityDays * 86400000);
-  const syncDate = syncBase.toISOString().split("T")[0];
+ 
+  console.log("🧭 [AED] Sinkronisasi selesai — syncBase (dipakai):", syncBase);
+  // Format full ISO dengan zona waktu lokal (+07:00)
+  const tzOffset = -syncBase.getTimezoneOffset();
+  const diff = tzOffset >= 0 ? "+" : "-";
+  const pad = n => String(Math.floor(Math.abs(n))).padStart(2, "0");
+  const hours = pad(tzOffset / 60);
+  const minutes = pad(tzOffset % 60);
+  const syncISO = `${syncBase.getFullYear()}-${pad(syncBase.getMonth() + 1)}-${pad(syncBase.getDate())}T${pad(syncBase.getHours())}:${pad(syncBase.getMinutes())}:${pad(syncBase.getSeconds())}${diff}${hours}:${minutes}`;
 
-  // Update meta dateModified ke tanggal sinkron (TAPI tidak mengganti stored nextUpdate)
   if (metaDateModified) {
-    metaDateModified.setAttribute("content", syncDate);
+    metaDateModified.setAttribute("content", syncISO);
   } else {
     const m = document.createElement("meta");
     m.setAttribute("itemprop", "dateModified");
-    m.setAttribute("content", syncDate);
+    m.setAttribute("content", syncISO);
     document.head.appendChild(m);
   }
+
 
   // Jangan set localStorage.nextUpdate ke today — hanya pastikan stored tetap sama atau disimpan ideal jika awalnya kosong
   // Jika tidak ada storedNextUpdate sebelumnya, kita _opsional_ menyimpan idealNextUpdate agar ada referensi berikutnya
