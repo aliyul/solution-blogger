@@ -68,7 +68,7 @@ let dateModified = '';
    Fix: duplicate definitions removed, stable execution
    =========================================================== */
 function detectEvergreen() {
-  console.log("🧩 Running detectEvergreen() v8.6.6 Final Stable...");
+  console.log("🧩 Running detectEvergreen() v8.6.7 Stable Logic Correction...");
 
   // ---------- Utilities ----------
   const now = new Date();
@@ -188,13 +188,9 @@ function detectEvergreen() {
   const prevHash = localStorage.getItem(hashKey);
   const storedNextUpdateStr = localStorage.getItem(key);
   const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
-  console.log("🔁 [AED] storedNextUpdate:", storedNextUpdate);
-   console.log("🔁 [AED] dateModified:", dateModified);
-  
+
   const idealNextUpdate = new Date(new Date(dateModified).getTime() + validityDays * 86400000);
-  let nextUpdate = storedNextUpdate && Math.abs(storedNextUpdate - idealNextUpdate) <= 86400000
-    ? storedNextUpdate
-    : idealNextUpdate;
+  let nextUpdate = storedNextUpdate || idealNextUpdate;
 
   const contentChanged = prevHash && prevHash !== currentHash;
   const timeAllowed = now >= nextUpdate;
@@ -208,86 +204,64 @@ function detectEvergreen() {
     localStorage.setItem(key, nextUpdate.toISOString());
 
     dateModified = nowLocalISO;
-    if (metaDateModified) metaDateModified.setAttribute("content", dateModified);
-    else {
-      const m = document.createElement("meta");
-      m.setAttribute("itemprop", "dateModified");
-      m.setAttribute("content", dateModified);
-      document.head.appendChild(m);
-    }
   } else {
-    console.log("✅ [AED] Belum waktunya update — sinkronisasi dateModified dengan siklus lama.");
+    console.log("✅ [AED] Belum waktunya update — sesuaikan meta dateModified.");
 
-    const syncBase = new Date(nextUpdate.getTime() - validityDays * 86400000);
-    const syncISO = formatLocalISO(syncBase);
-    dateModified = syncISO;
-
-    if (metaDateModified) metaDateModified.setAttribute("content", syncISO);
-    else {
-      const m = document.createElement("meta");
-      m.setAttribute("itemprop", "dateModified");
-      m.setAttribute("content", syncISO);
-      document.head.appendChild(m);
+    if (storedNextUpdateStr) {
+      // Gunakan storedNextUpdateStr dan validityDays untuk menghitung dateModified
+      const syncBase = new Date(storedNextUpdate.getTime() - validityDays * 86400000);
+      dateModified = formatLocalISO(syncBase);
+      console.log("🕒 [AED] Sinkron dateModified sesuai storedNextUpdate:", storedNextUpdateStr);
+    } else {
+      // Jika belum ada storedNextUpdate, buat baru berdasarkan meta dateModified
+      nextUpdate = new Date(new Date(dateModified).getTime() + validityDays * 86400000);
+      localStorage.setItem(key, nextUpdate.toISOString());
+      console.log("🆕 [AED] storedNextUpdate baru dibuat dari meta dateModified:", nextUpdate.toISOString());
     }
-
-    if (!storedNextUpdate) localStorage.setItem(key, idealNextUpdate.toISOString());
   }
 
-  console.log("🧭 [AED] Sinkronisasi selesai — next update:", nextUpdate.toISOString());
+  // Update meta tag
+  if (metaDateModified) metaDateModified.setAttribute("content", dateModified);
+  else {
+    const m = document.createElement("meta");
+    m.setAttribute("itemprop", "dateModified");
+    m.setAttribute("content", dateModified);
+    document.head.appendChild(m);
+  }
+
+  console.log("🧭 [AED] Selesai — nextUpdate:", nextUpdate.toISOString(), "| dateModified:", dateModified);
 
   // ---------- JSON-LD Sync ----------
   try {
-    if (!nextUpdate || !(nextUpdate instanceof Date))
-      throw new Error("Invalid nextUpdate date");
     const until = nextUpdate.toISOString().split("T")[0];
     const visited = new WeakSet();
 
     document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
-      try {
-        const text = script.textContent.trim();
-        if (!text || text.length < 10) return;
-        const parsed = JSON.parse(text);
-        const apply = obj => {
-          if (!obj || typeof obj !== "object" || visited.has(obj)) return;
-          visited.add(obj);
-          if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
-            obj.dateModified = dateModified;
-            obj.datePublished = datePublished;
-            if (obj.offers) {
-              if (Array.isArray(obj.offers)) obj.offers.forEach(o => o.priceValidUntil = until);
-              else if (typeof obj.offers === "object") obj.offers.priceValidUntil = until;
-            }
+      const text = script.textContent.trim();
+      if (!text || text.length < 10) return;
+      const parsed = JSON.parse(text);
+      const apply = obj => {
+        if (!obj || typeof obj !== "object" || visited.has(obj)) return;
+        visited.add(obj);
+        if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
+          obj.dateModified = dateModified;
+          obj.datePublished = datePublished;
+          if (obj.offers) {
+            if (Array.isArray(obj.offers)) obj.offers.forEach(o => (o.priceValidUntil = until));
+            else if (typeof obj.offers === "object") obj.offers.priceValidUntil = until;
           }
-          for (const k in obj) apply(obj[k]);
-        };
-        if (Array.isArray(parsed)) parsed.forEach(apply);
-        else apply(parsed);
-        script.textContent = JSON.stringify(parsed, null, 2);
-      } catch (err) { console.warn("⚠️ JSON-LD invalid:", err.message); }
+        }
+        for (const k in obj) apply(obj[k]);
+      };
+      if (Array.isArray(parsed)) parsed.forEach(apply);
+      else apply(parsed);
+      script.textContent = JSON.stringify(parsed, null, 2);
     });
     console.log("✅ JSON-LD Sync selesai — priceValidUntil:", until);
   } catch (e) {
     console.error("❌ JSON-LD Sync Error:", e);
   }
-
-  // ---------- Hasil ----------
-  window.EvergreenDetectorResults = {
-    resultType: finalType,
-    validityDays,
-    sections: sectionDetails,
-    advice:
-      finalType === "evergreen" ? "Konten evergreen — review tiap 9–12 bulan." :
-      finalType === "semi-evergreen" ? "Konten semi-evergreen — review 3–6 bulan sekali." :
-      "Konten cepat berubah — update tiap 1–3 bulan.",
-    dateModified,
-    datePublished,
-    nextUpdate
-  };
-  window.AEDMetaDates = { dateModified, datePublished, nextUpdate, type: finalType };
-
-  console.log(`✅ [AED v8.6.6] ${finalType.toUpperCase()} | Valid ${validityDays} hari | nextUpdate: ${nextUpdate.toISOString().split("T")[0]}`);
 }
-
 detectEvergreen();
 
 // ================== DETEKSI TYPE KONTEN ==================
