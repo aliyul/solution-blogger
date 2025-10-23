@@ -268,7 +268,7 @@ else {
 }
 
 // 7) logging akhir — gunakan nextUpdate yang benar
-console.log("🧭 [AED] Sinkronisasi selesai — nextUpdate (dipakai):", nextUpdate.toISOString());
+console.log("🧭 [AED] Sinkronisasi selesai — nextUpdate (dipakai):", nextUpdate);
   
   // ---------- JSON-LD Sync ----------
 try {
