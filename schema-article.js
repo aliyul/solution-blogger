@@ -68,11 +68,10 @@ let dateModified = '';
    Fix: duplicate definitions removed, stable execution
    =========================================================== */
 function detectEvergreen() {
-  console.log("🧩 Running detectEvergreen() v8.6.5F...");
+  console.log("🧩 Running detectEvergreen() v8.6.6 Final Stable...");
 
   // ---------- Utilities ----------
   const now = new Date();
-  const nowISODate = () => now.toISOString().split("T")[0];
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
   const hashString = s => {
     let h = 2166136261 >>> 0;
@@ -82,6 +81,15 @@ function detectEvergreen() {
     }
     return (h >>> 0).toString(36);
   };
+  const formatLocalISO = date => {
+    const tzOffset = -date.getTimezoneOffset();
+    const diff = tzOffset >= 0 ? "+" : "-";
+    const pad = n => String(Math.floor(Math.abs(n))).padStart(2, "0");
+    const hours = pad(tzOffset / 60);
+    const minutes = pad(tzOffset % 60);
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}${diff}${hours}:${minutes}`;
+  };
+  const nowLocalISO = formatLocalISO(now);
 
   // ---------- Grab content ----------
   const h1El = document.querySelector("h1");
@@ -167,199 +175,117 @@ function detectEvergreen() {
   // ---------- Meta Dates ----------
   const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
-  const dateModified = metaDateModified?.getAttribute("content") || nowISODate();
-  const datePublished = metaDatePublished?.getAttribute("content") || nowISODate();
+  let dateModified = metaDateModified?.getAttribute("content") || nowLocalISO;
+  const datePublished = metaDatePublished?.getAttribute("content") || nowLocalISO;
 
   // ---------- Hash + Update ----------
   const contentForHash = (h1 + sections.map(s => s.content).join(" ")).slice(0, 30000);
   const currentHash = hashString(contentForHash);
   const keyPrefix = "aed_";
-  const prevHash = localStorage.getItem(keyPrefix + "hash_" + location.pathname);
-  //const metaNextUpdate = localStorage.getItem(keyPrefix + "nextupdate_" + location.pathname);
-  //let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(new Date(dateModified).getTime() + validityDays * 86400000);
-// key untuk nextUpdate
-const key = keyPrefix + "nextupdate_" + location.pathname;
+  const key = keyPrefix + "nextupdate_" + location.pathname;
+  const hashKey = keyPrefix + "hash_" + location.pathname;
 
-// 1) Hitung idealNextUpdate dari meta dateModified (basis)
-const baseDate = new Date(dateModified);
-const idealNextUpdate = new Date(baseDate.getTime() + validityDays * 86400000);
+  const prevHash = localStorage.getItem(hashKey);
+  const storedNextUpdateStr = localStorage.getItem(key);
+  const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
 
-// 2) Ambil storedNextUpdate (jika ada) — tidak autoset ke today
-const storedNextUpdateStr = localStorage.getItem(key);
-const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
-console.log("🧭 [AED] — storedNextUpdate (dipakai):", storedNextUpdate);
-// 3) Pilih nextUpdate yang digunakan (sinkron terhadap meta jika perlu)
-//    TETAPI jangan ubah localStorage kecuali kondisi update terpenuhi (lihat bawah)
-let nextUpdate;
-if (!storedNextUpdate) {
-  // belum ada stored: gunakan idealNextUpdate (dari meta) but DON'T write "today"
-  nextUpdate = idealNextUpdate;
-} else {
-  // ada stored -> periksa selisih ke ideal
-  const diff = Math.abs(storedNextUpdate.getTime() - idealNextUpdate.getTime());
-  if (diff > 86400000) { // beda > 1 hari
-    console.log("🧹 nextUpdate stored tidak selaras dengan meta dateModified — gunakan idealNextUpdate (tanpa memaksa ke hari ini).");
-    nextUpdate = idealNextUpdate;
+  const idealNextUpdate = new Date(new Date(dateModified).getTime() + validityDays * 86400000);
+  let nextUpdate = storedNextUpdate && Math.abs(storedNextUpdate - idealNextUpdate) <= 86400000
+    ? storedNextUpdate
+    : idealNextUpdate;
+
+  const contentChanged = prevHash && prevHash !== currentHash;
+  const timeAllowed = now >= nextUpdate;
+
+  // === Kondisi update ===
+  if (timeAllowed && contentChanged) {
+    console.log("🔁 [AED] Update dipicu — konten berubah & waktunya.");
+
+    localStorage.setItem(hashKey, currentHash);
+    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+    localStorage.setItem(key, nextUpdate.toISOString());
+
+    dateModified = nowLocalISO;
+    if (metaDateModified) metaDateModified.setAttribute("content", dateModified);
+    else {
+      const m = document.createElement("meta");
+      m.setAttribute("itemprop", "dateModified");
+      m.setAttribute("content", dateModified);
+      document.head.appendChild(m);
+    }
   } else {
-    nextUpdate = storedNextUpdate;
-  }
-}
+    console.log("✅ [AED] Belum waktunya update — sinkronisasi dateModified dengan siklus lama.");
 
-// 4) Pastikan ada prevHash untuk perbandingan (jika belum ada, set tapi jangan anggap berubah)
-const hashKey = keyPrefix + "hash_" + location.pathname;
-if (!localStorage.getItem(hashKey)) localStorage.setItem(hashKey, currentHash);
-//const prevHash = localStorage.getItem(hashKey);
-const contentChanged = prevHash && prevHash !== currentHash;
-const timeAllowed = now >= nextUpdate;
+    const syncBase = new Date(nextUpdate.getTime() - validityDays * 86400000);
+    const syncISO = formatLocalISO(syncBase);
+    dateModified = syncISO;
 
-// 5) Hanya jika waktunya update dan konten berubah -> ubah dateModified ke hari ini & update nextUpdate (dan localStorage)
-if (timeAllowed && contentChanged) {
-  console.log("🔁 [AED] Waktunya update & konten berubah — memperbarui dateModified dan nextUpdate.");
+    if (metaDateModified) metaDateModified.setAttribute("content", syncISO);
+    else {
+      const m = document.createElement("meta");
+      m.setAttribute("itemprop", "dateModified");
+      m.setAttribute("content", syncISO);
+      document.head.appendChild(m);
+    }
 
-  // update hash
-  localStorage.setItem(hashKey, currentHash);
-
-  // set nextUpdate baru (now + validityDays) — dan simpan ke localStorage karena ini genuine update
-  nextUpdate = new Date(now.getTime() + validityDays * 86400000);
-  localStorage.setItem(key, nextUpdate.toISOString());
-
-  // set meta dateModified -> hari ini (ISO date)
-  const newDate = nowISODate();
-  if (metaDateModified) metaDateModified.setAttribute("content", newDate);
-  else {
-    const m = document.createElement("meta");
-    m.setAttribute("itemprop", "dateModified");
-    m.setAttribute("content", newDate);
-    document.head.appendChild(m);
+    if (!storedNextUpdate) localStorage.setItem(key, idealNextUpdate.toISOString());
   }
 
-  // kalau butuh, update dateModified variable yang dipakai selanjutnya
-  // NOTE: dateModified mungkin dideklarasikan sebagai const sebelumnya -> gunakan let bila ingin mengubah
-  // dateModified = newDate; // uncomment jika dateModified adalah let
-}
+  console.log("🧭 [AED] Sinkronisasi selesai — next update:", nextUpdate.toISOString());
 
-// 6) ELSE: belum waktunya atau tidak berubah -> sinkronkan meta dateModified sesuai nextUpdate (tidak mengubah stored nextUpdate)
-else {
-  console.log("✅ [AED] Belum waktunya update — sinkronkan dateModified berdasar nextUpdate (tanpa mengubah nextUpdate).");
-
-  // Hitung ulang tanggal semula dari nextUpdate - validityDays
-  const syncBase = new Date(nextUpdate.getTime() - validityDays * 86400000);
- 
-  console.log("🧭 [AED] — syncBase (dipakai):", syncBase);
-  // Format full ISO dengan zona waktu lokal (+07:00)
-  const tzOffset = -syncBase.getTimezoneOffset();
-  const diff = tzOffset >= 0 ? "+" : "-";
-  const pad = n => String(Math.floor(Math.abs(n))).padStart(2, "0");
-  const hours = pad(tzOffset / 60);
-  const minutes = pad(tzOffset % 60);
-  const syncISO = `${syncBase.getFullYear()}-${pad(syncBase.getMonth() + 1)}-${pad(syncBase.getDate())}T${pad(syncBase.getHours())}:${pad(syncBase.getMinutes())}:${pad(syncBase.getSeconds())}${diff}${hours}:${minutes}`;
-
-  if (metaDateModified) {
-    metaDateModified.setAttribute("content", syncISO);
-  } else {
-    const m = document.createElement("meta");
-    m.setAttribute("itemprop", "dateModified");
-    m.setAttribute("content", syncISO);
-    document.head.appendChild(m);
-  }
-
-
-  // Jangan set localStorage.nextUpdate ke today — hanya pastikan stored tetap sama atau disimpan ideal jika awalnya kosong
-  // Jika tidak ada storedNextUpdate sebelumnya, kita _opsional_ menyimpan idealNextUpdate agar ada referensi berikutnya
-  if (!storedNextUpdate) {
-    // Simpan ideal sebagai baseline (tidak dipakai untuk memaksa update hari ini)
-    localStorage.setItem(key, idealNextUpdate.toISOString());
-  } else {
-    // pastikan localStorage tetap berisi stored value (tidak diubah)
-    // lokal tidak diubah
-  }
-}
-
-// 7) logging akhir — gunakan nextUpdate yang benar
-console.log("🧭 [AED] Sinkronisasi selesai — nextUpdate (dipakai):", nextUpdate);
-  
   // ---------- JSON-LD Sync ----------
-try {
-  if (!nextUpdate || !(nextUpdate instanceof Date))
-    throw new Error("Invalid nextUpdate date");
+  try {
+    if (!nextUpdate || !(nextUpdate instanceof Date))
+      throw new Error("Invalid nextUpdate date");
+    const until = nextUpdate.toISOString().split("T")[0];
+    const visited = new WeakSet();
 
-  const until = nextUpdate.toISOString().split("T")[0];
-  const visited = new WeakSet();
-
-  document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
-    try {
-      const text = script.textContent.trim();
-      if (!text || text.length < 10) return; // 🧹 skip JSON kosong atau pendek
-
-      const parsed = JSON.parse(text);
-
-      const apply = obj => {
-        if (!obj || typeof obj !== "object" || visited.has(obj)) return;
-        visited.add(obj);
-
-        if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
-          if (dateModified) obj.dateModified = dateModified;
-          if (datePublished) obj.datePublished = datePublished;
-
-          if (obj.offers) {
-            if (Array.isArray(obj.offers)) {
-              obj.offers.forEach(o => { if (o) o.priceValidUntil = until; });
-            } else if (typeof obj.offers === "object") {
-              obj.offers.priceValidUntil = until;
+    document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+      try {
+        const text = script.textContent.trim();
+        if (!text || text.length < 10) return;
+        const parsed = JSON.parse(text);
+        const apply = obj => {
+          if (!obj || typeof obj !== "object" || visited.has(obj)) return;
+          visited.add(obj);
+          if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
+            obj.dateModified = dateModified;
+            obj.datePublished = datePublished;
+            if (obj.offers) {
+              if (Array.isArray(obj.offers)) obj.offers.forEach(o => o.priceValidUntil = until);
+              else if (typeof obj.offers === "object") obj.offers.priceValidUntil = until;
             }
           }
-        }
+          for (const k in obj) apply(obj[k]);
+        };
+        if (Array.isArray(parsed)) parsed.forEach(apply);
+        else apply(parsed);
+        script.textContent = JSON.stringify(parsed, null, 2);
+      } catch (err) { console.warn("⚠️ JSON-LD invalid:", err.message); }
+    });
+    console.log("✅ JSON-LD Sync selesai — priceValidUntil:", until);
+  } catch (e) {
+    console.error("❌ JSON-LD Sync Error:", e);
+  }
 
-        for (const k in obj) apply(obj[k]);
-      };
-
-      if (Array.isArray(parsed)) parsed.forEach(apply);
-      else apply(parsed);
-
-      script.textContent = JSON.stringify(parsed, null, 2);
-    } catch (err) {
-      console.warn("⚠️ JSON-LD invalid, skip:", err.message);
-    }
-  });
-
-  console.log("✅ JSON-LD Sync berhasil diperbarui dengan dateModified & priceValidUntil:", until);
-
-} catch (e) {
-  console.error("❌ Error JSON-LD Sync:", e);
-}
-
-
-
-  // ---------- Global Result ----------
-  const validityDaysFinal = validityDays || 180;
-  const advice =
-    finalType === "evergreen" ? "Konten bersifat evergreen — review tiap 9–12 bulan." :
-    finalType === "semi-evergreen" ? "Konten semi-evergreen — periksa 3–6 bulan sekali." :
-    "Konten cepat berubah — update tiap 1–3 bulan.";
-
+  // ---------- Hasil ----------
   window.EvergreenDetectorResults = {
     resultType: finalType,
-    validityDays: validityDaysFinal,
+    validityDays,
     sections: sectionDetails,
-    advice,
+    advice:
+      finalType === "evergreen" ? "Konten evergreen — review tiap 9–12 bulan." :
+      finalType === "semi-evergreen" ? "Konten semi-evergreen — review 3–6 bulan sekali." :
+      "Konten cepat berubah — update tiap 1–3 bulan.",
     dateModified,
     datePublished,
     nextUpdate
   };
+  window.AEDMetaDates = { dateModified, datePublished, nextUpdate, type: finalType };
 
-  window.AEDMetaDates = {
-    dateModified,
-    datePublished,
-    nextUpdate: nextUpdate.toISOString().split("T")[0],
-    type: finalType
-  };
-
-  console.log(
-    `✅ [AED v8.6.5F] ${finalType.toUpperCase()} detected — ${validityDaysFinal} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`
-  );
+  console.log(`✅ [AED v8.6.6] ${finalType.toUpperCase()} | Valid ${validityDays} hari | nextUpdate: ${nextUpdate.toISOString().split("T")[0]}`);
 }
 
-// Jalankan deteksi di awal halaman
 detectEvergreen();
 
 // ================== DETEKSI TYPE KONTEN ==================
