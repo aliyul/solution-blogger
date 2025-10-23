@@ -177,84 +177,98 @@ function detectEvergreen() {
   const prevHash = localStorage.getItem(keyPrefix + "hash_" + location.pathname);
   //const metaNextUpdate = localStorage.getItem(keyPrefix + "nextupdate_" + location.pathname);
   //let nextUpdate = metaNextUpdate ? new Date(metaNextUpdate) : new Date(new Date(dateModified).getTime() + validityDays * 86400000);
- const key = keyPrefix + "nextupdate_" + location.pathname;
+// key untuk nextUpdate
+const key = keyPrefix + "nextupdate_" + location.pathname;
 
-  // 🧩 Hitung nextUpdate ideal berdasarkan dateModified + validityDays
-  const baseDate = new Date(dateModified);
-  const idealNextUpdate = new Date(baseDate.getTime() + validityDays * 86400000);
+// 1) Hitung idealNextUpdate dari meta dateModified (basis)
+const baseDate = new Date(dateModified);
+const idealNextUpdate = new Date(baseDate.getTime() + validityDays * 86400000);
 
-  // 🗄️ Ambil nextUpdate tersimpan
-  const storedNextUpdateStr = localStorage.getItem(key);
-  const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
+// 2) Ambil storedNextUpdate (jika ada) — tidak autoset ke today
+const storedNextUpdateStr = localStorage.getItem(key);
+const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
 
-  // 🧠 Bandingkan apakah tersimpan sesuai meta
-  let nextUpdate;
-  if (
-    !storedNextUpdate ||
-    Math.abs(storedNextUpdate.getTime() - idealNextUpdate.getTime()) > 86400000 // beda > 1 hari
-  ) {
-    console.log("🧹 nextUpdate tersimpan tidak sesuai meta dateModified — disinkronkan ulang...");
-    localStorage.removeItem(key);
-    localStorage.setItem(key, idealNextUpdate.toISOString());
+// 3) Pilih nextUpdate yang digunakan (sinkron terhadap meta jika perlu)
+//    TETAPI jangan ubah localStorage kecuali kondisi update terpenuhi (lihat bawah)
+let nextUpdate;
+if (!storedNextUpdate) {
+  // belum ada stored: gunakan idealNextUpdate (dari meta) but DON'T write "today"
+  nextUpdate = idealNextUpdate;
+} else {
+  // ada stored -> periksa selisih ke ideal
+  const diff = Math.abs(storedNextUpdate.getTime() - idealNextUpdate.getTime());
+  if (diff > 86400000) { // beda > 1 hari
+    console.log("🧹 nextUpdate stored tidak selaras dengan meta dateModified — gunakan idealNextUpdate (tanpa memaksa ke hari ini).");
     nextUpdate = idealNextUpdate;
   } else {
     nextUpdate = storedNextUpdate;
   }
+}
 
-  // 💾 Simpan hash awal bila belum ada
-  const hashKey = keyPrefix + "hash_" + location.pathname;
-  if (!localStorage.getItem(hashKey)) {
-    localStorage.setItem(hashKey, currentHash);
-  }
+// 4) Pastikan ada prevHash untuk perbandingan (jika belum ada, set tapi jangan anggap berubah)
+const hashKey = keyPrefix + "hash_" + location.pathname;
+if (!localStorage.getItem(hashKey)) localStorage.setItem(hashKey, currentHash);
+const prevHash = localStorage.getItem(hashKey);
+const contentChanged = prevHash && prevHash !== currentHash;
+const timeAllowed = now >= nextUpdate;
 
-  //const prevHash = localStorage.getItem(hashKey);
-  const contentChanged = prevHash && prevHash !== currentHash;
-  const timeAllowed = now >= nextUpdate;
+// 5) Hanya jika waktunya update dan konten berubah -> ubah dateModified ke hari ini & update nextUpdate (dan localStorage)
+if (timeAllowed && contentChanged) {
+  console.log("🔁 [AED] Waktunya update & konten berubah — memperbarui dateModified dan nextUpdate.");
 
-  // === 1️⃣ Jika waktunya dan konten berubah: update dateModified + nextUpdate ===
-  if (timeAllowed && contentChanged) {
-    console.log("🔁 [AED] Updating dateModified — waktunya update & konten berubah.");
+  // update hash
+  localStorage.setItem(hashKey, currentHash);
 
-    localStorage.setItem(hashKey, currentHash);
+  // set nextUpdate baru (now + validityDays) — dan simpan ke localStorage karena ini genuine update
+  nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+  localStorage.setItem(key, nextUpdate.toISOString());
 
-    // Hitung next update baru
-    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
-    localStorage.setItem(key, nextUpdate.toISOString());
-
-    const newDate = nowISODate();
-    if (metaDateModified) {
-      metaDateModified.setAttribute("content", newDate);
-    } else {
-      const m = document.createElement("meta");
-      m.setAttribute("itemprop", "dateModified");
-      m.setAttribute("content", newDate);
-      document.head.appendChild(m);
-    }
-  }
-
-  // === 2️⃣ Jika belum waktunya atau konten tidak berubah: sinkronkan ulang ===
+  // set meta dateModified -> hari ini (ISO date)
+  const newDate = nowISODate();
+  if (metaDateModified) metaDateModified.setAttribute("content", newDate);
   else {
-    console.log("✅ [AED] Belum waktunya update — kembalikan dateModified sesuai siklus.");
-
-    // Hitung ulang tanggal semula dari nextUpdate - validityDays
-    const syncBase = new Date(nextUpdate.getTime() - validityDays * 86400000);
-    const syncDate = syncBase.toISOString().split("T")[0];
-
-    // Pastikan meta tidak ikut update ke hari ini
-    if (metaDateModified) {
-      metaDateModified.setAttribute("content", syncDate);
-    } else {
-      const m = document.createElement("meta");
-      m.setAttribute("itemprop", "dateModified");
-      m.setAttribute("content", syncDate);
-      document.head.appendChild(m);
-    }
-
-    // ⛔ Jangan ubah nextUpdate ke hari ini, cukup simpan yang lama
-    localStorage.setItem(key, nextUpdate.toISOString());
+    const m = document.createElement("meta");
+    m.setAttribute("itemprop", "dateModified");
+    m.setAttribute("content", newDate);
+    document.head.appendChild(m);
   }
 
-  console.log("🧭 [AED] Sinkronisasi selesai — next update:", nextUpdate.toISOString());
+  // kalau butuh, update dateModified variable yang dipakai selanjutnya
+  // NOTE: dateModified mungkin dideklarasikan sebagai const sebelumnya -> gunakan let bila ingin mengubah
+  // dateModified = newDate; // uncomment jika dateModified adalah let
+}
+
+// 6) ELSE: belum waktunya atau tidak berubah -> sinkronkan meta dateModified sesuai nextUpdate (tidak mengubah stored nextUpdate)
+else {
+  console.log("✅ [AED] Belum waktunya update — sinkronkan dateModified berdasar nextUpdate (tanpa mengubah nextUpdate).");
+
+  // Hitung tanggal dateModified semula dari nextUpdate - validityDays
+  const syncBase = new Date(nextUpdate.getTime() - validityDays * 86400000);
+  const syncDate = syncBase.toISOString().split("T")[0];
+
+  // Update meta dateModified ke tanggal sinkron (TAPI tidak mengganti stored nextUpdate)
+  if (metaDateModified) {
+    metaDateModified.setAttribute("content", syncDate);
+  } else {
+    const m = document.createElement("meta");
+    m.setAttribute("itemprop", "dateModified");
+    m.setAttribute("content", syncDate);
+    document.head.appendChild(m);
+  }
+
+  // Jangan set localStorage.nextUpdate ke today — hanya pastikan stored tetap sama atau disimpan ideal jika awalnya kosong
+  // Jika tidak ada storedNextUpdate sebelumnya, kita _opsional_ menyimpan idealNextUpdate agar ada referensi berikutnya
+  if (!storedNextUpdate) {
+    // Simpan ideal sebagai baseline (tidak dipakai untuk memaksa update hari ini)
+    localStorage.setItem(key, idealNextUpdate.toISOString());
+  } else {
+    // pastikan localStorage tetap berisi stored value (tidak diubah)
+    // lokal tidak diubah
+  }
+}
+
+// 7) logging akhir — gunakan nextUpdate yang benar
+console.log("🧭 [AED] Sinkronisasi selesai — nextUpdate (dipakai):", nextUpdate.toISOString());
   
   // ---------- JSON-LD Sync ----------
 try {
