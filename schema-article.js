@@ -267,7 +267,7 @@ function detectEvergreen() {
  
   window.AEDMetaDates = { dateModified, datePublished, nextUpdate: nextUpdate.toISOString().split("T")[0], type: finalType }; 
   
-console.log(`✅ [AED v8.6.5F] ${finalType.toUpperCase()} detected — ${validityDaysFinal} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`);
+console.log(`✅ [AED v8.6.5F] ${finalType.toUpperCase()} detected — ${validityDays} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`);
   
 }
 detectEvergreen();
