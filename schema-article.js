@@ -187,7 +187,7 @@ const idealNextUpdate = new Date(baseDate.getTime() + validityDays * 86400000);
 // 2) Ambil storedNextUpdate (jika ada) — tidak autoset ke today
 const storedNextUpdateStr = localStorage.getItem(key);
 const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
-
+console.log("🧭 [AED] — storedNextUpdate (dipakai):", storedNextUpdate);
 // 3) Pilih nextUpdate yang digunakan (sinkron terhadap meta jika perlu)
 //    TETAPI jangan ubah localStorage kecuali kondisi update terpenuhi (lihat bawah)
 let nextUpdate;
@@ -245,7 +245,7 @@ else {
   // Hitung ulang tanggal semula dari nextUpdate - validityDays
   const syncBase = new Date(nextUpdate.getTime() - validityDays * 86400000);
  
-  console.log("🧭 [AED] Sinkronisasi selesai — syncBase (dipakai):", syncBase);
+  console.log("🧭 [AED] — syncBase (dipakai):", syncBase);
   // Format full ISO dengan zona waktu lokal (+07:00)
   const tzOffset = -syncBase.getTimezoneOffset();
   const diff = tzOffset >= 0 ? "+" : "-";
