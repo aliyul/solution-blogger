@@ -208,7 +208,7 @@ if (!storedNextUpdate) {
 // 4) Pastikan ada prevHash untuk perbandingan (jika belum ada, set tapi jangan anggap berubah)
 const hashKey = keyPrefix + "hash_" + location.pathname;
 if (!localStorage.getItem(hashKey)) localStorage.setItem(hashKey, currentHash);
-const prevHash = localStorage.getItem(hashKey);
+//const prevHash = localStorage.getItem(hashKey);
 const contentChanged = prevHash && prevHash !== currentHash;
 const timeAllowed = now >= nextUpdate;
 
