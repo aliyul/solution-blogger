@@ -188,6 +188,7 @@ function detectEvergreen() {
   const prevHash = localStorage.getItem(hashKey);
   const storedNextUpdateStr = localStorage.getItem(key);
   const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
+  console.log("🔁 [AED] storedNextUpdateStr:", storedNextUpdateStr);
 
   const idealNextUpdate = new Date(new Date(dateModified).getTime() + validityDays * 86400000);
   let nextUpdate = storedNextUpdate && Math.abs(storedNextUpdate - idealNextUpdate) <= 86400000
