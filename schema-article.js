@@ -157,16 +157,14 @@ function detectEvergreen() {
   const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
 
   // ---------- Meta ----------
- // ---------- Meta ----------
 // ---------- Ambil Meta ----------
 const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
 const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
-const blogNextUpdateMeta = document.querySelector('meta[itemprop="blogNextUpdate"]'); // fallback Blogspot custom field
 const metaNextUpdate1 = document.querySelector('meta[itemprop="nextUpdate1"]'); // ✅ Manual override (CMS)
+const metaNextUpdate = document.querySelector('meta[itemprop="nextUpdate"]');
+
 let dateModified = metaDateModified?.getAttribute("content");
 const datePublished = metaDatePublished?.getAttribute("content") || nowLocalISO;
-const blogNextUpdate = blogNextUpdateMeta?.getAttribute("content");
-const metaNextUpdate = document.querySelector('meta[itemprop="nextUpdate"]');
 
 // ---------- Hash Konten ----------
 const keyHash = "aed_hash_" + location.pathname;
@@ -191,13 +189,21 @@ if (metaNextUpdate1 && metaNextUpdate1.getAttribute("content")) {
 }
 
 // ---------- Logic NextUpdate + Fallback ----------
-let nextUpdate = blogNextUpdate
-  ? new Date(blogNextUpdate)
-  : (metaNextUpdate?.getAttribute("content")
-      ? new Date(metaNextUpdate.getAttribute("content"))
-      : (dateModified
-          ? new Date(new Date(dateModified).getTime() + validityDays * 86400000)
-          : null));
+let nextUpdate = metaNextUpdate?.getAttribute("content")
+  ? new Date(metaNextUpdate.getAttribute("content"))
+  : (dateModified
+      ? new Date(new Date(dateModified).getTime() + validityDays * 86400000)
+      : null);
+
+// 🧩 Jika keduanya tidak ada (metaNextUpdate & dateModified null), buat otomatis dari nowLocalISO
+if (!metaNextUpdate && !dateModified) {
+  dateModified = nowLocalISO;
+  nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+  console.log("🆕 [AED] Membuat meta dateModified & nextUpdate baru:", {
+    dateModified,
+    nextUpdate: nextUpdate.toISOString()
+  });
+}
 
 console.log("🕒 [AED] nextUpdate:", nextUpdate);
 console.log("🕒 [AED] metaNextUpdate:", metaNextUpdate);
@@ -220,7 +226,7 @@ if (nextUpdate) {
 // ---------- Update jika konten berubah & waktunya terpenuhi ----------
 if (timeAllowed && contentChanged) {
   console.log("🔁 [AED] Update dipicu — konten berubah & waktunya.");
-  localStorage.setItem(keyHash, currentHash); // tetap simpan hash agar tahu ada perubahan konten
+  localStorage.setItem(keyHash, currentHash); // tetap simpan hash agar tahu kapan konten berubah
   dateModified = nowLocalISO;
   nextUpdate = new Date(now.getTime() + validityDays * 86400000);
 }
