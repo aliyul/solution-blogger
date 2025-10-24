@@ -412,6 +412,12 @@ detectEvergreen();
     console.log("[AED] Type:", type, "Score:", aiScore);
     console.log("📅 datePublished:", datePublished, "dateModified:", dateModified);
 
+     // ===================== DASHBOARD HANYA UNTUK ADMIN =====================
+    const isAdminDebug = window.location.search.includes("debug");
+    if (!isAdminDebug) {
+      console.log("🛡️ AED Dashboard disembunyikan (mode publik). Tambahkan '?debug' untuk admin view.");
+      return; // keluar agar dashboard tidak dirender
+    }
     // ===================== DASHBOARD =====================
     const dash = document.createElement("div");
     dash.id = "AEDDashboard";
@@ -520,7 +526,12 @@ function showEvergreenDashboard() {
       validityDays: s.validityDays || 0,
       sectionAdvice: s.sectionAdvice || "-"
     }));
-
+ // ===================== DASHBOARD HANYA UNTUK ADMIN =====================
+    const isAdminDebug = window.location.search.includes("debug");
+    if (!isAdminDebug) {
+      console.log("🛡️ AED Dashboard disembunyikan (mode publik). Tambahkan '?debug' untuk admin view.");
+      return; // keluar agar dashboard tidak dirender
+    }
     const wrap = document.createElement("div");
     wrap.id = "EvergreenDashboard";
     wrap.setAttribute("data-nosnippet", "true");
