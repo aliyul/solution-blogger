@@ -214,17 +214,39 @@ const timeAllowed = nextUpdate ? now >= nextUpdate : false;
 const originalDateModified = dateModified;
 
 // ---------- Sync dateModified dengan nextUpdate ----------
-if (nextUpdate) {
-  const baseDate = new Date(nextUpdate.getTime() - validityDays * 86400000);
-  const computedDateModified = formatLocalISO(baseDate);
+// === Sinkronisasi dateModified <-> nextUpdate ===
+try {
+  const metaNextUpdate = document.querySelector('meta[itemprop="nextUpdate"]');
+  const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
+  const validityDays = typeof validityDaysFinal !== "undefined" ? validityDaysFinal : 180; // default
 
-  // Hanya sesuaikan jika valid dan ada dasar waktu (bukan auto-override)
-  if (dateModified && dateModified !== computedDateModified && (contentChanged || timeAllowed)) {
-    dateModified = computedDateModified;
-    console.log("🕒 [AED] dateModified disesuaikan dengan nextUpdate:", dateModified);
+  if (metaNextUpdate && metaDateModified) {
+    const nextUpdateValue = metaNextUpdate.getAttribute("content");
+    const dateModifiedValue = metaDateModified.getAttribute("content");
+
+    if (nextUpdateValue) {
+      const nextUpdate = new Date(nextUpdateValue);
+      const expectedDateModified = new Date(nextUpdate.getTime() - validityDays * 86400000);
+      const expectedDateModifiedISO = expectedDateModified.toISOString().split("T")[0];
+
+      // ambil dateModified sekarang (YYYY-MM-DD)
+      const currentDateModifiedISO = (dateModifiedValue || "").split("T")[0];
+
+      // cek apakah dateModified meta tidak sesuai validitas nextUpdate
+      if (currentDateModifiedISO !== expectedDateModifiedISO) {
+        metaDateModified.setAttribute("content", expectedDateModified.toISOString());
+        console.log("🕒 [AED] Meta dateModified disesuaikan dengan nextUpdate:", expectedDateModifiedISO);
+      } else {
+        console.log("✅ [AED] dateModified sudah sinkron dengan nextUpdate:", expectedDateModifiedISO);
+      }
+    } else {
+      console.warn("⚠️ [AED] nextUpdate belum di-set, sinkronisasi dilewati.");
+    }
   } else {
-    console.log("🕒 [AED] dateModified tetap dipertahankan:", dateModified);
+    console.warn("⚠️ [AED] Meta tag dateModified atau nextUpdate tidak ditemukan.");
   }
+} catch (err) {
+  console.error("❌ [AED] Gagal sinkronisasi dateModified dengan nextUpdate:", err);
 }
 
 // ---------- Update jika konten berubah & waktunya terpenuhi ----------
