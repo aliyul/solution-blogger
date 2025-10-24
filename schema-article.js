@@ -234,8 +234,33 @@ try {
 
       // cek apakah dateModified meta tidak sesuai validitas nextUpdate
       if (currentDateModifiedISO !== expectedDateModifiedISO) {
-        metaDateModified.setAttribute("content", expectedDateModified.toISOString());
-        console.log("🕒 [AED] Meta dateModified disesuaikan dengan nextUpdate:", expectedDateModifiedISO);
+          // Update meta utama
+          metaDateModified.setAttribute("content", expectedDateModified.toISOString());
+          console.log("🕒 [AED] Meta dateModified disesuaikan dengan nextUpdate:", expectedDateModifiedISO);
+        
+          // 🔁 Update semua meta duplikat jika ada
+          const allMetaModified = document.querySelectorAll('meta[itemprop="dateModified"]');
+          if (allMetaModified.length > 1) {
+            allMetaModified.forEach(m => {
+              m.setAttribute("content", expectedDateModified.toISOString());
+            });
+            console.log(`⚙️ [AED] ${allMetaModified.length} meta dateModified disinkronkan.`);
+          }
+        
+          // ⏱️ Tambahkan delay update (menghindari overwrite CMS)
+          setTimeout(() => {
+            const m = document.querySelector('meta[itemprop="dateModified"]');
+            if (m) {
+              m.setAttribute("content", expectedDateModified.toISOString());
+              console.log("✅ [AED] Meta dateModified ditulis ulang (delayed sync).");
+            }
+          }, 1500);
+        
+          // 🔍 Debug final untuk memastikan DOM benar-benar berubah
+          setTimeout(() => {
+            const check = document.querySelector('meta[itemprop="dateModified"]');
+            console.log("🔍 Meta dateModified sekarang:", check?.outerHTML || "❌ Tidak ditemukan");
+          }, 2000);
       } else {
         console.log("✅ [AED] dateModified sudah sinkron dengan nextUpdate:", expectedDateModifiedISO);
       }
