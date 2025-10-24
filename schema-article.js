@@ -177,17 +177,32 @@ function detectEvergreen() {
   }
 
   // ---------- Sinkron mundur jika nextUpdate1 tidak ada ----------
+// ---------- Sinkron mundur jika nextUpdate1 tidak ada ----------
 if (!metaNextUpdate1) {
   try {
-    const nextVal = metaNextUpdate?.getAttribute("content");
-    console.log("🕒 [AED] nextVal:", nextVal);
+    // Pastikan metaNextUpdate valid dan ada isinya
+    let nextVal = metaNextUpdate?.getAttribute("content");
+    
+    // 🔁 Fallback ringan: cek ulang hingga 3x dengan jeda 300ms (tanpa async)
+    if (!nextVal) {
+      for (let i = 0; i < 3 && !nextVal; i++) {
+        console.warn(`⏳ [AED] nextUpdate kosong, mencoba ulang ke-${i + 1}...`);
+        await new Promise(res => setTimeout(res, 300));
+        nextVal = metaNextUpdate?.getAttribute("content");
+      }
+    }
+
     if (nextVal) {
       const nextUpdateDate = new Date(nextVal);
+      if (isNaN(nextUpdateDate.getTime())) {
+        console.warn("⚠️ [AED] Nilai nextUpdate tidak valid:", nextVal);
+        return;
+      }
+
       const computedDateModified = new Date(nextUpdateDate.getTime() - validityDays * 86400000);
       const computedISO = computedDateModified.toISOString();
       const currentISO = metaDateModified?.getAttribute("content");
-      console.log("🕒 [AED] currentISO:", currentISO);
-      console.log("🕒 [AED] computedISO:", computedISO);
+
       if (currentISO !== computedISO) {
         if (!metaDateModified) {
           metaDateModified = document.createElement("meta");
@@ -200,6 +215,8 @@ if (!metaNextUpdate1) {
       } else {
         console.log("✅ [AED] dateModified sudah sinkron (mundur).");
       }
+    } else {
+      console.warn("⚠️ [AED] Tidak dapat menemukan nilai nextUpdate untuk sinkron mundur.");
     }
   } catch (e) {
     console.error("❌ [AED] Gagal sinkron mundur dateModified:", e);
