@@ -236,7 +236,7 @@ try {
       if (currentDateModifiedISO !== expectedDateModifiedISO) {
           // Update meta utama
           metaDateModified.setAttribute("content", expectedDateModified.toISOString());
-          console.log("🕒 [AED] Meta dateModified disesuaikan dengan nextUpdate:", expectedDateModifiedISO.toISOString());
+          console.log("🕒 [AED] Meta dateModified disesuaikan dengan nextUpdate:", expectedDateModifiedISO);
         
           // 🔁 Update semua meta duplikat jika ada
           const allMetaModified = document.querySelectorAll('meta[itemprop="dateModified"]');
