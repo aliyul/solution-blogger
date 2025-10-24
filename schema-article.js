@@ -157,8 +157,8 @@ function detectEvergreen() {
   // ---------- Meta ----------
   let metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   let metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
-  let metaNextUpdate = document.querySelector('meta[itemprop="nextUpdate"]');
-  const metaNextUpdate1 = document.querySelector('meta[itemprop="nextUpdate1"]');
+  let metaNextUpdate = document.querySelector('meta[name="nextUpdate"]');
+  const metaNextUpdate1 =  document.querySelector('meta[name="nextUpdate1"]');
 
   let dateModified = metaDateModified?.getAttribute("content");
   const datePublished = metaDatePublished?.getAttribute("content") || nowLocalISO;
