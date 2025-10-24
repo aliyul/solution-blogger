@@ -68,9 +68,8 @@ let dateModified = '';
    Fix: duplicate definitions removed, stable execution
    =========================================================== */
 function detectEvergreen() {
-  console.log("🧩 Running detectEvergreen() v8.6.7 Stable Logic Correction...");
+  console.log("🧩 Running detectEvergreen() v8.6.8 Hybrid Logic + nextUpdate Meta + Blogspot fallback...");
 
-  // ---------- Utilities ----------
   const now = new Date();
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
   const hashString = s => {
@@ -101,30 +100,28 @@ function detectEvergreen() {
     document.querySelector("main") ||
     document.body;
 
-  // ---------- Keyword Pattern ----------
-  const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
-  const semiEvergreenPattern = /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/;
+  const cleanText = el => clean(el?.innerText || "");
+  const contentTextRaw = cleanText(contentEl);
+  const contentText = (h1 + " " + contentTextRaw).toLowerCase();
+
+  // ---------- Patterns ----------
   const evergreenPattern = /\b(panduan|tutorial|tips|cara|definisi|jenis|fungsi|spesifikasi|apa itu|perbedaan|metode|manfaat|keunggulan)\b/;
+  const semiEvergreenPattern = /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/;
+  const nonEvergreenPattern = /\b(update|terbaru|berita|promo|jadwal|event|bulan\s?\d{4}|tahun\s?\d{4}|sementara|musiman|stok|laporan|penawaran|info pasar)\b/;
   const priceTokenPattern = /\b(harga|rp|per\s?(m3|m2|unit|kubik|meter)|biaya|tarif)\b/i;
 
   // ---------- Section Extraction ----------
   const sections = [];
-  const validRoot = contentEl || document.body;
-  const headings = Array.from(validRoot.querySelectorAll("h2,h3"));
-  const contentTextRaw = clean(validRoot.innerText || "");
-  const contentText = (h1 + " " + contentTextRaw).toLowerCase();
-
+  const headings = Array.from(contentEl.querySelectorAll("h2,h3"));
   if (headings.length === 0) {
-    sections.push({ title: h1 || "artikel", content: clean(validRoot.innerText || "") });
+    sections.push({ title: h1 || "artikel", content: contentTextRaw });
   } else {
     for (const head of headings) {
-      const title = clean(head.innerText);
+      const title = cleanText(head);
       let cur = head.nextElementSibling, body = "";
       while (cur && !(cur.matches && cur.matches("h2,h3"))) {
-        if (
-          cur.innerText &&
-          !cur.matches("script,style,nav,footer,header,aside,form,iframe,[role='banner'],[role='complementary']")
-        ) body += "\n" + clean(cur.innerText);
+        if (cur.innerText && !cur.matches("script,style,nav,footer,header,aside,form,iframe,[role='banner'],[role='complementary']")) 
+          body += "\n" + cleanText(cur);
         cur = cur.nextElementSibling;
       }
       if (title && body.trim().length > 30) sections.push({ title, content: body });
@@ -133,7 +130,7 @@ function detectEvergreen() {
 
   // ---------- Section Scoring ----------
   let totalScores = { evergreen: 0, semi: 0, non: 0 };
-  const sectionDetails = sections.map(sec => {
+  sections.forEach(sec => {
     const t = sec.title.toLowerCase(), b = sec.content.toLowerCase();
     let sEver = 0, sSemi = 0, sNon = 0;
     if (evergreenPattern.test(t)) sEver += 2;
@@ -147,124 +144,121 @@ function detectEvergreen() {
     totalScores.evergreen += sEver;
     totalScores.semi += sSemi;
     totalScores.non += sNon;
-
-    const sectionType =
-      sNon > sSemi && sNon > sEver ? "non-evergreen" :
-      sEver > sSemi + 2 && sEver > sNon ? "evergreen" :
-      "semi-evergreen";
-    const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[sectionType];
-    const sectionAdvice =
-      sectionType === "evergreen" ? "Tinjau ulang tiap 9–12 bulan." :
-      sectionType === "semi-evergreen" ? (priceTokenPattern.test(b) ? "Perbarui harga 3–6 bulan." : "Review tiap 4–6 bulan.") :
-      "Konten cepat berubah — update tiap 1–3 bulan.";
-
-    return { section: sec.title, sectionType, validityDays, sectionAdvice };
   });
 
-  // ---------- Global Classification ----------
   const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
   let finalType =
     totalScores.non > totalScores.semi && totalScores.non > totalScores.evergreen ? "non-evergreen" :
     totalScores.evergreen > totalScores.semi + 2 && !hasTimePattern ? "evergreen" :
     "semi-evergreen";
-  if (/\bharga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan\b/i.test(h1 + contentText))
-    if (finalType === "non-evergreen") finalType = "semi-evergreen";
+  if (/\bharga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan\b/i.test(h1 + contentText) && finalType === "non-evergreen") 
+    finalType = "semi-evergreen";
 
   const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
 
-  // ---------- Meta Dates ----------
+  // ---------- Meta ----------
   const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
-  let dateModified = metaDateModified?.getAttribute("content") || nowLocalISO;
+  const blogNextUpdateMeta = document.querySelector('meta[itemprop="blogNextUpdate"]'); // fallback Blogspot custom field
+  let dateModified = metaDateModified?.getAttribute("content");
   const datePublished = metaDatePublished?.getAttribute("content") || nowLocalISO;
+  const blogNextUpdate = blogNextUpdateMeta?.getAttribute("content");
+  const metaNextUpdate = document.querySelector('meta[itemprop="nextUpdate"]');
 
-  // ---------- Hash + Update ----------
-  const contentForHash = (h1 + sections.map(s => s.content).join(" ")).slice(0, 30000);
-  const currentHash = hashString(contentForHash);
+  // ---------- Keys ----------
   const keyPrefix = "aed_";
-  const key = keyPrefix + "nextupdate_" + location.pathname;
-  const hashKey = keyPrefix + "hash_" + location.pathname;
-
-  const prevHash = localStorage.getItem(hashKey);
-  const storedNextUpdateStr = localStorage.getItem(key);
+  const pathKey = location.pathname;
+  const keyNextUpdate = keyPrefix + "nextupdate_" + pathKey;
+  const keyHash = keyPrefix + "hash_" + pathKey;
+  const prevHash = localStorage.getItem(keyHash);
+  const storedNextUpdateStr = localStorage.getItem(keyNextUpdate);
   const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
 
-  const idealNextUpdate = new Date(new Date(dateModified).getTime() + validityDays * 86400000);
-  let nextUpdate = storedNextUpdate || idealNextUpdate;
-
+  // ---------- Hash Current ----------
+  const contentForHash = (h1 + sections.map(s => s.content).join(" ")).slice(0, 30000);
+  const currentHash = hashString(contentForHash);
   const contentChanged = prevHash && prevHash !== currentHash;
-  const timeAllowed = now >= nextUpdate;
 
-  // === Kondisi update ===
+  // ---------- Logic NextUpdate + Fallback ----------
+  let nextUpdate = blogNextUpdate 
+                   ? new Date(blogNextUpdate) 
+                   : storedNextUpdate 
+                     ? storedNextUpdate 
+                     : (metaNextUpdate?.getAttribute("content") 
+                        ? new Date(metaNextUpdate.getAttribute("content")) 
+                        : (dateModified ? new Date(new Date(dateModified).getTime() + validityDays*86400000) : null));
+
+  const timeAllowed = nextUpdate ? now >= nextUpdate : false;
+
   if (timeAllowed && contentChanged) {
+    // Kondisi update terpenuhi
     console.log("🔁 [AED] Update dipicu — konten berubah & waktunya.");
-
-    localStorage.setItem(hashKey, currentHash);
-    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
-    localStorage.setItem(key, nextUpdate.toISOString());
-
+    localStorage.setItem(keyHash, currentHash);
     dateModified = nowLocalISO;
+    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+    localStorage.setItem(keyNextUpdate, nextUpdate.toISOString());
+  } else if (nextUpdate) {
+    // Kondisi tidak terpenuhi → nextUpdate tetap permanen
+    const baseDate = new Date(nextUpdate.getTime() - validityDays*86400000);
+    dateModified = formatLocalISO(baseDate);
+    console.log("🕒 [AED] nextUpdate permanen, dateModified disesuaikan:", dateModified);
   } else {
-    console.log("✅ [AED] Belum waktunya update — sesuaikan meta dateModified.");
+    console.log("⚠️ [AED] nextUpdate & meta tidak tersedia, tidak diset dulu.");
+  }
 
-    if (storedNextUpdateStr) {
-      // Gunakan storedNextUpdateStr dan validityDays untuk menghitung dateModified
-      const syncBase = new Date(storedNextUpdate.getTime() - validityDays * 86400000);
-      dateModified = formatLocalISO(syncBase);
-      console.log("🕒 [AED] Sinkron dateModified sesuai storedNextUpdate:", storedNextUpdateStr);
-    } else {
-      // Jika belum ada storedNextUpdate, buat baru berdasarkan meta dateModified
-      nextUpdate = new Date(new Date(dateModified).getTime() + validityDays * 86400000);
-      localStorage.setItem(key, nextUpdate.toISOString());
-      console.log("🆕 [AED] storedNextUpdate baru dibuat dari meta dateModified:", nextUpdate.toISOString());
+  // ---------- Update meta ----------
+  if (dateModified) {
+    if (metaDateModified) metaDateModified.setAttribute("content", dateModified);
+    else {
+      const m = document.createElement("meta");
+      m.setAttribute("itemprop","dateModified");
+      m.setAttribute("content",dateModified);
+      document.head.appendChild(m);
     }
   }
 
-  // Update meta tag
-  if (metaDateModified) metaDateModified.setAttribute("content", dateModified);
-  else {
-    const m = document.createElement("meta");
-    m.setAttribute("itemprop", "dateModified");
-    m.setAttribute("content", dateModified);
-    document.head.appendChild(m);
+  if (nextUpdate) {
+    if (metaNextUpdate) metaNextUpdate.setAttribute("content", nextUpdate.toISOString());
+    else {
+      const m = document.createElement("meta");
+      m.setAttribute("itemprop","nextUpdate");
+      m.setAttribute("content",nextUpdate.toISOString());
+      document.head.appendChild(m);
+    }
+    localStorage.setItem(keyNextUpdate, nextUpdate.toISOString());
   }
-
-  console.log("🧭 [AED] Selesai — nextUpdate:", nextUpdate.toISOString(), "| dateModified:", dateModified);
 
   // ---------- JSON-LD Sync ----------
-  try {
+  if (nextUpdate) {
     const until = nextUpdate.toISOString().split("T")[0];
-    const visited = new WeakSet();
-
-    document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
-      const text = script.textContent.trim();
-      if (!text || text.length < 10) return;
-      const parsed = JSON.parse(text);
-      const apply = obj => {
-        if (!obj || typeof obj !== "object" || visited.has(obj)) return;
-        visited.add(obj);
-        if (["Product", "Service", "Article", "BlogPosting"].includes(obj["@type"])) {
-          obj.dateModified = dateModified;
-          obj.datePublished = datePublished;
-          if (obj.offers) {
-            if (Array.isArray(obj.offers)) obj.offers.forEach(o => (o.priceValidUntil = until));
-            else if (typeof obj.offers === "object") obj.offers.priceValidUntil = until;
+    try {
+      const visited = new WeakSet();
+      document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+        const text = script.textContent.trim();
+        if (!text || text.length<10) return;
+        const parsed = JSON.parse(text);
+        const apply = obj => {
+          if(!obj || typeof obj !== "object" || visited.has(obj)) return;
+          visited.add(obj);
+          if (["Product","Service","Article","BlogPosting"].includes(obj["@type"])) {
+            obj.dateModified = dateModified;
+            obj.datePublished = datePublished;
+            if(obj.offers){
+              if(Array.isArray(obj.offers)) obj.offers.forEach(o=>o.priceValidUntil=until);
+              else obj.offers.priceValidUntil = until;
+            }
           }
-        }
-        for (const k in obj) apply(obj[k]);
-      };
-      if (Array.isArray(parsed)) parsed.forEach(apply);
-      else apply(parsed);
-      script.textContent = JSON.stringify(parsed, null, 2);
-    });
-    console.log("✅ JSON-LD Sync selesai — priceValidUntil:", until);
-  } catch (e) {
-    console.error("❌ JSON-LD Sync Error:", e);
+          for(const k in obj) apply(obj[k]);
+        };
+        if(Array.isArray(parsed)) parsed.forEach(apply); else apply(parsed);
+        script.textContent = JSON.stringify(parsed,null,2);
+      });
+      console.log("✅ JSON-LD Sync selesai — priceValidUntil:", until);
+    } catch(e){console.error("❌ JSON-LD Sync Error:",e);}
   }
 
-  // ---------- Hasil ---------- 
-  window.EvergreenDetectorResults = { resultType: finalType, validityDays, sections: sectionDetails, advice: finalType === "evergreen" ? "Konten evergreen — review tiap 9–12 bulan." : finalType === "semi-evergreen" ? "Konten semi-evergreen — review 3–6 bulan sekali." : "Konten cepat berubah — update tiap 1–3 bulan.", dateModified, datePublished, nextUpdate }; 
- 
+  // ---------- Results ----------
+  window.EvergreenDetectorResults = { resultType: finalType, validityDays, dateModified, datePublished, nextUpdate }; 
   window.AEDMetaDates = { dateModified, datePublished, nextUpdate: nextUpdate.toISOString().split("T")[0], type: finalType }; 
   
 console.log(`✅ [AED v8.6.5F] ${finalType.toUpperCase()} detected — ${validityDays} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`);
