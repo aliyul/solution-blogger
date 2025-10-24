@@ -697,105 +697,83 @@ showEvergreenDashboard();
   
   
 function updateArticleDates() {
-  // 🧹 --- Bersihkan variable global lama ---
- /* if (window.AEDMetaDates) {
-    console.log("🧹 Membersihkan AEDMetaDates lama:", window.AEDMetaDates);
-    delete window.AEDMetaDates;
-  }*/
-
   // 🧹 --- Hapus elemen label & tanggal lama ---
-  const oldLabel = document.getElementById("evergreen-label");
-  if (oldLabel) oldLabel.remove();
-
+  document.getElementById("evergreen-label")?.remove();
   document.querySelectorAll(".aed-date-span, .aed-non-evergreen-date").forEach(el => el.remove());
 
-  // --- Ambil data meta baru ---
-  const d = window.AEDMetaDates || {};
-  const { type, datePublished, dateModified, nextUpdate } = d;
+  // 🧩 --- Ambil data meta langsung dari DOM ---
+  const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
+  const metaNextUpdate = document.querySelector('meta[itemprop="nextUpdate"]');
+  const metaType = document.querySelector('meta[itemprop="evergreenType"]'); // optional
 
-  if (!type || !dateModified || !nextUpdate) {
-    console.warn("⚠️ AEDMetaDates belum lengkap:", d);
+  if (!metaDateModified || !metaNextUpdate) {
+    console.warn("⚠️ Meta dateModified atau nextUpdate tidak ditemukan");
     return;
   }
 
-  console.log("🧩 updateArticleDates() loaded:", d);
+  let dateModifiedStr = metaDateModified.getAttribute("content");
+  let nextUpdateStr = metaNextUpdate.getAttribute("content");
+  let type = metaType ? metaType.getAttribute("content") : "semi-evergreen";
 
-  // === Cari elemen H1 ===
-  const elH1 =
-    document.querySelector("h1") ||
-    document.querySelector(".post-title") ||
-    document.querySelector(".page-title");
-
-  if (!elH1) {
-    console.warn("⚠️ Tidak menemukan elemen judul (H1/post-title/page-title)");
-    return;
+  // 💡 Jika window.AEDMetaDates sudah ada, prioritaskan nilai terbarunya
+  if (window.AEDMetaDates) {
+    const d = window.AEDMetaDates;
+    if (d.dateModified) dateModifiedStr = d.dateModified;
+    if (d.nextUpdate) nextUpdateStr = d.nextUpdate;
+    if (d.type) type = d.type;
   }
 
-  // === Label status evergreen ===
-  let lb = document.createElement("div");
-  lb.id = "evergreen-label";
-  lb.style.cssText = "font-size:.9em;margin-bottom:8px;color:#333;";
-  lb.setAttribute("data-nosnippet", "true");
+  // 🔄 Simpan ulang ke global
+  window.AEDMetaDates = { dateModified: dateModifiedStr, nextUpdate: nextUpdateStr, type };
 
-  // Konversi nextUpdate ke tanggal normal WIB tanpa jam
+  console.log("🧩 updateArticleDates() loaded:", window.AEDMetaDates);
+
+  // === Format tanggal ===
   function formatTanggalNormal(dateString) {
     try {
       const date = new Date(dateString);
       const options = { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Jakarta" };
       return date.toLocaleDateString("id-ID", options);
     } catch (e) {
-      console.warn("formatTanggalNormal() error:", e);
       return dateString;
     }
   }
 
-  const nextUpdateStr = formatTanggalNormal(nextUpdate);
+  const nextUpdateHuman = formatTanggalNormal(nextUpdateStr);
+  const dateModifiedHuman = formatTanggalNormal(dateModifiedStr);
 
-  // === Tentukan label sesuai status ===
-  let labelText = "";
+  // === Cari elemen H1 ===
+  const elH1 = document.querySelector("h1, .post-title, .page-title");
+  if (!elH1) return console.warn("⚠️ Tidak menemukan H1");
+
+  // === Label status ===
+  const lb = document.createElement("div");
+  lb.id = "evergreen-label";
+  lb.style.cssText = "font-size:.9em;margin-bottom:8px;color:#333;";
+  lb.setAttribute("data-nosnippet", "true");
+
   if (type === "evergreen") {
-    labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+    lb.innerHTML = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextUpdateHuman}</b>`;
     document.body.setAttribute("data-force", "evergreen");
   } else if (type === "semi-evergreen") {
-    labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextUpdateStr}</b>`;
+    lb.innerHTML = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextUpdateHuman}</b>`;
     document.body.setAttribute("data-force", "semi-evergreen");
   } else {
-    labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextUpdateStr}</b>`;
+    lb.innerHTML = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextUpdateHuman}</b>`;
     document.body.setAttribute("data-force", "non-evergreen");
   }
 
-  lb.innerHTML = labelText;
   elH1.insertAdjacentElement("afterend", lb);
 
-  // === Tanggal di area penulis ===
-  const dateModifiedStr = formatTanggalNormal(dateModified);
+  // === Tampilkan tanggal di bawah author ===
   const authorEl = document.querySelector(".post-author .fn");
-  if (authorEl) {
-    if (type === "semi-evergreen") {
-      const dateEl = document.createElement("span");
-      dateEl.className = "aed-date-span";
-      dateEl.textContent = ` · Diperbarui: ${dateModifiedStr}`;
-      dateEl.style.fontSize = "0.85em";
-      dateEl.style.color = "#555";
-      dateEl.style.marginLeft = "4px";
-      authorEl.appendChild(dateEl);
-    } else if (type === "non-evergreen") {
-      const dateEl = document.createElement("div");
-      dateEl.textContent = `Diperbarui: ${dateModifiedStr}`;
-      dateEl.style.fontSize = "0.85em";
-      dateEl.style.color = "#555";
-      dateEl.style.marginBottom = "4px";
-      dateEl.setAttribute("data-nosnippet", "true");
-      const existing = document.querySelector(".aed-non-evergreen-date");
-      if (!existing && elH1?.parentNode) {
-        dateEl.className = "aed-non-evergreen-date";
-        elH1.parentNode.insertBefore(dateEl, elH1);
-      }
-    }
-    if (type === "evergreen") {
-      const metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
-      metaBlocks.forEach(el => (el.style.display = "none"));
-    }
+  if (authorEl && type !== "evergreen") {
+    const dateEl = document.createElement("span");
+    dateEl.className = "aed-date-span";
+    dateEl.textContent = ` · Diperbarui: ${dateModifiedHuman}`;
+    dateEl.style.fontSize = "0.85em";
+    dateEl.style.color = "#555";
+    authorEl.appendChild(dateEl);
   }
 
   console.log("✅ [AED] updateArticleDates() selesai dijalankan");
