@@ -258,7 +258,7 @@ function detectEvergreen() {
   }
 
   // ---------- Results ----------
-  window.EvergreenDetectorResults = { resultType: finalType, validityDays, dateModified, datePublished, nextUpdate }; 
+  window.EvergreenDetectorResults = { resultType: finalType, validityDays, dateModified, datePublished, nextUpdate,   sections // <-- tambahkan ini }; 
   window.AEDMetaDates = { dateModified, datePublished, nextUpdate: nextUpdate.toISOString().split("T")[0], type: finalType }; 
   
 console.log(`✅ [AED v8.6.5F] ${finalType.toUpperCase()} detected — ${validityDays} days validity | Next update: ${nextUpdate.toISOString().split("T")[0]}`);
