@@ -210,16 +210,20 @@ console.log("🕒 [AED] metaNextUpdate:", metaNextUpdate);
 
 const timeAllowed = nextUpdate ? now >= nextUpdate : false;
 
+// ---------- 🔒 Proteksi agar dateModified lama tidak tertimpa tanpa alasan ----------
+const originalDateModified = dateModified;
+
 // ---------- Sync dateModified dengan nextUpdate ----------
 if (nextUpdate) {
   const baseDate = new Date(nextUpdate.getTime() - validityDays * 86400000);
   const computedDateModified = formatLocalISO(baseDate);
 
-  if (dateModified !== computedDateModified) {
+  // Hanya sesuaikan jika valid dan ada dasar waktu (bukan auto-override)
+  if (dateModified && dateModified !== computedDateModified && (contentChanged || timeAllowed)) {
     dateModified = computedDateModified;
     console.log("🕒 [AED] dateModified disesuaikan dengan nextUpdate:", dateModified);
   } else {
-    console.log("🕒 [AED] dateModified sama dengan meta, tidak diubah:", dateModified);
+    console.log("🕒 [AED] dateModified tetap dipertahankan:", dateModified);
   }
 }
 
@@ -229,6 +233,10 @@ if (timeAllowed && contentChanged) {
   localStorage.setItem(keyHash, currentHash); // tetap simpan hash agar tahu kapan konten berubah
   dateModified = nowLocalISO;
   nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+} else if (!contentChanged && !timeAllowed) {
+  // ❗ Tidak memenuhi kondisi update — kembalikan meta lama jika sempat diubah
+  dateModified = originalDateModified;
+  console.log("🔒 [AED] Tidak ada update, meta lama dipertahankan:", dateModified);
 }
 
 // ---------- Update meta ----------
