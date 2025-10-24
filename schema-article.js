@@ -187,9 +187,11 @@ function detectEvergreen() {
                      : (metaNextUpdate?.getAttribute("content") 
                         ? new Date(metaNextUpdate.getAttribute("content")) 
                         : (dateModified ? new Date(new Date(dateModified).getTime() + validityDays*86400000) : null));
-
+console.log("🕒 [AED] nextUpdate:", nextUpdate);
+   console.log("🕒 [AED] metaNextUpdate:", metaNextUpdate);
   const timeAllowed = nextUpdate ? now >= nextUpdate : false;
-
+  
+  
   if (timeAllowed && contentChanged) {
     // Kondisi update terpenuhi
     console.log("🔁 [AED] Update dipicu — konten berubah & waktunya.");
