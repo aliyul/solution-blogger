@@ -359,6 +359,7 @@ window.AEDMetaDates = {
 };
 
 console.log("✅ [AED] Hasil evergreen detector direset dan diperbarui:");
+console.log("• dateModified:", dateModified);
 console.log("• resultType:", finalType);
 console.log("• validityDays:", validityDays);
 console.log("• nextUpdate:", nextUpdate ? nextUpdate.toISOString().split("T")[0] : "null");
@@ -685,7 +686,7 @@ function showEvergreenDashboard() {
     if (window.EvergreenDetectorResults) {
       renderDashboard(window.EvergreenDetectorResults);
     } else {
-      setTimeout(waitForResults, 300);
+      setTimeout(waitForResults, 500);
     }
   };
 
