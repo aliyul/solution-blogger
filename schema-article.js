@@ -679,7 +679,7 @@ function updateArticleDates() {
 
   // 🧩 --- Ambil data meta langsung dari DOM ---
   const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
-  const metaNextUpdate = document.querySelector('meta[itemprop="nextUpdate"]');
+  const metaNextUpdate = document.querySelector('meta[name="nextUpdate"]');
   const metaType = document.querySelector('meta[itemprop="evergreenType"]'); // optional
 
   if (!metaDateModified || !metaNextUpdate) {
