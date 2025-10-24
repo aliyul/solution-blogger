@@ -161,6 +161,7 @@ function detectEvergreen() {
 const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
 const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
 const blogNextUpdateMeta = document.querySelector('meta[itemprop="blogNextUpdate"]'); // fallback Blogspot custom field
+const metaNextUpdate1 = document.querySelector('meta[itemprop="nextUpdate1"]'); // ✅ Tambahan: nextUpdate1
 let dateModified = metaDateModified?.getAttribute("content");
 const datePublished = metaDatePublished?.getAttribute("content") || nowLocalISO;
 const blogNextUpdate = blogNextUpdateMeta?.getAttribute("content");
@@ -174,6 +175,21 @@ const keyHash = keyPrefix + "hash_" + pathKey;
 const prevHash = localStorage.getItem(keyHash);
 const storedNextUpdateStr = localStorage.getItem(keyNextUpdate);
 const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
+
+// ---------- Cek dan Update Meta jika ada nextUpdate1 ----------
+if (metaNextUpdate1 && metaNextUpdate1.getAttribute("content")) {
+  const nextUpdate1Val = metaNextUpdate1.getAttribute("content");
+  if (metaNextUpdate) {
+    metaNextUpdate.setAttribute("content", nextUpdate1Val);
+    console.log("✅ [AED] meta.nextUpdate di-update dari nextUpdate1:", nextUpdate1Val);
+  } else {
+    const m = document.createElement("meta");
+    m.setAttribute("itemprop", "nextUpdate");
+    m.setAttribute("content", nextUpdate1Val);
+    document.head.appendChild(m);
+    console.log("✅ [AED] meta.nextUpdate dibuat dari nextUpdate1:", nextUpdate1Val);
+  }
+}
 
 // ---------- Hash Current ----------
 const contentForHash = (h1 + sections.map(s => s.content).join(" ")).slice(0, 30000);
