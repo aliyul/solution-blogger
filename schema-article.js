@@ -68,7 +68,7 @@ let dateModified = '';
    Fix: duplicate definitions removed, stable execution
    =========================================================== */
 function detectEvergreen() {
-  console.log("🧩 Running detectEvergreen() v8.6.8 Hybrid Logic + nextUpdate Meta + Blogspot fallback...");
+  console.log("🧩 Running detectEvergreen() v8.6.9 Stable — Hybrid Logic + Meta Sync + Blogspot Safe...");
 
   const now = new Date();
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
@@ -99,7 +99,6 @@ function detectEvergreen() {
     document.querySelector("article") ||
     document.querySelector("main") ||
     document.body;
-
   const cleanText = el => clean(el?.innerText || "");
   const contentTextRaw = cleanText(contentEl);
   const contentText = (h1 + " " + contentTextRaw).toLowerCase();
@@ -140,7 +139,6 @@ function detectEvergreen() {
     sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
     sNon += (b.match(nonEvergreenPattern) || []).length * 1.0;
     if (priceTokenPattern.test(t + " " + b)) sSemi += 1.5;
-
     totalScores.evergreen += sEver;
     totalScores.semi += sSemi;
     totalScores.non += sNon;
@@ -157,155 +155,83 @@ function detectEvergreen() {
   const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
 
   // ---------- Meta ----------
-// ---------- Ambil Meta ----------
-const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
-const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
-const metaNextUpdate1 = document.querySelector('meta[itemprop="nextUpdate1"]'); // ✅ Manual override (CMS)
-const metaNextUpdate = document.querySelector('meta[itemprop="nextUpdate"]');
+  let metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
+  let metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
+  let metaNextUpdate = document.querySelector('meta[itemprop="nextUpdate"]');
+  const metaNextUpdate1 = document.querySelector('meta[itemprop="nextUpdate1"]');
 
-let dateModified = metaDateModified?.getAttribute("content");
-const datePublished = metaDatePublished?.getAttribute("content") || nowLocalISO;
+  let dateModified = metaDateModified?.getAttribute("content");
+  const datePublished = metaDatePublished?.getAttribute("content") || nowLocalISO;
 
-// ---------- Hash Konten ----------
-const keyHash = "aed_hash_" + location.pathname;
-const prevHash = localStorage.getItem(keyHash);
-const contentForHash = (h1 + sections.map(s => s.content).join(" ")).slice(0, 30000);
-const currentHash = hashString(contentForHash);
-const contentChanged = prevHash && prevHash !== currentHash;
-
-// ---------- Cek dan Update Meta jika ada nextUpdate1 ----------
-if (metaNextUpdate1 && metaNextUpdate1.getAttribute("content")) {
-  const nextUpdate1Val = metaNextUpdate1.getAttribute("content");
-  if (metaNextUpdate) {
-    metaNextUpdate.setAttribute("content", nextUpdate1Val);
-    console.log("✅ [AED] meta.nextUpdate di-update dari nextUpdate1:", nextUpdate1Val);
-  } else {
-    const m = document.createElement("meta");
-    m.setAttribute("itemprop", "nextUpdate");
-    m.setAttribute("content", nextUpdate1Val);
-    document.head.appendChild(m);
-    console.log("✅ [AED] meta.nextUpdate dibuat dari nextUpdate1:", nextUpdate1Val);
-  }
-}
-
-// ---------- Logic NextUpdate + Fallback ----------
-let nextUpdate = metaNextUpdate?.getAttribute("content")
-  ? new Date(metaNextUpdate.getAttribute("content"))
-  : (dateModified
-      ? new Date(new Date(dateModified).getTime() + validityDays * 86400000)
-      : null);
-
-// 🧩 Jika keduanya tidak ada (metaNextUpdate & dateModified null), buat otomatis dari nowLocalISO
-if (!metaNextUpdate && !dateModified) {
-  dateModified = nowLocalISO;
-  nextUpdate = new Date(now.getTime() + validityDays * 86400000);
-  console.log("🆕 [AED] Membuat meta dateModified & nextUpdate baru:", {
-    dateModified,
-    nextUpdate: nextUpdate.toISOString()
-  });
-}
-
-console.log("🕒 [AED] nextUpdate:", nextUpdate);
-console.log("🕒 [AED] metaNextUpdate:", metaNextUpdate);
-
-const timeAllowed = nextUpdate ? now >= nextUpdate : false;
-
-// ---------- 🔒 Proteksi agar dateModified lama tidak tertimpa tanpa alasan ----------
-const originalDateModified = dateModified;
-
-// ---------- Sync dateModified dengan nextUpdate ----------
-// === Sinkronisasi dateModified <-> nextUpdate ===
-try {
-  const metaNextUpdate = document.querySelector('meta[itemprop="nextUpdate"]');
-  const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
-  const validityDays = typeof validityDaysFinal !== "undefined" ? validityDaysFinal : 180; // default
-
-  if (metaNextUpdate && metaDateModified) {
-    const nextUpdateValue = metaNextUpdate.getAttribute("content");
-    const dateModifiedValue = metaDateModified.getAttribute("content");
-
-    if (nextUpdateValue) {
-      const nextUpdate = new Date(nextUpdateValue);
-      const expectedDateModified = new Date(nextUpdate.getTime() - validityDays * 86400000);
-      const expectedDateModifiedISO = expectedDateModified.toISOString().split("T")[0];
-
-      // ambil dateModified sekarang (YYYY-MM-DD)
-      const currentDateModifiedISO = (dateModifiedValue || "").split("T")[0];
-
-      // cek apakah dateModified meta tidak sesuai validitas nextUpdate
-      if (currentDateModifiedISO !== expectedDateModifiedISO) {
-          // Update meta utama
-          metaDateModified.setAttribute("content", expectedDateModified.toISOString());
-          console.log("🕒 [AED] Meta dateModified disesuaikan dengan nextUpdate:", expectedDateModifiedISO);
-        
-          // 🔁 Update semua meta duplikat jika ada
-          const allMetaModified = document.querySelectorAll('meta[itemprop="dateModified"]');
-          if (allMetaModified.length > 1) {
-            allMetaModified.forEach(m => {
-              m.setAttribute("content", expectedDateModified.toISOString());
-            });
-            console.log(`⚙️ [AED] ${allMetaModified.length} meta dateModified disinkronkan.`);
-          }
-        
-          // ⏱️ Tambahkan delay update (menghindari overwrite CMS)
-          setTimeout(() => {
-            const m = document.querySelector('meta[itemprop="dateModified"]');
-            if (m) {
-              m.setAttribute("content", expectedDateModified.toISOString());
-              console.log("✅ [AED] Meta dateModified ditulis ulang (delayed sync).");
-            }
-          }, 1000);
-        
-          // 🔍 Debug final untuk memastikan DOM benar-benar berubah
-          setTimeout(() => {
-            const check = document.querySelector('meta[itemprop="dateModified"]');
-            console.log("🔍 Meta dateModified sekarang:", check?.outerHTML || "❌ Tidak ditemukan");
-          }, 1500);
-      } else {
-        console.log("✅ [AED] dateModified sudah sinkron dengan nextUpdate:", expectedDateModifiedISO);
-      }
-    } else {
-      console.warn("⚠️ [AED] nextUpdate belum di-set, sinkronisasi dilewati.");
+  // ---------- Cek Override nextUpdate1 ----------
+  if (metaNextUpdate1 && metaNextUpdate1.getAttribute("content")) {
+    const nextUpdate1Val = metaNextUpdate1.getAttribute("content");
+    if (metaNextUpdate) metaNextUpdate.setAttribute("content", nextUpdate1Val);
+    else {
+      metaNextUpdate = document.createElement("meta");
+      metaNextUpdate.setAttribute("itemprop", "nextUpdate");
+      metaNextUpdate.setAttribute("content", nextUpdate1Val);
+      document.head.appendChild(metaNextUpdate);
     }
-  } else {
-    console.warn("⚠️ [AED] Meta tag dateModified atau nextUpdate tidak ditemukan.");
+    console.log("✅ [AED] nextUpdate diambil dari nextUpdate1:", nextUpdate1Val);
   }
-} catch (err) {
-  console.error("❌ [AED] Gagal sinkronisasi dateModified dengan nextUpdate:", err);
-}
 
-// ---------- Update jika konten berubah & waktunya terpenuhi ----------
-if (timeAllowed && contentChanged) {
-  console.log("🔁 [AED] Update dipicu — konten berubah & waktunya.");
-  localStorage.setItem(keyHash, currentHash); // tetap simpan hash agar tahu kapan konten berubah
-  dateModified = nowLocalISO;
-  nextUpdate = new Date(now.getTime() + validityDays * 86400000);
-} else if (!contentChanged && !timeAllowed) {
-  // ❗ Tidak memenuhi kondisi update — kembalikan meta lama jika sempat diubah
-  dateModified = originalDateModified;
-  console.log("🔒 [AED] Tidak ada update, meta lama dipertahankan:", dateModified);
-}
+  // ---------- Buat nextUpdate jika kosong ----------
+  let nextUpdate = metaNextUpdate?.getAttribute("content")
+    ? new Date(metaNextUpdate.getAttribute("content"))
+    : (dateModified
+        ? new Date(new Date(dateModified).getTime() + validityDays * 86400000)
+        : null);
 
-// ---------- Update meta ----------
-if (dateModified) {
-  if (metaDateModified) metaDateModified.setAttribute("content", dateModified);
-  else {
-    const m = document.createElement("meta");
-    m.setAttribute("itemprop", "dateModified");
-    m.setAttribute("content", dateModified);
-    document.head.appendChild(m);
+  if (!metaNextUpdate && !dateModified) {
+    dateModified = nowLocalISO;
+    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+    console.log("🆕 [AED] Membuat meta dateModified & nextUpdate baru:", dateModified);
   }
-}
 
-if (nextUpdate) {
-  if (metaNextUpdate) metaNextUpdate.setAttribute("content", nextUpdate.toISOString());
-  else {
-    const m = document.createElement("meta");
-    m.setAttribute("itemprop", "nextUpdate");
-    m.setAttribute("content", nextUpdate.toISOString());
-    document.head.appendChild(m);
+  const timeAllowed = nextUpdate ? now >= nextUpdate : false;
+  const keyHash = "aed_hash_" + location.pathname;
+  const prevHash = localStorage.getItem(keyHash);
+  const currentHash = hashString((h1 + sections.map(s => s.content).join(" ")).slice(0, 30000));
+  const contentChanged = prevHash && prevHash !== currentHash;
+
+  // ---------- 🔁 Sinkronisasi dateModified dengan nextUpdate ----------
+  try {
+    if (metaNextUpdate && metaDateModified) {
+      const nextUpdateValue = metaNextUpdate.getAttribute("content");
+      if (nextUpdateValue) {
+        const nextUpdateDate = new Date(nextUpdateValue);
+        const expectedDateModified = new Date(nextUpdateDate.getTime() - validityDays * 86400000);
+        const expectedISO = expectedDateModified.toISOString().split("T")[0];
+        const currentISO = (dateModified || "").split("T")[0];
+
+        if (currentISO !== expectedISO) {
+          metaDateModified.setAttribute("content", expectedDateModified.toISOString());
+          dateModified = expectedDateModified.toISOString(); // ✅ update global
+          console.log("🕒 [AED] Meta dateModified disesuaikan:", expectedISO);
+        } else {
+          console.log("✅ [AED] dateModified sudah sinkron:", expectedISO);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("❌ [AED] Sinkronisasi gagal:", err);
   }
-}
+
+  // ---------- Update jika konten berubah ----------
+  if (timeAllowed && contentChanged) {
+    console.log("🔁 [AED] Konten berubah, update meta.");
+    localStorage.setItem(keyHash, currentHash);
+    dateModified = nowLocalISO;
+    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+    if (metaDateModified) metaDateModified.setAttribute("content", dateModified);
+    if (metaNextUpdate) metaNextUpdate.setAttribute("content", nextUpdate.toISOString());
+  }
+
+  // ---------- Pastikan meta benar di DOM ----------
+  if (metaDateModified) {
+    dateModified = metaDateModified.getAttribute("content");
+  }
 
   // ---------- JSON-LD Sync ----------
   if (nextUpdate) {
@@ -314,57 +240,53 @@ if (nextUpdate) {
       const visited = new WeakSet();
       document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
         const text = script.textContent.trim();
-        if (!text || text.length<10) return;
+        if (!text) return;
         const parsed = JSON.parse(text);
         const apply = obj => {
-          if(!obj || typeof obj !== "object" || visited.has(obj)) return;
+          if (!obj || typeof obj !== "object" || visited.has(obj)) return;
           visited.add(obj);
           if (["Product","Service","Article","BlogPosting"].includes(obj["@type"])) {
             obj.dateModified = dateModified;
             obj.datePublished = datePublished;
-            if(obj.offers){
-              if(Array.isArray(obj.offers)) obj.offers.forEach(o=>o.priceValidUntil=until);
+            if (obj.offers) {
+              if (Array.isArray(obj.offers)) obj.offers.forEach(o => o.priceValidUntil = until);
               else obj.offers.priceValidUntil = until;
             }
           }
-          for(const k in obj) apply(obj[k]);
+          for (const k in obj) apply(obj[k]);
         };
-        if(Array.isArray(parsed)) parsed.forEach(apply); else apply(parsed);
-        script.textContent = JSON.stringify(parsed,null,2);
+        Array.isArray(parsed) ? parsed.forEach(apply) : apply(parsed);
+        script.textContent = JSON.stringify(parsed, null, 2);
       });
-      console.log("✅ JSON-LD Sync selesai — priceValidUntil:", until);
-    } catch(e){console.error("❌ JSON-LD Sync Error:",e);}
+      console.log("✅ JSON-LD Sync — priceValidUntil:", until);
+    } catch (e) { console.error("❌ JSON-LD Sync Error:", e); }
   }
 
-  // ---------- Results ----------
-// ---------- Bersihkan hasil lama ----------
-delete window.EvergreenDetectorResults;
-delete window.AEDMetaDates;
+  // ---------- Reset hasil lama ----------
+  delete window.EvergreenDetectorResults;
+  delete window.AEDMetaDates;
 
-// ---------- Hasil Akhir Baru ----------
-window.EvergreenDetectorResults = {
-  resultType: finalType,
-  validityDays,
-  dateModified,
-  datePublished,
-  nextUpdate,
-  sections
-};
+  // ---------- Simpan hasil baru ----------
+  window.EvergreenDetectorResults = {
+    resultType: finalType,
+    validityDays,
+    dateModified,
+    datePublished,
+    nextUpdate,
+    sections
+  };
 
-window.AEDMetaDates = {
-  dateModified,
-  datePublished,
-  nextUpdate: nextUpdate ? nextUpdate.toISOString().split("T")[0] : null,
-  type: finalType
-};
+  window.AEDMetaDates = {
+    dateModified,
+    datePublished,
+    nextUpdate: nextUpdate ? nextUpdate.toISOString().split("T")[0] : null,
+    type: finalType
+  };
 
-console.log("✅ [AED] Hasil evergreen detector direset dan diperbarui:");
-console.log("• dateModified:", dateModified);
-console.log("• resultType:", finalType);
-console.log("• validityDays:", validityDays);
-console.log("• nextUpdate:", nextUpdate ? nextUpdate.toISOString().split("T")[0] : "null");
-
+  console.log("✅ [AED] Hasil akhir disimpan:");
+  console.log(window.AEDMetaDates);
 }
+
 detectEvergreen();
 
 // ================== DETEKSI TYPE KONTEN ==================
