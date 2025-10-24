@@ -697,6 +697,19 @@ showEvergreenDashboard();
   
   
 function updateArticleDates() {
+  // 🧹 --- Bersihkan variable global lama ---
+  if (window.AEDMetaDates) {
+    console.log("🧹 Membersihkan AEDMetaDates lama:", window.AEDMetaDates);
+    delete window.AEDMetaDates;
+  }
+
+  // 🧹 --- Hapus elemen label & tanggal lama ---
+  const oldLabel = document.getElementById("evergreen-label");
+  if (oldLabel) oldLabel.remove();
+
+  document.querySelectorAll(".aed-date-span, .aed-non-evergreen-date").forEach(el => el.remove());
+
+  // --- Ambil data meta baru ---
   const d = window.AEDMetaDates || {};
   const { type, datePublished, dateModified, nextUpdate } = d;
 
@@ -718,55 +731,46 @@ function updateArticleDates() {
     return;
   }
 
- // === Label status evergreen ===
-// === Label status evergreen ===
-let lb = document.getElementById("evergreen-label");
-if (!lb) {
-  lb = document.createElement("div");
+  // === Label status evergreen ===
+  let lb = document.createElement("div");
   lb.id = "evergreen-label";
   lb.style.cssText = "font-size:.9em;margin-bottom:8px;color:#333;";
-  lb.setAttribute("data-nosnippet", "true"); // 🚫 no snippet
-}
+  lb.setAttribute("data-nosnippet", "true");
 
-// Konversi nextUpdate ke tanggal normal WIB tanpa jam
-function formatTanggalNormal(dateString) {
-  try {
-    const date = new Date(dateString);
-    const options = { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Jakarta" };
-    return date.toLocaleDateString("id-ID", options);
-  } catch (e) {
-    console.warn("formatTanggalNormal() error:", e);
-    return dateString;
+  // Konversi nextUpdate ke tanggal normal WIB tanpa jam
+  function formatTanggalNormal(dateString) {
+    try {
+      const date = new Date(dateString);
+      const options = { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Jakarta" };
+      return date.toLocaleDateString("id-ID", options);
+    } catch (e) {
+      console.warn("formatTanggalNormal() error:", e);
+      return dateString;
+    }
   }
-}
 
-const nextUpdateStr = formatTanggalNormal(nextUpdate);
+  const nextUpdateStr = formatTanggalNormal(nextUpdate);
 
-// === Tentukan label sesuai status ===
-let labelText = "";
-if (type === "evergreen") {
-  labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
-  document.body.setAttribute("data-force", "evergreen");
-} else if (type === "semi-evergreen") {
-  labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextUpdateStr}</b>`;
-  document.body.setAttribute("data-force", "semi-evergreen");
-} else {
-  labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextUpdateStr}</b>`;
-  document.body.setAttribute("data-force", "non-evergreen");
-}
+  // === Tentukan label sesuai status ===
+  let labelText = "";
+  if (type === "evergreen") {
+    labelText = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextUpdateStr}</b>`;
+    document.body.setAttribute("data-force", "evergreen");
+  } else if (type === "semi-evergreen") {
+    labelText = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextUpdateStr}</b>`;
+    document.body.setAttribute("data-force", "semi-evergreen");
+  } else {
+    labelText = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextUpdateStr}</b>`;
+    document.body.setAttribute("data-force", "non-evergreen");
+  }
 
-lb.innerHTML = labelText;
-elH1.insertAdjacentElement("afterend", lb);
-
+  lb.innerHTML = labelText;
+  elH1.insertAdjacentElement("afterend", lb);
 
   // === Tanggal di area penulis ===
-   // ===== 8️⃣ Author + Tanggal Update =====
-  dateModifiedStr = formatTanggalNormal(dateModified);
+  const dateModifiedStr = formatTanggalNormal(dateModified);
   const authorEl = document.querySelector(".post-author .fn");
   if (authorEl) {
-    // remove existing appended date to avoid duplicates
-    const oldDateSpan = authorEl.querySelector(".aed-date-span");
-    if (oldDateSpan) oldDateSpan.remove();
     if (type === "semi-evergreen") {
       const dateEl = document.createElement("span");
       dateEl.className = "aed-date-span";
@@ -781,20 +785,22 @@ elH1.insertAdjacentElement("afterend", lb);
       dateEl.style.fontSize = "0.85em";
       dateEl.style.color = "#555";
       dateEl.style.marginBottom = "4px";
-      dateEl.setAttribute("data-nosnippet","true");
-      // insert before H1, but avoid duplicates
+      dateEl.setAttribute("data-nosnippet", "true");
       const existing = document.querySelector(".aed-non-evergreen-date");
-      if (!existing) {
+      if (!existing && elH1?.parentNode) {
         dateEl.className = "aed-non-evergreen-date";
-        if (elH1 && elH1.parentNode) elH1.parentNode.insertBefore(dateEl, elH1);
+        elH1.parentNode.insertBefore(dateEl, elH1);
       }
-    } 
-    if (type === "EVERGREEN") {
+    }
+    if (type === "evergreen") {
       const metaBlocks = document.querySelectorAll(".post-author, .post-timestamp, .post-updated, .title-secondary");
-      metaBlocks.forEach(el => el.style.display = "none");
+      metaBlocks.forEach(el => (el.style.display = "none"));
     }
   }
+
+  console.log("✅ [AED] updateArticleDates() selesai dijalankan");
 }
+
 updateArticleDates();
 
 /*
