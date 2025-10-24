@@ -158,23 +158,22 @@ function detectEvergreen() {
 
   // ---------- Meta ----------
  // ---------- Meta ----------
+// ---------- Ambil Meta ----------
 const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
 const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
 const blogNextUpdateMeta = document.querySelector('meta[itemprop="blogNextUpdate"]'); // fallback Blogspot custom field
-const metaNextUpdate1 = document.querySelector('meta[itemprop="nextUpdate1"]'); // ✅ Tambahan: nextUpdate1
+const metaNextUpdate1 = document.querySelector('meta[itemprop="nextUpdate1"]'); // ✅ Manual override (CMS)
 let dateModified = metaDateModified?.getAttribute("content");
 const datePublished = metaDatePublished?.getAttribute("content") || nowLocalISO;
 const blogNextUpdate = blogNextUpdateMeta?.getAttribute("content");
 const metaNextUpdate = document.querySelector('meta[itemprop="nextUpdate"]');
 
-// ---------- Keys ----------
-const keyPrefix = "aed_";
-const pathKey = location.pathname;
-const keyNextUpdate = keyPrefix + "nextupdate_" + pathKey;
-const keyHash = keyPrefix + "hash_" + pathKey;
+// ---------- Hash Konten ----------
+const keyHash = "aed_hash_" + location.pathname;
 const prevHash = localStorage.getItem(keyHash);
-const storedNextUpdateStr = localStorage.getItem(keyNextUpdate);
-const storedNextUpdate = storedNextUpdateStr ? new Date(storedNextUpdateStr) : null;
+const contentForHash = (h1 + sections.map(s => s.content).join(" ")).slice(0, 30000);
+const currentHash = hashString(contentForHash);
+const contentChanged = prevHash && prevHash !== currentHash;
 
 // ---------- Cek dan Update Meta jika ada nextUpdate1 ----------
 if (metaNextUpdate1 && metaNextUpdate1.getAttribute("content")) {
@@ -191,19 +190,14 @@ if (metaNextUpdate1 && metaNextUpdate1.getAttribute("content")) {
   }
 }
 
-// ---------- Hash Current ----------
-const contentForHash = (h1 + sections.map(s => s.content).join(" ")).slice(0, 30000);
-const currentHash = hashString(contentForHash);
-const contentChanged = prevHash && prevHash !== currentHash;
-
 // ---------- Logic NextUpdate + Fallback ----------
 let nextUpdate = blogNextUpdate
-                 ? new Date(blogNextUpdate)
-                 : storedNextUpdate
-                   ? storedNextUpdate
-                   : (metaNextUpdate?.getAttribute("content")
-                      ? new Date(metaNextUpdate.getAttribute("content"))
-                      : (dateModified ? new Date(new Date(dateModified).getTime() + validityDays*86400000) : null));
+  ? new Date(blogNextUpdate)
+  : (metaNextUpdate?.getAttribute("content")
+      ? new Date(metaNextUpdate.getAttribute("content"))
+      : (dateModified
+          ? new Date(new Date(dateModified).getTime() + validityDays * 86400000)
+          : null));
 
 console.log("🕒 [AED] nextUpdate:", nextUpdate);
 console.log("🕒 [AED] metaNextUpdate:", metaNextUpdate);
@@ -212,7 +206,7 @@ const timeAllowed = nextUpdate ? now >= nextUpdate : false;
 
 // ---------- Sync dateModified dengan nextUpdate ----------
 if (nextUpdate) {
-  const baseDate = new Date(nextUpdate.getTime() - validityDays*86400000);
+  const baseDate = new Date(nextUpdate.getTime() - validityDays * 86400000);
   const computedDateModified = formatLocalISO(baseDate);
 
   if (dateModified !== computedDateModified) {
@@ -226,10 +220,9 @@ if (nextUpdate) {
 // ---------- Update jika konten berubah & waktunya terpenuhi ----------
 if (timeAllowed && contentChanged) {
   console.log("🔁 [AED] Update dipicu — konten berubah & waktunya.");
-  localStorage.setItem(keyHash, currentHash);
+  localStorage.setItem(keyHash, currentHash); // tetap simpan hash agar tahu ada perubahan konten
   dateModified = nowLocalISO;
   nextUpdate = new Date(now.getTime() + validityDays * 86400000);
-  localStorage.setItem(keyNextUpdate, nextUpdate.toISOString());
 }
 
 // ---------- Update meta ----------
@@ -237,8 +230,8 @@ if (dateModified) {
   if (metaDateModified) metaDateModified.setAttribute("content", dateModified);
   else {
     const m = document.createElement("meta");
-    m.setAttribute("itemprop","dateModified");
-    m.setAttribute("content",dateModified);
+    m.setAttribute("itemprop", "dateModified");
+    m.setAttribute("content", dateModified);
     document.head.appendChild(m);
   }
 }
@@ -247,11 +240,10 @@ if (nextUpdate) {
   if (metaNextUpdate) metaNextUpdate.setAttribute("content", nextUpdate.toISOString());
   else {
     const m = document.createElement("meta");
-    m.setAttribute("itemprop","nextUpdate");
-    m.setAttribute("content",nextUpdate.toISOString());
+    m.setAttribute("itemprop", "nextUpdate");
+    m.setAttribute("content", nextUpdate.toISOString());
     document.head.appendChild(m);
   }
-  localStorage.setItem(keyNextUpdate, nextUpdate.toISOString());
 }
 
   // ---------- JSON-LD Sync ----------
