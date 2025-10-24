@@ -698,10 +698,10 @@ showEvergreenDashboard();
   
 function updateArticleDates() {
   // 🧹 --- Bersihkan variable global lama ---
-  if (window.AEDMetaDates) {
+ /* if (window.AEDMetaDates) {
     console.log("🧹 Membersihkan AEDMetaDates lama:", window.AEDMetaDates);
     delete window.AEDMetaDates;
-  }
+  }*/
 
   // 🧹 --- Hapus elemen label & tanggal lama ---
   const oldLabel = document.getElementById("evergreen-label");
