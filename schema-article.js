@@ -176,6 +176,34 @@ function detectEvergreen() {
     console.log("✅ [AED] nextUpdate diambil dari nextUpdate1:", nextUpdate1Val);
   }
 
+  // ---------- Sinkron mundur jika nextUpdate1 tidak ada ----------
+if (!metaNextUpdate1) {
+  try {
+    const nextVal = metaNextUpdate?.getAttribute("content");
+    if (nextVal) {
+      const nextUpdateDate = new Date(nextVal);
+      const computedDateModified = new Date(nextUpdateDate.getTime() - validityDays * 86400000);
+      const computedISO = computedDateModified.toISOString();
+      const currentISO = metaDateModified?.getAttribute("content");
+
+      if (currentISO !== computedISO) {
+        if (!metaDateModified) {
+          metaDateModified = document.createElement("meta");
+          metaDateModified.setAttribute("itemprop", "dateModified");
+          document.head.appendChild(metaDateModified);
+        }
+        metaDateModified.setAttribute("content", computedISO);
+        dateModified = computedISO;
+        console.log("🕒 [AED] dateModified disesuaikan mundur berdasarkan nextUpdate:", computedISO);
+      } else {
+        console.log("✅ [AED] dateModified sudah sinkron (mundur).");
+      }
+    }
+  } catch (e) {
+    console.error("❌ [AED] Gagal sinkron mundur dateModified:", e);
+  }
+}
+
   // ---------- Buat nextUpdate jika kosong ----------
   let nextUpdate = metaNextUpdate?.getAttribute("content")
     ? new Date(metaNextUpdate.getAttribute("content"))
