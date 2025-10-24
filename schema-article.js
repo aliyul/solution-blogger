@@ -180,12 +180,14 @@ function detectEvergreen() {
 if (!metaNextUpdate1) {
   try {
     const nextVal = metaNextUpdate?.getAttribute("content");
+    console.log("🕒 [AED] nextVal:", nextVal);
     if (nextVal) {
       const nextUpdateDate = new Date(nextVal);
       const computedDateModified = new Date(nextUpdateDate.getTime() - validityDays * 86400000);
       const computedISO = computedDateModified.toISOString();
       const currentISO = metaDateModified?.getAttribute("content");
-
+      console.log("🕒 [AED] currentISO:", currentISO);
+      console.log("🕒 [AED] computedISO:", computedISO);
       if (currentISO !== computedISO) {
         if (!metaDateModified) {
           metaDateModified = document.createElement("meta");
