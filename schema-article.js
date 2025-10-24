@@ -180,19 +180,27 @@ function detectEvergreen() {
 // ---------- Sinkron mundur jika nextUpdate1 tidak ada ----------
 if (!metaNextUpdate1) {
   try {
-    // Pastikan metaNextUpdate valid dan ada isinya
     let nextVal = metaNextUpdate?.getAttribute("content");
-    
-    // 🔁 Fallback ringan: cek ulang hingga 3x dengan jeda 300ms (tanpa async)
+
+    // 🔁 Fallback sinkron ringan: coba ulang beberapa kali (tanpa await)
     if (!nextVal) {
-      for (let i = 0; i < 3 && !nextVal; i++) {
-        console.warn(`⏳ [AED] nextUpdate kosong, mencoba ulang ke-${i + 1}...`);
-        await new Promise(res => setTimeout(res, 300));
-        nextVal = metaNextUpdate?.getAttribute("content");
-      }
+      console.warn("⏳ [AED] nextUpdate kosong, menunggu meta muncul...");
+      setTimeout(() => {
+        const retryVal = document.querySelector('meta[itemprop="nextUpdate"]')?.getAttribute("content");
+        if (retryVal) {
+          console.log("✅ [AED] nextUpdate ditemukan setelah retry:", retryVal);
+          sinkronMundur(retryVal);
+        } else {
+          console.warn("⚠️ [AED] nextUpdate tetap kosong setelah retry.");
+        }
+      }, 400);
+      return; // keluar sementara agar tidak lanjut sinkron
     }
 
-    if (nextVal) {
+    // langsung sinkron jika sudah ada
+    sinkronMundur(nextVal);
+
+    function sinkronMundur(nextVal) {
       const nextUpdateDate = new Date(nextVal);
       if (isNaN(nextUpdateDate.getTime())) {
         console.warn("⚠️ [AED] Nilai nextUpdate tidak valid:", nextVal);
@@ -215,8 +223,6 @@ if (!metaNextUpdate1) {
       } else {
         console.log("✅ [AED] dateModified sudah sinkron (mundur).");
       }
-    } else {
-      console.warn("⚠️ [AED] Tidak dapat menemukan nilai nextUpdate untuk sinkron mundur.");
     }
   } catch (e) {
     console.error("❌ [AED] Gagal sinkron mundur dateModified:", e);
