@@ -183,7 +183,7 @@ function normalizeDateISO(date) {
     if (metaNextUpdate) metaNextUpdate.setAttribute("content", nextUpdate1Val);
     else {
       metaNextUpdate = document.createElement("meta");
-      metaNextUpdate.setAttribute("itemprop", "nextUpdate");
+      metaNextUpdate.setAttribute("name", "nextUpdate");
       metaNextUpdate.setAttribute("content", nextUpdate1Val);
       document.head.appendChild(metaNextUpdate);
     }
@@ -251,7 +251,7 @@ let nextUpdate;
 
 if (nextUpdateVal) {
   // Jika sudah ada meta dan ada nilai
-  nextUpdate = new Date(nextUpdateVal);
+  nextUpdate = new Date(normalizeToMidnightUTC(nextUpdateVal));
 } else {
   // Jika belum ada meta atau belum ada nilai
   if (!metaNextUpdate) {
@@ -264,8 +264,8 @@ if (nextUpdateVal) {
   if (dateModified) {
     nextUpdate = new Date(new Date(dateModified).getTime() + validityDays * 86400000);
   } else {
-    dateModified = nowLocalISO;
-    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+    dateModified = normalizeDateISO(nowLocalISO);
+    nextUpdate =  normalizeToMidnightUTC(new Date(now.getTime() + validityDays * 86400000));
   }
 
   // Set nilainya ke meta
@@ -308,20 +308,20 @@ if (nextUpdateVal) {
   if (timeAllowed && contentChanged) {
     console.log("🔁 [AED] Konten berubah, update meta.");
     localStorage.setItem(keyHash, currentHash);
-    dateModified = nowLocalISO;
-    nextUpdate = new Date(now.getTime() + validityDays * 86400000);
+    dateModified = normalizeToMidnightUTC(nowLocalISO);
+    nextUpdate = normalizeDateISO(new Date(now.getTime() + validityDays * 86400000));
     if (metaDateModified) metaDateModified.setAttribute("content", dateModified);
     if (metaNextUpdate) metaNextUpdate.setAttribute("content", nextUpdate.toISOString());
   }
 
   // ---------- Pastikan meta benar di DOM ----------
   if (metaDateModified) {
-    dateModified = metaDateModified.getAttribute("content");
+    dateModified = normalizeDateISO(metaDateModified.getAttribute("content"));
   }
 
   // ---------- JSON-LD Sync ----------
   if (nextUpdate) {
-    const until = nextUpdate.toISOString().split("T")[0];
+    const until = normalizeToMidnightUTC(nextUpdate.toISOString().split("T")[0]);
     try {
       const visited = new WeakSet();
       document.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
