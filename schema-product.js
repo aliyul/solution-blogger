@@ -60,170 +60,168 @@ document.addEventListener("DOMContentLoaded", async function () {
     const productAreaServed = await detectAreaServed();
 
     // === 5️⃣ BRAND DETECTION ===
-// === 5️⃣ BRAND DETECTION ===
-const text = document.body.innerText.toLowerCase();
-let brandName = "Beton Jaya Readymix";
-
-// ✅ regex lengkap untuk semua manufacturer konstruksi
-const ManufacturMatch = text.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|tiga roda beton|solusi bangun|wijaya kusuma|mulia|sika|indocement|semen tonasa|semen gresik|primes cement|petra|triple x|prima|cimahi|semen padang|indocrete/i);
-
-let manufacturerName = "Beton Jaya Readymix"; // fallback default
-if (ManufacturMatch) {
-  manufacturerName = ManufacturMatch[0].replace(/\b\w/g, l => l.toUpperCase());
-}
-
-// === 6️⃣ PRODUCT NAME FROM URL ===
-function getProductNameFromUrl() {
-  let path = location.pathname.replace(/^\/|\/$/g,"").split("/").pop();
-  path = path.replace(".html","").replace(/-/g," ");
-  return decodeURIComponent(path).replace(/\b\w/g, l => l.toUpperCase());
-}
-const productName = getProductNameFromUrl();
-
-// === 7️⃣ DETEKSI KATEGORI PRODUK ===
-const productKeywords = {
-  BuildingMaterial: ["beton","ready mix","precast","buis","gorong gorong","panel","semen","besi","pipa"],
-  ConstructionEquipment: ["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"]
-};
-let productCategory = "Product";
-let wikipediaLink = "https://id.wikipedia.org/wiki/Produk";
-for(const [category, keywords] of Object.entries(productKeywords)){
-  if(keywords.some(k => productName.toLowerCase().includes(k))){
-    productCategory = category;
-    wikipediaLink = category==="BuildingMaterial" ? "https://id.wikipedia.org/wiki/Beton" : "https://id.wikipedia.org/wiki/Alat_berat";
-    break;
-  }
-}
-
-// === 🧩 PARSER TABLE, TEKS, & LI HARGA ===
-const seenItems = new Set();
-const tableOffers = [];
-
-function addOffer(name, key, price, desc = "") {
-  let finalName = productName;
-  if (name && name.toLowerCase() !== productName.toLowerCase()) {
-    finalName += " " + name;
-  }
-  const k = finalName + "|" + key + "|" + price;
-  if (seenItems.has(k)) return;
-  seenItems.add(k);
-
-  let validUntil = "";
-  try {
-    if (window.AEDMetaDates && window.AEDMetaDates.nextUpdate) {
-      validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
+    // === 5️⃣ BRAND DETECTION ===
+    const text = document.body.innerText.toLowerCase();
+    let brandName = "Beton Jaya Readymix";
+    
+    // ✅ regex lengkap untuk semua manufacturer konstruksi
+    const ManufacturMatch = text.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|tiga roda beton|solusi bangun|wijaya kusuma|mulia|sika|indocement|semen tonasa|semen gresik|primes cement|petra|triple x|prima|cimahi|semen padang|indocrete/i);
+    
+    let manufacturerName = "Beton Jaya Readymix"; // fallback default
+    if (ManufacturMatch) {
+      manufacturerName = ManufacturMatch[0].replace(/\b\w/g, l => l.toUpperCase());
     }
-  } catch (err) {
-    console.warn("[Offer Builder] Gagal ambil AEDMetaDates:", err);
-  }
+    
+    // === 6️⃣ PRODUCT NAME FROM URL ===
+    function getProductNameFromUrl() {
+      let path = location.pathname.replace(/^\/|\/$/g,"").split("/").pop();
+      path = path.replace(".html","").replace(/-/g," ");
+      return decodeURIComponent(path).replace(/\b\w/g, l => l.toUpperCase());
+    }
+    const productName = getProductNameFromUrl();
+    
+    // === 7️⃣ DETEKSI KATEGORI PRODUK ===
+    const productKeywords = {
+      BuildingMaterial: ["beton","ready mix","precast","buis","gorong gorong","panel","semen","besi","pipa"],
+      ConstructionEquipment: ["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"]
+    };
+    let productCategory = "Product";
+    let wikipediaLink = "https://id.wikipedia.org/wiki/Produk";
+    for(const [category, keywords] of Object.entries(productKeywords)){
+      if(keywords.some(k => productName.toLowerCase().includes(k))){
+        productCategory = category;
+        wikipediaLink = category==="BuildingMaterial" ? "https://id.wikipedia.org/wiki/Beton" : "https://id.wikipedia.org/wiki/Alat_berat";
+        break;
+      }
+    }
+    
+    // === 🧩 PARSER TABLE, TEKS, & LI HARGA ===
+    const seenItems = new Set();
+    const tableOffers = [];
+    
+    function addOffer(name, key, price, desc = "") {
+      let finalName = productName;
+      if (name && name.toLowerCase() !== productName.toLowerCase()) {
+        finalName += " " + name;
+      }
+      const k = finalName + "|" + key + "|" + price;
+      if (seenItems.has(k)) return;
+      seenItems.add(k);
+    
+      let validUntil = "";
+      try {
+        if (window.AEDMetaDates && window.AEDMetaDates.nextUpdate) {
+          validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
+        }
+      } catch (err) {
+        console.warn("[Offer Builder] Gagal ambil AEDMetaDates:", err);
+      }
+    
+      tableOffers.push({
+        "@type": "Offer",
+        "name": finalName,
+        "url": cleanUrl,
+        "priceCurrency": "IDR",
+        "price": price.toString(),
+        "itemCondition": "https://schema.org/NewCondition",
+        "availability": "https://schema.org/InStock",
+        "priceValidUntil": validUntil,
+        "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
+        "description": desc || undefined
+      });
+    }
+    
+    // === 🧩 DETEKSI HARGA DARI TABEL / TEKS ===
+    document.querySelectorAll("table tr").forEach(row=>{
+      const cells = Array.from(row.querySelectorAll("td, th"));
+      const m = row.innerText.match(/Rp\s*([\d.,]+)/);
+      if(m){
+        const price = parseInt(m[1].replace(/[.\s,]/g,""));
+        if(price) addOffer(cells[0]?.innerText.trim()||"", "", price);
+      }
+    });
+    
+    document.querySelectorAll("li").forEach(li=>{
+      const m = li.innerText.match(/Rp\s*([\d.,]+)/);
+      if(m){
+        const price = parseInt(m[1].replace(/[.\s,]/g,""));
+        if(price) addOffer(li.innerText.replace(m[0], "").trim(), "", price);
+      }
+    });
+    
+    console.log("[Parser v3] Total detected offers:", tableOffers.length);
+    
+    // === 🩺  Fallback schema OFFER kalau tidak ada ===
+    if (tableOffers.length === 0) {
+      console.warn("[Fallback Offer] Tidak ada offers terdeteksi — membuat fallback schema otomatis.");
+      tableOffers.push({
+        "@type": "Offer",
+        "name": productName + " (Estimasi Harga)",
+        "url": cleanUrl,
+        "priceCurrency": "IDR",
+        "price": "0",
+        "availability": "https://schema.org/PreOrder",
+        "itemCondition": "https://schema.org/NewCondition",
+        "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
+        "description": "Hubungi Beton Jaya Readymix untuk informasi harga terbaru dan penawaran khusus."
+      });
+    }
+    
+    // === 12️⃣ BUSINESS ENTITY ===
+    const business = {
+      "@type":["LocalBusiness","GeneralContractor"],
+      "@id":"https://www.betonjayareadymix.com/#localbusiness",
+      name:"Beton Jaya Readymix",
+      url:"https://www.betonjayareadymix.com",
+      telephone:"+6283839000968",
+      address:{ "@type":"PostalAddress", addressLocality:"Bogor", addressRegion:"Jawa Barat", addressCountry:"ID" },
+      description:"Penyedia beton ready mix, precast, dan jasa konstruksi profesional wilayah Jabodetabek dan sekitarnya.",
+      areaServed: defaultAreaServed,
+      sameAs:["https://www.facebook.com/betonjayareadymix","https://www.instagram.com/betonjayareadymix"],
+      logo: fallbackImage
+    };
+    
+    // === 13️⃣ MAIN ENTITY PRODUCT ===
+    const mainEntity = {
+      "@type":"Product",
+      "@id": cleanUrl+"#product",
+      "mainEntityOfPage": { "@type":"WebPage","@id": cleanUrl+"#webpage" },
+      "isPartOf": parentUrls,
+      name: productName,
+      image: [ contentImage || fallbackImage ],
+      description: desc,
+      brand: { "@type":"Brand", name: brandName },
+      manufacturer: { "@type":"Organization", name: manufacturerName }, // ✅ tambahkan manufacturer
+      category: productCategory,
+      sameAs: wikipediaLink,
+      provider: { "@id": business["@id"] },
+      offers: tableOffers,
+      areaServed: productAreaServed
+    };
+    
+    // === 14️⃣ WEBPAGE ===
+    const webpage = {
+      "@type":"WebPage",
+      "@id": cleanUrl+"#webpage",
+      url: cleanUrl,
+      name: title,
+      description: desc,
+      image: [ contentImage || fallbackImage ],
+      mainEntity: { "@id": mainEntity["@id"] },
+      publisher: { "@id": business["@id"] },
+      "isPartOf": parentUrls
+    };
+    
+    // === 15️⃣ BUILD GRAPH + OUTPUT JSON-LD ===
+    const graph = [webpage, business, mainEntity];
+    let scriptEl = document.querySelector("#auto-schema-product");
+    if(!scriptEl){
+      scriptEl = document.createElement("script");
+      scriptEl.type = "application/ld+json";
+      scriptEl.id="auto-schema-product";
+      document.head.appendChild(scriptEl);
+    }
 
-  tableOffers.push({
-    "@type": "Offer",
-    "name": finalName,
-    "url": cleanUrl,
-    "priceCurrency": "IDR",
-    "price": price.toString(),
-    "itemCondition": "https://schema.org/NewCondition",
-    "availability": "https://schema.org/InStock",
-    "priceValidUntil": validUntil,
-    "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
-    "description": desc || undefined
-  });
-}
-
-// === 🧩 DETEKSI HARGA DARI TABEL / TEKS ===
-document.querySelectorAll("table tr").forEach(row=>{
-  const cells = Array.from(row.querySelectorAll("td, th"));
-  const m = row.innerText.match(/Rp\s*([\d.,]+)/);
-  if(m){
-    const price = parseInt(m[1].replace(/[.\s,]/g,""));
-    if(price) addOffer(cells[0]?.innerText.trim()||"", "", price);
-  }
-});
-
-document.querySelectorAll("li").forEach(li=>{
-  const m = li.innerText.match(/Rp\s*([\d.,]+)/);
-  if(m){
-    const price = parseInt(m[1].replace(/[.\s,]/g,""));
-    if(price) addOffer(li.innerText.replace(m[0], "").trim(), "", price);
-  }
-});
-
-console.log("[Parser v3] Total detected offers:", tableOffers.length);
-
-// === 🩺  Fallback schema OFFER kalau tidak ada ===
-if (tableOffers.length === 0) {
-  console.warn("[Fallback Offer] Tidak ada offers terdeteksi — membuat fallback schema otomatis.");
-  tableOffers.push({
-    "@type": "Offer",
-    "name": productName + " (Estimasi Harga)",
-    "url": cleanUrl,
-    "priceCurrency": "IDR",
-    "price": "0",
-    "availability": "https://schema.org/PreOrder",
-    "itemCondition": "https://schema.org/NewCondition",
-    "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
-    "description": "Hubungi Beton Jaya Readymix untuk informasi harga terbaru dan penawaran khusus."
-  });
-}
-
-// === 12️⃣ BUSINESS ENTITY ===
-const business = {
-  "@type":["LocalBusiness","GeneralContractor"],
-  "@id":"https://www.betonjayareadymix.com/#localbusiness",
-  name:"Beton Jaya Readymix",
-  url:"https://www.betonjayareadymix.com",
-  telephone:"+6283839000968",
-  address:{ "@type":"PostalAddress", addressLocality:"Bogor", addressRegion:"Jawa Barat", addressCountry:"ID" },
-  description:"Penyedia beton ready mix, precast, dan jasa konstruksi profesional wilayah Jabodetabek dan sekitarnya.",
-  areaServed: defaultAreaServed,
-  sameAs:["https://www.facebook.com/betonjayareadymix","https://www.instagram.com/betonjayareadymix"],
-  logo: fallbackImage
-};
-
-// === 13️⃣ MAIN ENTITY PRODUCT ===
-const mainEntity = {
-  "@type":"Product",
-  "@id": cleanUrl+"#product",
-  "mainEntityOfPage": { "@type":"WebPage","@id": cleanUrl+"#webpage" },
-  "isPartOf": parentUrls,
-  name: productName,
-  image: [ contentImage || fallbackImage ],
-  description: desc,
-  brand: { "@type":"Brand", name: brandName },
-  manufacturer: { "@type":"Organization", name: manufacturerName }, // ✅ tambahkan manufacturer
-  category: productCategory,
-  sameAs: wikipediaLink,
-  provider: { "@id": business["@id"] },
-  offers: tableOffers,
-  areaServed: productAreaServed
-};
-
-// === 14️⃣ WEBPAGE ===
-const webpage = {
-  "@type":"WebPage",
-  "@id": cleanUrl+"#webpage",
-  url: cleanUrl,
-  name: title,
-  description: desc,
-  image: [ contentImage || fallbackImage ],
-  mainEntity: { "@id": mainEntity["@id"] },
-  publisher: { "@id": business["@id"] },
-  "isPartOf": parentUrls
-};
-
-// === 15️⃣ BUILD GRAPH + OUTPUT JSON-LD ===
-const graph = [webpage, business, mainEntity];
-let scriptEl = document.querySelector("#auto-schema-product");
-if(!scriptEl){
-  scriptEl = document.createElement("script");
-  scriptEl.type = "application/ld+json";
-  scriptEl.id="auto-schema-product";
-  document.head.appendChild(scriptEl);
-}
-
-scriptEl.textContent = JSON.stringify(graph, null, 2);
-console.log("✅ [Schema Product] JSON-LD berhasil dibuat.");
 
     scriptEl.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
     console.log(`[AutoSchema v4.53+ ✅] Product: ${productName} | Offers: ${tableOffers.length}`);
