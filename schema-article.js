@@ -178,6 +178,7 @@ function detectEvergreen() {
 
   // ---------- Sinkron mundur jika nextUpdate1 tidak ada ----------
 // ---------- Sinkron mundur jika nextUpdate1 tidak ada ----------
+/*
 if (!metaNextUpdate1) {
   try {
     let nextVal = metaNextUpdate?.getAttribute("content");
@@ -228,6 +229,7 @@ if (!metaNextUpdate1) {
     console.error("❌ [AED] Gagal sinkron mundur dateModified:", e);
   }
 }
+*/
 
   // ---------- Buat nextUpdate jika kosong ----------
   let nextUpdate = metaNextUpdate?.getAttribute("content")
