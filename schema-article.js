@@ -174,7 +174,7 @@ function normalizeToMidnightUTC(date) {
   let metaNextUpdate = document.querySelector('meta[name="nextUpdate"]');
   const metaNextUpdate1 =  document.querySelector('meta[name="nextUpdate1"]');
 
-  let dateModified = normalizeDateISO(metaDateModified?.getAttribute("content"));
+  let dateModified = normalizeToMidnightUTC(metaDateModified?.getAttribute("content"));
   const datePublished = metaDatePublished?.getAttribute("content") || nowLocalISO;
 
   // ---------- Cek Override nextUpdate1 ----------
