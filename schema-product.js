@@ -80,21 +80,45 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
     const productName = getProductNameFromUrl();
     
-    // === 7️⃣ DETEKSI KATEGORI PRODUK ===
+   // === 7️⃣ DETEKSI KATEGORI PRODUK ===
     const productKeywords = {
-      BuildingMaterial: ["beton","ready mix","precast","buis","gorong gorong","panel","semen","besi","pipa"],
-      ConstructionEquipment: ["excavator","bulldozer","crane","vibro roller","tandem roller","wales","grader","dump truck"]
+      BuildingMaterial: [
+        // Beton & Precast
+        "beton", "ready mix", "precast", "buis", "gorong gorong", "panel", 
+        "box culvert", "u ditch", "saluran", "beton ringan", "tangki air", 
+    
+        // Semen & Besi
+        "semen", "besi", "siku besi", "besi hollow", "truss", "kawat", "pipa", "pipa pvc", "pvc", 
+    
+        // Batu & Agregat
+        "bata", "pasir", "split", 
+    
+        // Finishing & Interior
+        "keramik", "cat", "kayu", "genteng"
+      ],
+      ConstructionEquipment: [
+        "excavator", "bulldozer", "crane", "vibro roller", "tandem roller", 
+        "wales", "grader", "dump truck", "loader", "backhoe", "concrete mixer", 
+        "concrete pump", "scaffold", "forklift", "compactor", "road roller", 
+        "pile driver", "concrete vibrator", "mini excavator", "wheel loader"
+      ]
     };
+    
+    // Default category
     let productCategory = "Product";
     let wikipediaLink = "https://id.wikipedia.org/wiki/Produk";
-    for(const [category, keywords] of Object.entries(productKeywords)){
-      if(keywords.some(k => productName.toLowerCase().includes(k))){
+    
+    // Deteksi kategori berdasarkan nama produk
+    for (const [category, keywords] of Object.entries(productKeywords)) {
+      if (keywords.some(k => productName.toLowerCase().includes(k))) {
         productCategory = category;
-        wikipediaLink = category==="BuildingMaterial" ? "https://id.wikipedia.org/wiki/Beton" : "https://id.wikipedia.org/wiki/Alat_berat";
+        wikipediaLink = category === "BuildingMaterial"
+          ? "https://id.wikipedia.org/wiki/Beton"
+          : "https://id.wikipedia.org/wiki/Alat_berat";
         break;
       }
     }
-    
+ 
     // === 🧩 PARSER TABLE, TEKS, & LI HARGA ===
     const seenItems = new Set();
     const tableOffers = [];
