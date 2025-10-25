@@ -155,10 +155,13 @@ function detectEvergreen() {
   const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
 
 function normalizeToMidnightUTC(date) {
+  if (!date) return null; // ❗ lewati jika tidak ada nilai
   const d = new Date(date);
+  if (isNaN(d.getTime())) return null; // ❗ lewati jika invalid date
   d.setUTCHours(0, 0, 0, 0);
   return d.toISOString();
 }
+
 function normalizeDateISO(date) {
   if (!date) return null;
   const d = new Date(date);
