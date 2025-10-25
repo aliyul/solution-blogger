@@ -65,8 +65,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     let brandName = "Beton Jaya Readymix";
     
     // ✅ regex lengkap untuk semua manufacturer konstruksi
-    const ManufacturMatch = text.match(/jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|tiga roda beton|solusi bangun|wijaya kusuma|mulia|sika|indocement|semen tonasa|semen gresik|primes cement|petra|triple x|prima|cimahi|semen padang|indocrete/i);
-    
+    // ✅ REGEX LENGKAP UNTUK SEMUA MANUFACTURER KONSTRUKSI (BETON, SEMEN, MATERIAL, FINISHING)
+const ManufacturMatch = text.match(
+  /jayamix|adhimix|holcim|scg|pionir|dynamix|tiga roda|tiga roda beton|solusi bangun|wijaya kusuma|mulia|sika|indocement|semen tonasa|semen gresik|primes cement|petra|triple x|prima|cimahi|semen padang|indocrete|wika beton|beton indotama|wasco|wijaya karya beton|bata ringan|hebel|aac|citicon|brix|fastcon|forta|besmindo|gunung garuda|krakatau steel|spindo|bakrie pipe|galvalum|kanmuri|monier|mortar utama|grout|nippon paint|dulux|avian|propana|no drop|aquaproof|jotun|semen bosowa|sigma|sigmatech|grc board|kalsi|kalsiboard|dynaplast|kotrindo|polytam|trilliun|indomix|supermix|bess beton|readymix andalan|viber|focon|bostik|mapei|tiga warna|tatalogam lestari|benteng multiguna|jayaboard|elephant board/i
+);
+
     let manufacturerName = "Beton Jaya Readymix"; // fallback default
     if (ManufacturMatch) {
       manufacturerName = ManufacturMatch[0].replace(/\b\w/g, l => l.toUpperCase());
