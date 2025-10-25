@@ -162,11 +162,11 @@ function normalizeToMidnightUTC(date) {
   return d.toISOString();
 }
 
-function normalizeDateISO(date) {
+/*function normalizeDateISO(date) {
   if (!date) return null;
   const d = new Date(date);
   return isNaN(d.getTime()) ? null : d.toISOString();
-}
+}*/
 
   // ---------- Meta ----------
   let metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
@@ -264,7 +264,7 @@ if (nextUpdateVal) {
   if (dateModified) {
     nextUpdate = new Date(new Date(dateModified).getTime() + validityDays * 86400000);
   } else {
-    dateModified = normalizeDateISO(nowLocalISO);
+    dateModified = normalizeToMidnightUTC(nowLocalISO);
     nextUpdate =  normalizeToMidnightUTC(new Date(now.getTime() + validityDays * 86400000));
   }
 
@@ -288,12 +288,12 @@ if (nextUpdateVal) {
       if (nextUpdateValue) {
         const nextUpdateDate = new Date(nextUpdateValue);
         const expectedDateModified = new Date(nextUpdateDate.getTime() - validityDays * 86400000);
-        const expectedISO = normalizeDateISO(expectedDateModified.toISOString().split("T")[0]);
-        const currentISO = normalizeDateISO((dateModified || "").split("T")[0]);
+        const expectedISO = normalizeToMidnightUTC(expectedDateModified.toISOString().split("T")[0]);
+        const currentISO = normalizeToMidnightUTC((dateModified || "").split("T")[0]);
 
         if (currentISO !== expectedISO) {
-          metaDateModified.setAttribute("content", normalizeDateISO(expectedDateModified.toISOString()));
-          dateModified = normalizeDateISO(expectedDateModified.toISOString()); // ✅ update global
+          metaDateModified.setAttribute("content", normalizeToMidnightUTC(expectedDateModified.toISOString()));
+          dateModified = normalizeToMidnightUTC(expectedDateModified.toISOString()); // ✅ update global
           console.log("🕒 [AED] Meta dateModified disesuaikan:", expectedISO);
         } else {
           console.log("✅ [AED] dateModified sudah sinkron:", expectedISO);
@@ -309,14 +309,14 @@ if (nextUpdateVal) {
     console.log("🔁 [AED] Konten berubah, update meta.");
     localStorage.setItem(keyHash, currentHash);
     dateModified = normalizeToMidnightUTC(nowLocalISO);
-    nextUpdate = normalizeDateISO(new Date(now.getTime() + validityDays * 86400000));
+    nextUpdate = normalizeToMidnightUTC(new Date(now.getTime() + validityDays * 86400000));
     if (metaDateModified) metaDateModified.setAttribute("content", dateModified);
     if (metaNextUpdate) metaNextUpdate.setAttribute("content", nextUpdate.toISOString());
   }
 
   // ---------- Pastikan meta benar di DOM ----------
   if (metaDateModified) {
-    dateModified = normalizeDateISO(metaDateModified.getAttribute("content"));
+    dateModified = normalizeToMidnightUTC(metaDateModified.getAttribute("content"));
   }
 
   // ---------- JSON-LD Sync ----------
