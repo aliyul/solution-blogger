@@ -231,18 +231,35 @@ if (!metaNextUpdate1) {
 }
 */
 
-  // ---------- Buat nextUpdate jika kosong ----------
-  let nextUpdate = metaNextUpdate?.getAttribute("content")
-    ? new Date(metaNextUpdate.getAttribute("content"))
-    : (dateModified
-        ? new Date(new Date(dateModified).getTime() + validityDays * 86400000)
-        : null);
+// ---------- Buat atau update nextUpdate jika kosong ----------
+let nextUpdateVal = metaNextUpdate?.getAttribute("content");
+let nextUpdate;
 
-  if (!metaNextUpdate && !dateModified) {
+if (nextUpdateVal) {
+  // Jika sudah ada meta dan ada nilai
+  nextUpdate = new Date(nextUpdateVal);
+} else {
+  // Jika belum ada meta atau belum ada nilai
+  if (!metaNextUpdate) {
+    metaNextUpdate = document.createElement("meta");
+    metaNextUpdate.setAttribute("name", "nextUpdate");
+    document.head.appendChild(metaNextUpdate);
+  }
+
+  // Tentukan nilai baru
+  if (dateModified) {
+    nextUpdate = new Date(new Date(dateModified).getTime() + validityDays * 86400000);
+  } else {
     dateModified = nowLocalISO;
     nextUpdate = new Date(now.getTime() + validityDays * 86400000);
-    console.log("🆕 [AED] Membuat meta dateModified & nextUpdate baru:", dateModified);
   }
+
+  // Set nilainya ke meta
+  const nextISO = nextUpdate.toISOString();
+  metaNextUpdate.setAttribute("content", nextISO);
+
+  console.log("🆕 [AED] Meta nextUpdate baru dibuat & diisi:", nextISO);
+}
 
   const timeAllowed = nextUpdate ? now >= nextUpdate : false;
   const keyHash = "aed_hash_" + location.pathname;
