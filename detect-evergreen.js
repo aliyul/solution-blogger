@@ -198,10 +198,8 @@ if (nextUpdateVal) {
     console.error("❌ [AED Sync] Sinkronisasi gagal:", err);
  }
 
- // ⚡ Smart Evergreen Semi-Auto Update v9.3 — SEO Safe + JSON-LD Maintained
-/// ⚡ Smart Evergreen Auto-Loop v9.6 — SEO Safe + Conditional dateModified
 (function() {
-  const validityDaysFinal = 180; // umur konten (hari)
+  const validityDaysFinal = typeof validityDays !== "undefined" ? validityDays : 180; // fallback 180 hari
   const metaNext = document.querySelector('meta[name="nextUpdate"]');
   if (!metaNext) return console.warn("⏳ Tidak ada meta[name='nextUpdate'], abaikan loop.");
 
@@ -241,63 +239,60 @@ if (nextUpdateVal) {
     // 🔁 Perbarui hanya meta nextUpdate
     metaNext.setAttribute("content", nextNextUpdate.toISOString().split("T")[0]);
 
-   
+    console.log(`🗓️ Next update diperpanjang → ${nextNextUpdate.toISOString().split("T")[0]} (loop aktif).`);
   } else {
     const remaining = Math.ceil((nextUpdateDate - today) / (1000 * 60 * 60 * 24));
     console.log(`✅ Konten masih valid (${remaining} hari tersisa hingga next update).`);
   }
 
   // =========================================================
-  // === Bagian Kondisional: Update dateModified hanya jika konten berubah ===
+  // === Update internal timestamp hanya jika konten berubah ===
   // =========================================================
   if (typeof timeAllowed !== "undefined" && typeof contentChanged !== "undefined") {
-    // ---------- Update jika konten berubah ----------
-   if (timeAllowed && contentChanged) {
-     console.log("🔁 [AED] Konten berubah, update internal timestamp.");
-   
-     // Simpan hash baru agar tidak terdeteksi berulang
-     localStorage.setItem(keyHash, currentHash);
-   
-     // Jadikan nextUpdate lama sebagai dateModified baru
-     const dateModified = normalizeToMidnightUTC(new Date(storedNextUpdateStr));
-   
-     // Hitung next update berikutnya dari nextUpdate lama (bukan dari hari ini)
-     const nextUpdate = normalizeToMidnightUTC(
-       new Date(new Date(storedNextUpdateStr).getTime() + validityDays * 86400000)
-     );
+    if (timeAllowed && contentChanged) {
+      console.log("🔁 [AED] Konten berubah, update internal timestamp.");
 
-     // 🧩 Tambahkan schema maintenance ringan
-    const schemaData = {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "isMaintained": true,
-      "maintenanceSchedule": {
-        "@type": "Schedule",
-        "repeatFrequency": `P${validityDaysFinal}D`,
-        "scheduledTime": nextUpdate
-      },
-      "dateModified": dateModified
-    };
+      // Simpan hash baru agar tidak terdeteksi berulang
+      localStorage.setItem(keyHash, currentHash);
 
-    const oldSchema = document.querySelector('script[data-schema="evergreen-maintenance"]');
-    if (oldSchema) oldSchema.remove();
+      // Jadikan nextUpdate lama sebagai dateModified baru
+      const dateModified = normalizeToMidnightUTC(new Date(storedNextUpdateStr));
 
-    const schemaEl = document.createElement("script");
-    schemaEl.type = "application/ld+json";
-    schemaEl.dataset.schema = "evergreen-maintenance";
-    schemaEl.textContent = JSON.stringify(schemaData, null, 2);
-    document.head.appendChild(schemaEl);
+      // Hitung next update berikutnya dari nextUpdate lama
+      const nextUpdate = normalizeToMidnightUTC(
+        new Date(new Date(storedNextUpdateStr).getTime() + validityDaysFinal * 86400000)
+      );
 
-    console.log(`🗓️ Next update diperpanjang → ${nextNextUpdate.toISOString().split("T")[0]} (loop aktif).`);
-    
-     console.log(`🗓️ [AED] Konten diperbarui.
-     dateModified: ${dateModified}
-     nextUpdate: ${nextUpdate.toISOString().split("T")[0]}
-     `);
+      // 🧩 Tambahkan schema maintenance ringan
+      const schemaData = {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "isMaintained": true,
+        "maintenanceSchedule": {
+          "@type": "Schedule",
+          "repeatFrequency": `P${validityDaysFinal}D`,
+          "scheduledTime": nextUpdate.toISOString().split("T")[0]
+        },
+        "dateModified": dateModified.toISOString().split("T")[0]
+      };
 
+      const oldSchema = document.querySelector('script[data-schema="evergreen-maintenance"]');
+      if (oldSchema) oldSchema.remove();
+
+      const schemaEl = document.createElement("script");
+      schemaEl.type = "application/ld+json";
+      schemaEl.dataset.schema = "evergreen-maintenance";
+      schemaEl.textContent = JSON.stringify(schemaData, null, 2);
+      document.head.appendChild(schemaEl);
+
+      console.log(`🗓️ [AED] Konten diperbarui.
+      dateModified: ${dateModified.toISOString().split("T")[0]}
+      nextUpdate: ${nextUpdate.toISOString().split("T")[0]}
+      `);
+    }
   }
-
 })();
+
 
   // ---------- Pastikan meta benar di DOM ----------
   /*if (metaDateModified) {
