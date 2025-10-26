@@ -200,7 +200,7 @@ if (nextUpdateVal) {
   // ---------- Update jika konten berubah ----------
   if (timeAllowed && contentChanged) {
     console.log("🔁 [AED] Konten berubah, update meta.");
-    //localStorage.setItem(keyHash, currentHash);
+    localStorage.setItem(keyHash, currentHash);
     dateModified = normalizeToMidnightUTC(nowLocalISO);
     nextUpdate = normalizeToMidnightUTC(new Date(now.getTime() + validityDays * 86400000));
     //if (metaDateModified) metaDateModified.setAttribute("content", dateModified);
