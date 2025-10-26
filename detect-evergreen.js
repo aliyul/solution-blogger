@@ -176,8 +176,8 @@ if (nextUpdateVal) {
   // ---------- 🔁 Sinkronisasi dateModified dengan nextUpdate ----------
   try {
     // === jika nextUpdate ada, hitung dateModified ===
-    if (nextUpdateValue) {
-      const nextUpdateDate = new Date(nextUpdateValue);
+    if (nextUpdateVal) {
+      const nextUpdateDate = new Date(nextUpdateVal);
       const expectedDateModified = new Date(nextUpdateDate.getTime() - validityDays * 86400000);
       const expectedISO = normalizeToMidnightUTC(expectedDateModified.toISOString());
 
