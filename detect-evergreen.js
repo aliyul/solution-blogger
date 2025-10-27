@@ -159,6 +159,7 @@ nextUpdate = nextUpdateDate;
 // Jika sekarang belum sampai ke nextUpdate1
 if (new Date(nowUTC) < new Date(nextUpdate1Val)) {
   console.log("⏳ [AED] Belum mencapai nextUpdate1, gunakan:", nextUpdate1Val);
+  nextUpdate = nextUpdate1Val;
 } else {
   // Sudah sampai atau lewat nextUpdate1 — buat siklus baru
   console.log("🔄 [AED] Sudah mencapai/lewati nextUpdate1, mulai loop perpanjangan...");
@@ -178,13 +179,13 @@ if (new Date(nowUTC) < new Date(nextUpdate1Val)) {
 
     console.log("➕ [AED] Meta nextUpdate baru ditambahkan:", iso);
   }
-}
-
-// Ambil nextUpdate terakhir (paling baru)
+ // Ambil nextUpdate terakhir (paling baru)
 const finalNextUpdate = normalizeToMidnightUTC(nextUpdateDate.toISOString());
 nextUpdate = finalNextUpdate;
+}
 
-console.log("✅ [AED] Final nextUpdate aktif:", finalNextUpdate);
+
+console.log("✅ [AED] Final nextUpdate aktif:", nextUpdate);
 
 // ---------- Sinkronisasi dateModified ----------
 try {
