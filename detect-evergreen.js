@@ -189,7 +189,7 @@ console.log("✅ [AED] Final nextUpdate aktif:", nextUpdate);
 
 // ---------- Sinkronisasi dateModified ----------
 try {
-  const expectedDateModified = new Date(new Date(finalNextUpdate).getTime() - validityMs);
+  const expectedDateModified = new Date(new Date(nextUpdate).getTime() - validityMs);
   const expectedISO = normalizeToMidnightUTC(expectedDateModified.toISOString());
 
   if (dateModified !== expectedISO) {
