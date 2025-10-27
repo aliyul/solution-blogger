@@ -124,7 +124,9 @@ const datePublished = metaDatePublished?.getAttribute("content") || nowUTC;
 
 // Ambil nilai awal dari nextUpdate1 (harus selalu ada sebagai baseline)
 let nextUpdate1Val = metaNextUpdate1 ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content")) : null;
+let nextUpdate;
 
+nextUpdate = nextUpdate1Val;
 // Pastikan metaNextUpdate1 ada
 if (!metaNextUpdate1 || !nextUpdate1Val) {
   console.warn("⚠️ [AED] Meta nextUpdate1 tidak ditemukan atau tidak valid!");
@@ -148,6 +150,8 @@ if (!lastMeta) {
 }
 
 let nextUpdateDate = new Date(lastUpdateVal);
+nextUpdate = nextUpdateDate;
+
 
 // Jika sekarang belum sampai ke nextUpdate1
 if (new Date(nowUTC) < new Date(nextUpdate1Val)) {
@@ -175,6 +179,8 @@ if (new Date(nowUTC) < new Date(nextUpdate1Val)) {
 
 // Ambil nextUpdate terakhir (paling baru)
 const finalNextUpdate = normalizeToMidnightUTC(nextUpdateDate.toISOString());
+nextUpdate = finalNextUpdate;
+
 console.log("✅ [AED] Final nextUpdate aktif:", finalNextUpdate);
 
 // ---------- Sinkronisasi dateModified ----------
@@ -190,6 +196,7 @@ try {
       document.head.appendChild(metaDateModified);
     }
     metaDateModified.setAttribute("content", expectedISO);
+    dateModified = expectedISO;
     console.log("🕒 [AED Sync] dateModified disinkronkan:", expectedISO);
   } else {
     console.log("✅ [AED Sync] dateModified sudah sinkron:", expectedISO);
@@ -276,10 +283,10 @@ try {
       }
 
       // Jadikan nextUpdate lama sebagai dateModified baru
-      const dateModified = normalizeToMidnightUTC(new Date(storedNextUpdateStr));
+      dateModified = normalizeToMidnightUTC(new Date(storedNextUpdateStr));
 
       // Hitung next update berikutnya dari nextUpdate lama
-      const nextUpdate = normalizeToMidnightUTC(
+      nextUpdate = normalizeToMidnightUTC(
         new Date(new Date(storedNextUpdateStr).getTime() + validityDaysFinal * 86400000)
       );
 
