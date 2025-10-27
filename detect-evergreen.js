@@ -344,7 +344,7 @@ try {
   window.AEDMetaDates = {
     dateModified,
     datePublished,
-    nextUpdate: nextUpdate ? nextUpdate.toISOString().split("T")[0] : null,
+    nextUpdate: nextUpdate ? nextUpdate : null,
     type: finalType
   };
 
