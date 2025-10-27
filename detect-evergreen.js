@@ -127,6 +127,9 @@ let nextUpdate1Val = metaNextUpdate1 ? normalizeToMidnightUTC(metaNextUpdate1.ge
 let nextUpdate;
 
 nextUpdate = nextUpdate1Val;
+
+console.log("🆕 [AED] Meta nextUpdate:", nextUpdate);
+
 // Pastikan metaNextUpdate1 ada
 if (!metaNextUpdate1 || !nextUpdate1Val) {
   console.warn("⚠️ [AED] Meta nextUpdate1 tidak ditemukan atau tidak valid!");
