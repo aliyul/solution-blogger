@@ -260,103 +260,104 @@ detectEvergreen();
       console.log("📅 Published:", datePublished);
       console.log("🕓 Modified:", dateModified);
       if (window.AEDMetaDates && typeof window.AEDMetaDates === "object") {
-      ({ datePublished, dateModified } = window.AEDMetaDates);
-    }
-    
-        console.log("[AED] Type:", type, "Score:", aiScore);
-    console.log("📅 datePublished:", datePublished, "dateModified:", dateModified);
-
-     // ===================== DASHBOARD HANYA UNTUK ADMIN =====================
-    const isAdminDebug = window.location.search.includes("debug");
-    if (!isAdminDebug) {
-      console.log("🛡️ AED Dashboard disembunyikan (mode publik). Tambahkan '?debug' untuk admin view.");
-      return; // keluar agar dashboard tidak dirender
-    }
-    // ===================== DASHBOARD =====================
-    const dash = document.createElement("div");
-    dash.id = "AEDDashboard";
-    dash.setAttribute("data-nosnippet", "true");
-    dash.style.cssText = `
-      max-width:1200px;margin:30px auto;padding:15px;
-      background:#f0f8ff;border-top:3px solid #0078ff;
-      font-family:Arial,sans-serif;border-radius:10px;
-    `;
-
-    const h3 = document.createElement("h3");
-    h3.textContent = "📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman";
-    dash.appendChild(h3);
-
-    const btns = document.createElement("div");
-    btns.style.textAlign = "center";
-    btns.style.marginBottom = "10px";
-
-    const mkBtn = (t, bg) => {
-      const b = document.createElement("button");
-      b.textContent = t;
-      b.style.cssText = `background:${bg};padding:6px 12px;margin:3px;border:none;border-radius:4px;cursor:pointer;`;
-      return b;
-    };
-
-    const show = mkBtn("📊 Lihat Tabel", "#d1e7dd"),
-          rep = mkBtn("📥 Unduh Laporan", "#f3f3f3");
-    btns.append(show, rep);
-    dash.appendChild(btns);
-
-    const tbl = document.createElement("div");
-    tbl.style.overflowX = "auto";
-    tbl.style.display = "none";
-    tbl.innerHTML = `
-      <table style="width:100%;border-collapse:collapse;min-width:1000px;font-size:.9em;">
-        <thead>
-          <tr><th>Halaman</th><th>Status</th><th>Tanggal Diperbarui</th><th>H1</th><th>Skor</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>${document.title}</td>
-            <td>${type}</td>
-            <td>${dateModified}</td>
-            <td>${h1R}</td>
-            <td>${aiScore}/100</td>
-          </tr>
-        </tbody>
-      </table>
-    `;
-    dash.appendChild(tbl);
-
-    const mainArea = document.querySelector("main") || document.body;
-    mainArea.appendChild(dash);
-
-    show.onclick = () => {
-      tbl.style.display = tbl.style.display === "none" ? "block" : "none";
-    };
-    rep.onclick = () => {
-      const txtRpt = `AED Ultra KMPTTF REPORT
-Halaman: ${document.title}
-Status: ${type}
-Tanggal Update: ${dateModified}
-Skor: ${aiScore}
-URL: ${location.href}`;
-      const blob = new Blob([txtRpt], { type: "text/plain" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "AED_Report_" + document.title.replace(/\s+/g, "_") + ".txt";
-      a.click();
-    };
-
-    const st = document.createElement("style");
-    st.textContent = `
-      @media(max-width:768px){
-        table th,td{padding:4px;font-size:.8em;}
-        table{min-width:700px;}
+        ({ datePublished, dateModified } = window.AEDMetaDates);
       }
-      table th,td{border:1px solid #ccc;padding:6px;text-align:left;}
-      thead{background:#dff0ff;position:sticky;top:0;}
-    `;
-    document.head.appendChild(st);
+      console.log("[AED] Type:", type, "Score:", aiScore);
+      console.log("📅 datePublished:", datePublished, "dateModified:", dateModified);
+  
+       // ===================== DASHBOARD HANYA UNTUK ADMIN =====================
+      const isAdminDebug = window.location.search.includes("debug");
+      if (!isAdminDebug) {
+        console.log("🛡️ AED Dashboard disembunyikan (mode publik). Tambahkan '?debug' untuk admin view.");
+        return; // keluar agar dashboard tidak dirender
+      }
+      // ===================== DASHBOARD =====================
+      const dash = document.createElement("div");
+      dash.id = "AEDDashboard";
+      dash.setAttribute("data-nosnippet", "true");
+      dash.style.cssText = `
+        max-width:1200px;margin:30px auto;padding:15px;
+        background:#f0f8ff;border-top:3px solid #0078ff;
+        font-family:Arial,sans-serif;border-radius:10px;
+      `;
+  
+      const h3 = document.createElement("h3");
+      h3.textContent = "📊 AED Ultra KMPTTF Dashboard — Ringkasan Halaman";
+      dash.appendChild(h3);
+  
+      const btns = document.createElement("div");
+      btns.style.textAlign = "center";
+      btns.style.marginBottom = "10px";
+  
+      const mkBtn = (t, bg) => {
+        const b = document.createElement("button");
+        b.textContent = t;
+        b.style.cssText = `background:${bg};padding:6px 12px;margin:3px;border:none;border-radius:4px;cursor:pointer;`;
+        return b;
+      };
+  
+      const show = mkBtn("📊 Lihat Tabel", "#d1e7dd"),
+            rep = mkBtn("📥 Unduh Laporan", "#f3f3f3");
+      btns.append(show, rep);
+      dash.appendChild(btns);
+  
+      const tbl = document.createElement("div");
+      tbl.style.overflowX = "auto";
+      tbl.style.display = "none";
+      tbl.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;min-width:1000px;font-size:.9em;">
+          <thead>
+            <tr><th>Halaman</th><th>Status</th><th>Tanggal Diperbarui</th><th>H1</th><th>Skor</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>${document.title}</td>
+              <td>${type}</td>
+              <td>${dateModified}</td>
+              <td>${h1R}</td>
+              <td>${aiScore}/100</td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+      dash.appendChild(tbl);
+  
+      const mainArea = document.querySelector("main") || document.body;
+      mainArea.appendChild(dash);
+  
+      show.onclick = () => {
+        tbl.style.display = tbl.style.display === "none" ? "block" : "none";
+      };
+      rep.onclick = () => {
+        const txtRpt = `AED Ultra KMPTTF REPORT
+  Halaman: ${document.title}
+  Status: ${type}
+  Tanggal Update: ${dateModified}
+  Skor: ${aiScore}
+  URL: ${location.href}`;
+        const blob = new Blob([txtRpt], { type: "text/plain" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "AED_Report_" + document.title.replace(/\s+/g, "_") + ".txt";
+        a.click();
+      };
+  
+      const st = document.createElement("style");
+      st.textContent = `
+        @media(max-width:768px){
+          table th,td{padding:4px;font-size:.8em;}
+          table{min-width:700px;}
+        }
+        table th,td{border:1px solid #ccc;padding:6px;text-align:left;}
+        thead{background:#dff0ff;position:sticky;top:0;}
+      `;
+      document.head.appendChild(st);
+  
+      console.log("✅ AED v8.3.2R Ultra KMPTTF aktif — dashboard responsif stabil.");
+      });
 
-    console.log("✅ AED v8.3.2R Ultra KMPTTF aktif — dashboard responsif stabil.");
-    });
-    
+    }
+        
   } catch (e) {
     console.error("❌ AED v8.3.2R Error:", e);
   }
