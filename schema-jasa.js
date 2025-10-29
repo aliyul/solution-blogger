@@ -189,7 +189,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       // === 🕒 Ambil tanggal validUntil dari AEDMetaDates jika ada ===
       //let validUntil = autoPriceValidUntil; // default fallback
       // === 🕒 Ambil tanggal validUntil dari AEDMetaDates jika ada ===
-    let validUntil = ""; // 🩵 deklarasi awal supaya tidak undefined
+   // let validUntil = ""; // 🩵 deklarasi awal supaya tidak undefined
     waitForAEDMetaDates(({ nextUpdate }) => {
       console.log("📅 nextUpdate:", nextUpdate);
       validUntil = nextUpdate;
