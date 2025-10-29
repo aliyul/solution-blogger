@@ -184,7 +184,15 @@ document.addEventListener("DOMContentLoaded", async function () {
       //let validUntil = autoPriceValidUntil; // default fallback
       // === 🕒 Ambil tanggal validUntil dari AEDMetaDates jika ada ===
     let validUntil = ""; // 🩵 deklarasi awal supaya tidak undefined
+    waitForAEDMetaDates(({ nextUpdate }) => {
+      console.log("📅 nextUpdate:", nextUpdate);
+    
+        let validUntil = "";
+        validUntil = nextUpdate.toISOString().split("T")[0];
+    
+      }
 
+/*
     try {
       if (window.AEDMetaDates?.nextUpdate) {
         // Gunakan nextUpdate dari deteksi evergreen
@@ -206,6 +214,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       fallback.setDate(fallback.getDate() + 90);
       validUntil = fallback.toISOString().split("T")[0];
     }
+    */
     
     console.log("✅ [AED] validUntil:", validUntil);
     
