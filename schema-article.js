@@ -535,7 +535,7 @@ if(schemaPost){
     datePublished: new Date().toISOString().split("T")[0],
     dateModified: new Date().toISOString().split("T")[0]
   };
-
+  console.log(`dateModified: ${dateModified}, datePublished: ${datePublished}`);
   const postSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
