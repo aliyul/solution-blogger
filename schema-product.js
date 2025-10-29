@@ -143,13 +143,7 @@ const ManufacturMatch = text.match(
       seenItems.add(k);
       waitForAEDMetaDates(({ nextUpdate }) => {
         console.log("📅 nextUpdate:", nextUpdate);
-      
-        if (nextUpdate) {
-          const validUntil = new Date(nextUpdate).toISOString().split("T")[0];
-          console.log("✅ validUntil:", validUntil);
-        } else {
-          console.warn("⚠️ nextUpdate belum tersedia!");
-        }
+        validUntil = nextUpdate;
       });
                    
 
