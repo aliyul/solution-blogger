@@ -132,11 +132,7 @@ detectEvergreen();
     return date.toISOString().split("T")[0];
   }
 
-  const { datePublished, dateModified, priceValidUntil } = window.AEDMetaDates || {
-    datePublished: convertToWIB(new Date().toISOString()),
-    dateModified: convertToWIB(new Date().toISOString()),
-    priceValidUntil: convertToWIB(new Date(Date.now() + 1000 * 60 * 60 * 24 * 180)) // default 6 bulan
-  };
+  
 
   // ===================== CONFIG =====================
   const CONFIG = {
