@@ -193,10 +193,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     waitForAEDMetaDates(({ nextUpdate }) => {
       console.log("📅 nextUpdate:", nextUpdate);
     
-        let validUntil = "";
-        validUntil = nextUpdate.toISOString().split("T")[0];
+      let validUntil = "";
+      validUntil = nextUpdate.toISOString().split("T")[0];
     
-      }
+    });
+
 
 /*
     try {
