@@ -194,7 +194,7 @@ document.addEventListener("DOMContentLoaded", async function () {
       console.log("📅 nextUpdate:", nextUpdate);
     
       let validUntil = "";
-      validUntil = nextUpdate.toISOString().split("T")[0];
+      validUntil = nextUpdate;
     
     });
 
