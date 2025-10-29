@@ -532,8 +532,8 @@ if(oldHash && oldHash == currentHash){
 const schemaPost = document.getElementById("auto-schema");
 if(schemaPost){
   const { datePublished, dateModified } = window.AEDMetaDates || {
-    datePublished: new Date().toISOString().split("T")[0],
-    dateModified: new Date().toISOString().split("T")[0]
+    datePublished: new Date().toISOString(), //.split("T")[0],
+    dateModified: new Date().toISOString() //.split("T")[0]
   };
   console.log(`dateModified: ${dateModified}, datePublished: ${datePublished}`);
   const postSchema = {
@@ -561,8 +561,8 @@ if(schemaPost){
   const schemaStatic = document.getElementById("auto-schema-static-page");
   if(schemaStatic){
     const { datePublished, dateModified } = window.AEDMetaDates || {
-    datePublished: new Date().toISOString().split("T")[0],
-    dateModified: new Date().toISOString().split("T")[0]
+    datePublished: new Date().toISOString(), //.split("T")[0],
+    dateModified: new Date().toISOString() //.split("T")[0]
   };
     const staticSchema = {
       "@context": "https://schema.org",
