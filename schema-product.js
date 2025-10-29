@@ -14,6 +14,13 @@ document.addEventListener("DOMContentLoaded", async function () {
     const metaDesc = document.querySelector('meta[name="description"]')?.content?.trim();
     const desc = metaDesc || Array.from(document.querySelectorAll("p")).map(p => p.innerText.trim()).join(" ").substring(0, 300);
 
+    function waitForAEDMetaDates(callback) {
+      if (window.AEDMetaDates) {
+        callback(window.AEDMetaDates);
+      } else {
+        setTimeout(() => waitForAEDMetaDates(callback), 100);
+      }
+    }
     // === 2️⃣ SMART MULTI isPartOf DETECTION ===
     function detectParentUrls() {
       const urls = new Set();
@@ -134,16 +141,15 @@ const ManufacturMatch = text.match(
       const k = finalName + "|" + key + "|" + price;
       if (seenItems.has(k)) return;
       seenItems.add(k);
+      waitForAEDMetaDates(({ nextUpdate }) => {
+      console.log("📅 nextUpdate:", nextUpdate);
     
-      let validUntil = "";
-      try {
-        if (window.AEDMetaDates && window.AEDMetaDates.nextUpdate) {
-          validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
-        }
-      } catch (err) {
-        console.warn("[Offer Builder] Gagal ambil AEDMetaDates:", err);
+        let validUntil = "";
+        validUntil = nextUpdate.toISOString().split("T")[0];
+    
       }
-    
+
+      
       tableOffers.push({
         "@type": "Offer",
         "name": finalName,
