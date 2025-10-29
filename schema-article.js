@@ -1,6 +1,21 @@
 document.addEventListener("DOMContentLoaded", function() {
   console.log("Universal Auto-schema & Content Detection running 🚀");
 
+  function waitForAEDMetaDates(callback) {
+  if (window.AEDMetaDates) {
+    callback(window.AEDMetaDates);
+  } else {
+    setTimeout(() => waitForAEDMetaDates(callback), 100);
+  }
+}
+
+// contoh panggilan:
+waitForAEDMetaDates((meta) => {
+  console.log("✅ AEDMetaDates ready:", meta);
+  console.log("📅 Published:", meta.datePublished);
+});
+
+
   // ================== Utils ==================
   function cleanText(str){
     if(!str) return "";
@@ -251,11 +266,6 @@ detectEvergreen();
     
     if (window.AEDMetaDates && typeof window.AEDMetaDates === "object") {
       ({ datePublished, dateModified } = window.AEDMetaDates);
-    } else {
-      const metaPub = document.querySelector('meta[itemprop="datePublished"]');
-      const metaMod = document.querySelector('meta[itemprop="dateModified"]');
-      datePublished = metaPub ? metaPub.getAttribute("content") : "(not set)";
-      dateModified = metaMod ? metaMod.getAttribute("content") : "(not set)";
     }
     
         console.log("[AED] Type:", type, "Score:", aiScore);
