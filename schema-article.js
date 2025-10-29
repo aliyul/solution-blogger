@@ -257,7 +257,7 @@ detectEvergreen();
     const aiScore = result.score;
     let datePublished, dateModified;
     waitForAEDMetaDates(({ datePublished, dateModified }) => {
-      console.log("📅 Published:", datePublished);
+          console.log("📅 Published:", datePublished);
       console.log("🕓 Modified:", dateModified);
       if (window.AEDMetaDates && typeof window.AEDMetaDates === "object") {
         ({ datePublished, dateModified } = window.AEDMetaDates);
@@ -355,8 +355,6 @@ detectEvergreen();
   
       console.log("✅ AED v8.3.2R Ultra KMPTTF aktif — dashboard responsif stabil.");
       });
-
-    }
         
   } catch (e) {
     console.error("❌ AED v8.3.2R Error:", e);
