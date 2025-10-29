@@ -547,10 +547,10 @@ if(schemaPost){
       console.log("🕓 Modified:", dateModified);
   });
    const { datePublished, dateModified } = window.AEDMetaDates || {};
-  if (datePublished) {
-    console.log("✅ Ada datePublished:", datePublished);
+  if (dateModified) {
+    console.log("✅ Ada dateModified:", dateModified);
   } else {
-    console.log("❌ Belum ada datePublished");
+    console.log("❌ Belum ada dateModified");
   }
 
  // console.log(`dateModified: ${dateModified}, datePublished: ${datePublished}`);
