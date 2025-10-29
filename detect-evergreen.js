@@ -387,7 +387,7 @@ function updateArticleDates() {
   }
 
   // 🔄 Simpan ulang ke global
-  window.AEDMetaDates = { dateModified: dateModifiedStr, nextUpdate: nextUpdateStr, type };
+  window.AEDMetaDates = { datePublished: datePublished, dateModified: dateModifiedStr, nextUpdate: nextUpdateStr, type };
 
   console.log("🧩 updateArticleDates() loaded:", window.AEDMetaDates);
 
