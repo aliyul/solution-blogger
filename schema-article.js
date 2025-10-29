@@ -527,11 +527,9 @@ if(oldHash && oldHash == currentHash){
  // ===== POST =====
 const schemaPost = document.getElementById("auto-schema");
 if(schemaPost){
-  const { datePublished, dateModified } = window.AEDMetaDates || {
-    datePublished: new Date().toISOString(), //.split("T")[0],
-    dateModified: new Date().toISOString() //.split("T")[0]
-  };
-  console.log(`dateModified: ${dateModified}, datePublished: ${datePublished}`);
+  const { datePublished, dateModified } = window.AEDMetaDates 
+ // console.log(`dateModified: ${dateModified}, datePublished: ${datePublished}`);
+  console.log("📅 datePublished Post:", datePublished, "dateModified Post:", dateModified);
   const postSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -556,10 +554,8 @@ if(schemaPost){
   // ===== STATIC PAGE =====
   const schemaStatic = document.getElementById("auto-schema-static-page");
   if(schemaStatic){
-    const { datePublished, dateModified } = window.AEDMetaDates || {
-    datePublished: new Date().toISOString(), //.split("T")[0],
-    dateModified: new Date().toISOString() //.split("T")[0]
-  };
+  const { datePublished, dateModified } = window.AEDMetaDates 
+  console.log("📅 datePublished Page:", datePublished, "dateModified Page:", dateModified);
     const staticSchema = {
       "@context": "https://schema.org",
       "@type": "Article",
