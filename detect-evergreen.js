@@ -364,6 +364,7 @@ function updateArticleDates() {
   document.querySelectorAll(".aed-date-span, .aed-non-evergreen-date").forEach(el => el.remove());
 
   // 🧩 --- Ambil data meta langsung dari DOM ---
+ const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
  const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   const metaNextUpdate = document.querySelector('meta[name="nextUpdate"]');
   const metaType = document.querySelector('meta[itemprop="evergreenType"]'); // optional
@@ -372,7 +373,8 @@ function updateArticleDates() {
     console.warn("⚠️ Meta dateModified atau nextUpdate tidak ditemukan");
     return;
   }
-
+ 
+  let datePublishedStr = metaDatePublished.getAttribute("content");
   let dateModifiedStr = metaDateModified.getAttribute("content");
   let nextUpdateStr = metaNextUpdate.getAttribute("content");
   let type = metaType ? metaType.getAttribute("content") : "semi-evergreen";
@@ -381,13 +383,14 @@ function updateArticleDates() {
   // 💡 Jika window.AEDMetaDates sudah ada, prioritaskan nilai terbarunya
   if (window.AEDMetaDates) {
     const d = window.AEDMetaDates;
+    if (d.datePublished) datePublishedStr = d.datePublished;
     if (d.dateModified) dateModifiedStr = d.dateModified;
     if (d.nextUpdate) nextUpdateStr = d.nextUpdate;
     if (d.type) type = d.type;
   }
 
   // 🔄 Simpan ulang ke global
-  window.AEDMetaDates = { datePublished: datePublished, dateModified: dateModifiedStr, nextUpdate: nextUpdateStr, type };
+  window.AEDMetaDates = { datePublished: datePublishedStr, dateModified: dateModifiedStr, nextUpdate: nextUpdateStr, type };
 
   console.log("🧩 updateArticleDates() loaded:", window.AEDMetaDates);
 
