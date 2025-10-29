@@ -192,8 +192,6 @@ document.addEventListener("DOMContentLoaded", async function () {
     let validUntil = ""; // 🩵 deklarasi awal supaya tidak undefined
     waitForAEDMetaDates(({ nextUpdate }) => {
       console.log("📅 nextUpdate:", nextUpdate);
-    
-      let validUntil = "";
       validUntil = nextUpdate;
     
     });
