@@ -39,7 +39,13 @@ document.addEventListener("DOMContentLoaded", async function () {
           ]
         }
       };
-
+    function waitForAEDMetaDates(callback) {
+      if (window.AEDMetaDates) {
+        callback(window.AEDMetaDates);
+      } else {
+        setTimeout(() => waitForAEDMetaDates(callback), 100);
+      }
+    }
       // === 2️⃣ SMART MULTI isPartOf DETECTION ===
       function detectParentUrls() {
         const urls = new Set();
