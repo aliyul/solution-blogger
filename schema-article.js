@@ -247,16 +247,18 @@ detectEvergreen();
     const result = detectEvergreen(h1R, txt, urlRaw);
     const type = result.status;
     const aiScore = result.score;
-    if (window.AEDMetaDates) {
-      const { datePublished, dateModified } = window.AEDMetaDates;
+    let datePublished, dateModified;
+    
+    if (window.AEDMetaDates && typeof window.AEDMetaDates === "object") {
+      ({ datePublished, dateModified } = window.AEDMetaDates);
+    } else {
+      const metaPub = document.querySelector('meta[itemprop="datePublished"]');
+      const metaMod = document.querySelector('meta[itemprop="dateModified"]');
+      datePublished = metaPub ? metaPub.getAttribute("content") : "(not set)";
+      dateModified = metaMod ? metaMod.getAttribute("content") : "(not set)";
     }
-
-   /* const metaPub = document.querySelector('meta[itemprop="datePublished"]');
-    const metaMod = document.querySelector('meta[itemprop="dateModified"]');
-    const datePublished = metaPub ? metaPub.getAttribute("content") : "(not set)";
-    const dateModified = metaMod ? metaMod.getAttribute("content") : "(not set)";
-    */
-    console.log("[AED] Type:", type, "Score:", aiScore);
+    
+        console.log("[AED] Type:", type, "Score:", aiScore);
     console.log("📅 datePublished:", datePublished, "dateModified:", dateModified);
 
      // ===================== DASHBOARD HANYA UNTUK ADMIN =====================
