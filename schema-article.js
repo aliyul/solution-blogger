@@ -530,7 +530,15 @@ if(oldHash && oldHash == currentHash){
  // ===== POST =====
 const schemaPost = document.getElementById("auto-schema");
 if(schemaPost){
-  const { datePublished, dateModified } = window.AEDMetaDates 
+//  const { datePublished, dateModified } = window.AEDMetaDates;
+  const { datePublished, dateModified } = window.AEDMetaDates || {};
+  
+  if (datePublished) {
+    console.log("✅ Ada datePublished:", datePublished);
+  } else {
+    console.log("❌ Belum ada datePublished");
+  }
+
  // console.log(`dateModified: ${dateModified}, datePublished: ${datePublished}`);
   console.log("📅 datePublished Post:", datePublished, "dateModified Post:", dateModified);
   const postSchema = {
@@ -557,7 +565,14 @@ if(schemaPost){
   // ===== STATIC PAGE =====
   const schemaStatic = document.getElementById("auto-schema-static-page");
   if(schemaStatic){
-  const { datePublished, dateModified } = window.AEDMetaDates 
+  //const { datePublished, dateModified } = window.AEDMetaDates 
+   const { datePublished, dateModified } = window.AEDMetaDates || {};
+    if (datePublished) {
+        console.log("✅ Ada datePublished:", datePublished);
+      } else {
+        console.log("❌ Belum ada datePublished");
+      }
+
   console.log("📅 datePublished Page:", datePublished, "dateModified Page:", dateModified);
     const staticSchema = {
       "@context": "https://schema.org",
