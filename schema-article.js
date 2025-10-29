@@ -9,11 +9,6 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 }
 
-// contoh panggilan:
-waitForAEDMetaDates((meta) => {
-  console.log("✅ AEDMetaDates ready:", meta);
-  console.log("📅 Published:", meta.datePublished);
-});
 
 
   // ================== Utils ==================
@@ -263,7 +258,11 @@ detectEvergreen();
     const type = result.status;
     const aiScore = result.score;
     let datePublished, dateModified;
-    
+    waitForAEDMetaDates(({ datePublished, dateModified }) => {
+      console.log("📅 Published:", datePublished);
+      console.log("🕓 Modified:", dateModified);
+    });
+
     if (window.AEDMetaDates && typeof window.AEDMetaDates === "object") {
       ({ datePublished, dateModified } = window.AEDMetaDates);
     }
@@ -543,8 +542,11 @@ if(oldHash && oldHash == currentHash){
 const schemaPost = document.getElementById("auto-schema");
 if(schemaPost){
 //  const { datePublished, dateModified } = window.AEDMetaDates;
-  const { datePublished, dateModified } = window.AEDMetaDates || {};
-  
+  waitForAEDMetaDates(({ datePublished, dateModified }) => {
+      console.log("📅 Published:", datePublished);
+      console.log("🕓 Modified:", dateModified);
+  });
+   const { datePublished, dateModified } = window.AEDMetaDates || {};
   if (datePublished) {
     console.log("✅ Ada datePublished:", datePublished);
   } else {
@@ -578,6 +580,11 @@ if(schemaPost){
   const schemaStatic = document.getElementById("auto-schema-static-page");
   if(schemaStatic){
   //const { datePublished, dateModified } = window.AEDMetaDates 
+    
+  waitForAEDMetaDates(({ datePublished, dateModified }) => {
+      console.log("📅 Published:", datePublished);
+      console.log("🕓 Modified:", dateModified);
+  });
    const { datePublished, dateModified } = window.AEDMetaDates || {};
     if (datePublished) {
         console.log("✅ Ada datePublished:", datePublished);
