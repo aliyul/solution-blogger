@@ -9,8 +9,6 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 }
 
-
-
   // ================== Utils ==================
   function cleanText(str){
     if(!str) return "";
@@ -545,35 +543,36 @@ if(schemaPost){
   waitForAEDMetaDates(({ datePublished, dateModified }) => {
       console.log("📅 Published:", datePublished);
       console.log("🕓 Modified:", dateModified);
+     
+     // console.log(`dateModified: ${dateModified}, datePublished: ${datePublished}`);
+      console.log("📅 datePublished Post:", datePublished, "dateModified Post:", dateModified);
+      const postSchema = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "isAccessibleForFree": true,
+        "mainEntityOfPage": { "@type": "WebPage", "@id": url+"#webpage" },
+        "headline": escapeJSON(title),
+        "description": escapeJSON(descMeta),
+        "image": [firstImg],
+        "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
+        "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix", "logo": { "@type": "ImageObject", "url": firstImg } },
+        "datePublished": datePublished,
+        "dateModified": dateModified,
+        "articleSection": articleSectionStr,
+        "keywords": keywordsStr,
+        "wordCount": getArticleWordCount(content),
+        "articleBody": cleanText(content ? content.textContent : ""),
+        "inLanguage": "id-ID"
+      };
+      schemaPost.textContent = JSON.stringify(postSchema, null, 2);
+
   });
-   const { datePublished, dateModified } = window.AEDMetaDates || {};
+  /* const { datePublished, dateModified } = window.AEDMetaDates || {};
   if (dateModified) {
     console.log("✅ Ada dateModified:", dateModified);
   } else {
     console.log("❌ Belum ada dateModified");
-  }
-
- // console.log(`dateModified: ${dateModified}, datePublished: ${datePublished}`);
-  console.log("📅 datePublished Post:", datePublished, "dateModified Post:", dateModified);
-  const postSchema = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "isAccessibleForFree": true,
-    "mainEntityOfPage": { "@type": "WebPage", "@id": url+"#webpage" },
-    "headline": escapeJSON(title),
-    "description": escapeJSON(descMeta),
-    "image": [firstImg],
-    "author": { "@type": "Organization", "name": "Beton Jaya Readymix" },
-    "publisher": { "@type": "Organization", "name": "Beton Jaya Readymix", "logo": { "@type": "ImageObject", "url": firstImg } },
-    "datePublished": datePublished,
-    "dateModified": dateModified,
-    "articleSection": articleSectionStr,
-    "keywords": keywordsStr,
-    "wordCount": getArticleWordCount(content),
-    "articleBody": cleanText(content ? content.textContent : ""),
-    "inLanguage": "id-ID"
-  };
-  schemaPost.textContent = JSON.stringify(postSchema, null, 2);
+  }*/
 }
 
   // ===== STATIC PAGE =====
@@ -584,15 +583,7 @@ if(schemaPost){
   waitForAEDMetaDates(({ datePublished, dateModified }) => {
       console.log("📅 Published:", datePublished);
       console.log("🕓 Modified:", dateModified);
-  });
-   const { datePublished, dateModified } = window.AEDMetaDates || {};
-    if (datePublished) {
-        console.log("✅ Ada datePublished:", datePublished);
-      } else {
-        console.log("❌ Belum ada datePublished");
-      }
-
-  console.log("📅 datePublished Page:", datePublished, "dateModified Page:", dateModified);
+    console.log("📅 datePublished Page:", datePublished, "dateModified Page:", dateModified);
     const staticSchema = {
       "@context": "https://schema.org",
       "@type": "Article",
@@ -612,6 +603,15 @@ if(schemaPost){
       "inLanguage": "id-ID"
     };
     schemaStatic.textContent = JSON.stringify(staticSchema, null, 2);
+
+  });
+  /* const { datePublished, dateModified } = window.AEDMetaDates || {};
+    if (datePublished) {
+        console.log("✅ Ada datePublished:", datePublished);
+      } else {
+        console.log("❌ Belum ada datePublished");
+      }
+    */
   }
 
   // ===== WEBPAGE =====
