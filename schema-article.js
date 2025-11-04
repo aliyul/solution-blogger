@@ -375,22 +375,21 @@ detectEvergreen();
 
 // =================== DASHBOARD FUNCTION ===================
 function showEvergreenDashboard() {
-  let AEDDashboardRendered = false;
-  const renderDashboard = data => {
-    if (AEDDashboardRendered) return;
-    AEDDashboardRendered = true;
+
+  // ✅ 1) Ambil hasil detector lalu simpan
   waitForEvergreenDetectorResults((data) => {
     console.log("📅 resultType:", data?.resultType);
-    if (window.EvergreenDetectorResults) 
-      renderDashboard(window.EvergreenDetectorResults);
+    window.EvergreenDetectorResults = data;
   });
-   console.log("📅 resultType:", resultType);
 
+  // ✅ 2) function untuk render dashboard
+  const renderDashboard = (data) => {
     if (!data || !Array.isArray(data.sections)) {
       console.warn("⚠️ EvergreenDetectorResults tidak valid atau belum siap.");
       return;
     }
 
+    // Normalisasi data
     data.sections = data.sections.map(s => ({
       section: s.section || "(tanpa judul)",
       sEver: typeof s.sEver === "number" ? s.sEver : 0,
@@ -400,25 +399,22 @@ function showEvergreenDashboard() {
       validityDays: typeof s.validityDays === "number" ? s.validityDays : "-",
       sectionAdvice: s.sectionAdvice || "-"
     }));
- // ===================== DASHBOARD HANYA UNTUK ADMIN =====================
+
+    // Admin mode
     const isAdminDebug = window.location.search.includes("debug");
     if (!isAdminDebug) {
-      console.log("🛡️ AED Dashboard disembunyikan (mode publik). Tambahkan '?debug' untuk admin view.");
-      return; // keluar agar dashboard tidak dirender
+      console.log("🛡️ AED Dashboard disembunyikan. Gunakan ?debug untuk lihat.");
+      return;
     }
+
+    // Build UI
     const wrap = document.createElement("div");
     wrap.id = "EvergreenDashboard";
     wrap.setAttribute("data-nosnippet", "true");
     wrap.style.cssText = `
-      max-width:1200px;
-      margin:20px auto;
-      padding:10px;
-      background:#f8fbff;
-      border-top:4px solid #0066cc;
-      border-radius:12px;
-      box-shadow:0 2px 8px rgba(0,0,0,.1);
-      font-family:system-ui;
-      overflow-x:auto;
+      max-width:1200px;margin:20px auto;padding:10px;background:#f8fbff;
+      border-top:4px solid #0066cc;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);
+      font-family:system-ui;overflow-x:auto;
     `;
 
     wrap.innerHTML = `
@@ -430,10 +426,8 @@ function showEvergreenDashboard() {
       </p>
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
         <thead style="position:sticky;top:0;background:#eaf3ff;z-index:1;">
-          <tr>
-            <th>Bagian</th><th>Ever</th><th>Semi</th><th>Non</th>
-            <th>Status</th><th>Review (hari)</th><th>Saran</th>
-          </tr>
+          <tr><th>Bagian</th><th>Ever</th><th>Semi</th><th>Non</th>
+          <th>Status</th><th>Review (hari)</th><th>Saran</th></tr>
         </thead>
         <tbody>
           ${data.sections.map(s => `
@@ -455,22 +449,23 @@ function showEvergreenDashboard() {
       <p style="text-align:center;margin-top:12px;">${data.advice || ""}</p>
     `;
 
-    // Tempatkan dashboard di bawah #AEDDashboard jika ada
     const anchor = document.querySelector("#AEDDashboard");
-    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
+    if (anchor?.parentNode) anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
     else document.body.appendChild(wrap);
   };
 
+  // ✅ 3) Tunggu sampai data siap lalu render
   const waitForResults = () => {
     if (window.EvergreenDetectorResults) {
       renderDashboard(window.EvergreenDetectorResults);
     } else {
-      setTimeout(waitForResults, 500);
+      setTimeout(waitForResults, 300);
     }
   };
 
   waitForResults();
 }
+
 
 // 🔍 Jalankan otomatis
 showEvergreenDashboard();
