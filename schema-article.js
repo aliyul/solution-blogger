@@ -366,6 +366,23 @@ detectEvergreen();
 
 })(window, document);
 
+  // ✅ AED v10+ output hook
+if (window.AED && typeof window.AED.getFinalResult === "function") {
+  const finalData = window.AED.getFinalResult();
+  window.AED_GLOBAL = finalData;
+  console.log("✅ AED v10+ Result Stored → window.AED_GLOBAL", finalData);
+}
+
+// ✅ Trigger event untuk versi lama
+window.dispatchEvent(new CustomEvent("EvergreenDetectorDone", { 
+  detail: window.AED_GLOBAL 
+}));
+
+// ✅ Callback legacy AED v6–v9
+if (typeof window.onEvergreenDetectorFinished === "function") {
+  window.onEvergreenDetectorFinished(window.AED_GLOBAL);
+}
+
 // =================== DASHBOARD FUNCTION ===================
 function showEvergreenDashboard() {
 
