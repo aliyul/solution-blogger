@@ -366,27 +366,11 @@ detectEvergreen();
 
 })(window, document);
 
-  // ✅ AED v10+ output hook
-if (window.AED && typeof window.AED.getFinalResult === "function") {
-  const finalData = window.AED.getFinalResult();
-  window.AED_GLOBAL = finalData;
-  console.log("✅ AED v10+ Result Stored → window.AED_GLOBAL", finalData);
-}
-
-// ✅ Trigger event untuk versi lama
-window.dispatchEvent(new CustomEvent("EvergreenDetectorDone", { 
-  detail: window.AED_GLOBAL 
-}));
-
-// ✅ Callback legacy AED v6–v9
-if (typeof window.onEvergreenDetectorFinished === "function") {
-  window.onEvergreenDetectorFinished(window.AED_GLOBAL);
-}
 
 // =================== DASHBOARD FUNCTION ===================
 function showEvergreenDashboard() {
 
-  // ✅ ambil data dari engine baru AED v10+
+  // ✅ Ambil data AED v10+
   function getAEDDataNew() {
     if (!window.AED_GLOBAL) return null;
 
@@ -396,14 +380,13 @@ function showEvergreenDashboard() {
       dateModified: window.AEDMetaDates?.dateModified || "-",
       datePublished: window.AEDMetaDates?.datePublished || "-",
       nextUpdate: window.AED_GLOBAL.nextUpdate || "-", // ✅ sudah string
-      sections: window.AED_GLOBAL.sections || [],
+      sections: Array.isArray(window.AED_GLOBAL.sections) ? window.AED_GLOBAL.sections : [],
       advice: window.AED_GLOBAL.advice || ""
     };
   }
 
-  // ✅ fallback untuk script evergreen lama
+  // ✅ Fallback AED lama
   function getAEDDataOld(callback) {
-    // tunggu fungsi detector lama muncul
     if (typeof waitForEvergreenDetectorResults !== "function") {
       setTimeout(() => getAEDDataOld(callback), 200);
       return;
@@ -416,23 +399,18 @@ function showEvergreenDashboard() {
         dateModified: _data.dateModified || _data._dateModifiedFinal,
         datePublished: _data.datePublished || _data._datePublishedFinal,
         nextUpdate: _data.nextUpdate || _data.storedNextUpdateStr,
-        sections: _data.sections || _data.changedSections || [],
+        sections: Array.isArray(_data.sections) ? _data.sections : (_data.changedSections || []),
         advice: _data.advice || ""
       };
       callback(data);
     });
   }
 
-  // ✅ renderer
+  // ✅ Renderer
   function renderDashboard(data) {
-    if (!data) {
-      console.warn("⚠️ AED Dashboard: no data yet...");
-      return;
-    }
+    if (!data) return console.warn("⚠️ AED Dashboard: no data yet...");
 
-    if (!Array.isArray(data.sections)) data.sections = [];
-
-    data.sections = data.sections.map(s => ({
+    data.sections = (data.sections || []).map(s => ({
       section: s.section || "(tanpa judul)",
       sEver: Number(s.sEver) || 0,
       sSemi: Number(s.sSemi) || 0,
@@ -443,7 +421,7 @@ function showEvergreenDashboard() {
     }));
 
     if (!window.location.search.includes("debug")) {
-      console.log("🛡️ AED Dashboard hidden — add ?debug to URL");
+      console.log("🛡️ AED Dashboard hidden — add ?debug");
       return;
     }
 
@@ -466,6 +444,7 @@ function showEvergreenDashboard() {
         <b>Terakhir Ubah:</b> ${data.dateModified || "-"} |
         <b>Next Update:</b> ${data.nextUpdate || "-"}
       </p>
+
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
         <thead style="position:sticky;top:0;background:#eaf3ff;z-index:1;">
           <tr><th>Bagian</th><th>Ever</th><th>Semi</th><th>Non</th>
@@ -485,18 +464,21 @@ function showEvergreenDashboard() {
               }">${s.sectionType.toUpperCase()}</td>
               <td>${s.validityDays}</td>
               <td>${s.sectionAdvice}</td>
-            </tr>`).join("")}
+            </tr>
+          `).join("")}
         </tbody>
       </table>
+
       <p style="text-align:center;margin-top:12px;">${data.advice || ""}</p>
     `;
+
     document.body.appendChild(wrap);
   }
 
-  // ✅ load engine new → fallback old
+  // ✅ Try new → fallback old
   function loadAndRender() {
     const newData = getAEDDataNew();
-    if (newData && newData.resultType) {
+    if (newData?.resultType) {
       renderDashboard(newData);
       return;
     }
