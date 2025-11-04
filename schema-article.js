@@ -375,29 +375,28 @@ detectEvergreen();
 
 // =================== DASHBOARD FUNCTION ===================
 function showEvergreenDashboard() {
-    waitForEvergreenDetectorResults(({ resultType,
-    validityDays,
-    dateModified,
-    datePublished,
-    nextUpdate,
-    sections }) => {
-        console.log("📅 resultType:", resultType);
-       
-      });
+waitForEvergreenDetectorResults((data) => {
+    console.log("📅 resultType:", data?.resultType);
+    if (window.EvergreenDetectorResults) renderDashboard(window.EvergreenDetectorResults);
+  });
+   console.log("📅 resultType:", resultType);
+  let AEDDashboardRendered = false;
   const renderDashboard = data => {
+    if (AEDDashboardRendered) return;
+    AEDDashboardRendered = true;
+
     if (!data || !Array.isArray(data.sections)) {
       console.warn("⚠️ EvergreenDetectorResults tidak valid atau belum siap.");
       return;
     }
-   
-    // 🧹 Pastikan nilai skor aman dari undefined
+
     data.sections = data.sections.map(s => ({
       section: s.section || "(tanpa judul)",
       sEver: typeof s.sEver === "number" ? s.sEver : 0,
       sSemi: typeof s.sSemi === "number" ? s.sSemi : 0,
       sNon: typeof s.sNon === "number" ? s.sNon : 0,
-      sectionType: s.sectionType || "unknown",
-      validityDays: s.validityDays || 0,
+      sectionType: (s.sectionType || "unknown").toLowerCase(),
+      validityDays: typeof s.validityDays === "number" ? s.validityDays : "-",
       sectionAdvice: s.sectionAdvice || "-"
     }));
  // ===================== DASHBOARD HANYA UNTUK ADMIN =====================
