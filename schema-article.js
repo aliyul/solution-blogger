@@ -375,18 +375,20 @@ detectEvergreen();
       return window.EvergreenDetectorResults || null;
     }
 
-    function whenAEDReady(callback, tries = 0) {
-      if (window.EvergreenDetectorResults && window.EvergreenDetectorResults.sections !== undefined) {
-        callback(window.EvergreenDetectorResults);
+    function waitAED(callback, tries = 0) {
+      const data = window.EvergreenDetectorResults;
+
+      if (data && data.hasOwnProperty("sections")) {
+        callback(data);
       } else if (tries < 50) {
-        setTimeout(() => whenAEDReady(callback, tries + 1), 120);
+        setTimeout(() => waitAED(callback, tries + 1), 120);
       } else {
-        console.warn("⚠️ AED data belum tersedia setelah menunggu.");
+        console.warn("⚠️ AED Dashboard timeout — sections belum tersedia.");
+        callback(data);
       }
     }
 
     function renderAEDDashboard(data) {
-
       if (!data) return;
       if (!location.search.includes("debug")) return;
       if (document.getElementById("EvergreenDashboard")) return;
@@ -394,6 +396,7 @@ detectEvergreen();
       const wrap = document.createElement("div");
       wrap.id = "EvergreenDashboard";
       wrap.setAttribute("data-nosnippet", "true");
+
       wrap.style.cssText = `
         max-width:1200px;margin:25px auto;padding:15px;background:#f8fbff;
         border-top:4px solid #0078ff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.1);
@@ -412,19 +415,32 @@ detectEvergreen();
         totalEver,
         totalSemi,
         totalNon,
-        sections = []
+        sections
       } = data;
 
       let sectionsHTML = "";
 
-      if (!sections || sections.length === 0) {
+      // ✅ CASE 1: sections undefined
+      if (typeof sections === "undefined") {
         sectionsHTML = `
           <tr>
-            <td colspan="7" style="text-align:center;padding:12px;color:#555;">
-              ⚠️ Data section belum tersedia — kemungkinan halaman masih dianalisa...
+            <td colspan="7" style="text-align:center;padding:12px;color:#c00;">
+              ❗ Detector belum mengirim daftar sections (sections = undefined)
             </td>
           </tr>
         `;
+
+      // ✅ CASE 2: sections array tapi kosong
+      } else if (Array.isArray(sections) && sections.length === 0) {
+        sectionsHTML = `
+          <tr>
+            <td colspan="7" style="text-align:center;padding:12px;color:#666;">
+              ⚠️ Sections ditemukan tapi kosong — kemungkinan halaman masih dianalisa...
+            </td>
+          </tr>
+        `;
+
+      // ✅ CASE 3: ada data
       } else {
         sectionsHTML = sections.map(s => `
           <tr>
@@ -466,13 +482,8 @@ detectEvergreen();
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead style="background:#e7f2ff;font-weight:bold;">
             <tr>
-              <th>Section</th>
-              <th>Ever</th>
-              <th>Semi</th>
-              <th>Non</th>
-              <th>Status</th>
-              <th>Days</th>
-              <th>Advice</th>
+              <th>Section</th><th>Ever</th><th>Semi</th><th>Non</th>
+              <th>Status</th><th>Days</th><th>Advice</th>
             </tr>
           </thead>
           <tbody>${sectionsHTML}</tbody>
@@ -482,12 +493,12 @@ detectEvergreen();
       document.body.appendChild(wrap);
     }
 
-    whenAEDReady(renderAEDDashboard);
+    waitAED(renderAEDDashboard);
   }
 
   showEvergreenDashboard();
 })();
-  
+
 /*
 if (window.AEDMetaDates) {
   const { type, datePublished, dateModified, nextUpdate } = window.AEDMetaDates;
