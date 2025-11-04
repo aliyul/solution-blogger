@@ -367,12 +367,22 @@ detectEvergreen();
 })(window, document);
 
 
-(function() {
+(function () {
 
   function showEvergreenDashboard() {
 
     function getAEDData() {
       return window.EvergreenDetectorResults || null;
+    }
+
+    function whenAEDReady(callback, tries = 0) {
+      if (window.EvergreenDetectorResults && window.EvergreenDetectorResults.sections) {
+        callback(window.EvergreenDetectorResults);
+      } else if (tries < 50) {
+        setTimeout(() => whenAEDReady(callback, tries + 1), 120);
+      } else {
+        console.warn("⚠️ AED data belum tersedia setelah menunggu.");
+      }
     }
 
     function renderAEDDashboard(data) {
@@ -381,7 +391,6 @@ detectEvergreen();
         return;
       }
 
-      // ❗ Admin check
       if (!location.search.includes("debug")) {
         console.log("🛡️ AED Dashboard non-aktif — gunakan ?debug");
         return;
@@ -468,13 +477,11 @@ detectEvergreen();
       document.body.appendChild(wrap);
     }
 
-    setTimeout(() => {
-      renderAEDDashboard(getAEDData());
-    }, 400);
+    // ✅ jalankan kalau debug & data sudah siap
+    whenAEDReady(renderAEDDashboard);
   }
 
   showEvergreenDashboard();
-
 })();
   
 /*
