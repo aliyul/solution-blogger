@@ -367,61 +367,21 @@ detectEvergreen();
 })(window, document);
 
 
-// =================== DASHBOARD FUNCTION ===================
+// =================== AED DASHBOARD ===================
 function showEvergreenDashboard() {
 
-  // ✅ Ambil data AED v10+
-  function getAEDDataNew() {
-    if (!window.AED_GLOBAL) return null;
-
-    return {
-      resultType: window.AED_GLOBAL.resultType || "-",
-      validityDays: window.AED_GLOBAL.validityDays || "-",
-      dateModified: window.AEDMetaDates?.dateModified || "-",
-      datePublished: window.AEDMetaDates?.datePublished || "-",
-      nextUpdate: window.AED_GLOBAL.nextUpdate || "-", // ✅ sudah string
-      sections: Array.isArray(window.AED_GLOBAL.sections) ? window.AED_GLOBAL.sections : [],
-      advice: window.AED_GLOBAL.advice || ""
-    };
+  function getAEDData() {
+    return window.EvergreenDetectorResults || null;
   }
 
-  // ✅ Fallback AED lama
-  function getAEDDataOld(callback) {
-    if (typeof waitForEvergreenDetectorResults !== "function") {
-      setTimeout(() => getAEDDataOld(callback), 200);
+  function renderAEDDashboard(data) {
+    if (!data) {
+      console.warn("⚠️ AED Dashboard: Results not found yet...");
       return;
     }
 
-    waitForEvergreenDetectorResults((_data) => {
-      const data = {
-        resultType: _data.resultType || _data.finalType,
-        validityDays: _data.validityDays || _data.validityDaysFinal,
-        dateModified: _data.dateModified || _data._dateModifiedFinal,
-        datePublished: _data.datePublished || _data._datePublishedFinal,
-        nextUpdate: _data.nextUpdate || _data.storedNextUpdateStr,
-        sections: Array.isArray(_data.sections) ? _data.sections : (_data.changedSections || []),
-        advice: _data.advice || ""
-      };
-      callback(data);
-    });
-  }
-
-  // ✅ Renderer
-  function renderDashboard(data) {
-    if (!data) return console.warn("⚠️ AED Dashboard: no data yet...");
-
-    data.sections = (data.sections || []).map(s => ({
-      section: s.section || "(tanpa judul)",
-      sEver: Number(s.sEver) || 0,
-      sSemi: Number(s.sSemi) || 0,
-      sNon: Number(s.sNon) || 0,
-      sectionType: (s.sectionType || "unknown").toLowerCase(),
-      validityDays: typeof s.validityDays === "number" ? s.validityDays : "-",
-      sectionAdvice: s.sectionAdvice || "-"
-    }));
-
     if (!window.location.search.includes("debug")) {
-      console.log("🛡️ AED Dashboard hidden — add ?debug");
+      console.log("🛡️ AED Dashboard hidden — gunakan ?debug pada URL");
       return;
     }
 
@@ -438,58 +398,52 @@ function showEvergreenDashboard() {
 
     wrap.innerHTML = `
       <h2 style="text-align:center;margin-bottom:10px;">🧩 Evergreen Content Report</h2>
+      
       <p style="text-align:center;margin-bottom:15px;color:#444;">
-        <b>Status Global:</b> ${data.resultType?.toUpperCase() || "UNKNOWN"} |
-        <b>Review:</b> ${data.validityDays || "?"} hari |
-        <b>Terakhir Ubah:</b> ${data.dateModified || "-"} |
+        <b>Status Global:</b> ${data.resultType?.toUpperCase() || "-"} |
+        <b>Valid:</b> ${data.validityDays || "-"} hari |
+        <b>Updated:</b> ${data.dateModified || "-"} |
         <b>Next Update:</b> ${data.nextUpdate || "-"}
       </p>
 
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
-        <thead style="position:sticky;top:0;background:#eaf3ff;z-index:1;">
-          <tr><th>Bagian</th><th>Ever</th><th>Semi</th><th>Non</th>
-          <th>Status</th><th>Review (hari)</th><th>Saran</th></tr>
+        <thead style="background:#eaf3ff;">
+          <tr>
+            <th>Section</th><th>Ever</th><th>Semi</th><th>Non</th><th>Status</th><th>Days</th><th>Saran</th>
+          </tr>
         </thead>
         <tbody>
-          ${data.sections.map(s => `
+          ${(data.sections || []).map(s => `
             <tr>
               <td>${s.section}</td>
-              <td>${s.sEver.toFixed(1)}</td>
-              <td>${s.sSemi.toFixed(1)}</td>
-              <td>${s.sNon.toFixed(1)}</td>
+              <td>${s.sEver?.toFixed?.(1) || 0}</td>
+              <td>${s.sSemi?.toFixed?.(1) || 0}</td>
+              <td>${s.sNon?.toFixed?.(1) || 0}</td>
               <td style="font-weight:bold;color:${
                 s.sectionType === "evergreen" ? "#007700" :
                 s.sectionType === "semi-evergreen" ? "#cc8800" :
                 s.sectionType === "non-evergreen" ? "#cc0000" : "#444"
-              }">${s.sectionType.toUpperCase()}</td>
-              <td>${s.validityDays}</td>
-              <td>${s.sectionAdvice}</td>
+              }">${(s.sectionType || "-").toUpperCase()}</td>
+              <td>${s.validityDays || "-"}</td>
+              <td>${s.sectionAdvice || "-"}</td>
             </tr>
           `).join("")}
         </tbody>
       </table>
-
-      <p style="text-align:center;margin-top:12px;">${data.advice || ""}</p>
     `;
 
     document.body.appendChild(wrap);
   }
 
-  // ✅ Try new → fallback old
-  function loadAndRender() {
-    const newData = getAEDDataNew();
-    if (newData?.resultType) {
-      renderDashboard(newData);
-      return;
-    }
-    getAEDDataOld(oldData => renderDashboard(oldData));
-  }
-
-  setTimeout(loadAndRender, 400);
+  setTimeout(() => {
+    const data = getAEDData();
+    renderAEDDashboard(data);
+  }, 400);
 }
 
-// 🚀 Run
+// 🚀 Jalankan dashboard
 showEvergreenDashboard();
+
   
 /*
 if (window.AEDMetaDates) {
