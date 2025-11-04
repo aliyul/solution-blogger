@@ -377,7 +377,8 @@ detectEvergreen();
 function showEvergreenDashboard() {
 waitForEvergreenDetectorResults((data) => {
     console.log("📅 resultType:", data?.resultType);
-    if (window.EvergreenDetectorResults) renderDashboard(window.EvergreenDetectorResults);
+    if (window.EvergreenDetectorResults) 
+      renderDashboard(window.EvergreenDetectorResults);
   });
    console.log("📅 resultType:", resultType);
   let AEDDashboardRendered = false;
