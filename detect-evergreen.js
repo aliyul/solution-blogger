@@ -352,6 +352,7 @@ try {
     type: finalType
   };
 
+ window.detectEvergreenReady = true;
   console.log("✅ [AED] Hasil akhir disimpan:");
   console.log(window.AEDMetaDates);
 }
