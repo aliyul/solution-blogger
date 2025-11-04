@@ -374,6 +374,7 @@ detectEvergreen();
 
 
 // =================== DASHBOARD FUNCTION ===================
+// =================== DASHBOARD FUNCTION ===================
 function showEvergreenDashboard() {
 
   // ✅ simpan data dari detector
@@ -401,6 +402,7 @@ function showEvergreenDashboard() {
       return;
     }
 
+    // normalize section data
     data.sections = data.sections.map(s => ({
       section: s.section || "(tanpa judul)",
       sEver: Number(s.sEver) || 0,
@@ -414,6 +416,12 @@ function showEvergreenDashboard() {
     const isAdminDebug = window.location.search.includes("debug");
     if (!isAdminDebug) {
       console.log("🛡️ AED Dashboard hidden — add ?debug to URL");
+      return;
+    }
+
+    // prevent duplicate render
+    if (document.getElementById("EvergreenDashboard")) {
+      console.log("ℹ️ Dashboard already rendered");
       return;
     }
 
@@ -465,7 +473,7 @@ function showEvergreenDashboard() {
 
   // ✅ tunggu data siap baru render
   const waitForResults = () => {
-    if (window.EevergreenResults) {
+    if (window.EvergreenDetectorResults) {
       renderDashboard(window.EvergreenDetectorResults);
     } else {
       setTimeout(waitForResults, 300);
@@ -475,9 +483,9 @@ function showEvergreenDashboard() {
   waitForResults();
 }
 
-
-// 🔍 Jalankan otomatis
+// 🔍 run
 showEvergreenDashboard();
+
   
   
 /*
