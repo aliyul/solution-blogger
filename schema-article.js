@@ -367,7 +367,7 @@ detectEvergreen();
 })(window, document);
 
 
-  (function() {
+(function() {
 
   function showEvergreenDashboard() {
 
@@ -381,16 +381,14 @@ detectEvergreen();
         return;
       }
 
-      // ❗ hanya admin
+      // ❗ Admin check
       if (!location.search.includes("debug")) {
-        console.log("🛡️ AED Dashboard non-aktif (mode publik). Tambahkan ?debug");
+        console.log("🛡️ AED Dashboard non-aktif — gunakan ?debug");
         return;
       }
 
-      // ❗ Cegah duplikasi
       if (document.getElementById("EvergreenDashboard")) return;
 
-      // UI WRAPPER
       const wrap = document.createElement("div");
       wrap.id = "EvergreenDashboard";
       wrap.setAttribute("data-nosnippet", "true");
@@ -402,27 +400,43 @@ detectEvergreen();
 
       const {
         resultType,
+        aiScore,
+        h1Text,
+        url,
         validityDays,
         dateModified,
         datePublished,
         nextUpdate,
+        totalEver,
+        totalSemi,
+        totalNon,
         sections = []
       } = data;
 
       wrap.innerHTML = `
         <h2 style="text-align:center;margin-bottom:10px;">📊 AED Evergreen Content Dashboard</h2>
-        <p style="text-align:center;margin-bottom:15px;color:#333;font-size:14px;">
+
+        <p style="text-align:center;margin-bottom:10px;font-size:14px;">
+          <b>URL:</b> ${url || location.href}
+        </p>
+
+        <p style="text-align:center;margin-bottom:15px;color:#222;font-size:14px;">
           <b>Status:</b> ${resultType?.toUpperCase() || "-"} |
+          <b>Score:</b> ${aiScore || 0}/100 |
+          <b>H1:</b> ${h1Text || "-"}<br>
           <b>Valid:</b> ${validityDays || "-"} hari |
           <b>Published:</b> ${datePublished || "-"} |
           <b>Modified:</b> ${dateModified || "-"} |
-          <b>Next Update:</b> ${nextUpdate || "-"}
+          <b>Next Update:</b> ${nextUpdate || "-"}<br>
+          <b>Ever:</b> ${totalEver || 0} |
+          <b>Semi:</b> ${totalSemi || 0} |
+          <b>Non:</b> ${totalNon || 0}
         </p>
 
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead style="background:#e7f2ff;font-weight:bold;">
             <tr>
-              <th>Bagian</th>
+              <th>Section</th>
               <th>Ever</th>
               <th>Semi</th>
               <th>Non</th>
@@ -459,11 +473,9 @@ detectEvergreen();
     }, 400);
   }
 
-  // 🚀 Run Dashboard
   showEvergreenDashboard();
 
 })();
-
   
 /*
 if (window.AEDMetaDates) {
