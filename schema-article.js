@@ -376,38 +376,47 @@ detectEvergreen();
 // =================== DASHBOARD FUNCTION ===================
 function showEvergreenDashboard() {
 
-  // ✅ 1) Ambil hasil detector lalu simpan
-  waitForEvergreenDetectorResults((data) => {
-    console.log("📅 resultType:", data?.resultType);
+  // ✅ simpan data dari detector
+  waitForEvergreenDetectorResults((_data) => {
+    console.log("📅 AED raw:", _data);
+
+    // fallback name mapping karena versi script lama beda nama variabel
+    const data = {
+      resultType: _data.resultType || _data.finalType,
+      validityDays: _data.validityDays || _data.validityDaysFinal,
+      dateModified: _data.dateModified || _data._dateModifiedFinal,
+      datePublished: _data.datePublished || _data._datePublishedFinal,
+      nextUpdate: _data.nextUpdate || _data.storedNextUpdateStr,
+      sections: _data.sections || _data.changedSections || [],
+      advice: _data.advice || ""
+    };
+
     window.EvergreenDetectorResults = data;
   });
 
-  // ✅ 2) function untuk render dashboard
+  // ✅ renderer
   const renderDashboard = (data) => {
     if (!data || !Array.isArray(data.sections)) {
-      console.warn("⚠️ EvergreenDetectorResults tidak valid atau belum siap.");
+      console.warn("⚠️ EvergreenDetectorResults belum siap.");
       return;
     }
 
-    // Normalisasi data
     data.sections = data.sections.map(s => ({
       section: s.section || "(tanpa judul)",
-      sEver: typeof s.sEver === "number" ? s.sEver : 0,
-      sSemi: typeof s.sSemi === "number" ? s.sSemi : 0,
-      sNon: typeof s.sNon === "number" ? s.sNon : 0,
+      sEver: Number(s.sEver) || 0,
+      sSemi: Number(s.sSemi) || 0,
+      sNon: Number(s.sNon) || 0,
       sectionType: (s.sectionType || "unknown").toLowerCase(),
       validityDays: typeof s.validityDays === "number" ? s.validityDays : "-",
       sectionAdvice: s.sectionAdvice || "-"
     }));
 
-    // Admin mode
     const isAdminDebug = window.location.search.includes("debug");
     if (!isAdminDebug) {
-      console.log("🛡️ AED Dashboard disembunyikan. Gunakan ?debug untuk lihat.");
+      console.log("🛡️ AED Dashboard hidden — add ?debug to URL");
       return;
     }
 
-    // Build UI
     const wrap = document.createElement("div");
     wrap.id = "EvergreenDashboard";
     wrap.setAttribute("data-nosnippet", "true");
@@ -454,9 +463,9 @@ function showEvergreenDashboard() {
     else document.body.appendChild(wrap);
   };
 
-  // ✅ 3) Tunggu sampai data siap lalu render
+  // ✅ tunggu data siap baru render
   const waitForResults = () => {
-    if (window.EvergreenDetectorResults) {
+    if (window.EevergreenResults) {
       renderDashboard(window.EvergreenDetectorResults);
     } else {
       setTimeout(waitForResults, 300);
