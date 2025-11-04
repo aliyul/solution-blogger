@@ -375,16 +375,16 @@ detectEvergreen();
 
 // =================== DASHBOARD FUNCTION ===================
 function showEvergreenDashboard() {
-waitForEvergreenDetectorResults((data) => {
+  let AEDDashboardRendered = false;
+  const renderDashboard = data => {
+    if (AEDDashboardRendered) return;
+    AEDDashboardRendered = true;
+  waitForEvergreenDetectorResults((data) => {
     console.log("📅 resultType:", data?.resultType);
     if (window.EvergreenDetectorResults) 
       renderDashboard(window.EvergreenDetectorResults);
   });
    console.log("📅 resultType:", resultType);
-  let AEDDashboardRendered = false;
-  const renderDashboard = data => {
-    if (AEDDashboardRendered) return;
-    AEDDashboardRendered = true;
 
     if (!data || !Array.isArray(data.sections)) {
       console.warn("⚠️ EvergreenDetectorResults tidak valid atau belum siap.");
