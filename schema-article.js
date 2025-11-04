@@ -376,7 +376,7 @@ detectEvergreen();
     }
 
     function whenAEDReady(callback, tries = 0) {
-      if (window.EvergreenDetectorResults && window.EvergreenDetectorResults.sections) {
+      if (window.EvergreenDetectorResults && window.EvergreenDetectorResults.sections !== undefined) {
         callback(window.EvergreenDetectorResults);
       } else if (tries < 50) {
         setTimeout(() => whenAEDReady(callback, tries + 1), 120);
@@ -386,16 +386,9 @@ detectEvergreen();
     }
 
     function renderAEDDashboard(data) {
-      if (!data) {
-        console.warn("⚠️ AED Dashboard: data belum siap...");
-        return;
-      }
 
-      if (!location.search.includes("debug")) {
-        console.log("🛡️ AED Dashboard non-aktif — gunakan ?debug");
-        return;
-      }
-
+      if (!data) return;
+      if (!location.search.includes("debug")) return;
       if (document.getElementById("EvergreenDashboard")) return;
 
       const wrap = document.createElement("div");
@@ -421,6 +414,34 @@ detectEvergreen();
         totalNon,
         sections = []
       } = data;
+
+      let sectionsHTML = "";
+
+      if (!sections || sections.length === 0) {
+        sectionsHTML = `
+          <tr>
+            <td colspan="7" style="text-align:center;padding:12px;color:#555;">
+              ⚠️ Data section belum tersedia — kemungkinan halaman masih dianalisa...
+            </td>
+          </tr>
+        `;
+      } else {
+        sectionsHTML = sections.map(s => `
+          <tr>
+            <td>${s.section}</td>
+            <td>${s.sEver?.toFixed?.(1) || 0}</td>
+            <td>${s.sSemi?.toFixed?.(1) || 0}</td>
+            <td>${s.sNon?.toFixed?.(1) || 0}</td>
+            <td style="font-weight:bold;color:${
+              s.sectionType === "evergreen" ? "#0f7b0f" :
+              s.sectionType === "semi-evergreen" ? "#b88000" :
+              s.sectionType === "non-evergreen" ? "#c00" : "#333"
+            }">${(s.sectionType || "-").toUpperCase()}</td>
+            <td>${s.validityDays || "-"}</td>
+            <td>${s.sectionAdvice || "-"}</td>
+          </tr>
+        `).join("");
+      }
 
       wrap.innerHTML = `
         <h2 style="text-align:center;margin-bottom:10px;">📊 AED Evergreen Content Dashboard</h2>
@@ -454,30 +475,13 @@ detectEvergreen();
               <th>Advice</th>
             </tr>
           </thead>
-          <tbody>
-            ${sections.map(s => `
-              <tr>
-                <td>${s.section}</td>
-                <td>${s.sEver?.toFixed?.(1) || 0}</td>
-                <td>${s.sSemi?.toFixed?.(1) || 0}</td>
-                <td>${s.sNon?.toFixed?.(1) || 0}</td>
-                <td style="font-weight:bold;color:${
-                  s.sectionType === "evergreen" ? "#0f7b0f" :
-                  s.sectionType === "semi-evergreen" ? "#b88000" :
-                  s.sectionType === "non-evergreen" ? "#c00" : "#333"
-                }">${(s.sectionType || "-").toUpperCase()}</td>
-                <td>${s.validityDays || "-"}</td>
-                <td>${s.sectionAdvice || "-"}</td>
-              </tr>
-            `).join("")}
-          </tbody>
+          <tbody>${sectionsHTML}</tbody>
         </table>
       `;
 
       document.body.appendChild(wrap);
     }
 
-    // ✅ jalankan kalau debug & data sudah siap
     whenAEDReady(renderAEDDashboard);
   }
 
