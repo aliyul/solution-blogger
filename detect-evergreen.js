@@ -16,7 +16,7 @@ let dateModified = '';
    =========================================================== */
 function detectEvergreen() {
   console.log("🧩 Running detectEvergreen() v8.6.9 Stable — Hybrid Logic + Meta Sync + Blogspot Safe...");
-
+  window.detectEvergreenReady = false;
   const now = new Date();
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
   const hashString = s => {
