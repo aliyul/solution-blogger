@@ -1,7 +1,14 @@
 document.addEventListener("DOMContentLoaded", function() {
   console.log("Universal Auto-schema & Content Detection running 🚀");
 
-  function waitForAEDMetaDates(callback) {
+  function waitForEvergreenDetectorResults(callback) {
+  if (window.EvergreenDetectorResults ) {
+    callback(window.EvergreenDetectorResults );
+  } else {
+    setTimeout(() => waitForEvergreenDetectorResults(callback), 100);
+  }
+}
+ function waitForAEDMetaDates(callback) {
   if (window.AEDMetaDates) {
     callback(window.AEDMetaDates);
   } else {
@@ -262,6 +269,9 @@ detectEvergreen();
       if (window.AEDMetaDates && typeof window.AEDMetaDates === "object") {
         ({ datePublished, dateModified } = window.AEDMetaDates);
       }
+
+
+                   
       console.log("[AED] Type:", type, "Score:", aiScore);
       console.log("📅 datePublished:", datePublished, "dateModified:", dateModified);
   
@@ -365,12 +375,21 @@ detectEvergreen();
 
 // =================== DASHBOARD FUNCTION ===================
 function showEvergreenDashboard() {
+    waitForEvergreenDetectorResults(({ resultType,
+    validityDays,
+    dateModified,
+    datePublished,
+    nextUpdate,
+    sections }) => {
+        console.log("📅 resultType:", resultType);
+       
+      });
   const renderDashboard = data => {
     if (!data || !Array.isArray(data.sections)) {
       console.warn("⚠️ EvergreenDetectorResults tidak valid atau belum siap.");
       return;
     }
-
+   
     // 🧹 Pastikan nilai skor aman dari undefined
     data.sections = data.sections.map(s => ({
       section: s.section || "(tanpa judul)",
