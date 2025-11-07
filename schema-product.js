@@ -211,6 +211,7 @@ const ManufacturMatch = text.match(
         "price": "0",
         "availability": "https://schema.org/PreOrder",
         "itemCondition": "https://schema.org/NewCondition",
+        "priceValidUntil": validUntil,
         "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
         "description": "Hubungi Beton Jaya Readymix untuk informasi harga terbaru dan penawaran khusus."
       });
