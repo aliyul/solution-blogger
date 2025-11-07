@@ -189,15 +189,24 @@ const ManufacturMatch = text.match(
       while ((m = regex.exec(txt)) !== null) {
         const price = parseInt(m[1].replace(/[.\s,]/g, ""));
         if (price) {
-          // ambil sedikit konteks sekitar harga agar label tidak kosong
-          const context = txt.substring(Math.max(0, m.index - 50), Math.min(txt.length, m.index + 50))
-            .replace(/\s+/g, " ")
+          // Ambil konteks sekitar harga
+          let context = txt.substring(Math.max(0, m.index - 80), Math.min(txt.length, m.index + 80));
+    
+          // Bersihkan tag HTML, karakter JSON, dan simbol yang tidak penting
+          context = context
+            .replace(/<\/?[^>]+>/g, "")         // hapus tag HTML
+            .replace(/["{}[\];,:=]+/g, " ")     // hapus simbol JSON/JS
+            .replace(/\s+/g, " ")               // rapikan spasi
             .trim();
+    
+          // Potong agar tidak terlalu panjang
+          if (context.length > 100) context = context.slice(0, 100) + "...";
+    
           addOffer(context, "", price);
         }
       }
     });
-    
+
     console.log("[Parser v3+] Total detected offers:", tableOffers.length);
     
     // === 🩺  Fallback schema OFFER kalau tidak ada ===
