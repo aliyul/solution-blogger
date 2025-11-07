@@ -163,24 +163,42 @@ const ManufacturMatch = text.match(
     }
     
     // === 🧩 DETEKSI HARGA DARI TABEL / TEKS ===
-    document.querySelectorAll("table tr").forEach(row=>{
+    // === 🧩 DETEKSI HARGA DARI TABEL / TEKS / SCRIPT ===
+    document.querySelectorAll("table tr").forEach(row => {
       const cells = Array.from(row.querySelectorAll("td, th"));
       const m = row.innerText.match(/Rp\s*([\d.,]+)/);
-      if(m){
-        const price = parseInt(m[1].replace(/[.\s,]/g,""));
-        if(price) addOffer(cells[0]?.innerText.trim()||"", "", price);
+      if (m) {
+        const price = parseInt(m[1].replace(/[.\s,]/g, ""));
+        if (price) addOffer(cells[0]?.innerText.trim() || "", "", price);
       }
     });
     
-    document.querySelectorAll("li").forEach(li=>{
+    document.querySelectorAll("li").forEach(li => {
       const m = li.innerText.match(/Rp\s*([\d.,]+)/);
-      if(m){
-        const price = parseInt(m[1].replace(/[.\s,]/g,""));
-        if(price) addOffer(li.innerText.replace(m[0], "").trim(), "", price);
+      if (m) {
+        const price = parseInt(m[1].replace(/[.\s,]/g, ""));
+        if (price) addOffer(li.innerText.replace(m[0], "").trim(), "", price);
       }
     });
     
-    console.log("[Parser v3] Total detected offers:", tableOffers.length);
+    // === 🧩 DETEKSI HARGA DARI SCRIPT (JSON-LD / INLINE JS) ===
+    document.querySelectorAll("script").forEach(script => {
+      const txt = script.textContent || "";
+      const regex = /Rp\s*([\d.,]+)/g;
+      let m;
+      while ((m = regex.exec(txt)) !== null) {
+        const price = parseInt(m[1].replace(/[.\s,]/g, ""));
+        if (price) {
+          // ambil sedikit konteks sekitar harga agar label tidak kosong
+          const context = txt.substring(Math.max(0, m.index - 50), Math.min(txt.length, m.index + 50))
+            .replace(/\s+/g, " ")
+            .trim();
+          addOffer(context, "", price);
+        }
+      }
+    });
+    
+    console.log("[Parser v3+] Total detected offers:", tableOffers.length);
     
     // === 🩺  Fallback schema OFFER kalau tidak ada ===
     if (tableOffers.length === 0) {
