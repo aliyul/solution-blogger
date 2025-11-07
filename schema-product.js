@@ -146,7 +146,7 @@ const ManufacturMatch = text.match(
         validUntil = nextUpdate;
       });
                    
-
+       console.log("📅 validUntil:", validUntil);
       
       tableOffers.push({
         "@type": "Offer",
