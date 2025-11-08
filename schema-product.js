@@ -180,7 +180,23 @@ const ManufacturMatch = text.match(
         if (price) addOffer(li.innerText.replace(m[0], "").trim(), "", price);
       }
     });
+
+    // ===== DETEKSI HARGA DI <p> =====
+  document.querySelectorAll("p").forEach(p => {
+  const text = p.innerText;
+  const priceRegex = /Rp\s*([\d.]+(?:,\d+)?)/g;
+  let match;
+  
+  while ((match = priceRegex.exec(text)) !== null) {
+    let priceStr = match[1].replace(/\./g, "").replace(",", ".");
+    const price = parseFloat(priceStr);
     
+    if (!isNaN(price)) {
+      const description = text.replace(match[0], "").trim();
+      addOffer(description, "", price);
+    }
+  }
+});
     // === 🧩 DETEKSI HARGA DARI SCRIPT (JSON-LD / INLINE JS) ===
     document.querySelectorAll("script").forEach(script => {
       const txt = script.textContent || "";
@@ -211,6 +227,10 @@ const ManufacturMatch = text.match(
     
     // === 🩺  Fallback schema OFFER kalau tidak ada ===
     if (tableOffers.length === 0) {
+       waitForAEDMetaDates(({ nextUpdate }) => {
+        console.log("📅 nextUpdate:", nextUpdate);
+        validUntil = nextUpdate;
+      });
       console.warn("[Fallback Offer] Tidak ada offers terdeteksi — membuat fallback schema otomatis.");
       tableOffers.push({
         "@type": "Offer",
