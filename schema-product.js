@@ -227,12 +227,11 @@ const ManufacturMatch = text.match(
     
     // === 🩺  Fallback schema OFFER kalau tidak ada ===
     if (tableOffers.length === 0) {
+       console.warn("[Fallback Offer] Tidak ada offers terdeteksi — membuat fallback schema otomatis.");
        waitForAEDMetaDates(({ nextUpdate }) => {
         console.log("📅 nextUpdate:", nextUpdate);
         validUntil = nextUpdate;
-      });
-      console.warn("[Fallback Offer] Tidak ada offers terdeteksi — membuat fallback schema otomatis.");
-      tableOffers.push({
+        tableOffers.push({
         "@type": "Offer",
         "name": productName + " (Estimasi Harga)",
         "url": cleanUrl,
@@ -244,6 +243,9 @@ const ManufacturMatch = text.match(
         "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
         "description": "Hubungi Beton Jaya Readymix untuk informasi harga terbaru dan penawaran khusus."
       });
+         
+      });
+      
     }
     
     // === 12️⃣ BUSINESS ENTITY ===
