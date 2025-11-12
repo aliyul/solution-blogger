@@ -1,4 +1,4 @@
-<!-- ⚡ AUTO SCHEMA UNIVERSAL v4.60 FINAL — Hybrid Service | Product | Informational | Beton Jaya Readymix -->
+<!-- ⚡ AUTO SCHEMA UNIVERSAL v4.62 — Filter Internal Links dari Konten Saja -->
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v4.60 🚀] Universal schema dijalankan");
+      console.log("[Schema v4.62 🚀] Universal schema dijalankan");
 
       // === 1️⃣ INFORMASI DASAR HALAMAN ===
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -74,23 +74,17 @@ document.addEventListener("DOMContentLoaded", () => {
       };
       const defaultAreaServed = Object.keys(areaProv).map((a) => ({ "@type": "Place", name: a }));
 
-      // === 4️⃣ DETEKSI KONTEN UTAMA (KNOWS ABOUT, SERVICE TYPE) ===
+      // === 4️⃣ DETEKSI KONTEN UTAMA ===
       function detectKnowsAbout() {
-        const text =
-          (document.querySelector("article") ||
-            document.querySelector(".post-body") ||
-            document.body
-          ).innerText.toLowerCase() || "";
-        const words = text.match(/\b[a-z]{4,}\b/g) || [];
-        const stopWords = new Set(["yang", "untuk", "kami", "dengan", "dalam", "pada", "adalah", "dan"]);
-        const freq = {};
-        words.forEach((w) => {
-          if (!stopWords.has(w)) freq[w] = (freq[w] || 0) + 1;
-        });
-        return Object.entries(freq)
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 6)
-          .map(([w]) => w.charAt(0).toUpperCase() + w.slice(1));
+        const topics = [
+          "Jasa Bongkar Bangunan",
+          "Jasa Konstruksi",
+          "Jasa Renovasi",
+          "Sewa Alat Berat",
+          "Jasa Beton Cor",
+          "Pengelolaan Limbah Puing"
+        ];
+        return topics;
       }
 
       function detectServiceType() {
@@ -98,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return h1.replace(/202\d|harga|murah|terdekat|resmi|profesional|berkualitas|ahli/gi, "").trim();
       }
 
-      // === 5️⃣ DETEKSI HARGA PRODUK / JASA ===
+      // === 5️⃣ DETEKSI HARGA ===
       const seenItems = new Set();
       const tableOffers = [];
       function addOffer(name, key, price, desc = "") {
@@ -106,7 +100,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const k = `${name}|${key}|${price}`;
         if (seenItems.has(k)) return;
         seenItems.add(k);
-
         let validUntil = "";
         if (window.AEDMetaDates?.nextUpdate)
           validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
@@ -115,7 +108,6 @@ document.addEventListener("DOMContentLoaded", () => {
           f.setDate(f.getDate() + 180);
           validUntil = f.toISOString().split("T")[0];
         }
-
         tableOffers.push({
           "@type": "Offer",
           name,
@@ -140,12 +132,17 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
       });
-
       const isProductPage = tableOffers.length > 0;
 
-      // === 6️⃣ INTERNAL LINK DETECTION ===
+      // === 6️⃣ INTERNAL LINKS (HANYA DARI KONTEN) ===
       function generateInternalLinks() {
-        const links = Array.from(document.querySelectorAll("a"))
+        const contentSelectors = ["article", "main", ".post-body"];
+        const containers = contentSelectors
+          .map((sel) => document.querySelector(sel))
+          .filter(Boolean);
+
+        const links = containers
+          .flatMap((c) => Array.from(c.querySelectorAll("a")))
           .map((a) => a.href)
           .filter(
             (href) =>
@@ -154,6 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
               !href.includes("#") &&
               !href.match(/(\/search|\/feed|\/label)/i)
           );
+
         const unique = [...new Set(links)];
         return unique.slice(0, 40).map((u, i) => ({
           "@type": "ListItem",
@@ -164,7 +162,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const internalLinks = generateInternalLinks();
 
-      // === 7️⃣ GRAPH PEMBANGUNAN SCHEMA ===
+      // === 7️⃣ GRAPH PEMBANGUNAN ===
       const graph = [
         {
           "@type": ["LocalBusiness", "GeneralContractor"],
@@ -189,10 +187,11 @@ document.addEventListener("DOMContentLoaded", () => {
           image: PAGE.image,
           isPartOf: parentUrls,
           publisher: { "@id": PAGE.business.url + "#localbusiness" },
+          dateModified: new Date().toISOString(),
+          inLanguage: "id",
         },
       ];
 
-      // SERVICE NODE — berlaku untuk semua jasa
       const serviceNode = {
         "@type": "Service",
         "@id": cleanUrl + "#service",
@@ -206,7 +205,6 @@ document.addEventListener("DOMContentLoaded", () => {
         mainEntityOfPage: { "@id": cleanUrl + "#webpage" },
       };
 
-      // Jika ada harga, tambahkan Product dan AggregateOffer
       if (isProductPage) {
         const lowPrice = Math.min(...tableOffers.map((o) => parseInt(o.price)));
         const highPrice = Math.max(...tableOffers.map((o) => parseInt(o.price)));
@@ -240,7 +238,7 @@ document.addEventListener("DOMContentLoaded", () => {
           itemListElement: internalLinks,
         });
 
-      // === 8️⃣ INJECT SCHEMA KE HEAD ===
+      // === 8️⃣ INJECT SCHEMA ===
       const schema = { "@context": "https://schema.org", "@graph": graph };
       let el = document.querySelector("#auto-schema-service");
       if (!el) {
@@ -252,13 +250,13 @@ document.addEventListener("DOMContentLoaded", () => {
       el.textContent = JSON.stringify(schema, null, 2);
 
       console.log(
-        `[Schema v4.60 ✅] Injected | Offers: ${tableOffers.length} | Mode: ${
+        `[Schema v4.62 ✅] Injected | Offers: ${tableOffers.length} | Mode: ${
           isProductPage ? "Service + Product" : "Service / Info"
         }`
       );
     }
 
-    // === 9️⃣ OBSERVER UNTUK BLOGGER / SPA ===
+    // === 9️⃣ OBSERVER ===
     if (document.querySelector("h1") && (document.querySelector(".post-body") || document.querySelector("main"))) {
       await initSchema();
     } else {
