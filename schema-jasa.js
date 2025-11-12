@@ -242,10 +242,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // === 8️⃣ INJECT SCHEMA KE HEAD ===
       const schema = { "@context": "https://schema.org", "@graph": graph };
-      let el = document.querySelector("#auto-schema-universal");
+      let el = document.querySelector("#auto-schema-service");
       if (!el) {
         el = document.createElement("script");
-        el.id = "auto-schema-universal";
+        el.id = "auto-schema-service";
         el.type = "application/ld+json";
         document.head.appendChild(el);
       }
