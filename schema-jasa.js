@@ -1,4 +1,4 @@
-<!-- ⚡ AUTO SCHEMA UNIVERSAL v4.62 — Filter Internal Links dari Konten Saja -->
+<!-- ⚡ AUTO SCHEMA UNIVERSAL v4.62 — Final Optimized Version -->
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // === 4️⃣ DETEKSI KONTEN UTAMA ===
       function detectKnowsAbout() {
-        const topics = [
+        return [
           "Jasa Bongkar Bangunan",
           "Jasa Konstruksi",
           "Jasa Renovasi",
@@ -84,12 +84,14 @@ document.addEventListener("DOMContentLoaded", () => {
           "Jasa Beton Cor",
           "Pengelolaan Limbah Puing"
         ];
-        return topics;
       }
 
       function detectServiceType() {
-        const h1 = h1Text.toLowerCase();
-        return h1.replace(/202\d|harga|murah|terdekat|resmi|profesional|berkualitas|ahli/gi, "").trim();
+        const h1 = h1Text.toLowerCase()
+          .replace(/202\d|harga|murah|terdekat|resmi|profesional|berkualitas|ahli/gi, "")
+          .trim();
+        // Perbaikan kecil agar natural:
+        return h1.charAt(0).toUpperCase() + h1.slice(1);
       }
 
       // === 5️⃣ DETEKSI HARGA ===
@@ -224,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
           image: [PAGE.image],
           brand: { "@type": "Brand", name: PAGE.business.name },
           category: "ConstructionProduct",
-          offers: tableOffers,
+          offers: { "@id": cleanUrl + "#service" },
         });
       }
 
@@ -250,7 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
       el.textContent = JSON.stringify(schema, null, 2);
 
       console.log(
-        `[Schema v4.62 ✅] Injected | Offers: ${tableOffers.length} | Mode: ${
+        `[Schema v4.62 ✅ Final] Injected | Offers: ${tableOffers.length} | Mode: ${
           isProductPage ? "Service + Product" : "Service / Info"
         }`
       );
