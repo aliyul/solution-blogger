@@ -1,4 +1,4 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v4.56 FINAL — Hybrid Service + Product + Universal Page | Beton Jaya Readymix */
+<!-- ⚡ AUTO SCHEMA UNIVERSAL v4.60 FINAL — Hybrid Service | Product | Informational | Beton Jaya Readymix -->
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -6,23 +6,23 @@ document.addEventListener("DOMContentLoaded", () => {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v4.56 🚀] Universal auto generator dijalankan");
+      console.log("[Schema v4.60 🚀] Universal schema dijalankan");
 
-      // === 1️⃣ INFO HALAMAN DASAR ===
+      // === 1️⃣ INFORMASI DASAR HALAMAN ===
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
       const baseUrl = ogUrl || canonical || location.href;
       const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
-      const titleRaw = document.querySelector("h1")?.innerText?.trim() || document.title.trim();
-      const title = titleRaw.replace(/\s{2,}/g, " ").trim().substring(0, 120);
+      const h1Text = document.querySelector("h1")?.innerText?.trim() || document.title;
+      const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
 
       const PAGE = {
         url: cleanUrl,
-        title: titleRaw,
+        title,
         description:
           document.querySelector('meta[name="description"]')?.content?.trim() ||
           document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 200) ||
-          document.title,
+          title,
         image:
           document.querySelector('meta[property="og:image"]')?.content ||
           document.querySelector("article img, main img, .post-body img")?.getAttribute("src") ||
@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       };
 
-      // === 2️⃣ PARENT DETECTION (Breadcrumb & Meta) ===
+      // === 2️⃣ PARENT URL (Breadcrumb) ===
       function detectParentUrls() {
         const urls = new Set();
         document.querySelectorAll(".breadcrumbs a").forEach((a) => {
@@ -59,9 +59,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return Array.from(urls).map((u) => ({ "@type": "WebPage", "@id": u }));
       }
       const parentUrls = detectParentUrls();
-      const cleanParentUrls = parentUrls.map((u) => u["@id"]);
 
-      // === 3️⃣ AREA SERVED ===
+      // === 3️⃣ AREA SERVED DEFAULT ===
       const areaProv = {
         "Kabupaten Bogor": "Jawa Barat",
         "Kota Bogor": "Jawa Barat",
@@ -75,18 +74,18 @@ document.addEventListener("DOMContentLoaded", () => {
       };
       const defaultAreaServed = Object.keys(areaProv).map((a) => ({ "@type": "Place", name: a }));
 
-      // === 4️⃣ KNOWS ABOUT & SERVICE TYPE ===
+      // === 4️⃣ DETEKSI KONTEN UTAMA (KNOWS ABOUT, SERVICE TYPE) ===
       function detectKnowsAbout() {
-        const contentText =
+        const text =
           (document.querySelector("article") ||
             document.querySelector(".post-body") ||
             document.body
           ).innerText.toLowerCase() || "";
-        const words = contentText.match(/\b[a-z]{4,}\b/g) || [];
-        const common = new Set(["untuk", "yang", "pada", "kami", "dengan", "adalah", "dalam", "dan", "dapat", "jasa", "produk"]);
+        const words = text.match(/\b[a-z]{4,}\b/g) || [];
+        const stopWords = new Set(["yang", "untuk", "kami", "dengan", "dalam", "pada", "adalah", "dan"]);
         const freq = {};
         words.forEach((w) => {
-          if (!common.has(w)) freq[w] = (freq[w] || 0) + 1;
+          if (!stopWords.has(w)) freq[w] = (freq[w] || 0) + 1;
         });
         return Object.entries(freq)
           .sort((a, b) => b[1] - a[1])
@@ -95,17 +94,16 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       function detectServiceType() {
-        const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
-        return h1.replace(/202\d|harga|murah|terdekat|resmi|berkualitas|profesional/gi, "").trim();
+        const h1 = h1Text.toLowerCase();
+        return h1.replace(/202\d|harga|murah|terdekat|resmi|profesional|berkualitas|ahli/gi, "").trim();
       }
 
-      // === 5️⃣ PRODUK DETECTION (optional) ===
+      // === 5️⃣ DETEKSI HARGA PRODUK / JASA ===
       const seenItems = new Set();
       const tableOffers = [];
       function addOffer(name, key, price, desc = "") {
         if (!price) return;
-        const finalName = name || PAGE.title;
-        const k = `${finalName}|${key}|${price}`;
+        const k = `${name}|${key}|${price}`;
         if (seenItems.has(k)) return;
         seenItems.add(k);
 
@@ -113,14 +111,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (window.AEDMetaDates?.nextUpdate)
           validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
         else {
-          const fallback = new Date();
-          fallback.setDate(fallback.getDate() + 90);
-          validUntil = fallback.toISOString().split("T")[0];
+          const f = new Date();
+          f.setDate(f.getDate() + 180);
+          validUntil = f.toISOString().split("T")[0];
         }
 
         tableOffers.push({
           "@type": "Offer",
-          name: finalName,
+          name,
           url: cleanUrl,
           priceCurrency: "IDR",
           price: price.toString(),
@@ -132,19 +130,20 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
-      // === Auto detect harga dari tabel ===
-      document.querySelectorAll("table tr").forEach((row) => {
-        const m = row.innerText.match(/Rp\s*([\d.,]+)/);
+      document.querySelectorAll("table tr, li, p").forEach((el) => {
+        const m = el.innerText.match(/Rp\s*([\d.,]+)/);
         if (m) {
-          const name = row.querySelector("td,th")?.innerText.trim() || PAGE.title;
           const price = parseInt(m[1].replace(/[^\d]/g, ""));
-          if (price > 10000 && price < 1000000000) addOffer(name, "", price);
+          if (price > 10000 && price < 1000000000) {
+            const name = el.innerText.split("Rp")[0].trim() || PAGE.title;
+            addOffer(name, "", price);
+          }
         }
       });
 
       const isProductPage = tableOffers.length > 0;
 
-      // === 6️⃣ INTERNAL LINKS ===
+      // === 6️⃣ INTERNAL LINK DETECTION ===
       function generateInternalLinks() {
         const links = Array.from(document.querySelectorAll("a"))
           .map((a) => a.href)
@@ -165,7 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const internalLinks = generateInternalLinks();
 
-      // === 7️⃣ BUILD GRAPH ===
+      // === 7️⃣ GRAPH PEMBANGUNAN SCHEMA ===
       const graph = [
         {
           "@type": ["LocalBusiness", "GeneralContractor"],
@@ -188,11 +187,12 @@ document.addEventListener("DOMContentLoaded", () => {
           name: PAGE.title,
           description: PAGE.description,
           image: PAGE.image,
-          isPartOf: cleanParentUrls.map((u) => ({ "@id": u + "#webpage" })),
+          isPartOf: parentUrls,
           publisher: { "@id": PAGE.business.url + "#localbusiness" },
         },
       ];
 
+      // SERVICE NODE — berlaku untuk semua jasa
       const serviceNode = {
         "@type": "Service",
         "@id": cleanUrl + "#service",
@@ -206,11 +206,14 @@ document.addEventListener("DOMContentLoaded", () => {
         mainEntityOfPage: { "@id": cleanUrl + "#webpage" },
       };
 
+      // Jika ada harga, tambahkan Product dan AggregateOffer
       if (isProductPage) {
+        const lowPrice = Math.min(...tableOffers.map((o) => parseInt(o.price)));
+        const highPrice = Math.max(...tableOffers.map((o) => parseInt(o.price)));
         serviceNode.offers = {
           "@type": "AggregateOffer",
-          lowPrice: Math.min(...tableOffers.map((o) => parseInt(o.price))),
-          highPrice: Math.max(...tableOffers.map((o) => parseInt(o.price))),
+          lowPrice,
+          highPrice,
           offerCount: tableOffers.length,
           priceCurrency: "IDR",
           offers: tableOffers,
@@ -232,25 +235,30 @@ document.addEventListener("DOMContentLoaded", () => {
       if (internalLinks.length)
         graph.push({
           "@type": "ItemList",
-          "@id": cleanUrl + "#internal-links",
+          "@id": cleanUrl + "#related-links",
           name: "Halaman Terkait",
           itemListElement: internalLinks,
         });
 
-      // === 8️⃣ INJECT SCHEMA ===
+      // === 8️⃣ INJECT SCHEMA KE HEAD ===
       const schema = { "@context": "https://schema.org", "@graph": graph };
-      let el = document.querySelector("#auto-schema-service");
+      let el = document.querySelector("#auto-schema-universal");
       if (!el) {
         el = document.createElement("script");
-        el.id = "auto-schema-service";
+        el.id = "auto-schema-universal";
         el.type = "application/ld+json";
         document.head.appendChild(el);
       }
       el.textContent = JSON.stringify(schema, null, 2);
-      console.log(`[Schema v4.56 ✅] Injected | Offers: ${tableOffers.length} | Type: ${isProductPage ? "Product+Service" : "Service Only"}`);
+
+      console.log(
+        `[Schema v4.60 ✅] Injected | Offers: ${tableOffers.length} | Mode: ${
+          isProductPage ? "Service + Product" : "Service / Info"
+        }`
+      );
     }
 
-    // Observer jika H1 dan konten muncul belakangan (SPA/Blogger)
+    // === 9️⃣ OBSERVER UNTUK BLOGGER / SPA ===
     if (document.querySelector("h1") && (document.querySelector(".post-body") || document.querySelector("main"))) {
       await initSchema();
     } else {
@@ -262,6 +270,5 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       obs.observe(document.body, { childList: true, subtree: true });
     }
-  }, 600);
+  }, 700);
 });
-
