@@ -1,4 +1,4 @@
-<!-- ⚡ AUTO SCHEMA UNIVERSAL v4.62 — Final Optimized Version -->
+<!-- ⚡ AUTO SCHEMA UNIVERSAL v4.63 — Optimized & Generalized -->
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v4.62 🚀] Universal schema dijalankan");
+      console.log("[Schema v4.63 🚀] Universal schema dijalankan");
 
       // === 1️⃣ INFORMASI DASAR HALAMAN ===
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       };
 
-      // === 2️⃣ PARENT URL (Breadcrumb) ===
+      // === 2️⃣ PARENT URL ===
       function detectParentUrls() {
         const urls = new Set();
         document.querySelectorAll(".breadcrumbs a").forEach((a) => {
@@ -74,27 +74,38 @@ document.addEventListener("DOMContentLoaded", () => {
       };
       const defaultAreaServed = Object.keys(areaProv).map((a) => ({ "@type": "Place", name: a }));
 
-      // === 4️⃣ DETEKSI KONTEN UTAMA ===
+      // === 4️⃣ DETEKSI KATA KUNCI UNTUK KNOWSABOUT ===
       function detectKnowsAbout() {
-        return [
-          "Jasa Bongkar Bangunan",
-          "Jasa Konstruksi",
-          "Jasa Renovasi",
-          "Sewa Alat Berat",
-          "Jasa Beton Cor",
-          "Pengelolaan Limbah Puing"
+        const text = document.body.innerText.toLowerCase();
+        const keywords = [
+          "jasa konstruksi",
+          "jasa renovasi",
+          "jasa bongkar",
+          "jasa beton cor",
+          "beton precast",
+          "sewa alat berat",
+          "pengelolaan limbah",
+          "proyek infrastruktur",
+          "pembuatan saluran",
+          "perbaikan jalan",
         ];
+        const matched = keywords.filter((k) => text.includes(k.split(" ")[1]));
+        return matched.length
+          ? matched.map((t) => t.replace(/\b\w/g, (c) => c.toUpperCase()))
+          : ["Jasa Konstruksi", "Sewa Alat Berat", "Jasa Beton Cor"];
       }
 
+      // === 5️⃣ DETEKSI SERVICETYPE ===
       function detectServiceType() {
-        const h1 = h1Text.toLowerCase()
-          .replace(/202\d|harga|murah|terdekat|resmi|profesional|berkualitas|ahli/gi, "")
+        let clean = h1Text
+          .replace(/[:;,]+/g, "") // hilangkan titik dua & koma ganda
+          .replace(/\b(202\d|harga|murah|terdekat|resmi|profesional|berkualitas|ahli)\b/gi, "")
+          .replace(/\s{2,}/g, " ")
           .trim();
-        // Perbaikan kecil agar natural:
-        return h1.charAt(0).toUpperCase() + h1.slice(1);
+        return clean.charAt(0).toUpperCase() + clean.slice(1);
       }
 
-      // === 5️⃣ DETEKSI HARGA ===
+      // === 6️⃣ DETEKSI HARGA ===
       const seenItems = new Set();
       const tableOffers = [];
       function addOffer(name, key, price, desc = "") {
@@ -136,13 +147,10 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       const isProductPage = tableOffers.length > 0;
 
-      // === 6️⃣ INTERNAL LINKS (HANYA DARI KONTEN) ===
+      // === 7️⃣ INTERNAL LINKS ===
       function generateInternalLinks() {
         const contentSelectors = ["article", "main", ".post-body"];
-        const containers = contentSelectors
-          .map((sel) => document.querySelector(sel))
-          .filter(Boolean);
-
+        const containers = contentSelectors.map((sel) => document.querySelector(sel)).filter(Boolean);
         const links = containers
           .flatMap((c) => Array.from(c.querySelectorAll("a")))
           .map((a) => a.href)
@@ -153,7 +161,6 @@ document.addEventListener("DOMContentLoaded", () => {
               !href.includes("#") &&
               !href.match(/(\/search|\/feed|\/label)/i)
           );
-
         const unique = [...new Set(links)];
         return unique.slice(0, 40).map((u, i) => ({
           "@type": "ListItem",
@@ -164,7 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const internalLinks = generateInternalLinks();
 
-      // === 7️⃣ GRAPH PEMBANGUNAN ===
+      // === 8️⃣ GRAPH BUILDING ===
       const graph = [
         {
           "@type": ["LocalBusiness", "GeneralContractor"],
@@ -237,10 +244,12 @@ document.addEventListener("DOMContentLoaded", () => {
           "@type": "ItemList",
           "@id": cleanUrl + "#related-links",
           name: "Halaman Terkait",
+          itemListOrder: "Ascending",
+          numberOfItems: internalLinks.length,
           itemListElement: internalLinks,
         });
 
-      // === 8️⃣ INJECT SCHEMA ===
+      // === 9️⃣ INJECT SCHEMA ===
       const schema = { "@context": "https://schema.org", "@graph": graph };
       let el = document.querySelector("#auto-schema-service");
       if (!el) {
@@ -252,13 +261,13 @@ document.addEventListener("DOMContentLoaded", () => {
       el.textContent = JSON.stringify(schema, null, 2);
 
       console.log(
-        `[Schema v4.62 ✅ Final] Injected | Offers: ${tableOffers.length} | Mode: ${
+        `[Schema v4.63 ✅ Injected | Offers: ${tableOffers.length} | Mode: ${
           isProductPage ? "Service + Product" : "Service / Info"
-        }`
+        }]`
       );
     }
 
-    // === 9️⃣ OBSERVER ===
+    // === 🔟 OBSERVER ===
     if (document.querySelector("h1") && (document.querySelector(".post-body") || document.querySelector("main"))) {
       await initSchema();
     } else {
