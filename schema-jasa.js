@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
           document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 200) ||
           title,
         image:
-          document.querySelector('meta[property="og:image"]')?.content ||
+          //document.querySelector('meta[property="og:image"]')?.content ||
           document.querySelector("article img, main img, .post-body img")?.getAttribute("src") ||
           "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png",
         business: {
