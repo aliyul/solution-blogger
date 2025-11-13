@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     const title = titleRaw.replace(/\s{2,}/g," ").trim().substring(0,120);
     const metaDesc = document.querySelector('meta[name="description"]')?.content?.trim();
     const desc = metaDesc || Array.from(document.querySelectorAll("p")).map(p => p.innerText.trim()).join(" ").substring(0, 300);
-
+    let validUntil;
     function waitForAEDMetaDates(callback) {
       if (window.AEDMetaDates) {
         callback(window.AEDMetaDates);
@@ -128,7 +128,11 @@ const ManufacturMatch = text.match(
         break;
       }
     }
- 
+   waitForAEDMetaDates(({ nextUpdate }) => {
+        console.log("📅 nextUpdate:", nextUpdate);
+        validUntil = nextUpdate;
+         console.log("📅 validUntil:", validUntil);
+      });
     // === 🧩 PARSER TABLE, TEKS, & LI HARGA ===
     const seenItems = new Set();
     const tableOffers = [];
@@ -141,12 +145,8 @@ const ManufacturMatch = text.match(
       const k = finalName + "|" + key + "|" + price;
       if (seenItems.has(k)) return;
       seenItems.add(k);
-      waitForAEDMetaDates(({ nextUpdate }) => {
-        console.log("📅 nextUpdate:", nextUpdate);
-        validUntil = nextUpdate;
-         console.log("📅 validUntil:", validUntil);
-              
-      tableOffers.push({
+
+       tableOffers.push({
         "@type": "Offer",
         "name": finalName,
         "url": cleanUrl,
@@ -158,9 +158,7 @@ const ManufacturMatch = text.match(
         "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
         "description": desc || undefined
       });
-        
-      });
-                   
+                  
     }
     
     // === 🧩 DETEKSI HARGA DARI TABEL / TEKS ===
