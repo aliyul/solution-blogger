@@ -144,10 +144,8 @@ const ManufacturMatch = text.match(
       waitForAEDMetaDates(({ nextUpdate }) => {
         console.log("📅 nextUpdate:", nextUpdate);
         validUntil = nextUpdate;
-      });
-                   
-       console.log("📅 validUntil:", validUntil);
-      
+         console.log("📅 validUntil:", validUntil);
+              
       tableOffers.push({
         "@type": "Offer",
         "name": finalName,
@@ -160,6 +158,9 @@ const ManufacturMatch = text.match(
         "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
         "description": desc || undefined
       });
+        
+      });
+                   
     }
     
     // === 🧩 DETEKSI HARGA DARI TABEL / TEKS ===
