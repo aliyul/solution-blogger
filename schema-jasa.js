@@ -128,10 +128,12 @@ document.addEventListener("DOMContentLoaded", () => {
         let validUntil;
         if (window.AEDMetaDates?.nextUpdate) {
           validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
+           console.log("📅 validUntilMeta:", validUntil);
         } else {
           const f = new Date();
           f.setDate(f.getDate() + 180);
           validUntil = f.toISOString().split("T")[0];
+          console.log("📅 validUntilNew:", validUntil);
         }
 
         tableOffers.push({
