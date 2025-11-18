@@ -127,7 +127,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         let validUntil;
         if (window.AEDMetaDates?.nextUpdate) {
-          validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
+          //validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
+          validUntil = nextUpdate;
            console.log("📅 validUntilMeta:", validUntil);
         } else {
           const f = new Date();
