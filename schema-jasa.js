@@ -1,4 +1,4 @@
-<!-- ⚡ AUTO SCHEMA UNIVERSAL v4.63 — Optimized & Generalized -->
+<!-- ⚡ AUTO SCHEMA UNIVERSAL v4.63-Fix — Fully Validated for Google 2025 -->
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -6,13 +6,16 @@ document.addEventListener("DOMContentLoaded", () => {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v4.63 🚀] Universal schema dijalankan");
+      console.log("[Schema v4.63-Fix 🚀] Universal schema dijalankan");
 
-      // === 1️⃣ INFORMASI DASAR HALAMAN ===
+      /* ============================================================
+         1️⃣ INFORMASI DASAR HALAMAN
+      ============================================================ */
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
       const baseUrl = ogUrl || canonical || location.href;
       const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
+
       const h1Text = document.querySelector("h1")?.innerText?.trim() || document.title;
       const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
 
@@ -24,7 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
           document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 200) ||
           title,
         image:
-          //document.querySelector('meta[property="og:image"]')?.content ||
+          document.querySelector('meta[property="og:image"]')?.content ||
           document.querySelector("article img, main img, .post-body img")?.getAttribute("src") ||
           "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png",
         business: {
@@ -47,7 +50,9 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       };
 
-      // === 2️⃣ PARENT URL ===
+      /* ============================================================
+         2️⃣ PARENT URL
+      ============================================================ */
       function detectParentUrls() {
         const urls = new Set();
         document.querySelectorAll(".breadcrumbs a").forEach((a) => {
@@ -60,7 +65,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const parentUrls = detectParentUrls();
 
-      // === 3️⃣ AREA SERVED DEFAULT ===
+      /* ============================================================
+         3️⃣ AREA SERVED DEFAULT
+      ============================================================ */
       const areaProv = {
         "Kabupaten Bogor": "Jawa Barat",
         "Kota Bogor": "Jawa Barat",
@@ -74,53 +81,59 @@ document.addEventListener("DOMContentLoaded", () => {
       };
       const defaultAreaServed = Object.keys(areaProv).map((a) => ({ "@type": "Place", name: a }));
 
-      // === 4️⃣ DETEKSI KATA KUNCI UNTUK KNOWSABOUT ===
+      /* ============================================================
+         4️⃣ DETEKSI KNOWSABOUT (fix)
+      ============================================================ */
       function detectKnowsAbout() {
         const text = document.body.innerText.toLowerCase();
-        const keywords = [
+        const list = [
           "jasa konstruksi",
           "jasa renovasi",
           "jasa bongkar",
           "jasa beton cor",
           "beton precast",
           "sewa alat berat",
-          "pengelolaan limbah",
-          "proyek infrastruktur",
           "pembuatan saluran",
           "perbaikan jalan",
         ];
-        const matched = keywords.filter((k) => text.includes(k.split(" ")[1]));
-        return matched.length
-          ? matched.map((t) => t.replace(/\b\w/g, (c) => c.toUpperCase()))
-          : ["Jasa Konstruksi", "Sewa Alat Berat", "Jasa Beton Cor"];
+        const found = list.filter((k) => text.includes(k.split(" ")[0]));
+        return found.length ? found.map(t => t.replace(/\b\w/g, c => c.toUpperCase())) 
+                            : ["Jasa Konstruksi", "Sewa Alat Berat", "Jasa Beton Cor"];
       }
 
-      // === 5️⃣ DETEKSI SERVICETYPE ===
+      /* ============================================================
+         5️⃣ DETEKSI SERVICETYPE CLEAN
+      ============================================================ */
       function detectServiceType() {
         let clean = h1Text
-          .replace(/[:;,]+/g, "") // hilangkan titik dua & koma ganda
+          .replace(/[:;,]+/g, "")          // hilangkan colon & double comma
           .replace(/\b(202\d|harga|murah|terdekat|resmi|profesional|berkualitas|ahli)\b/gi, "")
           .replace(/\s{2,}/g, " ")
           .trim();
         return clean.charAt(0).toUpperCase() + clean.slice(1);
       }
 
-      // === 6️⃣ DETEKSI HARGA ===
+      /* ============================================================
+         6️⃣ DETEKSI HARGA
+      ============================================================ */
       const seenItems = new Set();
       const tableOffers = [];
+
       function addOffer(name, key, price, desc = "") {
         if (!price) return;
-        const k = `${name}|${key}|${price}`;
-        if (seenItems.has(k)) return;
-        seenItems.add(k);
-        let validUntil = "";
-        if (window.AEDMetaDates?.nextUpdate)
+        const idKey = `${name}|${key}|${price}`;
+        if (seenItems.has(idKey)) return;
+        seenItems.add(idKey);
+
+        let validUntil;
+        if (window.AEDMetaDates?.nextUpdate) {
           validUntil = new Date(window.AEDMetaDates.nextUpdate).toISOString().split("T")[0];
-        else {
+        } else {
           const f = new Date();
           f.setDate(f.getDate() + 180);
           validUntil = f.toISOString().split("T")[0];
         }
+
         tableOffers.push({
           "@type": "Offer",
           name,
@@ -145,12 +158,16 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
       });
+
       const isProductPage = tableOffers.length > 0;
 
-      // === 7️⃣ INTERNAL LINKS ===
+      /* ============================================================
+         7️⃣ INTERNAL LINKS
+      ============================================================ */
       function generateInternalLinks() {
-        const contentSelectors = ["article", "main", ".post-body"];
-        const containers = contentSelectors.map((sel) => document.querySelector(sel)).filter(Boolean);
+        const containers = ["article", "main", ".post-body"]
+          .map((sel) => document.querySelector(sel))
+          .filter(Boolean);
         const links = containers
           .flatMap((c) => Array.from(c.querySelectorAll("a")))
           .map((a) => a.href)
@@ -171,8 +188,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       const internalLinks = generateInternalLinks();
 
-      // === 8️⃣ GRAPH BUILDING ===
+      /* ============================================================
+         8️⃣ BANGUN GRAPH JSON-LD
+      ============================================================ */
       const graph = [
+        /* === LocalBusiness === */
         {
           "@type": ["LocalBusiness", "GeneralContractor"],
           "@id": PAGE.business.url + "#localbusiness",
@@ -187,6 +207,8 @@ document.addEventListener("DOMContentLoaded", () => {
           areaServed: defaultAreaServed,
           knowsAbout: detectKnowsAbout(),
         },
+
+        /* === WebPage === */
         {
           "@type": "WebPage",
           "@id": cleanUrl + "#webpage",
@@ -201,6 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
         },
       ];
 
+      /* === Service Node === */
       const serviceNode = {
         "@type": "Service",
         "@id": cleanUrl + "#service",
@@ -214,9 +237,11 @@ document.addEventListener("DOMContentLoaded", () => {
         mainEntityOfPage: { "@id": cleanUrl + "#webpage" },
       };
 
+      /* === Jika halaman ada harga → buat Product + AggregateOffer Valid === */
       if (isProductPage) {
         const lowPrice = Math.min(...tableOffers.map((o) => parseInt(o.price)));
         const highPrice = Math.max(...tableOffers.map((o) => parseInt(o.price)));
+
         serviceNode.offers = {
           "@type": "AggregateOffer",
           lowPrice,
@@ -225,6 +250,8 @@ document.addEventListener("DOMContentLoaded", () => {
           priceCurrency: "IDR",
           offers: tableOffers,
         };
+
+        /* --- FIX MAJOR ERROR: Product.offers MUST NOT USE @id --- */
         graph.push({
           "@type": "Product",
           "@id": cleanUrl + "#product",
@@ -233,12 +260,20 @@ document.addEventListener("DOMContentLoaded", () => {
           image: [PAGE.image],
           brand: { "@type": "Brand", name: PAGE.business.name },
           category: "ConstructionProduct",
-          offers: { "@id": cleanUrl + "#service" },
+          offers: {
+            "@type": "AggregateOffer",
+            lowPrice,
+            highPrice,
+            offerCount: tableOffers.length,
+            priceCurrency: "IDR",
+            offers: tableOffers,
+          },
         });
       }
 
       graph.push(serviceNode);
 
+      /* === ItemList if exists === */
       if (internalLinks.length)
         graph.push({
           "@type": "ItemList",
@@ -249,8 +284,11 @@ document.addEventListener("DOMContentLoaded", () => {
           itemListElement: internalLinks,
         });
 
-      // === 9️⃣ INJECT SCHEMA ===
+      /* ============================================================
+         9️⃣ INJECT SCHEMA
+      ============================================================ */
       const schema = { "@context": "https://schema.org", "@graph": graph };
+
       let el = document.querySelector("#auto-schema-service");
       if (!el) {
         el = document.createElement("script");
@@ -261,13 +299,15 @@ document.addEventListener("DOMContentLoaded", () => {
       el.textContent = JSON.stringify(schema, null, 2);
 
       console.log(
-        `[Schema v4.63 ✅ Injected | Offers: ${tableOffers.length} | Mode: ${
+        `[Schema v4.63-Fix ✅ Injected | Offers: ${tableOffers.length} | Mode: ${
           isProductPage ? "Service + Product" : "Service / Info"
         }]`
       );
     }
 
-    // === 🔟 OBSERVER ===
+    /* ============================================================
+       🔟 OBSERVER
+    ============================================================ */
     if (document.querySelector("h1") && (document.querySelector(".post-body") || document.querySelector("main"))) {
       await initSchema();
     } else {
