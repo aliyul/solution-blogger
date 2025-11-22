@@ -151,7 +151,11 @@ const ManufacturMatch = text.match(
         "name": finalName,
         "url": cleanUrl,
         "priceCurrency": "IDR",
-        "price": price.toString(),
+
+        // ⛔ sebelumnya:  price: price.toString(),
+        // ✅ FIX NUMBER:
+        "price": Number(price),
+
         "itemCondition": "https://schema.org/NewCondition",
         "availability": "https://schema.org/InStock",
         "priceValidUntil": validUntil,
@@ -161,7 +165,6 @@ const ManufacturMatch = text.match(
                   
     }
     
-    // === 🧩 DETEKSI HARGA DARI TABEL / TEKS ===
     // === 🧩 DETEKSI HARGA DARI TABEL / TEKS / SCRIPT ===
     document.querySelectorAll("table tr").forEach(row => {
       const cells = Array.from(row.querySelectorAll("td, th"));
@@ -235,7 +238,11 @@ const ManufacturMatch = text.match(
         "name": productName + " (Estimasi Harga)",
         "url": cleanUrl,
         "priceCurrency": "IDR",
-        "price": "0",
+
+        // ⛔ sebelumnya: "price": "0",
+        // ✅ FIX NUMBER:
+        "price": 0,
+
         "availability": "https://schema.org/PreOrder",
         "itemCondition": "https://schema.org/NewCondition",
         "priceValidUntil": validUntil,
@@ -301,8 +308,6 @@ const ManufacturMatch = text.match(
       scriptEl.id="auto-schema-product";
       document.head.appendChild(scriptEl);
     }
-
-
     scriptEl.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
     console.log(`[AutoSchema v4.53+ ✅] Product: ${productName} | Offers: ${tableOffers.length}`);
   }, 500);
