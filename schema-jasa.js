@@ -1,4 +1,4 @@
-<!-- ⚡ AUTO SCHEMA UNIVERSAL v4.63-Fix2 — Fully Google Valid 2025 -->
+<!-- ⚡ AUTO SCHEMA UNIVERSAL v4.63-Fix2 — Fully Validated Google 2025 -->
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -66,36 +66,86 @@ document.addEventListener("DOMContentLoaded", () => {
       const parentUrls = detectParentUrls();
 
       /* ============================================================
-         3️⃣ DETEKSI SERVICETYPE
+         3️⃣ AREA SERVED DEFAULT
+      ============================================================ */
+      const areaProv = {
+        "Kabupaten Bogor": "Jawa Barat",
+        "Kota Bogor": "Jawa Barat",
+        "Kota Depok": "Jawa Barat",
+        "Kota Bekasi": "Jawa Barat",
+        "Kabupaten Bekasi": "Jawa Barat",
+        "Kota Serang": "Banten",
+        "Kota Tangerang": "Banten",
+        "Kota Tangerang Selatan": "Banten",
+        "DKI Jakarta": "DKI Jakarta",
+      };
+      const defaultAreaServed = Object.keys(areaProv).map((a) => ({ "@type": "Place", name: a }));
+
+      /* ============================================================
+         4️⃣ DETEKSI KNOWSABOUT (fix)
+      ============================================================ */
+      function detectKnowsAbout() {
+        const text = document.body.innerText.toLowerCase();
+        const list = [
+          "jasa konstruksi",
+          "jasa renovasi",
+          "jasa bongkar",
+          "jasa beton cor",
+          "beton precast",
+          "sewa alat berat",
+          "pembuatan saluran",
+          "perbaikan jalan",
+        ];
+        const found = list.filter((k) => text.includes(k.split(" ")[0]));
+        return found.length ? found.map(t => t.replace(/\b\w/g, c => c.toUpperCase())) 
+                            : ["Jasa Konstruksi", "Sewa Alat Berat", "Jasa Beton Cor"];
+      }
+
+      /* ============================================================
+         5️⃣ DETEKSI SERVICETYPE CLEAN
       ============================================================ */
       function detectServiceType() {
         let clean = h1Text
           .replace(/[:;,]+/g, "")
+          .replace(/\b(202\d|harga|murah|terdekat|resmi|profesional|berkualitas|ahli)\b/gi, "")
           .replace(/\s{2,}/g, " ")
           .trim();
         return clean.charAt(0).toUpperCase() + clean.slice(1);
       }
 
       /* ============================================================
-         4️⃣ DETEKSI HARGA — REPAIRED
+         6️⃣ DETEKSI HARGA
       ============================================================ */
       const seenItems = new Set();
       const tableOffers = [];
 
       function addOffer(name, key, price, desc = "") {
         if (!price) return;
+        
         const idKey = `${name}|${key}|${price}`;
         if (seenItems.has(idKey)) return;
         seenItems.add(idKey);
+
+        if (price === 0) price = 1;
+
+        let validUntil;
+        if (window.AEDMetaDates?.nextUpdate) {
+          validUntil = window.AEDMetaDates.nextUpdate;
+        } else {
+          const f = new Date();
+          f.setDate(f.getDate() + 180);
+          validUntil = f.toISOString().split("T")[0];
+        }
 
         tableOffers.push({
           "@type": "Offer",
           name,
           url: cleanUrl,
           priceCurrency: "IDR",
-          price: price, /* FIX → NUMBER */
+          price: price,
           itemCondition: "https://schema.org/NewCondition",
           availability: "https://schema.org/InStock",
+          priceValidUntil: validUntil,
           seller: { "@id": PAGE.business.url + "#localbusiness" },
           description: desc || undefined,
         });
@@ -115,7 +165,34 @@ document.addEventListener("DOMContentLoaded", () => {
       const isProductPage = tableOffers.length > 0;
 
       /* ============================================================
-         5️⃣ GRAPH
+         7️⃣ INTERNAL LINKS
+      ============================================================ */
+      function generateInternalLinks() {
+        const containers = ["article", "main", ".post-body"]
+          .map((sel) => document.querySelector(sel))
+          .filter(Boolean);
+        const links = containers
+          .flatMap((c) => Array.from(c.querySelectorAll("a")))
+          .map((a) => a.href)
+          .filter(
+            (href) =>
+              href &&
+              href.includes(location.hostname) &&
+              !href.includes("#") &&
+              !href.match(/(\/search|\/feed|\/label)/i)
+          );
+        const unique = [...new Set(links)];
+        return unique.slice(0, 40).map((u, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          url: u,
+          name: decodeURIComponent(u.split("/").pop().replace(".html", "").replace(/-/g, " ")),
+        }));
+      }
+      const internalLinks = generateInternalLinks();
+
+      /* ============================================================
+         8️⃣ BANGUN GRAPH JSON-LD
       ============================================================ */
       const graph = [
         {
@@ -123,6 +200,14 @@ document.addEventListener("DOMContentLoaded", () => {
           "@id": PAGE.business.url + "#localbusiness",
           name: PAGE.business.name,
           url: PAGE.business.url,
+          telephone: PAGE.business.telephone,
+          description: PAGE.business.description,
+          address: PAGE.business.address,
+          openingHours: PAGE.business.openingHours,
+          logo: PAGE.image,
+          sameAs: PAGE.business.sameAs,
+          areaServed: defaultAreaServed,
+          knowsAbout: detectKnowsAbout(),
         },
         {
           "@type": "WebPage",
@@ -130,6 +215,11 @@ document.addEventListener("DOMContentLoaded", () => {
           url: cleanUrl,
           name: PAGE.title,
           description: PAGE.description,
+          image: PAGE.image,
+          isPartOf: parentUrls,
+          publisher: { "@id": PAGE.business.url + "#localbusiness" },
+          dateModified: new Date().toISOString(),
+          inLanguage: "id",
         },
       ];
 
@@ -138,8 +228,11 @@ document.addEventListener("DOMContentLoaded", () => {
         "@id": cleanUrl + "#service",
         name: PAGE.title,
         description: PAGE.description,
+        image: PAGE.image,
         serviceType: detectServiceType(),
+        areaServed: defaultAreaServed,
         provider: { "@id": PAGE.business.url + "#localbusiness" },
+        brand: { "@type": "Brand", name: PAGE.business.name },
         mainEntityOfPage: { "@id": cleanUrl + "#webpage" },
       };
 
@@ -147,22 +240,23 @@ document.addEventListener("DOMContentLoaded", () => {
         const lowPrice = Math.min(...tableOffers.map((o) => o.price));
         const highPrice = Math.max(...tableOffers.map((o) => o.price));
 
-        /* === SERVICE → OFFER SIMPLE === */
         serviceNode.offers = {
-          "@type": "Offer",
+          "@type": "AggregateOffer",
+          lowPrice,
+          highPrice,
+          offerCount: tableOffers.length,
           priceCurrency: "IDR",
-          price: lowPrice,
-          availability: "https://schema.org/InStock",
-          seller: { "@id": PAGE.business.url + "#localbusiness" },
+          offers: tableOffers,
         };
 
-        /* === PRODUCT → AGG OFFER FULL === */
         graph.push({
           "@type": "Product",
           "@id": cleanUrl + "#product",
           name: PAGE.title,
           description: PAGE.description,
+          image: [PAGE.image],
           brand: { "@type": "Brand", name: PAGE.business.name },
+          category: "ConstructionProduct",
           offers: {
             "@type": "AggregateOffer",
             lowPrice,
@@ -176,8 +270,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
       graph.push(serviceNode);
 
-      /* inject */
+      if (internalLinks.length)
+        graph.push({
+          "@type": "ItemList",
+          "@id": cleanUrl + "#related-links",
+          name: "Halaman Terkait",
+          itemListOrder: "Ascending",
+          numberOfItems: internalLinks.length,
+          itemListElement: internalLinks,
+        });
+
       const schema = { "@context": "https://schema.org", "@graph": graph };
+
       let el = document.querySelector("#auto-schema-service");
       if (!el) {
         el = document.createElement("script");
@@ -186,8 +290,24 @@ document.addEventListener("DOMContentLoaded", () => {
         document.head.appendChild(el);
       }
       el.textContent = JSON.stringify(schema, null, 2);
+
+      console.log(
+        `[Schema v4.63-Fix2 Injected | Offers: ${tableOffers.length} | Mode: ${
+          isProductPage ? "Service + Product" : "Service / Info"
+        }]`
+      );
     }
 
-    await initSchema();
+    if (document.querySelector("h1") && (document.querySelector(".post-body") || document.querySelector("main"))) {
+      await initSchema();
+    } else {
+      const obs = new MutationObserver(async () => {
+        if (document.querySelector("h1") && (document.querySelector(".post-body") || document.querySelector("main"))) {
+          await initSchema();
+          obs.disconnect();
+        }
+      });
+      obs.observe(document.body, { childList: true, subtree: true });
+    }
   }, 700);
 });
