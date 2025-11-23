@@ -137,33 +137,48 @@ const ManufacturMatch = text.match(
     const seenItems = new Set();
     const tableOffers = [];
     
-    function addOffer(name, key, price, desc = "") {
-      let finalName = productName;
-      if (name && name.toLowerCase() !== productName.toLowerCase()) {
-        finalName += " " + name;
-      }
-      const k = finalName + "|" + key + "|" + price;
-      if (seenItems.has(k)) return;
-      seenItems.add(k);
+  function addOffer(name, key, price, desc = "") {
+  // === RAPIKAN & PERSINGKAT NAMA OFFER =====
+  let cleanName = (name || "")
+    .replace(/\s+/g, " ")
+    .replace(/Rp.*$/i, "")
+    .replace(/[^\w\s×x\-.,]/gi, "")
+    .trim();
 
-       tableOffers.push({
-        "@type": "Offer",
-        "name": finalName,
-        "url": cleanUrl,
-        "priceCurrency": "IDR",
+  if (cleanName.length > 50) {
+    cleanName = cleanName.substring(0, 50).trim();
+  }
 
-        // ⛔ sebelumnya:  price: price.toString(),
-        // ✅ FIX NUMBER:
-        "price": Number(price),
+  let finalName = productName;
+  if (cleanName && cleanName.toLowerCase() !== productName.toLowerCase()) {
+    finalName += " " + cleanName;
+  }
 
-        "itemCondition": "https://schema.org/NewCondition",
-        "availability": "https://schema.org/InStock",
-        "priceValidUntil": validUntil,
-        "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
-        "description": desc || undefined
-      });
-                  
-    }
+  // === HILANGKAN OFFER DUPLIKAT ===
+  const k = finalName + "|" + price;
+  if (seenItems.has(k)) return;
+  seenItems.add(k);
+
+  // === PAKSA NUMERIC PRICE ===
+  const numericPrice = Number(price);
+
+  // abaikan jika bukan angka
+  if (isNaN(numericPrice)) return;
+
+  tableOffers.push({
+    "@type": "Offer",
+    "name": finalName,
+    "url": cleanUrl,
+    "priceCurrency": "IDR",
+    "price": numericPrice,
+    "itemCondition": "https://schema.org/NewCondition",
+    "availability": "https://schema.org/InStock",
+    "priceValidUntil": validUntil,
+    "seller": { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
+    "description": desc || undefined
+  });
+}
+
     
     // === 🧩 DETEKSI HARGA DARI TABEL / TEKS / SCRIPT ===
     document.querySelectorAll("table tr").forEach(row => {
@@ -270,17 +285,25 @@ const ManufacturMatch = text.match(
     
     // === 13️⃣ MAIN ENTITY PRODUCT ===
     const mainEntity = {
-      "@type":"Product",
-      "@id": cleanUrl+"#product",
-      "mainEntityOfPage": { "@type":"WebPage","@id": cleanUrl+"#webpage" },
+      "@type": "Product",
+      "@id": cleanUrl + "#product",
+      "mainEntityOfPage": { "@type": "WebPage", "@id": cleanUrl + "#webpage" },
       "isPartOf": parentUrls,
       name: productName,
       image: [ contentImage || fallbackImage ],
       description: desc,
-      brand: { "@type":"Brand", name: brandName },
-      manufacturer: { "@type":"Organization", name: manufacturerName }, // ✅ tambahkan manufacturer
+      brand: { "@type": "Brand", name: brandName },
+    
+      // ❗ manufacturer otomatis dihapus jika sama dengan brand
+      ...(manufacturerName && manufacturerName !== brandName
+        ? { manufacturer: { "@type": "Organization", name: manufacturerName } }
+        : {}),
+    
       category: productCategory,
-      sameAs: wikipediaLink,
+    
+      // ❗ aman
+      sameAs: wikipediaLink || undefined,
+    
       provider: { "@id": business["@id"] },
       offers: tableOffers,
       areaServed: productAreaServed
