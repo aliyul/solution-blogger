@@ -3,11 +3,11 @@ let datePublished = '';
 let dateModified = '';
 
 function detectEvergreen() {
-  console.log("🧩 Running detectEvergreen() v8.6.12 Stable — Semi/Non Fixed...");
+  console.log("🧩 Running detectEvergreen() v8.6.9 Stable — Hybrid Logic + Meta Sync + Blogspot Safe...");
   window.detectEvergreenReady = false;
   const now = new Date();
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
-
+  
   const formatLocalISO = date => {
     const tzOffset = -date.getTimezoneOffset();
     const diff = tzOffset >= 0 ? "+" : "-";
@@ -16,6 +16,7 @@ function detectEvergreen() {
     const minutes = pad(tzOffset % 60);
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}${diff}${hours}:${minutes}`;
   };
+  const nowLocalISO = formatLocalISO(now);
 
   // ---------- Grab content ----------
   const h1El = document.querySelector("h1");
@@ -83,83 +84,116 @@ function detectEvergreen() {
     finalType = "non-evergreen";
   } else if (totalScores.evergreen >= Math.max(totalScores.semi + 1, totalScores.non) && !hasTimePattern) {
     finalType = "evergreen";
-  } 
-  if (/\b(panduan|tutorial|tips|cara)\b/i.test(h1 + contentText)) finalType = "evergreen";
+  } else {
+    finalType = "semi-evergreen";
+  }
+
+  if (/\b(panduan|tutorial|tips|cara)\b/i.test(h1 + contentText)) {
+    finalType = "evergreen";
+  }
 
   // ---------- Validity Days & Next Update ----------
   let validityDays, nextUpdate = null;
-  const normalizeToMidnightUTC = date => {
+  if (finalType === "evergreen") {
+    validityDays = null; // tidak ada nextUpdate
+    nextUpdate = null;
+  } else if (finalType === "semi-evergreen") {
+    validityDays = 365; // 12 bulan
+  } else {
+    validityDays = 180; // 6 bulan
+  }
+
+  // ---------- Normalize ----------
+  function normalizeToMidnightUTC(date) {
     if (!date) return null;
     const d = new Date(date);
     if (isNaN(d.getTime())) return null;
-    d.setUTCHours(0,0,0,0);
+    d.setUTCHours(0, 0, 0, 0);
     return d.toISOString();
-  };
-
-  const metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
-  const nextUpdate1Val = metaNextUpdate1 ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content")) : null;
-  const nowUTC = normalizeToMidnightUTC(now);
-
-  if (finalType === "evergreen") {
-    validityDays = null;
-    nextUpdate = null;
-  } else {
-    validityDays = finalType === "semi-evergreen" ? 365 : 180; // semi 12 bulan, non 6 bulan
-    const validityMs = validityDays * 86400000;
-    let baseDate = nextUpdate1Val ? new Date(nextUpdate1Val) : new Date(nowUTC);
-
-    // loop sampai nextUpdate > sekarang
-    while (baseDate <= nowUTC) {
-      baseDate = new Date(baseDate.getTime() + validityMs);
-    }
-    nextUpdate = normalizeToMidnightUTC(baseDate);
   }
 
   // ---------- Meta ----------
   let metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   let metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
+  let metaNextUpdates = Array.from(document.querySelectorAll('meta[name="nextUpdate"]'));
+  const metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
+
+  const nowUTC = normalizeToMidnightUTC(now);
+  const validityMs = validityDays ? validityDays * 86400000 : 0;
+
   let dateModified = normalizeToMidnightUTC(metaDateModified?.getAttribute("content"));
-  const datePublishedISO = metaDatePublished?.getAttribute("content") || nowUTC;
+  const datePublished = metaDatePublished?.getAttribute("content") || nowUTC;
+
+  let nextUpdate1Val = metaNextUpdate1 ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content")) : null;
+
+  if (validityDays && nextUpdate1Val) {
+    let nextUpdateDate = new Date(nextUpdate1Val);
+    while (new Date(nowUTC) >= nextUpdateDate) {
+      nextUpdateDate = new Date(nextUpdateDate.getTime() + validityMs);
+    }
+    nextUpdate = normalizeToMidnightUTC(nextUpdateDate);
+  }
 
   // ---------- Store final results ----------
   window.EvergreenDetectorResults = {
     resultType: finalType,
     validityDays,
     dateModified,
-    datePublished: datePublishedISO,
+    datePublished,
     nextUpdate,
     sections
   };
 
   window.AEDMetaDates = {
     dateModified,
-    datePublished: datePublishedISO,
+    datePublished,
     nextUpdate,
     type: finalType
   };
 
-  console.log("✅ [AED] detectEvergreen() selesai, hasil:");
+  console.log("✅ [AED] Hasil akhir disimpan:");
   console.log(window.AEDMetaDates);
 }
+
+detectEvergreen();
 
 function updateArticleDates() {
   document.getElementById("evergreen-label")?.remove();
   document.querySelectorAll(".aed-date-span, .aed-non-evergreen-date").forEach(el => el.remove());
 
+  const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
+  const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
+  const metaNextUpdate = document.querySelector('meta[name="nextUpdate"]');
   const metaType = document.querySelector('meta[itemprop="evergreenType"]');
-  const type = (window.AEDMetaDates && window.AEDMetaDates.type) || (metaType?.getAttribute("content")) || "semi-evergreen";
-  const nextUpdateStr = (window.AEDMetaDates && window.AEDMetaDates.nextUpdate) || null;
-  const dateModifiedStr = (window.AEDMetaDates && window.AEDMetaDates.dateModified) || null;
 
-  const formatTanggalNormal = dateString => {
+  if (!metaDateModified || !metaNextUpdate) return console.warn("⚠️ Meta dateModified atau nextUpdate tidak ditemukan");
+
+  let datePublishedStr = metaDatePublished.getAttribute("content");
+  let dateModifiedStr = metaDateModified.getAttribute("content");
+  let nextUpdateStr = metaNextUpdate.getAttribute("content");
+  let type = metaType ? metaType.getAttribute("content") : "semi-evergreen";
+
+  if (window.AEDMetaDates) {
+    const d = window.AEDMetaDates;
+    datePublishedStr = d.datePublished || datePublishedStr;
+    dateModifiedStr = d.dateModified || dateModifiedStr;
+    nextUpdateStr = d.nextUpdate || nextUpdateStr;
+    type = d.type || type;
+  }
+
+  window.AEDMetaDates = { datePublished: datePublishedStr, dateModified: dateModifiedStr, nextUpdate: nextUpdateStr, type };
+
+  function formatTanggalNormal(dateString) {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString("id-ID", { year:"numeric", month:"long", day:"numeric", timeZone:"Asia/Jakarta" });
-    } catch(e) { return dateString; }
-  };
+      return date.toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Jakarta" });
+    } catch (e) {
+      return dateString;
+    }
+  }
 
-  const nextUpdateHuman = (type === "evergreen" || !nextUpdateStr) ? "-" : formatTanggalNormal(nextUpdateStr);
-  const dateModifiedHuman = dateModifiedStr ? formatTanggalNormal(dateModifiedStr) : "-";
+  const nextUpdateHuman = formatTanggalNormal(nextUpdateStr);
+  const dateModifiedHuman = formatTanggalNormal(dateModifiedStr);
 
   const elH1 = document.querySelector("h1, .post-title, .page-title");
   if (!elH1) return;
@@ -171,19 +205,19 @@ function updateArticleDates() {
 
   if (type === "evergreen") {
     lb.innerHTML = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextUpdateHuman}</b>`;
-    document.body.setAttribute("data-force","evergreen");
+    document.body.setAttribute("data-force", "evergreen");
   } else if (type === "semi-evergreen") {
     lb.innerHTML = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextUpdateHuman}</b>`;
-    document.body.setAttribute("data-force","semi-evergreen");
+    document.body.setAttribute("data-force", "semi-evergreen");
   } else {
     lb.innerHTML = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextUpdateHuman}</b>`;
-    document.body.setAttribute("data-force","non-evergreen");
+    document.body.setAttribute("data-force", "non-evergreen");
   }
 
   elH1.insertAdjacentElement("afterend", lb);
 
   const authorEl = document.querySelector(".post-author .fn");
-  if(authorEl && type !== "evergreen") {
+  if (authorEl && type !== "evergreen") {
     const dateEl = document.createElement("span");
     dateEl.className = "aed-date-span";
     dateEl.textContent = ` · Diperbarui: ${dateModifiedHuman}`;
@@ -196,6 +230,4 @@ function updateArticleDates() {
   console.log("✅ [AED] updateArticleDates() selesai dijalankan");
 }
 
-// === Run ===
-detectEvergreen();
 updateArticleDates();
