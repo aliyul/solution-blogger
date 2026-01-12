@@ -1,10 +1,12 @@
 // === Global date variable ===
+// === Global date variable ===
 let datePublished = '';
 let dateModified = '';
 
 function detectEvergreen() {
-  console.log("🧩 Running detectEvergreen() v8.6.11 Stable — NextUpdate1 Fixed...");
+  console.log("🧩 Running detectEvergreen() v8.6.12 Stable — NextUpdate1 Fixed & Validated...");
   window.detectEvergreenReady = false;
+
   const now = new Date();
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
 
@@ -39,14 +41,14 @@ function detectEvergreen() {
   // ---------- Section Extraction ----------
   const sections = [];
   const headings = Array.from(contentEl.querySelectorAll("h2,h3"));
-  if (headings.length === 0) {
+  if (!headings.length) {
     sections.push({ title: h1 || "artikel", content: contentTextRaw });
   } else {
     for (const head of headings) {
       const title = cleanText(head);
       let cur = head.nextElementSibling, body = "";
       while (cur && !(cur.matches && cur.matches("h2,h3"))) {
-        if (cur.innerText && !cur.matches("script,style,nav,footer,header,aside,form,iframe,[role='banner'],[role='complementary']")) 
+        if (cur.innerText && !cur.matches("script,style,nav,footer,header,aside,form,iframe,[role='banner'],[role='complementary']"))
           body += "\n" + cleanText(cur);
         cur = cur.nextElementSibling;
       }
@@ -76,21 +78,18 @@ function detectEvergreen() {
     totalScores.non += sNon;
   });
 
-  // ---------- Final Type ----------
+  // ---------- Determine Final Type ----------
   const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
   let finalType = "semi-evergreen";
   if (totalScores.non > totalScores.evergreen && totalScores.non > totalScores.semi) {
     finalType = "non-evergreen";
   } else if (totalScores.evergreen >= Math.max(totalScores.semi + 1, totalScores.non) && !hasTimePattern) {
     finalType = "evergreen";
-  } else {
-    finalType = "semi-evergreen";
-  }
+  } 
   if (/\b(panduan|tutorial|tips|cara)\b/i.test(h1 + contentText)) finalType = "evergreen";
 
   // ---------- Validity Days & Next Update ----------
   let validityDays, nextUpdate = null;
-
   const normalizeToMidnightUTC = date => {
     if (!date) return null;
     const d = new Date(date);
@@ -99,7 +98,7 @@ function detectEvergreen() {
     return d.toISOString();
   };
 
-  // nextUpdate base
+  // ---------- NextUpdate calculation using nextUpdate1 as base ----------
   const metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
   let nextUpdate1Val = metaNextUpdate1 ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content")) : null;
   const nowUTC = normalizeToMidnightUTC(now);
@@ -108,17 +107,17 @@ function detectEvergreen() {
     validityDays = null;
     nextUpdate = null;
   } else if (finalType === "semi-evergreen") {
-    validityDays = 365; // 12 bulan
-    let baseDate = nextUpdate1Val ? new Date(nextUpdate1Val) : new Date(nowUTC);
+    validityDays = 365;
     const validityMs = validityDays * 86400000;
+    let baseDate = nextUpdate1Val ? new Date(nextUpdate1Val) : new Date(nowUTC);
     while (new Date(nowUTC) >= baseDate) {
       baseDate = new Date(baseDate.getTime() + validityMs);
     }
     nextUpdate = normalizeToMidnightUTC(baseDate);
   } else { // non-evergreen
-    validityDays = 180; // 6 bulan
-    let baseDate = nextUpdate1Val ? new Date(nextUpdate1Val) : new Date(nowUTC);
+    validityDays = 180;
     const validityMs = validityDays * 86400000;
+    let baseDate = nextUpdate1Val ? new Date(nextUpdate1Val) : new Date(nowUTC);
     while (new Date(nowUTC) >= baseDate) {
       baseDate = new Date(baseDate.getTime() + validityMs);
     }
@@ -131,7 +130,7 @@ function detectEvergreen() {
   let dateModified = normalizeToMidnightUTC(metaDateModified?.getAttribute("content"));
   const datePublishedISO = metaDatePublished?.getAttribute("content") || nowUTC;
 
-  // ---------- Store final results ----------
+  // ---------- Store results ----------
   window.EvergreenDetectorResults = {
     resultType: finalType,
     validityDays,
@@ -152,6 +151,7 @@ function detectEvergreen() {
   console.log(window.AEDMetaDates);
 }
 
+// Run detector
 detectEvergreen();
 
 function updateArticleDates() {
