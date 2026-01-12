@@ -105,6 +105,11 @@ function detectEvergreen() {
 // ---------- Section Scoring (Revised) ----------
 // ---------- Section Scoring (Neutral & Evidence-based) ----------
 // ---------- Evidence-based Scoring ----------
+// ======================================================
+// SEO-CORRECT CONTENT FRESHNESS CLASSIFIER (FINAL)
+// ======================================================
+
+// ---------- Evidence-based Scoring ----------
 let scores = {
   evergreen: { score: 0, evidence: 0 },
   semi: { score: 0, evidence: 0 },
@@ -115,7 +120,7 @@ sections.forEach(sec => {
   const t = sec.title.toLowerCase();
   const b = sec.content.toLowerCase();
 
-  // --- TITLE (High confidence) ---
+  // --- TITLE (High confidence signals) ---
   if (evergreenPattern.test(t)) {
     scores.evergreen.score += 3;
     scores.evergreen.evidence++;
@@ -126,54 +131,64 @@ sections.forEach(sec => {
     scores.semi.evidence++;
   }
 
+  // NON title only if explicit (year / promo)
   if (nonEvergreenPattern.test(t)) {
-    scores.non.score += 4;
+    scores.non.score += 3;
     scores.non.evidence++;
   }
 
-  // --- BODY (Medium confidence) ---
+  // --- BODY (Medium confidence, capped) ---
   const everHits = (b.match(evergreenPattern) || []).length;
   const semiHits = (b.match(semiEvergreenPattern) || []).length;
   const nonHits  = (b.match(nonEvergreenPattern) || []).length;
 
   if (everHits) {
-    scores.evergreen.score += everHits * 0.5;
+    scores.evergreen.score += Math.min(everHits, 3) * 0.5;
     scores.evergreen.evidence += Math.min(everHits, 2);
   }
 
   if (semiHits) {
-    scores.semi.score += semiHits * 0.7;
+    scores.semi.score += Math.min(semiHits, 3) * 0.7;
     scores.semi.evidence += Math.min(semiHits, 2);
   }
 
+  // NON body very limited (prevent false positives)
   if (nonHits) {
-    scores.non.score += nonHits * 1.0;
-    scores.non.evidence += Math.min(nonHits, 2);
+    scores.non.score += Math.min(nonHits, 2) * 0.8;
+    scores.non.evidence += Math.min(nonHits, 1);
   }
 });
 
-// ---------- Hard Signals ----------
+// ---------- TIME SIGNALS ----------
+
+// HARD TIME = true non-evergreen signals
 const hardTimePattern =
-  /\b(20\d{2}|tahun\s?ini|bulan\s?ini|minggu\s?ini|hari\s?ini|promo|diskon|update|terbaru)\b/i;
+  /\b(20\d{2}|promo|diskon|periode\s?terbatas)\b/i;
+
+// SOFT TIME = editorial freshness (NOT non)
+const softTimePattern =
+  /\b(update|terbaru|tahun\s?ini|saat\s?ini)\b/i;
 
 const hasHardTime = hardTimePattern.test(contentText);
+const hasSoftTime = softTimePattern.test(contentText);
+
+// ---------- COMMERCIAL SIGNAL ----------
 const hasCommercial = priceTokenPattern.test(h1 + " " + contentText);
 
-// Commercial signal strengthens SEMI but never forces
+// Commercial → SEMI (never forces non)
 if (hasCommercial) {
   scores.semi.score += 2;
   scores.semi.evidence++;
 }
 
-// Hard time strengthens NON only
+// HARD TIME strengthens NON by evidence, not keyword spam
 if (hasHardTime) {
-  scores.non.score += 3;
-  scores.non.evidence++;
+  scores.non.score += 2;
+  scores.non.evidence += 2;
 }
 
-// ---------- Normalization ----------
+// ---------- NORMALIZATION ----------
 function confidence(s) {
-  // capped sigmoid-like normalization
   return Math.min(1, s.score / 8);
 }
 
@@ -183,10 +198,9 @@ const conf = {
   non: confidence(scores.non)
 };
 
-// ---------- Decision (NO FORCING) ----------
+// ---------- DECISION (NO FORCING) ----------
 let finalType = "unknown";
 
-// Minimum evidence gate
 const MIN_EVIDENCE = 2;
 const MIN_CONFIDENCE = 0.55;
 const MARGIN = 0.15;
@@ -195,13 +209,12 @@ const sorted = Object.entries(conf).sort((a, b) => b[1] - a[1]);
 const [topType, topConf] = sorted[0];
 const secondConf = sorted[1][1];
 
-// HARD RULES
 if (
   topConf >= MIN_CONFIDENCE &&
   scores[topType].evidence >= MIN_EVIDENCE &&
   (topConf - secondConf) >= MARGIN
 ) {
-  // Extra safety: NON requires hard time
+  // NON EVERGREEN SAFETY GATE
   if (topType === "non" && !hasHardTime) {
     finalType = "unknown";
   } else {
@@ -212,13 +225,35 @@ if (
   }
 }
 
-// ---------- Validity Days ----------
+// ---------- VALIDITY DAYS ----------
 const validityDays = {
   "evergreen": 0,
   "semi-evergreen": 365,
-  "non-evergreen": 180,
+  "non-evergreen": 90,
   "unknown": null
 }[finalType];
+console.table({
+  scores,
+  confidence: conf,
+  hasHardTime,
+  hasSoftTime,
+  hasCommercial,
+  finalType,
+  validityDays
+});
+// ---------- OPTIONAL DEBUG (RECOMMENDED) ----------
+/*
+console.table({
+  scores,
+  confidence: conf,
+  hasHardTime,
+  hasSoftTime,
+  hasCommercial,
+  finalType,
+  validityDays
+});
+*/
+
 
 function normalizeToMidnightUTC(date) {
   if (!date) return null;
