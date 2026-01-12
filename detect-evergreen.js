@@ -1,12 +1,10 @@
 // === Global date variable ===
-// === Global date variable ===
 let datePublished = '';
 let dateModified = '';
 
 function detectEvergreen() {
-  console.log("🧩 Running detectEvergreen() v8.6.12 Stable — NextUpdate1 Fixed & Validated...");
+  console.log("🧩 Running detectEvergreen() v8.6.12 Stable — Semi/Non Fixed...");
   window.detectEvergreenReady = false;
-
   const now = new Date();
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
 
@@ -41,14 +39,14 @@ function detectEvergreen() {
   // ---------- Section Extraction ----------
   const sections = [];
   const headings = Array.from(contentEl.querySelectorAll("h2,h3"));
-  if (!headings.length) {
+  if (headings.length === 0) {
     sections.push({ title: h1 || "artikel", content: contentTextRaw });
   } else {
     for (const head of headings) {
       const title = cleanText(head);
       let cur = head.nextElementSibling, body = "";
       while (cur && !(cur.matches && cur.matches("h2,h3"))) {
-        if (cur.innerText && !cur.matches("script,style,nav,footer,header,aside,form,iframe,[role='banner'],[role='complementary']"))
+        if (cur.innerText && !cur.matches("script,style,nav,footer,header,aside,form,iframe,[role='banner'],[role='complementary']")) 
           body += "\n" + cleanText(cur);
         cur = cur.nextElementSibling;
       }
@@ -78,7 +76,7 @@ function detectEvergreen() {
     totalScores.non += sNon;
   });
 
-  // ---------- Determine Final Type ----------
+  // ---------- Final Type ----------
   const hasTimePattern = /\b(20\d{2}|bulan|minggu|hari\s?ini|promo|update)\b/.test(contentText);
   let finalType = "semi-evergreen";
   if (totalScores.non > totalScores.evergreen && totalScores.non > totalScores.semi) {
@@ -94,31 +92,24 @@ function detectEvergreen() {
     if (!date) return null;
     const d = new Date(date);
     if (isNaN(d.getTime())) return null;
-    d.setUTCHours(0, 0, 0, 0);
+    d.setUTCHours(0,0,0,0);
     return d.toISOString();
   };
 
-  // ---------- NextUpdate calculation using nextUpdate1 as base ----------
   const metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
-  let nextUpdate1Val = metaNextUpdate1 ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content")) : null;
+  const nextUpdate1Val = metaNextUpdate1 ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content")) : null;
   const nowUTC = normalizeToMidnightUTC(now);
 
   if (finalType === "evergreen") {
     validityDays = null;
     nextUpdate = null;
-  } else if (finalType === "semi-evergreen") {
-    validityDays = 365;
+  } else {
+    validityDays = finalType === "semi-evergreen" ? 365 : 180; // semi 12 bulan, non 6 bulan
     const validityMs = validityDays * 86400000;
     let baseDate = nextUpdate1Val ? new Date(nextUpdate1Val) : new Date(nowUTC);
-    while (new Date(nowUTC) >= baseDate) {
-      baseDate = new Date(baseDate.getTime() + validityMs);
-    }
-    nextUpdate = normalizeToMidnightUTC(baseDate);
-  } else { // non-evergreen
-    validityDays = 180;
-    const validityMs = validityDays * 86400000;
-    let baseDate = nextUpdate1Val ? new Date(nextUpdate1Val) : new Date(nowUTC);
-    while (new Date(nowUTC) >= baseDate) {
+
+    // loop sampai nextUpdate > sekarang
+    while (baseDate <= nowUTC) {
       baseDate = new Date(baseDate.getTime() + validityMs);
     }
     nextUpdate = normalizeToMidnightUTC(baseDate);
@@ -130,7 +121,7 @@ function detectEvergreen() {
   let dateModified = normalizeToMidnightUTC(metaDateModified?.getAttribute("content"));
   const datePublishedISO = metaDatePublished?.getAttribute("content") || nowUTC;
 
-  // ---------- Store results ----------
+  // ---------- Store final results ----------
   window.EvergreenDetectorResults = {
     resultType: finalType,
     validityDays,
@@ -147,52 +138,29 @@ function detectEvergreen() {
     type: finalType
   };
 
-  console.log("✅ [AED] Hasil akhir disimpan:");
+  console.log("✅ [AED] detectEvergreen() selesai, hasil:");
   console.log(window.AEDMetaDates);
 }
 
-// Run detector
-detectEvergreen();
-
 function updateArticleDates() {
-  // Hapus label lama
   document.getElementById("evergreen-label")?.remove();
   document.querySelectorAll(".aed-date-span, .aed-non-evergreen-date").forEach(el => el.remove());
 
-  // Ambil meta
-  const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
-  const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   const metaType = document.querySelector('meta[itemprop="evergreenType"]');
+  const type = (window.AEDMetaDates && window.AEDMetaDates.type) || (metaType?.getAttribute("content")) || "semi-evergreen";
+  const nextUpdateStr = (window.AEDMetaDates && window.AEDMetaDates.nextUpdate) || null;
+  const dateModifiedStr = (window.AEDMetaDates && window.AEDMetaDates.dateModified) || null;
 
-  let datePublishedStr = metaDatePublished?.getAttribute("content");
-  let dateModifiedStr = metaDateModified?.getAttribute("content");
-  let type = metaType?.getAttribute("content") || "semi-evergreen";
-
-  // Ambil data dari detectEvergreen
-  if (window.AEDMetaDates) {
-    const d = window.AEDMetaDates;
-    datePublishedStr = d.datePublished || datePublishedStr;
-    dateModifiedStr = d.dateModified || dateModifiedStr;
-    type = d.type || type;
-  }
-
-  // Format tanggal manusia
-  function formatTanggalNormal(dateString) {
+  const formatTanggalNormal = dateString => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString("id-ID", { year: "numeric", month: "long", day: "numeric", timeZone: "Asia/Jakarta" });
-    } catch (e) {
-      return dateString;
-    }
-  }
+      return date.toLocaleDateString("id-ID", { year:"numeric", month:"long", day:"numeric", timeZone:"Asia/Jakarta" });
+    } catch(e) { return dateString; }
+  };
 
-  const nextUpdateHuman = (window.AEDMetaDates && window.AEDMetaDates.nextUpdate && type !== "evergreen")
-    ? formatTanggalNormal(window.AEDMetaDates.nextUpdate)
-    : "-";
+  const nextUpdateHuman = (type === "evergreen" || !nextUpdateStr) ? "-" : formatTanggalNormal(nextUpdateStr);
+  const dateModifiedHuman = dateModifiedStr ? formatTanggalNormal(dateModifiedStr) : "-";
 
-  const dateModifiedHuman = formatTanggalNormal(dateModifiedStr);
-
-  // Buat label
   const elH1 = document.querySelector("h1, .post-title, .page-title");
   if (!elH1) return;
 
@@ -203,20 +171,19 @@ function updateArticleDates() {
 
   if (type === "evergreen") {
     lb.innerHTML = `<b>EVERGREEN</b> — pembaruan berikutnya: <b>${nextUpdateHuman}</b>`;
-    document.body.setAttribute("data-force", "evergreen");
+    document.body.setAttribute("data-force","evergreen");
   } else if (type === "semi-evergreen") {
     lb.innerHTML = `<b>SEMI-EVERGREEN</b> — disarankan update: <b>${nextUpdateHuman}</b>`;
-    document.body.setAttribute("data-force", "semi-evergreen");
+    document.body.setAttribute("data-force","semi-evergreen");
   } else {
     lb.innerHTML = `<b>NON-EVERGREEN</b> — disarankan update: <b>${nextUpdateHuman}</b>`;
-    document.body.setAttribute("data-force", "non-evergreen");
+    document.body.setAttribute("data-force","non-evergreen");
   }
 
   elH1.insertAdjacentElement("afterend", lb);
 
-  // Tambah tanggal update di author
   const authorEl = document.querySelector(".post-author .fn");
-  if (authorEl && type !== "evergreen") {
+  if(authorEl && type !== "evergreen") {
     const dateEl = document.createElement("span");
     dateEl.className = "aed-date-span";
     dateEl.textContent = ` · Diperbarui: ${dateModifiedHuman}`;
@@ -229,4 +196,6 @@ function updateArticleDates() {
   console.log("✅ [AED] updateArticleDates() selesai dijalankan");
 }
 
+// === Run ===
+detectEvergreen();
 updateArticleDates();
