@@ -104,61 +104,112 @@ function detectEvergreen() {
  */
 // ---------- Section Scoring (Revised) ----------
 // ---------- Section Scoring (Neutral & Evidence-based) ----------
-let totalScores = { evergreen: 0, semi: 0, non: 0 };
+// ---------- Evidence-based Scoring ----------
+let scores = {
+  evergreen: { score: 0, evidence: 0 },
+  semi: { score: 0, evidence: 0 },
+  non: { score: 0, evidence: 0 }
+};
 
 sections.forEach(sec => {
   const t = sec.title.toLowerCase();
   const b = sec.content.toLowerCase();
 
-  let sEver = 0, sSemi = 0, sNon = 0;
+  // --- TITLE (High confidence) ---
+  if (evergreenPattern.test(t)) {
+    scores.evergreen.score += 3;
+    scores.evergreen.evidence++;
+  }
 
-  // Title signals (high confidence)
-  if (evergreenPattern.test(t)) sEver += 3;
-  if (semiEvergreenPattern.test(t)) sSemi += 3;
-  if (nonEvergreenPattern.test(t)) sNon += 4;
+  if (semiEvergreenPattern.test(t)) {
+    scores.semi.score += 3;
+    scores.semi.evidence++;
+  }
 
-  // Body signals (lower confidence)
-  sEver += (b.match(evergreenPattern) || []).length * 0.6;
-  sSemi += (b.match(semiEvergreenPattern) || []).length * 0.8;
-  sNon  += (b.match(nonEvergreenPattern)  || []).length * 1.0;
+  if (nonEvergreenPattern.test(t)) {
+    scores.non.score += 4;
+    scores.non.evidence++;
+  }
 
-  // Commercial ≠ time-based
-  if (priceTokenPattern.test(t + " " + b)) sSemi += 2;
+  // --- BODY (Medium confidence) ---
+  const everHits = (b.match(evergreenPattern) || []).length;
+  const semiHits = (b.match(semiEvergreenPattern) || []).length;
+  const nonHits  = (b.match(nonEvergreenPattern) || []).length;
 
-  totalScores.evergreen += sEver;
-  totalScores.semi += sSemi;
-  totalScores.non += sNon;
+  if (everHits) {
+    scores.evergreen.score += everHits * 0.5;
+    scores.evergreen.evidence += Math.min(everHits, 2);
+  }
+
+  if (semiHits) {
+    scores.semi.score += semiHits * 0.7;
+    scores.semi.evidence += Math.min(semiHits, 2);
+  }
+
+  if (nonHits) {
+    scores.non.score += nonHits * 1.0;
+    scores.non.evidence += Math.min(nonHits, 2);
+  }
 });
 
-// ---------- Hard Evidence Checks ----------
+// ---------- Hard Signals ----------
 const hardTimePattern =
   /\b(20\d{2}|tahun\s?ini|bulan\s?ini|minggu\s?ini|hari\s?ini|promo|diskon|update|terbaru)\b/i;
 
-const hasHardTimeSignal = hardTimePattern.test(contentText);
-const hasCommercialSignal = priceTokenPattern.test(h1 + " " + contentText);
+const hasHardTime = hardTimePattern.test(contentText);
+const hasCommercial = priceTokenPattern.test(h1 + " " + contentText);
 
-// ---------- Decision (No Forcing) ----------
+// Commercial signal strengthens SEMI but never forces
+if (hasCommercial) {
+  scores.semi.score += 2;
+  scores.semi.evidence++;
+}
+
+// Hard time strengthens NON only
+if (hasHardTime) {
+  scores.non.score += 3;
+  scores.non.evidence++;
+}
+
+// ---------- Normalization ----------
+function confidence(s) {
+  // capped sigmoid-like normalization
+  return Math.min(1, s.score / 8);
+}
+
+const conf = {
+  evergreen: confidence(scores.evergreen),
+  semi: confidence(scores.semi),
+  non: confidence(scores.non)
+};
+
+// ---------- Decision (NO FORCING) ----------
 let finalType = "unknown";
 
-// NON-EVERGREEN: only if time signal is undeniable
-if (hasHardTimeSignal && totalScores.non >= 4) {
-  finalType = "non-evergreen";
-}
+// Minimum evidence gate
+const MIN_EVIDENCE = 2;
+const MIN_CONFIDENCE = 0.55;
+const MARGIN = 0.15;
 
-// SEMI-EVERGREEN: commercial but no hard time
-else if (hasCommercialSignal && totalScores.semi >= 3 && !hasHardTimeSignal) {
-  finalType = "semi-evergreen";
-}
+const sorted = Object.entries(conf).sort((a, b) => b[1] - a[1]);
+const [topType, topConf] = sorted[0];
+const secondConf = sorted[1][1];
 
-// EVERGREEN: informational dominance, no commercial, no time
-else if (
-  totalScores.evergreen >= 4 &&
-  totalScores.evergreen > totalScores.semi &&
-  totalScores.evergreen > totalScores.non &&
-  !hasCommercialSignal &&
-  !hasHardTimeSignal
+// HARD RULES
+if (
+  topConf >= MIN_CONFIDENCE &&
+  scores[topType].evidence >= MIN_EVIDENCE &&
+  (topConf - secondConf) >= MARGIN
 ) {
-  finalType = "evergreen";
+  // Extra safety: NON requires hard time
+  if (topType === "non" && !hasHardTime) {
+    finalType = "unknown";
+  } else {
+    finalType =
+      topType === "evergreen" ? "evergreen" :
+      topType === "semi" ? "semi-evergreen" :
+      "non-evergreen";
+  }
 }
 
 // ---------- Validity Days ----------
@@ -166,7 +217,7 @@ const validityDays = {
   "evergreen": 0,
   "semi-evergreen": 365,
   "non-evergreen": 180,
-  "unknown": null // intentionally undefined
+  "unknown": null
 }[finalType];
 
 function normalizeToMidnightUTC(date) {
