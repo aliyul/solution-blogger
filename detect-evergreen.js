@@ -212,7 +212,25 @@ try {
 (function() {
   console.log("🔄 [AED Maintenance v9.5] Running maintenance cycle check...");
 
-  const validityDaysFinal = typeof validityDays !== "undefined" ? validityDays : 180; // fallback 180 hari
+  //const validityDaysFinal = typeof validityDays !== "undefined" ? validityDays : 180; // fallback 180 hari
+ function getValidityDays(contentType) {
+  switch (contentType) {
+    case "evergreen":
+      return 0;
+    case "semi-evergreen":
+      return 365;
+    case "non-evergreen":
+      return 90;
+    default:
+      return 180;
+  }
+}
+
+const validityDaysFinal =
+  typeof validityDays !== "undefined"
+    ? validityDays
+    : getValidityDays(contentType);
+
   const metaNextAll = document.querySelectorAll('meta[name="nextUpdate"]');
 
   if (!metaNextAll.length) {
