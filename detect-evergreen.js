@@ -192,7 +192,11 @@ function updateArticleDates() {
     }
   }
 
-  const nextUpdateHuman = nextUpdateStr ? formatTanggalNormal(nextUpdateStr) : "-";
+  //const nextUpdateHuman = nextUpdateStr ? formatTanggalNormal(nextUpdateStr) : "-";
+  const nextUpdateHuman = (type === "evergreen" || !nextUpdateStr) 
+  ? "-" 
+  : formatTanggalNormal(nextUpdateStr);
+
   const dateModifiedHuman = formatTanggalNormal(dateModifiedStr);
 
   const elH1 = document.querySelector("h1, .post-title, .page-title");
