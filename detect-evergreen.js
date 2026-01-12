@@ -108,6 +108,9 @@ function detectEvergreen() {
 // ======================================================
 // SEO-CORRECT CONTENT FRESHNESS CLASSIFIER (FINAL)
 // ======================================================
+// ======================================================
+// SEO-CORRECT CONTENT FRESHNESS CLASSIFIER (FINAL REVISION)
+// ======================================================
 
 // ---------- Evidence-based Scoring ----------
 let scores = {
@@ -120,24 +123,29 @@ sections.forEach(sec => {
   const t = sec.title.toLowerCase();
   const b = sec.content.toLowerCase();
 
-  // --- TITLE (High confidence signals) ---
+  // ---------- TITLE (High-confidence signals) ----------
+
+  // Evergreen title signals (definition, guide, function, etc.)
   if (evergreenPattern.test(t)) {
     scores.evergreen.score += 3;
     scores.evergreen.evidence++;
   }
 
+  // Semi-evergreen title signals (harga, spesifikasi, ukuran)
   if (semiEvergreenPattern.test(t)) {
     scores.semi.score += 3;
     scores.semi.evidence++;
   }
 
-  // NON title only if explicit (year / promo)
+  // Non-evergreen title ONLY if explicit time-bound
+  // (year, promo, periode terbatas)
   if (nonEvergreenPattern.test(t)) {
     scores.non.score += 3;
     scores.non.evidence++;
   }
 
-  // --- BODY (Medium confidence, capped) ---
+  // ---------- BODY (Medium-confidence, capped) ----------
+
   const everHits = (b.match(evergreenPattern) || []).length;
   const semiHits = (b.match(semiEvergreenPattern) || []).length;
   const nonHits  = (b.match(nonEvergreenPattern) || []).length;
@@ -152,43 +160,57 @@ sections.forEach(sec => {
     scores.semi.evidence += Math.min(semiHits, 2);
   }
 
-  // NON body very limited (prevent false positives)
+  // Non-evergreen body signals are VERY limited
+  // to avoid false positives from editorial wording
   if (nonHits) {
     scores.non.score += Math.min(nonHits, 2) * 0.8;
     scores.non.evidence += Math.min(nonHits, 1);
   }
 });
 
-// ---------- TIME SIGNALS ----------
+// ======================================================
+// TIME SIGNALS (CRITICAL SEO LOGIC)
+// ======================================================
 
-// HARD TIME = true non-evergreen signals
+// HARD TIME = TRUE non-evergreen anchors
+// → content becomes time-sensitive
 const hardTimePattern =
   /\b(20\d{2}|promo|diskon|periode\s?terbatas)\b/i;
 
-// SOFT TIME = editorial freshness (NOT non)
+// SOFT TIME = editorial freshness ONLY
+// → NEVER makes content non-evergreen
 const softTimePattern =
   /\b(update|terbaru|tahun\s?ini|saat\s?ini)\b/i;
 
 const hasHardTime = hardTimePattern.test(contentText);
 const hasSoftTime = softTimePattern.test(contentText);
 
-// ---------- COMMERCIAL SIGNAL ----------
+// ======================================================
+// COMMERCIAL SIGNAL (SEO-SAFE)
+// ======================================================
+
+// Commercial intent (harga, jual, biaya)
+// DOES NOT mean non-evergreen
 const hasCommercial = priceTokenPattern.test(h1 + " " + contentText);
 
-// Commercial → SEMI (never forces non)
+// Commercial strengthens SEMI only (never forces NON)
 if (hasCommercial) {
   scores.semi.score += 2;
   scores.semi.evidence++;
 }
 
-// HARD TIME strengthens NON by evidence, not keyword spam
+// HARD TIME strengthens NON via evidence, not keyword spam
 if (hasHardTime) {
   scores.non.score += 2;
   scores.non.evidence += 2;
 }
 
-// ---------- NORMALIZATION ----------
+// ======================================================
+// NORMALIZATION
+// ======================================================
+
 function confidence(s) {
+  // capped linear normalization (SEO-safe)
   return Math.min(1, s.score / 8);
 }
 
@@ -198,7 +220,10 @@ const conf = {
   non: confidence(scores.non)
 };
 
-// ---------- DECISION (NO FORCING) ----------
+// ======================================================
+// DECISION LOGIC (NO FORCING, NO BIAS)
+// ======================================================
+
 let finalType = "unknown";
 
 const MIN_EVIDENCE = 2;
@@ -214,7 +239,8 @@ if (
   scores[topType].evidence >= MIN_EVIDENCE &&
   (topConf - secondConf) >= MARGIN
 ) {
-  // NON EVERGREEN SAFETY GATE
+  // SAFETY GATE:
+  // Non-evergreen MUST have hard time anchor
   if (topType === "non" && !hasHardTime) {
     finalType = "unknown";
   } else {
@@ -225,23 +251,20 @@ if (
   }
 }
 
-// ---------- VALIDITY DAYS ----------
+// ======================================================
+// VALIDITY DAYS (SEO MAINTENANCE)
+// ======================================================
+
 const validityDays = {
-  "evergreen": 0,
-  "semi-evergreen": 365,
-  "non-evergreen": 90,
+  "evergreen": 0,            // no expiration
+  "semi-evergreen": 365,     // annual review
+  "non-evergreen": 90,       // short-lived
   "unknown": null
 }[finalType];
-console.table({
-  scores,
-  confidence: conf,
-  hasHardTime,
-  hasSoftTime,
-  hasCommercial,
-  finalType,
-  validityDays
-});
-// ---------- OPTIONAL DEBUG (RECOMMENDED) ----------
+
+// ======================================================
+// OPTIONAL DEBUG (HIGHLY RECOMMENDED)
+// ======================================================
 /*
 console.table({
   scores,
@@ -253,6 +276,17 @@ console.table({
   validityDays
 });
 */
+
+console.table({
+  scores,
+  confidence: conf,
+  hasHardTime,
+  hasSoftTime,
+  hasCommercial,
+  finalType,
+  validityDays
+});
+
 
 
 function normalizeToMidnightUTC(date) {
