@@ -75,6 +75,7 @@ function detectEvergreen() {
   }
 
   // ---------- Section Scoring ----------
+ /*
   let totalScores = { evergreen: 0, semi: 0, non: 0 };
   sections.forEach(sec => {
     const t = sec.title.toLowerCase(), b = sec.content.toLowerCase();
@@ -100,6 +101,83 @@ function detectEvergreen() {
     finalType = "semi-evergreen";
 
   const validityDays = { "evergreen": 0, "semi-evergreen":  365, "non-evergreen": 180 }[finalType];
+ */
+// ---------- Section Scoring (Revised) ----------
+let totalScores = { evergreen: 0, semi: 0, non: 0 };
+
+sections.forEach(sec => {
+  const t = sec.title.toLowerCase();
+  const b = sec.content.toLowerCase();
+
+  let sEver = 0, sSemi = 0, sNon = 0;
+
+  // --- Title signals (stronger) ---
+  if (evergreenPattern.test(t)) sEver += 3;
+  if (semiEvergreenPattern.test(t)) sSemi += 2.5;
+  if (nonEvergreenPattern.test(t)) sNon += 3;
+
+  // --- Body signals ---
+  sEver += (b.match(evergreenPattern) || []).length * 0.7;
+  sSemi += (b.match(semiEvergreenPattern) || []).length * 0.9;
+  sNon  += (b.match(nonEvergreenPattern)  || []).length * 1.2;
+
+  // --- Price / commercial bias → SEMI ---
+  if (priceTokenPattern.test(t + " " + b)) {
+    sSemi += 2.5;
+    sEver -= 1; // harga melemahkan evergreen
+  }
+
+  totalScores.evergreen += Math.max(0, sEver);
+  totalScores.semi += Math.max(0, sSemi);
+  totalScores.non += Math.max(0, sNon);
+});
+
+// ---------- Hard Time Signals ----------
+const hardTimePattern =
+  /\b(20\d{2}|tahun\s?ini|bulan\s?ini|minggu\s?ini|hari\s?ini|promo|diskon|update|terbaru)\b/i;
+
+const hasHardTimeSignal = hardTimePattern.test(contentText);
+
+// ---------- Decision Logic ----------
+let finalType = "evergreen"; // DEFAULT
+
+// 1️⃣ Non-evergreen hanya jika ADA sinyal waktu + skor kuat
+if (
+  hasHardTimeSignal &&
+  totalScores.non > totalScores.semi * 1.1 &&
+  totalScores.non > totalScores.evergreen * 1.1
+) {
+  finalType = "non-evergreen";
+}
+
+// 2️⃣ Semi-evergreen jika:
+else if (
+  totalScores.semi > totalScores.evergreen * 0.8 ||
+  priceTokenPattern.test(h1 + " " + contentText)
+) {
+  finalType = "semi-evergreen";
+}
+
+// 3️⃣ Evergreen tetap evergreen jika:
+else {
+  finalType = "evergreen";
+}
+
+// ---------- Safety Override ----------
+// Harga / jasa TIDAK BOLEH jadi non-evergreen
+if (
+  /\b(harga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan)\b/i.test(h1 + contentText) &&
+  finalType === "non-evergreen"
+) {
+  finalType = "semi-evergreen";
+}
+
+// ---------- Validity Days ----------
+const validityDays = {
+  "evergreen": 0,
+  "semi-evergreen": 365,
+  "non-evergreen": 180
+}[finalType];
 
 function normalizeToMidnightUTC(date) {
   if (!date) return null;
@@ -220,9 +298,9 @@ try {
     case "semi-evergreen":
       return 365;
     case "non-evergreen":
-      return 90;
-    default:
       return 180;
+    default:
+      return 0;
   }
 }
 
