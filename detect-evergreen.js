@@ -99,7 +99,7 @@ function detectEvergreen() {
   if (/\bharga|sewa|rental|kontraktor|jasa|biaya|tarif|borongan\b/i.test(h1 + contentText) && finalType === "non-evergreen") 
     finalType = "semi-evergreen";
 
-  const validityDays = { evergreen: 365, "semi-evergreen": 180, "non-evergreen": 90 }[finalType];
+  const validityDays = { evergreen: 0, "semi-evergreen":  365, "non-evergreen": 180 }[finalType];
 
 function normalizeToMidnightUTC(date) {
   if (!date) return null;
