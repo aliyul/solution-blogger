@@ -155,31 +155,28 @@ function detectEvergreen() {
 detectEvergreen();
 
 function updateArticleDates() {
+  // Hapus label lama
   document.getElementById("evergreen-label")?.remove();
   document.querySelectorAll(".aed-date-span, .aed-non-evergreen-date").forEach(el => el.remove());
 
+  // Ambil meta
   const metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
   const metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
-  const metaNextUpdate = document.querySelector('meta[name="nextUpdate"]');
   const metaType = document.querySelector('meta[itemprop="evergreenType"]');
 
-  if (!metaDateModified || !metaNextUpdate) return console.warn("⚠️ Meta dateModified atau nextUpdate tidak ditemukan");
+  let datePublishedStr = metaDatePublished?.getAttribute("content");
+  let dateModifiedStr = metaDateModified?.getAttribute("content");
+  let type = metaType?.getAttribute("content") || "semi-evergreen";
 
-  let datePublishedStr = metaDatePublished.getAttribute("content");
-  let dateModifiedStr = metaDateModified.getAttribute("content");
-  let nextUpdateStr = metaNextUpdate.getAttribute("content");
-  let type = metaType ? metaType.getAttribute("content") : "semi-evergreen";
-
+  // Ambil data dari detectEvergreen
   if (window.AEDMetaDates) {
     const d = window.AEDMetaDates;
     datePublishedStr = d.datePublished || datePublishedStr;
     dateModifiedStr = d.dateModified || dateModifiedStr;
-    nextUpdateStr = d.nextUpdate || nextUpdateStr;
     type = d.type || type;
   }
 
-  window.AEDMetaDates = { datePublished: datePublishedStr, dateModified: dateModifiedStr, nextUpdate: nextUpdateStr, type };
-
+  // Format tanggal manusia
   function formatTanggalNormal(dateString) {
     try {
       const date = new Date(dateString);
@@ -189,13 +186,13 @@ function updateArticleDates() {
     }
   }
 
-  //const nextUpdateHuman = nextUpdateStr ? formatTanggalNormal(nextUpdateStr) : "-";
-  const nextUpdateHuman = (type === "evergreen" || !nextUpdateStr) 
-  ? "-" 
-  : formatTanggalNormal(nextUpdateStr);
+  const nextUpdateHuman = (window.AEDMetaDates && window.AEDMetaDates.nextUpdate && type !== "evergreen")
+    ? formatTanggalNormal(window.AEDMetaDates.nextUpdate)
+    : "-";
 
   const dateModifiedHuman = formatTanggalNormal(dateModifiedStr);
 
+  // Buat label
   const elH1 = document.querySelector("h1, .post-title, .page-title");
   if (!elH1) return;
 
@@ -217,6 +214,7 @@ function updateArticleDates() {
 
   elH1.insertAdjacentElement("afterend", lb);
 
+  // Tambah tanggal update di author
   const authorEl = document.querySelector(".post-author .fn");
   if (authorEl && type !== "evergreen") {
     const dateEl = document.createElement("span");
