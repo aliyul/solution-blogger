@@ -3,7 +3,7 @@ let datePublished = '';
 let dateModified = '';
 
 function detectEvergreen() {
-  console.log("🧩 Running detectEvergreen() v8.6.9 Stable — Hybrid Logic + NextUpdate Fix...");
+  console.log("🧩 Running detectEvergreen() v8.6.11 Stable — NextUpdate1 Fixed...");
   window.detectEvergreenReady = false;
   const now = new Date();
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
@@ -16,7 +16,6 @@ function detectEvergreen() {
     const minutes = pad(tzOffset % 60);
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}${diff}${hours}:${minutes}`;
   };
-  const nowLocalISO = formatLocalISO(now);
 
   // ---------- Grab content ----------
   const h1El = document.querySelector("h1");
@@ -87,10 +86,7 @@ function detectEvergreen() {
   } else {
     finalType = "semi-evergreen";
   }
-
-  if (/\b(panduan|tutorial|tips|cara)\b/i.test(h1 + contentText)) {
-    finalType = "evergreen";
-  }
+  if (/\b(panduan|tutorial|tips|cara)\b/i.test(h1 + contentText)) finalType = "evergreen";
 
   // ---------- Validity Days & Next Update ----------
   let validityDays, nextUpdate = null;
@@ -103,8 +99,9 @@ function detectEvergreen() {
     return d.toISOString();
   };
 
+  // nextUpdate base
   const metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
-  const nextUpdate1Val = metaNextUpdate1 ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content")) : null;
+  let nextUpdate1Val = metaNextUpdate1 ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content")) : null;
   const nowUTC = normalizeToMidnightUTC(now);
 
   if (finalType === "evergreen") {
@@ -112,16 +109,16 @@ function detectEvergreen() {
     nextUpdate = null;
   } else if (finalType === "semi-evergreen") {
     validityDays = 365; // 12 bulan
-    const validityMs = validityDays * 86400000;
     let baseDate = nextUpdate1Val ? new Date(nextUpdate1Val) : new Date(nowUTC);
+    const validityMs = validityDays * 86400000;
     while (new Date(nowUTC) >= baseDate) {
       baseDate = new Date(baseDate.getTime() + validityMs);
     }
     nextUpdate = normalizeToMidnightUTC(baseDate);
   } else { // non-evergreen
     validityDays = 180; // 6 bulan
-    const validityMs = validityDays * 86400000;
     let baseDate = nextUpdate1Val ? new Date(nextUpdate1Val) : new Date(nowUTC);
+    const validityMs = validityDays * 86400000;
     while (new Date(nowUTC) >= baseDate) {
       baseDate = new Date(baseDate.getTime() + validityMs);
     }
@@ -132,21 +129,21 @@ function detectEvergreen() {
   let metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   let metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
   let dateModified = normalizeToMidnightUTC(metaDateModified?.getAttribute("content"));
-  const datePublished = metaDatePublished?.getAttribute("content") || nowUTC;
+  const datePublishedISO = metaDatePublished?.getAttribute("content") || nowUTC;
 
   // ---------- Store final results ----------
   window.EvergreenDetectorResults = {
     resultType: finalType,
     validityDays,
     dateModified,
-    datePublished,
+    datePublished: datePublishedISO,
     nextUpdate,
     sections
   };
 
   window.AEDMetaDates = {
     dateModified,
-    datePublished,
+    datePublished: datePublishedISO,
     nextUpdate,
     type: finalType
   };
