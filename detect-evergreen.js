@@ -611,8 +611,6 @@ const validityDaysFinal =
   console.log(window.AEDMetaDates);
 }
 
-detectEvergreen();
-
 function updateArticleDates() {
   // 🧹 --- Hapus elemen label & tanggal lama ---
   document.getElementById("evergreen-label")?.remove();
@@ -700,5 +698,16 @@ function updateArticleDates() {
   window.detectEvergreenReady = true;
   console.log("✅ [AED] updateArticleDates() selesai dijalankan");
 }
+// === URL Guard: Skip halaman /p/ (static pages, pillar, landing) ===
+(function () {
+  if (location.pathname.includes("/p/")) {
+    console.log("⏭️ [AED] Halaman /p/ terdeteksi — detectEvergreen() dilewati.");
+    return;
+  }
 
-updateArticleDates();
+  if (typeof detectEvergreen === "function") {
+    detectEvergreen();
+    updateArticleDates();
+  }
+})();
+
