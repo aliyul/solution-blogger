@@ -293,6 +293,42 @@ console.table({
   validityDays
 });
 
+// ======================================================
+// 🔒 EVERGREEN HARD GUARD v10 (NO STRUCTURE CHANGE)
+// ======================================================
+if (finalType === "evergreen") {
+  console.log("🌿 [AED v10] Evergreen detected — lock all date updates.");
+
+  // ❌ Hapus SEMUA nextUpdate (evergreen tidak boleh punya ini)
+  document.querySelectorAll('meta[name="nextUpdate"]').forEach(m => m.remove());
+
+  // Ambil dateModified asli jika ada (JANGAN ubah)
+  const metaDM = document.querySelector('meta[itemprop="dateModified"]');
+  dateModified = metaDM ? normalizeToMidnightUTC(metaDM.getAttribute("content")) : null;
+
+  const metaDP = document.querySelector('meta[itemprop="datePublished"]');
+  datePublished = metaDP ? metaDP.getAttribute("content") : null;
+
+  // Simpan hasil & STOP total eksekusi tanggal
+  window.EvergreenDetectorResults = {
+    resultType: "evergreen",
+    validityDays: 0,
+    dateModified,
+    datePublished,
+    nextUpdate: null,
+    sections
+  };
+
+  window.AEDMetaDates = {
+    type: "evergreen",
+    dateModified,
+    datePublished,
+    nextUpdate: null
+  };
+
+  console.log("✅ [AED v10] Evergreen locked. No freshness manipulation.");
+  return; // ⛔ STOP DI SINI
+}
 
 
 function normalizeToMidnightUTC(date) {
@@ -359,7 +395,7 @@ if (new Date(nowUTC) < new Date(nextUpdate1Val)) {
   console.log("🔄 [AED] Sudah mencapai/lewati nextUpdate1, mulai loop perpanjangan...");
 
   // Loop sampai nextUpdate baru benar-benar di masa depan
-  while (new Date(nowUTC) >= nextUpdateDate) {
+  while (validityMs > 0 && new Date(nowUTC) >= nextUpdateDate) {
     const next = new Date(nextUpdateDate.getTime() + validityMs);
     const iso = normalizeToMidnightUTC(next.toISOString());
 
@@ -383,6 +419,7 @@ console.log("✅ [AED] Final nextUpdate aktif:", nextUpdate);
 
 // ---------- Sinkronisasi dateModified ----------
 try {
+  if (validityMs > 0 && nextUpdate) {
   const expectedDateModified = new Date(new Date(nextUpdate).getTime() - validityMs);
   const expectedISO = normalizeToMidnightUTC(expectedDateModified.toISOString());
 
@@ -399,12 +436,17 @@ try {
   } else {
     console.log("✅ [AED Sync] dateModified sudah sinkron:", expectedISO);
   }
+}
 } catch (err) {
   console.error("❌ [AED Sync] Sinkronisasi gagal:", err);
 }
 
 (function() {
   console.log("🔄 [AED Maintenance v9.5] Running maintenance cycle check...");
+  if (finalType === "evergreen") {
+  console.log("🌿 [AED v10] Skip maintenance — evergreen content.");
+  return;
+}
 
   //const validityDaysFinal = typeof validityDays !== "undefined" ? validityDays : 180; // fallback 180 hari
  function getValidityDays(contentType) {
