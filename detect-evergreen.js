@@ -15,6 +15,36 @@ let dateModified = '';
    Fix: duplicate definitions removed, stable execution
    =========================================================== */
 function detectEvergreen() {
+ // ======================================================
+// 🔒 HARD PAGE GUARD — NON-/p/ = NON-EVERGREEN (ABSOLUTE)
+// ======================================================
+if (!location.pathname.includes("/p/")) {
+  console.log("🚫 [AED HARD GUARD] NON-/p/ terdeteksi → paksa NON-EVERGREEN");
+
+  window.__CONTENT_STATUS__ = "non-evergreen";
+
+  // Simpan hasil FINAL tanpa analisis konten
+  window.EvergreenDetectorResults = {
+    resultType: "non-evergreen",
+    validityDays: 180,
+    dateModified: null,
+    datePublished: null,
+    nextUpdate: null,
+    sections: []
+  };
+
+  window.AEDMetaDates = {
+    type: "non-evergreen",
+    dateModified: null,
+    datePublished: null,
+    nextUpdate: null
+  };
+
+  // ⛔ STOP TOTAL — jangan lanjut ke scoring, pattern, atau guard evergreen
+  return;
+}
+  // jika lanjut ke scoring, pattern, atau guard evergreen, tapi saya ga mau 
+ //karna khawatir salah dan bikin sulit update nya karna ga serragam status eveergreen nya
   console.log("🧩 Running detectEvergreen() v8.6.9 Stable — Hybrid Logic + Meta Sync + Blogspot Safe...");
   window.detectEvergreenReady = false;
   const now = new Date();
