@@ -17,10 +17,13 @@ let dateModified = '';
 function detectEvergreen() {
 // ======================================================
 // 🔒 HARD PAGE GUARD v2 — NON-/p/ = NON-EVERGREEN + DATE ACTIVE
-// ======================================================
 if (!location.pathname.includes("/p/")) {
   console.log("🚫 [AED HARD GUARD v2] NON-/p/ → NON-EVERGREEN + date calculation");
 
+  window.detectEvergreenReady = false;
+  window.__CONTENT_STATUS__ = "non-evergreen";
+
+  const finalType = "non-evergreen";
   const now = new Date();
 
   function normalizeToMidnightUTC(date) {
@@ -29,79 +32,62 @@ if (!location.pathname.includes("/p/")) {
     return d.toISOString();
   }
 
-  const validityDays = 180; // FIXED non-evergreen lifecycle
+  const validityDays = 180;
   const validityMs = validityDays * 86400000;
 
-  // datePublished
-  let metaDP = document.querySelector('meta[itemprop="datePublished"]');
-  let datePublished = metaDP
-    ? normalizeToMidnightUTC(metaDP.getAttribute("content"))
-    : normalizeToMidnightUTC(now);
+  let metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
+  let metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
+  let metaNextUpdates = Array.from(document.querySelectorAll('meta[name="nextUpdate"]'));
+  const metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
 
-  // dateModified = datePublished (initial)
-  let metaDM = document.querySelector('meta[itemprop="dateModified"]');
-  let dateModified = metaDM
-    ? normalizeToMidnightUTC(metaDM.getAttribute("content"))
-    : datePublished;
+  const nowUTC = normalizeToMidnightUTC(now);
 
-  // nextUpdate = dateModified + validityDays
-  const nextUpdate = normalizeToMidnightUTC(
-    new Date(new Date(dateModified).getTime() + validityMs)
-  );
+  let dateModified = metaDateModified
+    ? normalizeToMidnightUTC(metaDateModified.getAttribute("content"))
+    : nowUTC;
 
-  // Pastikan meta datePublished ada
-  if (!metaDP) {
-    metaDP = document.createElement("meta");
-    metaDP.setAttribute("itemprop", "datePublished");
-    metaDP.setAttribute("content", datePublished);
-    document.head.appendChild(metaDP);
+  const datePublished = metaDatePublished
+    ? normalizeToMidnightUTC(metaDatePublished.getAttribute("content"))
+    : nowUTC;
+
+  let nextUpdate1Val = metaNextUpdate1
+    ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content"))
+    : null;
+
+  if (!nextUpdate1Val) {
+    console.warn("⚠️ [AED] Meta nextUpdate1 tidak ditemukan!");
+    return;
   }
 
-  // Pastikan meta dateModified ada
-  if (!metaDM) {
-    metaDM = document.createElement("meta");
-    metaDM.setAttribute("itemprop", "dateModified");
-    metaDM.setAttribute("content", dateModified);
-    document.head.appendChild(metaDM);
+  let nextUpdateDate = new Date(nextUpdate1Val);
+
+  while (new Date(nowUTC) >= nextUpdateDate) {
+    nextUpdateDate = new Date(nextUpdateDate.getTime() + validityMs);
   }
 
-  // Pastikan meta nextUpdate ada
-  let metaNext = document.querySelector('meta[name="nextUpdate"]');
-  if (!metaNext) {
-    metaNext = document.createElement("meta");
-    metaNext.setAttribute("name", "nextUpdate");
-    metaNext.setAttribute("content", nextUpdate);
-    document.head.appendChild(metaNext);
-  }
-
-  // Simpan hasil FINAL
-  window.__CONTENT_STATUS__ = "non-evergreen";
+  const nextUpdate = normalizeToMidnightUTC(nextUpdateDate);
 
   window.EvergreenDetectorResults = {
     resultType: "non-evergreen",
     validityDays,
-    datePublished,
     dateModified,
+    datePublished,
     nextUpdate,
     sections: []
   };
 
   window.AEDMetaDates = {
-    type: "non-evergreen",
-    datePublished,
+    type: finalType,
     dateModified,
+    datePublished,
     nextUpdate
   };
 
-  console.log("✅ [AED HARD GUARD v2] NON-/p/ dates activated:", {
-    datePublished,
-    dateModified,
-    nextUpdate
-  });
-
-  // ⛔ STOP — tidak masuk scoring evergreen
+  console.log("✅ [AED HARD GUARD] NON-/p/ ACTIVE:", window.AEDMetaDates);
+  window.detectEvergreenReady = true;
   return;
 }
+
 
   // jika lanjut ke scoring, pattern, atau guard evergreen, tapi saya ga mau 
  //karna khawatir salah dan bikin sulit update nya karna ga serragam status eveergreen nya
@@ -382,43 +368,6 @@ console.table({
   finalType,
   validityDays
 });
-
-// ======================================================
-// 🔒 EVERGREEN HARD GUARD v10 (NO STRUCTURE CHANGE)
-// ======================================================
-if (finalType === "evergreen") {
-  console.log("🌿 [AED v10] Evergreen detected — lock all date updates.");
-
-  // ❌ Hapus SEMUA nextUpdate (evergreen tidak boleh punya ini)
-  document.querySelectorAll('meta[name="nextUpdate"]').forEach(m => m.remove());
-
-  // Ambil dateModified asli jika ada (JANGAN ubah)
-  const metaDM = document.querySelector('meta[itemprop="dateModified"]');
-  dateModified = metaDM ? normalizeToMidnightUTC(metaDM.getAttribute("content")) : null;
-
-  const metaDP = document.querySelector('meta[itemprop="datePublished"]');
-  datePublished = metaDP ? metaDP.getAttribute("content") : null;
-
-  // Simpan hasil & STOP total eksekusi tanggal
-  window.EvergreenDetectorResults = {
-    resultType: "evergreen",
-    validityDays: 0,
-    dateModified,
-    datePublished,
-    nextUpdate: null,
-    sections
-  };
-
-  window.AEDMetaDates = {
-    type: "evergreen",
-    dateModified,
-    datePublished,
-    nextUpdate: null
-  };
-
-  console.log("✅ [AED v10] Evergreen locked. No freshness manipulation.");
-  return; // ⛔ STOP DI SINI
-}
 
 
 function normalizeToMidnightUTC(date) {
