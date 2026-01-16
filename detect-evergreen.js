@@ -17,13 +17,11 @@ let dateModified = '';
 function detectEvergreen() {
 // ======================================================
 // 🔒 HARD PAGE GUARD v2 — NON-/p/ = NON-EVERGREEN + DATE ACTIVE
-if (!location.pathname.includes("/p/")) {
-  console.log("🚫 [AED HARD GUARD v2] NON-/p/ → NON-EVERGREEN + date calculation");
-
-  window.detectEvergreenReady = false;
-  window.__CONTENT_STATUS__ = "non-evergreen";
-
-  const finalType = "non-evergreen";
+// ======================================================
+// 🔒 AED HARD PAGE GUARD + DATE ENGINE (FINAL)
+// ======================================================
+(function () {
+  const isPage = location.pathname.includes("/p/");
   const now = new Date();
 
   function normalizeToMidnightUTC(date) {
@@ -32,61 +30,153 @@ if (!location.pathname.includes("/p/")) {
     return d.toISOString();
   }
 
-  const validityDays = 180;
-  const validityMs = validityDays * 86400000;
+  // ======================================================
+  // 1️⃣ FORCE CONTENT TYPE
+  // ======================================================
+  if (isPage) {
+    window.__CONTENT_STATUS__ = "evergreen";
+  } else {
+    window.__CONTENT_STATUS__ = "non-evergreen";
+    window.__FORCE_NON_EVERGREEN__ = true;
+  }
 
+  // ======================================================
+  // 2️⃣ META COLLECTION
+  // ======================================================
   let metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   let metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
+  let metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
   let metaNextUpdates = Array.from(document.querySelectorAll('meta[name="nextUpdate"]'));
-  const metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
+
+  const validityDays = isPage ? 0 : 180;
+  const validityMs = validityDays * 86400000;
 
   const nowUTC = normalizeToMidnightUTC(now);
 
-  let dateModified = metaDateModified
-    ? normalizeToMidnightUTC(metaDateModified.getAttribute("content"))
-    : nowUTC;
+  // ======================================================
+  // 3️⃣ DATE PUBLISHED (ANTI NULL)
+  // ======================================================
+  let datePublished =
+    metaDatePublished?.getAttribute("content") || nowUTC;
 
-  const datePublished = metaDatePublished
-    ? normalizeToMidnightUTC(metaDatePublished.getAttribute("content"))
-    : nowUTC;
+  if (!metaDatePublished) {
+    metaDatePublished = document.createElement("meta");
+    metaDatePublished.setAttribute("itemprop", "datePublished");
+    metaDatePublished.setAttribute("content", datePublished);
+    document.head.appendChild(metaDatePublished);
+  }
 
-  let nextUpdate1Val = metaNextUpdate1
-    ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content"))
+  // ======================================================
+  // 4️⃣ BASELINE nextUpdate1 (WAJIB ADA)
+  // ======================================================
+  if (!metaNextUpdate1) {
+    metaNextUpdate1 = document.createElement("meta");
+    metaNextUpdate1.setAttribute("name", "nextUpdate1");
+    metaNextUpdate1.setAttribute(
+      "content",
+      normalizeToMidnightUTC(new Date(now.getTime() + validityMs))
+    );
+    document.head.appendChild(metaNextUpdate1);
+  }
+
+  let nextUpdate1Val = normalizeToMidnightUTC(
+    metaNextUpdate1.getAttribute("content")
+  );
+
+  // ======================================================
+  // 5️⃣ nextUpdate LOOP ENGINE
+  // ======================================================
+  let lastMeta =
+    metaNextUpdates.length > 0
+      ? metaNextUpdates[metaNextUpdates.length - 1]
+      : null;
+
+  let lastUpdateVal = lastMeta
+    ? normalizeToMidnightUTC(lastMeta.getAttribute("content"))
     : null;
 
-  if (!nextUpdate1Val) {
-    console.warn("⚠️ [AED] Meta nextUpdate1 tidak ditemukan!");
-    return;
+  if (!lastMeta && validityMs > 0) {
+    const meta = document.createElement("meta");
+    meta.setAttribute("name", "nextUpdate");
+    meta.setAttribute("content", nextUpdate1Val);
+    document.head.appendChild(meta);
+    metaNextUpdates.push(meta);
+    lastMeta = meta;
+    lastUpdateVal = nextUpdate1Val;
   }
 
-  let nextUpdateDate = new Date(nextUpdate1Val);
+  let nextUpdateDate = lastUpdateVal
+    ? new Date(lastUpdateVal)
+    : new Date(nextUpdate1Val);
 
-  while (new Date(nowUTC) >= nextUpdateDate) {
+  while (validityMs > 0 && new Date(nowUTC) >= nextUpdateDate) {
     nextUpdateDate = new Date(nextUpdateDate.getTime() + validityMs);
+
+    const meta = document.createElement("meta");
+    meta.setAttribute("name", "nextUpdate");
+    meta.setAttribute(
+      "content",
+      normalizeToMidnightUTC(nextUpdateDate)
+    );
+    document.head.appendChild(meta);
+    metaNextUpdates.push(meta);
   }
 
-  const nextUpdate = normalizeToMidnightUTC(nextUpdateDate);
+  const finalNextUpdate =
+    validityMs > 0 ? normalizeToMidnightUTC(nextUpdateDate) : null;
+
+  // ======================================================
+  // 6️⃣ dateModified SYNC (❗TIDAK DIHAPUS)
+  // ======================================================
+  let dateModified = metaDateModified?.getAttribute("content");
+
+  if (validityMs > 0 && finalNextUpdate) {
+    const expectedDateModified = new Date(
+      new Date(finalNextUpdate).getTime() - validityMs
+    );
+
+    const expectedISO = normalizeToMidnightUTC(expectedDateModified);
+
+    if (dateModified !== expectedISO) {
+      if (!metaDateModified) {
+        metaDateModified = document.createElement("meta");
+        metaDateModified.setAttribute("itemprop", "dateModified");
+        document.head.appendChild(metaDateModified);
+      }
+
+      metaDateModified.setAttribute("content", expectedISO);
+      dateModified = expectedISO;
+    }
+  }
+
+  // ======================================================
+  // 7️⃣ FINAL STATE OBJECT (ANTI NULL)
+  // ======================================================
+  window.AEDMetaDates = {
+    type: window.__CONTENT_STATUS__,
+    datePublished,
+    dateModified: dateModified || datePublished,
+    nextUpdate: finalNextUpdate
+  };
 
   window.EvergreenDetectorResults = {
-    resultType: "non-evergreen",
+    resultType: window.__CONTENT_STATUS__,
     validityDays,
-    dateModified,
     datePublished,
-    nextUpdate,
-    sections: []
+    dateModified: dateModified || datePublished,
+    nextUpdate: finalNextUpdate
   };
 
-  window.AEDMetaDates = {
-    type: finalType,
-    dateModified,
-    datePublished,
-    nextUpdate
-  };
-
-  console.log("✅ [AED HARD GUARD] NON-/p/ ACTIVE:", window.AEDMetaDates);
   window.detectEvergreenReady = true;
-  return;
-}
+
+  console.log("✅ [AED FINAL] STATUS:", window.AEDMetaDates);
+ // ⛔ STOP EKSEKUSI SETELAH INI
+return;
+
+// ❌ SEMUA KODE DI BAWAH TIDAK AKAN PERNAH DIEKSEKUSI
+console.log("INI TIDAK AKAN JALAN");
+})();
+
 
 
   // jika lanjut ke scoring, pattern, atau guard evergreen, tapi saya ga mau 
