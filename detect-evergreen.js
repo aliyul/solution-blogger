@@ -25,9 +25,11 @@ function detectEvergreen() {
   const now = new Date();
 
   function normalizeToMidnightUTC(date) {
-    const d = new Date(nextUpdate);
-    if (!isNaN(d.getTime())) {
-      d.toISOString();
+     if (!date) return null;
+     const d = new Date(date);
+     if (isNaN(d.getTime())) return null;
+     d.setUTCHours(0, 0, 0, 0);
+     return d.toISOString();
     }
   }
 
