@@ -698,16 +698,40 @@ function updateArticleDates() {
   window.detectEvergreenReady = true;
   console.log("✅ [AED] updateArticleDates() selesai dijalankan");
 }
-// === URL Guard: Skip halaman /p/ (static pages, pillar, landing) ===
+// === Evergreen Meta Guard: /p/ = EVERGREEN PAGE ===
 (function () {
-  if (location.pathname.includes("/p/")) {
-    console.log("⏭️ [AED] Halaman /p/ terdeteksi — detectEvergreen() dilewati.");
+  const isPage = location.pathname.includes("/p/");
+
+  // 1. Jika halaman /p/ → inject meta evergreen
+  if (isPage) {
+    let meta = document.querySelector('meta[name="evergreen"]');
+
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "evergreen");
+      meta.setAttribute("content", "true");
+      document.head.appendChild(meta);
+      console.log("🌿 [AED] Meta evergreen ditambahkan untuk halaman /p/");
+    } else {
+      console.log("🌿 [AED] Meta evergreen sudah ada (page /p/)");
+    }
+
+    // Tandai status global
+    window.__CONTENT_STATUS__ = "evergreen-page";
     return;
   }
 
+  // 2. Selain /p/ → NON-EVERGREEN
+  window.__CONTENT_STATUS__ = "non-evergreen";
+  console.log("⚠️ [AED] NON-/p/ terdeteksi — status NON-EVERGREEN");
+
   if (typeof detectEvergreen === "function") {
     detectEvergreen();
+  }
+
+  if (typeof updateArticleDates === "function") {
     updateArticleDates();
   }
 })();
+
 
