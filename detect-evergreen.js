@@ -25,10 +25,12 @@ function detectEvergreen() {
   const now = new Date();
 
   function normalizeToMidnightUTC(date) {
-    const d = new Date(date);
-    d.setUTCHours(0, 0, 0, 0);
-    return d.toISOString();
+    const d = new Date(nextUpdate);
+    if (!isNaN(d.getTime())) {
+      d.toISOString();
+    }
   }
+
 
   // ======================================================
   // 1️⃣ FORCE CONTENT TYPE
