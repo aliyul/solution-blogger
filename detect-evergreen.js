@@ -18,16 +18,17 @@ function detectEvergreen() {
 // ======================================================
 // 🔒 HARD PAGE GUARD v2 — NON-/p/ = NON-EVERGREEN + DATE ACTIVE
 // ======================================================
-// 🔒 AED HARD PAGE GUARD + DATE ENGINE (FINAL)
-// ======================================================
 (function () {
   const isPage = location.pathname.includes("/p/");
   const now = new Date();
 
+  // ======================================================
+  // 0️⃣ SAFE DATE NORMALIZER (ANTI INVALID DATE)
+  // ======================================================
   function normalizeToMidnightUTC(date) {
     if (!date) return null;
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return null;
+    const d = date instanceof Date ? date : new Date(date);
+    if (!(d instanceof Date) || isNaN(d.getTime())) return null;
     d.setUTCHours(0, 0, 0, 0);
     return d.toISOString();
   }
@@ -50,7 +51,7 @@ function detectEvergreen() {
   let metaNextUpdates = Array.from(document.querySelectorAll('meta[name="nextUpdate"]'));
   let metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
 
-  const validityDays = isPage ? 0 : 180;              // ❗ FIX: validityDays tidak ada sebelumnya
+  const validityDays = isPage ? 0 : 180;
   const validityMs = validityDays * 86400000;
 
   const nowUTC = normalizeToMidnightUTC(now);
@@ -70,7 +71,7 @@ function detectEvergreen() {
   }
 
   // ======================================================
-  // 4️⃣ BASELINE nextUpdate1 (WAJIB ADA)
+  // 4️⃣ BASELINE nextUpdate1 (ANCHOR WAJIB)
   // ======================================================
   if (!metaNextUpdate1 && validityMs > 0) {
     metaNextUpdate1 = document.createElement("meta");
@@ -92,16 +93,22 @@ function detectEvergreen() {
   }
 
   // ======================================================
-  // 5️⃣ nextUpdate LOOP ENGINE
+  // 5️⃣ nextUpdate LOOP ENGINE (ANCHOR-SAFE)
   // ======================================================
   let lastMeta =
     metaNextUpdates.length > 0
       ? metaNextUpdates[metaNextUpdates.length - 1]
       : null;
 
-  let lastUpdateVal = lastMeta
-    ? normalizeToMidnightUTC(lastMeta.getAttribute("content"))
-    : nextUpdate1Val;
+  let lastUpdateVal =
+    lastMeta && normalizeToMidnightUTC(lastMeta.getAttribute("content"))
+      ? normalizeToMidnightUTC(lastMeta.getAttribute("content"))
+      : nextUpdate1Val;
+
+  if (!lastUpdateVal) {
+    console.warn("⚠️ [AED] No valid baseline nextUpdate found.");
+    return;
+  }
 
   if (!lastMeta && validityMs > 0) {
     const meta = document.createElement("meta");
@@ -109,17 +116,27 @@ function detectEvergreen() {
     meta.setAttribute("content", lastUpdateVal);
     document.head.appendChild(meta);
     metaNextUpdates.push(meta);
-    lastMeta = meta;
   }
 
-  let nextUpdateDate = new Date(lastUpdateVal);
+  let nextUpdateDate =
+    lastUpdateVal && !isNaN(new Date(lastUpdateVal).getTime())
+      ? new Date(lastUpdateVal)
+      : new Date(nextUpdate1Val);
+
+  if (isNaN(nextUpdateDate.getTime())) {
+    console.warn("⚠️ [AED] nextUpdateDate invalid, abort loop.");
+    return;
+  }
 
   while (validityMs > 0 && nowDate >= nextUpdateDate) {
     nextUpdateDate = new Date(nextUpdateDate.getTime() + validityMs);
 
+    const iso = normalizeToMidnightUTC(nextUpdateDate);
+    if (!iso) break;
+
     const meta = document.createElement("meta");
     meta.setAttribute("name", "nextUpdate");
-    meta.setAttribute("content", normalizeToMidnightUTC(nextUpdateDate));
+    meta.setAttribute("content", iso);
     document.head.appendChild(meta);
     metaNextUpdates.push(meta);
   }
@@ -128,7 +145,7 @@ function detectEvergreen() {
     validityMs > 0 ? normalizeToMidnightUTC(nextUpdateDate) : null;
 
   // ======================================================
-  // 6️⃣ dateModified SYNC (DIPERTAHANKAN)
+  // 6️⃣ dateModified SYNC (DIPERTAHANKAN, ANTI ERROR)
   // ======================================================
   let dateModified = normalizeToMidnightUTC(
     metaDateModified?.getAttribute("content")
@@ -153,13 +170,13 @@ function detectEvergreen() {
   }
 
   // ======================================================
-  // 7️⃣ FINAL STATE OBJECT
+  // 7️⃣ FINAL STATE OBJECT (ANTI NULL TOTAL)
   // ======================================================
   window.AEDMetaDates = {
     type: window.__CONTENT_STATUS__,
     datePublished,
     dateModified: dateModified || datePublished,
-    nextUpdate: finalNextUpdate
+    nextUpdate: finalNextUpdate || null
   };
 
   window.EvergreenDetectorResults = {
@@ -167,15 +184,15 @@ function detectEvergreen() {
     validityDays,
     datePublished,
     dateModified: dateModified || datePublished,
-    nextUpdate: finalNextUpdate
+    nextUpdate: finalNextUpdate || null
   };
 
   window.detectEvergreenReady = true;
+
   console.log("✅ [AED FINAL] STATUS:", window.AEDMetaDates);
 
-  return; // ⛔ STOP SCRIPT DI SINI
+  return; // ⛔ STOP EKSEKUSI DI SINI
 })();
-
 
 
   // jika lanjut ke scoring, pattern, atau guard evergreen, tapi saya ga mau 
