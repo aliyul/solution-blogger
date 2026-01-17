@@ -25,13 +25,12 @@ function detectEvergreen() {
   const now = new Date();
 
   function normalizeToMidnightUTC(date) {
-     if (!date) return null;
-     const d = new Date(date);
-     if (isNaN(d.getTime())) return null;
-     d.setUTCHours(0, 0, 0, 0);
-     return d.toISOString();
+    if (!date) return null;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return null;
+    d.setUTCHours(0, 0, 0, 0);
+    return d.toISOString();
   }
-
 
   // ======================================================
   // 1️⃣ FORCE CONTENT TYPE
@@ -48,13 +47,14 @@ function detectEvergreen() {
   // ======================================================
   let metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
   let metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
-  let metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
   let metaNextUpdates = Array.from(document.querySelectorAll('meta[name="nextUpdate"]'));
+  let metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
 
-  const validityDays = isPage ? 0 : 180;
+  const validityDays = isPage ? 0 : 180;              // ❗ FIX: validityDays tidak ada sebelumnya
   const validityMs = validityDays * 86400000;
 
   const nowUTC = normalizeToMidnightUTC(now);
+  const nowDate = new Date(nowUTC || now);
 
   // ======================================================
   // 3️⃣ DATE PUBLISHED (ANTI NULL)
@@ -72,7 +72,7 @@ function detectEvergreen() {
   // ======================================================
   // 4️⃣ BASELINE nextUpdate1 (WAJIB ADA)
   // ======================================================
-  if (!metaNextUpdate1) {
+  if (!metaNextUpdate1 && validityMs > 0) {
     metaNextUpdate1 = document.createElement("meta");
     metaNextUpdate1.setAttribute("name", "nextUpdate1");
     metaNextUpdate1.setAttribute(
@@ -82,9 +82,14 @@ function detectEvergreen() {
     document.head.appendChild(metaNextUpdate1);
   }
 
-  let nextUpdate1Val = normalizeToMidnightUTC(
-    metaNextUpdate1.getAttribute("content")
-  );
+  let nextUpdate1Val = metaNextUpdate1
+    ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content"))
+    : null;
+
+  if (validityMs > 0 && !nextUpdate1Val) {
+    console.warn("⚠️ [AED] nextUpdate1 invalid, abort safely.");
+    return;
+  }
 
   // ======================================================
   // 5️⃣ nextUpdate LOOP ENGINE
@@ -96,31 +101,25 @@ function detectEvergreen() {
 
   let lastUpdateVal = lastMeta
     ? normalizeToMidnightUTC(lastMeta.getAttribute("content"))
-    : null;
+    : nextUpdate1Val;
 
   if (!lastMeta && validityMs > 0) {
     const meta = document.createElement("meta");
     meta.setAttribute("name", "nextUpdate");
-    meta.setAttribute("content", nextUpdate1Val);
+    meta.setAttribute("content", lastUpdateVal);
     document.head.appendChild(meta);
     metaNextUpdates.push(meta);
     lastMeta = meta;
-    lastUpdateVal = nextUpdate1Val;
   }
 
-  let nextUpdateDate = lastUpdateVal
-    ? new Date(lastUpdateVal)
-    : new Date(nextUpdate1Val);
+  let nextUpdateDate = new Date(lastUpdateVal);
 
-  while (validityMs > 0 && new Date(nowUTC) >= nextUpdateDate) {
+  while (validityMs > 0 && nowDate >= nextUpdateDate) {
     nextUpdateDate = new Date(nextUpdateDate.getTime() + validityMs);
 
     const meta = document.createElement("meta");
     meta.setAttribute("name", "nextUpdate");
-    meta.setAttribute(
-      "content",
-      normalizeToMidnightUTC(nextUpdateDate)
-    );
+    meta.setAttribute("content", normalizeToMidnightUTC(nextUpdateDate));
     document.head.appendChild(meta);
     metaNextUpdates.push(meta);
   }
@@ -129,9 +128,11 @@ function detectEvergreen() {
     validityMs > 0 ? normalizeToMidnightUTC(nextUpdateDate) : null;
 
   // ======================================================
-  // 6️⃣ dateModified SYNC (❗TIDAK DIHAPUS)
+  // 6️⃣ dateModified SYNC (DIPERTAHANKAN)
   // ======================================================
-  let dateModified = metaDateModified?.getAttribute("content");
+  let dateModified = normalizeToMidnightUTC(
+    metaDateModified?.getAttribute("content")
+  );
 
   if (validityMs > 0 && finalNextUpdate) {
     const expectedDateModified = new Date(
@@ -140,20 +141,19 @@ function detectEvergreen() {
 
     const expectedISO = normalizeToMidnightUTC(expectedDateModified);
 
-    if (dateModified !== expectedISO) {
+    if (expectedISO && dateModified !== expectedISO) {
       if (!metaDateModified) {
         metaDateModified = document.createElement("meta");
         metaDateModified.setAttribute("itemprop", "dateModified");
         document.head.appendChild(metaDateModified);
       }
-
       metaDateModified.setAttribute("content", expectedISO);
       dateModified = expectedISO;
     }
   }
 
   // ======================================================
-  // 7️⃣ FINAL STATE OBJECT (ANTI NULL)
+  // 7️⃣ FINAL STATE OBJECT
   // ======================================================
   window.AEDMetaDates = {
     type: window.__CONTENT_STATUS__,
@@ -171,13 +171,9 @@ function detectEvergreen() {
   };
 
   window.detectEvergreenReady = true;
-
   console.log("✅ [AED FINAL] STATUS:", window.AEDMetaDates);
- // ⛔ STOP EKSEKUSI SETELAH INI
-return;
 
-// ❌ SEMUA KODE DI BAWAH TIDAK AKAN PERNAH DIEKSEKUSI
-console.log("INI TIDAK AKAN JALAN");
+  return; // ⛔ STOP SCRIPT DI SINI
 })();
 
 
