@@ -79,7 +79,7 @@ const metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
 
 //const now = new Date();
 const nowUTC = normalizeToMidnightUTC(now);
-const validityMs = validityDays * 86400000;
+//const validityMs = validityDays * 86400000;
 
 let dateModified = normalizeToMidnightUTC(metaDateModified?.getAttribute("content"));
 const datePublished = metaDatePublished?.getAttribute("content") || nowUTC;
