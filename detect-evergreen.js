@@ -61,252 +61,159 @@ function detectEvergreen() {
   }];
 
   // ======================================================
-  // 🔒 HARD LOCK TYPE (NO SCORING)
-  // ======================================================
-  const finalType = "non-evergreen"; // ⛔ FIXED
-  const validityDays = 180;          // ⛔ FIXED
-  const validityMs = validityDays * 86400000;
+ // ======================================================
+// 🔒 HARD LOCK TYPE (NO SCORING)
+// ======================================================
+const finalType = "non-evergreen"; // ⛔ FIXED
+const validityDays = 180;          // ⛔ FIXED
+const validityMs = validityDays * 86400000;
 
-  console.warn("🚨 HARD NON-EVERGREEN MODE AKTIF — TANPA KLASIFIKASI");
+console.warn("🚨 HARD NON-EVERGREEN MODE AKTIF — TANPA KLASIFIKASI");
 
-  // ======================================================
+// ======================================================
+// HELPERS
+// ======================================================
+function normalizeToMidnightUTC(date) {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString();
+}
 
-// ---------- Meta ----------
+const now = new Date();
+const nowUTC = normalizeToMidnightUTC(now);
+
+// ======================================================
+// META INIT
+// ======================================================
 let metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
 let metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
 let metaNextUpdates = Array.from(document.querySelectorAll('meta[name="nextUpdate"]'));
-const metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
+let metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
 
-//const now = new Date();
-const nowUTC = normalizeToMidnightUTC(now);
-//const validityMs = validityDays * 86400000;
+// Pastikan metaDatePublished ada
+const datePublished =
+  metaDatePublished?.getAttribute("content") || nowUTC;
 
-let dateModified = normalizeToMidnightUTC(metaDateModified?.getAttribute("content"));
-const datePublished = metaDatePublished?.getAttribute("content") || nowUTC;
+// ======================================================
+// BASELINE nextUpdate1 (WAJIB, TAPI TIDAK MEMATIKAN SCRIPT)
+// ======================================================
+let nextUpdate1Val = normalizeToMidnightUTC(
+  metaNextUpdate1?.getAttribute("content")
+);
 
-// Ambil nilai awal dari nextUpdate1 (harus selalu ada sebagai baseline)
-let nextUpdate1Val = metaNextUpdate1 ? normalizeToMidnightUTC(metaNextUpdate1.getAttribute("content")) : null;
-let nextUpdate;
-
-nextUpdate = nextUpdate1Val;
-
-console.log("🆕 [AED] Meta nextUpdate:", nextUpdate);
-
-// Pastikan metaNextUpdate1 ada
-if (!metaNextUpdate1 || !nextUpdate1Val) {
-  console.warn("⚠️ [AED] Meta nextUpdate1 tidak ditemukan atau tidak valid!");
-  return;
+if (!nextUpdate1Val) {
+  console.warn("⚠️ [AED] meta nextUpdate1 tidak valid → fallback ke today");
+  nextUpdate1Val = nowUTC;
 }
 
-// Cek meta nextUpdate terakhir yang sudah ada
-let lastMeta = metaNextUpdates.length ? metaNextUpdates[metaNextUpdates.length - 1] : null;
-let lastUpdateVal = lastMeta ? normalizeToMidnightUTC(lastMeta.getAttribute("content")) : null;
+// ======================================================
+// DETERMINE LAST nextUpdate
+// ======================================================
+let lastMeta = metaNextUpdates.length
+  ? metaNextUpdates[metaNextUpdates.length - 1]
+  : null;
 
-// Jika belum ada meta nextUpdate sama sekali, buat pertama dari nextUpdate1
-if (!lastMeta) {
+let lastUpdateVal = normalizeToMidnightUTC(
+  lastMeta?.getAttribute("content")
+);
+
+// Jika belum ada nextUpdate sama sekali → buat dari nextUpdate1
+if (!lastUpdateVal) {
   const meta = document.createElement("meta");
   meta.setAttribute("name", "nextUpdate");
   meta.setAttribute("content", nextUpdate1Val);
   document.head.appendChild(meta);
+
   metaNextUpdates.push(meta);
   lastMeta = meta;
   lastUpdateVal = nextUpdate1Val;
-  console.log("🆕 [AED] Meta nextUpdate pertama dibuat dari nextUpdate1:", nextUpdate1Val);
+
+  console.log("🆕 [AED] Meta nextUpdate pertama dibuat:", nextUpdate1Val);
 }
 
+// ======================================================
+// LOOP PERPANJANGAN nextUpdate
+// ======================================================
 let nextUpdateDate = new Date(lastUpdateVal);
-nextUpdate = nextUpdateDate;
 
+while (new Date(nowUTC) >= nextUpdateDate) {
+  nextUpdateDate = new Date(nextUpdateDate.getTime() + validityMs);
 
-// Jika sekarang belum sampai ke nextUpdate1
-if (new Date(nowUTC) < new Date(nextUpdate1Val)) {
-  console.log("⏳ [AED] Belum mencapai nextUpdate1, gunakan:", nextUpdate1Val);
-  nextUpdate = nextUpdate1Val;
-} else {
-  // Sudah sampai atau lewat nextUpdate1 — buat siklus baru
-  console.log("🔄 [AED] Sudah mencapai/lewati nextUpdate1, mulai loop perpanjangan...");
+  const iso = normalizeToMidnightUTC(nextUpdateDate);
 
-  // Loop sampai nextUpdate baru benar-benar di masa depan
-  while (validityMs > 0 && new Date(nowUTC) >= nextUpdateDate) {
-    const next = new Date(nextUpdateDate.getTime() + validityMs);
-    const iso = normalizeToMidnightUTC(next.toISOString());
+  const meta = document.createElement("meta");
+  meta.setAttribute("name", "nextUpdate");
+  meta.setAttribute("content", iso);
+  document.head.appendChild(meta);
 
-    const newMeta = document.createElement("meta");
-    newMeta.setAttribute("name", "nextUpdate");
-    newMeta.setAttribute("content", iso);
-    document.head.appendChild(newMeta);
+  metaNextUpdates.push(meta);
 
-    metaNextUpdates.push(newMeta);
-    nextUpdateDate = next;
-
-    console.log("➕ [AED] Meta nextUpdate baru ditambahkan:", iso);
-  }
- // Ambil nextUpdate terakhir (paling baru)
-const finalNextUpdate = normalizeToMidnightUTC(nextUpdateDate.toISOString());
-nextUpdate = finalNextUpdate;
+  console.log("➕ [AED] nextUpdate ditambahkan:", iso);
 }
 
-
+let nextUpdate = normalizeToMidnightUTC(nextUpdateDate);
 console.log("✅ [AED] Final nextUpdate aktif:", nextUpdate);
 
-// ---------- Sinkronisasi dateModified ----------
+// ======================================================
+// 🔄 SYNC dateModified ← nextUpdate
+// ======================================================
 try {
   if (validityMs > 0 && nextUpdate) {
-  const expectedDateModified = new Date(new Date(nextUpdate).getTime() - validityMs);
-  const expectedISO = normalizeToMidnightUTC(expectedDateModified.toISOString());
+    const expectedDateModified = normalizeToMidnightUTC(
+      new Date(new Date(nextUpdate).getTime() - validityMs)
+    );
 
-  if (dateModified !== expectedISO) {
-    dateModified = expectedISO;
     if (!metaDateModified) {
       metaDateModified = document.createElement("meta");
       metaDateModified.setAttribute("itemprop", "dateModified");
       document.head.appendChild(metaDateModified);
     }
-    metaDateModified.setAttribute("content", expectedISO);
-    dateModified = expectedISO;
-    console.log("🕒 [AED Sync] dateModified disinkronkan:", expectedISO);
-  } else {
-    console.log("✅ [AED Sync] dateModified sudah sinkron:", expectedISO);
+
+    metaDateModified.setAttribute("content", expectedDateModified);
+    console.log("🕒 [AED Sync] dateModified disinkronkan:", expectedDateModified);
   }
-}
 } catch (err) {
   console.error("❌ [AED Sync] Sinkronisasi gagal:", err);
 }
 
-(function() {
-  console.log("🔄 [AED Maintenance v9.5] Running maintenance cycle check...");
-  if (finalType === "evergreen") {
-  console.log("🌿 [AED v10] Skip maintenance — evergreen content.");
-  return;
-}
+// ======================================================
+// 🔄 MAINTENANCE LOOP
+// ======================================================
+(function () {
+  console.log("🔄 [AED Maintenance v9.6] Running...");
 
-  //const validityDaysFinal = typeof validityDays !== "undefined" ? validityDays : 180; // fallback 180 hari
- function getValidityDays(contentType) {
-  switch (contentType) {
-    case "evergreen":
-      return 0;
-    case "semi-evergreen":
-      return 365;
-    case "non-evergreen":
-      return 180;
-    default:
-      return 0;
-  }
-}
-
-const validityDaysFinal =
-  typeof validityDays !== "undefined"
-    ? validityDays
-    : getValidityDays(contentType);
+  if (finalType === "evergreen") return;
 
   const metaNextAll = document.querySelectorAll('meta[name="nextUpdate"]');
+  if (!metaNextAll.length) return;
 
-  if (!metaNextAll.length) {
-    console.warn("⏳ Tidak ada meta[name='nextUpdate'], abaikan loop.");
-    return;
-  }
-
-  // 🔍 Ambil meta terakhir (yang paling baru)
   const metaNext = metaNextAll[metaNextAll.length - 1];
-  const storedNextUpdateStr = metaNext.getAttribute("content");
-  if (!storedNextUpdateStr) {
-    console.warn("❌ nextUpdate kosong, tidak bisa looping.");
-    return;
-  }
+  const stored = metaNext.getAttribute("content");
+  if (!stored) return;
 
   const today = new Date();
-  const nextUpdateDate = new Date(storedNextUpdateStr);
-  const diffDays = Math.floor((today - nextUpdateDate) / (1000 * 60 * 60 * 24));
+  const nextDate = new Date(stored);
 
-  // === Jika sudah waktunya update ===
-  if (today >= nextUpdateDate) {
-    console.warn(`⚠️ Konten melewati jadwal update! (${diffDays} hari lewat)`);
+  if (today >= nextDate) {
+    const diffDays = Math.floor((today - nextDate) / 86400000);
+    console.warn(`⚠️ Konten melewati jadwal update (${diffDays} hari)`);
 
-    // 🟡 Peringatan visual ringan
-    const warnBox = document.createElement("div");
-    warnBox.setAttribute("data-nosnippet", "true");
-    warnBox.setAttribute("aria-hidden", "true");
-    warnBox.style = `
-      position:fixed;bottom:15px;right:15px;z-index:999999;
-      background:#fff3cd;color:#856404;border:1px solid #ffeeba;
-      padding:10px 16px;border-radius:12px;font-family:sans-serif;
-      box-shadow:0 2px 8px rgba(0,0,0,0.2);
-      pointer-events:none;user-select:none;
-    `;
-    warnBox.innerHTML = `
-      ⚠️ <b>Waktu Update Telah Tiba!</b><br>
-      Segera lakukan pembaruan konten agar tetap relevan.<br>
-      <small>Next Update Lama: ${nextUpdateDate.toISOString().split("T")[0]}</small>
-    `;
-    document.body.appendChild(warnBox);
+    const nextCycle = new Date(nextDate);
+    nextCycle.setDate(nextCycle.getDate() + validityDays);
 
-    // 🗓️ Hitung next update berikutnya
-    const nextNextUpdate = new Date(nextUpdateDate);
-    nextNextUpdate.setDate(nextNextUpdate.getDate() + validityDaysFinal);
+    const nextISO = normalizeToMidnightUTC(nextCycle);
+    metaNext.setAttribute("content", nextISO);
 
-    // 🔁 Update meta terakhir
-    metaNext.setAttribute("content", nextNextUpdate.toISOString().split("T")[0]);
-    console.log(`[SchemaMaintenance] Siklus baru dibuat → ${nextNextUpdate.toISOString().split("T")[0]}`);
-
-    // 🚨 Flag global
     window.AEDMaintenance = {
       triggered: true,
-      lastUpdate: nextUpdateDate.toISOString().split("T")[0],
-      nextCycle: nextNextUpdate.toISOString().split("T")[0],
-      daysCycle: validityDaysFinal
+      lastUpdate: stored,
+      nextCycle: nextISO,
+      daysCycle: validityDays
     };
-  } else {
-    const remaining = Math.ceil((nextUpdateDate - today) / (1000 * 60 * 60 * 24));
-    console.log(`✅ Konten masih valid (${remaining} hari tersisa hingga next update).`);
-  }
 
-  // =========================================================
-  // === Update internal timestamp hanya jika konten berubah ===
-  // =========================================================
-  if (typeof timeAllowed !== "undefined" && typeof contentChanged !== "undefined") {
-    if (timeAllowed && contentChanged) {
-      console.log("🔁 [AED] Konten berubah, update internal timestamp.");
-
-      // Simpan hash baru
-      if (typeof keyHash !== "undefined" && typeof currentHash !== "undefined") {
-        localStorage.setItem(keyHash, currentHash);
-      }
-
-      // Jadikan nextUpdate lama sebagai dateModified baru
-      dateModified = normalizeToMidnightUTC(new Date(storedNextUpdateStr));
-
-      // Hitung next update berikutnya dari nextUpdate lama
-      nextUpdate = normalizeToMidnightUTC(
-        new Date(new Date(storedNextUpdateStr).getTime() + validityDaysFinal * 86400000)
-      );
-
-      // 🧩 Tambahkan schema maintenance ringan
-      const schemaData = {
-        "@context": "https://schema.org",
-        "@type": "WebPage",
-        "isMaintained": true,
-        "maintenanceSchedule": {
-          "@type": "Schedule",
-          "repeatFrequency": `P${validityDaysFinal}D`,
-          "scheduledTime": nextUpdate.toISOString().split("T")[0]
-        },
-        "dateModified": dateModified.toISOString().split("T")[0]
-      };
-
-      const oldSchema = document.querySelector('script[data-schema="evergreen-maintenance"]');
-      if (oldSchema) oldSchema.remove();
-
-      const schemaEl = document.createElement("script");
-      schemaEl.type = "application/ld+json";
-      schemaEl.dataset.schema = "evergreen-maintenance";
-      schemaEl.textContent = JSON.stringify(schemaData, null, 2);
-      document.head.appendChild(schemaEl);
-
-      console.log(`🗓️ [AED] Konten diperbarui.
-      dateModified: ${dateModified.toISOString().split("T")[0]}
-      nextUpdate: ${nextUpdate.toISOString().split("T")[0]}
-      `);
-    }
+    console.log("🔁 Siklus maintenance baru:", nextISO);
   }
 })();
 
