@@ -142,7 +142,7 @@ function detectEvergreen() {
 
     if (finalType === "evergreen") return;
 
-    const metaNextAll = document.querySelectorAll('meta[name="nextUpdate"]');
+    //const metaNextAll = document.querySelectorAll('meta[name="nextUpdate"]');
      const metaNextAll = document.querySelectorAll(
     'meta[name="nextUpdate"], meta[name="nextUpdate1"]'
   );
