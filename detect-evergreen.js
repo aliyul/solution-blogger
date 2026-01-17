@@ -30,7 +30,6 @@ function detectEvergreen() {
      if (isNaN(d.getTime())) return null;
      d.setUTCHours(0, 0, 0, 0);
      return d.toISOString();
-    }
   }
 
 
