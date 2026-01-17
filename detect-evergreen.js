@@ -102,7 +102,7 @@ function detectEvergreen() {
   // 🔁 SYNC dateModified ← nextUpdate
   // ======================================================
   let dateModified = null;
-
+ console.warn(`⚠️ Konten jadwal update! (${validityMs})`);
  try {
   const nextUpdateDateObj = new Date(nextUpdate);
 
