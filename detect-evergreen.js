@@ -36,12 +36,13 @@ function detectEvergreen() {
     return (h >>> 0).toString(36);
   };
 
-  const formatLocalISO = date => {
-    const tzOffset = -date.getTimezoneOffset();
-    const diff = tzOffset >= 0 ? "+" : "-";
-    const pad = n => String(Math.floor(Math.abs(n))).padStart(2, "0");
-    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}${diff}${pad(tzOffset/60)}:${pad(tzOffset%60)}`;
-  };
+  function normalizeToMidnightUTC(date) {
+    if (!date) return null;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return null;
+    d.setUTCHours(0, 0, 0, 0);
+    return d.toISOString();
+  }
 
   /* ---------- Grab content ---------- */
   const h1 = clean(document.querySelector("h1")?.innerText || "").toLowerCase();
@@ -53,43 +54,37 @@ function detectEvergreen() {
 
   const contentText = clean(contentEl.innerText || "").toLowerCase();
 
-  /* ---------- Section Extraction (DIBIARKAN UTUH) ---------- */
-  const sections = [];
-  sections.push({
+  /* ---------- Section Extraction ---------- */
+  const sections = [{
     title: h1 || "artikel",
     content: contentText
-  });
+  }];
 
   // ======================================================
-  // 🔒 HARD LOCK TYPE (TANPA SCORING)
+  // 🔒 HARD LOCK TYPE (NO SCORING)
   // ======================================================
-  const finalType = "non-evergreen";   // ⛔ DIKUNCI
-  const validityDays = 180;            // ⛔ KONSTAN
+  const finalType = "non-evergreen"; // ⛔ FIXED
+  const validityDays = 180;          // ⛔ FIXED
+  const validityMs = validityDays * 86400000;
 
   console.warn("🚨 HARD NON-EVERGREEN MODE AKTIF — TANPA KLASIFIKASI");
 
   // ======================================================
-  // META & DATE LOGIC (TIDAK DIUBAH)
+  // META ACQUISITION
   // ======================================================
-  function normalizeToMidnightUTC(date) {
-    if (!date) return null;
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return null;
-    d.setUTCHours(0, 0, 0, 0);
-    return d.toISOString();
-  }
-
-  let metaDateModified = document.querySelector('meta[itemprop="dateModified"]');
+  let metaDateModified  = document.querySelector('meta[itemprop="dateModified"]');
   let metaDatePublished = document.querySelector('meta[itemprop="datePublished"]');
-  let metaNextUpdates = Array.from(document.querySelectorAll('meta[name="nextUpdate"]'));
+  let metaNextUpdates   = Array.from(document.querySelectorAll('meta[name="nextUpdate"]'));
   const metaNextUpdate1 = document.querySelector('meta[name="nextUpdate1"]');
 
   const nowUTC = normalizeToMidnightUTC(now);
-  const validityMs = validityDays * 86400000;
 
   const datePublished =
     metaDatePublished?.getAttribute("content") || nowUTC;
 
+  // ======================================================
+  // NEXT UPDATE CALCULATION (BASELINE = nextUpdate1)
+  // ======================================================
   let nextUpdate1Val =
     metaNextUpdate1?.getAttribute("content") || nowUTC;
 
@@ -101,44 +96,102 @@ function detectEvergreen() {
     nextUpdateDate = new Date(nextUpdateDate.getTime() + validityMs);
   }
 
-  const nextUpdate = normalizeToMidnightUTC(nextUpdateDate);
-
-  /* ---------- dateModified ---------- */
-  const expectedDateModified = normalizeToMidnightUTC(
-    new Date(new Date(nextUpdate).getTime() - validityMs)
-  );
-
-  if (!metaDateModified) {
-    metaDateModified = document.createElement("meta");
-    metaDateModified.setAttribute("itemprop", "dateModified");
-    document.head.appendChild(metaDateModified);
-  }
-  metaDateModified.setAttribute("content", expectedDateModified);
+  let nextUpdate = normalizeToMidnightUTC(nextUpdateDate);
 
   // ======================================================
-  // MAINTENANCE LOOP (TIDAK DIUBAH)
+  // 🔁 SYNC dateModified ← nextUpdate
+  // ======================================================
+  let dateModified = null;
+
+  try {
+    if (validityMs > 0 && nextUpdate) {
+      const expectedDateModifiedDate =
+        new Date(new Date(nextUpdate).getTime() - validityMs);
+
+      const expectedISO =
+        normalizeToMidnightUTC(expectedDateModifiedDate.toISOString());
+
+      if (!metaDateModified) {
+        metaDateModified = document.createElement("meta");
+        metaDateModified.setAttribute("itemprop", "dateModified");
+        document.head.appendChild(metaDateModified);
+      }
+
+      metaDateModified.setAttribute("content", expectedISO);
+      dateModified = expectedISO;
+
+      console.log("🕒 [AED Sync] dateModified disinkronkan:", expectedISO);
+    }
+  } catch (err) {
+    console.error("❌ [AED Sync] Sinkronisasi gagal:", err);
+  }
+
+  // ======================================================
+  // 🔄 MAINTENANCE LOOP
   // ======================================================
   (function () {
-    console.log("🔄 [AED Maintenance] Running...");
+    console.log("🔄 [AED Maintenance v9.5] Running...");
+
     if (finalType === "evergreen") return;
 
     const metaNextAll = document.querySelectorAll('meta[name="nextUpdate"]');
     if (!metaNextAll.length) return;
 
     const metaNext = metaNextAll[metaNextAll.length - 1];
-    const stored = metaNext.getAttribute("content");
-    if (!stored) return;
+    const storedNextUpdateStr = metaNext.getAttribute("content");
+    if (!storedNextUpdateStr) return;
 
     const today = new Date();
-    const nextDate = new Date(stored);
+    const nextUpdateDate = new Date(storedNextUpdateStr);
 
-    if (today >= nextDate) {
-      const nextCycle = new Date(nextDate);
-      nextCycle.setDate(nextCycle.getDate() + validityDays);
-      metaNext.setAttribute(
-        "content",
-        normalizeToMidnightUTC(nextCycle)
+    if (today >= nextUpdateDate) {
+      const diffDays = Math.floor(
+        (today - nextUpdateDate) / (1000 * 60 * 60 * 24)
       );
+
+      console.warn(`⚠️ Konten melewati jadwal update! (${diffDays} hari lewat)`);
+
+      // Visual reminder ringan
+      const warnBox = document.createElement("div");
+      warnBox.setAttribute("data-nosnippet", "true");
+      warnBox.setAttribute("aria-hidden", "true");
+      warnBox.style.cssText = `
+        position:fixed;
+        bottom:15px;
+        right:15px;
+        z-index:999999;
+        background:#fff3cd;
+        color:#856404;
+        border:1px solid #ffeeba;
+        padding:10px 16px;
+        border-radius:12px;
+        font-family:sans-serif;
+        box-shadow:0 2px 8px rgba(0,0,0,.2);
+        pointer-events:none;
+        user-select:none;
+      `;
+      warnBox.innerHTML = `
+        ⚠️ <b>Waktu Update Telah Tiba!</b><br>
+        Segera lakukan pembaruan konten.<br>
+        <small>Next Update Lama: ${storedNextUpdateStr}</small>
+      `;
+      document.body.appendChild(warnBox);
+
+      const nextNextUpdate = new Date(nextUpdateDate);
+      nextNextUpdate.setDate(nextNextUpdate.getDate() + validityDays);
+
+      const nextISO = normalizeToMidnightUTC(nextNextUpdate.toISOString());
+      metaNext.setAttribute("content", nextISO);
+      nextUpdate = nextISO;
+
+      window.AEDMaintenance = {
+        triggered: true,
+        lastUpdate: storedNextUpdateStr,
+        nextCycle: nextISO,
+        daysCycle: validityDays
+      };
+
+      console.log(`[AED] Siklus baru → ${nextISO}`);
     }
   })();
 
@@ -151,7 +204,7 @@ function detectEvergreen() {
   window.EvergreenDetectorResults = {
     resultType: finalType,
     validityDays,
-    dateModified: expectedDateModified,
+    dateModified,
     datePublished,
     nextUpdate,
     sections
@@ -159,7 +212,7 @@ function detectEvergreen() {
 
   window.AEDMetaDates = {
     type: finalType,
-    dateModified: expectedDateModified,
+    dateModified,
     datePublished,
     nextUpdate
   };
@@ -169,6 +222,7 @@ function detectEvergreen() {
   console.log("✅ HARD NON-EVERGREEN RESULT:");
   console.log(window.AEDMetaDates);
 }
+
 
 function updateArticleDates() {
   // 🧹 --- Hapus elemen label & tanggal lama ---
