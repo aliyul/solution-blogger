@@ -143,8 +143,15 @@ function detectEvergreen() {
     if (finalType === "evergreen") return;
 
     const metaNextAll = document.querySelectorAll('meta[name="nextUpdate"]');
-    if (!metaNextAll.length) return;
+     const metaNextAll = document.querySelectorAll(
+    'meta[name="nextUpdate"], meta[name="nextUpdate1"]'
+  );
 
+  if (!metaNextAll.length) {
+    console.warn("⏳ Tidak ada meta nextUpdate / nextUpdate1");
+    return;
+  }
+  
     const metaNext = metaNextAll[metaNextAll.length - 1];
     const storedNextUpdateStr = metaNext.getAttribute("content");
     if (!storedNextUpdateStr) return;
