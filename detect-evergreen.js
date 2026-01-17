@@ -103,28 +103,36 @@ function detectEvergreen() {
   // ======================================================
   let dateModified = null;
 
-  try {
-    if (validityMs > 0 && nextUpdate) {
-      const expectedDateModifiedDate =
-        new Date(new Date(nextUpdate).getTime() - validityMs);
+ try {
+  const nextUpdateDateObj = new Date(nextUpdate);
 
-      const expectedISO =
-        normalizeToMidnightUTC(expectedDateModifiedDate.toISOString());
+  if (
+    validityMs > 0 &&
+    nextUpdateDateObj instanceof Date &&
+    !isNaN(nextUpdateDateObj.getTime())
+  ) {
+    const expectedDateModifiedDate =
+      new Date(nextUpdateDateObj.getTime() - validityMs);
 
-      if (!metaDateModified) {
-        metaDateModified = document.createElement("meta");
-        metaDateModified.setAttribute("itemprop", "dateModified");
-        document.head.appendChild(metaDateModified);
-      }
+    const expectedISO =
+      normalizeToMidnightUTC(expectedDateModifiedDate);
 
-      metaDateModified.setAttribute("content", expectedISO);
-      dateModified = expectedISO;
-
-      console.log("🕒 [AED Sync] dateModified disinkronkan:", expectedISO);
+    if (!metaDateModified) {
+      metaDateModified = document.createElement("meta");
+      metaDateModified.setAttribute("itemprop", "dateModified");
+      document.head.appendChild(metaDateModified);
     }
-  } catch (err) {
-    console.error("❌ [AED Sync] Sinkronisasi gagal:", err);
+
+    metaDateModified.setAttribute("content", expectedISO);
+    dateModified = expectedISO;
+
+    console.log("🕒 [AED Sync] dateModified OK:", expectedISO);
+  } else {
+    console.warn("⚠️ nextUpdate INVALID → skip sync", nextUpdate);
   }
+} catch (err) {
+  console.error("❌ [AED Sync] Error:", err);
+}
 
   // ======================================================
   // 🔄 MAINTENANCE LOOP
