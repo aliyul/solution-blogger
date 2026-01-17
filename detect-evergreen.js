@@ -22,7 +22,7 @@ function detectEvergreen() {
   console.log("🧩 Running detectEvergreen() v8.6.9 Stable — HARD NON-EVERGREEN MODE");
   window.detectEvergreenReady = false;
 
-  const now = new Date();
+  //const now = new Date();
 
   /* ---------- Helpers ---------- */
   const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
