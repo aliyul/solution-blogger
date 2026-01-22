@@ -338,33 +338,45 @@ function updateArticleDates() {
   window.detectEvergreenReady = true;
   console.log("✅ [AED] updateArticleDates() selesai dijalankan");
 }
-// === Evergreen Meta Guard: /p/ = EVERGREEN PAGE ===
 (function () {
   const isPage = location.pathname.includes("/p/");
 
-  // 1. Jika halaman /p/ → inject meta evergreen
+  // ======================================================
+  // 1. JIKA HALAMAN /p/ → LANGSUNG EVERGREEN (PAGE SERVICE)
+  // ======================================================
   if (isPage) {
-    let meta = document.querySelector('meta[name="evergreen"]');
-
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.setAttribute("name", "evergreen");
-      meta.setAttribute("content", "true");
-      document.head.appendChild(meta);
-      console.log("🌿 [AED] Meta evergreen ditambahkan untuk halaman /p/");
-    } else {
-      console.log("🌿 [AED] Meta evergreen sudah ada (page /p/)");
-    }
-
-    // Tandai status global
     window.__CONTENT_STATUS__ = "evergreen-page";
+    console.log("🌿 [AED] Page /p/ terdeteksi — evergreen-page");
     return;
   }
 
-  // 2. Selain /p/ → NON-EVERGREEN
-  window.__CONTENT_STATUS__ = "non-evergreen";
-  console.log("⚠️ [AED] NON-/p/ terdeteksi — status NON-EVERGREEN");
+  // ======================================================
+  // 2. SELAIN /p/ → CEK META EVERGREEN
+  // ======================================================
+  const meta = document.querySelector('meta[name="content-freshness"]');
 
+  // jika meta TIDAK ADA → NON-EVERGREEN
+  if (!meta) {
+    window.__CONTENT_STATUS__ = "non-evergreen";
+    console.log("⚠️ [AED] Non-/p/ tanpa meta — NON-EVERGREEN");
+    return;
+  }
+
+  // normalisasi nilai meta
+  const status = meta.getAttribute("content")?.toLowerCase();
+
+  // jika meta evergreen → lanjut evergreen
+  if (status === "evergreen" || status === "evergreen-lock") {
+    window.__CONTENT_STATUS__ = "evergreen";
+    console.log("🌿 [AED] Non-/p/ dengan meta evergreen");
+    return;
+  }
+
+  // selain itu → NON
+  window.__CONTENT_STATUS__ = "non-evergreen";
+  console.log(`⚠️ [AED] Non-/p/ status ${status} — NON-EVERGREEN`);
+
+  // optional hooks
   if (typeof detectEvergreen === "function") {
     detectEvergreen();
   }
@@ -373,5 +385,6 @@ function updateArticleDates() {
     updateArticleDates();
   }
 })();
+
 
 
