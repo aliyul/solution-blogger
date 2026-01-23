@@ -35,7 +35,7 @@ function detectEvergreen({customDateModified = null} = {}) {
   // HARD EVERGREEN SETTINGS
   // ======================================================
   const finalType = "evergreen";
-  const validityDays = 365 * 10; // 10 tahun
+  const validityDays = 365 * 50; // 10 tahun
   const validityMs = validityDays * 86400000;
 
   const now = new Date();
