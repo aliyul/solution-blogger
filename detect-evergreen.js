@@ -109,3 +109,4 @@ function detectEvergreen({customDateModified = null} = {}) {
   });
 }
 
+detectEvergreen();
