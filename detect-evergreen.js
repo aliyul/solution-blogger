@@ -350,7 +350,7 @@ function updateArticleDates() {
     return;
   }
 
-  // ======================================================
+    // ======================================================
   // 2. SELAIN /p/ → CEK META EVERGREEN
   // ======================================================
   const meta = document.querySelector('meta[name="content-freshness"]');
@@ -359,6 +359,14 @@ function updateArticleDates() {
   if (!meta) {
     window.__CONTENT_STATUS__ = "non-evergreen";
     console.log("⚠️ [AED] Non-/p/ tanpa meta — NON-EVERGREEN");
+     // optional hooks
+    if (typeof detectEvergreen === "function") {
+      detectEvergreen();
+    }
+  
+    if (typeof updateArticleDates === "function") {
+      updateArticleDates();
+    }
     return;
   }
 
@@ -372,18 +380,6 @@ function updateArticleDates() {
     return;
   }
 
-  // selain itu → NON
-  window.__CONTENT_STATUS__ = "non-evergreen";
-  console.log(`⚠️ [AED] Non-/p/ status ${status} — NON-EVERGREEN`);
-
-  // optional hooks
-  if (typeof detectEvergreen === "function") {
-    detectEvergreen();
-  }
-
-  if (typeof updateArticleDates === "function") {
-    updateArticleDates();
-  }
 })();
 
 
