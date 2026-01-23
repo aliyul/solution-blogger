@@ -109,4 +109,5 @@ function detectEvergreen({customDateModified = null} = {}) {
   });
 }
 
+// Evergreen standar, dateModified = datePublished
 detectEvergreen();
