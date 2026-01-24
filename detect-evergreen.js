@@ -1,4 +1,3 @@
-// === Global date variable ===
 let datePublished = '';
 let dateModified = '';
 
