@@ -1,5 +1,5 @@
 //let datePublished = '';
-let dateModified = '';
+//let dateModified = '';
 
 /* ============================================================
  🧠 Smart Evergreen Detector v10 — Flexible Evergreen Mode
