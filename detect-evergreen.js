@@ -1,4 +1,4 @@
-let datePublished = '';
+//let datePublished = '';
 let dateModified = '';
 
 /* ============================================================
