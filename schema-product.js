@@ -149,17 +149,21 @@ document.addEventListener("DOMContentLoaded", async function () {
     };
 
       // === 15️⃣ BUILD GRAPH + OUTPUT JSON-LD ===
-      const graph = [webpage, business, mainEntity];
+      const graph = [webpage, business, product];
       
-      let scriptEl = document.querySelector("#auto-schema-product");
-      if (!scriptEl) {
-        scriptEl = document.createElement("script");
-        scriptEl.type = "application/ld+json";
-        scriptEl.id = "auto-schema-product";
-        document.head.appendChild(scriptEl);
+      // 🔎 cari schema existing
+      let s = document.querySelector("#auto-schema-product");
+      
+      if (!s) {
+        // ➕ buat hanya jika belum ada
+        s = document.createElement("script");
+        s.type = "application/ld+json";
+        s.id = "auto-schema-product";
+        document.head.appendChild(s);
       }
       
-      scriptEl.textContent = JSON.stringify(
+      // ♻️ overwrite schema (AMAN & SEO FRIENDLY)
+      s.textContent = JSON.stringify(
         {
           "@context": "https://schema.org",
           "@graph": graph
@@ -169,8 +173,9 @@ document.addEventListener("DOMContentLoaded", async function () {
       );
       
       console.log(
-        `[AutoSchema v4.53+ ✅] Product: ${productName} | Offers: ${tableOffers.length}`
+        `[AutoSchema v4.54 ✅] Product schema updated | Offers: ${tableOffers.length}`
       );
+
 
   }, 500);
 });
