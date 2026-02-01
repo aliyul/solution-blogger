@@ -148,12 +148,29 @@ document.addEventListener("DOMContentLoaded", async function () {
       isPartOf: parentUrls
     };
 
-    const graph = [webpage, business, product];
-    const s = document.createElement("script");
-    s.type="application/ld+json";
-    s.textContent = JSON.stringify({ "@context":"https://schema.org", "@graph": graph }, null, 2);
-    document.head.appendChild(s);
+      // === 15️⃣ BUILD GRAPH + OUTPUT JSON-LD ===
+      const graph = [webpage, business, mainEntity];
+      
+      let scriptEl = document.querySelector("#auto-schema-product");
+      if (!scriptEl) {
+        scriptEl = document.createElement("script");
+        scriptEl.type = "application/ld+json";
+        scriptEl.id = "auto-schema-product";
+        document.head.appendChild(scriptEl);
+      }
+      
+      scriptEl.textContent = JSON.stringify(
+        {
+          "@context": "https://schema.org",
+          "@graph": graph
+        },
+        null,
+        2
+      );
+      
+      console.log(
+        `[AutoSchema v4.53+ ✅] Product: ${productName} | Offers: ${tableOffers.length}`
+      );
 
-    console.log("[AutoSchema v4.54 ✅] Offers:", tableOffers.length);
   }, 500);
 });
