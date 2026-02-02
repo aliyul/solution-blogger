@@ -1,20 +1,21 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v10 — SAFE FLEX MODE
+ 🧠 Smart Evergreen Detector v10.1 — PRO SAFE MODE
 ============================================================ */
 (function () {
 
+  if (window.detectEvergreen) return; // anti double load
+
+  function toISOWithTimezone(date) {
+    if (!date) return null;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return null;
+    return d.toISOString(); // PRESERVE time
+  }
+
   function detectEvergreen({ customDateModified = null } = {}) {
-    console.log("🧩 detectEvergreen() v10 — SAFE MODE");
+    console.log("🧩 detectEvergreen() v10.1 — SAFE MODE");
 
     const clean = s => (s ? s.replace(/\s+/g, " ").trim() : "");
-
-    function normalizeToMidnightUTC(date) {
-      if (!date) return null;
-      const d = new Date(date);
-      if (isNaN(d.getTime())) return null;
-      d.setUTCHours(0, 0, 0, 0);
-      return d.toISOString();
-    }
 
     /* ---------- CONTENT ---------- */
     const h1 = clean(document.querySelector("h1")?.innerText || "").toLowerCase();
@@ -28,29 +29,28 @@
       content: clean(contentEl.innerText || "").toLowerCase()
     }];
 
-    /* ---------- EVERGREEN SETTING ---------- */
+    /* ---------- EVERGREEN ---------- */
     const finalType = "evergreen";
     const validityDays = 365 * 50;
     const validityMs = validityDays * 86400000;
 
-    const nowUTC = normalizeToMidnightUTC(new Date());
-
     /* ---------- META ---------- */
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
     let metaModified  = document.querySelector('meta[itemprop="dateModified"]');
+    let metaNext      = document.querySelector('meta[name="nextUpdate"]');
 
-    const datePublished =
-      metaPublished?.content || nowUTC;
+    const nowISO = new Date().toISOString();
+
+    const datePublished = metaPublished?.content || nowISO;
+    const dateModified =
+      toISOWithTimezone(customDateModified) || metaModified?.content || datePublished;
 
     if (!metaPublished) {
       metaPublished = document.createElement("meta");
       metaPublished.setAttribute("itemprop", "datePublished");
-      metaPublished.setAttribute("content", datePublished);
       document.head.appendChild(metaPublished);
     }
-
-    const dateModified =
-      normalizeToMidnightUTC(customDateModified) || datePublished;
+    metaPublished.setAttribute("content", datePublished);
 
     if (!metaModified) {
       metaModified = document.createElement("meta");
@@ -59,15 +59,18 @@
     }
     metaModified.setAttribute("content", dateModified);
 
-    const nextUpdate =
-      normalizeToMidnightUTC(new Date(new Date(dateModified).getTime() + validityMs));
+    const nextUpdate = new Date(
+      new Date(dateModified).getTime() + validityMs
+    ).toISOString();
 
-    const metaNext = document.createElement("meta");
-    metaNext.setAttribute("name", "nextUpdate");
+    if (!metaNext) {
+      metaNext = document.createElement("meta");
+      metaNext.setAttribute("name", "nextUpdate");
+      document.head.appendChild(metaNext);
+    }
     metaNext.setAttribute("content", nextUpdate);
-    document.head.appendChild(metaNext);
 
-    /* ---------- GLOBAL SAVE ---------- */
+    /* ---------- GLOBAL ---------- */
     window.AEDMetaDates = {
       type: finalType,
       datePublished,
@@ -90,7 +93,11 @@
       .forEach(el => el.setAttribute("priceValidUntil", nextUpdate));
   }
 
-  // expose function ONLY
+  // expose
   window.detectEvergreen = detectEvergreen;
+
+  // ✅ READY FLAG + EVENT (ANTI MISS)
+  window.__detectEvergreenReady = true;
+  window.dispatchEvent(new Event("detectEvergreenReady"));
 
 })();
