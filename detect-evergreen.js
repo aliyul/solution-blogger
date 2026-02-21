@@ -41,34 +41,37 @@
 
     const nowISO = new Date().toISOString();
 
-    const datePublished = metaPublished?.content || nowISO;
-    const dateModified =
-      toISOWithTimezone(customDateModified) || metaModified?.content || datePublished;
+   const datePublishedRaw = metaPublished?.content || nowISO;
+const dateModifiedRaw =
+  toISOWithTimezone(customDateModified) || metaModified?.content || datePublishedRaw;
 
-    if (!metaPublished) {
-      metaPublished = document.createElement("meta");
-      metaPublished.setAttribute("itemprop", "datePublished");
-      document.head.appendChild(metaPublished);
-    }
-    metaPublished.setAttribute("content", datePublished);
+// Parse ke Date object untuk komparasi valid
+const publishedDateObj = new Date(datePublishedRaw);
+const modifiedDateObj = new Date(dateModifiedRaw);
 
-    if (!metaModified) {
-      metaModified = document.createElement("meta");
-      metaModified.setAttribute("itemprop", "dateModified");
-      document.head.appendChild(metaModified);
-    }
-    metaModified.setAttribute("content", dateModified);
+let finalDatePublished = datePublishedRaw;
+let finalDateModified = dateModifiedRaw;
 
-    const nextUpdate = new Date(
-      new Date(dateModified).getTime() + validityMs
-    ).toISOString();
+// Jika dateModified lebih kecil dari datePublished
+if (modifiedDateObj < publishedDateObj) {
+  finalDateModified = finalDatePublished;
+}
 
-    if (!metaNext) {
-      metaNext = document.createElement("meta");
-      metaNext.setAttribute("name", "nextUpdate");
-      document.head.appendChild(metaNext);
-    }
-    metaNext.setAttribute("content", nextUpdate);
+// Buat / update meta datePublished
+if (!metaPublished) {
+  metaPublished = document.createElement("meta");
+  metaPublished.setAttribute("itemprop", "datePublished");
+  document.head.appendChild(metaPublished);
+}
+metaPublished.setAttribute("content", finalDatePublished);
+
+// Buat / update meta dateModified
+if (!metaModified) {
+  metaModified = document.createElement("meta");
+  metaModified.setAttribute("itemprop", "dateModified");
+  document.head.appendChild(metaModified);
+}
+metaModified.setAttribute("content", finalDateModified);
 
     /* ---------- GLOBAL ---------- */
     window.AEDMetaDates = {
