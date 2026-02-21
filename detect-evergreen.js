@@ -75,6 +75,22 @@ if (!metaModified) {
 }
 metaModified.setAttribute("content", dateModified);
 
+let nextUpdate =
+      normalizeToMidnightUTC(new Date(new Date(dateModified).getTime() + validityMs));
+    const nextUpdate = new Date(
+      new Date(dateModified).getTime() + validityMs
+    ).toISOString();
+
+    const metaNext = document.createElement("meta");
+    metaNext.setAttribute("name", "nextUpdate");
+    if (!metaNext) {
+      metaNext = document.createElement("meta");
+      metaNext.setAttribute("name", "nextUpdate");
+      document.head.appendChild(metaNext);
+    }
+    metaNext.setAttribute("content", nextUpdate);
+    document.head.appendChild(metaNext);
+
     /* ---------- GLOBAL ---------- */
     window.AEDMetaDates = {
       type: finalType,
