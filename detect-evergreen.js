@@ -81,7 +81,7 @@ let nextUpdate =
       new Date(dateModified).getTime() + validityMs
     ).toISOString();
 
-    const metaNext = document.createElement("meta");
+    metaNext = document.createElement("meta");
     metaNext.setAttribute("name", "nextUpdate");
     if (!metaNext) {
       metaNext = document.createElement("meta");
