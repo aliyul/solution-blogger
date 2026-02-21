@@ -41,20 +41,22 @@
 
     const nowISO = new Date().toISOString();
 
-   const datePublishedRaw = metaPublished?.content || nowISO;
-const dateModifiedRaw =
-  toISOWithTimezone(customDateModified) || metaModified?.content || datePublishedRaw;
+   // Ambil nilai awal
+let datePublished =
+  metaPublished?.content || nowISO;
 
-// Parse ke Date object untuk komparasi valid
-const publishedDateObj = new Date(datePublishedRaw);
-const modifiedDateObj = new Date(dateModifiedRaw);
+let dateModified =
+  toISOWithTimezone(customDateModified) ||
+  metaModified?.content ||
+  datePublished;
 
-let finalDatePublished = datePublishedRaw;
-let finalDateModified = dateModifiedRaw;
+// Validasi sebagai Date object
+const publishedObj = new Date(datePublished);
+const modifiedObj = new Date(dateModified);
 
-// Jika dateModified lebih kecil dari datePublished
-if (modifiedDateObj < publishedDateObj) {
-  finalDateModified = finalDatePublished;
+// Jika dateModified < datePublished → samakan
+if (modifiedObj < publishedObj) {
+  dateModified = datePublished;
 }
 
 // Buat / update meta datePublished
@@ -63,7 +65,7 @@ if (!metaPublished) {
   metaPublished.setAttribute("itemprop", "datePublished");
   document.head.appendChild(metaPublished);
 }
-metaPublished.setAttribute("content", finalDatePublished);
+metaPublished.setAttribute("content", datePublished);
 
 // Buat / update meta dateModified
 if (!metaModified) {
@@ -71,7 +73,7 @@ if (!metaModified) {
   metaModified.setAttribute("itemprop", "dateModified");
   document.head.appendChild(metaModified);
 }
-metaModified.setAttribute("content", finalDateModified);
+metaModified.setAttribute("content", dateModified);
 
     /* ---------- GLOBAL ---------- */
     window.AEDMetaDates = {
