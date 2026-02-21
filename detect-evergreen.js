@@ -76,8 +76,8 @@ if (!metaModified) {
 metaModified.setAttribute("content", dateModified);
 
 let nextUpdate =
-      normalizeToMidnightUTC(new Date(new Date(dateModified).getTime() + validityMs));
-    const nextUpdate = new Date(
+      toISOWithTimezone(new Date(new Date(dateModified).getTime() + validityMs));
+     nextUpdate = new Date(
       new Date(dateModified).getTime() + validityMs
     ).toISOString();
 
