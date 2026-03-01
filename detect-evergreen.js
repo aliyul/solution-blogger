@@ -46,12 +46,12 @@
 
    // Ambil nilai awal
 let datePublished =
-  metaPublished?.content || nowISO;
+  toISOWithTimezone(metaPublished)?.content || nowISO;
 
 let dateModified =
   toISOWithTimezone(customDateModified) ||
   metaModified?.content ||
-  datePublished;
+  toISOWithTimezone(datePublished);
 
 // Validasi sebagai Date object
 const publishedObj = new Date(datePublished);
