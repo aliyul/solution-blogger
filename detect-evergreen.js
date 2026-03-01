@@ -66,16 +66,13 @@ let dateModified =
 // Validasi sebagai Date object
 const publishedObj = new Date(datePublished);
 const modifiedObj = new Date(dateModified);
-
 // Jika dateModified < datePublished → samakan
 if (modifiedObj < publishedObj) {
   dateModified = datePublished;
-  // Update object untuk log
-  modifiedObj = new Date(dateModified);
 }
-
-console.log(modifiedObj < publishedObj); // sekarang pasti false
    
+   console.log(modifiedObj);
+  console.log(publishedObj); 
 // Buat / update meta datePublished
 if (!metaPublished) {
   metaPublished = document.createElement("meta");
