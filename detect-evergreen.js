@@ -70,8 +70,12 @@ const modifiedObj = new Date(dateModified);
 // Jika dateModified < datePublished → samakan
 if (modifiedObj < publishedObj) {
   dateModified = datePublished;
+  // Update object untuk log
+  modifiedObj = new Date(dateModified);
 }
 
+console.log(modifiedObj < publishedObj); // sekarang pasti false
+   
 // Buat / update meta datePublished
 if (!metaPublished) {
   metaPublished = document.createElement("meta");
