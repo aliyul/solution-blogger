@@ -56,7 +56,7 @@ function toISOWithTimezoneLocal(date, offset = "+07:00") {
 
    // Ambil nilai awal
 let datePublished =
-  toISOWithTimezoneLocal(metaPublished)?.content ||toISOWithTimezoneLocal(nowISO);
+  toISOWithTimezoneLocal(metaPublished)?.content || toISOWithTimezoneLocal(nowISO);
 
 let dateModified =
   toISOWithTimezoneLocal(customDateModified) ||
