@@ -5,12 +5,22 @@
 
   if (window.detectEvergreen) return; // anti double load
 
-  function toISOWithTimezone(date) {
-    if (!date) return null;
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return null;
-    return d.toISOString(); // PRESERVE time
-  }
+function toISOWithTimezoneLocal(date, offset = "+07:00") {
+  if (!date) return null;
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return null;
+
+  const pad = (n) => n.toString().padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  const ss = pad(d.getSeconds());
+
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}${offset}`;
+}
+
 
   function detectEvergreen({ customDateModified = null } = {}) {
     console.log("🧩 detectEvergreen() v10.1 — SAFE MODE");
@@ -46,12 +56,12 @@
 
    // Ambil nilai awal
 let datePublished =
-  toISOWithTimezone(metaPublished)?.content || nowISO;
+  toISOWithTimezoneLocal(metaPublished)?.content ||toISOWithTimezoneLocal(nowISO);
 
 let dateModified =
-  toISOWithTimezone(customDateModified) ||
+  toISOWithTimezoneLocal(customDateModified) ||
   metaModified?.content ||
-  toISOWithTimezone(datePublished);
+  datePublished;
 
 // Validasi sebagai Date object
 const publishedObj = new Date(datePublished);
@@ -79,7 +89,7 @@ if (!metaModified) {
 metaModified.setAttribute("content", dateModified);
 
 let nextUpdate =
-      toISOWithTimezone(new Date(new Date(dateModified).getTime() + validityMs));
+      toISOWithTimezoneLocal(new Date(new Date(dateModified).getTime() + validityMs));
      nextUpdate = new Date(
       new Date(dateModified).getTime() + validityMs
     ).toISOString();
