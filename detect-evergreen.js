@@ -30,10 +30,13 @@
     }];
 
     /* ---------- EVERGREEN ---------- */
-    const finalType = "evergreen";
+    /*const finalType = "evergreen";
     const validityDays = 365 * 50;
     const validityMs = validityDays * 86400000;
-
+    */
+     const finalType = "evergreen";
+     const validityDays = 365 * 3; // 3 tahun
+     const validityMs = validityDays * 86400000;
     /* ---------- META ---------- */
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
     let metaModified  = document.querySelector('meta[itemprop="dateModified"]');
