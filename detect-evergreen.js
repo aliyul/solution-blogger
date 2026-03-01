@@ -60,7 +60,7 @@ let datePublished =
 
 let dateModified =
   toISOWithTimezoneLocal(customDateModified) ||
-  metaModified?.content ||
+  toISOWithTimezoneLocal(metaModified)?.content ||
   datePublished;
 
 // Validasi sebagai Date object
@@ -87,13 +87,21 @@ if (!metaModified) {
   document.head.appendChild(metaModified);
 }
 metaModified.setAttribute("content", dateModified);
-
+/* toISOString() ubah ke utz
 let nextUpdate =
       toISOWithTimezoneLocal(new Date(new Date(dateModified).getTime() + validityMs));
      nextUpdate = new Date(
       new Date(dateModified).getTime() + validityMs
     ).toISOString();
+   */
+   
+let nextUpdate = toISOWithTimezoneLocal(
+  new Date(new Date(dateModified).getTime() + validityMs)
+);
 
+console.log(nextUpdate);
+// Tetap menghasilkan: "2029-01-23T10:30:00+07:00"
+   
     metaNext = document.createElement("meta");
     metaNext.setAttribute("name", "nextUpdate");
     if (!metaNext) {
