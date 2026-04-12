@@ -1,5 +1,11 @@
 /**
- * ⚡ AutoSchema Hybrid v4.55b — Product + Offers + isPartOf + Auto AreaServed
+ * ⚡ AutoSchema Hybrid v4.56b — Product + Offers + isPartOf + Auto AreaServed
+ * 
+ * UPDATE v4.56b:
+ * - Menambahkan parent mapping dari file eksternal (parent-mapping.js)
+ * - Menggunakan getParentFromMapping() untuk isPartOf yang akurat
+ * - Fallback ke breadcrumb (hanya ambil link TERAKHIR, bukan semua)
+ * - Fungsi detectParentUrls() lama di-comment (masih disimpan)
  * 
  * UPDATE v4.55b:
  * - Menambahkan pengecualian untuk halaman edukasi/bridge (PILLAR, SUB-PILLAR Tipe 1 & 2)
@@ -10,9 +16,9 @@
  * - Deteksi otomatis tabel harga produk
  * - Generate Product + Offer schema
  * - Auto AreaServed (Jabodetabek + Karawang)
- * - Smart parent detection dari breadcrumbs
+ * - Smart parent detection dari file mapping eksternal
  * 
- * @version 4.55b
+ * @version 4.56b
  * @date 2025-01-15
  * @evergreen YES
  */
@@ -27,14 +33,168 @@
     MAX_OFFERS: 8,
     MIN_PRICE: 10000,
     MAX_PRICE: 100000000,
-    SKIP_WORD_COUNT: 800  // Skip jika konten > 800 kata (artikel panjang)
+    SKIP_WORD_COUNT: 800,  // Skip jika konten > 800 kata (artikel panjang)
+    PARENT_MAPPING_URL: 'https://raw.githack.com/aliyul/solution-blogger/main/parent-mapping.js'
   };
 
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.55b] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.56b] ${msg}`);
+  }
+
+  // ===================== LOAD EXTERNAL JS =====================
+  function loadExternalJS(src) {
+    return new Promise((resolve) => {
+      if (document.querySelector(`script[src="${src}"]`)) {
+        resolve();
+        return;
+      }
+
+      const s = document.createElement("script");
+      s.src = src;
+      s.defer = true;
+      s.onload = resolve;
+      s.onerror = () => {
+        log(`Gagal load: ${src}`, "WARN");
+        resolve(); // ❗ jangan reject, biarkan proses tetap jalan
+      };
+      document.head.appendChild(s);
+    });
+  }
+
+  // ===================== LOAD PARENT MAPPING =====================
+  let parentMappingGlobal = null;
+
+  async function loadParentMapping() {
+    try {
+      await loadExternalJS(CONFIG.PARENT_MAPPING_URL);
+      
+      // Tunggu sebentar agar variabel global tersedia
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Cek variabel global yang tersedia
+      if (typeof getParentForMoneyPage === 'function') {
+        parentMappingGlobal = getParentForMoneyPage;
+        log("Parent mapping loaded from getParentForMoneyPage()", "SUCCESS");
+        return true;
+      } else if (window.PARENT_MAPPING) {
+        parentMappingGlobal = (url) => window.PARENT_MAPPING[url] || null;
+        log("Parent mapping loaded from window.PARENT_MAPPING", "SUCCESS");
+        return true;
+      } else {
+        log("Parent mapping tidak ditemukan di global scope", "WARN");
+        return false;
+      }
+    } catch (error) {
+      log(`Error loading parent mapping: ${error.message}`, "ERROR");
+      return false;
+    }
+  }
+
+  // ===================== GET PARENT URL FROM MAPPING =====================
+  function getParentFromMapping(currentUrl) {
+    if (!parentMappingGlobal) return null;
+    
+    try {
+      const parent = parentMappingGlobal(currentUrl);
+      if (parent && parent.parentUrl) {
+        return {
+          "@type": "WebPage",
+          "@id": parent.parentUrl,
+          name: parent.parentName || "Parent Page"
+        };
+      }
+      return null;
+    } catch (error) {
+      log(`Error getting parent from mapping: ${error.message}`, "WARN");
+      return null;
+    }
+  }
+
+  // ===================== DETECT PARENT URLS (VERSI LAMA - DI-COMMENT) =====================
+  /*
+  function detectParentUrls(currentUrl) {
+    const urls = new Set();
+    
+    const breadcrumbSelectors = [
+      ".breadcrumbs a",
+      ".breadcrumb a",
+      ".nav-trail a",
+      ".breadcrumb-nav a",
+      ".site-breadcrumb a",
+      "[class*='breadcrumb'] a",
+      "[class*='breadcrumbs'] a"
+    ];
+    
+    breadcrumbSelectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(a => {
+        if (a.href && a.href !== currentUrl && a.href !== location.href) {
+          urls.add(a.href);
+        }
+      });
+    });
+    
+    const metaParent = document.querySelector('meta[name="parent-url"]')?.content;
+    if (metaParent) urls.add(metaParent);
+    
+    if (urls.size === 0) urls.add(location.origin);
+    
+    return Array.from(urls).map(u => ({ "@type": "WebPage", "@id": u }));
+  }
+  */
+
+  // ===================== DETECT PARENT URLS (VERSI BARU DENGAN FALLBACK) =====================
+  function detectParentUrls(currentUrl) {
+    // PRIORITAS 1: Gunakan parent mapping dari file eksternal
+    const parentFromMapping = getParentFromMapping(currentUrl);
+    if (parentFromMapping) {
+      log(`Parent detected from mapping: ${parentFromMapping["@id"]}`, "SUCCESS");
+      return [parentFromMapping];
+    }
+    
+    // PRIORITAS 2: Fallback ke breadcrumb (jika mapping tidak ditemukan)
+    log("Parent mapping not found, falling back to breadcrumb detection", "WARN");
+    
+    // ✅ PERBAIKAN: Ambil hanya link TERAKHIR dari breadcrumb
+    let lastBreadcrumbUrl = null;
+    
+    const breadcrumbSelectors = [
+      ".breadcrumbs a",
+      ".breadcrumb a",
+      ".nav-trail a",
+      ".breadcrumb-nav a",
+      ".site-breadcrumb a",
+      "[class*='breadcrumb'] a",
+      "[class*='breadcrumbs'] a"
+    ];
+    
+    for (const selector of breadcrumbSelectors) {
+      const links = document.querySelectorAll(selector);
+      if (links.length > 0) {
+        // Ambil link terakhir (paling dekat dengan halaman saat ini)
+        const lastLink = links[links.length - 1];
+        if (lastLink.href && lastLink.href !== currentUrl && lastLink.href !== location.href) {
+          lastBreadcrumbUrl = lastLink.href;
+          break;
+        }
+      }
+    }
+    
+    // Cek meta tag parent-url sebagai alternatif
+    if (!lastBreadcrumbUrl) {
+      const metaParent = document.querySelector('meta[name="parent-url"]')?.content;
+      if (metaParent) lastBreadcrumbUrl = metaParent;
+    }
+    
+    // Fallback ke home jika tidak ada
+    if (!lastBreadcrumbUrl) {
+      lastBreadcrumbUrl = location.origin;
+    }
+    
+    log(`Fallback: using parent URL: ${lastBreadcrumbUrl}`, "INFO");
+    return [{ "@type": "WebPage", "@id": lastBreadcrumbUrl }];
   }
 
   // ===================== CEK APAKAH SKIP PRODUCT SCHEMA =====================
@@ -151,46 +311,20 @@
     return price;
   }
 
-  // ===================== DETECT PARENT URLS =====================
-  function detectParentUrls(currentUrl) {
-    const urls = new Set();
-    
-    const breadcrumbSelectors = [
-      ".breadcrumbs a",
-      ".breadcrumb a",
-      ".nav-trail a",
-      ".breadcrumb-nav a",
-      ".site-breadcrumb a",
-      "[class*='breadcrumb'] a",
-      "[class*='breadcrumbs'] a"
-    ];
-    
-    breadcrumbSelectors.forEach(selector => {
-      document.querySelectorAll(selector).forEach(a => {
-        if (a.href && a.href !== currentUrl && a.href !== location.href) {
-          urls.add(a.href);
-        }
-      });
-    });
-    
-    const metaParent = document.querySelector('meta[name="parent-url"]')?.content;
-    if (metaParent) urls.add(metaParent);
-    
-    if (urls.size === 0) urls.add(location.origin);
-    
-    return Array.from(urls).map(u => ({ "@type": "WebPage", "@id": u }));
-  }
-
   // ===================== AREA SERVED =====================
   function getAreaServed() {
     const areaProv = {
-      "Kabupaten Bogor": "Jawa Barat",
-      "Kota Bogor": "Jawa Barat",
-      "Kota Depok": "Jawa Barat",
-      "Kabupaten Bekasi": "Jawa Barat",
-      "Kota Bekasi": "Jawa Barat",
-      "Kabupaten Karawang": "Jawa Barat",
-      "DKI Jakarta": "DKI Jakarta"
+        "DKI Jakarta": "DKI Jakarta",
+        "Kabupaten Bogor": "Jawa Barat",
+        "Kota Bogor": "Jawa Barat",
+        "Kota Depok": "Jawa Barat",
+        "Kabupaten Tangerang": "Banten",
+        "Kota Tangerang": "Banten",
+        "Kota Tangerang Selatan": "Banten",
+        "Kota Serang": "Banten",
+        "Kabupaten Bekasi": "Jawa Barat",
+        "Kota Bekasi": "Jawa Barat",
+        "Kabupaten Karawang": "Jawa Barat"
     };
     return Object.keys(areaProv).map(a => ({ "@type": "Place", name: a }));
   }
@@ -204,253 +338,66 @@
     // Dari URL
     const pathKey = location.pathname.split("/").pop().replace(".html", "").replace(/-/g, " ");
     
-   const urlMapping = {
-  // ==================== PRODUK PEMBATAS ====================
-  "produk pembatas": "Produk Pembatas",
-  "kanstin beton": "Kanstin Beton",
-  "kanstin jalan": "Kanstin Jalan",
-  "kanstin trotoar": "Kanstin Trotoar",
-  "kanstin taman": "Kanstin Taman",
-  "kanstin hijau": "Kanstin Hijau",
-  "kanstin hitam": "Kanstin Hitam",
-  "kanstin putih": "Kanstin Putih",
-  "kanstin abu abu": "Kanstin Abu-Abu",
-  "pagar beton": "Pagar Beton",
-  "pagar panel beton": "Pagar Panel Beton",
-  "pagar panel": "Pagar Panel Beton",
-  "pagar brc": "Pagar BRC",
-  "pagar brc galvanis": "Pagar BRC Galvanis",
-  "pagar brc hitam": "Pagar BRC Hitam",
-  "pagar brc hijau": "Pagar BRC Hijau",
-  "pagar besi": "Pagar Besi",
-  "pagar besi tempa": "Pagar Besi Tempa",
-  "pagar besi hollow": "Pagar Besi Hollow",
-  "pagar grc": "Pagar GRC",
-  "pagar grc minimalis": "Pagar GRC Minimalis",
-  "pagar batu alam": "Pagar Batu Alam",
-  "pagar batu andesit": "Pagar Batu Andesit",
-  "pagar batu palimanan": "Pagar Batu Palimanan",
-  "pagar batu candi": "Pagar Batu Candi",
-  "pagar batu paras jogja": "Pagar Batu Paras Jogja",
-  "pagar rumah": "Pagar Rumah",
-  "pagar rumah minimalis": "Pagar Rumah Minimalis",
-  "pagar rumah mewah": "Pagar Rumah Mewah",
-  "pagar rumah modern": "Pagar Rumah Modern",
-  "pagar perumahan": "Pagar Perumahan",
-  "barrier beton": "Barrier Beton",
-  "barrier jalan": "Barrier Jalan",
-  "barrier pembatas": "Barrier Pembatas",
-  "barrier beton precast": "Barrier Beton Precast",
-  "separator beton": "Separator Beton",
-  "separator jalan": "Separator Jalan",
-  "median jalan": "Median Jalan",
-  "median beton": "Median Beton",
-  "kereb beton": "Kereb Beton",
-  "kereb jalan": "Kereb Jalan",
-  "kereb trotoar": "Kereb Trotoar",
-
-  // ==================== PRODUK SALURAN DRAINASE ====================
-  "produk saluran drainase": "Produk Drainase",
-  "saluran drainase": "Saluran Drainase",
-  "u ditch": "U-Ditch",
-  "u ditch beton": "U-Ditch Beton",
-  "u ditch precast": "U-Ditch Precast",
-  "u ditch 40x40": "U-Ditch 40x40",
-  "u ditch 50x50": "U-Ditch 50x50",
-  "u ditch 60x60": "U-Ditch 60x60",
-  "u ditch 80x80": "U-Ditch 80x80",
-  "u ditch 100x100": "U-Ditch 100x100",
-  "box culvert": "Box Culvert",
-  "box culvert beton": "Box Culvert Beton",
-  "box culvert precast": "Box Culvert Precast",
-  "box culvert 2x2": "Box Culvert 2x2",
-  "box culvert 3x3": "Box Culvert 3x3",
-  "box culvert 4x4": "Box Culvert 4x4",
-  "buis beton": "Buis Beton",
-  "gorong gorong": "Gorong-Gorong",
-  "gorong gorong beton": "Gorong-Gorong Beton",
-  "pipa beton": "Pipa Beton",
-  "pipa beton precast": "Pipa Beton Precast",
-  "pipa beton bertulang": "Pipa Beton Bertulang",
-  "pipa beton non tulang": "Pipa Beton Non Tulang",
-  "culvert": "Culvert",
-  "culvert beton": "Culvert Beton",
-  "saluran air beton": "Saluran Air Beton",
-  "saluran air precast": "Saluran Air Precast",
-  "saluran terbuka": "Saluran Terbuka",
-  "saluran tertutup": "Saluran Tertutup",
-  "drainase beton": "Drainase Beton",
-  "drainase precast": "Drainase Precast",
-
-  // ==================== PRODUK JALAN & LANTAI ====================
-  "produk jalan lantai": "Produk Jalan & Lantai",
-  "paving block": "Paving Block",
-  "paving block beton": "Paving Block Beton",
-  "paving block press": "Paving Block Press",
-  "paving block conblock": "Conblock",
-  "paving block hexagonal": "Paving Block Hexagonal",
-  "paving block segi enam": "Paving Block Segi Enam",
-  "paving block bata": "Paving Block Bata",
-  "paving block segitiga": "Paving Block Segitiga",
-  "paving block zigzag": "Paving Block Zigzag",
-  "paving block grass block": "Grass Block",
-  "grass block": "Grass Block",
-  "grass block beton": "Grass Block Beton",
-  "grass block parkir": "Grass Block Parkir",
-  "grass block hijau": "Grass Block Hijau",
-  "slab beton": "Slab Beton",
-  "slab lantai beton": "Slab Lantai Beton",
-  "slab precast": "Slab Precast",
-  "slab lantai precast": "Slab Lantai Precast",
-  "tactile paving": "Tactile Paving",
-  "paving guiding block": "Guiding Block",
-  "paving tuna netra": "Paving Tunanetra",
-  "paving pemandu": "Paving Pemandu",
-  "paving warning block": "Warning Block",
-  "paving peringatan": "Paving Peringatan",
-  "panel lantai": "Panel Lantai",
-  "panel lantai precast": "Panel Lantai Precast",
-  "panel lantai beton": "Panel Lantai Beton",
-  "lantai panggung": "Lantai Panggung",
-  "floor panel": "Floor Panel",
-
-  // ==================== PRODUK PONDASI STRUKTUR ====================
-  "produk pondasi struktur": "Produk Pondasi",
-  "pondasi struktur": "Pondasi Struktur",
-  "tiang pancang": "Tiang Pancang",
-  "tiang pancang beton": "Tiang Pancang Beton",
-  "tiang pancang precast": "Tiang Pancang Precast",
-  "tiang pancang persegi": "Tiang Pancang Persegi",
-  "tiang pancang kotak": "Tiang Pancang Kotak",
-  "tiang pancang bulat": "Tiang Pancang Bulat",
-  "tiang pancang spun pile": "Spun Pile",
-  "spun pile": "Spun Pile",
-  "spun pile beton": "Spun Pile Beton",
-  "bore pile": "Bore Pile",
-  "bore pile beton": "Bore Pile Beton",
-  "mini pile": "Mini Pile",
-  "mini pile beton": "Mini Pile Beton",
-  "strauss pile": "Strauss Pile",
-  "strauss pile beton": "Strauss Pile Beton",
-  "cakar ayam": "Cakar Ayam",
-  "cakar ayam beton": "Cakar Ayam Beton",
-  "pondasi cakar ayam": "Pondasi Cakar Ayam",
-  "pile cap": "Pile Cap",
-  "pile cap beton": "Pile Cap Beton",
-  "pondasi sumuran": "Pondasi Sumuran",
-  "pondasi sumuran beton": "Pondasi Sumuran Beton",
-  "pondasi footplat": "Pondasi Footplat",
-  "pondasi tapak": "Pondasi Tapak",
-  "pondasi batu kali": "Pondasi Batu Kali",
-  "pondasi menerus": "Pondasi Menerus",
-
-  // ==================== PRODUK JEMBATAN & FLYOVER ====================
-  "produk jembatan flyover": "Produk Jembatan & Flyover",
-  "jembatan flyover": "Jembatan & Flyover",
-  "box girder": "Box Girder",
-  "box girder beton": "Box Girder Beton",
-  "box girder precast": "Box Girder Precast",
-  "girder beton": "Girder Beton",
-  "girder precast": "Girder Precast",
-  "pier head": "Pier Head",
-  "pier head beton": "Pier Head Beton",
-  "pier head precast": "Pier Head Precast",
-  "diaphragm": "Diaphragm",
-  "diaphragm beton": "Diaphragm Beton",
-  "diaphragm precast": "Diaphragm Precast",
-  "balok beton": "Balok Beton",
-  "balok precast": "Balok Precast",
-  "balok girder": "Balok Girder",
-  "segmen box girder": "Segmen Box Girder",
-  "tiang pancang jembatan": "Tiang Pancang Jembatan",
-  "abutment beton": "Abutment Beton",
-  "abutment precast": "Abutment Precast",
-  "oprit beton": "Oprit Beton",
-  "oprit precast": "Oprit Precast",
-  "railing jembatan": "Railing Jembatan",
-  "railing beton": "Railing Beton",
-  "railing precast": "Railing Precast",
-  "expansion joint": "Expansion Joint",
-  "bearing pad": "Bearing Pad",
-
-  // ==================== PRODUK DINDING BANGUNAN MODULAR ====================
-  "produk dinding bangunan modular": "Dinding Modular",
-  "dinding modular": "Dinding Modular",
-  "panel beton precast": "Panel Beton Precast",
-  "panel dinding beton": "Panel Dinding Beton",
-  "panel dinding precast": "Panel Dinding Precast",
-  "panel beton ringan": "Panel Beton Ringan",
-  "beton ringan precast": "Beton Ringan Precast",
-  "sandwich panel": "Sandwich Panel",
-  "sandwich panel beton": "Sandwich Panel Beton",
-  "sandwich panel precast": "Sandwich Panel Precast",
-  "roster beton": "Roster Beton",
-  "roster precast": "Roster Precast",
-  "roster minimalis": "Roster Minimalis",
-  "roster modern": "Roster Modern",
-  "dinding prefab": "Dinding Prefab",
-  "dinding prefabrikasi": "Dinding Prefabrikasi",
-  "dinding pracetak": "Dinding Pracetak",
-  "partisi beton": "Partisi Beton",
-  "partisi precast": "Partisi Precast",
-  "sekat beton": "Sekat Beton",
-  "sekat precast": "Sekat Precast",
-  "dinding penahan tanah": "Dinding Penahan Tanah",
-  "dinding penahan precast": "Dinding Penahan Precast",
-  "retaining wall": "Retaining Wall",
-  "retaining wall beton": "Retaining Wall Beton",
-  "retaining wall precast": "Retaining Wall Precast",
-
-  // ==================== PRODUK PELABUHAN & PESISIR ====================
-  "produk pelabuhan pesisir": "Produk Pelabuhan & Pesisir",
-  "pelabuhan pesisir": "Pelabuhan & Pesisir",
-  "sheet pile": "Sheet Pile",
-  "sheet pile beton": "Sheet Pile Beton",
-  "sheet pile precast": "Sheet Pile Precast",
-  "sheet pile baja": "Sheet Pile Baja",
-  "sheet pile wpc": "Sheet Pile WPC",
-  "ponton": "Ponton",
-  "ponton beton": "Ponton Beton",
-  "ponton apung": "Ponton Apung",
-  "dermaga beton": "Dermaga Beton",
-  "dermaga precast": "Dermaga Precast",
-  "dermaga apung": "Dermaga Apung",
-  "crane dermaga": "Crane Dermaga",
-  "crane pelabuhan": "Crane Pelabuhan",
-  "breakwater": "Breakwater",
-  "breakwater beton": "Breakwater Beton",
-  "breakwater precast": "Breakwater Precast",
-  "tetrapod": "Tetrapod",
-  "tetrapod beton": "Tetrapod Beton",
-  "dolphin beton": "Dolphin Beton",
-  "dolphin tambat": "Dolphin Tambat",
-  "bolder beton": "Bolder Beton",
-  "bolder tambat": "Bolder Tambat",
-  "fender pelabuhan": "Fender Pelabuhan",
-  "revetment beton": "Revetment Beton",
-  "revetment precast": "Revetment Precast",
-  "sea wall": "Sea Wall",
-  "sea wall beton": "Sea Wall Beton",
-  "sea wall precast": "Sea Wall Precast",
-  "groin beton": "Groin Beton",
-  "groin precast": "Groin Precast",
-
-  // ==================== PRODUK KONSTRUKSI UMUM ====================
-  "produk konstruksi": "Produk Konstruksi",
-  "beton precast": "Beton Precast",
-  "produk alat konstruksi": "Alat Konstruksi",
-  "alat konstruksi": "Alat Konstruksi",
-  "material konstruksi": "Material Konstruksi",
-  "jasa konstruksi": "Jasa Konstruksi",
-
-  // ==================== PRODUK CUSTOM ====================
-  "produk custom": "Produk Custom",
-  "custom precast": "Custom Precast",
-  "custom beton": "Custom Beton",
-  "produk khusus": "Produk Khusus",
-  "beton khusus": "Beton Khusus",
-  "precast khusus": "Precast Khusus"
-};
+    const urlMapping = {
+      // ==================== PRODUK PEMBATAS ====================
+      "produk pembatas": "Produk Pembatas",
+      "kanstin beton": "Kanstin Beton",
+      "kanstin jalan": "Kanstin Jalan",
+      "kanstin trotoar": "Kanstin Trotoar",
+      "kanstin taman": "Kanstin Taman",
+      "pagar beton": "Pagar Beton",
+      "pagar panel beton": "Pagar Panel Beton",
+      "pagar brc": "Pagar BRC",
+      "pagar besi": "Pagar Besi",
+      "pagar grc": "Pagar GRC",
+      "pagar batu alam": "Pagar Batu Alam",
+      "pagar rumah": "Pagar Rumah",
+      
+      // ==================== PRODUK SALURAN DRAINASE ====================
+      "produk saluran drainase": "Produk Drainase",
+      "u ditch": "U-Ditch",
+      "u ditch beton": "U-Ditch Beton",
+      "box culvert": "Box Culvert",
+      "buis beton": "Buis Beton",
+      "gorong gorong": "Gorong-Gorong",
+      "pipa beton": "Pipa Beton",
+      
+      // ==================== PRODUK JALAN & LANTAI ====================
+      "produk jalan lantai": "Produk Jalan & Lantai",
+      "paving block": "Paving Block",
+      "grass block": "Grass Block",
+      "slab beton": "Slab Beton",
+      "tactile paving": "Tactile Paving",
+      
+      // ==================== PRODUK PONDASI STRUKTUR ====================
+      "produk pondasi struktur": "Produk Pondasi",
+      "tiang pancang": "Tiang Pancang",
+      "spun pile": "Spun Pile",
+      "bore pile": "Bore Pile",
+      "mini pile": "Mini Pile",
+      "strauss pile": "Strauss Pile",
+      "cakar ayam": "Cakar Ayam",
+      
+      // ==================== PRODUK DINDING MODULAR ====================
+      "produk dinding bangunan modular": "Dinding Modular",
+      "panel beton precast": "Panel Beton Precast",
+      "beton ringan precast": "Beton Ringan Precast",
+      "sandwich panel": "Sandwich Panel",
+      "roster beton": "Roster Beton",
+      
+      // ==================== PRODUK JEMBATAN & FLYOVER ====================
+      "produk jembatan flyover": "Produk Jembatan & Flyover",
+      
+      // ==================== PRODUK PELABUHAN & PESISIR ====================
+      "produk pelabuhan pesisir": "Produk Pelabuhan & Pesisir",
+      "sheet pile": "Sheet Pile",
+      "ponton": "Ponton",
+      
+      // ==================== PRODUK UMUM ====================
+      "produk konstruksi": "Produk Konstruksi",
+      "beton precast": "Beton Precast",
+      "produk alat konstruksi": "Alat Konstruksi"
+    };
     
     let productName = urlMapping[pathKey.toLowerCase()];
     if (!productName && pathKey && pathKey.length > 0 && pathKey.length < 80) {
@@ -567,8 +514,11 @@
   // ===================== MAIN FUNCTION =====================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.55b DIMULAI", "INFO");
+    log("AutoSchema Hybrid v4.56b DIMULAI", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
+    
+    // ===== LOAD PARENT MAPPING DARI FILE EKSTERNAL =====
+    await loadParentMapping();
     
     // CEK APAKAH HARUS SKIP
     if (shouldSkipProductSchema()) {
@@ -590,7 +540,7 @@
     // Image
     const contentImage = document.querySelector("article img, main img, .post-body img, .product-image img")?.src || fallbackImage;
     
-    // Parent URLs
+    // Parent URLs (menggunakan fungsi baru dengan fallback)
     const parentUrls = detectParentUrls(currentUrl);
     
     // Area Served
@@ -692,8 +642,11 @@
     log(`  Valid Prices   : ${offers.filter(o => o.price > 0).length}`, "SUCCESS");
     log(`  Area Served    : ${areaServed.length} wilayah`, "INFO");
     log(`  Parent Pages   : ${parentUrls.length}`, "INFO");
+    if (parentUrls.length > 0 && parentUrls[0]["@id"]) {
+      log(`  Parent URL     : ${parentUrls[0]["@id"]}`, "INFO");
+    }
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.55b SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.56b SELESAI", "SUCCESS");
     
     if (offers.length === 1 && offers[0].price === 0) {
       log("⚠️ Menggunakan fallback offer (tidak ada harga valid terdeteksi)", "WARN");
