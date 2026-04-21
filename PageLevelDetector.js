@@ -1,9 +1,10 @@
 /* ============================================================
- 🧠 Page Level Detector v14.0 — OPTIMIZED FOR betonjayareadymix.com
+ 🧠 Page Level Detector v15.0 — OPTIMIZED FOR betonjayareadymix.com
     ✅ Custom Pillar Mapping (100% akurat untuk pillar)
     ✅ Auto-detect Entity Type (produk, jasa, material, sewa)
     ✅ MONEY_MASTER vs MONEY_PAGE (beda spesifik/umum)
     ✅ MONEY_CHILD deteksi lokasi (200+ kota, hybrid method)
+    ✅ MONEY_LEADGEN deteksi (konsultasi, survey, hubungi, dll)
     ✅ SUB-VARIANT detection (spesifikasi sangat detail)
     ✅ Support: Jasa Konstruksi, Jasa Desain Interior, 
        Produk Konstruksi, Produk Interior, Material Konstruksi, Sewa/Rental
@@ -129,6 +130,14 @@
     'money-page': [
       '/beli-', '/jual-', '/pesan-', '/order-', '/produk/'
     ],
+    'money-child': [
+      '/jakarta/', '/bandung/', '/surabaya/', '/medan/', '/makassar/'
+    ],
+    'money-leadgen': [
+      '/konsultasi/', '/consultation/', '/survey/', '/hubungi/', '/contact/',
+      '/estimasi/', '/penawaran/', '/quote/', '/free-consultation/',
+      '/jadwal-survey/', '/request-quote/'
+    ],
     'variant': [
       '/spesifikasi/', '/detail-', '/ukuran-', '/tipe-', '/merk-', '/warna-'
     ],
@@ -192,96 +201,6 @@
   }
   
   // ============================================================
-  // 📌 FUNGSI DETEKSI MONEY_MASTER vs MONEY_PAGE
-  // ============================================================
-  function detectMoneyLevel(title, h1, url) {
-    const textToCheck = (h1 + ' ' + title + ' ' + url).toLowerCase();
-    
-    // Harus mengandung kata harga
-    if (!textToCheck.includes('harga ')) return null;
-    
-    // Ekstrak setelah kata "harga"
-    let afterHarga = '';
-    const hargaIndex = textToCheck.indexOf('harga ');
-    if (hargaIndex !== -1) {
-      afterHarga = textToCheck.substring(hargaIndex + 6);
-      // Ambil maksimal 50 karakter
-      afterHarga = afterHarga.slice(0, 50);
-    }
-    
-    // Kata kunci yang menandakan produk SPESIFIK (bukan umum)
-    const specificProductIndicators = [
-      'pabrikan', 'minimalis', 'modern', 'modular', 'siap pakai',
-      'hpl', 'mdf', 'jati', 'bigland', 'pengantin', 'murah',
-      'premium', 'ekonomis', 'standar', 'custom', 'bespoke',
-      '0.', '0,', '1.', '2.', '3.', 'mm', 'cm', 'meter', 'inch',
-      'putih', 'hitam', 'merah', 'biru', 'hijau', 'kuning',
-      'kecil', 'besar', 'sedang', 'mini', 'maxi', 'jumbo',
-      'excavator', 'bulldozer', 'crane', 'dump truck', 'vibro'
-    ];
-    
-    for (const indicator of specificProductIndicators) {
-      if (afterHarga.includes(indicator)) {
-        return 'money-page'; // Ini MONEY_PAGE, bukan MONEY_MASTER
-      }
-    }
-    
-    // Cek apakah mengandung lokasi (MONEY_CHILD)
-    const words = afterHarga.split(' ');
-    for (const word of words) {
-      if (isLocation(word, [])) {
-        return 'money-child';
-      }
-    }
-    
-    // Jika hanya "harga [kategori]" -> MONEY_MASTER
-    return 'money-master';
-  }
-  
-  // ============================================================
-  // 📌 FUNGSI DETEKSI DARI URL (DENGAN CUSTOM MAPPING + ENHANCED)
-  // ============================================================
-  function detectFromURL(url, h1, title) {
-    const domain = window.location.hostname;
-    const urlLower = url.toLowerCase();
-    
-    // 🔥 PRIORITAS 1: Cek custom pillar mapping untuk domain ini
-    const customCheck = isCustomPillar(urlLower, domain);
-    if (customCheck && customCheck.isPillar) {
-      console.log(`📌 Custom mapping: ${urlLower} → PILLAR (${customCheck.entityType})`);
-      document.body.setAttribute('data-entity-type', customCheck.entityType);
-      return 'pillar';
-    }
-    
-    // 🔥 PRIORITAS 2: Deteksi MONEY_MASTER vs MONEY_PAGE vs MONEY_CHILD
-    const moneyLevel = detectMoneyLevel(title, h1, url);
-    if (moneyLevel) {
-      console.log(`📌 Money detection: ${urlLower} → ${moneyLevel}`);
-      return moneyLevel;
-    }
-    
-    // PRIORITAS 3: Deteksi normal dari URL patterns
-    for (const [level, patterns] of Object.entries(URL_PATTERNS)) {
-      for (const pattern of patterns) {
-        if (urlLower.includes(pattern)) {
-          return level;
-        }
-      }
-    }
-    
-    // PRIORITAS 4: Deteksi lokasi di URL (MONEY_CHILD)
-    const urlParts = urlLower.split('/');
-    for (const part of urlParts) {
-      if (part.length > 3 && isLocation(part, [])) {
-        console.log(`📌 Location detected in URL: ${part} → money-child`);
-        return 'money-child';
-      }
-    }
-    
-    return null;
-  }
-  
-  // ============================================================
   // 📌 FUNGSI DETEKSI ENTITY TYPE (AUTO-DETECT + CUSTOM MAPPING)
   // ============================================================
   function detectEntityType() {
@@ -332,8 +251,161 @@
   }
   
   // ============================================================
+  // 📌 FUNGSI DETEKSI MONEY_MASTER vs MONEY_PAGE vs MONEY_CHILD vs MONEY_LEADGEN
+  // ============================================================
+  function detectMoneyLevel(title, h1, url) {
+    const textToCheck = (h1 + ' ' + title + ' ' + url).toLowerCase();
+    const entityType = detectEntityType();
+    
+    // 🔥 PRIORITAS 1: Deteksi MONEY_LEADGEN (khusus Jasa & Sewa)
+    const leadgenKeywords = ['konsultasi', 'survey', 'hubungi', 'estimasi', 'penawaran', 'free consultation'];
+    for (const keyword of leadgenKeywords) {
+      if (textToCheck.includes(keyword)) {
+        if (entityType === 'jasa' || entityType === 'sewa') {
+          console.log(`📌 Leadgen detected: ${keyword} → money-leadgen`);
+          return 'money-leadgen';
+        }
+      }
+    }
+    
+    // 🔥 PRIORITAS 2: Deteksi MONEY_MASTER, MONEY_PAGE, MONEY_CHILD
+    // Harus mengandung kata harga atau sewa
+    const hasPriceKeyword = textToCheck.includes('harga ') || textToCheck.includes('sewa ') || textToCheck.includes('biaya ');
+    if (!hasPriceKeyword) return null;
+    
+    // Ekstrak setelah kata "harga" atau "sewa"
+    let afterKeyword = '';
+    let keywordType = '';
+    if (textToCheck.includes('harga ')) {
+      const hargaIndex = textToCheck.indexOf('harga ');
+      afterKeyword = textToCheck.substring(hargaIndex + 6);
+      keywordType = 'harga';
+    } else if (textToCheck.includes('sewa ')) {
+      const sewaIndex = textToCheck.indexOf('sewa ');
+      afterKeyword = textToCheck.substring(sewaIndex + 5);
+      keywordType = 'sewa';
+    } else if (textToCheck.includes('biaya ')) {
+      const biayaIndex = textToCheck.indexOf('biaya ');
+      afterKeyword = textToCheck.substring(biayaIndex + 6);
+      keywordType = 'biaya';
+    }
+    
+    // Ambil maksimal 50 karakter
+    afterKeyword = afterKeyword.slice(0, 50);
+    
+    // Kata kunci yang menandakan produk SPESIFIK (bukan umum)
+    const specificProductIndicators = [
+      'pabrikan', 'minimalis', 'modern', 'modular', 'siap pakai',
+      'hpl', 'mdf', 'jati', 'bigland', 'pengantin', 'murah',
+      'premium', 'ekonomis', 'standar', 'custom', 'bespoke',
+      '0.', '0,', '1.', '2.', '3.', 'mm', 'cm', 'meter', 'inch',
+      'putih', 'hitam', 'merah', 'biru', 'hijau', 'kuning',
+      'kecil', 'besar', 'sedang', 'mini', 'maxi', 'jumbo',
+      'excavator', 'bulldozer', 'crane', 'dump truck', 'vibro'
+    ];
+    
+    // Cek apakah mengandung lokasi (MONEY_CHILD)
+    const words = afterKeyword.split(' ');
+    for (const word of words) {
+      if (isLocation(word, [])) {
+        console.log(`📌 Location detected in money page: ${word} → money-child`);
+        return 'money-child';
+      }
+    }
+    
+    // Cek apakah produk spesifik
+    for (const indicator of specificProductIndicators) {
+      if (afterKeyword.includes(indicator)) {
+        console.log(`📌 Specific product detected: ${indicator} → money-page`);
+        return 'money-page';
+      }
+    }
+    
+    // Jasa tidak boleh menggunakan MONEY_MASTER
+    if (entityType === 'jasa') {
+      console.log(`📌 Jasa entity with price keyword → money-page (not master)`);
+      return 'money-page';
+    }
+    
+    // Jika hanya "harga [kategori]" atau "sewa [kategori]" -> MONEY_MASTER
+    console.log(`📌 General price keyword → money-master`);
+    return 'money-master';
+  }
+  
+  // ============================================================
+  // 📌 FUNGSI DETEKSI DARI URL (DENGAN CUSTOM MAPPING + ENHANCED)
+  // ============================================================
+  function detectFromURL(url, h1, title) {
+    const domain = window.location.hostname;
+    const urlLower = url.toLowerCase();
+    
+    // 🔥 PRIORITAS 1: Cek custom pillar mapping untuk domain ini
+    const customCheck = isCustomPillar(urlLower, domain);
+    if (customCheck && customCheck.isPillar) {
+      console.log(`📌 Custom mapping: ${urlLower} → PILLAR (${customCheck.entityType})`);
+      document.body.setAttribute('data-entity-type', customCheck.entityType);
+      return 'pillar';
+    }
+    
+    // 🔥 PRIORITAS 2: Deteksi MONEY_LEADGEN dari URL pattern
+    const leadgenPatterns = [
+      '/konsultasi/', '/consultation/', '/survey/', '/hubungi/', '/contact/',
+      '/estimasi/', '/penawaran/', '/quote/', '/free-consultation/',
+      '/jadwal-survey/', '/request-quote/'
+    ];
+    for (const pattern of leadgenPatterns) {
+      if (urlLower.includes(pattern)) {
+        const entityType = detectEntityType();
+        if (entityType === 'jasa' || entityType === 'sewa') {
+          console.log(`📌 Leadgen URL pattern: ${urlLower} → money-leadgen`);
+          return 'money-leadgen';
+        }
+      }
+    }
+    
+    // 🔥 PRIORITAS 3: Deteksi MONEY_MASTER vs MONEY_PAGE vs MONEY_CHILD
+    const moneyLevel = detectMoneyLevel(title, h1, url);
+    if (moneyLevel) {
+      console.log(`📌 Money detection: ${urlLower} → ${moneyLevel}`);
+      return moneyLevel;
+    }
+    
+    // 🔥 PRIORITAS 4: Deteksi normal dari URL patterns
+    for (const [level, patterns] of Object.entries(URL_PATTERNS)) {
+      for (const pattern of patterns) {
+        if (urlLower.includes(pattern)) {
+          return level;
+        }
+      }
+    }
+    
+    // 🔥 PRIORITAS 5: Deteksi lokasi di URL (MONEY_CHILD)
+    const urlParts = urlLower.split('/');
+    for (const part of urlParts) {
+      if (part.length > 3 && isLocation(part, [])) {
+        console.log(`📌 Location detected in URL: ${part} → money-child`);
+        return 'money-child';
+      }
+    }
+    
+    return null;
+  }
+  
+  // ============================================================
   // 📌 FUNGSI DETEKSI DARI ELEMEN
   // ============================================================
+  const VALID_LEVELS = [
+    'pillar', 
+    'sub-pillar-tipe-2', 
+    'sub-pillar-tipe-1',
+    'money-master', 
+    'money-page', 
+    'money-child',
+    'money-leadgen',
+    'variant', 
+    'sub-variant'
+  ];
+  
   function detectFromElement() {
     const body = document.body;
     const dataLevel = body.getAttribute('data-page-level');
@@ -356,43 +428,53 @@
   // ============================================================
   function detectFromContent() {
     const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
+    const title = (document.title || "").toLowerCase();
     const body = (document.body?.innerText || "").slice(0, 1500).toLowerCase();
+    const entityType = detectEntityType();
     
-    // Deteksi SUB-VARIANT (sangat detail)
+    // 🔥 PRIORITAS 1: Deteksi MONEY_LEADGEN
+    const leadgenKeywords = ['konsultasi', 'survey', 'hubungi', 'estimasi', 'penawaran', 'free consultation'];
+    for (const keyword of leadgenKeywords) {
+      if (h1.includes(keyword) || title.includes(keyword) || body.includes(keyword)) {
+        if (entityType === 'jasa' || entityType === 'sewa') {
+          console.log(`📌 Leadgen detected from content: ${keyword} → money-leadgen`);
+          return 'money-leadgen';
+        }
+      }
+    }
+    
+    // 🔥 PRIORITAS 2: Deteksi SUB-VARIANT (sangat detail)
     if (h1.includes('tebal') || h1.includes('ketebalan') || 
         h1.includes('lebar') || h1.includes('panjang') ||
+        h1.includes('tinggi') ||
         /\d+\s*mm\s*x\s*\d+\s*mm/.test(h1)) {
       return 'sub-variant';
     }
     
-    // Deteksi VARIANT
+    // 🔥 PRIORITAS 3: Deteksi VARIANT
     if (h1.includes('spesifikasi') || h1.includes('detail') || 
-        h1.includes('ukuran') || h1.includes('tipe')) {
+        h1.includes('ukuran') || h1.includes('tipe') ||
+        h1.includes('kapasitas') || h1.includes('warna')) {
       return 'variant';
     }
     
-    // Deteksi MONEY dengan logic pintar
-    if (h1.includes('harga ')) {
-      const afterHarga = h1.substring(h1.indexOf('harga ') + 6);
-      const specificIndicators = ['pabrikan', 'minimalis', 'modern', 'modular', 'per', 'di'];
-      for (const indicator of specificIndicators) {
-        if (afterHarga.includes(indicator)) {
-          if (afterHarga.includes('di') || afterHarga.includes('jakarta') || afterHarga.includes('bandung')) {
-            return 'money-child';
-          }
-          return 'money-page';
-        }
-      }
-      return 'money-master';
+    // 🔥 PRIORITAS 4: Deteksi MONEY dengan logic pintar
+    const moneyLevel = detectMoneyLevel(title, h1, window.location.pathname);
+    if (moneyLevel) {
+      return moneyLevel;
     }
     
-    // Deteksi SUB2
-    if (h1.includes('jenis') || h1.includes('macam')) return 'sub-pillar-tipe-2';
+    // 🔥 PRIORITAS 5: Deteksi SUB2
+    if (h1.includes('jenis') || h1.includes('macam') || h1.includes('tipe ')) {
+      return 'sub-pillar-tipe-2';
+    }
     
-    // Deteksi SUB1
-    if (h1.includes('vs') || h1.includes('perbandingan')) return 'sub-pillar-tipe-1';
+    // 🔥 PRIORITAS 6: Deteksi SUB1
+    if (h1.includes('vs') || h1.includes('perbandingan') || h1.includes('lebih baik')) {
+      return 'sub-pillar-tipe-1';
+    }
     
-    // Deteksi lokasi di body
+    // 🔥 PRIORITAS 7: Deteksi lokasi di body (MONEY_CHILD)
     const words = body.split(/\s+/);
     for (const word of words) {
       if (word.length > 3 && isLocation(word, [])) {
@@ -407,7 +489,7 @@
   // 📌 FUNGSI DETEKSI UTAMA
   // ============================================================
   function detectPageLevel() {
-    console.log("🔍 Page Level Detector v14.0 — Optimized for betonjayareadymix.com");
+    console.log("🔍 Page Level Detector v15.0 — Optimized for betonjayareadymix.com");
     
     // PRIORITAS 1: Manual override dari parameter
     if (window.__manualPageLevel) {
@@ -438,20 +520,6 @@
     console.log(`📌 Fallback from content: ${contentLevel}`);
     return contentLevel;
   }
-  
-  // ============================================================
-  // 📌 VALID LEVELS (LENGKAP 8 LEVEL)
-  // ============================================================
-  const VALID_LEVELS = [
-    'pillar', 
-    'sub-pillar-tipe-2', 
-    'sub-pillar-tipe-1',
-    'money-master', 
-    'money-page', 
-    'money-child',
-    'variant', 
-    'sub-variant'
-  ];
   
   // ============================================================
   // 📌 FUNGSI SET MANUAL PAGE LEVEL
@@ -492,14 +560,14 @@
     isValid: (level) => VALID_LEVELS.includes(level),
     getCustomPillars: () => CUSTOM_PILLAR_MAPPING[window.location.hostname] || null,
     getLocationWhitelist: () => [...LOCATION_WHITELIST],
-    version: '14.0'
+    version: '15.0'
   };
   
   window.__pageLevelDetectorReady = true;
   window.dispatchEvent(new Event("pageLevelDetectorReady"));
   
-  console.log("✅ Page Level Detector v14.0 ready for betonjayareadymix.com");
+  console.log("✅ Page Level Detector v15.0 ready for betonjayareadymix.com");
   console.log("📋 Custom Pillars:", CUSTOM_PILLAR_MAPPING[window.location.hostname]?.pillar || []);
-  console.log("📋 Features: MONEY_MASTER/PAGE/CHILD, SUB-VARIANT, Auto Entity Type, Location Detection");
+  console.log("📋 Features: MONEY_MASTER/PAGE/CHILD/LEADGEN, SUB-VARIANT, Auto Entity Type, Location Detection");
   
 })();
