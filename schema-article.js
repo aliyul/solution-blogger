@@ -1,16 +1,18 @@
 /**
- * AUTO-SCHEMA GENERATOR v5.6
- * SINKRON DENGAN Page Level Detector v18.1 & generateBreadcrumb v5.5
+ * AUTO-SCHEMA GENERATOR v5.7
+ * SINKRON DENGAN Page Level Detector v18.2 & generateBreadcrumb v5.6
  * 
- * UPDATE v5.6:
- * - FIX: Ekstraksi hanya 5 kata pertama setelah keyword MONEY
- * - FIX: "Harga Sewa Alat Proyek" → MONEY_MASTER (L4)
- * - PRIORITAS MONEY_KEYWORDS (harga, sewa) LEBIH TINGGI dari PILLAR_KEYWORDS
- * - Logika wordCount untuk MONEY_MASTER (≤2 kata atau 3 kata tapi umum)
- * - ENTITY PILLAR detection untuk setiap entity type
+ * UPDATE v5.7:
+ * - PRIORITAS UTAMA: URL CLEAN (tanpa domain, tanpa /p/, tanpa tahun/bulan)
+ * - URL sebagai sumber deteksi (lebih akurat daripada H1 yang penuh kata tambahan)
+ * - FIX: "harga-sewa-alat-proyek" (URL) → MONEY_MASTER (L4)
+ * - FIX: "harga-sewa-excavator-mini" (URL) → MONEY_PAGE (L5)
+ * - Logika wordCount dari URL (bukan dari H1 yang panjang)
+ * - ENTITY PILLAR detection dari URL
  * 
- * @version 5.6.0
+ * @version 5.7.0
  * @date 2026-01-15
+ * @synchronized-with pageLevelDetector v18.2
  */
 
 (function() {
@@ -41,31 +43,31 @@
   };
 
   // ============================================================
-  // 📌 KEYWORD CIRI
+  // 📌 KEYWORD CIRI (SAMA DENGAN V18.2)
   // ============================================================
   
-  const HOME_KEYWORDS = ['beranda', 'home', 'halaman utama', 'homepage', 'index'];
+  const HOME_KEYWORDS = ['beranda', 'home', 'halaman-utama', 'index'];
   
   const ENTITY_PILLAR_KEYWORDS = {
-    'jasa': ['jasa konstruksi', 'layanan konstruksi', 'jasa bangunan', 'kontraktor konstruksi'],
-    'sewa': ['sewa alat konstruksi', 'sewa alat berat', 'rental alat berat', 'sewa alat bangunan'],
-    'produk': ['produk konstruksi', 'produk bangunan', 'produk interior', 'material konstruksi'],
-    'material': ['material konstruksi', 'bahan bangunan', 'material bangunan', 'supplier material'],
-    'artikel': ['artikel konstruksi', 'blog konstruksi', 'tips konstruksi']
+    'jasa': ['jasa-konstruksi', 'layanan-konstruksi', 'jasa-bangunan', 'kontraktor-konstruksi'],
+    'sewa': ['sewa-alat-konstruksi', 'sewa-alat-berat', 'rental-alat-berat', 'sewa-alat-bangunan'],
+    'produk': ['produk-konstruksi', 'produk-bangunan', 'produk-interior', 'material-konstruksi'],
+    'material': ['material-konstruksi', 'bahan-bangunan', 'material-bangunan', 'supplier-material'],
+    'artikel': ['artikel-konstruksi', 'blog-konstruksi', 'tips-konstruksi']
   };
   
   const PILLAR_KEYWORDS = [
-    'panduan', 'panduan lengkap', 'cara ', 'tips ', 'tips dan trik',
-    'apa itu', 'pengertian', 'definisi', 'edukasi', 'belajar', 
+    'panduan', 'panduan-lengkap', 'cara', 'tips', 'tips-dan-trik',
+    'apa-itu', 'pengertian', 'definisi', 'edukasi', 'belajar', 
     'tutorial', 'materi', 'penjelasan', 'kenapa', 'mengapa',
     'bagaimana', 'contoh', 'rekomendasi', 'lengkap', 'komprehensif'
   ];
   
   const MONEY_KEYWORDS = ['harga', 'biaya', 'tarif', 'sewa', 'rental'];
   
-  const SP2_KEYWORDS = ['jenis', 'jenis-jenis', 'macam', 'macam-macam', 'tipe ', 'kategori', 'daftar ', 'list '];
-  const SP1_KEYWORDS = [' vs ', 'versus', 'perbandingan', 'bandingkan', 'lebih baik', 'mana yang', 'kelebihan', 'kekurangan', 'perbedaan'];
-  const VARIANT_KEYWORDS = ['spesifikasi', 'ukuran', 'tipe ', 'model', 'varian', 'warna', 'merk', 'kapasitas', 'dimensi'];
+  const SP2_KEYWORDS = ['jenis', 'jenis-jenis', 'macam', 'macam-macam', 'tipe', 'kategori', 'daftar', 'list'];
+  const SP1_KEYWORDS = ['vs', 'versus', 'perbandingan', 'bandingkan', 'lebih-baik', 'kelebihan', 'kekurangan', 'perbedaan'];
+  const VARIANT_KEYWORDS = ['spesifikasi', 'ukuran', 'tipe', 'model', 'varian', 'warna', 'merk', 'kapasitas', 'dimensi'];
 
   const REQUIRED_INTENT = {
     'home': { primary: 'navigasional', secondary: 'transaksional', dominance: 70 },
@@ -93,8 +95,7 @@
   const STOPWORDS = new Set([
     "dan", "di", "ke", "dari", "yang", "untuk", "pada", "dengan", 
     "ini", "itu", "adalah", "juga", "atau", "sebagai", "dalam", 
-    "oleh", "karena", "akan", "sampai", "tidak", "dapat", "lebih", 
-    "kami", "mereka", "anda", "kita", "saya", "dia"
+    "oleh", "karena", "akan", "sampai", "tidak", "dapat", "lebih"
   ]);
 
   // ===================== UTILS =====================
@@ -102,7 +103,7 @@
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [Schema v5.6] ${msg}`);
+    console.log(`${prefix} [Schema v5.7] ${msg}`);
   }
 
   function cleanText(str) {
@@ -121,48 +122,94 @@
               .trim();
   }
 
+  // ============================================================
+  // 🔥 FUNGSI UTAMA: GET CLEAN PAGE NAME FROM URL
+  // ============================================================
+  function getCleanPageNameFromUrl() {
+    let path = window.location.pathname;
+    
+    // Hapus ekstensi
+    path = path.replace(/\.(html|php|asp|jsp)$/i, '');
+    
+    // Hapus /p/ prefix jika ada (Blogger/Wordpress pattern)
+    path = path.replace(/^\/p\//, '');
+    
+    // Hapus pola tanggal (tahun/bulan) seperti /2025/03/ atau /2025/
+    path = path.replace(/\/\d{4}\/\d{2}\//g, '/');
+    path = path.replace(/\/\d{4}\//g, '/');
+    path = path.replace(/\/\d{2}\//g, '/');
+    
+    // Hapus angka tahun/bulan yang berdiri sendiri
+    const pathParts = path.split('/');
+    const cleanedParts = pathParts.filter(part => {
+      if (/^\d{4}$/.test(part)) return false; // tahun
+      if (/^\d{2}$/.test(part)) return false; // bulan
+      if (part === '' || part === 'index') return false;
+      return true;
+    });
+    
+    // Ambil bagian terakhir dari path (nama halaman)
+    let pageName = cleanedParts.pop() || '';
+    
+    // Konversi tanda hubung ke spasi untuk deteksi
+    pageName = pageName.replace(/-/g, ' ');
+    
+    // Hapus karakter yang tidak perlu
+    pageName = pageName.replace(/[^a-z0-9\s]/gi, '');
+    
+    return pageName.trim().toLowerCase();
+  }
+
   // ===================== DETEKSI HOMEPAGE =====================
   function isHomePage() {
     const url = location.href.toLowerCase();
     const path = url.replace(/https?:\/\/[^\/]+/, '');
     const isRoot = path === '' || path === '/' || path === '/index.html' || path === '/home';
     if (isRoot) return true;
-    const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
-    const title = document.title.toLowerCase();
-    return HOME_KEYWORDS.some(kw => h1 === kw || title === kw);
+    
+    const cleanName = getCleanPageNameFromUrl();
+    return HOME_KEYWORDS.includes(cleanName);
   }
 
   // ===================== DETEKSI ENTITY TYPE =====================
   function detectEntityType() {
     const url = location.href.toLowerCase();
+    const cleanName = getCleanPageNameFromUrl();
     const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
     const title = document.title.toLowerCase();
-    const combined = url + " " + h1 + " " + title;
-    if (combined.includes('/jasa/') || combined.includes('jasa ') || combined.includes('kontraktor')) return 'jasa';
-    if (combined.includes('/sewa/') || combined.includes('/rental/') || combined.includes('sewa ') || combined.includes('rental ') || combined.includes('alat berat')) return 'sewa';
-    if (combined.includes('/material/') || combined.includes('material ') || combined.includes('bahan bangunan')) return 'material';
-    if (combined.includes('/artikel/') || combined.includes('/blog/')) return 'artikel';
+    const combined = url + " " + cleanName + " " + h1 + " " + title;
+    
+    if (combined.includes('/jasa/') || combined.includes('jasa ') || combined.includes('kontraktor') || cleanName.includes('jasa')) return 'jasa';
+    if (combined.includes('/sewa/') || combined.includes('/rental/') || combined.includes('sewa ') || combined.includes('rental ') || combined.includes('alat-berat') || cleanName.includes('sewa')) return 'sewa';
+    if (combined.includes('/material/') || combined.includes('material ') || combined.includes('bahan-bangunan') || cleanName.includes('material')) return 'material';
+    if (combined.includes('/artikel/') || combined.includes('/blog/') || cleanName.includes('artikel')) return 'artikel';
     return 'produk';
   }
 
   // ===================== DETEKSI INTENT =====================
   function detectIntentFromText(text) {
     const lowerText = text.toLowerCase();
-    for (const kw of MONEY_KEYWORDS) if (lowerText.includes(kw)) return 'transaksional';
-    for (const kw of SP1_KEYWORDS) if (lowerText.includes(kw)) return 'komersial';
-    for (const kw of VARIANT_KEYWORDS) if (lowerText.includes(kw)) return 'komersial';
+    for (const kw of MONEY_KEYWORDS) {
+      if (lowerText.includes(kw)) return 'transaksional';
+    }
+    for (const kw of SP1_KEYWORDS) {
+      if (lowerText.includes(kw)) return 'komersial';
+    }
+    for (const kw of VARIANT_KEYWORDS) {
+      if (lowerText.includes(kw)) return 'komersial';
+    }
     return 'informasional';
   }
 
   // ===================== DETEKSI LOKASI =====================
   const LOCATION_WHITELIST = new Set([
-    'jakarta', 'bogor', 'depok', 'tangerang', 'bekasi', 'bandung', 'surabaya',
-    'medan', 'semarang', 'yogyakarta', 'jogja', 'solo', 'malang', 'makassar'
-  ]);
-  
-  const PRODUCT_BLACKLIST = new Set([
-    'baja', 'ringan', 'galvalum', 'spandek', 'bondek', 'hebel', 'bata',
-    'excavator', 'bulldozer', 'crane', 'dump truck'
+    'jakarta', 'bogor', 'depok', 'tangerang', 'bekasi', 'jabodetabek',
+    'bandung', 'cimahi', 'cirebon', 'tasikmalaya', 'sukabumi', 'garut',
+    'semarang', 'solo', 'surakarta', 'yogyakarta', 'jogja', 'magelang',
+    'surabaya', 'malang', 'kediri', 'blitar', 'madiun', 'gresik', 'sidoarjo',
+    'medan', 'binjai', 'deli serdang', 'padang', 'pekanbaru', 'batam',
+    'palembang', 'bandar lampung', 'pontianak', 'balikpapan', 'samarinda',
+    'banjarmasin', 'makassar', 'manado', 'palu', 'denpasar', 'bali', 'mataram'
   ]);
   
   function isLocation(text) {
@@ -170,28 +217,22 @@
     const words = lowerText.split(/[\s,-]+/);
     for (const word of words) {
       if (LOCATION_WHITELIST.has(word)) return true;
-      if (PRODUCT_BLACKLIST.has(word)) return false;
-    }
-    const hasIndicator = /di |ke |kota |wilayah |daerah /.test(lowerText);
-    if (!hasIndicator) return false;
-    for (const word of words) {
-      if (word.length >= 4 && word.length <= 12 && /[aiueo]{2,}/.test(word)) {
-        if (!PRODUCT_BLACKLIST.has(word)) return true;
-      }
     }
     return false;
   }
 
   // ===================== DETEKSI PRODUK SPESIFIK =====================
   const SPECIFIC_PRODUCTS = new Set([
-    'galvalum', 'spandek', 'bondek', 'hebel', 'bata ringan',
-    'excavator', 'bulldozer', 'crane', 'dump truck',
-    'mini excavator', 'long arm excavator'
+    'galvalum', 'spandek', 'bondek', 'hebel', 'bata-ringan',
+    'excavator', 'bulldozer', 'crane', 'dump-truck',
+    'mini-excavator', 'long-arm-excavator', 'stamper', 'vibro',
+    'hpl', 'mdf', 'jati', 'mahoni', 'multiplek', 'triplek'
   ]);
   
   function isSpecificProduct(text, wordCountAfterPrice = null) {
     const lowerText = text.toLowerCase();
     if (wordCountAfterPrice !== null && wordCountAfterPrice <= 2) return false;
+    
     for (const product of SPECIFIC_PRODUCTS) {
       if (lowerText.includes(product)) return true;
     }
@@ -199,48 +240,57 @@
     return false;
   }
 
-  // ===================== DETEKSI PAGE LEVEL (DIPERBAIKI) 🔥 =====================
+  // ============================================================
+  // 🔥 DETEKSI PAGE LEVEL (PRIORITAS UTAMA DARI URL CLEAN)
+  // ============================================================
   function detectPageLevel(entityType) {
+    // PRIORITAS 0: HOMEPAGE
     if (isHomePage()) {
-      log("HOMEPAGE terdeteksi → home (L0)", "INFO");
+      log("HOMEPAGE terdeteksi → home (L0)", "SUCCESS");
       return 'home';
     }
     
+    // 🔥 PRIORITAS UTAMA: URL CLEAN (paling akurat)
+    const urlClean = getCleanPageNameFromUrl();
     const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
     const title = document.title.toLowerCase();
-    const combinedText = h1 + " " + title;
     
-    log(`Menganalisis: H1="${h1.substring(0, 60)}..."`, "INFO");
+    // Gunakan URL clean sebagai sumber utama, H1 sebagai fallback
+    let primaryText = urlClean || h1 || title;
+    
+    log(`🔍 URL Clean: "${urlClean}"`, "INFO");
+    log(`📄 H1: "${h1.substring(0, 60)}..."`, "INFO");
     
     const isJasa = entityType === 'jasa';
     const isSewa = entityType === 'sewa';
     
-    // PRIORITAS 1: ENTITY PILLAR
+    // ============================================================
+    // PRIORITAS 1: ENTITY PILLAR (dari URL clean)
+    // ============================================================
     const pillarKeywords = ENTITY_PILLAR_KEYWORDS[entityType] || [];
     for (const kw of pillarKeywords) {
-      if (combinedText === kw || combinedText.startsWith(kw + ' ') || combinedText.includes(' ' + kw)) {
-        log(`ENTITY PILLAR detected: "${kw}" → pillar (L1)`, "SUCCESS");
+      if (urlClean === kw || urlClean.startsWith(kw + ' ') || urlClean.includes(' ' + kw)) {
+        log(`🏛️ ENTITY PILLAR detected (URL): "${kw}" → pillar (L1)`, "SUCCESS");
         return 'pillar';
       }
     }
     
-    // PRIORITAS 2: MONEY KEYWORDS (HARGA/SEWA) - DIPERBAIKI
+    // ============================================================
+    // PRIORITAS 2: MONEY KEYWORDS (HARGA/SEWA) dari URL clean 🔥
+    // ============================================================
     for (const kw of MONEY_KEYWORDS) {
-      if (combinedText.includes(kw)) {
-        log(`💰 Money keyword detected: ${kw}`, "INFO");
+      if (primaryText.includes(kw)) {
+        log(`💰 Money keyword detected: ${kw} (from ${urlClean === primaryText ? 'URL' : 'fallback'})`, "INFO");
         
         if (isJasa) {
           log(`JASA + harga → money-page (L5)`, "INFO");
           return 'money-page';
         }
         
-        // 🔥 AMBIL MAKSIMAL 5 KATA PERTAMA SETELAH KEYWORD
+        // 🔥 EKSTRAK DARI URL CLEAN (bukan dari H1 yang panjang)
         let afterKw = '';
-        const kwIndex = combinedText.indexOf(kw);
-        let tempText = combinedText.substring(kwIndex + kw.length).trim();
-        
-        // Bersihkan dari kata tahun dan karakter khusus
-        tempText = tempText.replace(/\b\d{4}\b/g, '').replace(/[-–—]/g, ' ').trim();
+        const kwIndex = primaryText.indexOf(kw);
+        let tempText = primaryText.substring(kwIndex + kw.length).trim();
         
         // Ambil maksimal 5 kata pertama
         const tempWords = tempText.split(/\s+/).filter(w => w.length > 0);
@@ -248,9 +298,9 @@
         afterKw = first5Words.join(' ');
         const wordCount = first5Words.length;
         
-        log(`After keyword (first 5 words): "${afterKw}" | Words: ${wordCount}`, "INFO");
+        log(`After keyword (first 5 words from URL): "${afterKw}" | Words: ${wordCount}`, "INFO");
         
-        // CEK LOKASI
+        // CEK LOKASI (MONEY_CHILD)
         if (isLocation(afterKw)) {
           log(`📍 Location detected → money-child (L6)`, "INFO");
           return 'money-child';
@@ -259,7 +309,9 @@
         // CEK SPESIFISITAS PRODUK
         const isSpecific = isSpecificProduct(afterKw, wordCount);
         
-        // MONEY_MASTER: 1-2 kata ATAU 3 kata tapi masih umum
+        // 🔥 MONEY_MASTER: 1-2 kata ATAU 3 kata tapi masih umum
+        // Contoh URL: "harga-sewa-alat" (3 kata) → MONEY_MASTER
+        // Contoh URL: "harga-sewa-excavator" (3 kata, spesifik) → MONEY_PAGE
         if (wordCount <= 2 || (wordCount === 3 && !isSpecific)) {
           log(`📊 money-master (${wordCount} kata, specific=${isSpecific}) → money-master (L4)`, "SUCCESS");
           return 'money-master';
@@ -271,42 +323,50 @@
       }
     }
     
-    // PRIORITAS 3: INFORMASIONAL KEYWORDS
+    // ============================================================
+    // PRIORITAS 3: INFORMASIONAL KEYWORDS (dari URL atau H1)
+    // ============================================================
     for (const kw of PILLAR_KEYWORDS) {
-      if (combinedText.includes(kw)) {
+      if (primaryText.includes(kw)) {
         for (const sp2kw of SP2_KEYWORDS) {
-          if (combinedText.includes(sp2kw)) {
-            log(`SUB-PILLAR TIPE 2 (${kw} + ${sp2kw}) → sub-pillar-tipe-2 (L2)`, "INFO");
+          if (primaryText.includes(sp2kw)) {
+            log(`📚 SUB-PILLAR TIPE 2 (${kw} + ${sp2kw}) → sub-pillar-tipe-2 (L2)`, "INFO");
             return 'sub-pillar-tipe-2';
           }
         }
-        log(`PILLAR (${kw}) → pillar (L1)`, "INFO");
+        log(`🏛️ PILLAR (${kw}) → pillar (L1)`, "INFO");
         return 'pillar';
       }
     }
     
+    // ============================================================
     // PRIORITAS 4: PERBANDINGAN (SP1)
+    // ============================================================
     for (const kw of SP1_KEYWORDS) {
-      if (combinedText.includes(kw)) {
-        log(`SUB-PILLAR TIPE 1 (${kw}) → sub-pillar-tipe-1 (L3)`, "INFO");
+      if (primaryText.includes(kw)) {
+        log(`⚖️ SUB-PILLAR TIPE 1 (${kw}) → sub-pillar-tipe-1 (L3)`, "INFO");
         return 'sub-pillar-tipe-1';
       }
     }
     
+    // ============================================================
     // PRIORITAS 5: JENIS/MACAM/DAFTAR (SP2)
+    // ============================================================
     for (const kw of SP2_KEYWORDS) {
-      if (combinedText.startsWith(kw) || combinedText.includes(kw + ' ') || combinedText.includes(kw + '-')) {
-        log(`SUB-PILLAR TIPE 2 (${kw}) → sub-pillar-tipe-2 (L2)`, "INFO");
+      if (primaryText.startsWith(kw) || primaryText.includes(kw + ' ') || primaryText.includes(kw + '-')) {
+        log(`📚 SUB-PILLAR TIPE 2 (${kw}) → sub-pillar-tipe-2 (L2)`, "INFO");
         return 'sub-pillar-tipe-2';
       }
     }
     
-    // PRIORITAS 6: JASA/SEWA (tanpa harga)
+    // ============================================================
+    // PRIORITAS 6: JASA/SEWA (tanpa keyword harga)
+    // ============================================================
     if (isJasa) {
-      const jasaKeywords = ['jasa', 'pasang', 'service', 'kontraktor'];
+      const jasaKeywords = ['jasa', 'pasang', 'service', 'kontraktor', 'borongan'];
       for (const kw of jasaKeywords) {
-        if (combinedText.includes(kw)) {
-          if (isLocation(combinedText)) {
+        if (primaryText.includes(kw)) {
+          if (isLocation(primaryText)) {
             log(`JASA + location → money-child (L6)`, "INFO");
             return 'money-child';
           }
@@ -317,10 +377,10 @@
     }
     
     if (isSewa) {
-      const sewaKeywords = ['sewa', 'rental', 'alat berat'];
+      const sewaKeywords = ['sewa', 'rental', 'alat-berat'];
       for (const kw of sewaKeywords) {
-        if (combinedText.includes(kw)) {
-          if (isLocation(combinedText)) {
+        if (primaryText.includes(kw)) {
+          if (isLocation(primaryText)) {
             log(`SEWA + location → money-child (L6)`, "INFO");
             return 'money-child';
           }
@@ -330,15 +390,21 @@
       }
     }
     
-    // PRIORITAS 7: VARIANT
+    // ============================================================
+    // PRIORITAS 7: VARIANT (dari H1 atau title)
+    // ============================================================
+    const variantText = h1 + " " + title;
     for (const kw of VARIANT_KEYWORDS) {
-      if (combinedText.includes(kw)) {
-        log(`VARIANT (${kw}) → variant (L7)`, "INFO");
+      if (variantText.includes(kw)) {
+        log(`🔧 VARIANT detected (${kw}) → variant (L7)`, "INFO");
         return 'variant';
       }
     }
     
-    log(`PILLAR (default) → pillar (L1)`, "INFO");
+    // ============================================================
+    // DEFAULT: PILLAR
+    // ============================================================
+    log(`🏛️ PILLAR (default) → pillar (L1)`, "INFO");
     return 'pillar';
   }
 
@@ -379,7 +445,7 @@
     }
     
     if (isJasaSewa && (pageLevel === 'money-page' || pageLevel === 'money-child')) {
-      return { primary: 'Service', eligible: false, message: 'JASA/SEWA → Service Schema' };
+      return { primary: 'Service', eligible: false, message: 'JASA/SEWA → Service Schema (serahkan ke script lain)' };
     }
     
     if (['money-master', 'money-page', 'money-child'].includes(pageLevel)) {
@@ -426,14 +492,19 @@
   function getCleanKeywords(contentElement, pageLevel, title, entityType) {
     const keywords = new Set();
     const h1 = document.querySelector("h1")?.innerText || "";
-    [title, h1].forEach(text => {
+    const urlClean = getCleanPageNameFromUrl();
+    
+    [title, h1, urlClean].forEach(text => {
+      if (!text) return;
       text.toLowerCase().split(/\s+/).forEach(word => {
         if (word.length > 4 && !STOPWORDS.has(word)) keywords.add(word);
       });
     });
+    
     if (pageLevel === 'money-master') keywords.add("harga terbaru");
     if (pageLevel === 'money-child') keywords.add("harga lokal");
     if (entityType === 'sewa') keywords.add("sewa alat berat");
+    
     return Array.from(keywords).slice(0, 8).join(", ");
   }
 
@@ -493,9 +564,11 @@
     const checkInterval = setInterval(() => {
       if (window.AEDMetaDates) {
         clearInterval(checkInterval);
+        log("AEDMetaDates ditemukan", "SUCCESS");
         callback(window.AEDMetaDates);
       } else if (elapsed >= CONFIG.AED_TIMEOUT) {
         clearInterval(checkInterval);
+        log("Timeout, menggunakan fallback date", "WARN");
         callback({ datePublished: new Date().toISOString().replace("Z", "+07:00"), dateModified: new Date().toISOString().replace("Z", "+07:00") });
       }
       elapsed += 100;
@@ -518,7 +591,7 @@
   // ===================== MAIN EXECUTION =====================
   function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AUTO-SCHEMA GENERATOR v5.6 DIMULAI", "INFO");
+    log("AUTO-SCHEMA GENERATOR v5.7 DIMULAI", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     const pageData = extractPageData();
@@ -529,14 +602,16 @@
     
     log("───────────────────────────────────────────────────", "INFO");
     log("HASIL DETEKSI:", "INFO");
-    log(`  Entity Type: ${entityType.toUpperCase()}`, "SUCCESS");
-    log(`  Page Level : ${pageLevel.toUpperCase()} (L${TYPE_LEVEL_MAP[pageLevel] || '?'})`, "SUCCESS");
-    log(`  Wajib Tahun: ${yearValidation.required ? 'YES' : 'NO'}`, yearValidation.required ? "WARN" : "INFO");
-    log(`  Tahun di H1: ${yearValidation.valid ? '✅ ADA' : '❌ TIDAK ADA'}`, yearValidation.valid ? "SUCCESS" : "WARN");
-    log(`  Schema     : ${schemaConfig.primary}`, "SUCCESS");
+    log(`  Entity Type    : ${entityType.toUpperCase()}`, "SUCCESS");
+    log(`  Page Level     : ${pageLevel.toUpperCase()} (L${TYPE_LEVEL_MAP[pageLevel] || '?'})`, "SUCCESS");
+    log(`  Sumber Deteksi : URL Clean (primary) + H1 (fallback)`, "INFO");
+    log(`  Wajib Tahun    : ${yearValidation.required ? 'YES' : 'NO'}`, yearValidation.required ? "WARN" : "INFO");
+    log(`  Tahun di H1    : ${yearValidation.valid ? '✅ ADA' : '❌ TIDAK ADA'}`, yearValidation.valid ? "SUCCESS" : "WARN");
+    log(`  Schema         : ${schemaConfig.primary}`, "SUCCESS");
     log(`  ${schemaConfig.message || ''}`, "INFO");
     log("───────────────────────────────────────────────────", "INFO");
     
+    // SCHEMA HOMEPAGE
     const homeElem = document.getElementById("auto-schema-home");
     if (homeElem && pageLevel === 'home') {
       homeElem.textContent = JSON.stringify(generateHomePageSchema(pageData), null, 2);
@@ -545,6 +620,7 @@
       homeElem.remove();
     }
     
+    // SCHEMA ARTICLE
     const articleElem = document.getElementById("auto-schema");
     if (articleElem && schemaConfig.eligible && schemaConfig.primary === "Article") {
       waitForAEDMetaDates((dates) => {
@@ -556,14 +632,43 @@
       log("🗑️ Article Schema dihapus (tidak sesuai)", "WARN");
     }
     
+    // SCHEMA STATIC PAGE
+    const staticElem = document.getElementById("auto-schema-static-page");
+    if (staticElem) {
+      if (schemaConfig.eligible && schemaConfig.primary === "Article") {
+        waitForAEDMetaDates((dates) => {
+          const staticSchema = generateArticleSchema(pageData, dates, pageLevel, entityType);
+          staticElem.textContent = JSON.stringify(staticSchema, null, 2);
+          log("✅ Static Article Schema berhasil dipasang", "SUCCESS");
+        });
+      } else {
+        staticElem.remove();
+        log("🗑️ Static Article Schema dihapus", "INFO");
+      }
+    }
+    
+    // SCHEMA WEBPAGE
     const webElem = document.getElementById("auto-schema-webpage");
     if (webElem) {
       webElem.textContent = JSON.stringify(generateWebPageSchema(pageData), null, 2);
       log("✅ WebPage Schema berhasil dipasang", "SUCCESS");
     }
     
+    // JASA/SEWA diserahkan ke script lain
+    if ((entityType === 'jasa' || entityType === 'sewa') && 
+        (pageLevel === 'money-page' || pageLevel === 'money-child')) {
+      log("📌 JASA/SEWA: Service Schema diserahkan ke script terpisah", "INFO");
+    }
+    
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AUTO-SCHEMA GENERATOR v5.6 SELESAI", "SUCCESS");
+    log("EXECUTION SUMMARY:", "INFO");
+    log(`  Entity Type    : ${entityType.toUpperCase()}`, "INFO");
+    log(`  Page Level     : ${pageLevel.toUpperCase()} (L${TYPE_LEVEL_MAP[pageLevel] || '?'})`, "INFO");
+    log(`  Primary Schema : ${schemaConfig.primary}`, "SUCCESS");
+    log(`  Year Required  : ${yearValidation.required ? 'YES' : 'NO'}`, yearValidation.required ? "WARN" : "INFO");
+    log(`  Year Valid     : ${yearValidation.valid ? 'YES' : 'NO'}`, yearValidation.valid ? "SUCCESS" : "ERROR");
+    log("═══════════════════════════════════════════════════", "INFO");
+    log("AUTO-SCHEMA GENERATOR v5.7 SELESAI", "SUCCESS");
   }
 
   if (document.readyState === "loading") {
