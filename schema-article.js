@@ -1,25 +1,27 @@
 /**
- * AUTO-SCHEMA GENERATOR v5.1
+ * AUTO-SCHEMA GENERATOR v5.2
  * SESUAI PHASE SYSTEM LENGKAP (9 LEVEL HIERARCHY + HOMEPAGE)
  * 
- * UPDATE v5.1:
+ * UPDATE v5.2:
  * - Menambahkan HOMEPAGE sebagai level 0 (BUKAN Pillar)
- * - Keyword Ciri lengkap untuk setiap level (Home, Pillar, SP2, SP1, MoneyMaster, MoneyPage, MoneyChild, Variant, SubVariant)
+ * - Keyword Ciri LENGKAP untuk setiap level (Home, Pillar, SP2, SP1, MoneyMaster, MoneyPage, MoneyChild, Variant, SubVariant)
  * - PRIORITAS DETEKSI YANG BENAR:
- *   0. HOMEPAGE (root domain)
- *   1. INFORMASIONAL (panduan, cara, tips, apa itu, pengertian, edukasi, belajar, tutorial, lengkap, komprehensif)
- *   2. PERBANDINGAN (vs, versus, perbandingan, lebih baik, mana yang, kelebihan, kekurangan, perbedaan, dibanding, bandingkan)
- *   3. KEYWORD HARGA/SEWA (harga, biaya, tarif, sewa, rental) + wordCount & lokasi
- *   4. JASA/SEWA (tanpa keyword harga) - jasa, pasang, service, kontraktor, borongan, renovasi, bangun, konsultasi, survey
- *   5. SUB-VARIANT (2+ parameter: Xmm x Ymm x Zmm, tebal+panjang+lebar, kapasitas+dimensi, 3+ ukuran)
- *   6. VARIANT (spesifikasi, ukuran, tipe, type, model, varian, warna, merk, kapasitas, dimensi, bahan, material, finishing)
- *   7. JENIS/MACAM (jenis, macam, tipe, kategori, varian, daftar, list) → SUB-PILLAR TIPE 2
- *   8. DEFAULT → PILLAR
+ *   0. HOMEPAGE (root domain, /, /index.html)
+ *   1. ENTITY TYPE (produk, jasa, sewa, material, artikel)
+ *   2. INTENT KEYWORD (transaksional → komersial → informasional)
+ *   3. PERBANDINGAN (vs, versus, perbandingan) 🔥 SEBELUM HARGA
+ *   4. KEYWORD HARGA/SEWA (harga, biaya, tarif, sewa, rental) + wordCount & lokasi
+ *   5. JASA/SEWA (tanpa keyword harga)
+ *   6. SUB-VARIANT (2+ parameter: Xmm x Ymm x Zmm, tebal+panjang+lebar, kapasitas+dimensi)
+ *   7. VARIANT (spesifikasi, ukuran, tipe, model, varian, warna, merk, kapasitas, dimensi)
+ *   8. JENIS/MACAM (jenis, macam, tipe, kategori, varian, daftar) → SUB-PILLAR TIPE 2
+ *   9. DEFAULT → PILLAR
  * - Validasi wajib tahun untuk MONEY_MASTER/PAGE/CHILD (Produk/Material)
  * - JASA & SEWA menggunakan Service Schema (bukan Article)
  * - SUB-PILLAR TIPE 1 tetap menggunakan Article (bukan dipaksa HowTo)
+ * - ArticleBody cleaning lebih preservatif (tidak menghapus konten penting untuk Money Page)
  * 
- * @version 5.1.0
+ * @version 5.2.0
  * @date 2026-01-15
  * @evergreen YES - sesuai PHASE SYSTEM
  */
@@ -69,46 +71,12 @@
     'sub-variant': 8
   };
 
-  // Intent per Page Level (PHASE 1.5)
-  const REQUIRED_INTENT = {
-    'home': { primary: 'navigasional', secondary: 'transaksional', dominance: 70 },
-    'pillar': { primary: 'informasional', secondary: null, dominance: 90 },
-    'sub-pillar-tipe-2': { primary: 'informasional', secondary: 'komersial', dominance: 60 },
-    'sub-pillar-tipe-1': { primary: 'komersial', secondary: 'informasional', dominance: 70 },
-    'money-master': { primary: 'transaksional', secondary: 'komersial', dominance: 80 },
-    'money-page': { primary: 'transaksional', secondary: 'komersial', dominance: 85 },
-    'money-child': { primary: 'transaksional', secondary: 'komersial', dominance: 90 },
-    'variant': { primary: 'komersial', secondary: 'informasional', dominance: 80 },
-    'sub-variant': { primary: 'komersial', secondary: 'informasional', dominance: 70 }
-  };
-  
-  // Intent untuk JASA (override)
-  const JASA_INTENT = {
-    'money-page': { primary: 'komersial', secondary: 'transaksional', dominance: 60 },
-    'money-child': { primary: 'komersial', secondary: 'transaksional', dominance: 60 }
-  };
-
-  // Wajib Tahun di H1 (STEP 6.2)
-  const REQUIRES_YEAR = {
-    'money-master': true,
-    'money-page': 'produk-only',
-    'money-child': 'produk-only'
-  };
-
-  // Stopwords
-  const STOPWORDS = new Set([
-    "dan", "di", "ke", "dari", "yang", "untuk", "pada", "dengan", 
-    "ini", "itu", "adalah", "juga", "atau", "sebagai", "dalam", 
-    "oleh", "karena", "akan", "sampai", "tidak", "dapat", "lebih", 
-    "kami", "mereka", "anda", "kita", "saya", "dia"
-  ]);
-
   // ============================================================
-  // KEYWORD CIRI PER LEVEL (LENGKAP)
+  // 📌 KEYWORD CIRI PER LEVEL (LENGKAP)
   // ============================================================
   
   // LEVEL 0: HOMEPAGE
-  const HOME_KEYWORDS = ['beranda', 'home', 'halaman utama'];
+  const HOME_KEYWORDS = ['beranda', 'home', 'halaman utama', 'homepage', 'index'];
   
   // LEVEL 1: PILLAR (Informasional 90%)
   const PILLAR_KEYWORDS = [
@@ -146,12 +114,56 @@
     'seri', 'serie', 'versi', 'generasi', 'detail teknis'
   ];
 
+  // Intent per Page Level (PHASE 1.5)
+  const REQUIRED_INTENT = {
+    'home': { primary: 'navigasional', secondary: 'transaksional', dominance: 70 },
+    'pillar': { primary: 'informasional', secondary: null, dominance: 90 },
+    'sub-pillar-tipe-2': { primary: 'informasional', secondary: 'komersial', dominance: 60 },
+    'sub-pillar-tipe-1': { primary: 'komersial', secondary: 'informasional', dominance: 70 },
+    'money-master': { primary: 'transaksional', secondary: 'komersial', dominance: 80 },
+    'money-page': { primary: 'transaksional', secondary: 'komersial', dominance: 85 },
+    'money-child': { primary: 'transaksional', secondary: 'komersial', dominance: 90 },
+    'variant': { primary: 'komersial', secondary: 'informasional', dominance: 80 },
+    'sub-variant': { primary: 'komersial', secondary: 'informasional', dominance: 70 }
+  };
+  
+  // Intent untuk JASA (override)
+  const JASA_INTENT = {
+    'money-page': { primary: 'komersial', secondary: 'transaksional', dominance: 60 },
+    'money-child': { primary: 'komersial', secondary: 'transaksional', dominance: 60 }
+  };
+
+  // Wajib Tahun di H1 (STEP 6.2)
+  const REQUIRES_YEAR = {
+    'home': false,
+    'money-master': true,
+    'money-page': 'produk-only',
+    'money-child': 'produk-only',
+    'pillar': false,
+    'sub-pillar-tipe-2': false,
+    'sub-pillar-tipe-1': false,
+    'variant': false,
+    'sub-variant': false
+  };
+
+  // Stopwords
+  const STOPWORDS = new Set([
+    "dan", "di", "ke", "dari", "yang", "untuk", "pada", "dengan", 
+    "ini", "itu", "adalah", "juga", "atau", "sebagai", "dalam", 
+    "oleh", "karena", "akan", "sampai", "tidak", "dapat", "lebih", 
+    "kami", "mereka", "anda", "kita", "saya", "dia"
+  ]);
+
   // ===================== UTILS =====================
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", HOME: "🏠", PILLAR: "🏛️", SP1: "⚖️", SP2: "📚", MONEY: "💰", VARIANT: "🔧", SUBVARIANT: "🔬" };
+    const icons = { 
+      INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", 
+      HOME: "🏠", PILLAR: "🏛️", SP1: "⚖️", SP2: "📚", 
+      MONEY: "💰", VARIANT: "🔧", SUBVARIANT: "🔬" 
+    };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [Schema v5.1] ${msg}`);
+    console.log(`${prefix} [Schema v5.2] ${msg}`);
   }
 
   function cleanText(str) {
@@ -174,13 +186,20 @@
   function isHomePage() {
     const url = location.href.toLowerCase();
     const path = url.replace(/https?:\/\/[^\/]+/, '');
-    return path === '' || path === '/' || path === '/index.html' || path === '/home';
+    const isRoot = path === '' || path === '/' || path === '/index.html' || path === '/home';
+    
+    if (isRoot) return true;
+    
+    const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
+    const title = document.title.toLowerCase();
+    
+    return HOME_KEYWORDS.some(kw => h1 === kw || title === kw);
   }
 
   // ===================== DETEKSI ENTITY TYPE (PRIORITAS 1) =====================
   function detectEntityType() {
     const url = location.href.toLowerCase();
-    const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
+    const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
     const title = document.title.toLowerCase();
     const combined = url + " " + h1 + " " + title;
     
@@ -327,7 +346,7 @@
       return 'home';
     }
     
-    const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
+    const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
     const title = document.title.toLowerCase();
     const combinedText = h1 + " " + title;
     
@@ -354,7 +373,7 @@
     }
     
     // ============================================================
-    // PRIORITAS 2: SUB-PILLAR TIPE 1 (Perbandingan) 🔥 PRIORITAS TERTINGGI
+    // PRIORITAS 2: SUB-PILLAR TIPE 1 (Perbandingan) 🔥 SEBELUM HARGA
     // ============================================================
     for (const kw of SP1_KEYWORDS) {
       if (combinedText.includes(kw)) {
@@ -699,7 +718,7 @@
       "@type": "Article",
       "isAccessibleForFree": true,
       "mainEntityOfPage": { "@type": "WebPage", "@id": url + "#webpage" },
-      "headline": escapeJSON(title),
+      "headline": escapeJSON(title.substring(0, 110)),
       "description": escapeJSON(descMeta),
       "image": [firstImg],
       "author": { "@type": "Organization", "name": CONFIG.SITE_NAME },
@@ -713,7 +732,7 @@
       "articleSection": cleanText(title).substring(0, 60),
       "keywords": keywords,
       "wordCount": wordCount,
-      "articleBody": cleanBody,
+      "articleBody": cleanBody.substring(0, 5000),
       "inLanguage": "id-ID"
     };
     
@@ -730,7 +749,7 @@
     return {
       "@context": "https://schema.org",
       "@type": "WebPage",
-      "name": title,
+      "name": title.substring(0, 110),
       "url": url,
       "description": descMeta,
       "publisher": {
@@ -802,7 +821,7 @@
   // ===================== MAIN EXECUTION =====================
   function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AUTO-SCHEMA GENERATOR v5.1 DIMULAI", "INFO");
+    log("AUTO-SCHEMA GENERATOR v5.2 DIMULAI", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     const pageData = extractPageData();
@@ -847,6 +866,21 @@
       }
     }
     
+    // ===== SCHEMA STATIC PAGE (#auto-schema-static-page) =====
+    const staticElem = document.getElementById("auto-schema-static-page");
+    if (staticElem) {
+      if (schemaConfig.eligible && schemaConfig.primary === "Article") {
+        waitForAEDMetaDates((dates) => {
+          const staticSchema = generateArticleSchema(pageData, dates, pageLevel, entityType);
+          staticElem.textContent = JSON.stringify(staticSchema, null, 2);
+          log("✅ Static Article Schema berhasil dipasang", "SUCCESS");
+        });
+      } else {
+        staticElem.remove();
+        log("🗑️ Static Article Schema dihapus", "INFO");
+      }
+    }
+    
     // ===== SCHEMA WEBPAGE (#auto-schema-webpage) =====
     const webElem = document.getElementById("auto-schema-webpage");
     if (webElem) {
@@ -870,7 +904,7 @@
     log(`  Year Required  : ${yearValidation.required ? 'YES' : 'NO'}`, yearValidation.required ? "WARN" : "INFO");
     log(`  Year Valid     : ${yearValidation.valid ? 'YES' : 'NO'}`, yearValidation.valid ? "SUCCESS" : "ERROR");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AUTO-SCHEMA GENERATOR v5.1 SELESAI", "SUCCESS");
+    log("AUTO-SCHEMA GENERATOR v5.2 SELESAI", "SUCCESS");
   }
 
   if (document.readyState === "loading") {
