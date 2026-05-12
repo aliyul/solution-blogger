@@ -1,12 +1,10 @@
 /* ============================================================
- 🧠 Page Level Detector v18.3 — FULLY SYNCHRONIZED
+ 🧠 Page Level Detector v18.4 — FULLY SYNCHRONIZED WITH FIXED LOCATION
+    ✅ FIX: isLocation() sekarang mendeteksi lokasi dalam multi-word text
+    ✅ FIX: "harga jasa cutting beton jakarta" → MONEY_CHILD (L6)
     ✅ SINKRON DENGAN AUTO-SCHEMA GENERATOR v5.7
     ✅ SINKRON DENGAN generateBreadcrumbForMapping v5.6
     ✅ PRIORITAS UTAMA: URL Clean (tanpa domain, /p/, tahun/bulan)
-    ✅ FIX: "harga-sewa-alat-proyek" → MONEY_MASTER (L4)
-    ✅ FIX: "harga-jasa-cutting-beton-jakarta" → MONEY_CHILD (L6)
-    ✅ FIX: "jasa-konstruksi" → PILLAR (L1)
-    ✅ FIX: "sewa-alat-konstruksi" → PILLAR (L1)
     ✅ 9-Level Hierarchy: Home(L0) → Pillar(L1) → SP2(L2) → SP1(L3) → MONEY_MASTER(L4) → MONEY_PAGE(L5) → MONEY_CHILD(L6) → VARIANT(L7) → SUB-VARIANT(L8)
     ✅ Intent detection (Informasional/Komersial/Transaksional)
     ✅ Evergreen vs Non-Evergreen (tahun wajib/tidak)
@@ -256,15 +254,46 @@
   ];
   
   // ============================================================
-  // 📌 FUNGSI UTILITY (SAMA DENGAN v5.7)
+  // 📌 FUNGSI DETEKSI LOKASI (DIPERBAIKI v18.4) 🔥
   // ============================================================
-  
-  function isLocation(word) {
-    const lowerWord = word.toLowerCase().replace(/[^a-z]/g, '');
-    if (PRODUCT_BLACKLIST.has(lowerWord)) return false;
-    if (LOCATION_WHITELIST.has(lowerWord)) return true;
+  function isLocation(text) {
+    if (!text || text.length === 0) return false;
+    
+    // Pisahkan menjadi kata-kata berdasarkan spasi
+    const words = text.toLowerCase().split(/\s+/);
+    
+    for (const word of words) {
+      const cleanWord = word.replace(/[^a-z]/g, '');
+      if (cleanWord.length < 3) continue;
+      if (PRODUCT_BLACKLIST.has(cleanWord)) continue;
+      if (LOCATION_WHITELIST.has(cleanWord)) {
+        console.log(`📍 Location detected: "${cleanWord}"`);
+        return true;
+      }
+    }
+    
+    // Cek pola "di [kota]" (tanpa spasi di antara)
+    if (text.includes('di')) {
+      const diIndex = text.indexOf('di');
+      if (diIndex >= 0 && diIndex + 3 <= text.length) {
+        const afterDi = text.substring(diIndex + 2).trim();
+        const afterDiWords = afterDi.split(/\s+/);
+        if (afterDiWords.length > 0) {
+          const potentialCity = afterDiWords[0].replace(/[^a-z]/g, '');
+          if (LOCATION_WHITELIST.has(potentialCity)) {
+            console.log(`📍 Location detected after 'di': "${potentialCity}"`);
+            return true;
+          }
+        }
+      }
+    }
+    
     return false;
   }
+  
+  // ============================================================
+  // 📌 FUNGSI UTILITY LAINNYA
+  // ============================================================
   
   function isSpecificProduct(text, wordCountAfterPrice = null) {
     if (wordCountAfterPrice !== null && wordCountAfterPrice <= 2) return false;
@@ -606,7 +635,7 @@
     const { userEntityType = null } = userOptions;
     
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("🔍 Page Level Detector v18.3 — FULLY SYNCHRONIZED");
+    console.log("🔍 Page Level Detector v18.4 — FULLY SYNCHRONIZED");
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     
     // PRIORITAS 0: HOMEPAGE
@@ -877,17 +906,18 @@
     VALID_ENTITY_TYPES: VALID_ENTITY_TYPES,
     VALID_INTENTS: VALID_INTENTS,
     TYPE_LEVEL_MAP: TYPE_LEVEL_MAP,
-    version: '18.3'
+    version: '18.4'
   };
   
   window.__pageLevelDetectorV18Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorV18Ready"));
   
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-  console.log("✅ Page Level Detector v18.3 ready");
+  console.log("✅ Page Level Detector v18.4 ready");
   console.log("📋 9-Level Hierarchy: HOME(L0) → PILLAR(L1) → SP2(L2) → SP1(L3) → MONEY_MASTER(L4) → MONEY_PAGE(L5) → MONEY_CHILD(L6) → VARIANT(L7) → SUB-VARIANT(L8)");
   console.log("📋 PRIMARY SOURCE: URL Clean (tanpa domain, /p/, tahun/bulan)");
   console.log("📋 ENTITY PILLAR: Jasa Konstruksi, Sewa Alat Konstruksi, Produk Konstruksi, Material Konstruksi → PILLAR (L1)");
+  console.log("📋 LOCATION DETECTION: Multi-word support (contoh: 'harga jasa cutting beton jakarta' → money-child)");
   console.log("📋 Intent detection: YES");
   console.log("📋 Evergreen validation: YES");
   console.log("📋 JASA special rules: YES");
