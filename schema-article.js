@@ -1,16 +1,16 @@
 /**
  * AUTO-SCHEMA GENERATOR v5.7
- * SINKRON DENGAN Page Level Detector v18.2 & generateBreadcrumb v5.6
+ * SINKRON DENGAN Page Level Detector v18.5
  * 
  * UPDATE v5.7:
- * - FIX: Logika JASA + harga → cek lokasi DULU, baru money-page jika tidak ada lokasi
- * - FIX: "harga jasa cutting beton jakarta" → money-child (L6), BUKAN money-page
- * - FIX: Ekstraksi hanya 5 kata pertama setelah keyword MONEY
- * - FIX: Pembersihan tahun (2024, 2025, 2026) dari after keyword
+ * - ENTITY PILLAR detection: EXACT MATCH only (sama dengan v18.5)
+ * - FIX: "jasa konstruksi" → PILLAR (L1)
+ * - FIX: "jasa konstruksi gedung sekolah" → MONEY_PAGE (L5)
+ * - FIX: Logika JASA + harga + lokasi → cek lokasi DULU
+ * - FIX: "harga jasa cutting beton jakarta" → money-child (L6)
  * - PRIORITAS MONEY_KEYWORDS (harga, sewa) LEBIH TINGGI dari PILLAR_KEYWORDS
- * - Logika wordCount untuk MONEY_MASTER (≤2 kata atau 3 kata tapi umum)
- * - ENTITY PILLAR detection untuk setiap entity type
- * - Deteksi utama berdasarkan URL clean (tanpa domain, tanpa /p/, tanpa tahun/bulan)
+ * - Deteksi utama berdasarkan URL clean (tanpa domain, /p/, tahun/bulan)
+ * - 9-Level Hierarchy lengkap
  * 
  * @version 5.7.0
  * @date 2026-01-15
@@ -44,21 +44,36 @@
   };
 
   // ============================================================
-  // 📌 KEYWORD CIRI
+  // 📌 KEYWORD CIRI (SINKRON DENGAN v18.5)
   // ============================================================
   
   const HOME_KEYWORDS = ['beranda', 'home', 'halaman utama', 'homepage', 'index'];
   
+  // 🔥 ENTITY PILLAR KEYWORDS (EXACT MATCH ONLY - SAMA DENGAN v18.5)
   const ENTITY_PILLAR_KEYWORDS = {
-    'jasa': ['jasa konstruksi', 'layanan konstruksi', 'jasa bangunan', 'kontraktor konstruksi'],
-    'sewa': ['sewa alat konstruksi', 'sewa alat berat', 'rental alat berat', 'sewa alat bangunan'],
-    'produk': ['produk konstruksi', 'produk bangunan', 'produk interior', 'material konstruksi'],
-    'material': ['material konstruksi', 'bahan bangunan', 'material bangunan', 'supplier material'],
-    'artikel': ['artikel konstruksi', 'blog konstruksi', 'tips konstruksi']
+    'jasa': [
+      'jasa konstruksi', 'jasa bangunan', 'layanan konstruksi', 
+      'jasa kontraktor', 'jasa pemborong', 'jasa renovasi'
+    ],
+    'sewa': [
+      'sewa alat konstruksi', 'sewa alat berat', 'rental alat berat',
+      'sewa alat bangunan', 'rental konstruksi', 'sewa excavator'
+    ],
+    'produk': [
+      'produk konstruksi', 'produk bangunan', 'produk interior',
+      'material konstruksi', 'bahan bangunan'
+    ],
+    'material': [
+      'material konstruksi', 'bahan bangunan', 'material bangunan',
+      'supplier material', 'toko material'
+    ],
+    'artikel': [
+      'artikel konstruksi', 'blog konstruksi', 'tips konstruksi'
+    ]
   };
   
   const PILLAR_KEYWORDS = [
-    'panduan', 'panduan lengkap', 'cara ', 'tips ', 'tips dan trik',
+    'panduan', 'panduan lengkap', 'cara', 'tips', 'tips dan trik',
     'apa itu', 'pengertian', 'definisi', 'edukasi', 'belajar', 
     'tutorial', 'materi', 'penjelasan', 'kenapa', 'mengapa',
     'bagaimana', 'contoh', 'rekomendasi', 'lengkap', 'komprehensif'
@@ -66,9 +81,9 @@
   
   const MONEY_KEYWORDS = ['harga', 'biaya', 'tarif', 'sewa', 'rental'];
   
-  const SP2_KEYWORDS = ['jenis', 'jenis-jenis', 'macam', 'macam-macam', 'tipe ', 'kategori', 'daftar ', 'list '];
-  const SP1_KEYWORDS = [' vs ', 'versus', 'perbandingan', 'bandingkan', 'dibanding', 'lebih baik', 'mana yang', 'kelebihan', 'kekurangan', 'perbedaan'];
-  const VARIANT_KEYWORDS = ['spesifikasi', 'ukuran', 'tipe ', 'model', 'varian', 'warna', 'merk', 'kapasitas', 'dimensi'];
+  const SP2_KEYWORDS = ['jenis', 'jenis-jenis', 'macam', 'macam-macam', 'tipe', 'kategori', 'daftar', 'list'];
+  const SP1_KEYWORDS = ['vs', 'versus', 'perbandingan', 'bandingkan', 'lebih baik', 'mana yang', 'kelebihan', 'kekurangan', 'perbedaan'];
+  const VARIANT_KEYWORDS = ['spesifikasi', 'ukuran', 'tipe', 'model', 'varian', 'warna', 'merk', 'kapasitas', 'dimensi'];
 
   const REQUIRED_INTENT = {
     'home': { primary: 'navigasional', secondary: 'transaksional', dominance: 70 },
@@ -128,36 +143,27 @@
   function getCleanPageNameFromUrl() {
     let path = window.location.pathname;
     
-    // Hapus ekstensi
-    path = path.replace(/\.(html|php|asp|jsp)$/i, '');
-    
-    // Hapus /p/ prefix (blogspot style)
+    path = path.replace(/\.(html|php|asp|jsp|htm)$/i, '');
     path = path.replace(/^\/p\//, '');
-    
-    // Hapus pola tanggal (tahun/bulan) seperti /2025/03/ atau /2025/
+    path = path.replace(/^\/blog\//, '');
+    path = path.replace(/^\/artikel\//, '');
+    path = path.replace(/\/\d{4}\/\d{2}\/\d{2}\//g, '/');
     path = path.replace(/\/\d{4}\/\d{2}\//g, '/');
     path = path.replace(/\/\d{4}\//g, '/');
     path = path.replace(/\/\d{2}\//g, '/');
     
-    // Split path dan filter
     const pathParts = path.split('/');
     const cleanedParts = pathParts.filter(part => {
       if (/^\d{4}$/.test(part)) return false;
       if (/^\d{2}$/.test(part)) return false;
-      if (part === '' || part === 'index') return false;
+      if (part === '' || part === 'index' || part === 'home') return false;
+      if (part.includes('?')) return false;
       return true;
     });
     
-    // Ambil bagian terakhir dari path (nama halaman)
     let pageName = cleanedParts.pop() || '';
-    
-    // Konversi tanda hubung ke spasi
     pageName = pageName.replace(/-/g, ' ');
-    
-    // Hapus karakter yang tidak perlu
     pageName = pageName.replace(/[^a-z0-9\s]/gi, '');
-    
-    // Hapus multiple spaces
     pageName = pageName.replace(/\s+/g, ' ').trim();
     
     return pageName;
@@ -168,9 +174,12 @@
     const url = location.href.toLowerCase();
     const path = url.replace(/https?:\/\/[^\/]+/, '');
     const isRoot = path === '' || path === '/' || path === '/index.html' || path === '/home';
+    
     if (isRoot) return true;
+    
     const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
     const title = document.title.toLowerCase();
+    
     return HOME_KEYWORDS.some(kw => h1 === kw || title === kw);
   }
 
@@ -180,10 +189,24 @@
     const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
     const title = document.title.toLowerCase();
     const combined = url + " " + h1 + " " + title;
-    if (combined.includes('/jasa/') || combined.includes('jasa ') || combined.includes('kontraktor')) return 'jasa';
-    if (combined.includes('/sewa/') || combined.includes('/rental/') || combined.includes('sewa ') || combined.includes('rental ') || combined.includes('alat berat')) return 'sewa';
-    if (combined.includes('/material/') || combined.includes('material ') || combined.includes('bahan bangunan')) return 'material';
-    if (combined.includes('/artikel/') || combined.includes('/blog/')) return 'artikel';
+    
+    if (combined.includes('/jasa/') || combined.includes('jasa ') || 
+        combined.includes('kontraktor') || combined.includes('pasang ') ||
+        combined.includes('layanan ')) {
+      return 'jasa';
+    }
+    if (combined.includes('/sewa/') || combined.includes('/rental/') || 
+        combined.includes('sewa ') || combined.includes('rental ') ||
+        combined.includes('alat berat')) {
+      return 'sewa';
+    }
+    if (combined.includes('/material/') || combined.includes('material ') || 
+        combined.includes('bahan bangunan')) {
+      return 'material';
+    }
+    if (combined.includes('/artikel/') || combined.includes('/blog/')) {
+      return 'artikel';
+    }
     return 'produk';
   }
 
@@ -222,12 +245,15 @@
   function isLocation(text) {
     const lowerText = text.toLowerCase();
     const words = lowerText.split(/[\s,-]+/);
+    
     for (const word of words) {
       if (LOCATION_WHITELIST.has(word)) return true;
       if (PRODUCT_BLACKLIST.has(word)) return false;
     }
+    
     const hasIndicator = /di |ke |kota |wilayah |daerah /.test(lowerText);
     if (!hasIndicator) return false;
+    
     for (const word of words) {
       if (word.length >= 4 && word.length <= 12 && /[aiueo]{2,}/.test(word)) {
         if (!PRODUCT_BLACKLIST.has(word)) return true;
@@ -253,6 +279,32 @@
     return false;
   }
 
+  // ===================== DETEKSI NILAI DEFAULT UNTUK MONEY =====================
+  function getDefaultMoneyLevel(wordCount, isSpecific, entityType) {
+    if (wordCount <= 2 || (wordCount === 3 && !isSpecific)) {
+      return 'money-master';
+    }
+    return 'money-page';
+  }
+
+  // ===================== DETEKSI ENTITY PILLAR (EXACT MATCH ONLY) 🔥 =====================
+  function detectEntityPillar(text, entityType) {
+    if (!text || text.length === 0) return null;
+    
+    const lowerText = text.toLowerCase().trim();
+    const pillarKeywords = ENTITY_PILLAR_KEYWORDS[entityType] || [];
+    
+    for (const kw of pillarKeywords) {
+      // 🔥 EXACT MATCH (tanpa tambahan kata apapun)
+      if (lowerText === kw) {
+        log(`ENTITY PILLAR detected (exact match): "${kw}" → pillar (L1)`, "SUCCESS");
+        return 'pillar';
+      }
+    }
+    
+    return null;
+  }
+
   // ===================== DETEKSI PAGE LEVEL (PRIORITAS LENGKAP) 🔥 =====================
   function detectPageLevel(entityType) {
     // PRIORITAS 0: HOMEPAGE
@@ -266,7 +318,6 @@
     const h1 = (document.querySelector("h1")?.innerText || "").toLowerCase();
     const title = document.title.toLowerCase();
     
-    // Gunakan URL clean sebagai sumber utama
     let primaryText = urlPageName || h1 || title;
     let isFromUrl = !!urlPageName;
     
@@ -277,54 +328,15 @@
     const isSewa = entityType === 'sewa';
     
     // ============================================================
-    // PRIORITAS 1: ENTITY PILLAR
+    // PRIORITAS 1: ENTITY PILLAR (EXACT MATCH ONLY) 🔥
     // ============================================================
-    const pillarKeywords = ENTITY_PILLAR_KEYWORDS[entityType] || [];
-    for (const kw of pillarKeywords) {
-      if (primaryText === kw || primaryText.startsWith(kw + ' ') || primaryText.includes(' ' + kw)) {
-        log(`ENTITY PILLAR detected: "${kw}" → pillar (L1)`, "SUCCESS");
-        return 'pillar';
-      }
+    const entityPillar = detectEntityPillar(primaryText, entityType);
+    if (entityPillar) {
+      return entityPillar;
     }
     
     // ============================================================
-    // PRIORITAS 2: INFORMASIONAL KEYWORDS
-    // ============================================================
-    for (const kw of PILLAR_KEYWORDS) {
-      if (primaryText.includes(kw)) {
-        for (const sp2kw of SP2_KEYWORDS) {
-          if (primaryText.includes(sp2kw)) {
-            log(`SUB-PILLAR TIPE 2 (${kw} + ${sp2kw}) → sub-pillar-tipe-2 (L2)`, "INFO");
-            return 'sub-pillar-tipe-2';
-          }
-        }
-        log(`PILLAR (${kw}) → pillar (L1)`, "INFO");
-        return 'pillar';
-      }
-    }
-    
-    // ============================================================
-    // PRIORITAS 3: PERBANDINGAN (SP1)
-    // ============================================================
-    for (const kw of SP1_KEYWORDS) {
-      if (primaryText.includes(kw)) {
-        log(`SUB-PILLAR TIPE 1 (${kw}) → sub-pillar-tipe-1 (L3)`, "INFO");
-        return 'sub-pillar-tipe-1';
-      }
-    }
-    
-    // ============================================================
-    // PRIORITAS 4: JENIS/MACAM/DAFTAR (SP2)
-    // ============================================================
-    for (const kw of SP2_KEYWORDS) {
-      if (primaryText.startsWith(kw) || primaryText.includes(kw + ' ') || primaryText.includes(kw + '-')) {
-        log(`SUB-PILLAR TIPE 2 (${kw}) → sub-pillar-tipe-2 (L2)`, "INFO");
-        return 'sub-pillar-tipe-2';
-      }
-    }
-    
-    // ============================================================
-    // PRIORITAS 5: MONEY LEVEL (HARGA/SEWA) - DIPERBAIKI 🔥
+    // PRIORITAS 2: MONEY LEVEL (HARGA/SEWA) 🔥
     // ============================================================
     for (const kw of MONEY_KEYWORDS) {
       if (primaryText.includes(kw)) {
@@ -344,7 +356,7 @@
         
         log(`After keyword (first 5 words): "${afterKw}" | Words: ${wordCount}`, "INFO");
         
-        // 🔥 PRIORITAS 1: CEK LOKASI (UNTUK SEMUA ENTITY TYPE)
+        // 🔥 PRIORITAS: CEK LOKASI DULU (UNTUK SEMUA ENTITY TYPE)
         if (isLocation(afterKw)) {
           log(`📍 Location detected in "${afterKw}" → money-child (L6)`, "SUCCESS");
           return 'money-child';
@@ -359,35 +371,60 @@
         // 🔥 KHUSUS SEWA: jika ada harga/sewa tapi tidak ada lokasi
         if (isSewa) {
           const isSpecific = isSpecificProduct(afterKw, wordCount);
-          if (wordCount <= 2 || (wordCount === 3 && !isSpecific)) {
-            log(`SEWA money-master (${wordCount} kata) → money-master (L4)`, "SUCCESS");
-            return 'money-master';
-          }
-          log(`SEWA money-page (${wordCount} kata) → money-page (L5)`, "SUCCESS");
-          return 'money-page';
+          const defaultLevel = getDefaultMoneyLevel(wordCount, isSpecific, entityType);
+          log(`SEWA ${defaultLevel} (${wordCount} kata) → ${defaultLevel} (L${TYPE_LEVEL_MAP[defaultLevel]})`, "SUCCESS");
+          return defaultLevel;
         }
         
         // 🔥 UNTUK PRODUK/MATERIAL
         const isSpecific = isSpecificProduct(afterKw, wordCount);
-        
-        // MONEY_MASTER: 1-2 kata ATAU 3 kata tapi masih umum
-        if (wordCount <= 2 || (wordCount === 3 && !isSpecific)) {
-          log(`money-master (${wordCount} kata, specific=${isSpecific}) → money-master (L4)`, "SUCCESS");
-          return 'money-master';
-        }
-        
-        // MONEY_PAGE: 3+ kata dan spesifik
-        log(`money-page (${wordCount} kata, specific=${isSpecific}) → money-page (L5)`, "SUCCESS");
-        return 'money-page';
+        const defaultLevel = getDefaultMoneyLevel(wordCount, isSpecific, entityType);
+        log(`${defaultLevel.toUpperCase()} (${wordCount} kata, specific=${isSpecific}) → ${defaultLevel} (L${TYPE_LEVEL_MAP[defaultLevel]})`, "SUCCESS");
+        return defaultLevel;
       }
     }
     
     // ============================================================
-    // PRIORITAS 6: JASA/SEWA (tanpa keyword harga & bukan entity pillar)
+    // PRIORITAS 3: INFORMASIONAL KEYWORDS (PILLAR / SP2)
+    // ============================================================
+    for (const kw of PILLAR_KEYWORDS) {
+      if (primaryText.includes(kw)) {
+        for (const sp2kw of SP2_KEYWORDS) {
+          if (primaryText.includes(sp2kw)) {
+            log(`SUB-PILLAR TIPE 2 (${kw} + ${sp2kw}) → sub-pillar-tipe-2 (L2)`, "INFO");
+            return 'sub-pillar-tipe-2';
+          }
+        }
+        log(`PILLAR (${kw}) → pillar (L1)`, "INFO");
+        return 'pillar';
+      }
+    }
+    
+    // ============================================================
+    // PRIORITAS 4: PERBANDINGAN (SP1)
+    // ============================================================
+    for (const kw of SP1_KEYWORDS) {
+      if (primaryText.includes(kw)) {
+        log(`SUB-PILLAR TIPE 1 (${kw}) → sub-pillar-tipe-1 (L3)`, "INFO");
+        return 'sub-pillar-tipe-1';
+      }
+    }
+    
+    // ============================================================
+    // PRIORITAS 5: JENIS/MACAM/DAFTAR (SP2)
+    // ============================================================
+    for (const kw of SP2_KEYWORDS) {
+      if (primaryText.startsWith(kw) || primaryText.includes(kw + ' ') || primaryText.includes(kw + '-')) {
+        log(`SUB-PILLAR TIPE 2 (${kw}) → sub-pillar-tipe-2 (L2)`, "INFO");
+        return 'sub-pillar-tipe-2';
+      }
+    }
+    
+    // ============================================================
+    // PRIORITAS 6: JASA/SEWA (tanpa harga & bukan entity pillar)
     // ============================================================
     if (isJasa) {
-      const jasaKeywords = ['jasa', 'pasang', 'service', 'kontraktor', 'borongan', 
-                             'renovasi', 'bangun', 'konsultasi', 'survey', 'estimasi'];
+      const jasaKeywords = ['jasa', 'pasang', 'service', 'kontraktor', 'borongan', 'renovasi'];
       for (const kw of jasaKeywords) {
         if (primaryText.includes(kw)) {
           if (isLocation(primaryText)) {
@@ -401,7 +438,7 @@
     }
     
     if (isSewa) {
-      const sewaKeywords = ['sewa', 'rental', 'alat berat', 'excavator', 'bulldozer', 'crane'];
+      const sewaKeywords = ['sewa', 'rental', 'alat berat'];
       for (const kw of sewaKeywords) {
         if (primaryText.includes(kw)) {
           if (isLocation(primaryText)) {
@@ -415,41 +452,13 @@
     }
     
     // ============================================================
-    // PRIORITAS 7: SUB-VARIANT
-    // ============================================================
-    function isSubVariantInternal(text) {
-      const lowerText = text.toLowerCase();
-      let score = 0;
-      if (/(\d+(\.\d+)?\s*mm\s*x\s*\d+(\.\d+)?\s*mm\s*x\s*\d+(\.\d+)?\s*mm)/i.test(lowerText)) score++;
-      if (/(\d+(\.\d+)?\s*cm\s*x\s*\d+(\.\d+)?\s*cm\s*x\s*\d+(\.\d+)?\s*cm)/i.test(lowerText)) score++;
-      if (lowerText.includes('tebal') && lowerText.includes('panjang') && lowerText.includes('lebar')) score++;
-      const dimensions = lowerText.match(/\d+(\.\d+)?\s*(mm|cm|m|ton|kg|liter)/gi) || [];
-      if (dimensions.length >= 3) score++;
-      if (lowerText.includes('kapasitas') && dimensions.length >= 2) score++;
-      const hasMultipleX = (lowerText.match(/x/g) || []).length >= 2;
-      const hasManyNumbers = (lowerText.match(/\d+/g) || []).length >= 3;
-      if (hasMultipleX && hasManyNumbers) score++;
-      return score >= 2;
-    }
-    
-    if (isSubVariantInternal(primaryText)) {
-      log(`SUB-VARIANT detected → sub-variant (L8)`, "INFO");
-      return 'sub-variant';
-    }
-    
-    // ============================================================
-    // PRIORITAS 8: VARIANT
+    // PRIORITAS 7: VARIANT
     // ============================================================
     for (const kw of VARIANT_KEYWORDS) {
       if (primaryText.includes(kw)) {
-        log(`VARIANT detected (${kw}) → variant (L7)`, "INFO");
+        log(`VARIANT (${kw}) → variant (L7)`, "INFO");
         return 'variant';
       }
-    }
-    
-    if (/\d+(\.\d+)?\s*(mm|cm|m|kg|ton)/.test(primaryText) && !primaryText.includes('x')) {
-      log(`VARIANT detected (single dimension) → variant (L7)`, "INFO");
-      return 'variant';
     }
     
     // ============================================================
@@ -559,6 +568,7 @@
     const { url, title, descMeta, firstImg, content } = data;
     const { datePublished, dateModified } = dates;
     const yearValidation = validateYearInH1(pageLevel, entityType);
+    
     return {
       "@context": "https://schema.org",
       "@type": "Article",
