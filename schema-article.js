@@ -1,18 +1,17 @@
 /**
- * AUTO-SCHEMA GENERATOR v5.7
- * SINKRON DENGAN Page Level Detector v18.5
+ * AUTO-SCHEMA GENERATOR v5.8
+ * SINKRON DENGAN Page Level Detector v18.6
  * 
- * UPDATE v5.7:
- * - ENTITY PILLAR detection: EXACT MATCH only (sama dengan v18.5)
- * - FIX: "jasa konstruksi" → PILLAR (L1)
- * - FIX: "jasa konstruksi gedung sekolah" → MONEY_PAGE (L5)
- * - FIX: Logika JASA + harga + lokasi → cek lokasi DULU
- * - FIX: "harga jasa cutting beton jakarta" → money-child (L6)
+ * UPDATE v5.8:
+ * - ENTITY PILLAR: WAJIB EXACT MATCH berdasarkan clean URL
+ * - FIX: "produk konstruksi" → PILLAR (L1)
+ * - FIX: "standar mutu produk konstruksi" → VARIANT (L7) BUKAN pillar
+ * - VARIANT_KEYWORDS ditambah: standar, mutu, kualitas, quality, spec
  * - PRIORITAS MONEY_KEYWORDS (harga, sewa) LEBIH TINGGI dari PILLAR_KEYWORDS
  * - Deteksi utama berdasarkan URL clean (tanpa domain, /p/, tahun/bulan)
  * - 9-Level Hierarchy lengkap
  * 
- * @version 5.7.0
+ * @version 5.8.0
  * @date 2026-01-15
  */
 
@@ -44,12 +43,13 @@
   };
 
   // ============================================================
-  // 📌 KEYWORD CIRI (SINKRON DENGAN v18.5)
+  // 📌 KEYWORD CIRI (SINKRON DENGAN v18.6)
   // ============================================================
   
   const HOME_KEYWORDS = ['beranda', 'home', 'halaman utama', 'homepage', 'index'];
   
-  // 🔥 ENTITY PILLAR KEYWORDS (EXACT MATCH ONLY - SAMA DENGAN v18.5)
+  // 🔥 ENTITY PILLAR KEYWORDS (EXACT MATCH ONLY - WAJIB)
+  // Hanya keyword ini yang dianggap PILLAR (Level 1)
   const ENTITY_PILLAR_KEYWORDS = {
     'jasa': [
       'jasa konstruksi', 'jasa bangunan', 'layanan konstruksi', 
@@ -60,8 +60,7 @@
       'sewa alat bangunan', 'rental konstruksi', 'sewa excavator'
     ],
     'produk': [
-      'produk konstruksi', 'produk bangunan', 'produk interior',
-      'material konstruksi', 'bahan bangunan'
+      'produk konstruksi', 'produk bangunan', 'produk interior'
     ],
     'material': [
       'material konstruksi', 'bahan bangunan', 'material bangunan',
@@ -83,7 +82,15 @@
   
   const SP2_KEYWORDS = ['jenis', 'jenis-jenis', 'macam', 'macam-macam', 'tipe', 'kategori', 'daftar', 'list'];
   const SP1_KEYWORDS = ['vs', 'versus', 'perbandingan', 'bandingkan', 'lebih baik', 'mana yang', 'kelebihan', 'kekurangan', 'perbedaan'];
-  const VARIANT_KEYWORDS = ['spesifikasi', 'ukuran', 'tipe', 'model', 'varian', 'warna', 'merk', 'kapasitas', 'dimensi'];
+  
+  // 🔥 VARIANT_KEYWORDS (ditambah standar, mutu, kualitas)
+  const VARIANT_KEYWORDS = [
+    'spesifikasi', 'ukuran', 'tipe', 'type', 'model', 
+    'varian', 'warna', 'merk', 'brand', 'kapasitas', 
+    'dimensi', 'bahan', 'material', 'finishing', 'grade',
+    'seri', 'serie', 'versi', 'generasi', 'detail teknis',
+    'standar', 'mutu', 'kualitas', 'quality', 'spec'
+  ];
 
   const REQUIRED_INTENT = {
     'home': { primary: 'navigasional', secondary: 'transaksional', dominance: 70 },
@@ -120,7 +127,7 @@
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [Schema v5.7] ${msg}`);
+    console.log(`${prefix} [Schema v5.8] ${msg}`);
   }
 
   function cleanText(str) {
@@ -296,6 +303,8 @@
     
     for (const kw of pillarKeywords) {
       // 🔥 EXACT MATCH (tanpa tambahan kata apapun)
+      // Contoh: "produk konstruksi" → match
+      //         "standar mutu produk konstruksi" → tidak match
       if (lowerText === kw) {
         log(`ENTITY PILLAR detected (exact match): "${kw}" → pillar (L1)`, "SUCCESS");
         return 'pillar';
@@ -452,7 +461,7 @@
     }
     
     // ============================================================
-    // PRIORITAS 7: VARIANT
+    // PRIORITAS 7: VARIANT (Level 7) 🔥 termasuk standar, mutu, kualitas
     // ============================================================
     for (const kw of VARIANT_KEYWORDS) {
       if (primaryText.includes(kw)) {
@@ -560,6 +569,7 @@
     if (pageLevel === 'money-master') keywords.add("harga terbaru");
     if (pageLevel === 'money-child') keywords.add("harga lokal");
     if (entityType === 'sewa') keywords.add("sewa alat berat");
+    if (pageLevel === 'variant') keywords.add("spesifikasi teknis");
     return Array.from(keywords).slice(0, 8).join(", ");
   }
 
@@ -645,7 +655,7 @@
   // ===================== MAIN EXECUTION =====================
   function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AUTO-SCHEMA GENERATOR v5.7 DIMULAI", "INFO");
+    log("AUTO-SCHEMA GENERATOR v5.8 DIMULAI", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     const pageData = extractPageData();
@@ -693,7 +703,7 @@
     }
     
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AUTO-SCHEMA GENERATOR v5.7 SELESAI", "SUCCESS");
+    log("AUTO-SCHEMA GENERATOR v5.8 SELESAI", "SUCCESS");
   }
 
   if (document.readyState === "loading") {
