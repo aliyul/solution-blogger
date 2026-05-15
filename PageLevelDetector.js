@@ -215,7 +215,7 @@
     'medan', 'binjai', 'deli serdang', 'padang', 'pekanbaru', 'batam',
     'palembang', 'bandar lampung', 'pontianak', 'balikpapan', 'samarinda',
     'banjarmasin', 'makassar', 'manado', 'palu', 'denpasar', 'bali', 'mataram',
-    'karawang'
+    'terdekat'
   ]);
   
   const PRODUCT_BLACKLIST = new Set([
