@@ -232,8 +232,8 @@
 
   // ===================== DETEKSI LOKASI =====================
   const LOCATION_WHITELIST = new Set([
-    'jakarta', 'bogor', 'depok', 'tangerang', 'bekasi', 'jabodetabek',
-    'jakpus', 'jakbar', 'jaksel', 'jakut', 'jaktim', 'tangsel',
+     'karawang','jakarta', 'bogor', 'depok', 'tangerang', 'bekasi', 'jabodetabek',
+    'jakpus', 'jakbar', 'jaksel', 'jakut', 'jaktim', 'tangsel','cianjur',
     'bandung', 'cimahi', 'cirebon', 'tasikmalaya', 'sukabumi', 'garut',
     'semarang', 'solo', 'surakarta', 'yogyakarta', 'jogja', 'magelang',
     'surabaya', 'malang', 'kediri', 'blitar', 'madiun', 'gresik', 'sidoarjo',
