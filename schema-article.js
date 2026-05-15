@@ -239,7 +239,7 @@
     'surabaya', 'malang', 'kediri', 'blitar', 'madiun', 'gresik', 'sidoarjo',
     'medan', 'binjai', 'deli serdang', 'padang', 'pekanbaru', 'batam',
     'palembang', 'bandar lampung', 'pontianak', 'balikpapan', 'samarinda',
-    'banjarmasin', 'makassar', 'manado', 'palu', 'denpasar', 'bali', 'mataram'
+    'banjarmasin', 'makassar', 'manado', 'palu', 'denpasar', 'bali', 'mataram','terdekat'
   ]);
   
   const PRODUCT_BLACKLIST = new Set([
