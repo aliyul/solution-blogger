@@ -1,14 +1,15 @@
 /* ============================================================
- 🧠 Page Level Detector v20.0 — FINAL SEO HIERARCHY
-    ✅ FIX: MONEY priority diturunkan
-    ✅ FIX: VARIANT lebih prioritas dari MONEY
-    ✅ FIX: SUB1/SP2 lebih prioritas dari MONEY
-    ✅ FIX: DISKON/PROMO → MONEY PAGE
-    ✅ FIX: RENT keyword dipisah dari PRICE keyword
-    ✅ FIX: Regex lokasi diperbaiki
-    ✅ FIX: DEFAULT pillar terlalu agresif
-    ✅ FIX: SEO Cannibal hierarchy
-    ✅ FINAL: 9-Level Stable Architecture
+ 🧠 Page Level Detector v21.0 — FINAL SEO HIERARCHY
+    ✅ FINAL ENTITY PILLAR FIX
+    ✅ FIX: PILLAR hanya EXACT MATCH tertentu
+    ✅ FIX: produk interior masuk pillar
+    ✅ FIX: artikel TIDAK otomatis pillar
+    ✅ FIX: MONEY priority di bawah variant/subpillar
+    ✅ FIX: RENT dipisah dari PRICE
+    ✅ FIX: PROMO → money-page
+    ✅ FIX: LOCATION regex stabil
+    ✅ FIX: DEFAULT fallback lebih aman
+    ✅ FINAL: Stable 9-Level Architecture
 ============================================================ */
 
 (function() {
@@ -52,7 +53,7 @@
   ];
 
   // ============================================================
-  // 📌 MONEY KEYWORDS (REVISI)
+  // 📌 MONEY KEYWORDS
   // ============================================================
 
   const PRICE_KEYWORDS = [
@@ -121,38 +122,30 @@
   ];
 
   // ============================================================
-  // 📌 ENTITY PILLAR
+  // 📌 FINAL ENTITY PILLAR
+  // ONLY EXACT MATCH
   // ============================================================
 
   const ENTITY_PILLAR_KEYWORDS = {
 
     jasa: [
-      'jasa konstruksi',
-      'jasa bangunan',
-      'jasa kontraktor'
+      'jasa konstruksi'
     ],
 
     sewa: [
-      'sewa alat berat',
-      'sewa alat konstruksi',
-      'rental alat berat'
+      'sewa alat konstruksi'
     ],
 
     produk: [
       'produk konstruksi',
-      'produk bangunan'
+      'produk interior'
     ],
 
     material: [
-      'material bangunan',
-      'material konstruksi',
-      'bahan bangunan'
+      'material konstruksi'
     ],
 
-    artikel: [
-      'artikel konstruksi',
-      'blog konstruksi'
-    ]
+    artikel: []
 
   };
 
@@ -211,8 +204,11 @@
     path = path.replace(/\.(html|php|htm)$/i, '');
     path = path.replace(/^\/p\//, '');
     path = path.replace(/^\/blog\//, '');
+    path = path.replace(/^\/artikel\//, '');
 
-    const parts = path.split('/').filter(Boolean);
+    const parts = path
+      .split('/')
+      .filter(Boolean);
 
     let slug = parts.pop() || '';
 
@@ -293,7 +289,7 @@
   }
 
   // ============================================================
-  // 📌 LOCATION DETECTOR (FIXED)
+  // 📌 LOCATION DETECTOR
   // ============================================================
 
   function isLocation(text) {
@@ -304,7 +300,8 @@
 
     for (const city of LOCATION_WHITELIST) {
 
-      const regex = new RegExp(`\\b${city}\\b`, 'i');
+      const regex =
+        new RegExp(`\\b${city}\\b`, 'i');
 
       if (regex.test(lower)) {
         return true;
@@ -312,9 +309,11 @@
 
     }
 
-    const diRegex = /\bdi\s+([a-z]+)/gi;
+    const diRegex =
+      /\bdi\s+([a-z]+)/gi;
 
-    const matches = lower.match(diRegex);
+    const matches =
+      lower.match(diRegex);
 
     if (matches) {
 
@@ -324,7 +323,9 @@
           .replace(/\bdi\s+/i, '')
           .trim();
 
-        if (LOCATION_WHITELIST.has(city)) {
+        if (
+          LOCATION_WHITELIST.has(city)
+        ) {
           return true;
         }
 
@@ -432,16 +433,23 @@
 
   // ============================================================
   // 📌 ENTITY PILLAR
+  // ONLY EXACT MATCH
   // ============================================================
 
-  function detectEntityPillar(text, entityType) {
+  function detectEntityPillar(
+    text,
+    entityType
+  ) {
 
     if (!text) return null;
 
-    const lower = text.toLowerCase().trim();
+    const lower =
+      text.toLowerCase().trim();
 
     const keywords =
-      ENTITY_PILLAR_KEYWORDS[entityType] || [];
+      ENTITY_PILLAR_KEYWORDS[
+        entityType
+      ] || [];
 
     for (const kw of keywords) {
 
@@ -459,20 +467,30 @@
   // 📌 MONEY DETECTOR
   // ============================================================
 
-  function detectMoneyLevel(text, entityType) {
+  function detectMoneyLevel(
+    text,
+    entityType
+  ) {
 
     if (!text) return null;
 
-    const lower = text.toLowerCase();
+    const lower =
+      text.toLowerCase();
 
     const hasPrice =
-      PRICE_KEYWORDS.some(k => lower.includes(k));
+      PRICE_KEYWORDS.some(
+        k => lower.includes(k)
+      );
 
     const hasPromo =
-      PROMO_KEYWORDS.some(k => lower.includes(k));
+      PROMO_KEYWORDS.some(
+        k => lower.includes(k)
+      );
 
     const hasRent =
-      RENT_KEYWORDS.some(k => lower.includes(k));
+      RENT_KEYWORDS.some(
+        k => lower.includes(k)
+      );
 
     if (
       !hasPrice &&
@@ -491,7 +509,7 @@
     }
 
     // ============================================================
-    // 📌 PROMO ALWAYS MONEY PAGE
+    // 📌 PROMO
     // ============================================================
 
     if (hasPromo) {
@@ -507,7 +525,7 @@
     }
 
     // ============================================================
-    // 📌 SEWA RULE
+    // 📌 SEWA
     // ============================================================
 
     if (entityType === 'sewa') {
@@ -524,7 +542,10 @@
           .trim();
 
       const wordCount =
-        cleaned.split(/\s+/).filter(Boolean).length;
+        cleaned
+          .split(/\s+/)
+          .filter(Boolean)
+          .length;
 
       // sewa excavator
       if (wordCount <= 2) {
@@ -550,7 +571,10 @@
           .trim();
 
       const wordCount =
-        cleaned.split(/\s+/).filter(Boolean).length;
+        cleaned
+          .split(/\s+/)
+          .filter(Boolean)
+          .length;
 
       if (wordCount <= 2) {
         return 'money-master';
@@ -568,7 +592,9 @@
   // 📌 MAIN DETECTOR
   // ============================================================
 
-  function detectPageLevel(userOptions = {}) {
+  function detectPageLevel(
+    userOptions = {}
+  ) {
 
     const {
       userEntityType = null
@@ -610,7 +636,9 @@
     // ============================================================
 
     const entityType =
-      detectEntityType(userEntityType);
+      detectEntityType(
+        userEntityType
+      );
 
     // ============================================================
     // 📌 1. ENTITY PILLAR
@@ -631,7 +659,9 @@
     // ============================================================
 
     const variantLevel =
-      detectVariantLevel(primaryText);
+      detectVariantLevel(
+        primaryText
+      );
 
     if (variantLevel) {
       return variantLevel;
@@ -642,19 +672,23 @@
     // ============================================================
 
     const subPillarLevel =
-      detectSubPillarLevel(primaryText);
+      detectSubPillarLevel(
+        primaryText
+      );
 
     if (subPillarLevel) {
       return subPillarLevel;
     }
 
     // ============================================================
-    // 📌 4. INFORMATIONAL PILLAR
+    // 📌 4. INFORMATIONAL
     // ============================================================
 
     for (const kw of PILLAR_INFORMATIONAL_KEYWORDS) {
 
-      if (primaryText.includes(kw)) {
+      if (
+        primaryText.includes(kw)
+      ) {
         return 'pillar';
       }
 
@@ -680,7 +714,9 @@
 
     if (entityType === 'jasa') {
 
-      if (isLocation(primaryText)) {
+      if (
+        isLocation(primaryText)
+      ) {
         return 'money-child';
       }
 
@@ -694,7 +730,9 @@
 
     if (entityType === 'sewa') {
 
-      if (isLocation(primaryText)) {
+      if (
+        isLocation(primaryText)
+      ) {
         return 'money-child';
       }
 
@@ -712,10 +750,12 @@
         .filter(Boolean)
         .length;
 
+    // keyword pendek → pillar
     if (wordCount <= 2) {
       return 'pillar';
     }
 
+    // keyword panjang → SP2
     return 'sub-pillar-tipe-2';
 
   }
@@ -724,10 +764,14 @@
   // 📌 BODY ATTRIBUTES
   // ============================================================
 
-  function updateBodyAttributes(userOptions = {}) {
+  function updateBodyAttributes(
+    userOptions = {}
+  ) {
 
     const pageLevel =
-      detectPageLevel(userOptions);
+      detectPageLevel(
+        userOptions
+      );
 
     const entityType =
       detectEntityType(
@@ -741,7 +785,9 @@
 
     document.body.setAttribute(
       'data-page-level-num',
-      TYPE_LEVEL_MAP[pageLevel]
+      TYPE_LEVEL_MAP[
+        pageLevel
+      ]
     );
 
     document.body.setAttribute(
@@ -752,7 +798,9 @@
     return {
       pageLevel,
       pageLevelNum:
-        TYPE_LEVEL_MAP[pageLevel],
+        TYPE_LEVEL_MAP[
+          pageLevel
+        ],
       entityType
     };
 
@@ -771,7 +819,9 @@
       entityType ||
       detectEntityType();
 
-    if (!VALID_LEVELS.includes(level)) {
+    if (
+      !VALID_LEVELS.includes(level)
+    ) {
 
       console.error(
         `Invalid level: ${level}`
@@ -816,8 +866,12 @@
   window.pageLevelDetectorV19 = {
 
     detect: detectPageLevel,
-    setManual: setManualPageLevel,
-    updateAttributes: updateBodyAttributes,
+
+    setManual:
+      setManualPageLevel,
+
+    updateAttributes:
+      updateBodyAttributes,
 
     detectEntityType,
     detectVariantLevel,
@@ -831,7 +885,7 @@
     TYPE_LEVEL_MAP,
     VALID_ENTITY_TYPES,
 
-    version: '20.0'
+    version: '21.0'
 
   };
 
@@ -844,7 +898,7 @@
   );
 
   console.log(
-    '✅ Page Level Detector v20.0 Ready'
+    '✅ Page Level Detector v21.0 Ready'
   );
 
 })();
