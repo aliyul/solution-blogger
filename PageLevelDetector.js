@@ -1,5 +1,5 @@
 /* ============================================================
- 🧠 Page Level Detector v21.0 — FINAL SEO HIERARCHY
+ 🧠 Page Level Detector v19.0 — FINAL SEO HIERARCHY
     ✅ FINAL ENTITY PILLAR FIX
     ✅ FIX: PILLAR hanya EXACT MATCH tertentu
     ✅ FIX: produk interior masuk pillar
@@ -898,7 +898,7 @@
   );
 
   console.log(
-    '✅ Page Level Detector v21.0 Ready'
+    '✅ Page Level Detector v19.0 Ready'
   );
 
 })();
