@@ -1,8 +1,9 @@
 /**
- * AUTO-SCHEMA GENERATOR v6.3 FINAL STABLE
- * HIERARCHY FINAL + MONEY SYSTEM FIX + SEO CLASSIFICATION ENGINE
+ * AUTO-SCHEMA GENERATOR v6.4 FINAL STABLE
+ * HIERARCHY FINAL + JASA MONEY-MASTER FIX + SEO CLASSIFICATION ENGINE
  *
- * FINAL RULE:
+ * FINAL RULE v6.4:
+ * - JASA BISA JADI MONEY-MASTER (kata <= 2, tanpa harga, tidak spesifik)
  *
  * PILLAR (L1)
  * - jasa konstruksi
@@ -22,6 +23,8 @@
  *
  * MONEY MASTER (L4)
  * - sewa excavator
+ * - jasa borongan
+ * - jasa renovasi
  * - sewa alat pancang hidrolik
  * - sewa pompa air
  * - harga ready mix
@@ -44,10 +47,13 @@
  * SUB VARIANT (L8)
  * - wiremesh m8 2100x5400
  *
- * IMPORTANT FIX v6.3
+ * IMPORTANT FIX v6.4
+ * ✅ JASA MONEY-MASTER DETECTION (FIXED)
  * ✅ PRIORITAS MONEY di atas variant
  * ✅ PRIORITAS LOCATION di atas money-page
  * ✅ PRIORITAS EXACT ENTITY PILLAR
+ * ✅ "Jasa Borongan" = money-master
+ * ✅ "Jasa Renovasi" = money-master
  * ✅ "Sewa Alat Pancang Hidrolik" = money-master
  * ✅ "Harga Sewa Pile Driver" = money-page
  * ✅ "Sewa Pile Driver Bandung" = money-child
@@ -60,7 +66,7 @@
  * ✅ support geo detection lebih akurat
  * ✅ support commercial-intent normalization
  *
- * @version 6.3 FINAL STABLE
+ * @version 6.4 FINAL STABLE
  * @date 2026-05-19
  */
 
@@ -197,6 +203,16 @@
   const RENT_KEYWORDS = [
     "sewa",
     "rental"
+  ];
+
+  const JASA_KEYWORDS = [
+    "jasa",
+    "kontraktor",
+    "renovasi",
+    "pasang",
+    "borongan",
+    "waterproofing",
+    "epoxy"
   ];
 
   // =========================================================
@@ -368,7 +384,7 @@
     };
 
     console.log(
-      `${icons[type] || "📘"} [Schema v6.3] ${msg}`
+      `${icons[type] || "📘"} [Schema v6.4] ${msg}`
     );
   }
 
@@ -478,7 +494,8 @@
       text.includes("kontraktor") ||
       text.includes("waterproofing") ||
       text.includes("renovasi") ||
-      text.includes("epoxy")
+      text.includes("epoxy") ||
+      text.includes("borongan")
     ) {
       return "jasa";
     }
@@ -649,7 +666,7 @@
   }
 
   // =========================================================
-  // PAGE LEVEL DETECTION
+  // PAGE LEVEL DETECTION (FIXED v6.4 - JASA MM)
   // =========================================================
 
   function detectPageLevel(entityType) {
@@ -746,9 +763,16 @@
         .test(primaryText)
       );
 
+    const HAS_JASA_WORD =
+      JASA_KEYWORDS.some(kw =>
+        new RegExp(`\\b${kw}\\b`, "i")
+        .test(primaryText)
+      );
+
     if (
       HAS_PRICE_WORD ||
-      HAS_SEWA_WORD
+      HAS_SEWA_WORD ||
+      HAS_JASA_WORD
     ) {
 
       log(
@@ -773,10 +797,55 @@
       }
 
       // =========================================
-      // JASA
+      // JASA (FIXED v6.4 - BISA JADI MM)
       // =========================================
 
-      if (isJasa) {
+      if (isJasa && HAS_JASA_WORD) {
+
+        // Jika ada kata harga → money-page
+        if (HAS_PRICE_WORD) {
+          log(
+            "JASA + HARGA = MONEY PAGE",
+            "SUCCESS"
+          );
+          return "money-page";
+        }
+
+        // Clean dari kata jasa
+        const cleaned =
+          primaryText
+            .replace(/\b(jasa|kontraktor|renovasi|pasang|borongan|waterproofing|epoxy)\b/gi, "")
+            .trim();
+
+        const words =
+          cleaned
+            .split(/\s+/)
+            .filter(Boolean)
+            .filter(word => !STOPWORDS.has(word));
+
+        const wordCount =
+          words.length;
+
+        const specific =
+          isSpecificProduct(cleaned);
+
+        log(
+          `JASA WORD COUNT: ${wordCount}`
+        );
+
+        log(
+          `JASA SPECIFIC: ${specific}`
+        );
+
+        // MONEY-MASTER untuk JASA
+        // Contoh: "jasa borongan", "jasa renovasi"
+        if (wordCount <= 2 && !specific) {
+          log(
+            "JASA MONEY MASTER",
+            "SUCCESS"
+          );
+          return "money-master";
+        }
 
         log(
           "JASA MONEY PAGE",
@@ -826,10 +895,10 @@
       }
 
       // =========================================
-      // PRODUK / MATERIAL
+      // PRODUK / MATERIAL dengan HARGA
       // =========================================
 
-      if (HAS_PRICE_WORD) {
+      if (HAS_PRICE_WORD && !isJasa && !isSewa) {
 
         const cleaned =
           primaryText
@@ -961,15 +1030,28 @@
     }
 
     // =============================================
-    // JASA DEFAULT
+    // JASA DEFAULT (FIXED v6.4)
     // =============================================
 
     if (isJasa) {
 
-      if (
-        isLocation(primaryText)
-      ) {
+      if (isLocation(primaryText)) {
         return "money-child";
+      }
+
+      // Default JASA → money-master jika kata <= 2
+      const wordCount =
+        primaryText
+          .split(/\s+/)
+          .filter(Boolean)
+          .length;
+
+      if (wordCount <= 2) {
+        log(
+          "JASA DEFAULT MONEY MASTER",
+          "SUCCESS"
+        );
+        return "money-master";
       }
 
       return "money-page";
@@ -1349,7 +1431,7 @@
   function init() {
 
     log("================================");
-    log("AUTO SCHEMA GENERATOR v6.3");
+    log("AUTO SCHEMA GENERATOR v6.4");
     log("================================");
 
     const pageData =
