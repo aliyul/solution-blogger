@@ -1,5 +1,6 @@
 /* ============================================================
  🧠 Page Level Detector v19.0 — FINAL SEO HIERARCHY
+    ✅ JASA MONEY-MASTER DETECTION (FIXED)
     ✅ FINAL ENTITY PILLAR FIX
     ✅ FIX: PILLAR hanya EXACT MATCH tertentu
     ✅ FIX: produk interior masuk pillar
@@ -13,6 +14,7 @@
     ✅ FIX: COMMERCIAL MODIFIER DETECTION
     ✅ FIX: GEO + RENT → money-child
     ✅ FIX: SHORT COMMERCIAL KEYWORD
+    ✅ FIX: JASA BISA JADI MONEY-MASTER (kata <= 2, tanpa harga, tidak spesifik)
     ✅ FINAL: Stable 9-Level Architecture
 ============================================================ */
 
@@ -108,6 +110,15 @@
   const RENT_KEYWORDS = [
     "sewa",
     "rental"
+  ];
+
+  const JASA_KEYWORDS = [
+    "jasa",
+    "kontraktor",
+    "renovasi",
+    "pasang",
+    "borongan",
+    "waterproofing"
   ];
 
   // ============================================================
@@ -669,7 +680,7 @@
   }
 
   // ============================================================
-  // 📌 MONEY DETECTOR
+  // 📌 MONEY DETECTOR (FIXED FOR JASA MM)
   // ============================================================
 
   function detectMoneyLevel(
@@ -700,10 +711,17 @@
           lower.includes(keyword)
       );
 
+    const hasJasa =
+      JASA_KEYWORDS.some(
+        keyword =>
+          lower.includes(keyword)
+      );
+
     if (
       !hasPrice &&
       !hasPromo &&
-      !hasRent
+      !hasRent &&
+      !hasJasa
     ) {
 
       return null;
@@ -711,7 +729,7 @@
     }
 
     // ============================================================
-    // 📌 LOCATION PRIORITY
+    // 📌 LOCATION PRIORITY (untuk semua entity)
     // ============================================================
 
     if (
@@ -735,26 +753,73 @@
     }
 
     // ============================================================
-    // 📌 JASA
+    // 📌 JASA ENTITY (FIXED v19.0 - BISA JADI MONEY-MASTER)
     // ============================================================
 
     if (
-      entityType === "jasa"
+      entityType === "jasa" && hasJasa
     ) {
+
+      // Jika ada kata harga → money-page
+      if (hasPrice) {
+        return "money-page";
+      }
+
+      // Clean dari kata jasa
+      const cleaned =
+        lower
+          .replace(/\b(jasa|kontraktor|renovasi|pasang|borongan|waterproofing)\b/gi, "")
+          .trim();
+
+      const words =
+        cleaned
+          .split(/\s+/)
+          .filter(Boolean)
+          .filter(
+            word =>
+              !STOPWORDS.has(word)
+          );
+
+      const wordCount =
+        words.length;
+
+      const specific =
+        hasCommercialModifier(
+          cleaned
+        );
+
+      log(
+        `JASA WORD COUNT: ${wordCount}`
+      );
+
+      log(
+        `JASA SPECIFIC: ${specific}`
+      );
+
+      // MONEY-MASTER untuk JASA
+      // Contoh: "jasa borongan" → kata <= 2, tidak spesifik
+      if (
+        wordCount <= 2 &&
+        !specific
+      ) {
+
+        return "money-master";
+
+      }
 
       return "money-page";
 
     }
 
     // ============================================================
-    // 📌 SEWA
+    // 📌 SEWA ENTITY
     // ============================================================
 
     if (
       entityType === "sewa"
     ) {
 
-      // harga sewa excavator
+      // harga sewa excavator → money-page
       if (
         hasPrice
       ) {
@@ -794,11 +859,8 @@
         `SEWA SPECIFIC: ${specific}`
       );
 
-      // ROOT ENTITY
-      // sewa excavator
-      // sewa pompa air
-      // sewa alat pancang
-
+      // MONEY-MASTER untuk SEWA
+      // sewa excavator, sewa pompa air, sewa alat pancang
       if (
         wordCount <= 2 &&
         !specific
@@ -809,16 +871,13 @@
       }
 
       // DETAIL ENTITY
-      // sewa excavator mini
-      // sewa alat pancang hidrolik
-      // sewa diesel hammer
-
+      // sewa excavator mini, sewa alat pancang hidrolik
       return "money-page";
 
     }
 
     // ============================================================
-    // 📌 PRODUK / MATERIAL
+    // 📌 PRODUK / MATERIAL dengan HARGA
     // ============================================================
 
     if (
@@ -827,10 +886,7 @@
 
       const cleaned =
         lower
-          .replace(/\bharga\b/g, "")
-          .replace(/\bbiaya\b/g, "")
-          .replace(/\btarif\b/g, "")
-          .replace(/\bongkos\b/g, "")
+          .replace(/\b(harga|biaya|tarif|ongkos)\b/g, "")
           .trim();
 
       const words =
@@ -1016,7 +1072,7 @@
     }
 
     // ============================================================
-    // 📌 6. FALLBACK JASA
+    // 📌 6. FALLBACK JASA (FIXED v19.0)
     // ============================================================
 
     if (
@@ -1029,6 +1085,17 @@
 
         return "money-child";
 
+      }
+
+      // Default JASA → money-master jika kata <= 2
+      const wordCount =
+        primaryText
+          .split(/\s+/)
+          .filter(Boolean)
+          .length;
+
+      if (wordCount <= 2) {
+        return "money-master";
       }
 
       return "money-page";
@@ -1125,7 +1192,7 @@
   }
 
   // ============================================================
-  // 📌 MANUAL OVERRIDE
+  // 📌 MANUAL OVERRIDE (UPDATED v19.0)
   // ============================================================
 
   function setManualPageLevel(
@@ -1149,17 +1216,18 @@
 
     }
 
-    // jasa tidak boleh money-master
+    // JASA SEKARANG BOLEH JADI MONEY-MASTER (FIXED v19.0)
+    // Contoh: "jasa borongan" → money-master
+    // Hanya tetap di-log untuk informasi
     if (
       currentEntity === "jasa" &&
       level === "money-master"
     ) {
 
-      console.error(
-        "JASA cannot use money-master"
+      log(
+        `JASA allowed to be money-master: ${level}`,
+        "SUCCESS"
       );
-
-      return false;
 
     }
 
@@ -1217,7 +1285,7 @@
   );
 
   console.log(
-    "✅ Page Level Detector v19.0 Ready"
+    "✅ Page Level Detector v19.0 Ready (JASA Money-Master Fixed)"
   );
 
 })();
