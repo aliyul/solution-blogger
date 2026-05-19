@@ -1204,7 +1204,7 @@
     TYPE_LEVEL_MAP,
     VALID_ENTITY_TYPES,
 
-    version: "21.0"
+    version: "19.0"
 
   };
 
