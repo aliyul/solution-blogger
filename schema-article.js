@@ -1,49 +1,67 @@
 /**
- * AUTO-SCHEMA GENERATOR v6.2 FINAL REFINED
- * HIERARCHY FINAL + MONEY SYSTEM FIX + ENTITY PILLAR EXACT MATCH
+ * AUTO-SCHEMA GENERATOR v6.3 FINAL STABLE
+ * HIERARCHY FINAL + MONEY SYSTEM FIX + SEO CLASSIFICATION ENGINE
  *
  * FINAL RULE:
  *
- * PILLAR (L1):
+ * PILLAR (L1)
  * - jasa konstruksi
  * - sewa alat konstruksi
  * - produk konstruksi
  * - produk interior
  * - material konstruksi
  *
- * MONEY MASTER (L4):
- * - root commercial entity
+ * SUB PILLAR TIPE 2 (L2)
+ * - daftar alat berat
+ * - jenis scaffolding
+ * - kategori pompa air
+ *
+ * SUB PILLAR TIPE 1 (L3)
+ * - perbandingan alat berat
+ * - perbandingan pompa diesel
+ *
+ * MONEY MASTER (L4)
  * - sewa excavator
  * - sewa alat pancang hidrolik
+ * - sewa pompa air
  * - harga ready mix
- * - harga wiremesh
  *
- * MONEY PAGE (L5):
- * - detail commercial entity
+ * MONEY PAGE (L5)
  * - harga sewa excavator
  * - harga ready mix k300
- * - harga panel beton pagar
+ * - sewa pompa air diesel
+ * - sewa bekisting kolom
  *
- * MONEY CHILD (L6):
- * - geo commercial entity
- * - harga sewa excavator jakarta
+ * MONEY CHILD (L6)
  * - sewa excavator bandung
+ * - harga sewa alat berat subang
+ * - sewa pompa air jakarta
  *
- * IMPORTANT FIX:
- * ✅ "Sewa Alat Pancang Hidrolik" = money-master (L4)
- * ✅ ENTITY PILLAR hanya EXACT MATCH
+ * VARIANT (L7)
+ * - spesifikasi pompa diesel
+ * - mutu beton k300
+ *
+ * SUB VARIANT (L8)
+ * - wiremesh m8 2100x5400
+ *
+ * IMPORTANT FIX v6.3
  * ✅ PRIORITAS MONEY di atas variant
  * ✅ PRIORITAS LOCATION di atas money-page
- * ✅ URL CLEANER lebih stabil
- * ✅ DEFAULT PRODUK → SP2
- * ✅ SEWA tanpa harga → money-master
- * ✅ SEWA + harga → money-page
- * ✅ SEWA + lokasi → money-child
- * ✅ Produk/material generic price → money-master
- * ✅ Produk/material specific price → money-page
+ * ✅ PRIORITAS EXACT ENTITY PILLAR
+ * ✅ "Sewa Alat Pancang Hidrolik" = money-master
+ * ✅ "Harga Sewa Pile Driver" = money-page
+ * ✅ "Sewa Pile Driver Bandung" = money-child
+ * ✅ "Daftar Harga ..." = SP2, bukan variant
+ * ✅ "Standar Harga ..." = SP2
+ * ✅ cleaner URL lebih stabil
+ * ✅ keyword cleaner lebih aman
+ * ✅ stop false positive variant
+ * ✅ support slug blog /p/ dan dated url
+ * ✅ support geo detection lebih akurat
+ * ✅ support commercial-intent normalization
  *
- * @version 6.2 FINAL REFINED
- * @date 2026-05-17
+ * @version 6.3 FINAL STABLE
+ * @date 2026-05-19
  */
 
 (function () {
@@ -64,7 +82,7 @@
   };
 
   // =========================================================
-  // LEVEL MAP
+  // TYPE LEVEL MAP
   // =========================================================
 
   const TYPE_LEVEL_MAP = {
@@ -80,8 +98,7 @@
   };
 
   // =========================================================
-  // ENTITY PILLAR FINAL
-  // EXACT MATCH ONLY
+  // ENTITY PILLAR EXACT MATCH
   // =========================================================
 
   const ENTITY_PILLAR_KEYWORDS = {
@@ -123,9 +140,9 @@
     "apa itu",
     "pengertian",
     "definisi",
+    "edukasi",
     "belajar",
     "penjelasan",
-    "edukasi",
     "informasi",
     "rekomendasi"
   ];
@@ -135,10 +152,10 @@
     "versus",
     "perbandingan",
     "bandingkan",
+    "perbedaan",
     "kelebihan",
     "kekurangan",
-    "mana yang lebih baik",
-    "perbedaan"
+    "mana yang lebih baik"
   ];
 
   const SP2_KEYWORDS = [
@@ -147,11 +164,14 @@
     "daftar",
     "kategori",
     "tipe",
-    "varian"
+    "varian",
+    "list",
+    "pilihan"
   ];
 
   const VARIANT_KEYWORDS = [
     "spesifikasi",
+    "spec",
     "ukuran",
     "dimensi",
     "kapasitas",
@@ -161,8 +181,7 @@
     "type",
     "tipe",
     "standar",
-    "kualitas",
-    "spec"
+    "kualitas"
   ];
 
   // =========================================================
@@ -178,6 +197,18 @@
   const RENT_KEYWORDS = [
     "sewa",
     "rental"
+  ];
+
+  // =========================================================
+  // NON COMMERCIAL KEYWORDS
+  // =========================================================
+
+  const NON_COMMERCIAL_PREFIX = [
+    "daftar harga",
+    "standar harga",
+    "perbandingan harga",
+    "tips harga",
+    "panduan harga"
   ];
 
   // =========================================================
@@ -197,9 +228,9 @@
 
     // Jawa Barat
     "bandung",
+    "subang",
     "karawang",
     "purwakarta",
-    "subang",
     "cirebon",
     "tasikmalaya",
     "garut",
@@ -240,12 +271,12 @@
   ]);
 
   // =========================================================
-  // SPECIFIC MODIFIER
+  // SPECIFIC MODIFIERS
   // =========================================================
 
   const SPECIFIC_MODIFIERS = [
 
-    // Ready Mix
+    // Beton
     "k100",
     "k125",
     "k175",
@@ -257,7 +288,6 @@
     "k350",
     "k400",
     "k450",
-    "minimix",
 
     // Wiremesh
     "m4",
@@ -269,28 +299,35 @@
     "m10",
     "m12",
 
-    // Sewa
+    // Alat berat
     "long arm",
     "breaker",
     "vibro",
     "vibrator",
     "hydraulic",
     "hidrolik",
+    "diesel hammer",
+    "drop hammer",
+    "sheet pile",
+    "mini pile",
 
     // Produk
-    "pagar",
     "panel",
+    "pagar",
     "u ditch",
     "box culvert",
     "kanstin",
-    "full cor",
 
     // Unit
     "per m2",
     "per meter",
     "per lembar",
     "per kubik",
-    "murah"
+
+    // Commercial modifier
+    "murah",
+    "terdekat",
+    "kapasitas besar"
   ];
 
   // =========================================================
@@ -319,7 +356,9 @@
 
   function log(msg, type = "INFO") {
 
-    if (!CONFIG.DEBUG && type === "INFO") return;
+    if (!CONFIG.DEBUG && type === "INFO") {
+      return;
+    }
 
     const icons = {
       INFO: "📘",
@@ -328,7 +367,9 @@
       SUCCESS: "✅"
     };
 
-    console.log(`${icons[type] || "📘"} [Schema v6.2] ${msg}`);
+    console.log(
+      `${icons[type] || "📘"} [Schema v6.3] ${msg}`
+    );
   }
 
   // =========================================================
@@ -340,8 +381,8 @@
     if (!str) return "";
 
     return str
-      .replace(/\s+/g, " ")
       .replace(/[–—]/g, "-")
+      .replace(/\s+/g, " ")
       .trim();
   }
 
@@ -358,6 +399,18 @@
       .replace(/"/g, '\\"')
       .replace(/\n/g, " ")
       .replace(/\r/g, " ")
+      .trim();
+  }
+
+  // =========================================================
+  // NORMALIZE TEXT
+  // =========================================================
+
+  function normalizeText(text) {
+
+    return cleanText(text)
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, "")
       .trim();
   }
 
@@ -382,7 +435,7 @@
       .replace(/\s+/g, " ")
       .trim();
 
-    return cleanText(path);
+    return normalizeText(path);
   }
 
   // =========================================================
@@ -391,7 +444,8 @@
 
   function isHomePage() {
 
-    const path = location.pathname.toLowerCase();
+    const path =
+      location.pathname.toLowerCase();
 
     return (
       path === "/" ||
@@ -401,18 +455,21 @@
   }
 
   // =========================================================
-  // ENTITY TYPE
+  // ENTITY TYPE DETECTION
   // =========================================================
 
   function detectEntityType() {
 
-    const text = (
+    const text = normalizeText(
       location.href +
       " " +
       document.title +
       " " +
-      (document.querySelector("h1")?.innerText || "")
-    ).toLowerCase();
+      (
+        document.querySelector("h1")
+        ?.innerText || ""
+      )
+    );
 
     // PRIORITAS JASA
 
@@ -434,7 +491,10 @@
       text.includes("alat berat") ||
       text.includes("excavator") ||
       text.includes("crane") ||
-      text.includes("vibro") ||
+      text.includes("scaffolding") ||
+      text.includes("bekisting") ||
+      text.includes("pompa") ||
+      text.includes("pile driver") ||
       text.includes("pancang")
     ) {
       return "sewa";
@@ -458,18 +518,20 @@
   }
 
   // =========================================================
-  // LOCATION DETECTION FINAL
+  // LOCATION DETECTION
   // =========================================================
 
   function isLocation(text) {
 
     if (!text) return false;
 
-    const lower = text.toLowerCase();
+    const lower =
+      normalizeText(text);
 
     for (const city of LOCATION_WHITELIST) {
 
-      const regex = new RegExp(`\\b${city}\\b`, "i");
+      const regex =
+        new RegExp(`\\b${city}\\b`, "i");
 
       if (regex.test(lower)) {
         return true;
@@ -480,14 +542,29 @@
   }
 
   // =========================================================
-  // SPECIFIC PRODUCT
+  // NON COMMERCIAL DETECTION
+  // =========================================================
+
+  function isNonCommercialPrice(text) {
+
+    const lower =
+      normalizeText(text);
+
+    return NON_COMMERCIAL_PREFIX.some(prefix =>
+      lower.startsWith(prefix)
+    );
+  }
+
+  // =========================================================
+  // SPECIFIC PRODUCT DETECTION
   // =========================================================
 
   function isSpecificProduct(text) {
 
     if (!text) return false;
 
-    const lower = text.toLowerCase();
+    const lower =
+      normalizeText(text);
 
     for (const modifier of SPECIFIC_MODIFIERS) {
 
@@ -496,18 +573,17 @@
       }
     }
 
-    // ukuran / angka
+    // angka
 
-    if (
-      /\d/.test(lower)
-    ) {
+    if (/\d/.test(lower)) {
       return true;
     }
 
-    // dimensi
+    // ukuran
 
     if (
-      /\d+\s?(mm|cm|m|kg|ton)/i.test(lower)
+      /\d+\s?(mm|cm|m|kg|ton)/i
+      .test(lower)
     ) {
       return true;
     }
@@ -516,7 +592,7 @@
   }
 
   // =========================================================
-  // SUB VARIANT
+  // SUB VARIANT DETECTION
   // =========================================================
 
   function isSubVariant(text) {
@@ -529,13 +605,14 @@
     const xCount =
       (text.match(/x/g) || []).length;
 
-    const dimensionPattern =
-      /\d+\s?(mm|cm|m)\s?x\s?\d+/i.test(text);
+    const hasDimension =
+      /\d+\s?(mm|cm|m)\s?x\s?\d+/i
+      .test(text);
 
     return (
       numberCount >= 3 ||
       xCount >= 2 ||
-      dimensionPattern
+      hasDimension
     );
   }
 
@@ -544,10 +621,13 @@
   // EXACT MATCH ONLY
   // =========================================================
 
-  function detectEntityPillar(text, entityType) {
+  function detectEntityPillar(
+    text,
+    entityType
+  ) {
 
     const lower =
-      text.toLowerCase().trim();
+      normalizeText(text);
 
     const keywords =
       ENTITY_PILLAR_KEYWORDS[entityType] || [];
@@ -556,7 +636,10 @@
 
       if (lower === kw) {
 
-        log(`ENTITY PILLAR → ${kw}`, "SUCCESS");
+        log(
+          `ENTITY PILLAR → ${kw}`,
+          "SUCCESS"
+        );
 
         return "pillar";
       }
@@ -566,7 +649,7 @@
   }
 
   // =========================================================
-  // PAGE LEVEL DETECTION FINAL
+  // PAGE LEVEL DETECTION
   // =========================================================
 
   function detectPageLevel(entityType) {
@@ -577,34 +660,43 @@
 
     if (isHomePage()) {
 
-      log("HOME DETECTED", "SUCCESS");
+      log(
+        "HOME DETECTED",
+        "SUCCESS"
+      );
 
       return "home";
     }
 
+    // =============================================
+    // PRIMARY TEXT
+    // =============================================
+
     const urlName =
       getCleanPageNameFromUrl();
 
-    const h1 =
-      cleanText(
-        document.querySelector("h1")?.innerText || ""
-      ).toLowerCase();
+    const h1 = normalizeText(
+      document.querySelector("h1")
+      ?.innerText || ""
+    );
 
-    const title =
-      cleanText(document.title || "")
-      .toLowerCase();
+    const title = normalizeText(
+      document.title || ""
+    );
 
     const primaryText =
       cleanText(urlName || h1 || title)
       .toLowerCase();
+
+    log(
+      `PRIMARY TEXT: ${primaryText}`
+    );
 
     const isJasa =
       entityType === "jasa";
 
     const isSewa =
       entityType === "sewa";
-
-    log(`PRIMARY TEXT: ${primaryText}`);
 
     // =============================================
     // ENTITY PILLAR
@@ -621,24 +713,48 @@
     }
 
     // =============================================
+    // NON COMMERCIAL PRICE
+    // HARUS DI ATAS MONEY SYSTEM
+    // =============================================
+
+    if (
+      isNonCommercialPrice(primaryText)
+    ) {
+
+      log(
+        "NON COMMERCIAL PRICE CONTENT",
+        "SUCCESS"
+      );
+
+      return "sub-pillar-tipe-2";
+    }
+
+    // =============================================
     // MONEY SYSTEM
     // PRIORITAS TERTINGGI
     // =============================================
 
     const HAS_PRICE_WORD =
-      /\b(harga|biaya|tarif)\b/i
-      .test(primaryText);
+      PRICE_KEYWORDS.some(kw =>
+        new RegExp(`\\b${kw}\\b`, "i")
+        .test(primaryText)
+      );
 
     const HAS_SEWA_WORD =
-      /\b(sewa|rental)\b/i
-      .test(primaryText);
+      RENT_KEYWORDS.some(kw =>
+        new RegExp(`\\b${kw}\\b`, "i")
+        .test(primaryText)
+      );
 
     if (
       HAS_PRICE_WORD ||
       HAS_SEWA_WORD
     ) {
 
-      log("MONEY INTENT DETECTED", "INFO");
+      log(
+        "MONEY INTENT DETECTED",
+        "INFO"
+      );
 
       // =========================================
       // LOCATION PRIORITAS
@@ -648,7 +764,10 @@
         isLocation(primaryText)
       ) {
 
-        log("MONEY CHILD", "SUCCESS");
+        log(
+          "MONEY CHILD",
+          "SUCCESS"
+        );
 
         return "money-child";
       }
@@ -659,7 +778,10 @@
 
       if (isJasa) {
 
-        log("JASA MONEY PAGE", "SUCCESS");
+        log(
+          "JASA MONEY PAGE",
+          "SUCCESS"
+        );
 
         return "money-page";
       }
@@ -686,6 +808,7 @@
         }
 
         // sewa excavator
+        // sewa pompa air
         // sewa alat pancang hidrolik
 
         if (
@@ -710,7 +833,10 @@
 
         const cleaned =
           primaryText
-            .replace(/\b(harga|biaya|tarif)\b/gi, "")
+            .replace(
+              /\b(harga|biaya|tarif)\b/gi,
+              ""
+            )
             .replace(/\b\d{4}\b/g, "")
             .trim();
 
@@ -733,8 +859,8 @@
           `SPECIFIC PRODUCT: ${specific}`
         );
 
-        // harga ready mix
         // harga wiremesh
+        // harga ready mix
 
         if (
           wordCount <= 2 &&
@@ -835,7 +961,7 @@
     }
 
     // =============================================
-    // JASA NON MONEY
+    // JASA DEFAULT
     // =============================================
 
     if (isJasa) {
@@ -843,7 +969,6 @@
       if (
         isLocation(primaryText)
       ) {
-
         return "money-child";
       }
 
@@ -851,7 +976,7 @@
     }
 
     // =============================================
-    // SEWA NON MONEY
+    // SEWA DEFAULT
     // =============================================
 
     if (isSewa) {
@@ -859,7 +984,6 @@
       if (
         isLocation(primaryText)
       ) {
-
         return "money-child";
       }
 
@@ -896,9 +1020,13 @@
   // CLEAN ARTICLE BODY
   // =========================================================
 
-  function getCleanArticleBody(contentElement) {
+  function getCleanArticleBody(
+    contentElement
+  ) {
 
-    if (!contentElement) return "";
+    if (!contentElement) {
+      return "";
+    }
 
     const clone =
       contentElement.cloneNode(true);
@@ -908,7 +1036,9 @@
     ).forEach(el => el.remove());
 
     let text =
-      cleanText(clone.innerText || "");
+      cleanText(
+        clone.innerText || ""
+      );
 
     if (
       text.length >
@@ -929,12 +1059,18 @@
   // WORD COUNT
   // =========================================================
 
-  function getAccurateWordCount(contentElement) {
+  function getAccurateWordCount(
+    contentElement
+  ) {
 
-    if (!contentElement) return 0;
+    if (!contentElement) {
+      return 0;
+    }
 
     const text =
-      cleanText(contentElement.innerText || "");
+      cleanText(
+        contentElement.innerText || ""
+      );
 
     return text
       .split(/\s+/)
@@ -943,12 +1079,13 @@
   }
 
   // =========================================================
-  // KEYWORDS
+  // CLEAN KEYWORDS
   // =========================================================
 
   function getCleanKeywords(title) {
 
-    const keywords = new Set();
+    const keywords =
+      new Set();
 
     title
       .toLowerCase()
@@ -983,9 +1120,11 @@
 
     return {
 
-      "@context": "https://schema.org",
+      "@context":
+        "https://schema.org",
 
-      "@type": "Article",
+      "@type":
+        "Article",
 
       "headline":
         escapeJSON(data.title),
@@ -993,19 +1132,31 @@
       "description":
         escapeJSON(data.descMeta),
 
-      "image": [data.firstImg],
+      "image": [
+        data.firstImg
+      ],
 
       "author": {
-        "@type": "Organization",
-        "name": CONFIG.SITE_NAME
+        "@type":
+          "Organization",
+
+        "name":
+          CONFIG.SITE_NAME
       },
 
       "publisher": {
-        "@type": "Organization",
-        "name": CONFIG.SITE_NAME,
+        "@type":
+          "Organization",
+
+        "name":
+          CONFIG.SITE_NAME,
+
         "logo": {
-          "@type": "ImageObject",
-          "url": data.firstImg
+          "@type":
+            "ImageObject",
+
+          "url":
+            data.firstImg
         }
       },
 
@@ -1016,8 +1167,11 @@
         dates.dateModified,
 
       "mainEntityOfPage": {
-        "@type": "WebPage",
-        "@id": data.url
+        "@type":
+          "WebPage",
+
+        "@id":
+          data.url
       },
 
       "wordCount":
@@ -1051,9 +1205,11 @@
 
     return {
 
-      "@context": "https://schema.org",
+      "@context":
+        "https://schema.org",
 
-      "@type": "WebPage",
+      "@type":
+        "WebPage",
 
       "name":
         data.title,
@@ -1082,9 +1238,11 @@
 
     return {
 
-      "@context": "https://schema.org",
+      "@context":
+        "https://schema.org",
 
-      "@type": "WebPage",
+      "@type":
+        "WebPage",
 
       "name":
         "Beranda - " +
@@ -1185,13 +1343,13 @@
   }
 
   // =========================================================
-  // MAIN
+  // MAIN INIT
   // =========================================================
 
   function init() {
 
     log("================================");
-    log("AUTO SCHEMA GENERATOR v6.2");
+    log("AUTO SCHEMA GENERATOR v6.3");
     log("================================");
 
     const pageData =
