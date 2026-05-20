@@ -1,6 +1,8 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v13.0 — UNTUK betonjayareadymix.com
-    Dengan aturan SEO untuk semua entity type
+ 🧠 Smart Evergreen Detector v13.1 — UNTUK betonjayareadymix.com
+    ✅ FIX: Event listener compatibility with PLD v19.0
+    ✅ ADD: Support multiple detector versions (v19, v18, v17, legacy)
+    ✅ ADD: Fallback timeout
 ============================================================ */
 
 (function () {
@@ -46,30 +48,133 @@
   }
 
   // ============================================================
-  // 📌 TUNGGU PAGE LEVEL DETECTOR READY
+  // 📌 TUNGGU PAGE LEVEL DETECTOR READY (FIXED v13.1)
   // ============================================================
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
-      if (window.__pageLevelDetectorReady && window.pageLevelDetector) {
+      // ✅ CEK SEMUA VERSI DETECTOR
+      // v19
+      if (window.pageLevelDetectorV19 && typeof window.pageLevelDetectorV19.detect === 'function') {
+        console.log("✅ Page Level Detector v19 already ready");
         resolve();
-      } else {
-        window.addEventListener("pageLevelDetectorReady", () => resolve(), { once: true });
+        return;
       }
+      // v18
+      if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
+        console.log("✅ Page Level Detector v18 already ready");
+        resolve();
+        return;
+      }
+      // v17
+      if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
+        console.log("✅ Page Level Detector v17 already ready");
+        resolve();
+        return;
+      }
+      // legacy
+      if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
+        console.log("✅ Page Level Detector legacy already ready");
+        resolve();
+        return;
+      }
+      
+      // ✅ LISTEN TO MULTIPLE EVENTS (support all versions)
+      const onReady = () => {
+        console.log("✅ Page Level Detector ready (event)");
+        resolve();
+      };
+      
+      window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
+      window.addEventListener("pageLevelDetectorV19Ready", onReady, { once: true });
+      window.addEventListener("pageLevelDetectorv18Ready", onReady, { once: true });
+      window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
+      window.addEventListener("pageLevelDetectorV17Ready", onReady, { once: true });
+      
+      // ✅ FALLBACK TIMEOUT (10 detik)
+      setTimeout(() => {
+        console.warn("⚠️ PageLevelDetector timeout after 10s, checking one more time...");
+        
+        // Cek sekali lagi
+        if (window.pageLevelDetectorV19 || window.pageLevelDetectorV18 || window.pageLevelDetector) {
+          console.log("✅ Page Level Detector found on timeout fallback");
+          resolve();
+        } else {
+          console.error("❌ Page Level Detector not available, using fallback defaults");
+          // Buat dummy detector untuk fallback
+          window.pageLevelDetector = {
+            detect: () => 'pillar',
+            detectEntityType: () => 'produk'
+          };
+          resolve();
+        }
+      }, 10000);
     });
+  }
+
+  // ============================================================
+  // 📌 GET PAGE LEVEL DARI DETECTOR (SUPPORT MULTI VERSION)
+  // ============================================================
+  function getPageLevelAndEntityType() {
+    let pageLevel = 'pillar';
+    let entityType = 'produk';
+    
+    // PRIORITAS v19
+    if (window.pageLevelDetectorV19 && typeof window.pageLevelDetectorV19.detect === 'function') {
+      try {
+        pageLevel = window.pageLevelDetectorV19.detect();
+        entityType = window.pageLevelDetectorV19.detectEntityType();
+        console.log(`📌 [v19] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
+        return { pageLevel, entityType, version: 'v19' };
+      } catch(e) { console.warn("v19 error:", e); }
+    }
+    
+    // v18
+    if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
+      try {
+        pageLevel = window.pageLevelDetectorV18.detect();
+        entityType = window.pageLevelDetectorV18.detectEntityType();
+        console.log(`📌 [v18] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
+        return { pageLevel, entityType, version: 'v18' };
+      } catch(e) { console.warn("v18 error:", e); }
+    }
+    
+    // v17
+    if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
+      try {
+        pageLevel = window.pageLevelDetectorV17.detect();
+        entityType = window.pageLevelDetectorV17.detectEntityType();
+        console.log(`📌 [v17] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
+        return { pageLevel, entityType, version: 'v17' };
+      } catch(e) { console.warn("v17 error:", e); }
+    }
+    
+    // legacy
+    if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
+      try {
+        pageLevel = window.pageLevelDetector.detect();
+        entityType = window.pageLevelDetector.detectEntityType();
+        console.log(`📌 [legacy] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
+        return { pageLevel, entityType, version: 'legacy' };
+      } catch(e) { console.warn("legacy error:", e); }
+    }
+    
+    console.warn("⚠️ No detector found, using defaults");
+    return { pageLevel, entityType, version: 'none' };
   }
 
   // ============================================================
   // 📌 FUNGSI UTAMA DETECT EVERGREEN
   // ============================================================
   async function detectEvergreen({ customDateModified = null } = {}) {
-    console.log("🧩 detectEvergreen() v13.0 — Loading...");
+    console.log("🧩 detectEvergreen() v13.1 — Loading...");
     
     await waitForPageLevelDetector();
     
-    let pageLevel = window.pageLevelDetector.detect();
-    const entityType = window.pageLevelDetector.detectEntityType();
+    // Get page level and entity type from available detector
+    const { pageLevel: rawPageLevel, entityType, version } = getPageLevelAndEntityType();
+    let pageLevel = rawPageLevel;
     
-    console.log(`📌 Raw detection: pageLevel=${pageLevel}, entityType=${entityType}`);
+    console.log(`📌 Raw detection: pageLevel=${pageLevel}, entityType=${entityType}, detector=${version}`);
     
     // Koreksi untuk JASA
     let ruleKey = pageLevel;
@@ -178,7 +283,8 @@
       nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil,
-      ctaIntensity: (PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE).ctaIntensity
+      ctaIntensity: (PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE).ctaIntensity,
+      detectorVersion: 'v13.1'
     };
 
     window.EvergreenDetectorResults = window.AEDMetaDates;
@@ -189,12 +295,13 @@
     console.log(`   - Entity Type: ${entityType}`);
     console.log(`   - Content Type: ${finalType === 'evergreen' ? 'EVERGREEN (3 tahun)' : finalType === 'non-evergreen' ? 'NON-EVERGREEN (30 hari)' : 'FLEXIBLE (90 hari)'}`);
     console.log(`   - Next Update: ${nextUpdate}`);
+    console.log(`🧩 detectEvergreen() v13.1 — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
   
-  console.log("✅ Smart Evergreen Detector v13.0 ready");
+  console.log("✅ Smart Evergreen Detector v13.1 ready (compatible with PLD v19.0)");
   
 })();
