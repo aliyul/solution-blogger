@@ -54,7 +54,7 @@
     return new Promise((resolve) => {
       // ✅ CEK SEMUA VERSI DETECTOR
       // v19
-      if (window.pageLevelDetectorV19 && typeof window.pageLevelDetectorV19.detect === 'function') {
+      if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
         console.log("✅ Page Level Detector v19 already ready");
         resolve();
         return;
@@ -85,7 +85,7 @@
       };
       
       window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorV19Ready", onReady, { once: true });
+      window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
       window.addEventListener("pageLevelDetectorv18Ready", onReady, { once: true });
       window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
       window.addEventListener("pageLevelDetectorV17Ready", onReady, { once: true });
@@ -95,7 +95,7 @@
         console.warn("⚠️ PageLevelDetector timeout after 10s, checking one more time...");
         
         // Cek sekali lagi
-        if (window.pageLevelDetectorV19 || window.pageLevelDetectorV18 || window.pageLevelDetector) {
+        if (window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || window.pageLevelDetector) {
           console.log("✅ Page Level Detector found on timeout fallback");
           resolve();
         } else {
@@ -119,10 +119,10 @@
     let entityType = 'produk';
     
     // PRIORITAS v19
-    if (window.pageLevelDetectorV19 && typeof window.pageLevelDetectorV19.detect === 'function') {
+    if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
       try {
-        pageLevel = window.pageLevelDetectorV19.detect();
-        entityType = window.pageLevelDetectorV19.detectEntityType();
+        pageLevel = window.pageLevelDetectorv19.detect();
+        entityType = window.pageLevelDetectorv19.detectEntityType();
         console.log(`📌 [v19] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
         return { pageLevel, entityType, version: 'v19' };
       } catch(e) { console.warn("v19 error:", e); }
