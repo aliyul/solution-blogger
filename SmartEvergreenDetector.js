@@ -359,21 +359,83 @@
     }
 
     // Dapatkan label validity untuk logging
-    let validityLabel = '';
-    if (finalType === 'evergreen') {
-      if (validityDays === 1095) validityLabel = 'EVERGREEN (3 tahun)';
-      else if (validityDays === 730) validityLabel = 'EVERGREEN (2 tahun)';
-      else if (validityDays === 365) validityLabel = 'EVERGREEN (1 tahun)';
-      else validityLabel = `EVERGREEN (${validityDays} hari)`;
-    } else if (finalType === 'non-evergreen') {
-      validityLabel = `NON-EVERGREEN (${validityDays} hari)`;
-    } else if (finalType === 'flexible') {
-      if (validityDays === 90) validityLabel = 'FLEXIBLE (90 hari - JASA Master)';
-      else if (validityDays === 60) validityLabel = 'FLEXIBLE (60 hari - JASA Page)';
-      else if (validityDays === 45) validityLabel = 'FLEXIBLE (45 hari - JASA Child)';
-      else validityLabel = `FLEXIBLE (${validityDays} hari)`;
-    }
+   // Dapatkan label validity untuk ALL ENTITIES (LENGKAP)
+let validityLabel = '';
+const validityDays = validityMs / 86400000;
 
+if (finalType === 'evergreen') {
+    if (validityDays >= 1095) validityLabel = 'EVERGREEN (3 tahun)';
+    else if (validityDays >= 730) validityLabel = 'EVERGREEN (2 tahun)';
+    else if (validityDays >= 365) validityLabel = 'EVERGREEN (1 tahun)';
+    else validityLabel = `EVERGREEN (${validityDays} hari)`;
+    
+    // Detail spesifik per entity
+    if (entityType === 'jasa' && pageLevel === 'pillar') {
+        validityLabel += ' - Jasa Konstruksi';
+    } else if (entityType === 'sewa' && pageLevel === 'pillar') {
+        validityLabel += ' - Sewa Alat Konstruksi';
+    } else if (entityType === 'produk' && pageLevel === 'pillar') {
+        validityLabel += ' - Produk Konstruksi';
+    } else if (entityType === 'material' && pageLevel === 'pillar') {
+        validityLabel += ' - Material Konstruksi';
+    } else if (pageLevel === 'variant') {
+        if (entityType === 'produk') validityLabel += ' - Spesifikasi Produk';
+        else if (entityType === 'sewa') validityLabel += ' - Spesifikasi Alat';
+        else validityLabel += ' - Varian Teknis';
+    } else if (pageLevel === 'sub-pillar-tipe-2') {
+        validityLabel += ' - Daftar/Kategori';
+    } else if (pageLevel === 'sub-pillar-tipe-1') {
+        validityLabel += ' - Perbandingan';
+    }
+    
+} else if (finalType === 'non-evergreen') {
+    // PRODUK, MATERIAL, SEWA
+    if (pageLevel === 'money-master') {
+        if (entityType === 'sewa') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Sewa Master (contoh: Sewa Excavator)`;
+        else if (entityType === 'produk') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Master (contoh: Harga Wiremesh)`;
+        else if (entityType === 'material') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Material (contoh: Harga Pasir)`;
+        else validityLabel = `NON-EVERGREEN (${validityDays} hari) - Money Master`;
+    } else if (pageLevel === 'money-page') {
+        if (entityType === 'sewa') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Sewa Detail (contoh: Harga Sewa Excavator Mini)`;
+        else if (entityType === 'produk') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Detail (contoh: Harga Wiremesh M8)`;
+        else if (entityType === 'material') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Detail (contoh: Harga Pasir Cor)`;
+        else validityLabel = `NON-EVERGREEN (${validityDays} hari) - Money Page`;
+    } else if (pageLevel === 'money-child') {
+        if (entityType === 'sewa') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Sewa + Lokasi (contoh: Sewa Excavator Jakarta)`;
+        else if (entityType === 'produk') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga + Lokasi`;
+        else if (entityType === 'material') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga + Lokasi`;
+        else validityLabel = `NON-EVERGREEN (${validityDays} hari) - Money Child`;
+    } else if (pageLevel === 'variant') {
+        validityLabel = `EVERGREEN (${validityDays} hari) - Spesifikasi ${entityType === 'sewa' ? 'Alat' : 'Produk'}`;
+    } else {
+        validityLabel = `NON-EVERGREEN (${validityDays} hari) - ${entityType}/${pageLevel}`;
+    }
+    
+} else if (finalType === 'flexible') {
+    // KHUSUS JASA
+    if (pageLevel === 'money-master') {
+        validityLabel = `FLEXIBLE (${validityDays} hari) - JASA Master (tanpa harga, contoh: Jasa Borongan, Jasa Renovasi)`;
+    } else if (pageLevel === 'money-page') {
+        validityLabel = `FLEXIBLE (${validityDays} hari) - JASA Page (dengan harga, contoh: Harga Jasa Borongan)`;
+    } else if (pageLevel === 'money-child') {
+        validityLabel = `FLEXIBLE (${validityDays} hari) - JASA Child (harga + lokasi, contoh: Jasa Borongan Jakarta)`;
+    } else if (pageLevel === 'pillar') {
+        validityLabel = `EVERGREEN (${validityDays} hari) - Jasa Konstruksi (Pillar)`;
+    } else if (pageLevel === 'sub-pillar-tipe-1') {
+        validityLabel = `EVERGREEN (${validityDays} hari) - Perbandingan Jasa`;
+    } else if (pageLevel === 'sub-pillar-tipe-2') {
+        validityLabel = `EVERGREEN (${validityDays} hari) - Daftar Jenis Jasa`;
+    } else if (pageLevel === 'variant') {
+        validityLabel = `EVERGREEN (${validityDays} hari) - Spesifikasi Layanan Jasa`;
+    } else {
+        validityLabel = `FLEXIBLE (${validityDays} hari) - JASA ${pageLevel}`;
+    }
+    
+} else {
+    // Default fallback untuk yang tidak terdeteksi
+    validityLabel = `${finalType.toUpperCase()} (${validityDays} hari) - ${entityType} / ${pageLevel}`;
+     console.log(`   - Default fallback untuk yang tidak terdeteksi: ${validityLabel}`);
+}
     // Global exposure
     window.AEDMetaDates = {
       type: finalType,
