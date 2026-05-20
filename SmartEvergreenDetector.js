@@ -1,4 +1,5 @@
 /* ============================================================
+
  🧠 Smart Evergreen Detector v13.1 — UNTUK betonjayareadymix.com
     ✅ FIX: Event listener compatibility with PLD v19.0
     ✅ ADD: Support multiple detector versions (v19, v18, v17, legacy)
