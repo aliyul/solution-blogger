@@ -1,12 +1,13 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v13.3 — UNTUK betonjayareadymix.com
+ 🧠 Smart Evergreen Detector v13.4 — UNTUK betonjayareadymix.com
+    ✅ SINKRON dengan Page Level Detector v20.0
     ✅ COMPLETE RULES untuk SEMUA ENTITY
+    ✅ SUPPORT PLD v20.0, v19.0, v18, v17, legacy
     ✅ FIXED: JASA rules (money-master=90, money-page=60, money-child=45)
     ✅ FIXED: SEWA rules lengkap dengan sub-pillar & variant
     ✅ FIXED: PRODUK rules (variant 365 hari, bukan 1095)
     ✅ FIXED: MATERIAL rules (sama dengan PRODUK)
     ✅ ADD: sub-pillar-tipe-1 & sub-pillar-tipe-2 untuk semua entity
-    ✅ Support multiple detector versions (v19, v18, v17, legacy)
 ============================================================ */
 
 (function () {
@@ -58,7 +59,7 @@
   };
 
   // ============================================================
-  // 📌 ATURAN KHUSUS JASA (FIXED v13.3)
+  // 📌 ATURAN KHUSUS JASA (FIXED v13.4)
   // ============================================================
   // Konsep JASA:
   // 1. Money-Master: Layanan jasa umum (tanpa harga spesifik) → 90 hari
@@ -96,26 +97,35 @@
   }
 
   // ============================================================
-  // 📌 TUNGGU PAGE LEVEL DETECTOR READY
+  // 📌 TUNGGU PAGE LEVEL DETECTOR READY (SUPPORT v20.0, v19, v18, v17)
   // ============================================================
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
-      // Cek semua versi detector
+      // ✅ SUPPORT v20.0
+      if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
+        console.log("✅ Page Level Detector v20.0 already ready");
+        resolve();
+        return;
+      }
+      // ✅ SUPPORT v19
       if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
         console.log("✅ Page Level Detector v19 already ready");
         resolve();
         return;
       }
+      // ✅ SUPPORT v18
       if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
         console.log("✅ Page Level Detector v18 already ready");
         resolve();
         return;
       }
+      // ✅ SUPPORT v17
       if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
         console.log("✅ Page Level Detector v17 already ready");
         resolve();
         return;
       }
+      // ✅ SUPPORT legacy
       if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
         console.log("✅ Page Level Detector legacy already ready");
         resolve();
@@ -123,19 +133,36 @@
       }
       
       // Listen ke multiple events
-      const onReady = () => {
-        console.log("✅ Page Level Detector ready (event)");
+      const onReadyV20 = () => {
+        console.log("✅ Page Level Detector v20.0 ready (event)");
         resolve();
       };
       
-      window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorv18Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
+      const onReadyV19 = () => {
+        console.log("✅ Page Level Detector v19 ready (event)");
+        resolve();
+      };
+      
+      const onReadyV18 = () => {
+        console.log("✅ Page Level Detector v18 ready (event fallback)");
+        resolve();
+      };
+      
+      const onReadyLegacy = () => {
+        console.log("✅ Page Level Detector legacy ready (event fallback)");
+        resolve();
+      };
+      
+      window.addEventListener("pageLevelDetectorv20Ready", onReadyV20, { once: true });
+      window.addEventListener("pageLevelDetectorv19Ready", onReadyV19, { once: true });
+      window.addEventListener("pageLevelDetectorV19Ready", onReadyV19, { once: true });
+      window.addEventListener("pageLevelDetectorv18Ready", onReadyV18, { once: true });
+      window.addEventListener("pageLevelDetectorReady", onReadyLegacy, { once: true });
       
       // Fallback timeout 10 detik
       setTimeout(() => {
-        if (window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || window.pageLevelDetector) {
+        if (window.pageLevelDetectorv20 || window.pageLevelDetectorv19 || 
+            window.pageLevelDetectorV18 || window.pageLevelDetector) {
           console.log("✅ Page Level Detector found on timeout fallback");
           resolve();
         } else {
@@ -158,7 +185,18 @@
     let entityType = 'produk';
     let detectorVersion = 'unknown';
     
-    // PRIORITAS v19
+    // ✅ PRIORITAS v20.0
+    if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
+      try {
+        pageLevel = window.pageLevelDetectorv20.detect();
+        entityType = window.pageLevelDetectorv20.detectEntityType();
+        detectorVersion = 'v20.0';
+        console.log(`📌 [${detectorVersion}] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
+        return { pageLevel, entityType, detectorVersion };
+      } catch(e) { console.warn("v20.0 error:", e); }
+    }
+    
+    // ✅ PRIORITAS v19
     if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
       try {
         pageLevel = window.pageLevelDetectorv19.detect();
@@ -268,7 +306,7 @@
   // 📌 FUNGSI UTAMA DETECT EVERGREEN
   // ============================================================
   async function detectEvergreen({ customDateModified = null } = {}) {
-    console.log("🧩 detectEvergreen() v13.3 — Loading...");
+    console.log("🧩 detectEvergreen() v13.4 — Loading...");
     
     await waitForPageLevelDetector();
     
@@ -358,84 +396,84 @@
       document.body.classList.add(`allow-price-range`);
     }
 
-    // Dapatkan label validity untuk logging
-   // Dapatkan label validity untuk ALL ENTITIES (LENGKAP)
-let validityLabel = '';
-const validityDays = validityMs / 86400000;
+    // Dapatkan label validity untuk ALL ENTITIES (LENGKAP)
+    let validityLabel = '';
+    const validityDays = validityMs / 86400000;
 
-if (finalType === 'evergreen') {
-    if (validityDays >= 1095) validityLabel = 'EVERGREEN (3 tahun)';
-    else if (validityDays >= 730) validityLabel = 'EVERGREEN (2 tahun)';
-    else if (validityDays >= 365) validityLabel = 'EVERGREEN (1 tahun)';
-    else validityLabel = `EVERGREEN (${validityDays} hari)`;
-    
-    // Detail spesifik per entity
-    if (entityType === 'jasa' && pageLevel === 'pillar') {
-        validityLabel += ' - Jasa Konstruksi';
-    } else if (entityType === 'sewa' && pageLevel === 'pillar') {
-        validityLabel += ' - Sewa Alat Konstruksi';
-    } else if (entityType === 'produk' && pageLevel === 'pillar') {
-        validityLabel += ' - Produk Konstruksi';
-    } else if (entityType === 'material' && pageLevel === 'pillar') {
-        validityLabel += ' - Material Konstruksi';
-    } else if (pageLevel === 'variant') {
-        if (entityType === 'produk') validityLabel += ' - Spesifikasi Produk';
-        else if (entityType === 'sewa') validityLabel += ' - Spesifikasi Alat';
-        else validityLabel += ' - Varian Teknis';
-    } else if (pageLevel === 'sub-pillar-tipe-2') {
-        validityLabel += ' - Daftar/Kategori';
-    } else if (pageLevel === 'sub-pillar-tipe-1') {
-        validityLabel += ' - Perbandingan';
-    }
-    
-} else if (finalType === 'non-evergreen') {
-    // PRODUK, MATERIAL, SEWA
-    if (pageLevel === 'money-master') {
-        if (entityType === 'sewa') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Sewa Master (contoh: Sewa Excavator)`;
-        else if (entityType === 'produk') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Master (contoh: Harga Wiremesh)`;
-        else if (entityType === 'material') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Material (contoh: Harga Pasir)`;
-        else validityLabel = `NON-EVERGREEN (${validityDays} hari) - Money Master`;
-    } else if (pageLevel === 'money-page') {
-        if (entityType === 'sewa') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Sewa Detail (contoh: Harga Sewa Excavator Mini)`;
-        else if (entityType === 'produk') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Detail (contoh: Harga Wiremesh M8)`;
-        else if (entityType === 'material') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Detail (contoh: Harga Pasir Cor)`;
-        else validityLabel = `NON-EVERGREEN (${validityDays} hari) - Money Page`;
-    } else if (pageLevel === 'money-child') {
-        if (entityType === 'sewa') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Sewa + Lokasi (contoh: Sewa Excavator Jakarta)`;
-        else if (entityType === 'produk') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga + Lokasi`;
-        else if (entityType === 'material') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga + Lokasi`;
-        else validityLabel = `NON-EVERGREEN (${validityDays} hari) - Money Child`;
-    } else if (pageLevel === 'variant') {
-        validityLabel = `EVERGREEN (${validityDays} hari) - Spesifikasi ${entityType === 'sewa' ? 'Alat' : 'Produk'}`;
+    if (finalType === 'evergreen') {
+        if (validityDays >= 1095) validityLabel = 'EVERGREEN (3 tahun)';
+        else if (validityDays >= 730) validityLabel = 'EVERGREEN (2 tahun)';
+        else if (validityDays >= 365) validityLabel = 'EVERGREEN (1 tahun)';
+        else validityLabel = `EVERGREEN (${validityDays} hari)`;
+        
+        // Detail spesifik per entity
+        if (entityType === 'jasa' && pageLevel === 'pillar') {
+            validityLabel += ' - Jasa Konstruksi';
+        } else if (entityType === 'sewa' && pageLevel === 'pillar') {
+            validityLabel += ' - Sewa Alat Konstruksi';
+        } else if (entityType === 'produk' && pageLevel === 'pillar') {
+            validityLabel += ' - Produk Konstruksi';
+        } else if (entityType === 'material' && pageLevel === 'pillar') {
+            validityLabel += ' - Material Konstruksi';
+        } else if (pageLevel === 'variant') {
+            if (entityType === 'produk') validityLabel += ' - Spesifikasi Produk';
+            else if (entityType === 'sewa') validityLabel += ' - Spesifikasi Alat';
+            else validityLabel += ' - Varian Teknis';
+        } else if (pageLevel === 'sub-pillar-tipe-2') {
+            validityLabel += ' - Daftar/Kategori';
+        } else if (pageLevel === 'sub-pillar-tipe-1') {
+            validityLabel += ' - Perbandingan';
+        }
+        
+    } else if (finalType === 'non-evergreen') {
+        // PRODUK, MATERIAL, SEWA
+        if (pageLevel === 'money-master') {
+            if (entityType === 'sewa') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Sewa Master (contoh: Sewa Excavator)`;
+            else if (entityType === 'produk') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Master (contoh: Harga Wiremesh)`;
+            else if (entityType === 'material') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Material (contoh: Harga Pasir)`;
+            else validityLabel = `NON-EVERGREEN (${validityDays} hari) - Money Master`;
+        } else if (pageLevel === 'money-page') {
+            if (entityType === 'sewa') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Sewa Detail (contoh: Harga Sewa Excavator Mini)`;
+            else if (entityType === 'produk') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Detail (contoh: Harga Wiremesh M8)`;
+            else if (entityType === 'material') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga Detail (contoh: Harga Pasir Cor)`;
+            else validityLabel = `NON-EVERGREEN (${validityDays} hari) - Money Page`;
+        } else if (pageLevel === 'money-child') {
+            if (entityType === 'sewa') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Sewa + Lokasi (contoh: Sewa Excavator Jakarta)`;
+            else if (entityType === 'produk') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga + Lokasi`;
+            else if (entityType === 'material') validityLabel = `NON-EVERGREEN (${validityDays} hari) - Harga + Lokasi`;
+            else validityLabel = `NON-EVERGREEN (${validityDays} hari) - Money Child`;
+        } else if (pageLevel === 'variant') {
+            validityLabel = `EVERGREEN (${validityDays} hari) - Spesifikasi ${entityType === 'sewa' ? 'Alat' : 'Produk'}`;
+        } else {
+            validityLabel = `NON-EVERGREEN (${validityDays} hari) - ${entityType}/${pageLevel}`;
+        }
+        
+    } else if (finalType === 'flexible') {
+        // KHUSUS JASA
+        if (pageLevel === 'money-master') {
+            validityLabel = `FLEXIBLE (${validityDays} hari) - JASA Master (tanpa harga, contoh: Jasa Borongan, Jasa Renovasi)`;
+        } else if (pageLevel === 'money-page') {
+            validityLabel = `FLEXIBLE (${validityDays} hari) - JASA Page (dengan harga, contoh: Harga Jasa Borongan)`;
+        } else if (pageLevel === 'money-child') {
+            validityLabel = `FLEXIBLE (${validityDays} hari) - JASA Child (harga + lokasi, contoh: Jasa Borongan Jakarta)`;
+        } else if (pageLevel === 'pillar') {
+            validityLabel = `EVERGREEN (${validityDays} hari) - Jasa Konstruksi (Pillar)`;
+        } else if (pageLevel === 'sub-pillar-tipe-1') {
+            validityLabel = `EVERGREEN (${validityDays} hari) - Perbandingan Jasa`;
+        } else if (pageLevel === 'sub-pillar-tipe-2') {
+            validityLabel = `EVERGREEN (${validityDays} hari) - Daftar Jenis Jasa`;
+        } else if (pageLevel === 'variant') {
+            validityLabel = `EVERGREEN (${validityDays} hari) - Spesifikasi Layanan Jasa`;
+        } else {
+            validityLabel = `FLEXIBLE (${validityDays} hari) - JASA ${pageLevel}`;
+        }
+        
     } else {
-        validityLabel = `NON-EVERGREEN (${validityDays} hari) - ${entityType}/${pageLevel}`;
+        // Default fallback untuk yang tidak terdeteksi
+        validityLabel = `${finalType.toUpperCase()} (${validityDays} hari) - ${entityType} / ${pageLevel}`;
+        console.log(`   - Default fallback untuk yang tidak terdeteksi: ${validityLabel}`);
     }
     
-} else if (finalType === 'flexible') {
-    // KHUSUS JASA
-    if (pageLevel === 'money-master') {
-        validityLabel = `FLEXIBLE (${validityDays} hari) - JASA Master (tanpa harga, contoh: Jasa Borongan, Jasa Renovasi)`;
-    } else if (pageLevel === 'money-page') {
-        validityLabel = `FLEXIBLE (${validityDays} hari) - JASA Page (dengan harga, contoh: Harga Jasa Borongan)`;
-    } else if (pageLevel === 'money-child') {
-        validityLabel = `FLEXIBLE (${validityDays} hari) - JASA Child (harga + lokasi, contoh: Jasa Borongan Jakarta)`;
-    } else if (pageLevel === 'pillar') {
-        validityLabel = `EVERGREEN (${validityDays} hari) - Jasa Konstruksi (Pillar)`;
-    } else if (pageLevel === 'sub-pillar-tipe-1') {
-        validityLabel = `EVERGREEN (${validityDays} hari) - Perbandingan Jasa`;
-    } else if (pageLevel === 'sub-pillar-tipe-2') {
-        validityLabel = `EVERGREEN (${validityDays} hari) - Daftar Jenis Jasa`;
-    } else if (pageLevel === 'variant') {
-        validityLabel = `EVERGREEN (${validityDays} hari) - Spesifikasi Layanan Jasa`;
-    } else {
-        validityLabel = `FLEXIBLE (${validityDays} hari) - JASA ${pageLevel}`;
-    }
-    
-} else {
-    // Default fallback untuk yang tidak terdeteksi
-    validityLabel = `${finalType.toUpperCase()} (${validityDays} hari) - ${entityType} / ${pageLevel}`;
-     console.log(`   - Default fallback untuk yang tidak terdeteksi: ${validityLabel}`);
-}
     // Global exposure
     window.AEDMetaDates = {
       type: finalType,
@@ -448,7 +486,7 @@ if (finalType === 'evergreen') {
       usePriceValidUntil,
       ctaIntensity,
       allowPriceRange,
-      detectorVersion: detectorVersion || 'v13.3'
+      detectorVersion: detectorVersion || 'v13.4'
     };
 
     window.EvergreenDetectorResults = window.AEDMetaDates;
@@ -462,13 +500,13 @@ if (finalType === 'evergreen') {
     console.log(`   - Allow Price Range: ${allowPriceRange}`);
     console.log(`   - Use Price Valid Until: ${usePriceValidUntil}`);
     console.log(`   - Next Update: ${nextUpdate}`);
-    console.log(`🧩 detectEvergreen() v13.3 — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v13.4 — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
   
-  console.log("✅ Smart Evergreen Detector v13.3 ready (Complete rules for all entities)");
+  console.log("✅ Smart Evergreen Detector v13.4 ready (Complete rules for all entities, support PLD v20.0)");
   
 })();
