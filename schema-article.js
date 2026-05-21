@@ -1,15 +1,16 @@
 /**
- * AUTO-SCHEMA GENERATOR v6.5 FINAL STABLE
- * INTEGRATED WITH Page Level Detector v19.0
+ * AUTO-SCHEMA GENERATOR v6.6 FINAL STABLE
+ * INTEGRATED WITH Page Level Detector v20.0
  * 
- * ✅ FIX: Sinkron dengan PLD v19.0
+ * ✅ FIX: Sinkron dengan PLD v20.0 (smart pattern-based)
+ * ✅ FIX: Support PLD v20.0, v19.0, v18, v17, legacy
  * ✅ FIX: Hanya generate Article schema untuk konten edukasi
  * ✅ FIX: Money pages TIDAK pakai Article schema (biar script lain yg handle)
- * ✅ ADD: Fallback detection jika PLD v19.0 tidak tersedia
- * ✅ ADD: Event listener untuk PLD ready
+ * ✅ ADD: Event listener untuk PLD v20.0 ready
+ * ✅ ADD: Fallback detection jika PLD tidak tersedia
  *
- * @version 6.5 FINAL STABLE
- * @date 2026-05-20
+ * @version 6.6 FINAL STABLE
+ * @date 2026-05-21
  */
 
 (function () {
@@ -75,35 +76,86 @@
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅" };
-    console.log(`${icons[type] || "📘"} [Schema v6.5] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v6.6] ${msg}`);
   }
 
   // =========================================================
-  // TUNGGU PAGE LEVEL DETECTOR v19.0 READY
+  // TUNGGU PAGE LEVEL DETECTOR READY (SUPPORT v20.0, v19, v18, v17)
   // =========================================================
 
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
+      // ✅ SUPPORT v20.0 (smart pattern-based)
+      if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
+        log("Page Level Detector v20.0 already ready", "SUCCESS");
+        resolve(true);
+        return;
+      }
+      
+      // ✅ SUPPORT v19.0
       if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
         log("Page Level Detector v19.0 already ready", "SUCCESS");
         resolve(true);
         return;
       }
       
-      const onReady = () => {
+      // ✅ SUPPORT v18
+      if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
+        log("Page Level Detector v18 already ready", "SUCCESS");
+        resolve(true);
+        return;
+      }
+      
+      // ✅ SUPPORT v17
+      if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
+        log("Page Level Detector v17 already ready", "SUCCESS");
+        resolve(true);
+        return;
+      }
+      
+      // ✅ SUPPORT legacy
+      if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
+        log("Page Level Detector legacy already ready", "SUCCESS");
+        resolve(true);
+        return;
+      }
+      
+      // ✅ Event listener untuk semua versi
+      const onReadyV20 = () => {
+        log("Page Level Detector v20.0 ready (event)", "SUCCESS");
+        resolve(true);
+      };
+      
+      const onReadyV19 = () => {
         log("Page Level Detector v19.0 ready (event)", "SUCCESS");
         resolve(true);
       };
       
-      window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorV19Ready", onReady, { once: true });
+      const onReadyV18 = () => {
+        log("Page Level Detector v18 ready (event fallback)", "SUCCESS");
+        resolve(true);
+      };
       
+      const onReadyLegacy = () => {
+        log("Page Level Detector legacy ready (event fallback)", "SUCCESS");
+        resolve(true);
+      };
+      
+      window.addEventListener("pageLevelDetectorv20Ready", onReadyV20, { once: true });
+      window.addEventListener("pageLevelDetectorv19Ready", onReadyV19, { once: true });
+      window.addEventListener("pageLevelDetectorV19Ready", onReadyV19, { once: true });
+      window.addEventListener("pageLevelDetectorv18Ready", onReadyV18, { once: true });
+      window.addEventListener("pageLevelDetectorReady", onReadyLegacy, { once: true });
+      
+      // Fallback timeout
       setTimeout(() => {
-        if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
-          log("Page Level Detector v19.0 ready (timeout)", "SUCCESS");
+        if (window.pageLevelDetectorv20 || window.pageLevelDetectorv19 || 
+            window.pageLevelDetectorV18 || window.pageLevelDetectorV17 ||
+            window.pageLevelDetector) {
+          log("Page Level Detector ready (timeout)", "SUCCESS");
           resolve(true);
         } else {
-          log("Page Level Detector v19.0 not available, using standalone detection", "WARN");
+          log("Page Level Detector not available, using standalone detection", "WARN");
           resolve(false);
         }
       }, CONFIG.PLD_TIMEOUT);
@@ -111,13 +163,26 @@
   }
 
   // =========================================================
-  // GET PAGE LEVEL & ENTITY TYPE (PAKAI PLD V19.0)
+  // GET PAGE LEVEL & ENTITY TYPE (PAKAI PLD VERSI TERBARU)
   // =========================================================
 
   async function getPageLevelAndEntityType() {
     const pldReady = await waitForPageLevelDetector();
     
-    if (pldReady && window.pageLevelDetectorv19) {
+    // ✅ PRIORITAS v20.0
+    if (pldReady && window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
+      try {
+        const pageLevel = window.pageLevelDetectorv20.detect();
+        const entityType = window.pageLevelDetectorv20.detectEntityType();
+        log(`Using PLD v20.0: pageLevel=${pageLevel}, entityType=${entityType}`, "SUCCESS");
+        return { pageLevel, entityType, source: 'PLD v20.0' };
+      } catch(e) {
+        log(`Error calling PLD v20.0: ${e.message}`, "ERROR");
+      }
+    }
+    
+    // ✅ FALLBACK v19.0
+    if (pldReady && window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorv19.detect();
         const entityType = window.pageLevelDetectorv19.detectEntityType();
@@ -125,6 +190,42 @@
         return { pageLevel, entityType, source: 'PLD v19.0' };
       } catch(e) {
         log(`Error calling PLD v19.0: ${e.message}`, "ERROR");
+      }
+    }
+    
+    // ✅ FALLBACK v18
+    if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
+      try {
+        const pageLevel = window.pageLevelDetectorV18.detect();
+        const entityType = window.pageLevelDetectorV18.detectEntityType();
+        log(`Using PLD v18.7: pageLevel=${pageLevel}, entityType=${entityType}`, "SUCCESS");
+        return { pageLevel, entityType, source: 'PLD v18.7' };
+      } catch(e) {
+        log(`Error calling PLD v18.7: ${e.message}`, "ERROR");
+      }
+    }
+    
+    // ✅ FALLBACK v17
+    if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
+      try {
+        const pageLevel = window.pageLevelDetectorV17.detect();
+        const entityType = window.pageLevelDetectorV17.detectEntityType();
+        log(`Using PLD v17.0: pageLevel=${pageLevel}, entityType=${entityType}`, "SUCCESS");
+        return { pageLevel, entityType, source: 'PLD v17.0' };
+      } catch(e) {
+        log(`Error calling PLD v17.0: ${e.message}`, "ERROR");
+      }
+    }
+    
+    // ✅ FALLBACK legacy
+    if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
+      try {
+        const pageLevel = window.pageLevelDetector.detect();
+        const entityType = window.pageLevelDetector.detectEntityType();
+        log(`Using PLD legacy: pageLevel=${pageLevel}, entityType=${entityType}`, "SUCCESS");
+        return { pageLevel, entityType, source: 'legacy' };
+      } catch(e) {
+        log(`Error calling PLD legacy: ${e.message}`, "ERROR");
       }
     }
     
@@ -247,6 +348,12 @@
     // PRODUK money pages sudah ditangani script lain (Product schema)
     if (entityType === 'produk' && (pageLevel === 'money-master' || pageLevel === 'money-page' || pageLevel === 'money-child')) {
       log(`Skip Article schema for PRODUK ${pageLevel} - Product schema handled by other script`, "INFO");
+      return false;
+    }
+    
+    // MATERIAL money pages sudah ditangani script lain
+    if (entityType === 'material' && (pageLevel === 'money-master' || pageLevel === 'money-page' || pageLevel === 'money-child')) {
+      log(`Skip Article schema for MATERIAL ${pageLevel} - handled by other script`, "INFO");
       return false;
     }
     
@@ -414,10 +521,10 @@
 
   async function init() {
     log("================================");
-    log("AUTO SCHEMA GENERATOR v6.5");
+    log("AUTO SCHEMA GENERATOR v6.6");
     log("================================");
     
-    // Gunakan PLD v19.0 untuk deteksi
+    // Gunakan PLD untuk deteksi (prioritas v20.0)
     const { pageLevel, entityType, source } = await getPageLevelAndEntityType();
     
     log(`ENTITY TYPE: ${entityType} (source: ${source})`, "SUCCESS");
