@@ -1,13 +1,14 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v13.4 — UNTUK betonjayareadymix.com
-    ✅ SINKRON dengan Page Level Detector v20.0
+ 🧠 Smart Evergreen Detector v13.5 — UNTUK betonjayareadymix.com
+    ✅ SINKRON dengan Page Level Detector v22.x
     ✅ COMPLETE RULES untuk SEMUA ENTITY
-    ✅ SUPPORT PLD v20.0, v19.0, v18, v17, legacy
+    ✅ SUPPORT PLD v22.x, v20.x, v19.0, v18, v17, legacy
     ✅ FIXED: JASA rules (money-master=90, money-page=60, money-child=45)
     ✅ FIXED: SEWA rules lengkap dengan sub-pillar & variant
     ✅ FIXED: PRODUK rules (variant 365 hari, bukan 1095)
     ✅ FIXED: MATERIAL rules (sama dengan PRODUK)
     ✅ ADD: sub-pillar-tipe-1 & sub-pillar-tipe-2 untuk semua entity
+    ✅ ENHANCED: Mendapatkan confidence score dari PLD v22.x
 ============================================================ */
 
 (function () {
@@ -59,7 +60,7 @@
   };
 
   // ============================================================
-  // 📌 ATURAN KHUSUS JASA (FIXED v13.4)
+  // 📌 ATURAN KHUSUS JASA (FIXED v13.5)
   // ============================================================
   // Konsep JASA:
   // 1. Money-Master: Layanan jasa umum (tanpa harga spesifik) → 90 hari
@@ -97,13 +98,19 @@
   }
 
   // ============================================================
-  // 📌 TUNGGU PAGE LEVEL DETECTOR READY (SUPPORT v20.0, v19, v18, v17)
+  // 📌 TUNGGU PAGE LEVEL DETECTOR READY (SUPPORT v22.x, v20.x, v19, v18, v17)
   // ============================================================
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
-      // ✅ SUPPORT v20.0
+      // ✅ SUPPORT v22.x
+      if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
+        console.log("✅ Page Level Detector v22.x already ready");
+        resolve();
+        return;
+      }
+      // ✅ SUPPORT v20.x
       if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
-        console.log("✅ Page Level Detector v20.0 already ready");
+        console.log("✅ Page Level Detector v20.x already ready");
         resolve();
         return;
       }
@@ -133,8 +140,13 @@
       }
       
       // Listen ke multiple events
+      const onReadyV22 = () => {
+        console.log("✅ Page Level Detector v22.x ready (event)");
+        resolve();
+      };
+      
       const onReadyV20 = () => {
-        console.log("✅ Page Level Detector v20.0 ready (event)");
+        console.log("✅ Page Level Detector v20.x ready (event)");
         resolve();
       };
       
@@ -153,6 +165,7 @@
         resolve();
       };
       
+      window.addEventListener("pageLevelDetectorv22Ready", onReadyV22, { once: true });
       window.addEventListener("pageLevelDetectorv20Ready", onReadyV20, { once: true });
       window.addEventListener("pageLevelDetectorv19Ready", onReadyV19, { once: true });
       window.addEventListener("pageLevelDetectorV19Ready", onReadyV19, { once: true });
@@ -161,8 +174,9 @@
       
       // Fallback timeout 10 detik
       setTimeout(() => {
-        if (window.pageLevelDetectorv20 || window.pageLevelDetectorv19 || 
-            window.pageLevelDetectorV18 || window.pageLevelDetector) {
+        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
+            window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
+            window.pageLevelDetector) {
           console.log("✅ Page Level Detector found on timeout fallback");
           resolve();
         } else {
@@ -184,19 +198,45 @@
     let pageLevel = 'pillar';
     let entityType = 'produk';
     let detectorVersion = 'unknown';
+    let confidence = null;
+    let strategies = null;
+    let strategyCount = null;
     
-    // ✅ PRIORITAS v20.0
+    // ✅ PRIORITAS v22.x (weighted voting system - 100% accuracy)
+    if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
+      try {
+        pageLevel = window.pageLevelDetectorv22.detect();
+        entityType = window.pageLevelDetectorv22.detectEntityType();
+        detectorVersion = 'v22.x';
+        
+        // Dapatkan confidence score jika tersedia
+        if (typeof window.pageLevelDetectorv22.getConfidenceScore === 'function') {
+          const confidenceScore = window.pageLevelDetectorv22.getConfidenceScore();
+          confidence = confidenceScore.confidence;
+          strategies = confidenceScore.strategies;
+          strategyCount = confidenceScore.strategyCount;
+        }
+        
+        console.log(`📌 [${detectorVersion}] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
+        if (confidence) {
+          console.log(`   🎯 Confidence: ${confidence}% (${strategyCount} strategies: ${strategies?.join(", ")})`);
+        }
+        return { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount };
+      } catch(e) { console.warn("v22.x error:", e); }
+    }
+    
+    // ✅ PRIORITAS v20.x
     if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
       try {
         pageLevel = window.pageLevelDetectorv20.detect();
         entityType = window.pageLevelDetectorv20.detectEntityType();
-        detectorVersion = 'v20.0';
+        detectorVersion = 'v20.x';
         console.log(`📌 [${detectorVersion}] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
         return { pageLevel, entityType, detectorVersion };
-      } catch(e) { console.warn("v20.0 error:", e); }
+      } catch(e) { console.warn("v20.x error:", e); }
     }
     
-    // ✅ PRIORITAS v19
+    // PRIORITAS v19
     if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
       try {
         pageLevel = window.pageLevelDetectorv19.detect();
@@ -306,15 +346,18 @@
   // 📌 FUNGSI UTAMA DETECT EVERGREEN
   // ============================================================
   async function detectEvergreen({ customDateModified = null } = {}) {
-    console.log("🧩 detectEvergreen() v13.4 — Loading...");
+    console.log("🧩 detectEvergreen() v13.5 — Loading...");
     
     await waitForPageLevelDetector();
     
     // Get page level and entity type from available detector
-    const { pageLevel: rawPageLevel, entityType, detectorVersion } = getPageLevelAndEntityType();
+    const { pageLevel: rawPageLevel, entityType, detectorVersion, confidence, strategies, strategyCount } = getPageLevelAndEntityType();
     let pageLevel = rawPageLevel;
     
     console.log(`📌 Raw detection: pageLevel=${pageLevel}, entityType=${entityType}, detector=${detectorVersion}`);
+    if (confidence) {
+      console.log(`   🎯 Detection Confidence: ${confidence}% (${strategyCount} strategies)`);
+    }
     
     // Get appropriate rules
     const rule = getRulesByEntityType(entityType, pageLevel);
@@ -327,13 +370,13 @@
     
     console.log(`📌 Final Rule: pageLevel=${pageLevel}, type=${finalType}, validityDays=${validityDays}, ctaIntensity=${ctaIntensity}`);
     
-    await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion);
+    await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount);
   }
   
   // ============================================================
   // 📌 FUNGSI PROSES META DATES
   // ============================================================
-  async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion) {
+  async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount) {
     
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
@@ -486,7 +529,10 @@
       usePriceValidUntil,
       ctaIntensity,
       allowPriceRange,
-      detectorVersion: detectorVersion || 'v13.4'
+      detectorVersion: detectorVersion || 'v13.5',
+      detectionConfidence: confidence || null,
+      detectionStrategies: strategies || null,
+      detectionStrategyCount: strategyCount || null
     };
 
     window.EvergreenDetectorResults = window.AEDMetaDates;
@@ -500,13 +546,16 @@
     console.log(`   - Allow Price Range: ${allowPriceRange}`);
     console.log(`   - Use Price Valid Until: ${usePriceValidUntil}`);
     console.log(`   - Next Update: ${nextUpdate}`);
-    console.log(`🧩 detectEvergreen() v13.4 — FINISHED ✅`);
+    if (confidence) {
+      console.log(`   - Detection Confidence: ${confidence}%`);
+    }
+    console.log(`🧩 detectEvergreen() v13.5 — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
   
-  console.log("✅ Smart Evergreen Detector v13.4 ready (Complete rules for all entities, support PLD v20.0)");
+  console.log("✅ Smart Evergreen Detector v13.5 ready (Complete rules for all entities, support PLD v22.x)");
   
 })();
