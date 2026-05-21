@@ -1,15 +1,16 @@
 /**
- * AUTO-SCHEMA GENERATOR v6.6 FINAL STABLE
- * INTEGRATED WITH Page Level Detector v20.0
+ * AUTO-SCHEMA GENERATOR v6.7 FINAL STABLE
+ * INTEGRATED WITH Page Level Detector v22.x
  * 
- * ✅ FIX: Sinkron dengan PLD v20.0 (smart pattern-based)
- * ✅ FIX: Support PLD v20.0, v19.0, v18, v17, legacy
+ * ✅ FIX: Sinkron dengan PLD v22.x (weighted voting system)
+ * ✅ FIX: Support PLD v22.x, v20.x, v19.0, v18, v17, legacy
  * ✅ FIX: Hanya generate Article schema untuk konten edukasi
  * ✅ FIX: Money pages TIDAK pakai Article schema (biar script lain yg handle)
- * ✅ ADD: Event listener untuk PLD v20.0 ready
+ * ✅ ADD: Event listener untuk PLD v22.x ready
+ * ✅ ADD: Confidence score tracking dari PLD v22.x
  * ✅ ADD: Fallback detection jika PLD tidak tersedia
  *
- * @version 6.6 FINAL STABLE
+ * @version 6.7 FINAL STABLE
  * @date 2026-05-21
  */
 
@@ -75,19 +76,26 @@
 
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅" };
-    console.log(`${icons[type] || "📘"} [Schema v6.6] ${msg}`);
+    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", CONFIDENCE: "🎯" };
+    console.log(`${icons[type] || "📘"} [Schema v6.7] ${msg}`);
   }
 
   // =========================================================
-  // TUNGGU PAGE LEVEL DETECTOR READY (SUPPORT v20.0, v19, v18, v17)
+  // TUNGGU PAGE LEVEL DETECTOR READY (SUPPORT v22.x, v20.x, v19, v18, v17)
   // =========================================================
 
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
-      // ✅ SUPPORT v20.0 (smart pattern-based)
+      // ✅ SUPPORT v22.x (weighted voting system)
+      if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
+        log("Page Level Detector v22.x already ready", "SUCCESS");
+        resolve(true);
+        return;
+      }
+      
+      // ✅ SUPPORT v20.x (smart pattern-based)
       if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
-        log("Page Level Detector v20.0 already ready", "SUCCESS");
+        log("Page Level Detector v20.x already ready", "SUCCESS");
         resolve(true);
         return;
       }
@@ -121,8 +129,13 @@
       }
       
       // ✅ Event listener untuk semua versi
+      const onReadyV22 = () => {
+        log("Page Level Detector v22.x ready (event)", "SUCCESS");
+        resolve(true);
+      };
+      
       const onReadyV20 = () => {
-        log("Page Level Detector v20.0 ready (event)", "SUCCESS");
+        log("Page Level Detector v20.x ready (event)", "SUCCESS");
         resolve(true);
       };
       
@@ -141,6 +154,7 @@
         resolve(true);
       };
       
+      window.addEventListener("pageLevelDetectorv22Ready", onReadyV22, { once: true });
       window.addEventListener("pageLevelDetectorv20Ready", onReadyV20, { once: true });
       window.addEventListener("pageLevelDetectorv19Ready", onReadyV19, { once: true });
       window.addEventListener("pageLevelDetectorV19Ready", onReadyV19, { once: true });
@@ -149,9 +163,9 @@
       
       // Fallback timeout
       setTimeout(() => {
-        if (window.pageLevelDetectorv20 || window.pageLevelDetectorv19 || 
-            window.pageLevelDetectorV18 || window.pageLevelDetectorV17 ||
-            window.pageLevelDetector) {
+        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
+            window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
+            window.pageLevelDetectorV17 || window.pageLevelDetector) {
           log("Page Level Detector ready (timeout)", "SUCCESS");
           resolve(true);
         } else {
@@ -169,15 +183,42 @@
   async function getPageLevelAndEntityType() {
     const pldReady = await waitForPageLevelDetector();
     
-    // ✅ PRIORITAS v20.0
+    // ✅ PRIORITAS v22.x (weighted voting system - 100% accuracy)
+    if (pldReady && window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
+      try {
+        const pageLevel = window.pageLevelDetectorv22.detect();
+        const entityType = window.pageLevelDetectorv22.detectEntityType();
+        let confidence = null;
+        let strategies = null;
+        let strategyCount = null;
+        
+        // Dapatkan confidence score jika tersedia
+        if (typeof window.pageLevelDetectorv22.getConfidenceScore === 'function') {
+          const confidenceScore = window.pageLevelDetectorv22.getConfidenceScore();
+          confidence = confidenceScore.confidence;
+          strategies = confidenceScore.strategies;
+          strategyCount = confidenceScore.strategyCount;
+        }
+        
+        log(`Using PLD v22.x: pageLevel=${pageLevel}, entityType=${entityType}`, "SUCCESS");
+        if (confidence) {
+          log(`   🎯 Confidence: ${confidence}% (${strategyCount} strategies: ${strategies?.join(", ")})`, "CONFIDENCE");
+        }
+        return { pageLevel, entityType, source: 'PLD v22.x', confidence, strategies, strategyCount };
+      } catch(e) {
+        log(`Error calling PLD v22.x: ${e.message}`, "ERROR");
+      }
+    }
+    
+    // ✅ PRIORITAS v20.x
     if (pldReady && window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorv20.detect();
         const entityType = window.pageLevelDetectorv20.detectEntityType();
-        log(`Using PLD v20.0: pageLevel=${pageLevel}, entityType=${entityType}`, "SUCCESS");
-        return { pageLevel, entityType, source: 'PLD v20.0' };
+        log(`Using PLD v20.x: pageLevel=${pageLevel}, entityType=${entityType}`, "SUCCESS");
+        return { pageLevel, entityType, source: 'PLD v20.x' };
       } catch(e) {
-        log(`Error calling PLD v20.0: ${e.message}`, "ERROR");
+        log(`Error calling PLD v20.x: ${e.message}`, "ERROR");
       }
     }
     
@@ -521,14 +562,17 @@
 
   async function init() {
     log("================================");
-    log("AUTO SCHEMA GENERATOR v6.6");
+    log("AUTO SCHEMA GENERATOR v6.7");
     log("================================");
     
-    // Gunakan PLD untuk deteksi (prioritas v20.0)
-    const { pageLevel, entityType, source } = await getPageLevelAndEntityType();
+    // Gunakan PLD untuk deteksi (prioritas v22.x)
+    const { pageLevel, entityType, source, confidence, strategies, strategyCount } = await getPageLevelAndEntityType();
     
     log(`ENTITY TYPE: ${entityType} (source: ${source})`, "SUCCESS");
     log(`PAGE LEVEL: ${pageLevel} (L${TYPE_LEVEL_MAP[pageLevel]})`, "SUCCESS");
+    if (confidence) {
+      log(`   🎯 Detection Confidence: ${confidence}% (${strategyCount} strategies: ${strategies?.join(", ")})`, "CONFIDENCE");
+    }
     
     const pageData = extractPageData();
     
@@ -536,6 +580,9 @@
     document.body.setAttribute("data-schema-page-level", pageLevel);
     document.body.setAttribute("data-schema-entity-type", entityType);
     document.body.setAttribute("data-schema-source", source);
+    if (confidence) {
+      document.body.setAttribute("data-schema-confidence", confidence);
+    }
     
     // =============================================
     // HOMEPAGE SCHEMA
