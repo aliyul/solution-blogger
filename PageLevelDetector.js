@@ -117,7 +117,7 @@
     "pekerja", "tenaga", "ahli", "teknisi", "surveyor", "konsultan", "arsitek", "desainer", "sipil", 
     "pengeboran", "pengaspalan", "pengurukan", "pengecoran", "penimbunan", "pembongkaran", "pembersihan",
     "pengecatan", "pengelasan", "pemotongan", "pembesian", "bekisting", "scaffolding", "pondasi",
-    "struktur", "arsitektur", "interior", "eksterior", "grouting", "injection", "suntik beton", 
+    "struktur", "arsitektur", "grouting", "injection", "suntik beton", 
     "retaining wall", "bored pile", "mini pile", "sheet pile", "dropping", "stockpile", "cut and fill", 
     "test boring", "soil test", "transport", "pengiriman", "logistik", "pengadaan", "pencarian",
     "cor", "cetak", "timbun", "uruk", "galian", "gali", "angkut", "kirim", "supply", "suplai"
