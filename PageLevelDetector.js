@@ -1,5 +1,7 @@
 /* ============================================================
- 🧠 Page Level Detector v20.0 — SMART PATTERN-BASED
+ 🧠 Page Level Detector v20.1 — SMART PATTERN-BASED
+    ✅ FIX: Hapus "interior" dan "eksterior" dari MODIFIER_WORDS
+    ✅ FIX: "jasa-finishing-interior" sekarang terdeteksi sebagai MM
     ✅ TANPA keyword manual (kecuali minimal)
     ✅ Berbasis STRUKTUR dan POLA kalimat
     ✅ Deteksi entity berdasarkan konteks
@@ -39,7 +41,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌" };
-    console.log(`${icons[type] || "📘"} [PLD v20.0] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v20.1] ${message}`);
   }
 
   // ============================================================
@@ -56,7 +58,8 @@
   const PRICE_WORDS = ["harga", "biaya", "tarif", "ongkos"];
   const LOCATION_WORDS = ["jakarta", "bandung", "surabaya", "bekasi", "tangerang", "depok", "bogor"];
   
-  // Kata sifat/modifier yang mengindikasikan turunan (MP)
+  // ✅ FIX v20.1: Hapus "interior" dan "eksterior" dari MODIFIER_WORDS
+  // Karena "interior" dan "eksterior" adalah BIDANG JASA, bukan modifier
   const MODIFIER_WORDS = [
     "modern", "minimalis", "mewah", "klasik", "tradisional", "kontemporer",
     "sederhana", "elegan", "premium", "luxury", "simple", "exclusive",
@@ -146,6 +149,9 @@
       let words = core.split(/\s+/).filter(w => w.length > 2);
       words = words.filter(w => !ENTITY_TRIGGERS.jasa.includes(w));
       
+      // ✅ Hapus juga LOCATION_WORDS agar tidak terdeteksi sebagai base word
+      words = words.filter(w => !LOCATION_WORDS.includes(w));
+      
       // Hitung modifier (kata sifat/spesifikasi)
       const modifierCount = words.filter(w => MODIFIER_WORDS.includes(w)).length;
       const baseWordCount = words.filter(w => !MODIFIER_WORDS.includes(w)).length;
@@ -153,9 +159,11 @@
       log(`JASA: core="${core}", words=${JSON.stringify(words)}, base=${baseWordCount}, modifier=${modifierCount}`);
       
       // Money-Master: hanya kata dasar (1-2 kata, tanpa modifier)
+      // Contoh: "finishing interior" → baseWordCount=2, modifierCount=0 → MM ✅
       if (baseWordCount <= 2 && modifierCount === 0) return "money-master";
       
       // Money-Page: ada modifier atau kata lebih dari 2
+      // Contoh: "finishing interior modern" → baseWordCount=2, modifierCount=1 → MP ✅
       return "money-page";
     }
     
@@ -227,12 +235,12 @@
     VALID_LEVELS,
     TYPE_LEVEL_MAP,
     VALID_ENTITY_TYPES,
-    version: "20.0"
+    version: "20.1"
   };
   
   window.pageLevelDetectorv20Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv20Ready"));
   
-  console.log("✅ Page Level Detector v20.0 Ready (Smart Pattern-Based, No Manual Keywords)");
+  console.log("✅ Page Level Detector v20.1 Ready (Smart Pattern-Based, Fixed modifier words)");
   
 })();
