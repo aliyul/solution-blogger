@@ -1,9 +1,12 @@
 /* ============================================================
- 🧠 Page Level Detector v19.0 — FINAL SEO HIERARCHY
+ 🧠 Page Level Detector v19.3 — FINAL SEO HIERARCHY
     ✅ FIX: "beton cor" tidak lagi terdeteksi sebagai PILLAR
     ✅ FIX: PRODUK/MATERIAL menggunakan SUB-PILLAR-TIPE-2 sebagai default
     ✅ JASA MONEY-MASTER DETECTION (FIXED & ENHANCED)
     ✅ JASA KEYWORDS LENGKAP 180+ KATA (CONFLICT-FREE)
+    ✅ FIX: Deteksi kata hubung (dan, atau, serta) untuk semua entity
+    ✅ FIX: "Jasa Interior dan Furniture Custom" sekarang terdeteksi sebagai MP
+    ✅ UNIVERSAL CONNECTORS untuk JASA, SEWA, PRODUK, MATERIAL
     ✅ Stable 9-Level Architecture
 ============================================================ */
 
@@ -71,7 +74,7 @@
     };
 
     console.log(
-      `${icons[type] || "📘"} [PLD v19.0] ${message}`
+      `${icons[type] || "📘"} [PLD v19.3] ${message}`
     );
 
   }
@@ -121,7 +124,7 @@
   ];
 
   // ============================================================
-  // 📌 PRODUK/MATERIAL KEYWORDS (v19.0 - BARU)
+  // 📌 PRODUK/MATERIAL KEYWORDS
   // ============================================================
 
   const PRODUK_KEYWORDS = [
@@ -203,8 +206,17 @@
   // ============================================================
 
   const STOPWORDS = new Set([
-    "dan", "di", "ke", "dari", "yang", "untuk", "dengan", "atau", "ini", "itu"
+    "di", "ke", "dari", "yang", "untuk", "dengan", "ini", "itu"
   ]);
+
+  // ============================================================
+  // 📌 UNIVERSAL CONNECTORS (BARU v19.3)
+  // Berlaku untuk SEMUA entity (JASA, SEWA, PRODUK, MATERIAL)
+  // ============================================================
+
+  const CONNECTORS = [
+    "dan", "atau", "serta", "sama", "dengan", "beserta", "maupun", "lalu", "kemudian", "sambil"
+  ];
 
   // ============================================================
   // 📌 CLEAN TEXT
@@ -362,7 +374,7 @@
   }
 
   // ============================================================
-  // 📌 MONEY DETECTOR
+  // 📌 MONEY DETECTOR (FIXED v19.3 - DENGAN CONNECTORS)
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -379,39 +391,78 @@
     if (isLocation(lower)) return "money-child";
     if (hasPromo) return "money-page";
 
-    // JASA
-    if (entityType === "jasa" && hasJasa) {
-      if (hasPrice) return "money-page";
-      let cleaned = lower;
-      for (const kw of JASA_KEYWORDS) {
+    // ========================================================
+    // FUNGSI BANTU UNTUK CLEANING KATA (BERLAKU UNTUK SEMUA ENTITY)
+    // ========================================================
+    function cleanWords(text, keywordsToRemove) {
+      let cleaned = text;
+      for (const kw of keywordsToRemove) {
         cleaned = cleaned.replace(new RegExp(`\\b${kw.replace(/\s/g, "\\s")}\\b`, 'gi'), '');
       }
       cleaned = cleaned.trim();
-      const words = cleaned.split(/\s+/).filter(Boolean).filter(word => !STOPWORDS.has(word));
+      let words = cleaned.split(/\s+/).filter(Boolean);
+      // Hapus stopwords
+      words = words.filter(word => !STOPWORDS.has(word));
+      // Hapus connectors (dan, atau, serta, dll)
+      words = words.filter(word => !CONNECTORS.includes(word));
+      return words;
+    }
+
+    // ========================================================
+    // JASA ENTITY
+    // ========================================================
+    if (entityType === "jasa" && hasJasa) {
+      if (hasPrice) return "money-page";
+      
+      const words = cleanWords(lower, JASA_KEYWORDS);
       const wordCount = words.length;
-      const specific = hasCommercialModifier(cleaned);
-      if (wordCount <= 2 && !specific) return "money-master";
+      const specific = hasCommercialModifier(words.join(' '));
+      
+      log(`JASA: words=${JSON.stringify(words)}, count=${wordCount}, specific=${specific}`);
+      
+      if (wordCount <= 2 && !specific && !isLocation(lower)) {
+        return "money-master";
+      }
       return "money-page";
     }
 
-    // SEWA
+    // ========================================================
+    // SEWA ENTITY
+    // ========================================================
     if (entityType === "sewa") {
       if (hasPrice) return "money-page";
-      const cleaned = lower.replace(/\bsewa\b/g, "").replace(/\brental\b/g, "").trim();
-      const words = cleaned.split(/\s+/).filter(Boolean).filter(word => !STOPWORDS.has(word));
+      
+      let cleaned = lower.replace(/\bsewa\b/g, "").replace(/\brental\b/g, "").trim();
+      let words = cleaned.split(/\s+/).filter(Boolean);
+      words = words.filter(word => !STOPWORDS.has(word));
+      words = words.filter(word => !CONNECTORS.includes(word));
       const wordCount = words.length;
       const specific = hasCommercialModifier(cleaned);
-      if (wordCount <= 2 && !specific) return "money-master";
+      
+      log(`SEWA: words=${JSON.stringify(words)}, count=${wordCount}, specific=${specific}`);
+      
+      if (wordCount <= 2 && !specific && !isLocation(cleaned)) {
+        return "money-master";
+      }
       return "money-page";
     }
 
-    // PRODUK / MATERIAL
+    // ========================================================
+    // PRODUK / MATERIAL dengan HARGA
+    // ========================================================
     if (hasPrice) {
       const cleaned = lower.replace(/\b(harga|biaya|tarif|ongkos)\b/g, "").trim();
-      const words = cleaned.split(/\s+/).filter(Boolean);
+      let words = cleaned.split(/\s+/).filter(Boolean);
+      words = words.filter(word => !STOPWORDS.has(word));
+      words = words.filter(word => !CONNECTORS.includes(word));
       const wordCount = words.length;
       const specific = hasCommercialModifier(cleaned);
-      if (wordCount <= 2 && !specific) return "money-master";
+      
+      log(`PRODUK/MATERIAL: words=${JSON.stringify(words)}, count=${wordCount}, specific=${specific}`);
+      
+      if (wordCount <= 2 && !specific && !isLocation(cleaned)) {
+        return "money-master";
+      }
       return "money-page";
     }
 
@@ -419,7 +470,7 @@
   }
 
   // ============================================================
-  // 📌 MAIN DETECTOR (FIXED v19.0)
+  // 📌 MAIN DETECTOR (FIXED v19.3)
   // ============================================================
 
   function detectPageLevel(userOptions = {}) {
@@ -459,20 +510,18 @@
     if (moneyLevel) return moneyLevel;
 
     // ============================================================
-    // 6. PRODUK/MATERIAL DEFAULT (FIXED v19.0)
+    // 6. PRODUK/MATERIAL DEFAULT
     // ============================================================
     
     if (entityType === "produk" || entityType === "material") {
       const isSpecificProduct = PRODUK_KEYWORDS.some(kw => primaryText.includes(kw));
       const wordCount = primaryText.split(/\s+/).filter(Boolean).length;
       
-      // "beton cor", "besi beton", "pasir cor" → SUB-PILLAR-TIPE-2, BUKAN PILLAR!
       if (isSpecificProduct && wordCount <= 3) {
         log(`PRODUK/MATERIAL spesifik: "${primaryText}" → sub-pillar-tipe-2`, "SUCCESS");
         return "sub-pillar-tipe-2";
       }
       
-      // Default untuk produk/material
       if (wordCount <= 2) {
         log(`PRODUK/MATERIAL default (${wordCount} kata) → sub-pillar-tipe-2`, "INFO");
         return "sub-pillar-tipe-2";
@@ -549,13 +598,13 @@
     VALID_LEVELS,
     TYPE_LEVEL_MAP,
     VALID_ENTITY_TYPES,
-    version: "19.0"
+    version: "19.3"
   };
 
   window.pageLevelDetectorv19Ready = true;
 
   window.dispatchEvent(new Event("pageLevelDetectorv19Ready"));
 
-  console.log("✅ Page Level Detector v19.0 Ready (PRODUK/MATERIAL tidak lagi terdeteksi sebagai PILLAR)");
+  console.log("✅ Page Level Detector v19.3 Ready (Dengan deteksi connectors untuk semua entity)");
 
 })();
