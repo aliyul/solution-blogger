@@ -1,9 +1,11 @@
 /* ============================================================
- 🧠 Page Level Detector v22.2 — SMART PATTERN-BASED (FIXED)
+ 🧠 Page Level Detector v22.3 — SMART PATTERN-BASED (FIXED VARIANT)
+    ✅ FIX: "pengukuran", "pengujian", "pengecekan" tidak terdeteksi sebagai variant
+    ✅ FIX: Variant detection sekarang lebih presisi (hanya kata exact match)
+    ✅ FIX: Menambahkan NON_VARIANT_WORDS untuk mencegah false positive
     ✅ FIX: "Sewa Pompa Air" sekarang terdeteksi sebagai MM
     ✅ FIX: Alat Pattern tidak lagi meng-override word count untuk SEWA
-    ✅ FIX: Prioritas: Location > Price > Word Count untuk SEWA & JASA
-    ✅ ENHANCED: Weighted voting dengan prioritas yang lebih baik
+    ✅ PRIORITAS: Location > Price > Word Count untuk SEWA & JASA
     ✅ UNIVERSAL: Untuk semua entity (JASA, SEWA, PRODUK, MATERIAL)
     ✅ Maintenance minimal
 ============================================================ */
@@ -39,7 +41,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌" };
-    console.log(`${icons[type] || "📘"} [PLD v22.2] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.3] ${message}`);
   }
 
   // ============================================================
@@ -57,7 +59,8 @@
   const LOCATION_WORDS = [
     "jakarta", "bandung", "surabaya", "bekasi", "tangerang", "depok", "bogor",
     "medan", "semarang", "solo", "yogyakarta", "jogja", "bali", "denpasar",
-    "makassar", "palembang", "batam", "cirebon", "karawang", "purwakarta"
+    "makassar", "palembang", "batam", "cirebon", "karawang", "purwakarta",
+    "terdekat"
   ];
   
   // Kata sifat/modifier yang mengindikasikan turunan (MP)
@@ -71,6 +74,23 @@
   const STOPWORDS = new Set([
     "dan", "atau", "serta", "yang", "dari", "ke", "di", "untuk", "dengan", "ini", "itu"
   ]);
+
+  // ============================================================
+  // 📌 VARIANT KEYWORDS (PRESISI) & NON-VARIANT WORDS (FIXED v22.3)
+  // ============================================================
+
+  const VARIANT_KEYWORDS = [
+    "spesifikasi", "spec", "ukuran", "dimensi", "kapasitas", 
+    "mutu", "quality", "grade", "type", "tipe", "standar", 
+    "merk", "brand", "model", "seri"
+  ];
+
+  // Kata yang HARUS DIHINDARI (bukan variant meskipun mirip)
+  const NON_VARIANT_WORDS = [
+    "pengukuran", "pengujian", "pengecekan", "analisa", 
+    "perhitungan", "kalibrasi", "survey", "inspeksi",
+    "pengawasan", "pemeriksaan", "penelitian"
+  ];
 
   // ============================================================
   // 📌 FUNGSI DASAR
@@ -126,9 +146,27 @@
     return null;
   }
 
+  // ============================================================
+  // 📌 DETEKSI VARIANT (FIXED v22.3 - LEBIH PRESISI)
+  // ============================================================
+
   function detectVariantLevel(text) {
+    // Sub-variant: mengandung dimensi (contoh: 60x60, 10mm, 5kg)
     if (/(\d+x\d+|\d+\s*(mm|cm|m|kg|ton))/i.test(text)) return "sub-variant";
-    if (/spesifikasi|ukuran|dimensi|kapasitas|mutu|grade/.test(text)) return "variant";
+    
+    // Cek apakah termasuk NON_VARIANT_WORDS terlebih dahulu
+    if (NON_VARIANT_WORDS.some(word => text.includes(word))) {
+      log(`SKIP VARIANT: "${text}" mengandung kata non-variant`, "WARN");
+      return null; // BUKAN variant, abaikan
+    }
+    
+    // Deteksi variant dengan exact word boundary
+    for (const kw of VARIANT_KEYWORDS) {
+      if (new RegExp(`\\b${kw}\\b`, "i").test(text)) {
+        return "variant";
+      }
+    }
+    
     return null;
   }
 
@@ -150,7 +188,7 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI MONEY LEVEL (FIXED v22.2)
+  // 📌 DETEKSI MONEY LEVEL (FIXED v22.3)
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -162,7 +200,7 @@
     if (hasPriceWord) return "money-page";
     
     // ========================================================
-    // SEWA ENTITY (FIXED v22.2)
+    // SEWA ENTITY
     // ========================================================
     if (entityType === "sewa") {
       // Hapus kata "sewa" dan "rental"
@@ -176,9 +214,7 @@
       
       log(`SEWA: core="${core}", words=${JSON.stringify(words)}, count=${wordCount}, specific=${specific}`);
       
-      // ✅ MM jika wordCount <= 2 (tanpa peduli ada kata "alat" atau tidak)
-      // Contoh: "sewa pompa air" (2 kata) → MM
-      // Contoh: "sewa alat bor" (2 kata) → MM
+      // MM jika wordCount <= 2 (tanpa peduli ada kata "alat" atau tidak)
       if (wordCount <= 2 && !specific) {
         return "money-master";
       }
@@ -259,7 +295,7 @@
     const subPillar = detectSubPillarLevel(text);
     if (subPillar) return subPillar;
     
-    // 3. VARIANT
+    // 3. VARIANT (FIXED v22.3)
     const variant = detectVariantLevel(text);
     if (variant) return variant;
     
@@ -330,12 +366,12 @@
     VALID_LEVELS,
     TYPE_LEVEL_MAP,
     VALID_ENTITY_TYPES,
-    version: "22.2"
+    version: "22.3"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.2 Ready (Fixed: Sewa Pompa Air → MM)");
+  console.log("✅ Page Level Detector v22.3 Ready (Fixed variant detection: pengukuran, pengujian, dll tidak terdeteksi sebagai variant)");
   
 })();
