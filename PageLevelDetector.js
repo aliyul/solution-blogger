@@ -1,5 +1,5 @@
 /* ============================================================
- 🧠 Page Level Detector v22.3 — SMART PATTERN-BASED (FIXED VARIANT)
+ 🧠 Page Level Detector v22.4 — SMART PATTERN-BASED (KECAMATAN READY)
     ✅ FIX: "pengukuran", "pengujian", "pengecekan" tidak terdeteksi sebagai variant
     ✅ FIX: Variant detection sekarang lebih presisi (hanya kata exact match)
     ✅ FIX: Menambahkan NON_VARIANT_WORDS untuk mencegah false positive
@@ -7,6 +7,9 @@
     ✅ FIX: Alat Pattern tidak lagi meng-override word count untuk SEWA
     ✅ PRIORITAS: Location > Price > Word Count untuk SEWA & JASA
     ✅ UNIVERSAL: Untuk semua entity (JASA, SEWA, PRODUK, MATERIAL)
+    ✅ NEW: Semua kecamatan masuk ke masing-masing kabupaten/kota
+    ✅ NEW: Hierarki lokasi (Provinsi -> Kabupaten/Kota -> Kecamatan)
+    ✅ NEW: Auto-detect lokasi dari URL dan konten
     ✅ Maintenance minimal
 ============================================================ */
 
@@ -33,6 +36,127 @@
   const VALID_ENTITY_TYPES = ["produk", "material", "jasa", "sewa", "artikel"];
 
   // ============================================================
+  // 📌 DATABASE LOKASI (PROVINSI -> KABUPATEN/KOTA -> KECAMATAN)
+  // ============================================================
+
+  const LOCATION_DATABASE = {
+    // DKI JAKARTA
+    "jakarta": {
+      provinsi: "DKI Jakarta",
+      kabupaten_kota: [
+        {
+          nama: "Jakarta Pusat",
+          kecamatan: ["Gambir", "Sawah Besar", "Kemayoran", "Senen", "Cempaka Putih", "Menteng", "Tanah Abang", "Johar Baru"]
+        },
+        {
+          nama: "Jakarta Utara", 
+          kecamatan: ["Penjaringan", "Tanjung Priok", "Koja", "Kelapa Gading", "Cilincing", "Pademangan"]
+        },
+        {
+          nama: "Jakarta Barat",
+          kecamatan: ["Kembangan", "Kebon Jeruk", "Palmerah", "Grogol Petamburan", "Tambora", "Kalideres", "Cengkareng"]
+        },
+        {
+          nama: "Jakarta Selatan",
+          kecamatan: ["Setiabudi", "Mampang Prapatan", "Pasar Minggu", "Jagakarsa", "Cilandak", "Pesanggrahan", "Kebayoran Lama", "Kebayoran Baru", "Tebet", "Pancoran"]
+        },
+        {
+          nama: "Jakarta Timur",
+          kecamatan: ["Matraman", "Pulogadung", "Jatinegara", "Kramat Jati", "Pasar Rebo", "Cakung", "Duren Sawit", "Makasar", "Ciracas", "Cipayung"]
+        },
+        {
+          nama: "Kepulauan Seribu",
+          kecamatan: ["Kepulauan Seribu Utara", "Kepulauan Seribu Selatan"]
+        }
+      ]
+    },
+    // JAWA BARAT
+    "bandung": {
+      provinsi: "Jawa Barat",
+      kabupaten_kota: [
+        {
+          nama: "Bandung",
+          kecamatan: ["Andir", "Antapani", "Arcamanik", "Astana Anyar", "Babakan Ciparay", "Bandung Kidul", "Bandung Kulon", "Bandung Wetan", "Batununggal", "Bojongloa Kaler", "Bojongloa Kidul", "Cibeunying Kaler", "Cibeunying Kidul", "Cibiru", "Cicendo", "Cidadap", "Cinambo", "Coblong", "Gedebage", "Kiaracondong", "Lengkong", "Mandalajati", "Panyileukan", "Rancasari", "Regol", "Sukajadi", "Sukasari", "Sumur Bandung", "Ujungberung"]
+        },
+        {
+          nama: "Bandung Barat",
+          kecamatan: ["Batujajar", "Cihampelas", "Cikalong Wetan", "Cililin", "Cipatat", "Cipeundeuy", "Cipongkor", "Gununghalu", "Lembang", "Ngamprah", "Padalarang", "Parongpong", "Rongga", "Saguling", "Sindangkerta"]
+        },
+        {
+          nama: "Bandung Selatan",
+          kecamatan: ["Banjaran", "Bojongsoang", "Cangkuang", "Cicalengka", "Cikancung", "Cileunyi", "Cimaung", "Cimenyan", "Ciparay", "Ciwidey", "Dayeuhkolot", "Kertasari", "Kutawaringin", "Majalaya", "Margaasih", "Nagreg", "Pacet", "Pameungpeuk", "Pangalengan", "Paseh", "Pasirjambu", "Rancabali", "Rancaekek", "Solokan Jeruk", "Soreang"]
+        }
+      ]
+    },
+    "bekasi": {
+      provinsi: "Jawa Barat",
+      kabupaten_kota: [
+        {
+          nama: "Bekasi",
+          kecamatan: ["Bantargebang", "Bekasi Barat", "Bekasi Selatan", "Bekasi Timur", "Bekasi Utara", "Jatiasih", "Jatisampurna", "Medansatria", "Mustikajaya", "Pondokgede", "Pondokmelati", "Rawalumbu"]
+        },
+        {
+          nama: "Bekasi Barat",
+          kecamatan: ["Babelan", "Bojongmangu", "Cabangbungin", "Cibarusah", "Cibitung", "Cikarang Barat", "Cikarang Pusat", "Cikarang Selatan", "Cikarang Timur", "Cikarang Utara", "Karangbahagia", "Kedungwaringin", "Muaragembong", "Pebayuran", "Serang Baru", "Setu", "Sukakarya", "Sukatani", "Sukawangi", "Tambelang", "Tambun Selatan", "Tambun Utara", "Tarumajaya"]
+        }
+      ]
+    },
+    "tangerang": {
+      provinsi: "Banten",
+      kabupaten_kota: [
+        {
+          nama: "Tangerang",
+          kecamatan: ["Batuceper", "Benda", "Cibodas", "Ciledug", "Cipondoh", "Jatiuwung", "Karang Tengah", "Karawaci", "Larangan", "Neglasari", "Periuk", "Pinang", "Tangerang"]
+        },
+        {
+          nama: "Tangerang Selatan",
+          kecamatan: ["Ciputat", "Ciputat Timur", "Pamulang", "Pondok Aren", "Serpong", "Serpong Utara", "Setu"]
+        }
+      ]
+    },
+    "depok": {
+      provinsi: "Jawa Barat",
+      kabupaten_kota: [
+        {
+          nama: "Depok",
+          kecamatan: ["Beji", "Bojongsari", "Cilodong", "Cimanggis", "Cinere", "Cipayung", "Limo", "Pancoran Mas", "Sawangan", "Sukmajaya", "Tapos"]
+        }
+      ]
+    },
+    "bogor": {
+      provinsi: "Jawa Barat",
+      kabupaten_kota: [
+        {
+          nama: "Bogor",
+          kecamatan: ["Bogor Barat", "Bogor Selatan", "Bogor Timur", "Bogor Utara", "Tanah Sereal"]
+        },
+        {
+          nama: "Bogor Barat",
+          kecamatan: ["Babakan Madang", "Bojong Gede", "Caringin", "Ciampea", "Ciawi", "Cibinong", "Cibungbulang", "Cigombong", "Cijeruk", "Cileungsi", "Ciomas", "Cisarua", "Ciseeng", "Citeureup", "Dramaga", "Gunung Putri", "Gunung Sindur", "Jasinga", "Jonggol", "Kemang", "Klapanunggal", "Leuwiliang", "Leuwisadeng", "Megamendung", "Nanggung", "Pamijahan", "Parung", "Parung Panjang", "Ranca Bungur", "Rumpin", "Sukajaya", "Sukamakmur", "Sukaraja", "Tajurhalang", "Tamansari", "Tanjungsari", "Tenjo", "Tenjolaya"]
+        }
+      ]
+    },
+    "surabaya": {
+      provinsi: "Jawa Timur",
+      kabupaten_kota: [
+        {
+          nama: "Surabaya",
+          kecamatan: ["Asemrowo", "Benowo", "Bubutan", "Bulak", "Dukuh Pakis", "Gayungan", "Genteng", "Gubeng", "Gunung Anyar", "Jambangan", "Karangpilang", "Kenjeran", "Krembangan", "Lakarsantri", "Mulyorejo", "Pabean Cantian", "Pakal", "Rungkut", "Sambikerep", "Sawahan", "Semampir", "Simokerto", "Sukolilo", "Sukomanunggal", "Tambaksari", "Tandes", "Tegalsari", "Tenggilis Mejoyo", "Wiyung", "Wonocolo", "Wonokromo"]
+        }
+      ]
+    },
+    "medan": {
+      provinsi: "Sumatera Utara",
+      kabupaten_kota: [
+        {
+          nama: "Medan",
+          kecamatan: ["Medan Amplas", "Medan Area", "Medan Barat", "Medan Baru", "Medan Belawan", "Medan Deli", "Medan Denai", "Medan Helvetia", "Medan Johor", "Medan Kota", "Medan Labuhan", "Medan Maimun", "Medan Marelan", "Medan Perjuangan", "Medan Petisah", "Medan Polonia", "Medan Selayang", "Medan Sunggal", "Medan Tembung", "Medan Timur", "Medan Tuntungan"]
+        }
+      ]
+    }
+  };
+
+  // ============================================================
   // 📌 KONFIGURASI
   // ============================================================
 
@@ -40,8 +164,8 @@
 
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌" };
-    console.log(`${icons[type] || "📘"} [PLD v22.3] ${message}`);
+    const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍" };
+    console.log(`${icons[type] || "📘"} [PLD v22.4] ${message}`);
   }
 
   // ============================================================
@@ -76,21 +200,103 @@
   ]);
 
   // ============================================================
-  // 📌 VARIANT KEYWORDS (PRESISI) & NON-VARIANT WORDS (FIXED v22.3)
+  // 📌 FUNGSI DETEKSI LOKASI (HIERARKI KECAMATAN)
   // ============================================================
 
-  const VARIANT_KEYWORDS = [
-    "spesifikasi", "spec", "ukuran", "dimensi", "kapasitas", 
-    "mutu", "quality", "grade", "type", "tipe", "standar", 
-    "merk", "brand", "model", "seri"
-  ];
+  function getAllCities() {
+    return Object.keys(LOCATION_DATABASE);
+  }
 
-  // Kata yang HARUS DIHINDARI (bukan variant meskipun mirip)
-  const NON_VARIANT_WORDS = [
-    "pengukuran", "pengujian", "pengecekan", "analisa", 
-    "perhitungan", "kalibrasi", "survey", "inspeksi",
-    "pengawasan", "pemeriksaan", "penelitian"
-  ];
+  function getProvince(cityKey) {
+    return LOCATION_DATABASE[cityKey]?.provinsi || null;
+  }
+
+  function getRegencies(cityKey) {
+    return LOCATION_DATABASE[cityKey]?.kabupaten_kota || [];
+  }
+
+  function getAllRegencies() {
+    const allRegencies = [];
+    for (const [city, data] of Object.entries(LOCATION_DATABASE)) {
+      data.kabupaten_kota.forEach(regency => {
+        allRegencies.push({
+          kota_utama: city,
+          provinsi: data.provinsi,
+          kabupaten_kota: regency.nama,
+          kecamatan: regency.kecamatan
+        });
+      });
+    }
+    return allRegencies;
+  }
+
+  function getKecamatanByKabupatenKota(kabupatenKotaName) {
+    for (const [city, data] of Object.entries(LOCATION_DATABASE)) {
+      for (const regency of data.kabupaten_kota) {
+        if (regency.nama.toLowerCase() === kabupatenKotaName.toLowerCase()) {
+          return regency.kecamatan;
+        }
+      }
+    }
+    return [];
+  }
+
+  function getKecamatanByCity(cityKey) {
+    const allKecamatan = [];
+    const regencies = getRegencies(cityKey);
+    regencies.forEach(regency => {
+      allKecamatan.push(...regency.kecamatan);
+    });
+    return allKecamatan;
+  }
+
+  function detectLocationHierarchy(text) {
+    if (!text) return { provinsi: null, kabupaten_kota: null, kecamatan: null, kota_utama: null };
+    
+    const lowerText = text.toLowerCase();
+    let result = { provinsi: null, kabupaten_kota: null, kecamatan: null, kota_utama: null };
+    
+    // Deteksi kecamatan terlebih dahulu (lebih spesifik)
+    for (const [city, data] of Object.entries(LOCATION_DATABASE)) {
+      for (const regency of data.kabupaten_kota) {
+        for (const kec of regency.kecamatan) {
+          if (lowerText.includes(kec.toLowerCase())) {
+            result.kecamatan = kec;
+            result.kabupaten_kota = regency.nama;
+            result.provinsi = data.provinsi;
+            result.kota_utama = city;
+            log(`Ditemukan kecamatan: ${kec} di ${regency.nama}, ${data.provinsi}`, "LOCATION");
+            return result;
+          }
+        }
+      }
+    }
+    
+    // Deteksi kabupaten/kota
+    for (const [city, data] of Object.entries(LOCATION_DATABASE)) {
+      for (const regency of data.kabupaten_kota) {
+        if (lowerText.includes(regency.nama.toLowerCase())) {
+          result.kabupaten_kota = regency.nama;
+          result.provinsi = data.provinsi;
+          result.kota_utama = city;
+          log(`Ditemukan kabupaten/kota: ${regency.nama} di ${data.provinsi}`, "LOCATION");
+          return result;
+        }
+      }
+    }
+    
+    // Deteksi kota utama
+    for (const city of getAllCities()) {
+      if (lowerText.includes(city.toLowerCase())) {
+        result.kota_utama = city;
+        result.provinsi = getProvince(city);
+        log(`Ditemukan kota utama: ${city} di ${result.provinsi}`, "LOCATION");
+        return result;
+      }
+    }
+    
+    return result;
+  }
 
   // ============================================================
   // 📌 FUNGSI DASAR
@@ -147,8 +353,21 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI VARIANT (FIXED v22.3 - LEBIH PRESISI)
+  // 📌 DETEKSI VARIANT (FIXED v22.4 - LEBIH PRESISI)
   // ============================================================
+
+  const VARIANT_KEYWORDS = [
+    "spesifikasi", "spec", "ukuran", "dimensi", "kapasitas", 
+    "mutu", "quality", "grade", "type", "tipe", "standar", 
+    "merk", "brand", "model", "seri"
+  ];
+
+  // Kata yang HARUS DIHINDARI (bukan variant meskipun mirip)
+  const NON_VARIANT_WORDS = [
+    "pengukuran", "pengujian", "pengecekan", "analisa", 
+    "perhitungan", "kalibrasi", "survey", "inspeksi",
+    "pengawasan", "pemeriksaan", "penelitian"
+  ];
 
   function detectVariantLevel(text) {
     // Sub-variant: mengandung dimensi (contoh: 60x60, 10mm, 5kg)
@@ -188,7 +407,7 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI MONEY LEVEL (FIXED v22.3)
+  // 📌 DETEKSI MONEY LEVEL (FIXED v22.4)
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -295,7 +514,7 @@
     const subPillar = detectSubPillarLevel(text);
     if (subPillar) return subPillar;
     
-    // 3. VARIANT (FIXED v22.3)
+    // 3. VARIANT (FIXED v22.4)
     const variant = detectVariantLevel(text);
     if (variant) return variant;
     
@@ -342,16 +561,64 @@
   }
 
   // ============================================================
-  // 📌 BODY ATTRIBUTES
+  // 📌 BODY ATTRIBUTES (DENGAN LOKASI LENGKAP)
   // ============================================================
 
   function updateBodyAttributes() {
     const level = detectPageLevel();
     const entity = detectEntityType();
+    const text = getPageText();
+    const location = detectLocationHierarchy(text);
+    
     document.body.setAttribute("data-page-level", level);
     document.body.setAttribute("data-page-level-num", TYPE_LEVEL_MAP[level]);
     document.body.setAttribute("data-entity-type", entity);
-    return { pageLevel: level, pageLevelNum: TYPE_LEVEL_MAP[level], entityType: entity };
+    
+    // Set location attributes
+    if (location.provinsi) {
+      document.body.setAttribute("data-location-provinsi", location.provinsi);
+    }
+    if (location.kabupaten_kota) {
+      document.body.setAttribute("data-location-kabupaten-kota", location.kabupaten_kota);
+    }
+    if (location.kecamatan) {
+      document.body.setAttribute("data-location-kecamatan", location.kecamatan);
+    }
+    if (location.kota_utama) {
+      document.body.setAttribute("data-location-kota-utama", location.kota_utama);
+    }
+    
+    log(`Location detected: Provinsi=${location.provinsi}, Kab/Kota=${location.kabupaten_kota}, Kecamatan=${location.kecamatan}`, "SUCCESS");
+    
+    return { 
+      pageLevel: level, 
+      pageLevelNum: TYPE_LEVEL_MAP[level], 
+      entityType: entity,
+      location: location
+    };
+  }
+
+  // ============================================================
+  // 📌 HELPER FUNCTIONS UNTUK AKSES DATA LOKASI
+  // ============================================================
+
+  function getLocationDatabase() {
+    return LOCATION_DATABASE;
+  }
+
+  function getAllKecamatan() {
+    const allKec = [];
+    for (const [city, data] of Object.entries(LOCATION_DATABASE)) {
+      for (const regency of data.kabupaten_kota) {
+        allKec.push(...regency.kecamatan.map(k => ({
+          kecamatan: k,
+          kabupaten_kota: regency.nama,
+          kota_utama: city,
+          provinsi: data.provinsi
+        })));
+      }
+    }
+    return allKec;
   }
 
   // ============================================================
@@ -366,12 +633,23 @@
     VALID_LEVELS,
     TYPE_LEVEL_MAP,
     VALID_ENTITY_TYPES,
-    version: "22.3"
+    // Location functions
+    getLocationDatabase,
+    getAllCities,
+    getProvince,
+    getRegencies,
+    getAllRegencies,
+    getKecamatanByKabupatenKota,
+    getKecamatanByCity,
+    getAllKecamatan,
+    detectLocationHierarchy,
+    version: "22.4"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.3 Ready (Fixed variant detection: pengukuran, pengujian, dll tidak terdeteksi sebagai variant)");
+  console.log("✅ Page Level Detector v22.4 Ready (Dengan Hierarki Kecamatan Lengkap)");
+  console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan dari berbagai kabupaten/kota");
   
 })();
