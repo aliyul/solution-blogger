@@ -1,5 +1,8 @@
 /* ============================================================
- 🧠 Page Level Detector v22.4 — SMART PATTERN-BASED (KECAMATAN READY)
+ 🧠 Page Level Detector v22.5 — SMART PATTERN-BASED (VARIANT FIXED)
+    ✅ FIX v22.5: Variant TIDAK campur dengan MP (K250/K300 tetap MP)
+    ✅ FIX v22.5: Variant hanya jika ada KATA KUNCI VARIANT
+    ✅ FIX v22.5: Technical specs (K225, K250, K300) tetap MP
     ✅ FIX: "pengukuran", "pengujian", "pengecekan" tidak terdeteksi sebagai variant
     ✅ FIX: Variant detection sekarang lebih presisi (hanya kata exact match)
     ✅ FIX: Menambahkan NON_VARIANT_WORDS untuk mencegah false positive
@@ -164,8 +167,8 @@
 
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍" };
-    console.log(`${icons[type] || "📘"} [PLD v22.4] ${message}`);
+    const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬" };
+    console.log(`${icons[type] || "📘"} [PLD v22.5] ${message}`);
   }
 
   // ============================================================
@@ -198,6 +201,33 @@
   const STOPWORDS = new Set([
     "dan", "atau", "serta", "yang", "dari", "ke", "di", "untuk", "dengan", "ini", "itu"
   ]);
+
+  // ============================================================
+  // 📌 VARIANT KEYWORDS & TECHNICAL SPECS (FIXED v22.5)
+  // ============================================================
+
+  // ✅ FIX v22.5: VARIANT hanya jika ada KATA KUNCI INI
+  const VARIANT_KEYWORDS = [
+    "spesifikasi", "spec", "detail spesifikasi",
+    "mutu", "kualitas", "quality",
+    "ukuran", "dimensi",
+    "grade", "type", "tipe", "model",
+    "standar", "merk", "brand", "seri"
+  ];
+
+  // ❌ BUKAN VARIANT: Technical specs (K250, K300, dll) tetap MP
+  const TECHNICAL_SPECS = [
+    "k225", "k250", "k300", "k350", "k400", "k500",
+    "fc", "m6", "m8", "m10", "m12", "m16", "m20",
+    "b0", "b1", "b2", "b3", "sni"
+  ];
+
+  // Kata yang HARUS DIHINDARI (bukan variant meskipun mirip)
+  const NON_VARIANT_WORDS = [
+    "pengukuran", "pengujian", "pengecekan", "analisa", 
+    "perhitungan", "kalibrasi", "survey", "inspeksi",
+    "pengawasan", "pemeriksaan", "penelitian"
+  ];
 
   // ============================================================
   // 📌 FUNGSI DETEKSI LOKASI (HIERARKI KECAMATAN)
@@ -353,35 +383,57 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI VARIANT (FIXED v22.4 - LEBIH PRESISI)
+  // 📌 DETEKSI TECHNICAL SPEC (K250, K300, dll) - BUKAN VARIANT
   // ============================================================
 
-  const VARIANT_KEYWORDS = [
-    "spesifikasi", "spec", "ukuran", "dimensi", "kapasitas", 
-    "mutu", "quality", "grade", "type", "tipe", "standar", 
-    "merk", "brand", "model", "seri"
-  ];
+  function hasTechnicalSpec(text) {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+    for (const spec of TECHNICAL_SPECS) {
+      if (new RegExp(`\\b${spec}\\b`, "i").test(lower)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
-  // Kata yang HARUS DIHINDARI (bukan variant meskipun mirip)
-  const NON_VARIANT_WORDS = [
-    "pengukuran", "pengujian", "pengecekan", "analisa", 
-    "perhitungan", "kalibrasi", "survey", "inspeksi",
-    "pengawasan", "pemeriksaan", "penelitian"
-  ];
+  // ============================================================
+  // 📌 DETEKSI VARIANT (FIXED v22.5 - LEBIH PRESISI)
+  // ============================================================
 
-  function detectVariantLevel(text) {
-    // Sub-variant: mengandung dimensi (contoh: 60x60, 10mm, 5kg)
-    if (/(\d+x\d+|\d+\s*(mm|cm|m|kg|ton))/i.test(text)) return "sub-variant";
+  function isSubVariant(text) {
+    if (!text) return false;
+    let score = 0;
+    // Pola dimensi: 60x60, 40x40x120
+    if ((text.match(/\d+x\d+/gi) || []).length >= 1) score += 2;
+    // Angka dengan satuan: 10mm, 5cm, 2m, 100kg
+    if (/\d+\s*(mm|cm|m|meter|kg|ton)/i.test(text)) score++;
+    // Minimal 2 angka berbeda
+    const uniqueNumbers = (text.match(/\d+/g) || []).filter((v, i, a) => a.indexOf(v) === i);
+    if (uniqueNumbers.length >= 2) score++;
+    return score >= 2;
+  }
+
+  function detectVariantLevel(text, entityType) {
+    // Sub-variant: format khusus (60x60, 10mm, 5kg)
+    if (isSubVariant(text)) return "sub-variant";
+    
+    // ✅ FIX v22.5: Technical specs (K250, K300) BUKAN variant
+    if (hasTechnicalSpec(text)) {
+      log(`"${text}" mengandung technical spec (K250/K300/dll) → BUKAN variant, tetap MP`, "VARIANT");
+      return null;
+    }
     
     // Cek apakah termasuk NON_VARIANT_WORDS terlebih dahulu
     if (NON_VARIANT_WORDS.some(word => text.includes(word))) {
       log(`SKIP VARIANT: "${text}" mengandung kata non-variant`, "WARN");
-      return null; // BUKAN variant, abaikan
+      return null;
     }
     
-    // Deteksi variant dengan exact word boundary
+    // ✅ FIX v22.5: Deteksi variant hanya jika ada KATA KUNCI VARIANT
     for (const kw of VARIANT_KEYWORDS) {
       if (new RegExp(`\\b${kw}\\b`, "i").test(text)) {
+        log(`"${text}" → VARIANT (keyword: ${kw})`, "VARIANT");
         return "variant";
       }
     }
@@ -407,7 +459,7 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI MONEY LEVEL (FIXED v22.4)
+  // 📌 DETEKSI MONEY LEVEL (FIXED v22.5)
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -475,7 +527,8 @@
       words = words.filter(w => !LOCATION_WORDS.includes(w));
       
       const wordCount = words.length;
-      const specific = /\d/.test(text) || /(k225|k250|k300|m6|m8|m10)/i.test(text);
+      // Technical spec (K250, K300) dianggap specific → tetap MP
+      const specific = /\d/.test(text) || hasTechnicalSpec(text);
       
       log(`PRODUK/MATERIAL: words=${JSON.stringify(words)}, count=${wordCount}, specific=${specific}`);
       
@@ -514,8 +567,8 @@
     const subPillar = detectSubPillarLevel(text);
     if (subPillar) return subPillar;
     
-    // 3. VARIANT (FIXED v22.4)
-    const variant = detectVariantLevel(text);
+    // 3. VARIANT (FIXED v22.5 - dengan entityType)
+    const variant = detectVariantLevel(text, entityType);
     if (variant) return variant;
     
     // 4. MONEY
@@ -643,13 +696,17 @@
     getKecamatanByCity,
     getAllKecamatan,
     detectLocationHierarchy,
-    version: "22.4"
+    // Utility functions
+    hasTechnicalSpec,
+    isSubVariant,
+    version: "22.5"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.4 Ready (Dengan Hierarki Kecamatan Lengkap)");
+  console.log("✅ Page Level Detector v22.5 Ready (Variant tidak campur dengan MP)");
   console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan dari berbagai kabupaten/kota");
+  console.log("🔬 Technical specs (K225, K250, K300, dll) tetap MP, bukan Variant");
   
 })();
