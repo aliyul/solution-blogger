@@ -1,5 +1,8 @@
 /* ============================================================
- 🧠 Page Level Detector v22.5 — SMART PATTERN-BASED (VARIANT FIXED)
+ 🧠 Page Level Detector v22.6 — SMART PATTERN-BASED (JASA FIXED)
+    ✅ FIX v22.6: JASA dengan material spec (baja, beton, dll) → MP, bukan MM
+    ✅ FIX v22.6: "jasa baja", "jasa beton" sekarang terdeteksi sebagai MP
+    ✅ FIX v22.6: Menambahkan MATERIAL_SPEC_WORDS untuk mencegah false MM
     ✅ FIX v22.5: Variant TIDAK campur dengan MP (K250/K300 tetap MP)
     ✅ FIX v22.5: Variant hanya jika ada KATA KUNCI VARIANT
     ✅ FIX v22.5: Technical specs (K225, K250, K300) tetap MP
@@ -168,7 +171,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬" };
-    console.log(`${icons[type] || "📘"} [PLD v22.5] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.6] ${message}`);
   }
 
   // ============================================================
@@ -195,6 +198,36 @@
     "modern", "minimalis", "mewah", "klasik", "tradisional", "kontemporer",
     "sederhana", "elegan", "premium", "luxury", "simple", "exclusive",
     "custom", "tanah", "beton", "batu", "kayu", "besi", "baja"
+  ];
+
+  // ============================================================
+  // 📌 JASA MATERIAL SPEC WORDS (FIXED v22.6)
+  // ============================================================
+
+  // Daftar kata yang menunjukkan spesifikasi material (harus MP, bukan MM)
+  const MATERIAL_SPEC_WORDS = [
+    // Material konstruksi
+    "baja", "ringan", "baja ringan", "beton", "readymix", "ready mix",
+    "kanstin", "pembatas", "pengaman", "struktur", "dinding",
+    "pondasi", "atap", "genteng", "keramik", "marmer", "granit",
+    "plafon", "gypsum", "partisi", "dak", "cor", "pile", "sheet",
+    "tiang", "balok", "kolom", "sloof", "ring", "balk", "kuda-kuda",
+    "drainase", "irigasi", "box culvert", "u ditch", "paving",
+    "split", "batu", "pasir", "semen", "besi", "kayu", "bambu",
+    "genteng", "bata", "batako", "hebel", "gypsum", "plafon",
+    
+    // Pekerjaan spesifik
+    "pasang", "bangun", "renovasi", "perbaikan", "instalasi",
+    "pemasangan", "pembuatan", "perbaikan", "perawatan",
+    
+    // Jenis pekerjaan
+    "finishing", "cat", "epoxy", "lampu", "wallpaper",
+    "eksterior", "interior", "lantai", "dinding",
+    
+    // Spesifikasi teknis
+    "k225", "k250", "k300", "k350", "k400", "k500",
+    "fc", "m6", "m8", "m10", "m12", "m16", "m20",
+    "sni", "standar", "mutu", "kualitas"
   ];
 
   // Stopwords yang dihapus
@@ -459,7 +492,7 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI MONEY LEVEL (FIXED v22.5)
+  // 📌 DETEKSI MONEY LEVEL (FIXED v22.6)
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -495,7 +528,7 @@
     }
     
     // ========================================================
-    // JASA ENTITY
+    // JASA ENTITY (FIXED v22.6)
     // ========================================================
     if (entityType === "jasa") {
       // Hapus kata "jasa"
@@ -508,13 +541,18 @@
       const modifierCount = words.filter(w => MODIFIER_WORDS.includes(w)).length;
       const baseWordCount = words.filter(w => !MODIFIER_WORDS.includes(w)).length;
       
-      log(`JASA: core="${core.substring(0, 60)}...", base=${baseWordCount}, modifier=${modifierCount}`);
+      // ✅ FIX v22.6: Cek apakah ada MATERIAL_SPEC_WORDS
+      const hasMaterialSpec = words.some(w => MATERIAL_SPEC_WORDS.includes(w));
       
-      // MM jika baseWordCount <= 2 dan tidak ada modifier
-      if (baseWordCount <= 2 && modifierCount === 0) {
+      log(`JASA: core="${core.substring(0, 60)}...", base=${baseWordCount}, modifier=${modifierCount}, materialSpec=${hasMaterialSpec}`);
+      
+      // ✅ FIX v22.6: MM hanya jika baseWordCount <= 2, tidak ada modifier, DAN tidak ada material spec
+      if (baseWordCount <= 2 && modifierCount === 0 && !hasMaterialSpec) {
+        log(`JASA → MONEY-MASTER: "${text}" (base=${baseWordCount}, no modifier, no material spec)`, "SUCCESS");
         return "money-master";
       }
       
+      log(`JASA → MONEY-PAGE: "${text}" (base=${baseWordCount}, modifier=${modifierCount}, materialSpec=${hasMaterialSpec})`, "INFO");
       return "money-page";
     }
     
@@ -603,10 +641,11 @@
       const core = text.replace(/\bjasa\b/g, "").trim();
       const words = core.split(/\s+/).filter(w => w.length > 2);
       const hasModifier = MODIFIER_WORDS.some(m => words.includes(m));
-      if (words.length <= 2 && !hasModifier) {
-        strategies.push("Word Count (≤2 words, no modifier → MM)");
+      const hasMaterialSpec = words.some(w => MATERIAL_SPEC_WORDS.includes(w));
+      if (words.length <= 2 && !hasModifier && !hasMaterialSpec) {
+        strategies.push("Word Count (≤2 words, no modifier, no material spec → MM)");
       } else {
-        strategies.push("Word Count (≥3 words or has modifier → MP)");
+        strategies.push("Word Count (≥3 words or has modifier or material spec → MP)");
       }
     }
     
@@ -699,14 +738,17 @@
     // Utility functions
     hasTechnicalSpec,
     isSubVariant,
-    version: "22.5"
+    // New v22.6
+    MATERIAL_SPEC_WORDS,
+    version: "22.6"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.5 Ready (Variant tidak campur dengan MP)");
+  console.log("✅ Page Level Detector v22.6 Ready (JASA dengan material spec → MP)");
   console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan dari berbagai kabupaten/kota");
   console.log("🔬 Technical specs (K225, K250, K300, dll) tetap MP, bukan Variant");
+  console.log("🏗️  JASA dengan material spec (baja, beton, kanstin, dll) → MP, bukan MM");
   
 })();
