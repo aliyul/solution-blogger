@@ -1,8 +1,10 @@
 /* ============================================================
- 🧠 Page Level Detector v22.6 — SMART PATTERN-BASED (JASA FIXED)
+ 🧠 Page Level Detector v22.7 — SMART PATTERN-BASED (JASA OTOMATIS)
+    ✅ FIX v22.7: Deteksi MM/MP JASA OTOMATIS (>= 2 → MP, <= 1 → MM)
+    ✅ FIX v22.7: Tidak perlu tambah manual MATERIAL_SPEC_WORDS
+    ✅ FIX v22.7: Angka (3d, k250) otomatis terdeteksi sebagai MP
+    ✅ FIX v22.7: Konsisten dengan Breadcrumb v10.2
     ✅ FIX v22.6: JASA dengan material spec (baja, beton, dll) → MP, bukan MM
-    ✅ FIX v22.6: "jasa baja", "jasa beton" sekarang terdeteksi sebagai MP
-    ✅ FIX v22.6: Menambahkan MATERIAL_SPEC_WORDS untuk mencegah false MM
     ✅ FIX v22.5: Variant TIDAK campur dengan MP (K250/K300 tetap MP)
     ✅ FIX v22.5: Variant hanya jika ada KATA KUNCI VARIANT
     ✅ FIX v22.5: Technical specs (K225, K250, K300) tetap MP
@@ -159,6 +161,55 @@
           kecamatan: ["Medan Amplas", "Medan Area", "Medan Barat", "Medan Baru", "Medan Belawan", "Medan Deli", "Medan Denai", "Medan Helvetia", "Medan Johor", "Medan Kota", "Medan Labuhan", "Medan Maimun", "Medan Marelan", "Medan Perjuangan", "Medan Petisah", "Medan Polonia", "Medan Selayang", "Medan Sunggal", "Medan Tembung", "Medan Timur", "Medan Tuntungan"]
         }
       ]
+    },
+    "makassar": {
+      provinsi: "Sulawesi Selatan",
+      kabupaten_kota: [
+        {
+          nama: "Makassar",
+          kecamatan: ["Biringkanaya", "Bontoala", "Mamajang", "Manggala", "Mariso", "Panakkukang", "Rappocini", "Tallo", "Tamalanrea", "Tamalate", "Ujung Pandang", "Ujung Tanah", "Wajo"]
+        }
+      ]
+    },
+    "bali": {
+      provinsi: "Bali",
+      kabupaten_kota: [
+        {
+          nama: "Denpasar",
+          kecamatan: ["Denpasar Barat", "Denpasar Selatan", "Denpasar Timur", "Denpasar Utara"]
+        },
+        {
+          nama: "Badung",
+          kecamatan: ["Abiansemal", "Kuta", "Kuta Selatan", "Kuta Utara", "Mengwi", "Petang"]
+        }
+      ]
+    },
+    "semarang": {
+      provinsi: "Jawa Tengah",
+      kabupaten_kota: [
+        {
+          nama: "Semarang",
+          kecamatan: ["Banyumanik", "Candisari", "Gajahmungkur", "Gayamsari", "Genuk", "Gunungpati", "Mijen", "Ngaliyan", "Pedurungan", "Semarang Barat", "Semarang Selatan", "Semarang Tengah", "Semarang Timur", "Semarang Utara", "Tembalang", "Tugu"]
+        }
+      ]
+    },
+    "yogyakarta": {
+      provinsi: "DI Yogyakarta",
+      kabupaten_kota: [
+        {
+          nama: "Yogyakarta",
+          kecamatan: ["Danurejan", "Gedongtengen", "Gondokusuman", "Gondomanan", "Jetis", "Kotagede", "Kraton", "Mantrijeron", "Mergangsan", "Ngampilan", "Pakualaman", "Tegalrejo", "Umbulharjo", "Wirobrajan"]
+        }
+      ]
+    },
+    "solo": {
+      provinsi: "Jawa Tengah",
+      kabupaten_kota: [
+        {
+          nama: "Surakarta",
+          kecamatan: ["Banjarsari", "Jebres", "Laweyan", "Pasar Kliwon", "Serengan"]
+        }
+      ]
     }
   };
 
@@ -171,7 +222,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬" };
-    console.log(`${icons[type] || "📘"} [PLD v22.6] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.7] ${message}`);
   }
 
   // ============================================================
@@ -186,10 +237,56 @@
   };
 
   const PRICE_WORDS = ["harga", "biaya", "tarif", "ongkos"];
+  
+  // ============================================================
+  // 📌 LOCATION WORDS (UPDATED v22.7 - LENGKAP)
+  // ============================================================
+
   const LOCATION_WORDS = [
-    "jakarta", "bandung", "surabaya", "bekasi", "tangerang", "depok", "bogor",
-    "medan", "semarang", "solo", "yogyakarta", "jogja", "bali", "denpasar",
-    "makassar", "palembang", "batam", "cirebon", "karawang", "purwakarta",
+    // Jabodetabek
+    "jakarta", "jakarta pusat", "jakarta barat", "jakarta selatan", "jakarta timur", "jakarta utara",
+    "bogor", "kota bogor", "kabupaten bogor",
+    "depok", "kota depok",
+    "tangerang", "kota tangerang", "kota tangerang selatan", "kabupaten tangerang",
+    "bekasi", "kota bekasi", "kabupaten bekasi",
+    
+    // Jawa Barat
+    "bandung", "kota bandung", "kabupaten bandung",
+    "karawang", "kabupaten karawang",
+    "purwakarta", "kabupaten purwakarta",
+    "cikarang", "cikarang barat", "cikarang pusat", "cikarang selatan", "cikarang timur", "cikarang utara",
+    "subang", "kabupaten subang",
+    "cirebon", "kota cirebon", "kabupaten cirebon",
+    
+    // Jawa Tengah & DIY
+    "semarang", "kota semarang", "kabupaten semarang",
+    "solo", "surakarta", "kota surakarta",
+    "pekalongan", "tegal", "magelang", "sukoharjo", "boyolali", "klaten",
+    "jogja", "yogyakarta", "kota yogyakarta", "kabupaten sleman", "bantul", "gunungkidul", "kulon progo",
+    
+    // Jawa Timur
+    "surabaya", "kota surabaya",
+    "malang", "kota malang", "kabupaten malang",
+    "kediri", "kota kediri", "kabupaten kediri",
+    "gresik", "sidoarjo", "mojokerto", "pasuruan", "probolinggo", "jember", "banyuwangi", "madiun",
+    
+    // Sumatera
+    "medan", "kota medan",
+    "palembang", "pekanbaru", "padang", "lampung", "bandar lampung", "batam", "tanjungpinang",
+    "aceh", "banda aceh", "jambi", "bengkulu", "pangkal pinang",
+    
+    // Kalimantan
+    "pontianak", "balikpapan", "samarinda", "banjarmasin", "palangkaraya",
+    
+    // Sulawesi
+    "makassar", "kota makassar",
+    "manado", "palu", "kendari", "gorontalo",
+    
+    // Bali & Nusa Tenggara
+    "bali", "kabupaten badung", "kota denpasar", "denpasar", "gianyar", "tabanan", "bangli", "karangasem", "klungkung", "buleleng", "jembrana",
+    "mataram", "kupang",
+    
+    // Lainnya
     "terdekat"
   ];
   
@@ -201,38 +298,21 @@
   ];
 
   // ============================================================
-  // 📌 JASA MATERIAL SPEC WORDS (FIXED v22.6)
+  // 📌 JASA CLEAN WORDS (FIXED v22.7 - OTOMATIS)
   // ============================================================
 
-  // Daftar kata yang menunjukkan spesifikasi material (harus MP, bukan MM)
-  const MATERIAL_SPEC_WORDS = [
-    // Material konstruksi
-    "baja", "ringan", "baja ringan", "beton", "readymix", "ready mix",
-    "kanstin", "pembatas", "pengaman", "struktur", "dinding",
-    "pondasi", "atap", "genteng", "keramik", "marmer", "granit",
-    "plafon", "gypsum", "partisi", "dak", "cor", "pile", "sheet",
-    "tiang", "balok", "kolom", "sloof", "ring", "balk", "kuda-kuda",
-    "drainase", "irigasi", "box culvert", "u ditch", "paving",
-    "split", "batu", "pasir", "semen", "besi", "kayu", "bambu",
-    "genteng", "bata", "batako", "hebel", "gypsum", "plafon",
-    
-    // Pekerjaan spesifik
-    "pasang", "bangun", "renovasi", "perbaikan", "instalasi",
-    "pemasangan", "pembuatan", "perbaikan", "perawatan",
-    
-    // Jenis pekerjaan
-    "finishing", "cat", "epoxy", "lampu", "wallpaper",
-    "eksterior", "interior", "lantai", "dinding",
-    
-    // Spesifikasi teknis
-    "k225", "k250", "k300", "k350", "k400", "k500",
-    "fc", "m6", "m8", "m10", "m12", "m16", "m20",
-    "sni", "standar", "mutu", "kualitas"
+  // Hanya daftar kata yang SANGAT UMUM dan HARUS dihapus
+  const JASA_ULTRA_COMMON_WORDS = [
+    "jasa", "kontraktor", "tukang", "borongan", "renovasi",
+    "pasang", "bangun", "perbaikan", "instalasi", "proyek",
+    "cor", "gali", "urug", "angkut", "service", "servis"
   ];
 
   // Stopwords yang dihapus
   const STOPWORDS = new Set([
-    "dan", "atau", "serta", "yang", "dari", "ke", "di", "untuk", "dengan", "ini", "itu"
+    "dan", "atau", "serta", "yang", "dari", "ke", "di", "untuk", 
+    "dengan", "ini", "itu", "akan", "telah", "sudah", "masih",
+    "pada", "oleh", "karena", "sehingga", "setelah", "sebelum"
   ]);
 
   // ============================================================
@@ -482,7 +562,7 @@
     if (!text) return false;
     const lower = cleanText(text);
     for (const city of LOCATION_WORDS) {
-      if (new RegExp(`\\b${city}\\b`, "i").test(lower)) return true;
+      if (new RegExp(`\\b${city.replace(/\s+/g, '\\s+')}\\b`, "i").test(lower)) return true;
     }
     return false;
   }
@@ -492,7 +572,32 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI MONEY LEVEL (FIXED v22.6)
+  // 📌 CLEAN JASA TEXT (FIXED v22.7 - OTOMATIS)
+  // ============================================================
+
+  function cleanJasaText(text) {
+    if (!text) return "";
+    
+    let cleaned = text.toLowerCase();
+    
+    // 1. Hapus kata ultra-common
+    for (const kw of JASA_ULTRA_COMMON_WORDS) {
+      cleaned = cleaned.replace(new RegExp(`\\b${kw}\\b`, "g"), " ");
+    }
+    
+    // 2. Hapus stopwords
+    for (const sw of STOPWORDS) {
+      cleaned = cleaned.replace(new RegExp(`\\b${sw}\\b`, "g"), " ");
+    }
+    
+    // 3. Normalisasi spasi
+    cleaned = cleaned.replace(/\s+/g, " ").trim();
+    
+    return cleaned;
+  }
+
+  // ============================================================
+  // 📌 DETEKSI MONEY LEVEL (FIXED v22.7 - OTOMATIS)
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -507,52 +612,53 @@
     // SEWA ENTITY
     // ========================================================
     if (entityType === "sewa") {
-      // Hapus kata "sewa" dan "rental"
       let core = text.replace(/\bsewa\b/g, "").replace(/\brental\b/g, "").trim();
       let words = core.split(/\s+/).filter(w => w.length > 2);
       words = words.filter(w => !STOPWORDS.has(w));
-      words = words.filter(w => !LOCATION_WORDS.includes(w));
+      words = words.filter(w => !LOCATION_WORDS.some(loc => w.includes(loc)));
       
       const wordCount = words.length;
       const specific = /\d/.test(core) || /(mini|hidrolik|diesel|breaker)/i.test(core);
       
       log(`SEWA: core="${core}", words=${JSON.stringify(words)}, count=${wordCount}, specific=${specific}`);
       
-      // MM jika wordCount <= 2 (tanpa peduli ada kata "alat" atau tidak)
       if (wordCount <= 2 && !specific) {
         return "money-master";
       }
-      
-      // MP jika wordCount >= 3
       return "money-page";
     }
     
     // ========================================================
-    // JASA ENTITY (FIXED v22.6)
+    // JASA ENTITY (FIXED v22.7 - OTOMATIS)
     // ========================================================
     if (entityType === "jasa") {
-      // Hapus kata "jasa"
-      let core = text.replace(/\bjasa\b/g, "").trim();
-      let words = core.split(/\s+/).filter(w => w.length > 2);
-      words = words.filter(w => !ENTITY_TRIGGERS.jasa.includes(w));
-      words = words.filter(w => !LOCATION_WORDS.includes(w));
-      words = words.filter(w => !STOPWORDS.has(w));
+      // Bersihkan teks JASA
+      const core = cleanJasaText(text);
       
-      const modifierCount = words.filter(w => MODIFIER_WORDS.includes(w)).length;
-      const baseWordCount = words.filter(w => !MODIFIER_WORDS.includes(w)).length;
+      // Hitung kata yang tersisa (minimal 2 karakter)
+      const remainingWords = core.split(/\s+/).filter(w => w.length >= 2);
+      const wordCount = remainingWords.length;
       
-      // ✅ FIX v22.6: Cek apakah ada MATERIAL_SPEC_WORDS
-      const hasMaterialSpec = words.some(w => MATERIAL_SPEC_WORDS.includes(w));
+      // Cek apakah ada angka (indikasi spesifikasi)
+      const hasNumber = /\d/.test(core);
       
-      log(`JASA: core="${core.substring(0, 60)}...", base=${baseWordCount}, modifier=${modifierCount}, materialSpec=${hasMaterialSpec}`);
+      // Cek apakah ada lokasi
+      const hasLocation = isLocation(core);
       
-      // ✅ FIX v22.6: MM hanya jika baseWordCount <= 2, tidak ada modifier, DAN tidak ada material spec
-      if (baseWordCount <= 2 && modifierCount === 0 && !hasMaterialSpec) {
-        log(`JASA → MONEY-MASTER: "${text}" (base=${baseWordCount}, no modifier, no material spec)`, "SUCCESS");
+      // Cek apakah ada modifier
+      const hasModifier = MODIFIER_WORDS.some(m => core.includes(m));
+      
+      log(`JASA (auto): "${text}" → core: "${core}", words: ${wordCount}, hasNumber: ${hasNumber}, hasLocation: ${hasLocation}, hasModifier: ${hasModifier}`);
+      
+      // ✅ LOGIKA OTOMATIS v22.7:
+      // - Jika remaining words <= 1 DAN tidak ada angka DAN tidak ada lokasi DAN tidak ada modifier → MM
+      // - Selain itu → MP
+      if (wordCount <= 1 && !hasNumber && !hasLocation && !hasModifier) {
+        log(`JASA → MONEY-MASTER: "${text}" (remaining words: ${wordCount})`, "SUCCESS");
         return "money-master";
       }
       
-      log(`JASA → MONEY-PAGE: "${text}" (base=${baseWordCount}, modifier=${modifierCount}, materialSpec=${hasMaterialSpec})`, "INFO");
+      log(`JASA → MONEY-PAGE: "${text}" (remaining words: ${wordCount})`, "INFO");
       return "money-page";
     }
     
@@ -562,10 +668,9 @@
     if (entityType === "produk" || entityType === "material") {
       let words = text.split(/\s+/).filter(w => w.length > 2);
       words = words.filter(w => !STOPWORDS.has(w));
-      words = words.filter(w => !LOCATION_WORDS.includes(w));
+      words = words.filter(w => !LOCATION_WORDS.some(loc => w.includes(loc)));
       
       const wordCount = words.length;
-      // Technical spec (K250, K300) dianggap specific → tetap MP
       const specific = /\d/.test(text) || hasTechnicalSpec(text);
       
       log(`PRODUK/MATERIAL: words=${JSON.stringify(words)}, count=${wordCount}, specific=${specific}`);
@@ -638,14 +743,16 @@
         strategies.push("Word Count (≥3 words → MP)");
       }
     } else if (entityType === "jasa") {
-      const core = text.replace(/\bjasa\b/g, "").trim();
-      const words = core.split(/\s+/).filter(w => w.length > 2);
-      const hasModifier = MODIFIER_WORDS.some(m => words.includes(m));
-      const hasMaterialSpec = words.some(w => MATERIAL_SPEC_WORDS.includes(w));
-      if (words.length <= 2 && !hasModifier && !hasMaterialSpec) {
-        strategies.push("Word Count (≤2 words, no modifier, no material spec → MM)");
+      const core = cleanJasaText(text);
+      const words = core.split(/\s+/).filter(w => w.length >= 2);
+      const hasNumber = /\d/.test(core);
+      const hasLocation = isLocation(core);
+      const hasModifier = MODIFIER_WORDS.some(m => core.includes(m));
+      
+      if (words.length <= 1 && !hasNumber && !hasLocation && !hasModifier) {
+        strategies.push("Auto: remaining words ≤ 1, no number, no location, no modifier → MM");
       } else {
-        strategies.push("Word Count (≥3 words or has modifier or material spec → MP)");
+        strategies.push("Auto: remaining words ≥ 2 or has number/location/modifier → MP");
       }
     }
     
@@ -738,17 +845,17 @@
     // Utility functions
     hasTechnicalSpec,
     isSubVariant,
-    // New v22.6
-    MATERIAL_SPEC_WORDS,
-    version: "22.6"
+    cleanJasaText,
+    version: "22.7"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.6 Ready (JASA dengan material spec → MP)");
+  console.log("✅ Page Level Detector v22.7 Ready (JASA OTOMATIS - >= 2 → MP, <= 1 → MM)");
   console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan dari berbagai kabupaten/kota");
   console.log("🔬 Technical specs (K225, K250, K300, dll) tetap MP, bukan Variant");
-  console.log("🏗️  JASA dengan material spec (baja, beton, kanstin, dll) → MP, bukan MM");
+  console.log("🏗️  JASA: remaining words >= 2 → MP, <= 1 → MM (otomatis)");
+  console.log("📝 Tidak perlu tambah manual MATERIAL_SPEC_WORDS untuk kata baru!");
   
 })();
