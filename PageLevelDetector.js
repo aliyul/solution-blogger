@@ -299,14 +299,59 @@
   // 📌 VARIANT KEYWORDS & TECHNICAL SPECS
   // ============================================================
 
-  const VARIANT_KEYWORDS = [
+ // ============================================================
+// 📌 VARIANT KEYWORDS (FIXED v22.10 - KONSISTEN DENGAN BREADCRUMB)
+// ============================================================
+
+const VARIANT_KEYWORDS = [
+    // Keyword utama variant
     "spesifikasi", "spec", "detail spesifikasi",
     "mutu", "kualitas", "quality",
     "ukuran", "dimensi",
     "grade", "type", "tipe", "model",
-    "standar", "merk", "brand", "seri"
-  ];
-
+    "standar", "merk", "brand", "seri",
+    
+    // Metode & Teknik
+    "metode", "cara", "teknik", "prosedur",
+    "tahapan", "langkah", "proses",
+    
+    // Desain & Bentuk
+    "desain", "bentuk", "gaya", "pola",
+    "motif", "corak", "variasi",
+    
+    // Kapasitas & Dimensi
+    "kapasitas", "beban", "daya", "volume",
+    "kedalaman", "ketebalan", "lebar", "panjang", "tinggi",
+    "diameter", "radius", "luas",
+    
+    // Finishing & Material
+    "warna", "tekstur", "finishing",
+    "bahan", "material", "komposisi",
+    "campuran", "kandungan",
+    
+    // Fungsi & Perawatan
+    "kelebihan", "kekurangan",
+    "fungsi", "kegunaan", "aplikasi",
+    "perawatan", "pemeliharaan",
+    
+    // Instalasi & Sertifikasi
+    "instalasi", "pemasangan",
+    "sertifikat", "sni", "iso",
+    "garansi", "jaminan",
+    
+    // SEWA
+    "spesifikasi alat", "kapasitas alat", "spek alat", "detail alat",
+    "ukuran alat", "dimensi alat", "tipe alat", "model alat", "jenis alat",
+    "merk alat", "brand alat", "kondisi alat", "kualitas alat",
+    "harga sewa", "biaya sewa", "tarif sewa", "ongkos sewa",
+    "durasi sewa", "waktu sewa", "per hari", "per jam", "per minggu", "per bulan",
+    "fasilitas alat", "layanan sewa", "paket sewa",
+    "kelebihan alat", "keunggulan alat", "manfaat sewa",
+    "perawatan alat", "pemeliharaan alat", "servis alat",
+    "keamanan alat", "keselamatan alat", "proteksi alat",
+    "sertifikat alat", "garansi alat", "asuransi alat"
+];
+ 
   const TECHNICAL_SPECS = [
     "k225", "k250", "k300", "k350", "k400", "k500",
     "fc", "m6", "m8", "m10", "m12", "m16", "m20",
