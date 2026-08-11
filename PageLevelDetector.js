@@ -304,42 +304,114 @@
 // ============================================================
 
 const VARIANT_KEYWORDS = [
-    // Keyword utama variant
+    // ============================================================
+    // 1. UKURAN & DIMENSI
+    // ============================================================
+    "ukuran", "dimensi", "ukur", "panjang", "lebar", "tinggi", "kedalaman",
+    "ketebalan", "tebal", "diameter", "radius", "luas", "volume",
+    "rendah", "sedang", "tinggi", "besar", "kecil", "pendek", "panjang",
+    "1.5m", "2m", "2.5m", "3m", "150cm", "200cm", "250cm", "300cm",
+    "4m", "5m", "6m", "8m", "10m", "12m",
+    
+    // ============================================================
+    // 2. MOTIF & FINISHING
+    // ============================================================
+    "motif", "corak", "pola", "variasi", "desain", "bentuk", "gaya",
+    "polosan", "polos", "plain", "kosong", "tanpa motif",
+    "bermotif", "bercorak", "berpola",
+    "serat kayu", "tekstur kayu", "grain", "wood grain", "kayu",
+    "serat", "tekstur", "finishing", "lapisan", "coating",
+    "halus", "kasar", "matte", "glossy", "doff", "semi-gloss",
+    "cat", "dicoating", "dicat", "natural", "ekspos",
+    
+    // ============================================================
+    // 3. MATERIAL & KOMPOSISI
+    // ============================================================
+    "material", "bahan", "komposisi", "campuran", "kandungan",
+    "beton", "semen", "pasir", "kerikil", "batu split",
+    "besi", "baja", "tulangan", "wiremesh", "kawat",
+    "mutu", "kualitas", "quality", "grade",
+    "k350", "k400", "k450", "k500",
+    "fc", "sni", "iso",
+    
+    // ============================================================
+    // 4. TIPE & MODEL
+    // ============================================================
+    "tipe", "model", "jenis", "varian", "seri", "type", "grade",
+    "standar", "premium", "ekonomis", "deluxe", "super",
+    "klasik", "modern", "minimalis", "tradisional", "kontemporer",
+    "elegan", "mewah", "luxury", "exclusive", "simple",
+    
+    // ============================================================
+    // 5. APLIKASI & PENGGUNAAN (✅ TAMBAH: pabrik, perumahan, dll)
+    // ============================================================
+    "perumahan", "pabrik", "gudang", "sekolah", "rumah sakit",
+    "kandang ternak", "pertambangan", "lahan kosong", "pembatas lahan",
+    "keamanan", "kedap suara", "tahan lama", "cepat dipasang",
+    "tahan banjir", "area industri", "proyek", "konstruksi",
+    "perkantoran", "komersial", "residensial", "industri",
+    
+    // ============================================================
+    // 6. SPESIFIKASI TEKNIS
+    // ============================================================
     "spesifikasi", "spec", "detail spesifikasi",
     "mutu", "kualitas", "quality",
-    "ukuran", "dimensi",
-    "grade", "type", "tipe", "model",
     "standar", "merk", "brand", "seri",
+    "sertifikat", "sni", "iso", "garansi", "jaminan",
     
-    // Metode & Teknik
+    // ============================================================
+    // 7. METODE & PROSES
+    // ============================================================
     "metode", "cara", "teknik", "prosedur",
     "tahapan", "langkah", "proses",
+    "instalasi", "pemasangan", "pemasangan cepat",
+    "knock-down", "precast", "cor di tempat",
     
-    // Desain & Bentuk
-    "desain", "bentuk", "gaya", "pola",
-    "motif", "corak", "variasi",
-    
-    // Kapasitas & Dimensi
-    "kapasitas", "beban", "daya", "volume",
-    "kedalaman", "ketebalan", "lebar", "panjang", "tinggi",
-    "diameter", "radius", "luas",
-    
-    // Finishing & Material
-    "warna", "tekstur", "finishing",
-    "bahan", "material", "komposisi",
-    "campuran", "kandungan",
-    
-    // Fungsi & Perawatan
-    "kelebihan", "kekurangan",
+    // ============================================================
+    // 8. FUNGSI & KEUNGGULAN
+    // ============================================================
     "fungsi", "kegunaan", "aplikasi",
-    "perawatan", "pemeliharaan",
+    "kelebihan", "kekurangan", "keunggulan", "manfaat",
+    "perawatan", "pemeliharaan", "daya tahan", "ketahanan",
+    "tahan cuaca", "tahan rayap", "tahan api", "tahan gempa",
     
-    // Instalasi & Sertifikasi
-    "instalasi", "pemasangan",
-    "sertifikat", "sni", "iso",
-    "garansi", "jaminan",
+    // ============================================================
+    // 9. VARIAN KHUSUS PAGAR PANEL BETON
+    // ============================================================
+    // Tinggi
+    "rendah", "sedang", "tinggi", "extra tinggi",
+    "1.5m", "2.0m", "2.5m", "3.0m", "3.5m", "4.0m",
     
-    // SEWA
+    // Motif
+    "polosan", "polos", "bermotif", "motif", "serat kayu", "tekstur kayu",
+    "panel polos", "panel motif", "panel serat kayu",
+    
+    // Aplikasi
+    "perumahan", "pabrik", "gudang", "lahan kosong", "kandang ternak",
+    "pertambangan", "sekolah", "rumah sakit", "tempat ibadah",
+    "pembatas lahan", "keamanan", "kedap suara",
+    "tahan lama", "cepat dipasang", "tahan banjir",
+    
+    // Finishing
+    "cat", "dicoating", "natural", "ekspos",
+    "halus", "kasar", "matte", "glossy",
+    
+    // ============================================================
+    // 10. VARIAN KHUSUS BETON READY MIX
+    // ============================================================
+    "slump", "flow", "workability", "setting time",
+    "k225", "k250", "k300", "k350", "k400", "k500",
+    "fc'", "mutu beton", "kualitas beton",
+    
+    // ============================================================
+    // 11. VARIAN KHUSUS BESI BETON
+    // ============================================================
+    "polos", "ulir", "deformed", "sirip",
+    "bj", "tes", "tarik", "luluh",
+    
+    // ============================================================
+    // 12. VARIAN KHUSUS SEWA ALAT
+    // ============================================================
     "spesifikasi alat", "kapasitas alat", "spek alat", "detail alat",
     "ukuran alat", "dimensi alat", "tipe alat", "model alat", "jenis alat",
     "merk alat", "brand alat", "kondisi alat", "kualitas alat",
@@ -349,7 +421,23 @@ const VARIANT_KEYWORDS = [
     "kelebihan alat", "keunggulan alat", "manfaat sewa",
     "perawatan alat", "pemeliharaan alat", "servis alat",
     "keamanan alat", "keselamatan alat", "proteksi alat",
-    "sertifikat alat", "garansi alat", "asuransi alat"
+    "sertifikat alat", "garansi alat", "asuransi alat",
+    
+    // ============================================================
+    // 13. VARIAN KHUSUS DESAIN INTERIOR
+    // ============================================================
+    "gaya", "tema", "konsep", "nuansa",
+    "scandinavian", "industrial", "bohemian", "vintage", "retro",
+    "minimalis", "modern", "klasik", "tradisional", "kontemporer",
+    "elegan", "mewah", "premium", "luxury",
+    
+    // ============================================================
+    // 14. VARIAN KHUSUS MATERIAL FINISHING
+    // ============================================================
+    "warna", "tekstur", "finishing",
+    "serat kayu", "tekstur kayu", "grain", "wood grain",
+    "halus", "kasar", "matte", "glossy", "doff", "semi-gloss",
+    "cat", "dicoating", "lapisan", "pelapis",
 ];
  
   const TECHNICAL_SPECS = [
