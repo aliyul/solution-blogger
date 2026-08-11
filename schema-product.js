@@ -1,26 +1,14 @@
 /**
- * ⚡ AutoSchema Hybrid v4.56b — Product + Offers + isPartOf + Auto AreaServed
+ * ⚡ AutoSchema Hybrid v4.58 — Use PLD's pageLevel
  * 
- * UPDATE v4.56b:
- * - Menambahkan parent mapping dari file eksternal (parent-mapping.js)
- * - Menggunakan getParentFromMapping() untuk isPartOf yang akurat
- * - Fallback ke breadcrumb (hanya ambil link TERAKHIR, bukan semua)
- * - Fungsi detectParentUrls() lama di-comment (masih disimpan)
+ * UPDATE v4.58:
+ * - FIX: Ambil pageLevel dari PLD (Page Level Detector) yang sudah berjalan
+ * - ADD: Event listener untuk menunggu PLD ready
+ * - ADD: Fallback jika PLD tidak tersedia
+ * - REMOVE: detectPageLevel() sendiri (pakai dari PLD)
  * 
- * UPDATE v4.55b:
- * - Menambahkan pengecualian untuk halaman edukasi/bridge (PILLAR, SUB-PILLAR Tipe 1 & 2)
- * - Tidak akan membuat Product schema di halaman yang sudah dapat Article/HowTo dari Schema V4.0
- * - Menambahkan deteksi URL pattern dan panjang konten
- * 
- * FITUR UTAMA:
- * - Deteksi otomatis tabel harga produk
- * - Generate Product + Offer schema
- * - Auto AreaServed (Jabodetabek + Karawang)
- * - Smart parent detection dari file mapping eksternal
- * 
- * @version 4.56b
- * @date 2025-01-15
- * @evergreen YES
+ * @version 4.58
+ * @date 2026-08-12
  */
 
 (function() {
@@ -33,15 +21,16 @@
     MAX_OFFERS: 8,
     MIN_PRICE: 10000,
     MAX_PRICE: 100000000,
-    SKIP_WORD_COUNT: 800,  // Skip jika konten > 800 kata (artikel panjang)
-    PARENT_MAPPING_URL: 'https://raw.githack.com/aliyul/solution-blogger/main/parent-mapping.js'
+    SKIP_WORD_COUNT: 800,
+    PARENT_MAPPING_URL: 'https://raw.githack.com/aliyul/solution-blogger/main/parent-mapping.js',
+    PLD_TIMEOUT: 5000
   };
 
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.56b] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.58] ${msg}`);
   }
 
   // ===================== LOAD EXTERNAL JS =====================
@@ -51,30 +40,26 @@
         resolve();
         return;
       }
-
       const s = document.createElement("script");
       s.src = src;
       s.defer = true;
       s.onload = resolve;
       s.onerror = () => {
         log(`Gagal load: ${src}`, "WARN");
-        resolve(); // ❗ jangan reject, biarkan proses tetap jalan
+        resolve();
       };
       document.head.appendChild(s);
     });
   }
 
-  // ===================== LOAD PARENT MAPPING =====================
+  // ===================== PARENT MAPPING =====================
   let parentMappingGlobal = null;
 
   async function loadParentMapping() {
     try {
       await loadExternalJS(CONFIG.PARENT_MAPPING_URL);
-      
-      // Tunggu sebentar agar variabel global tersedia
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Cek variabel global yang tersedia
       if (typeof getParentForMoneyPage === 'function') {
         parentMappingGlobal = getParentForMoneyPage;
         log("Parent mapping loaded from getParentForMoneyPage()", "SUCCESS");
@@ -83,20 +68,16 @@
         parentMappingGlobal = (url) => window.PARENT_MAPPING[url] || null;
         log("Parent mapping loaded from window.PARENT_MAPPING", "SUCCESS");
         return true;
-      } else {
-        log("Parent mapping tidak ditemukan di global scope", "WARN");
-        return false;
       }
+      return false;
     } catch (error) {
       log(`Error loading parent mapping: ${error.message}`, "ERROR");
       return false;
     }
   }
 
-  // ===================== GET PARENT URL FROM MAPPING =====================
   function getParentFromMapping(currentUrl) {
     if (!parentMappingGlobal) return null;
-    
     try {
       const parent = parentMappingGlobal(currentUrl);
       if (parent && parent.parentUrl) {
@@ -108,184 +89,222 @@
       }
       return null;
     } catch (error) {
-      log(`Error getting parent from mapping: ${error.message}`, "WARN");
       return null;
     }
   }
 
-  // ===================== DETECT PARENT URLS (VERSI LAMA - DI-COMMENT) =====================
-  /*
-  function detectParentUrls(currentUrl) {
-    const urls = new Set();
-    
-    const breadcrumbSelectors = [
-      ".breadcrumbs a",
-      ".breadcrumb a",
-      ".nav-trail a",
-      ".breadcrumb-nav a",
-      ".site-breadcrumb a",
-      "[class*='breadcrumb'] a",
-      "[class*='breadcrumbs'] a"
-    ];
-    
-    breadcrumbSelectors.forEach(selector => {
-      document.querySelectorAll(selector).forEach(a => {
-        if (a.href && a.href !== currentUrl && a.href !== location.href) {
-          urls.add(a.href);
-        }
-      });
-    });
-    
-    const metaParent = document.querySelector('meta[name="parent-url"]')?.content;
-    if (metaParent) urls.add(metaParent);
-    
-    if (urls.size === 0) urls.add(location.origin);
-    
-    return Array.from(urls).map(u => ({ "@type": "WebPage", "@id": u }));
-  }
-  */
-
-  // ===================== DETECT PARENT URLS (VERSI BARU DENGAN FALLBACK) =====================
-  function detectParentUrls(currentUrl) {
-    // PRIORITAS 1: Gunakan parent mapping dari file eksternal
-    const parentFromMapping = getParentFromMapping(currentUrl);
-    if (parentFromMapping) {
-      log(`Parent detected from mapping: ${parentFromMapping["@id"]}`, "SUCCESS");
-      return [parentFromMapping];
-    }
-    
-    // PRIORITAS 2: Fallback ke breadcrumb (jika mapping tidak ditemukan)
-    log("Parent mapping not found, falling back to breadcrumb detection", "WARN");
-    
-    // ✅ PERBAIKAN: Ambil hanya link TERAKHIR dari breadcrumb
-    let lastBreadcrumbUrl = null;
-    
-    const breadcrumbSelectors = [
-      ".breadcrumbs a",
-      ".breadcrumb a",
-      ".nav-trail a",
-      ".breadcrumb-nav a",
-      ".site-breadcrumb a",
-      "[class*='breadcrumb'] a",
-      "[class*='breadcrumbs'] a"
-    ];
-    
-    for (const selector of breadcrumbSelectors) {
-      const links = document.querySelectorAll(selector);
-      if (links.length > 0) {
-        // Ambil link terakhir (paling dekat dengan halaman saat ini)
-        const lastLink = links[links.length - 1];
-        if (lastLink.href && lastLink.href !== currentUrl && lastLink.href !== location.href) {
-          lastBreadcrumbUrl = lastLink.href;
-          break;
-        }
+  // ============================================================
+  // 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD (Page Level Detector) 🔥🔥🔥
+  // ============================================================
+  
+  function getPageLevelFromPLD() {
+    // ✅ PRIORITAS 1: PLD v22.x (weighted voting system)
+    if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
+      try {
+        const pageLevel = window.pageLevelDetectorv22.detect();
+        log(`Page Level dari PLD v22.x: ${pageLevel}`, "SUCCESS");
+        return pageLevel;
+      } catch(e) {
+        log(`Error calling PLD v22.x: ${e.message}`, "ERROR");
       }
     }
     
-    // Cek meta tag parent-url sebagai alternatif
-    if (!lastBreadcrumbUrl) {
-      const metaParent = document.querySelector('meta[name="parent-url"]')?.content;
-      if (metaParent) lastBreadcrumbUrl = metaParent;
+    // ✅ PRIORITAS 2: PLD v20.x
+    if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
+      try {
+        const pageLevel = window.pageLevelDetectorv20.detect();
+        log(`Page Level dari PLD v20.x: ${pageLevel}`, "SUCCESS");
+        return pageLevel;
+      } catch(e) {
+        log(`Error calling PLD v20.x: ${e.message}`, "ERROR");
+      }
     }
     
-    // Fallback ke home jika tidak ada
-    if (!lastBreadcrumbUrl) {
-      lastBreadcrumbUrl = location.origin;
+    // ✅ PRIORITAS 3: PLD v19.0
+    if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
+      try {
+        const pageLevel = window.pageLevelDetectorv19.detect();
+        log(`Page Level dari PLD v19.0: ${pageLevel}`, "SUCCESS");
+        return pageLevel;
+      } catch(e) {
+        log(`Error calling PLD v19.0: ${e.message}`, "ERROR");
+      }
     }
     
-    log(`Fallback: using parent URL: ${lastBreadcrumbUrl}`, "INFO");
-    return [{ "@type": "WebPage", "@id": lastBreadcrumbUrl }];
+    // ✅ PRIORITAS 4: PLD v18
+    if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
+      try {
+        const pageLevel = window.pageLevelDetectorV18.detect();
+        log(`Page Level dari PLD v18.7: ${pageLevel}`, "SUCCESS");
+        return pageLevel;
+      } catch(e) {
+        log(`Error calling PLD v18.7: ${e.message}`, "ERROR");
+      }
+    }
+    
+    // ✅ PRIORITAS 5: PLD v17
+    if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
+      try {
+        const pageLevel = window.pageLevelDetectorV17.detect();
+        log(`Page Level dari PLD v17.0: ${pageLevel}`, "SUCCESS");
+        return pageLevel;
+      } catch(e) {
+        log(`Error calling PLD v17.0: ${e.message}`, "ERROR");
+      }
+    }
+    
+    // ✅ PRIORITAS 6: PLD legacy
+    if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
+      try {
+        const pageLevel = window.pageLevelDetector.detect();
+        log(`Page Level dari PLD legacy: ${pageLevel}`, "SUCCESS");
+        return pageLevel;
+      } catch(e) {
+        log(`Error calling PLD legacy: ${e.message}`, "ERROR");
+      }
+    }
+    
+    // ✅ CEK DARI BODY ATTRIBUTE (jika sudah di-set oleh PLD)
+    const bodyPageLevel = document.body.getAttribute('data-page-level') || 
+                          document.body.getAttribute('data-schema-page-level');
+    if (bodyPageLevel) {
+      log(`Page Level dari body attribute: ${bodyPageLevel}`, "SUCCESS");
+      return bodyPageLevel;
+    }
+    
+    // ❌ FALLBACK: detect sendiri
+    log("PLD tidak tersedia, menggunakan fallback detection", "WARN");
+    return detectPageLevelFallback();
   }
 
-  // ===================== CEK APAKAH SKIP PRODUCT SCHEMA =====================
-  function shouldSkipProductSchema() {
+  // ============================================================
+  // FALLBACK DETECTION (jika PLD tidak tersedia)
+  // ============================================================
+  function detectPageLevelFallback() {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
     const title = document.title.toLowerCase();
     const url = location.href.toLowerCase();
     
-    log("Memeriksa kelayakan halaman untuk Product schema...", "INFO");
+    // VARIANT
+    const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom", "tinggi", "rendah"];
+    for (let pattern of variantPatterns) {
+      if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) {
+        const subVariantPatterns = ["detail", "lengkap", "spesifikasi teknis"];
+        for (let sub of subVariantPatterns) {
+          if (h1.includes(sub) || title.includes(sub)) return "sub-variant";
+        }
+        return "variant";
+      }
+    }
     
-    // 1. Halaman edukasi (PILLAR)
+    // MONEY CHILD (lokasi)
+    const locations = ["jakarta", "bekasi", "bogor", "depok", "tangerang", "karawang", "surabaya", "bandung", "cirebon", "ciamis"];
+    for (let loc of locations) {
+      if (h1.includes(loc) || title.includes(loc) || url.includes(loc)) return "money-child";
+    }
+    
+    // MONEY PAGE (harga)
+    if (/\b(harga|biaya|tarif)\b/i.test(h1 + title)) return "money-page";
+    
+    // MONEY MASTER
+    if (/\b(jasa|sewa|borongan)\b/i.test(h1 + title) && !/\b(panduan|tips|cara)\b/i.test(h1 + title)) return "money-master";
+    
+    return "pillar";
+  }
+
+  // ============================================================
+  // MENUNGGU PLD READY
+  // ============================================================
+  function waitForPLD() {
+    return new Promise((resolve) => {
+      // Jika sudah ada, langsung resolve
+      if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
+          window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
+          window.pageLevelDetectorV17 || window.pageLevelDetector) {
+        resolve(true);
+        return;
+      }
+      
+      // Event listener untuk PLD
+      const onReady = () => {
+        log("PLD ready (event)", "SUCCESS");
+        resolve(true);
+      };
+      
+      window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
+      window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
+      window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
+      window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
+      
+      // Timeout
+      setTimeout(() => {
+        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
+            window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
+            window.pageLevelDetectorV17 || window.pageLevelDetector) {
+          log("PLD ready (timeout)", "SUCCESS");
+          resolve(true);
+        } else {
+          log("PLD timeout, using fallback", "WARN");
+          resolve(false);
+        }
+      }, CONFIG.PLD_TIMEOUT);
+    });
+  }
+
+  // ============================================================
+  // CEK APAKAH SKIP PRODUCT (pakai pageLevel dari PLD)
+  // ============================================================
+  function shouldSkipProductSchema(pageLevel) {
+    const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
+    const title = document.title.toLowerCase();
+    const url = location.href.toLowerCase();
+    
+    // ===== VARIANT TIDAK PERNAH DI-SKIP =====
+    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
+      log(`Variant page detected → TETAP generate Product schema`, "SUCCESS");
+      return false;
+    }
+    
+    // ===== MONEY PAGES TIDAK PERNAH DI-SKIP =====
+    if (['money-master', 'money-page', 'money-child'].includes(pageLevel)) {
+      log(`Money page detected → TETAP generate Product schema`, "SUCCESS");
+      return false;
+    }
+    
+    // ===== HANYA SKIP UNTUK PILLAR MURNI =====
     const pillarPatterns = [
       "panduan lengkap", "pengertian", "definisi", "apa itu",
-      "overview", "komprehensif", "ultimate guide", "complete guide"
+      "overview", "komprehensif", "cara memilih", "tips memilih",
+      "langkah memilih", "kriteria memilih"
     ];
     
     for (let pattern of pillarPatterns) {
-      if (h1.includes(pattern) || title.includes(pattern)) {
-        log(`Skip: Halaman PILLAR (pattern: "${pattern}")`, "SKIP");
-        return true;
-      }
-    }
-    
-    // 2. Halaman Bridge (SUB-PILLAR Tipe 1)
-    const bridgePatterns = [
-      "cara memilih", "panduan memilih", "tips memilih", 
-      "langkah memilih", "kriteria memilih", "how to choose",
-      "guide to choose", "memilih yang tepat"
-    ];
-    
-    for (let pattern of bridgePatterns) {
-      if (h1.includes(pattern) || title.includes(pattern)) {
-        log(`Skip: Halaman BRIDGE PAGE (pattern: "${pattern}")`, "SKIP");
-        return true;
-      }
-    }
-    
-    // 3. Halaman SUB-PILLAR Tipe 2 (edukasi teknis)
-    const subPillarPatterns = [
-      "jenis", "spesifikasi", "keunggulan", "fungsi",
-      "tipe", "varian", "karakteristik", "perbandingan",
-      "detail teknis", "standar mutu"
-    ];
-    
-    for (let pattern of subPillarPatterns) {
-      if (h1.includes(pattern) || title.includes(pattern)) {
-        // Cek apakah ada tabel harga (jika ada, mungkin tetap perlu Product)
-        const hasPriceTable = document.querySelector('table td:contains("Rp"), table td:contains("harga")');
-        if (!hasPriceTable) {
-          log(`Skip: Halaman SUB-PILLAR Tipe 2 tanpa tabel harga (pattern: "${pattern}")`, "SKIP");
+      if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) {
+        const hasPriceElement = document.querySelector('table td:contains("Rp"), .price, .harga');
+        if (!hasPriceElement) {
+          log(`Skip: Halaman edukasi murni (pattern: "${pattern}")`, "SKIP");
           return true;
-        } else {
-          log(`Halaman SUB-PILLAR Tipe 2 DENGAN tabel harga → tetap proses Product`, "INFO");
-          return false;
         }
       }
     }
     
-    // 4. Cek URL pattern
-    const urlSkipPatterns = [
-      "cara-memilih", "panduan-memilih", "tips-memilih",
-      "langkah-memilih", "pengertian", "definisi"
-    ];
-    
-    for (let pattern of urlSkipPatterns) {
-      if (url.includes(pattern)) {
-        log(`Skip: URL mengandung "${pattern}"`, "SKIP");
-        return true;
-      }
-    }
-    
-    // 5. Cek panjang konten (artikel panjang biasanya bukan produk murni)
-    const content = document.querySelector(".post-body.entry-content") ||
-                    document.querySelector("[id^='post-body-']") ||
-                    document.querySelector(".post-body") ||
-                    document.querySelector("article") ||
-                    document.querySelector("main");
-                    
+    // ===== CEK PANJANG KONTEN =====
+    const content = document.querySelector(".post-body.entry-content, .post-body, article, main");
     if (content) {
       const wordCount = (content.innerText || "").split(/\s+/).filter(Boolean).length;
       if (wordCount > CONFIG.SKIP_WORD_COUNT) {
-        log(`Skip: Halaman dengan konten panjang (${wordCount} kata > ${CONFIG.SKIP_WORD_COUNT})`, "SKIP");
-        return true;
+        const hasPriceTable = document.querySelector('table td:contains("Rp"), table td:contains("harga")');
+        if (!hasPriceTable) {
+          log(`Skip: Konten panjang (${wordCount} kata) tanpa tabel harga`, "SKIP");
+          return true;
+        }
       }
-      log(`Panjang konten: ${wordCount} kata (lolos)`, "INFO");
     }
     
-    // 6. Cek keberadaan tabel harga (indikator halaman produk)
-    const hasPriceElement = document.querySelector('table td:contains("Rp"), .price, .harga, [class*="price"], [class*="harga"]');
+    // ===== CEK KEBERADAAN HARGA =====
+    const hasPriceElement = document.querySelector('table td:contains("Rp"), .price, .harga');
     if (!hasPriceElement) {
-      log(`Skip: Tidak ditemukan elemen harga di halaman`, "SKIP");
+      log(`Skip: Tidak ditemukan elemen harga`, "SKIP");
       return true;
     }
     
@@ -293,13 +312,12 @@
     return false;
   }
 
-  // ===================== UTILITY FUNCTIONS =====================
+  // ============================================================
+  // UTILITY FUNCTIONS (sama seperti sebelumnya)
+  // ============================================================
   function sanitizeText(text) {
     if (!text) return "";
-    return text.replace(/[\t\n\r]+/g, ' ')
-               .replace(/\s{2,}/g, ' ')
-               .trim()
-               .substring(0, 100);
+    return text.replace(/[\t\n\r]+/g, ' ').replace(/\s{2,}/g, ' ').trim().substring(0, 100);
   }
 
   function extractPrice(text) {
@@ -311,92 +329,81 @@
     return price;
   }
 
-  // ===================== AREA SERVED =====================
   function getAreaServed() {
     const areaProv = {
-        "DKI Jakarta": "DKI Jakarta",
-        "Kabupaten Bogor": "Jawa Barat",
-        "Kota Bogor": "Jawa Barat",
-        "Kota Depok": "Jawa Barat",
-        "Kabupaten Tangerang": "Banten",
-        "Kota Tangerang": "Banten",
-        "Kota Tangerang Selatan": "Banten",
-        "Kota Serang": "Banten",
-        "Kabupaten Bekasi": "Jawa Barat",
-        "Kota Bekasi": "Jawa Barat",
-        "Kabupaten Karawang": "Jawa Barat"
+      "DKI Jakarta": "DKI Jakarta",
+      "Kabupaten Bogor": "Jawa Barat",
+      "Kota Bogor": "Jawa Barat",
+      "Kota Depok": "Jawa Barat",
+      "Kabupaten Tangerang": "Banten",
+      "Kota Tangerang": "Banten",
+      "Kota Tangerang Selatan": "Banten",
+      "Kota Serang": "Banten",
+      "Kabupaten Bekasi": "Jawa Barat",
+      "Kota Bekasi": "Jawa Barat",
+      "Kabupaten Karawang": "Jawa Barat"
     };
     return Object.keys(areaProv).map(a => ({ "@type": "Place", name: a }));
   }
 
-  // ===================== DETECT PRODUCT NAME =====================
-  function detectProductName() {
-    // Dari H1
-    const h1 = document.querySelector("h1")?.innerText?.trim();
-    if (h1 && h1.length < 100) return h1;
+  // ============================================================
+  // DETECT PARENT URLS
+  // ============================================================
+  function detectParentUrls(currentUrl) {
+    const parentFromMapping = getParentFromMapping(currentUrl);
+    if (parentFromMapping) {
+      log(`Parent detected from mapping: ${parentFromMapping["@id"]}`, "SUCCESS");
+      return [parentFromMapping];
+    }
     
-    // Dari URL
+    const breadcrumbSelectors = [
+      ".breadcrumbs a", ".breadcrumb a", ".nav-trail a",
+      ".breadcrumb-nav a", ".site-breadcrumb a",
+      "[class*='breadcrumb'] a", "[class*='breadcrumbs'] a"
+    ];
+    
+    let lastBreadcrumbUrl = null;
+    for (const selector of breadcrumbSelectors) {
+      const links = document.querySelectorAll(selector);
+      if (links.length > 0) {
+        const lastLink = links[links.length - 1];
+        if (lastLink.href && lastLink.href !== currentUrl && lastLink.href !== location.href) {
+          lastBreadcrumbUrl = lastLink.href;
+          break;
+        }
+      }
+    }
+    
+    if (!lastBreadcrumbUrl) {
+      const metaParent = document.querySelector('meta[name="parent-url"]')?.content;
+      if (metaParent) lastBreadcrumbUrl = metaParent;
+    }
+    
+    if (!lastBreadcrumbUrl) lastBreadcrumbUrl = location.origin;
+    
+    return [{ "@type": "WebPage", "@id": lastBreadcrumbUrl }];
+  }
+
+  // ============================================================
+  // DETECT PRODUCT NAME
+  // ============================================================
+  function detectProductName(pageLevel) {
+    const h1 = document.querySelector("h1")?.innerText?.trim();
+    if (h1 && h1.length < 120) return h1;
+    
     const pathKey = location.pathname.split("/").pop().replace(".html", "").replace(/-/g, " ");
     
     const urlMapping = {
-      // ==================== PRODUK PEMBATAS ====================
-      "produk pembatas": "Produk Pembatas",
-      "kanstin beton": "Kanstin Beton",
-      "kanstin jalan": "Kanstin Jalan",
-      "kanstin trotoar": "Kanstin Trotoar",
-      "kanstin taman": "Kanstin Taman",
-      "pagar beton": "Pagar Beton",
+      "pagar panel beton polosan": "Pagar Panel Beton Polosan",
+      "pagar panel beton motif": "Pagar Panel Beton Motif",
+      "pagar panel beton custom": "Pagar Panel Beton Custom",
+      "pagar panel beton tinggi": "Pagar Panel Beton Tinggi",
+      "pagar panel beton rendah": "Pagar Panel Beton Rendah",
       "pagar panel beton": "Pagar Panel Beton",
-      "pagar brc": "Pagar BRC",
-      "pagar besi": "Pagar Besi",
-      "pagar grc": "Pagar GRC",
-      "pagar batu alam": "Pagar Batu Alam",
-      "pagar rumah": "Pagar Rumah",
-      
-      // ==================== PRODUK SALURAN DRAINASE ====================
-      "produk saluran drainase": "Produk Drainase",
       "u ditch": "U-Ditch",
-      "u ditch beton": "U-Ditch Beton",
       "box culvert": "Box Culvert",
-      "buis beton": "Buis Beton",
-      "gorong gorong": "Gorong-Gorong",
-      "pipa beton": "Pipa Beton",
-      
-      // ==================== PRODUK JALAN & LANTAI ====================
-      "produk jalan lantai": "Produk Jalan & Lantai",
       "paving block": "Paving Block",
-      "grass block": "Grass Block",
-      "slab beton": "Slab Beton",
-      "tactile paving": "Tactile Paving",
-      
-      // ==================== PRODUK PONDASI STRUKTUR ====================
-      "produk pondasi struktur": "Produk Pondasi",
-      "tiang pancang": "Tiang Pancang",
-      "spun pile": "Spun Pile",
-      "bore pile": "Bore Pile",
-      "mini pile": "Mini Pile",
-      "strauss pile": "Strauss Pile",
-      "cakar ayam": "Cakar Ayam",
-      
-      // ==================== PRODUK DINDING MODULAR ====================
-      "produk dinding bangunan modular": "Dinding Modular",
-      "panel beton precast": "Panel Beton Precast",
-      "beton ringan precast": "Beton Ringan Precast",
-      "sandwich panel": "Sandwich Panel",
-      "roster beton": "Roster Beton",
-      
-      // ==================== PRODUK JEMBATAN & FLYOVER ====================
-      "produk jembatan flyover": "Produk Jembatan & Flyover",
-      
-      // ==================== PRODUK PELABUHAN & PESISIR ====================
-      "produk pelabuhan pesisir": "Produk Pelabuhan & Pesisir",
-      "sheet pile": "Sheet Pile",
-      "ponton": "Ponton",
-      
-      // ==================== PRODUK UMUM ====================
-      "produk konstruksi": "Produk Konstruksi",
-      "beton precast": "Beton Precast",
-      "produk alat konstruksi": "Alat Konstruksi"
+      "kanstin beton": "Kanstin Beton"
     };
     
     let productName = urlMapping[pathKey.toLowerCase()];
@@ -407,21 +414,43 @@
     return productName || "Produk Konstruksi";
   }
 
-  // ===================== OFFER PARSING =====================
+  // ============================================================
+  // EXTRACT VARIANT SPEC
+  // ============================================================
+  function extractVariantSpec() {
+    const content = document.querySelector(".post-body.entry-content, .post-body, article, main");
+    if (!content) return null;
+    
+    const text = content.innerText;
+    const spec = {};
+    
+    const sizeMatch = text.match(/(\d{1,3}\s*x\s*\d{1,3})\s*(cm|meter|m)/i);
+    if (sizeMatch) spec.size = sizeMatch[1] + " " + sizeMatch[2];
+    
+    const heightMatch = text.match(/tinggi\s*([\d.]+)\s*(meter|m|cm)/i);
+    if (heightMatch) spec.height = heightMatch[1] + " " + heightMatch[2];
+    
+    const thickMatch = text.match(/tebal\s*([\d.]+)\s*(cm|mm)/i);
+    if (thickMatch) spec.thickness = thickMatch[1] + " " + thickMatch[2];
+    
+    if (Object.keys(spec).length === 0) return null;
+    return { "@type": "ProductVariant", ...spec };
+  }
+
+  // ============================================================
+  // OFFER PARSING
+  // ============================================================
   const seenItems = new Set();
   const offers = [];
 
   function addOffer(name, price, desc = "") {
-    // Validasi harga
     if (!price || price <= 0) return;
-    if (price < CONFIG.MIN_PRICE) return;
-    if (price > CONFIG.MAX_PRICE) return;
+    if (price < CONFIG.MIN_PRICE || price > CONFIG.MAX_PRICE) return;
     if (offers.length >= CONFIG.MAX_OFFERS) return;
     
     let cleanName = sanitizeText(name);
     if (!cleanName || cleanName.length < 3) return;
     
-    // Skip kata-kata yang mencurigakan
     const skipKeywords = ["estimasi", "per meter", "hubungi", "call", "whatsapp", "konsultasi", "mulai dari"];
     if (skipKeywords.some(kw => cleanName.toLowerCase().includes(kw))) return;
     
@@ -462,7 +491,6 @@
             const productCell = cells[0].innerText.trim();
             const priceCell = cells[1].innerText;
             
-            // Skip header row
             if (productCell.toLowerCase().includes('produk') || 
                 productCell.toLowerCase().includes('jenis') ||
                 priceCell.toLowerCase().includes('harga')) {
@@ -482,6 +510,32 @@
         }
       }
       if (found) break;
+    }
+    return found;
+  }
+
+  function parseVariantOffers() {
+    const content = document.querySelector(".post-body.entry-content, .post-body, article, main");
+    if (!content) return false;
+    
+    const text = content.innerText;
+    const variantPatterns = [
+      /(tinggi|ukuran|dimensi)\s*([\d.]+)\s*(meter|m|cm)\s*(?:Rp\s*([\d.,]+))/i,
+      /(panel|pagar)\s*(polosan|motif|custom)\s*(?:Rp\s*([\d.,]+))/i,
+      /(tipe|varian)\s*([a-zA-Z0-9\s]+?)\s*(?:Rp\s*([\d.,]+))/i
+    ];
+    
+    let found = false;
+    for (const pattern of variantPatterns) {
+      const matches = text.matchAll(pattern);
+      for (const match of matches) {
+        const name = match[0].split("Rp")[0]?.trim() || match[0].substring(0, 50);
+        const price = extractPrice(match[0]);
+        if (price && price > CONFIG.MIN_PRICE && price < CONFIG.MAX_PRICE) {
+          addOffer(name, price, "Variant");
+          found = true;
+        }
+      }
     }
     return found;
   }
@@ -511,19 +565,37 @@
     }
   }
 
-  // ===================== MAIN FUNCTION =====================
+  // ============================================================
+  // DETECT CATEGORY
+  // ============================================================
+  function detectProductCategory(pageLevel) {
+    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
+      return "VariantProduct";
+    }
+    return "BuildingMaterial";
+  }
+
+  // ============================================================
+  // MAIN FUNCTION
+  // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.56b DIMULAI", "INFO");
+    log("AutoSchema Hybrid v4.58 DIMULAI", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
-    // ===== LOAD PARENT MAPPING DARI FILE EKSTERNAL =====
+    // ===== LOAD PARENT MAPPING =====
     await loadParentMapping();
     
-    // CEK APAKAH HARUS SKIP
-    if (shouldSkipProductSchema()) {
+    // ===== TUNGGU PLD READY =====
+    await waitForPLD();
+    
+    // ===== AMBIL PAGE LEVEL DARI PLD =====
+    const pageLevel = getPageLevelFromPLD();
+    log(`Page Level dari PLD: ${pageLevel}`, "SUCCESS");
+    
+    // ===== CEK SKIP =====
+    if (shouldSkipProductSchema(pageLevel)) {
       log("Product schema SKIPPED untuk halaman ini", "SKIP");
-      log("(Halaman ini akan menggunakan Article/HowTo dari Schema V4.0)", "INFO");
       return;
     }
     
@@ -531,38 +603,29 @@
     const currentUrl = location.href.replace(/[?&]m=1/, "");
     const fallbackImage = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
     
-    // Title & Description
-    const productName = detectProductName();
+    const productName = detectProductName(pageLevel);
     const desc = document.querySelector('meta[name="description"]')?.content?.trim() || 
                  document.querySelector("article p, main p, section p")?.innerText?.trim()?.substring(0, 300) ||
                  `Produk ${productName} berkualitas dari Beton Jaya Readymix`;
     
-    // Image
     const contentImage = document.querySelector("article img, main img, .post-body img, .product-image img")?.src || fallbackImage;
-    
-    // Parent URLs (menggunakan fungsi baru dengan fallback)
     const parentUrls = detectParentUrls(currentUrl);
-    
-    // Area Served
     const areaServed = getAreaServed();
-    
-    // Brand
-    const brandName = "Beton Jaya Readymix";
-    
-    // Category & Wikipedia
-    let productCategory = "BuildingMaterial";
-    let wikipediaLink = "https://id.wikipedia.org/wiki/Beton";
+    const productCategory = detectProductCategory(pageLevel);
     
     // ===== PARSE OFFERS =====
-    log("Parsing offers dari tabel...", "INFO");
-    const hasTableOffers = parseTableOffers();
+    log("Parsing offers...", "INFO");
+    let hasTableOffers = parseTableOffers();
     
     if (!hasTableOffers || offers.length === 0) {
-      log("Tidak ada offers dari tabel, menggunakan fallback...", "WARN");
-      parseListOffers();
+      log("Tidak ada offers dari tabel, mencoba varian...", "WARN");
+      const hasVariantOffers = parseVariantOffers();
+      if (!hasVariantOffers || offers.length === 0) {
+        parseListOffers();
+      }
     }
     
-    // ===== FALLBACK TERAKHIR =====
+    // ===== FALLBACK =====
     if (offers.length === 0) {
       log("Menggunakan final fallback offer", "WARN");
       const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
@@ -580,7 +643,7 @@
       });
     }
     
-    // ===== BUSINESS ENTITY =====
+    // ===== BUILD PRODUCT =====
     const business = {
       "@type": "LocalBusiness",
       "@id": "https://www.betonjayareadymix.com/#localbusiness",
@@ -589,22 +652,32 @@
       logo: fallbackImage
     };
     
-    // ===== PRODUCT ENTITY =====
     const product = {
       "@type": "Product",
       "@id": currentUrl + "#product",
       name: productName,
       image: [contentImage],
       description: desc,
-      brand: { "@type": "Brand", name: brandName },
+      brand: { "@type": "Brand", name: "Beton Jaya Readymix" },
       category: productCategory,
-      sameAs: wikipediaLink,
       offers: offers,
       areaServed: areaServed,
       isPartOf: parentUrls
     };
     
-    // ===== WEBPAGE ENTITY =====
+    // ===== TAMBAHKAN PROPERTI UNTUK VARIANT =====
+    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
+      product.productType = pageLevel === 'variant' ? "Variant" : "Sub-Variant";
+      product.material = "Beton Precast";
+      product.manufacturer = { "@type": "Organization", name: "Beton Jaya Readymix" };
+      
+      const variantSpec = extractVariantSpec();
+      if (variantSpec) {
+        product.variant = variantSpec;
+      }
+    }
+    
+    // ===== BUILD GRAPH =====
     const webpage = {
       "@type": "WebPage",
       "@id": currentUrl + "#webpage",
@@ -615,12 +688,10 @@
       isPartOf: parentUrls
     };
     
-    // ===== BUILD GRAPH =====
     const graph = [webpage, business, product];
     
-    // ===== UPDATE ATAU BUAT SCHEMA =====
+    // ===== INJECT SCHEMA =====
     let existingScript = document.querySelector("#auto-schema-product");
-    
     if (!existingScript) {
       existingScript = document.createElement("script");
       existingScript.type = "application/ld+json";
@@ -637,23 +708,22 @@
     // ===== SUMMARY =====
     log("═══════════════════════════════════════════════════", "INFO");
     log("EXECUTION SUMMARY:", "INFO");
+    log(`  Page Level (dari PLD): ${pageLevel}`, "SUCCESS");
     log(`  Product Name   : ${productName}`, "SUCCESS");
     log(`  Offers Count   : ${offers.length}`, "SUCCESS");
     log(`  Valid Prices   : ${offers.filter(o => o.price > 0).length}`, "SUCCESS");
-    log(`  Area Served    : ${areaServed.length} wilayah`, "INFO");
-    log(`  Parent Pages   : ${parentUrls.length}`, "INFO");
+    log(`  Is Variant     : ${(pageLevel === 'variant' || pageLevel === 'sub-variant') ? '✅' : '❌'}`, "INFO");
+    log(`  Category       : ${productCategory}`, "INFO");
     if (parentUrls.length > 0 && parentUrls[0]["@id"]) {
       log(`  Parent URL     : ${parentUrls[0]["@id"]}`, "INFO");
     }
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.56b SELESAI", "SUCCESS");
-    
-    if (offers.length === 1 && offers[0].price === 0) {
-      log("⚠️ Menggunakan fallback offer (tidak ada harga valid terdeteksi)", "WARN");
-    }
+    log("AutoSchema Hybrid v4.58 SELESAI", "SUCCESS");
   }
   
-  // Jalankan setelah DOM siap dengan delay
+  // ============================================================
+  // START
+  // ============================================================
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       setTimeout(init, CONFIG.DELAY_MS);
