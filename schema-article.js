@@ -1,17 +1,15 @@
 /**
- * AUTO-SCHEMA GENERATOR v6.7 FINAL STABLE
+ * AUTO-SCHEMA GENERATOR v6.8 FINAL STABLE
  * INTEGRATED WITH Page Level Detector v22.x
  * 
- * ✅ FIX: Sinkron dengan PLD v22.x (weighted voting system)
- * ✅ FIX: Support PLD v22.x, v20.x, v19.0, v18, v17, legacy
- * ✅ FIX: Hanya generate Article schema untuk konten edukasi
- * ✅ FIX: Money pages TIDAK pakai Article schema (biar script lain yg handle)
- * ✅ ADD: Event listener untuk PLD v22.x ready
- * ✅ ADD: Confidence score tracking dari PLD v22.x
- * ✅ ADD: Fallback detection jika PLD tidak tersedia
+ * ✅ FIX: Article schema hanya untuk Pillar, SP2, SP1
+ * ✅ FIX: Variant & Sub-Variant pakai Product schema
+ * ✅ FIX: Money pages pakai Service/Product schema
+ * ✅ FIX: Hapus WebPage schema fallback
+ * ✅ FIX: Article type = Article / BlogPosting (bukan HowTo/Product)
  *
- * @version 6.7 FINAL STABLE
- * @date 2026-05-21
+ * @version 6.8 FINAL STABLE
+ * @date 2026-08-11
  */
 
 (function () {
@@ -51,23 +49,18 @@
   // =========================================================
   // YANG PAKAI ARTICLE SCHEMA (HANYA INI)
   // =========================================================
-  // Article schema hanya untuk konten edukasi:
-  // - pillar (jasa konstruksi, sewa alat konstruksi, dll)
-  // - sub-pillar-tipe-2 (daftar, jenis, kategori)
-  // - sub-pillar-tipe-1 (perbandingan)
-  // - variant (spesifikasi)
-  // - sub-variant (detail varian)
+  // Article schema HANYA untuk konten edukasi:
+  // - pillar
+  // - sub-pillar-tipe-2
+  // - sub-pillar-tipe-1
   //
-  // Money pages (money-master, money-page, money-child)
-  // TIDAK menggunakan Article schema karena sudah ditangani
-  // oleh script lain (Service schema untuk JASA, Product schema untuk SEWA/PRODUK)
+  // Variant, Sub-Variant, dan semua Money pages
+  // TIDAK menggunakan Article schema
 
   const ARTICLE_SCHEMA_LEVELS = [
     'pillar',
     'sub-pillar-tipe-2',
-    'sub-pillar-tipe-1',
-    'variant',
-    'sub-variant'
+    'sub-pillar-tipe-1'
   ];
 
   // =========================================================
@@ -77,23 +70,23 @@
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", CONFIDENCE: "🎯" };
-    console.log(`${icons[type] || "📘"} [Schema v6.7] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v6.8] ${msg}`);
   }
 
   // =========================================================
-  // TUNGGU PAGE LEVEL DETECTOR READY (SUPPORT v22.x, v20.x, v19, v18, v17)
+  // TUNGGU PAGE LEVEL DETECTOR READY
   // =========================================================
 
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
-      // ✅ SUPPORT v22.x (weighted voting system)
+      // ✅ SUPPORT v22.x
       if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
         log("Page Level Detector v22.x already ready", "SUCCESS");
         resolve(true);
         return;
       }
       
-      // ✅ SUPPORT v20.x (smart pattern-based)
+      // ✅ SUPPORT v20.x
       if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
         log("Page Level Detector v20.x already ready", "SUCCESS");
         resolve(true);
@@ -129,37 +122,15 @@
       }
       
       // ✅ Event listener untuk semua versi
-      const onReadyV22 = () => {
-        log("Page Level Detector v22.x ready (event)", "SUCCESS");
+      const onReady = () => {
+        log("Page Level Detector ready (event)", "SUCCESS");
         resolve(true);
       };
       
-      const onReadyV20 = () => {
-        log("Page Level Detector v20.x ready (event)", "SUCCESS");
-        resolve(true);
-      };
-      
-      const onReadyV19 = () => {
-        log("Page Level Detector v19.0 ready (event)", "SUCCESS");
-        resolve(true);
-      };
-      
-      const onReadyV18 = () => {
-        log("Page Level Detector v18 ready (event fallback)", "SUCCESS");
-        resolve(true);
-      };
-      
-      const onReadyLegacy = () => {
-        log("Page Level Detector legacy ready (event fallback)", "SUCCESS");
-        resolve(true);
-      };
-      
-      window.addEventListener("pageLevelDetectorv22Ready", onReadyV22, { once: true });
-      window.addEventListener("pageLevelDetectorv20Ready", onReadyV20, { once: true });
-      window.addEventListener("pageLevelDetectorv19Ready", onReadyV19, { once: true });
-      window.addEventListener("pageLevelDetectorV19Ready", onReadyV19, { once: true });
-      window.addEventListener("pageLevelDetectorv18Ready", onReadyV18, { once: true });
-      window.addEventListener("pageLevelDetectorReady", onReadyLegacy, { once: true });
+      window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
+      window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
+      window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
+      window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
       
       // Fallback timeout
       setTimeout(() => {
@@ -177,13 +148,13 @@
   }
 
   // =========================================================
-  // GET PAGE LEVEL & ENTITY TYPE (PAKAI PLD VERSI TERBARU)
+  // GET PAGE LEVEL & ENTITY TYPE
   // =========================================================
 
   async function getPageLevelAndEntityType() {
     const pldReady = await waitForPageLevelDetector();
     
-    // ✅ PRIORITAS v22.x (weighted voting system - 100% accuracy)
+    // ✅ PRIORITAS v22.x
     if (pldReady && window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorv22.detect();
@@ -192,7 +163,6 @@
         let strategies = null;
         let strategyCount = null;
         
-        // Dapatkan confidence score jika tersedia
         if (typeof window.pageLevelDetectorv22.getConfidenceScore === 'function') {
           const confidenceScore = window.pageLevelDetectorv22.getConfidenceScore();
           confidence = confidenceScore.confidence;
@@ -210,7 +180,7 @@
       }
     }
     
-    // ✅ PRIORITAS v20.x
+    // ✅ FALLBACK v20.x
     if (pldReady && window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorv20.detect();
@@ -234,43 +204,7 @@
       }
     }
     
-    // ✅ FALLBACK v18
-    if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
-      try {
-        const pageLevel = window.pageLevelDetectorV18.detect();
-        const entityType = window.pageLevelDetectorV18.detectEntityType();
-        log(`Using PLD v18.7: pageLevel=${pageLevel}, entityType=${entityType}`, "SUCCESS");
-        return { pageLevel, entityType, source: 'PLD v18.7' };
-      } catch(e) {
-        log(`Error calling PLD v18.7: ${e.message}`, "ERROR");
-      }
-    }
-    
-    // ✅ FALLBACK v17
-    if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
-      try {
-        const pageLevel = window.pageLevelDetectorV17.detect();
-        const entityType = window.pageLevelDetectorV17.detectEntityType();
-        log(`Using PLD v17.0: pageLevel=${pageLevel}, entityType=${entityType}`, "SUCCESS");
-        return { pageLevel, entityType, source: 'PLD v17.0' };
-      } catch(e) {
-        log(`Error calling PLD v17.0: ${e.message}`, "ERROR");
-      }
-    }
-    
-    // ✅ FALLBACK legacy
-    if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
-      try {
-        const pageLevel = window.pageLevelDetector.detect();
-        const entityType = window.pageLevelDetector.detectEntityType();
-        log(`Using PLD legacy: pageLevel=${pageLevel}, entityType=${entityType}`, "SUCCESS");
-        return { pageLevel, entityType, source: 'legacy' };
-      } catch(e) {
-        log(`Error calling PLD legacy: ${e.message}`, "ERROR");
-      }
-    }
-    
-    // FALLBACK standalone
+    // ✅ FALLBACK standalone
     log("Using fallback standalone detection", "WARN");
     const entityType = detectEntityTypeStandalone();
     const pageLevel = detectPageLevelStandalone(entityType);
@@ -322,42 +256,34 @@
     const title = normalizeTextStandalone(document.title || "");
     const primaryText = cleanTextStandalone(urlName || h1 || title).toLowerCase();
     
-    const isJasa = entityType === "jasa";
-    const isSewa = entityType === "sewa";
-    
     const HAS_PRICE = /\b(harga|biaya|tarif)\b/i.test(primaryText);
-    const HAS_SEWA = /\b(sewa|rental)\b/i.test(primaryText);
     const HAS_JASA = /\b(jasa|kontraktor|renovasi|pasang|borongan)\b/i.test(primaryText);
+    const HAS_SEWA = /\b(sewa|rental)\b/i.test(primaryText);
     
     const LOCATIONS = ["jakarta", "bandung", "bekasi", "tangerang", "depok", "bogor", "surabaya", "semarang"];
     const HAS_LOCATION = LOCATIONS.some(loc => primaryText.includes(loc));
     
-    if (HAS_LOCATION) return "money-child";
-    
-    if (isJasa && HAS_JASA) {
-      if (HAS_PRICE) return "money-page";
-      const cleaned = primaryText.replace(/\b(jasa|kontraktor|renovasi|pasang|borongan)\b/gi, "").trim();
-      const wordCount = cleaned.split(/\s+/).filter(Boolean).length;
-      if (wordCount <= 2) return "money-master";
-      return "money-page";
+    // Deteksi variant
+    if (primaryText.includes("spesifikasi") || primaryText.includes("ukuran") || 
+        primaryText.includes("dimensi") || primaryText.includes("varian") ||
+        primaryText.includes("polosan") || primaryText.includes("motif")) {
+      return "variant";
     }
     
-    if (isSewa && HAS_SEWA) {
+    if (HAS_LOCATION) return "money-child";
+    
+    if (HAS_JASA || HAS_SEWA) {
       if (HAS_PRICE) return "money-page";
       return "money-master";
     }
     
     if (HAS_PRICE) return "money-page";
     
-    // Deteksi sub-pillar
     if (primaryText.includes("daftar") || primaryText.includes("jenis") || primaryText.includes("kategori")) {
       return "sub-pillar-tipe-2";
     }
     if (primaryText.includes("perbandingan") || primaryText.includes("vs") || primaryText.includes("versus")) {
       return "sub-pillar-tipe-1";
-    }
-    if (primaryText.includes("spesifikasi") || primaryText.includes("ukuran") || primaryText.includes("dimensi")) {
-      return "variant";
     }
     
     return "pillar";
@@ -368,36 +294,27 @@
   // =========================================================
 
   function shouldGenerateArticleSchema(pageLevel, entityType) {
-    // Hanya generate Article schema untuk level tertentu
+    // Hanya generate Article schema untuk level EDUKASI (Pillar, SP2, SP1)
     if (!ARTICLE_SCHEMA_LEVELS.includes(pageLevel)) {
-      log(`Skip Article schema for ${pageLevel} (${entityType}) - handled by other script`, "INFO");
+      log(`Skip Article schema for ${pageLevel} - use Service/Product schema instead`, "INFO");
       return false;
     }
     
-    // JASA money pages sudah ditangani script lain (Service schema)
-    if (entityType === 'jasa' && (pageLevel === 'money-master' || pageLevel === 'money-page' || pageLevel === 'money-child')) {
-      log(`Skip Article schema for JASA ${pageLevel} - Service schema handled by other script`, "INFO");
+    // Variant dan Sub-Variant TIDAK pakai Article schema
+    const variantLevels = ['variant', 'sub-variant'];
+    if (variantLevels.includes(pageLevel)) {
+      log(`Skip Article schema for ${pageLevel} - Product schema handled by other script`, "INFO");
       return false;
     }
     
-    // SEWA money pages sudah ditangani script lain (Product schema)
-    if (entityType === 'sewa' && (pageLevel === 'money-master' || pageLevel === 'money-page' || pageLevel === 'money-child')) {
-      log(`Skip Article schema for SEWA ${pageLevel} - Product schema handled by other script`, "INFO");
+    // SEMUA money pages TIDAK pakai Article schema
+    const moneyLevels = ['money-master', 'money-page', 'money-child'];
+    if (moneyLevels.includes(pageLevel)) {
+      log(`Skip Article schema for ${pageLevel} - Service/Product schema handled by other script`, "INFO");
       return false;
     }
     
-    // PRODUK money pages sudah ditangani script lain (Product schema)
-    if (entityType === 'produk' && (pageLevel === 'money-master' || pageLevel === 'money-page' || pageLevel === 'money-child')) {
-      log(`Skip Article schema for PRODUK ${pageLevel} - Product schema handled by other script`, "INFO");
-      return false;
-    }
-    
-    // MATERIAL money pages sudah ditangani script lain
-    if (entityType === 'material' && (pageLevel === 'money-master' || pageLevel === 'money-page' || pageLevel === 'money-child')) {
-      log(`Skip Article schema for MATERIAL ${pageLevel} - handled by other script`, "INFO");
-      return false;
-    }
-    
+    // Hanya Pillar, SP2, SP1 yang pakai Article schema
     log(`Generate Article schema for ${pageLevel} (${entityType})`, "SUCCESS");
     return true;
   }
@@ -456,32 +373,13 @@
   }
 
   // =========================================================
-  // WEBPAGE SCHEMA (untuk fallback)
-  // =========================================================
-
-  function generateWebPageSchema(data, pageLevel) {
-    return {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": data.title,
-      "url": data.url,
-      "description": data.descMeta,
-      "inLanguage": "id-ID",
-      "additionalType": pageLevel
-    };
-  }
-
-  // =========================================================
   // ARTICLE SCHEMA (KHUSUS UNTUK KONTEN EDUKASI)
   // =========================================================
 
   function generateArticleSchema(data, dates, pageLevel, entityType) {
-    // Tentukan article type berdasarkan entity
-    let articleType = "Article";
-    if (entityType === "jasa") articleType = "HowTo";
-    if (entityType === "sewa") articleType = "TechArticle";
-    if (entityType === "produk") articleType = "Product";
-    if (entityType === "material") articleType = "Article";
+    // Article schema HANYA untuk konten edukasi
+    // Gunakan Article atau BlogPosting
+    const articleType = pageLevel === 'pillar' ? "BlogPosting" : "Article";
     
     return {
       "@context": "https://schema.org",
@@ -516,9 +414,7 @@
         "name": entityType === "jasa" ? "Jasa Konstruksi" : 
                 entityType === "sewa" ? "Sewa Alat Konstruksi" :
                 entityType === "produk" ? "Produk Konstruksi" : "Material Konstruksi"
-      },
-      "educationalLevel": pageLevel === "pillar" ? "Beginner" : 
-                          pageLevel === "sub-pillar-tipe-2" ? "Intermediate" : "Advanced"
+      }
     };
   }
 
@@ -562,10 +458,10 @@
 
   async function init() {
     log("================================");
-    log("AUTO SCHEMA GENERATOR v6.7");
+    log("AUTO SCHEMA GENERATOR v6.8");
     log("================================");
     
-    // Gunakan PLD untuk deteksi (prioritas v22.x)
+    // Gunakan PLD untuk deteksi
     const { pageLevel, entityType, source, confidence, strategies, strategyCount } = await getPageLevelAndEntityType();
     
     log(`ENTITY TYPE: ${entityType} (source: ${source})`, "SUCCESS");
@@ -594,16 +490,7 @@
     }
     
     // =============================================
-    // WEBPAGE SCHEMA (FALLBACK UNTUK MONEY PAGES)
-    // =============================================
-    const webElem = document.getElementById("auto-schema-webpage");
-    if (webElem && !shouldGenerateArticleSchema(pageLevel, entityType)) {
-      webElem.textContent = JSON.stringify(generateWebPageSchema(pageData, pageLevel), null, 2);
-      log("WEBPAGE SCHEMA GENERATED (fallback for money page)", "SUCCESS");
-    }
-    
-    // =============================================
-    // ARTICLE SCHEMA (KHUSUS EDUKASI)
+    // ARTICLE SCHEMA (KHUSUS EDUKASI: PILLAR, SP2, SP1)
     // =============================================
     const articleElem = document.getElementById("auto-schema");
     if (articleElem && shouldGenerateArticleSchema(pageLevel, entityType)) {
@@ -616,10 +503,18 @@
         log("ARTICLE SCHEMA GENERATED", "SUCCESS");
       });
     } else if (articleElem) {
-      // Jika tidak generate Article schema, kosongkan
+      // Kosongkan jika tidak generate Article schema
       articleElem.textContent = "";
-      log("Article schema skipped - will be handled by other script (Service/Product schema)", "INFO");
+      log("Article schema skipped - using Service/Product schema instead", "INFO");
     }
+    
+    // =============================================
+    // CATATAN: Service & Product schema ditangani oleh script lain
+    // =============================================
+    // - JASA → Service schema (auto-schema-service)
+    // - PRODUK/SEWA/MATERIAL → Product schema (auto-schema-product)
+    // - FAQ → FAQ schema (auto-schema-faq) - WAJIB SEMUA PAGE
+    // =============================================
     
     log("================================");
     log("FINISHED");
