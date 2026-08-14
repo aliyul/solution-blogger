@@ -1,4 +1,4 @@
-<!-- ⚡ AUTO SCHEMA UNIVERSAL v5.1 — Fixed PLD Integration -->
+<!-- ⚡ AUTO SCHEMA UNIVERSAL v6.0 — FIXED PLD + BODY DETECTION -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(async () => {
@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", () => {
         s.defer = true;
         s.onload = resolve;
         s.onerror = () => {
-          console.warn("[Schema v5.1] Gagal load parent mapping:", src);
+          console.warn("[Schema v6.0] Gagal load parent mapping:", src);
           resolve();
         };
         document.head.appendChild(s);
@@ -33,66 +33,78 @@ document.addEventListener("DOMContentLoaded", () => {
       if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
         try {
           const pageLevel = window.pageLevelDetectorv22.detect();
-          console.log(`[Schema v5.1] Page Level dari PLD v22.x: ${pageLevel}`);
+          console.log(`[Schema v6.0] Page Level dari PLD v22.x: ${pageLevel}`);
           return pageLevel;
         } catch(e) { console.warn(`PLD v22.x error: ${e.message}`); }
       }
-      
+
       // ✅ PRIORITAS 2: PLD v20.x
       if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
         try {
           const pageLevel = window.pageLevelDetectorv20.detect();
-          console.log(`[Schema v5.1] Page Level dari PLD v20.x: ${pageLevel}`);
+          console.log(`[Schema v6.0] Page Level dari PLD v20.x: ${pageLevel}`);
           return pageLevel;
         } catch(e) { console.warn(`PLD v20.x error: ${e.message}`); }
       }
-      
+
       // ✅ PRIORITAS 3: PLD v19.0
       if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
         try {
           const pageLevel = window.pageLevelDetectorv19.detect();
-          console.log(`[Schema v5.1] Page Level dari PLD v19.0: ${pageLevel}`);
+          console.log(`[Schema v6.0] Page Level dari PLD v19.0: ${pageLevel}`);
           return pageLevel;
         } catch(e) { console.warn(`PLD v19.0 error: ${e.message}`); }
       }
-      
+
       // ✅ PRIORITAS 4: PLD v18
       if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
         try {
           const pageLevel = window.pageLevelDetectorV18.detect();
-          console.log(`[Schema v5.1] Page Level dari PLD v18.7: ${pageLevel}`);
+          console.log(`[Schema v6.0] Page Level dari PLD v18.7: ${pageLevel}`);
           return pageLevel;
         } catch(e) { console.warn(`PLD v18.7 error: ${e.message}`); }
       }
-      
+
       // ✅ PRIORITAS 5: PLD v17
       if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
         try {
           const pageLevel = window.pageLevelDetectorV17.detect();
-          console.log(`[Schema v5.1] Page Level dari PLD v17.0: ${pageLevel}`);
+          console.log(`[Schema v6.0] Page Level dari PLD v17.0: ${pageLevel}`);
           return pageLevel;
         } catch(e) { console.warn(`PLD v17.0 error: ${e.message}`); }
       }
-      
+
       // ✅ PRIORITAS 6: PLD legacy
       if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
         try {
           const pageLevel = window.pageLevelDetector.detect();
-          console.log(`[Schema v5.1] Page Level dari PLD legacy: ${pageLevel}`);
+          console.log(`[Schema v6.0] Page Level dari PLD legacy: ${pageLevel}`);
           return pageLevel;
         } catch(e) { console.warn(`PLD legacy error: ${e.message}`); }
       }
-      
+
       // ✅ CEK DARI BODY ATTRIBUTE
       const bodyPageLevel = document.body.getAttribute('data-page-level') || 
                             document.body.getAttribute('data-schema-page-level');
       if (bodyPageLevel) {
-        console.log(`[Schema v5.1] Page Level dari body attribute: ${bodyPageLevel}`);
+        console.log(`[Schema v6.0] Page Level dari body attribute: ${bodyPageLevel}`);
         return bodyPageLevel;
       }
-      
+
+      // ✅ CEK DARI DATA-PAGE-INFO (untuk Blogger)
+      const pageInfo = document.body.getAttribute('data-page-info');
+      if (pageInfo) {
+        try {
+          const data = JSON.parse(pageInfo);
+          if (data.pageLevel) {
+            console.log(`[Schema v6.0] Page Level dari data-page-info: ${data.pageLevel}`);
+            return data.pageLevel;
+          }
+        } catch(e) {}
+      }
+
       // ❌ FALLBACK
-      console.warn("[Schema v5.1] PLD tidak tersedia, menggunakan fallback detection");
+      console.warn("[Schema v6.0] PLD tidak tersedia, menggunakan fallback detection");
       return detectPageLevelFallback();
     }
 
@@ -103,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
       const title = document.title.toLowerCase();
       const url = location.href.toLowerCase();
-      
+
       const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom", "tinggi", "rendah"];
       for (let pattern of variantPatterns) {
         if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) {
@@ -114,17 +126,17 @@ document.addEventListener("DOMContentLoaded", () => {
           return "variant";
         }
       }
-      
+
       const locations = ["jakarta", "bekasi", "bogor", "depok", "tangerang", "karawang", "surabaya", "bandung", "cirebon", "ciamis"];
       for (let loc of locations) {
         if (h1.includes(loc) || title.includes(loc) || url.includes(loc)) return "money-child";
       }
-      
+
       if (/\b(harga|biaya|tarif)\b/i.test(h1 + title)) return "money-page";
       if (/\b(jasa|sewa|borongan)\b/i.test(h1 + title) && !/\b(panduan|tips|cara)\b/i.test(h1 + title)) return "money-master";
       if (/\b(daftar|jenis|kategori)\b/i.test(h1 + title)) return "sub-pillar-tipe-2";
       if (/\b(perbandingan|vs|versus)\b/i.test(h1 + title)) return "sub-pillar-tipe-1";
-      
+
       return "pillar";
     }
 
@@ -139,25 +151,25 @@ document.addEventListener("DOMContentLoaded", () => {
           resolve(true);
           return;
         }
-        
+
         const onReady = () => {
-          console.log("[Schema v5.1] PLD ready (event)");
+          console.log("[Schema v6.0] PLD ready (event)");
           resolve(true);
         };
-        
+
         window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
         window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
         window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
         window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
-        
+
         setTimeout(() => {
           if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
               window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
               window.pageLevelDetectorV17 || window.pageLevelDetector) {
-            console.log("[Schema v5.1] PLD ready (timeout)");
+            console.log("[Schema v6.0] PLD ready (timeout)");
             resolve(true);
           } else {
-            console.warn("[Schema v5.1] PLD timeout, using fallback");
+            console.warn("[Schema v6.0] PLD timeout, using fallback");
             resolve(false);
           }
         }, 5000);
@@ -170,14 +182,14 @@ document.addEventListener("DOMContentLoaded", () => {
     function shouldSkipProductSchema(pageLevel) {
       if (pageLevel === 'variant' || pageLevel === 'sub-variant') return false;
       if (['money-master', 'money-page', 'money-child'].includes(pageLevel)) return false;
-      
+
       const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
       const title = document.title.toLowerCase();
-      
+
       const edukasiPatterns = ["panduan", "cara memilih", "tips memilih", "langkah memilih", "pengertian", "definisi", "apa itu"];
       for (let pattern of edukasiPatterns) {
         if (h1.includes(pattern) || title.includes(pattern)) {
-          console.log(`[Schema v5.1] Skip Product: halaman edukasi murni (pattern: "${pattern}")`);
+          console.log(`[Schema v6.0] Skip Product: halaman edukasi murni (pattern: "${pattern}")`);
           return true;
         }
       }
@@ -189,14 +201,14 @@ document.addEventListener("DOMContentLoaded", () => {
     // ============================================================
     function generateFAQ(cleanUrl, title) {
       const faqItems = [];
-      
+
       document.querySelectorAll("details, .faq-item, .accordion-item").forEach((el, i) => {
         const question = el.querySelector("summary, .question, h3, h4")?.innerText?.trim() || 
                          el.querySelector("strong")?.innerText?.trim() || 
                          `Pertanyaan ${i + 1}`;
         const answer = el.querySelector("p, .answer, .content")?.innerText?.trim() || 
                        el.innerText.replace(question, "").trim();
-        
+
         if (question && answer && answer.length > 10) {
           faqItems.push({
             "@type": "Question",
@@ -205,7 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
       });
-      
+
       if (faqItems.length === 0) {
         const defaultFAQs = [
           { question: `Apa itu ${title.split('-')[0].trim()}?`, 
@@ -223,7 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         });
       }
-      
+
       return {
         "@type": "FAQPage",
         "@id": cleanUrl + "#faq",
@@ -247,25 +259,25 @@ document.addEventListener("DOMContentLoaded", () => {
         material: "Beton Precast",
         manufacturer: { "@type": "Organization", name: PAGE.business.name }
       };
-      
+
       const specText = document.querySelector(".post-body, article, main")?.innerText || "";
       const variant = {};
-      
+
       const sizeMatch = specText.match(/(\d{1,3}\s*x\s*\d{1,3})\s*(cm|meter|m)/i);
       if (sizeMatch) variant.size = sizeMatch[1] + " " + sizeMatch[2];
-      
+
       const heightMatch = specText.match(/tinggi\s*([\d.]+)\s*(meter|m|cm)/i);
       if (heightMatch) variant.height = heightMatch[1] + " " + heightMatch[2];
-      
+
       const thickMatch = specText.match(/tebal\s*([\d.]+)\s*(cm|mm)/i);
       if (thickMatch) variant.thickness = thickMatch[1] + " " + thickMatch[2];
-      
+
       if (Object.keys(variant).length > 0) {
         productNode.variant = { "@type": "ProductVariant", ...variant };
       } else {
         productNode.variant = { "@type": "ProductVariant" };
       }
-      
+
       return productNode;
     }
 
@@ -275,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v5.1 🚀] Universal schema dijalankan");
+      console.log("[Schema v6.0 🚀] Universal schema dijalankan");
 
       // ===== WAIT PLD =====
       await waitForPLD();
@@ -292,10 +304,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const h1Text = document.querySelector("h1")?.innerText?.trim() || document.title;
       const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
-      
+
       // 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD 🔥🔥🔥
       const pageLevel = getPageLevelFromPLD();
-      console.log(`[Schema v5.1] Page Level: ${pageLevel}`);
+      console.log(`[Schema v6.0] Page Level: ${pageLevel}`);
 
       const PAGE = {
         url: cleanUrl,
@@ -327,7 +339,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const parentData = window.PARENT_MAPPING[cleanUrl];
         parentUrls = [{ "@type": "WebPage", "@id": parentData.parentUrl, name: parentData.parentName || "Parent Page" }];
       }
-      
+
       if (parentUrls.length === 0) {
         const breadcrumbLinks = document.querySelectorAll(".breadcrumbs a, .breadcrumb a, .nav-trail a");
         if (breadcrumbLinks.length > 0) {
@@ -372,10 +384,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const idKey = `${name}|${price}`;
         if (seenItems.has(idKey)) return;
         seenItems.add(idKey);
-        
+
         let validUntil = window.AEDMetaDates?.nextUpdate || 
           new Date(Date.now() + 180*24*60*60*1000).toISOString().split("T")[0];
-        
+
         tableOffers.push({
           "@type": "Offer",
           name: name.substring(0, 100),
@@ -392,7 +404,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const skipProduct = shouldSkipProductSchema(pageLevel);
       const isMoneyPage = ['money-master', 'money-page', 'money-child'].includes(pageLevel);
-      
+
       if (!skipProduct && isMoneyPage) {
         document.querySelectorAll("table tr, li, p").forEach((el) => {
           const m = el.innerText.match(/Rp\s*([\d.,]+)/);
@@ -461,7 +473,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (isProductPage) {
         let productNode;
-        
+
         if (isVariantPage) {
           productNode = buildVariantProduct(pageLevel, cleanUrl, PAGE);
         } else {
@@ -475,7 +487,7 @@ document.addEventListener("DOMContentLoaded", () => {
             category: "ConstructionProduct"
           };
         }
-        
+
         if (tableOffers.length > 0) {
           productNode.offers = {
             "@type": "AggregateOffer",
@@ -487,7 +499,7 @@ document.addEventListener("DOMContentLoaded", () => {
           };
         }
         graph.push(productNode);
-        console.log(`[Schema v5.1] Product schema generated for ${pageLevel}`);
+        console.log(`[Schema v6.0] Product schema generated for ${pageLevel}`);
       }
 
       // ===== SERVICE SCHEMA =====
@@ -504,7 +516,7 @@ document.addEventListener("DOMContentLoaded", () => {
           brand: { "@type": "Brand", name: PAGE.business.name },
           mainEntityOfPage: { "@id": cleanUrl + "#webpage" }
         };
-        
+
         if (tableOffers.length > 0) {
           serviceNode.offers = {
             "@type": "AggregateOffer",
@@ -532,7 +544,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // ===== INJECT SCHEMA =====
       const schema = { "@context": "https://schema.org", "@graph": graph };
-      
+
       let el = document.querySelector("#auto-schema-service");
       if (!el) {
         el = document.createElement("script");
@@ -543,24 +555,98 @@ document.addEventListener("DOMContentLoaded", () => {
       el.textContent = JSON.stringify(schema, null, 2);
 
       console.log(
-        `[Schema v5.1 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
+        `[Schema v6.0 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
         `Product: ${isProductPage ? '✅' : '❌'} | Service: ${!isVariantPage ? '✅' : '❌'} | FAQ: ✅`
       );
     }
 
     // ============================================================
-    // START
+    // 🔥🔥🔥 START — VERSI FIXED (Mendeteksi .post-body secara otomatis)
     // ============================================================
-    if (document.querySelector("h1") && (document.querySelector(".post-body") || document.querySelector("main"))) {
+    // Fungsi untuk memastikan .post-body ada
+    function ensurePostBody() {
+      // Cek apakah sudah ada
+      if (document.querySelector(".post-body") || document.querySelector("main")) {
+        return true;
+      }
+
+      // Cari kontainer utama
+      const candidates = [
+        document.querySelector("article"),
+        document.querySelector(".post"),
+        document.querySelector(".entry-content"),
+        document.querySelector('[role="main"]'),
+        document.querySelector(".blog-posts"),
+        document.querySelector(".hentry"),
+        document.querySelector(".item-content"),
+        document.querySelector("#main"),
+        document.querySelector("#content")
+      ];
+
+      for (let el of candidates) {
+        if (el && !el.classList.contains("post-body")) {
+          el.classList.add("post-body");
+          console.log("[Schema v6.0] ✅ post-body class added to:", el.tagName, el.className);
+          return true;
+        }
+      }
+
+      // Jika tidak ada, cari container dengan banyak konten
+      const allDivs = document.querySelectorAll("div");
+      for (let div of allDivs) {
+        if (div.innerText.length > 500 && div.children.length > 2 && !div.classList.contains("post-body")) {
+          div.classList.add("post-body");
+          console.log("[Schema v6.0] ✅ post-body class added to div (auto-detected)");
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+    // Jalankan deteksi post-body
+    const hasPostBody = ensurePostBody();
+
+    // Jika h1 ada dan post-body sudah terdeteksi, jalankan
+    if (document.querySelector("h1") && hasPostBody) {
       await initSchema();
     } else {
+      // Observer untuk menunggu h1 atau post-body muncul
       const obs = new MutationObserver(async () => {
-        if (document.querySelector("h1") && (document.querySelector(".post-body") || document.querySelector("main"))) {
+        const h1Exists = !!document.querySelector("h1");
+        const bodyExists = !!document.querySelector(".post-body") || !!document.querySelector("main");
+        
+        if (h1Exists && bodyExists) {
           await initSchema();
           obs.disconnect();
+        } else if (h1Exists && !bodyExists) {
+          // Jika h1 ada tapi post-body belum, coba cari lagi
+          ensurePostBody();
+          if (document.querySelector(".post-body") || document.querySelector("main")) {
+            await initSchema();
+            obs.disconnect();
+          }
         }
       });
       obs.observe(document.body, { childList: true, subtree: true });
+      
+      // Timeout fallback: paksa jalankan setelah 4 detik
+      setTimeout(async () => {
+        if (!schemaInjected) {
+          console.log("[Schema v6.0] ⏰ Timeout: forcing init...");
+          // Pastikan post-body ada
+          ensurePostBody();
+          // Jika masih tidak ada, buat elemen main
+          if (!document.querySelector("main") && !document.querySelector(".post-body")) {
+            const main = document.createElement("main");
+            main.className = "post-body";
+            // Taruh di body
+            document.body.insertBefore(main, document.body.firstChild);
+            console.log("[Schema v6.0] ✅ main.post-body created fallback");
+          }
+          await initSchema();
+        }
+      }, 4000);
     }
   }, 700);
 });
