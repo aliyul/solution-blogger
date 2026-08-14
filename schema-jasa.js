@@ -1,5 +1,3 @@
-<!-- ⚡ AUTO SCHEMA UNIVERSAL v7.0 — ZERO CORB, 100% SELF-CONTAINED -->
-<script>
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -593,4 +591,3 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }, 700);
 });
-</script>
