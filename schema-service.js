@@ -1,5 +1,3 @@
-<!-- ⚡ AUTO SCHEMA UNIVERSAL v7.1 — OFFER NAME ONLY FROM PRICE TABLE -->
-<script>
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -745,4 +743,3 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }, 700);
 });
-</script>
