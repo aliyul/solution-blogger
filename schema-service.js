@@ -1,29 +1,29 @@
+<!-- ⚡ AUTO SCHEMA UNIVERSAL v7.1 — OFFER NAME ONLY FROM PRICE TABLE -->
+<script>
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
-// Override fetch untuk mencegah CORB
 const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.0] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.1] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
 };
 
-// Block XMLHttpRequest ke external
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.0] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.1] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
 };
 
 // ============================================================
-// 🚀 MAIN SCRIPT — SELF-CONTAINED, NO EXTERNAL
+// 🚀 MAIN SCRIPT
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(async () => {
@@ -226,7 +226,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // 🔥🔥🔥 AMBIL PAGE LEVEL 🔥🔥🔥
     // ============================================================
     function getPageLevel() {
-      // Cek dari PLD
       const pldVersions = ['pageLevelDetectorv22', 'pageLevelDetectorv20', 'pageLevelDetectorv19', 
                            'pageLevelDetectorV18', 'pageLevelDetectorV17', 'pageLevelDetector'];
       for (let pld of pldVersions) {
@@ -238,12 +237,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // Cek dari body attribute
       const bodyLevel = document.body.getAttribute('data-page-level') || 
                         document.body.getAttribute('data-schema-page-level');
       if (bodyLevel) return bodyLevel;
 
-      // Fallback detection
       const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
       const title = document.title.toLowerCase();
       const url = location.href.toLowerCase();
@@ -328,12 +325,186 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ============================================================
+    // 🔥🔥🔥 EKSTRAK OFFER NAME HANYA DARI TABEL 🔥🔥🔥
+    // ============================================================
+    function extractOffersFromTable() {
+      const offers = [];
+      const seenItems = new Set();
+
+      // Cari semua tabel
+      const tables = document.querySelectorAll('table');
+      
+      tables.forEach((table, tableIndex) => {
+        // Cari semua baris dalam tabel
+        const rows = table.querySelectorAll('tr');
+        
+        rows.forEach((row, rowIndex) => {
+          // Skip header row (jika mengandung kata "nama", "produk", "harga", dll)
+          const rowText = row.innerText.toLowerCase();
+          const headerKeywords = ['nama', 'produk', 'item', 'layanan', 'jasa', 'deskripsi', 'harga', 'biaya', 'tarif', 'paket'];
+          const isHeader = headerKeywords.some(keyword => rowText.includes(keyword) && rowText.length < 50);
+          
+          if (isHeader && rowIndex === 0) {
+            // Ini header, skip
+            return;
+          }
+
+          // Cari sel dalam baris
+          const cells = row.querySelectorAll('td');
+          
+          // Jika baris memiliki sel
+          if (cells.length > 0) {
+            let name = '';
+            let price = null;
+            let description = '';
+
+            // Loop melalui sel untuk mencari nama dan harga
+            cells.forEach((cell, cellIndex) => {
+              const text = cell.innerText.trim();
+              
+              // Cek apakah sel ini berisi harga (Rp)
+              const priceMatch = text.match(/Rp\s*([\d.,]+)/);
+              if (priceMatch) {
+                const priceValue = parseInt(priceMatch[1].replace(/[^\d]/g, ''));
+                if (priceValue > 10000 && priceValue < 1000000000) {
+                  price = priceValue;
+                }
+              }
+              
+              // Jika sel ini bukan harga, ambil sebagai nama
+              if (!priceMatch && text.length > 2 && text.length < 100) {
+                // Cek apakah ini label harga (skip)
+                const priceLabels = ['harga', 'biaya', 'tarif', 'price', 'cost'];
+                if (!priceLabels.some(label => text.toLowerCase().includes(label))) {
+                  // Jika name masih kosong atau sel ini lebih panjang
+                  if (!name || text.length > name.length) {
+                    name = text;
+                  }
+                }
+              }
+            });
+
+            // Jika tidak ada nama, coba ambil dari sel pertama
+            if (!name && cells.length > 0) {
+              const firstCell = cells[0].innerText.trim();
+              if (firstCell.length > 2 && firstCell.length < 100) {
+                // Cek apakah bukan header harga
+                const priceLabels = ['harga', 'biaya', 'tarif', 'price', 'cost'];
+                if (!priceLabels.some(label => firstCell.toLowerCase().includes(label))) {
+                  name = firstCell;
+                }
+              }
+            }
+
+            // Jika masih tidak ada nama, coba dari sel kedua
+            if (!name && cells.length > 1) {
+              const secondCell = cells[1].innerText.trim();
+              if (secondCell.length > 2 && secondCell.length < 100) {
+                const priceLabels = ['harga', 'biaya', 'tarif', 'price', 'cost'];
+                if (!priceLabels.some(label => secondCell.toLowerCase().includes(label))) {
+                  name = secondCell;
+                }
+              }
+            }
+
+            // Clean nama
+            if (name) {
+              name = name
+                .replace(/^(harga|biaya|tarif|paket|jasa|layanan)\s*/i, '')
+                .replace(/\s{2,}/g, ' ')
+                .trim();
+            }
+
+            // Jika ada nama dan harga, tambahkan ke offers
+            if (name && price && name.length > 2 && name.length < 80) {
+              const idKey = `${name}|${price}`;
+              if (!seenItems.has(idKey)) {
+                seenItems.add(idKey);
+                offers.push({
+                  name: name,
+                  price: price,
+                  description: description || name
+                });
+              }
+            }
+          }
+        });
+      });
+
+      // Jika tidak ada offers dari tabel, coba dari list/li
+      if (offers.length === 0) {
+        document.querySelectorAll('li').forEach(li => {
+          const text = li.innerText.trim();
+          const priceMatch = text.match(/Rp\s*([\d.,]+)/);
+          if (priceMatch) {
+            const price = parseInt(priceMatch[1].replace(/[^\d]/g, ''));
+            if (price > 10000 && price < 1000000000) {
+              let name = text.split('Rp')[0].trim();
+              // Clean name
+              name = name
+                .replace(/^(harga|biaya|tarif|paket|jasa|layanan)\s*/i, '')
+                .replace(/\s{2,}/g, ' ')
+                .trim();
+              
+              if (name && name.length > 2 && name.length < 80) {
+                const idKey = `${name}|${price}`;
+                if (!seenItems.has(idKey)) {
+                  seenItems.add(idKey);
+                  offers.push({
+                    name: name,
+                    price: price,
+                    description: name
+                  });
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // Jika masih tidak ada, coba dari paragraf
+      if (offers.length === 0) {
+        document.querySelectorAll('p').forEach(p => {
+          const text = p.innerText.trim();
+          const priceMatch = text.match(/Rp\s*([\d.,]+)/);
+          if (priceMatch) {
+            const price = parseInt(priceMatch[1].replace(/[^\d]/g, ''));
+            if (price > 10000 && price < 1000000000) {
+              let name = text.split('Rp')[0].trim();
+              name = name
+                .replace(/^(harga|biaya|tarif|paket|jasa|layanan)\s*/i, '')
+                .replace(/\s{2,}/g, ' ')
+                .trim();
+              
+              if (name && name.length > 2 && name.length < 80) {
+                const idKey = `${name}|${price}`;
+                if (!seenItems.has(idKey)) {
+                  seenItems.add(idKey);
+                  offers.push({
+                    name: name,
+                    price: price,
+                    description: name
+                  });
+                }
+              }
+            }
+          }
+        });
+      }
+
+      console.log(`[Schema v7.1] Extracted ${offers.length} offers from table:`);
+      offers.forEach(o => console.log(`  - ${o.name}: Rp${o.price.toLocaleString()}`));
+
+      return offers;
+    }
+
+    // ============================================================
     // MAIN FUNCTION
     // ============================================================
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v7.0 🚀] Starting (ZERO CORB)");
+      console.log("[Schema v7.1 🚀] Starting (ZERO CORB)");
 
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
@@ -344,7 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
 
       const pageLevel = getPageLevel();
-      console.log(`[Schema v7.0] Page Level: ${pageLevel}`);
+      console.log(`[Schema v7.1] Page Level: ${pageLevel}`);
 
       const PAGE = {
         url: cleanUrl,
@@ -372,7 +543,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "@id": parentData.parentUrl, 
         name: parentData.parentName || "Parent Page" 
       }];
-      console.log(`[Schema v7.0] Parent: ${parentData.parentName}`);
+      console.log(`[Schema v7.1] Parent: ${parentData.parentName}`);
 
       // ===== AREA SERVED =====
       const defaultAreaServed = [
@@ -383,46 +554,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const knowsAbout = detectKnowsAbout();
 
-      // ===== DETEKSI HARGA =====
-      const seenItems = new Set();
+      // ===== 🔥🔥🔥 EKSTRAK OFFER HANYA DARI TABEL 🔥🔥🔥 =====
       const tableOffers = [];
-
-      function addOffer(name, price) {
-        if (!price || price <= 0) return;
-        const idKey = `${name}|${price}`;
-        if (seenItems.has(idKey)) return;
-        seenItems.add(idKey);
-
-        tableOffers.push({
-          "@type": "Offer",
-          name: name.substring(0, 100),
-          url: cleanUrl,
-          priceCurrency: "IDR",
-          price: price,
-          itemCondition: "https://schema.org/NewCondition",
-          availability: "https://schema.org/InStock",
-          priceValidUntil: new Date(Date.now() + 180*24*60*60*1000).toISOString().split("T")[0],
-          seller: { "@id": PAGE.business.url + "#localbusiness" }
-        });
-      }
-
       const skipProduct = shouldSkipProductSchema(pageLevel);
       const isMoneyPage = ['money-master', 'money-page', 'money-child'].includes(pageLevel);
 
       if (!skipProduct && isMoneyPage) {
-        document.querySelectorAll("table tr, li, p").forEach((el) => {
-          const m = el.innerText.match(/Rp\s*([\d.,]+)/);
-          if (m) {
-            const price = parseInt(m[1].replace(/[^\d]/g, ""));
-            if (price > 10000 && price < 1000000000) {
-              const name = el.innerText.split("Rp")[0].trim() || PAGE.title;
-              addOffer(name, price);
-            }
-          }
+        const extractedOffers = extractOffersFromTable();
+        extractedOffers.forEach(offer => {
+          tableOffers.push({
+            "@type": "Offer",
+            name: offer.name.substring(0, 100),
+            url: cleanUrl,
+            priceCurrency: "IDR",
+            price: offer.price,
+            itemCondition: "https://schema.org/NewCondition",
+            availability: "https://schema.org/InStock",
+            priceValidUntil: new Date(Date.now() + 180*24*60*60*1000).toISOString().split("T")[0],
+            seller: { "@id": PAGE.business.url + "#localbusiness" },
+            description: offer.description || offer.name
+          });
         });
       }
 
-      // ===== BUILD GRAPH (TANPA EXTERNAL, TANPA FAQ) =====
+      // ===== BUILD GRAPH =====
       const graph = [
         {
           "@type": ["LocalBusiness", "GeneralContractor"],
@@ -526,7 +681,7 @@ document.addEventListener("DOMContentLoaded", () => {
       el.textContent = JSON.stringify(schema, null, 2);
 
       console.log(
-        `[Schema v7.0 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
+        `[Schema v7.1 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
         `Product: ${isProductPage ? '✅' : '❌'} | Service: ${!isVariantPage ? '✅' : '❌'} | ` +
         `KnowsAbout: ${knowsAbout.length} | CORB: ✅ ZERO`
       );
@@ -568,7 +723,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return false;
     }
 
-    // Wait for DOM
     const hasPostBody = ensurePostBody();
 
     if (document.querySelector("h1") && hasPostBody) {
@@ -591,3 +745,4 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }, 700);
 });
+</script>
