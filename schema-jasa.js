@@ -1,5 +1,32 @@
-<!-- ⚡ AUTO SCHEMA UNIVERSAL v6.3 — NO FAQ, PURE SERVICE SCHEMA -->
+<!-- ⚡ AUTO SCHEMA UNIVERSAL v7.0 — ZERO CORB, 100% SELF-CONTAINED -->
 <script>
+// ============================================================
+// 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
+// ============================================================
+// Override fetch untuk mencegah CORB
+const originalFetch = window.fetch;
+window.fetch = function(...args) {
+  const url = args[0];
+  if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
+    console.warn('[Schema v7.0] 🚫 Blocked external fetch (CORB prevention):', url);
+    return Promise.reject(new Error('Blocked by CORB prevention'));
+  }
+  return originalFetch.apply(this, args);
+};
+
+// Block XMLHttpRequest ke external
+const originalXHROpen = XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+  if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
+    console.warn('[Schema v7.0] 🚫 Blocked external XHR (CORB prevention):', url);
+    throw new Error('Blocked by CORB prevention');
+  }
+  return originalXHROpen.call(this, method, url, ...rest);
+};
+
+// ============================================================
+// 🚀 MAIN SCRIPT — SELF-CONTAINED, NO EXTERNAL
+// ============================================================
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(async () => {
     let schemaInjected = false;
@@ -41,7 +68,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const links = div.querySelectorAll('a');
             if (links.length > 1) {
               breadcrumbLinks = Array.from(links);
-              console.log('[Schema v6.3] Breadcrumb found in div:', div.className);
               break;
             }
           }
@@ -54,12 +80,9 @@ document.addEventListener("DOMContentLoaded", () => {
           const links = nav.querySelectorAll('a');
           if (links.length > 1) {
             breadcrumbLinks = Array.from(links);
-            console.log('[Schema v6.3] Breadcrumb found in nav');
           }
         }
       }
-
-      console.log(`[Schema v6.3] Found ${breadcrumbLinks.length} breadcrumb links`);
 
       if (breadcrumbLinks.length > 0) {
         const validLinks = breadcrumbLinks.filter(a => {
@@ -76,10 +99,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (validLinks.length > 0) {
           const parentLink = validLinks[validLinks.length - 1];
-          console.log(`[Schema v6.3] Parent found:`, {
-            name: parentLink.innerText?.trim(),
-            url: parentLink.href
-          });
           return {
             parentUrl: parentLink.href,
             parentName: parentLink.innerText?.trim() || 'Parent Page'
@@ -91,14 +110,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (urlParts.length > 4) {
         const parentUrl = urlParts.slice(0, -1).join('/');
         const parentName = urlParts[urlParts.length - 2]?.replace(/-/g, ' ') || 'Parent Page';
-        console.log(`[Schema v6.3] Parent from URL fallback:`, {
-          parentUrl,
-          parentName
-        });
         return { parentUrl, parentName };
       }
 
-      console.log(`[Schema v6.3] Using domain as parent`);
       return {
         parentUrl: location.origin,
         parentName: 'Home'
@@ -106,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ============================================================
-    // 🔥🔥🔥 DETECT KNOWSABOUT OTOMATIS TANPA LIST 🔥🔥🔥
+    // 🔥🔥🔥 DETECT KNOWSABOUT OTOMATIS 🔥🔥🔥
     // ============================================================
     function detectKnowsAbout() {
       const knowsAbout = [];
@@ -118,9 +132,8 @@ document.addEventListener("DOMContentLoaded", () => {
       
       const fullText = text + " " + title + " " + h1 + " " + metaDesc + " " + url;
       
-      // ===== 1. DARI BREADCRUMB =====
-      const breadcrumbLinks = document.querySelectorAll('.breadcrumbs a, .breadcrumb a, .nav-trail a');
-      breadcrumbLinks.forEach(link => {
+      // Dari Breadcrumb
+      document.querySelectorAll('.breadcrumbs a, .breadcrumb a, .nav-trail a').forEach(link => {
         const name = link.innerText?.trim();
         if (name && name.length > 2 && name.length < 50) {
           const skipLabels = ['home', 'beranda', 'blog', 'homepage'];
@@ -130,7 +143,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // ===== 2. DARI H1 / JUDUL =====
+      // Dari H1
       const h1Words = h1.split(/[-,|:]/).map(w => w.trim());
       h1Words.forEach(word => {
         if (word.length > 3 && word.length < 40) {
@@ -145,33 +158,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // ===== 3. DARI URL =====
-      const urlParts = url.split('/').filter(p => p && p.length > 2);
-      urlParts.forEach(part => {
-        const cleanPart = part.replace(/-/g, ' ').replace(/\.html$/, '');
-        if (cleanPart.length > 3 && cleanPart.length < 40) {
-          const commonUrlWords = ['p', 'search', 'label', 'feeds', 'atom', 'comment', 'widget'];
-          if (!commonUrlWords.includes(cleanPart.toLowerCase())) {
-            const serviceKeywords = ['jasa', 'sewa', 'borongan', 'kontraktor', 'konstruksi', 'bangunan', 
-                                     'cor', 'beton', 'precast', 'aspal', 'renovasi', 'bongkar'];
-            if (serviceKeywords.some(k => cleanPart.toLowerCase().includes(k))) {
-              knowsAbout.push(cleanPart);
-            }
-          }
-        }
-      });
-
-      // ===== 4. DARI META KEYWORDS =====
-      const metaKeywords = document.querySelector('meta[name="keywords"]')?.content?.split(',').map(k => k.trim()) || [];
-      metaKeywords.forEach(keyword => {
-        if (keyword.length > 3 && keyword.length < 40) {
-          knowsAbout.push(keyword);
-        }
-      });
-
-      // ===== 5. DARI HEADINGS (H2, H3) =====
-      const headings = document.querySelectorAll('h2, h3');
-      headings.forEach(h => {
+      // Dari Headings
+      document.querySelectorAll('h2, h3').forEach(h => {
         const text = h.innerText?.trim();
         if (text && text.length > 5 && text.length < 60) {
           const serviceIndicators = ['jasa', 'layanan', 'service', 'paket', 'harga', 'biaya', 'tarif', 
@@ -182,7 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // ===== 6. DARI STRONG/BOLD TEXT =====
+      // Dari Strong/Bold
       document.querySelectorAll('strong, b').forEach(el => {
         const text = el.innerText?.trim();
         if (text && text.length > 3 && text.length < 40) {
@@ -193,55 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // ===== 7. DARI LIST ITEMS =====
-      document.querySelectorAll('li').forEach(el => {
-        const text = el.innerText?.trim();
-        if (text && text.length > 5 && text.length < 50) {
-          const servicePatterns = /(jasa|layanan|service|paket|harga|biaya|tarif|promo|spesifikasi|ukuran|dimensi|material|beton|cor|precast)/i;
-          if (servicePatterns.test(text)) {
-            knowsAbout.push(text);
-          }
-        }
-      });
-
-      // ===== 8. DARI TABLE CELLS =====
-      document.querySelectorAll('td, th').forEach(el => {
-        const text = el.innerText?.trim();
-        if (text && text.length > 3 && text.length < 40) {
-          const servicePatterns = /(jasa|layanan|service|harga|biaya|paket|spesifikasi|ukuran|dimensi|material)/i;
-          if (servicePatterns.test(text)) {
-            knowsAbout.push(text);
-          }
-        }
-      });
-
-      // ===== 9. DARI PARAGRAPH PERTAMA =====
-      const firstP = document.querySelector('p');
-      if (firstP) {
-        const text = firstP.innerText?.trim();
-        if (text && text.length > 10) {
-          const sentences = text.split(/[.!?]/);
-          for (let sentence of sentences) {
-            if (sentence.length > 10 && sentence.length < 100) {
-              const servicePatterns = /(jasa|layanan|service|menyediakan|melayani|menawarkan|spesialis|profesional|kontraktor|konstruksi|bangunan|pembangunan|renovasi|beton|cor|precast|aspal|sewa|borongan)/i;
-              if (servicePatterns.test(sentence)) {
-                knowsAbout.push(sentence.trim());
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      // ===== 10. DARI TAG SERVICE =====
-      document.querySelectorAll('[itemtype*="Service"], [typeof*="Service"]').forEach(el => {
-        const text = el.innerText?.trim();
-        if (text && text.length > 5 && text.length < 100) {
-          knowsAbout.push(text.substring(0, 80));
-        }
-      });
-
-      // ===== FILTER & DEDUPLIKASI =====
+      // Filter & Deduplikasi
       const uniqueKnowsAbout = [];
       const seen = new Set();
 
@@ -261,7 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (/^[\d\W]+$/.test(clean)) continue;
         
         const key = clean.toLowerCase();
-        if (!seen.has(key) && !seen.has(clean.toLowerCase().split(' ').slice(0, 3).join(' '))) {
+        if (!seen.has(key)) {
           seen.add(key);
           uniqueKnowsAbout.push(clean);
         }
@@ -269,36 +209,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const result = uniqueKnowsAbout.slice(0, 10);
       
-      console.log(`[Schema v6.3] Detected knowsAbout (${result.length}):`, result);
-      
       if (result.length === 0) {
         const defaultServices = [];
-        
-        if (/(cor|beton|readymix|concrete|mix)/i.test(fullText)) {
-          defaultServices.push('Jasa Beton Cor');
-        }
-        if (/(precast|panel|pagar|booth|gorong|gorong-gorong|parit)/i.test(fullText)) {
-          defaultServices.push('Beton Precast');
-        }
-        if (/(aspal|hotmix|jalan|perbaikan jalan|pengaspalan)/i.test(fullText)) {
-          defaultServices.push('Jasa Aspal');
-        }
-        if (/(sewa|rental|alat berat|excavator|buldozer|dumptruck|vibro|roll)/i.test(fullText)) {
-          defaultServices.push('Sewa Alat Berat');
-        }
-        if (/(renovasi|bangun|pembangunan|rumah|gedung|ruko|rukan|kantor|gudang)/i.test(fullText)) {
-          defaultServices.push('Jasa Renovasi');
-        }
-        if (/(bongkar|pembongkaran|hancur|runtuh|bangunan lama)/i.test(fullText)) {
-          defaultServices.push('Jasa Bongkar Bangunan');
-        }
-        
-        if (defaultServices.length > 0) {
-          console.log('[Schema v6.3] Using contextual defaults:', defaultServices);
-          return defaultServices;
-        }
-        
-        console.log('[Schema v6.3] Using generic defaults');
+        if (/(cor|beton|readymix|concrete|mix)/i.test(fullText)) defaultServices.push('Jasa Beton Cor');
+        if (/(precast|panel|pagar|booth|gorong|gorong-gorong|parit)/i.test(fullText)) defaultServices.push('Beton Precast');
+        if (/(aspal|hotmix|jalan|perbaikan jalan|pengaspalan)/i.test(fullText)) defaultServices.push('Jasa Aspal');
+        if (/(sewa|rental|alat berat|excavator|buldozer|dumptruck|vibro|roll)/i.test(fullText)) defaultServices.push('Sewa Alat Berat');
+        if (/(renovasi|bangun|pembangunan|rumah|gedung|ruko|rukan|kantor|gudang)/i.test(fullText)) defaultServices.push('Jasa Renovasi');
+        if (/(bongkar|pembongkaran|hancur|runtuh|bangunan lama)/i.test(fullText)) defaultServices.push('Jasa Bongkar Bangunan');
+        if (defaultServices.length > 0) return defaultServices;
         return ['Jasa Konstruksi', 'Beton Precast'];
       }
       
@@ -306,88 +225,32 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ============================================================
-    // 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD ATAU BODY 🔥🔥🔥
+    // 🔥🔥🔥 AMBIL PAGE LEVEL 🔥🔥🔥
     // ============================================================
     function getPageLevel() {
-      if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
-        try {
-          const pageLevel = window.pageLevelDetectorv22.detect();
-          console.log(`[Schema v6.3] Page Level dari PLD v22.x: ${pageLevel}`);
-          return pageLevel;
-        } catch(e) { console.warn(`PLD v22.x error: ${e.message}`); }
+      // Cek dari PLD
+      const pldVersions = ['pageLevelDetectorv22', 'pageLevelDetectorv20', 'pageLevelDetectorv19', 
+                           'pageLevelDetectorV18', 'pageLevelDetectorV17', 'pageLevelDetector'];
+      for (let pld of pldVersions) {
+        if (window[pld] && typeof window[pld].detect === 'function') {
+          try {
+            const level = window[pld].detect();
+            if (level) return level;
+          } catch(e) {}
+        }
       }
 
-      if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
-        try {
-          const pageLevel = window.pageLevelDetectorv20.detect();
-          console.log(`[Schema v6.3] Page Level dari PLD v20.x: ${pageLevel}`);
-          return pageLevel;
-        } catch(e) { console.warn(`PLD v20.x error: ${e.message}`); }
-      }
+      // Cek dari body attribute
+      const bodyLevel = document.body.getAttribute('data-page-level') || 
+                        document.body.getAttribute('data-schema-page-level');
+      if (bodyLevel) return bodyLevel;
 
-      if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
-        try {
-          const pageLevel = window.pageLevelDetectorv19.detect();
-          console.log(`[Schema v6.3] Page Level dari PLD v19.0: ${pageLevel}`);
-          return pageLevel;
-        } catch(e) { console.warn(`PLD v19.0 error: ${e.message}`); }
-      }
-
-      if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
-        try {
-          const pageLevel = window.pageLevelDetectorV18.detect();
-          console.log(`[Schema v6.3] Page Level dari PLD v18.7: ${pageLevel}`);
-          return pageLevel;
-        } catch(e) { console.warn(`PLD v18.7 error: ${e.message}`); }
-      }
-
-      if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
-        try {
-          const pageLevel = window.pageLevelDetectorV17.detect();
-          console.log(`[Schema v6.3] Page Level dari PLD v17.0: ${pageLevel}`);
-          return pageLevel;
-        } catch(e) { console.warn(`PLD v17.0 error: ${e.message}`); }
-      }
-
-      if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
-        try {
-          const pageLevel = window.pageLevelDetector.detect();
-          console.log(`[Schema v6.3] Page Level dari PLD legacy: ${pageLevel}`);
-          return pageLevel;
-        } catch(e) { console.warn(`PLD legacy error: ${e.message}`); }
-      }
-
-      const bodyPageLevel = document.body.getAttribute('data-page-level') || 
-                            document.body.getAttribute('data-schema-page-level');
-      if (bodyPageLevel) {
-        console.log(`[Schema v6.3] Page Level dari body attribute: ${bodyPageLevel}`);
-        return bodyPageLevel;
-      }
-
-      const pageInfo = document.body.getAttribute('data-page-info');
-      if (pageInfo) {
-        try {
-          const data = JSON.parse(pageInfo);
-          if (data.pageLevel) {
-            console.log(`[Schema v6.3] Page Level dari data-page-info: ${data.pageLevel}`);
-            return data.pageLevel;
-          }
-        } catch(e) {}
-      }
-
-      console.warn("[Schema v6.3] PLD tidak tersedia, menggunakan fallback detection");
-      return detectPageLevelFallback();
-    }
-
-    // ============================================================
-    // FALLBACK DETECTION
-    // ============================================================
-    function detectPageLevelFallback() {
+      // Fallback detection
       const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
       const title = document.title.toLowerCase();
       const url = location.href.toLowerCase();
 
-      const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom", "tinggi", "rendah"];
+      const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom"];
       for (let pattern of variantPatterns) {
         if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) {
           const subVariantPatterns = ["detail", "lengkap", "spesifikasi teknis", "ukuran detail"];
@@ -398,7 +261,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      const locations = ["jakarta", "bekasi", "bogor", "depok", "tangerang", "karawang", "surabaya", "bandung", "cirebon", "ciamis"];
+      const locations = ["jakarta", "bekasi", "bogor", "depok", "tangerang", "karawang"];
       for (let loc of locations) {
         if (h1.includes(loc) || title.includes(loc) || url.includes(loc)) return "money-child";
       }
@@ -412,43 +275,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // ============================================================
-    // MENUNGGU PLD READY
-    // ============================================================
-    function waitForPLD() {
-      return new Promise((resolve) => {
-        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
-            window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
-            window.pageLevelDetectorV17 || window.pageLevelDetector) {
-          resolve(true);
-          return;
-        }
-
-        const onReady = () => {
-          console.log("[Schema v6.3] PLD ready (event)");
-          resolve(true);
-        };
-
-        window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
-        window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
-        window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
-        window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
-
-        setTimeout(() => {
-          if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
-              window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
-              window.pageLevelDetectorV17 || window.pageLevelDetector) {
-            console.log("[Schema v6.3] PLD ready (timeout)");
-            resolve(true);
-          } else {
-            console.warn("[Schema v6.3] PLD timeout, using fallback");
-            resolve(false);
-          }
-        }, 5000);
-      });
-    }
-
-    // ============================================================
-    // CEK APAKAH SKIP PRODUCT
+    // CEK SKIP PRODUCT
     // ============================================================
     function shouldSkipProductSchema(pageLevel) {
       if (pageLevel === 'variant' || pageLevel === 'sub-variant') return false;
@@ -459,10 +286,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const edukasiPatterns = ["panduan", "cara memilih", "tips memilih", "langkah memilih", "pengertian", "definisi", "apa itu"];
       for (let pattern of edukasiPatterns) {
-        if (h1.includes(pattern) || title.includes(pattern)) {
-          console.log(`[Schema v6.3] Skip Product: halaman edukasi murni (pattern: "${pattern}")`);
-          return true;
-        }
+        if (h1.includes(pattern) || title.includes(pattern)) return true;
       }
       return false;
     }
@@ -511,9 +335,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v6.3 🚀] Universal schema dijalankan (NO FAQ)");
-
-      await waitForPLD();
+      console.log("[Schema v7.0 🚀] Starting (ZERO CORB)");
 
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
@@ -524,7 +346,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
 
       const pageLevel = getPageLevel();
-      console.log(`[Schema v6.3] Page Level: ${pageLevel}`);
+      console.log(`[Schema v7.0] Page Level: ${pageLevel}`);
 
       const PAGE = {
         url: cleanUrl,
@@ -546,21 +368,13 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       // ===== PARENT DARI BREADCRUMB =====
-      let parentUrls = [];
       const parentData = getParentFromBreadcrumb(cleanUrl);
-      if (parentData && parentData.parentUrl) {
-        parentUrls = [{ 
-          "@type": "WebPage", 
-          "@id": parentData.parentUrl, 
-          name: parentData.parentName || "Parent Page" 
-        }];
-        console.log(`[Schema v6.3] Parent from breadcrumb: ${parentData.parentName} (${parentData.parentUrl})`);
-      }
-
-      if (parentUrls.length === 0) {
-        parentUrls = [{ "@type": "WebPage", "@id": location.origin, name: "Home" }];
-        console.log(`[Schema v6.3] Using domain as parent: ${location.origin}`);
-      }
+      const parentUrls = [{ 
+        "@type": "WebPage", 
+        "@id": parentData.parentUrl, 
+        name: parentData.parentName || "Parent Page" 
+      }];
+      console.log(`[Schema v7.0] Parent: ${parentData.parentName}`);
 
       // ===== AREA SERVED =====
       const defaultAreaServed = [
@@ -569,21 +383,17 @@ document.addEventListener("DOMContentLoaded", () => {
         "Kabupaten Bekasi", "Kota Bekasi", "Kabupaten Karawang"
       ].map(a => ({ "@type": "Place", name: a }));
 
-      // ===== 🔥🔥🔥 DETECT KNOWSABOUT OTOMATIS 🔥🔥🔥 =====
       const knowsAbout = detectKnowsAbout();
 
       // ===== DETEKSI HARGA =====
       const seenItems = new Set();
       const tableOffers = [];
 
-      function addOffer(name, price, desc = "") {
+      function addOffer(name, price) {
         if (!price || price <= 0) return;
         const idKey = `${name}|${price}`;
         if (seenItems.has(idKey)) return;
         seenItems.add(idKey);
-
-        let validUntil = window.AEDMetaDates?.nextUpdate || 
-          new Date(Date.now() + 180*24*60*60*1000).toISOString().split("T")[0];
 
         tableOffers.push({
           "@type": "Offer",
@@ -593,9 +403,8 @@ document.addEventListener("DOMContentLoaded", () => {
           price: price,
           itemCondition: "https://schema.org/NewCondition",
           availability: "https://schema.org/InStock",
-          priceValidUntil: validUntil,
-          seller: { "@id": PAGE.business.url + "#localbusiness" },
-          description: desc || undefined
+          priceValidUntil: new Date(Date.now() + 180*24*60*60*1000).toISOString().split("T")[0],
+          seller: { "@id": PAGE.business.url + "#localbusiness" }
         });
       }
 
@@ -615,23 +424,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
-      // ===== INTERNAL LINKS =====
-      function generateInternalLinks() {
-        const containers = ["article", "main", ".post-body"].map(s => document.querySelector(s)).filter(Boolean);
-        const links = containers.flatMap(c => Array.from(c.querySelectorAll("a")))
-          .map(a => a.href)
-          .filter(h => h && h.includes(location.hostname) && !h.includes("#") && !h.match(/(\/search|\/feed|\/label)/i));
-        const unique = [...new Set(links)];
-        return unique.slice(0, 40).map((u, i) => ({
-          "@type": "ListItem",
-          position: i + 1,
-          url: u,
-          name: decodeURIComponent(u.split("/").pop().replace(".html", "").replace(/-/g, " "))
-        }));
-      }
-      const internalLinks = generateInternalLinks();
-
-      // ===== BUILD GRAPH (TANPA FAQ) =====
+      // ===== BUILD GRAPH (TANPA EXTERNAL, TANPA FAQ) =====
       const graph = [
         {
           "@type": ["LocalBusiness", "GeneralContractor"],
@@ -661,16 +454,12 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       ];
 
-      // ===== ❌ FAQ DIHAPUS =====
-      // graph.push(generateFAQ(cleanUrl, PAGE.title)); // ❌ DIHAPUS
-
       // ===== PRODUCT SCHEMA =====
       const isVariantPage = (pageLevel === 'variant' || pageLevel === 'sub-variant');
       const isProductPage = !skipProduct && (isVariantPage || isMoneyPage || tableOffers.length > 0);
 
       if (isProductPage) {
         let productNode;
-
         if (isVariantPage) {
           productNode = buildVariantProduct(pageLevel, cleanUrl, PAGE);
         } else {
@@ -696,7 +485,6 @@ document.addEventListener("DOMContentLoaded", () => {
           };
         }
         graph.push(productNode);
-        console.log(`[Schema v6.3] Product schema generated for ${pageLevel}`);
       }
 
       // ===== SERVICE SCHEMA =====
@@ -727,18 +515,6 @@ document.addEventListener("DOMContentLoaded", () => {
         graph.push(serviceNode);
       }
 
-      // ===== RELATED LINKS =====
-      if (internalLinks.length) {
-        graph.push({
-          "@type": "ItemList",
-          "@id": cleanUrl + "#related-links",
-          name: "Halaman Terkait",
-          itemListOrder: "Ascending",
-          numberOfItems: internalLinks.length,
-          itemListElement: internalLinks
-        });
-      }
-
       // ===== INJECT SCHEMA =====
       const schema = { "@context": "https://schema.org", "@graph": graph };
 
@@ -752,19 +528,17 @@ document.addEventListener("DOMContentLoaded", () => {
       el.textContent = JSON.stringify(schema, null, 2);
 
       console.log(
-        `[Schema v6.3 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
+        `[Schema v7.0 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
         `Product: ${isProductPage ? '✅' : '❌'} | Service: ${!isVariantPage ? '✅' : '❌'} | ` +
-        `KnowsAbout: ${knowsAbout.length} | FAQ: ❌`
+        `KnowsAbout: ${knowsAbout.length} | CORB: ✅ ZERO`
       );
     }
 
     // ============================================================
-    // 🔥🔥🔥 START — AUTO DETECT POST-BODY
+    // START
     // ============================================================
     function ensurePostBody() {
-      if (document.querySelector(".post-body") || document.querySelector("main")) {
-        return true;
-      }
+      if (document.querySelector(".post-body") || document.querySelector("main")) return true;
 
       const candidates = [
         document.querySelector("article"),
@@ -781,7 +555,6 @@ document.addEventListener("DOMContentLoaded", () => {
       for (let el of candidates) {
         if (el && !el.classList.contains("post-body")) {
           el.classList.add("post-body");
-          console.log("[Schema v6.3] ✅ post-body class added to:", el.tagName, el.className);
           return true;
         }
       }
@@ -790,7 +563,6 @@ document.addEventListener("DOMContentLoaded", () => {
       for (let div of allDivs) {
         if (div.innerText.length > 500 && div.children.length > 2 && !div.classList.contains("post-body")) {
           div.classList.add("post-body");
-          console.log("[Schema v6.3] ✅ post-body class added to div (auto-detected)");
           return true;
         }
       }
@@ -798,38 +570,23 @@ document.addEventListener("DOMContentLoaded", () => {
       return false;
     }
 
+    // Wait for DOM
     const hasPostBody = ensurePostBody();
 
     if (document.querySelector("h1") && hasPostBody) {
       await initSchema();
     } else {
       const obs = new MutationObserver(async () => {
-        const h1Exists = !!document.querySelector("h1");
-        const bodyExists = !!document.querySelector(".post-body") || !!document.querySelector("main");
-        
-        if (h1Exists && bodyExists) {
+        if (document.querySelector("h1") && (document.querySelector(".post-body") || document.querySelector("main"))) {
           await initSchema();
           obs.disconnect();
-        } else if (h1Exists && !bodyExists) {
-          ensurePostBody();
-          if (document.querySelector(".post-body") || document.querySelector("main")) {
-            await initSchema();
-            obs.disconnect();
-          }
         }
       });
       obs.observe(document.body, { childList: true, subtree: true });
       
       setTimeout(async () => {
         if (!schemaInjected) {
-          console.log("[Schema v6.3] ⏰ Timeout: forcing init...");
           ensurePostBody();
-          if (!document.querySelector("main") && !document.querySelector(".post-body")) {
-            const main = document.createElement("main");
-            main.className = "post-body";
-            document.body.insertBefore(main, document.body.firstChild);
-            console.log("[Schema v6.3] ✅ main.post-body created fallback");
-          }
           await initSchema();
         }
       }, 4000);
