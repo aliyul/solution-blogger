@@ -5,7 +5,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.1] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.5] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -14,7 +14,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.1] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.5] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -144,9 +144,9 @@ document.addEventListener("DOMContentLoaded", () => {
       h1Words.forEach(word => {
         if (word.length > 3 && word.length < 40) {
           const commonWords = ['harga', 'biaya', 'tarif', 'jasa', 'sewa', 'cara', 'tips', 'panduan', 
-                               'terbaik', 'murah', 'profesional', 'berkualitas', 'terpercaya'];
+                               'terbaik', 'murah', 'profesional', 'berkualitas', 'terpercaya', 'jual', 'beli'];
           if (!commonWords.includes(word.toLowerCase())) {
-            const isService = /(jasa|service|layanan|sewa|borongan|kontraktor|konstruksi|bangunan|cor|beton|precast|aspal|renovasi|bongkar|pembangunan|proyek|gedung|rumah|jalan|jembatan|tukang|mandor|arsitek|desain|interior|eksterior|cat|plafon|gypsum|baja|besi|kayu|keramik|granit|marmer|batu|bata|hebel|pasir|split|koral|semen|besi|wiremesh|besi beton|pipa|paralon|atap|genteng|baja ringan|canopy|teralis|pintu|jendela|kusen|aluminium|upvc|kaca|sanitasi|plumbing|listrik|ac|ventilasi|waterproofing|drainase|landscape|taman|kolam|paving|blok|conblock|grassblock|pagarbeton|panel|readymix|pompa|concrete|mix|molen|vibrator|scaffolding|steger|perancah|bekisting|formwork)/i;
+            const isService = /(jasa|service|layanan|sewa|borongan|kontraktor|konstruksi|bangunan|cor|beton|precast|aspal|renovasi|bongkar|pembangunan|proyek|gedung|rumah|jalan|jembatan|tukang|mandor|arsitek|desain|interior|eksterior|cat|plafon|gypsum|baja|besi|kayu|keramik|granit|marmer|batu|bata|hebel|pasir|split|koral|semen|besi|wiremesh|besi beton|pipa|paralon|atap|genteng|baja ringan|canopy|teralis|pintu|jendela|kusen|aluminium|upvc|kaca|sanitasi|plumbing|listrik|ac|ventilasi|waterproofing|drainase|landscape|taman|kolam|paving|blok|conblock|grassblock|pagarbeton|panel|readymix|pompa|concrete|mix|molen|vibrator|scaffolding|steger|perancah|bekisting|formwork|bore|pile|pondasi|tiang|pancang|strauss|mini|pile|spun|piles|micro|piling)/i;
             if (isService) {
               knowsAbout.push(word);
             }
@@ -159,7 +159,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const text = h.innerText?.trim();
         if (text && text.length > 5 && text.length < 60) {
           const serviceIndicators = ['jasa', 'layanan', 'service', 'paket', 'harga', 'biaya', 'tarif', 
-                                     'promo', 'diskon', 'spesifikasi', 'ukuran', 'dimensi', 'material'];
+                                     'promo', 'diskon', 'spesifikasi', 'ukuran', 'dimensi', 'material',
+                                     'bore', 'pile', 'pondasi', 'tiang', 'pancang', 'sewa', 'rental'];
           if (serviceIndicators.some(ind => text.toLowerCase().includes(ind))) {
             knowsAbout.push(text);
           }
@@ -170,7 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll('strong, b').forEach(el => {
         const text = el.innerText?.trim();
         if (text && text.length > 3 && text.length < 40) {
-          const servicePatterns = /(jasa|layanan|service|harga|biaya|paket|promo|diskon|spesifikasi|ukuran|dimensi|material|beton|cor|precast|konstruksi|bangunan|renovasi|bongkar|pembangunan|gedung|rumah|jalan|jembatan)/i;
+          const servicePatterns = /(jasa|layanan|service|harga|biaya|paket|promo|diskon|spesifikasi|ukuran|dimensi|material|beton|cor|precast|konstruksi|bangunan|renovasi|bongkar|pembangunan|gedung|rumah|jalan|jembatan|bore|pile|pondasi|tiang|pancang|sewa|rental)/i;
           if (servicePatterns.test(text)) {
             knowsAbout.push(text);
           }
@@ -213,11 +214,207 @@ document.addEventListener("DOMContentLoaded", () => {
         if (/(sewa|rental|alat berat|excavator|buldozer|dumptruck|vibro|roll)/i.test(fullText)) defaultServices.push('Sewa Alat Berat');
         if (/(renovasi|bangun|pembangunan|rumah|gedung|ruko|rukan|kantor|gudang)/i.test(fullText)) defaultServices.push('Jasa Renovasi');
         if (/(bongkar|pembongkaran|hancur|runtuh|bangunan lama)/i.test(fullText)) defaultServices.push('Jasa Bongkar Bangunan');
+        if (/(bore|pile|pondasi|tiang|pancang|strauss|mini|piling)/i.test(fullText)) defaultServices.push('Jasa Bore Pile');
         if (defaultServices.length > 0) return defaultServices;
         return ['Jasa Konstruksi', 'Beton Precast'];
       }
       
       return result;
+    }
+
+    // ============================================================
+    // 🔥🔥🔥 CEK APAKAH INI HALAMAN JASA / SEWA / RENTAL 🔥🔥🔥
+    // ============================================================
+    function isServicePage(pageLevel) {
+      const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
+      const title = document.title.toLowerCase();
+      const url = location.href.toLowerCase();
+      const metaDesc = document.querySelector('meta[name="description"]')?.content?.toLowerCase() || "";
+      const text = document.body.innerText.toLowerCase().substring(0, 2000);
+      
+      const combined = h1 + " " + title + " " + url + " " + metaDesc + " " + text;
+      
+      // ============================================================
+      // ✅ CEK 0: SKIP PRODUK/MATERIAL (JUAL, BELI, PRODUK, MATERIAL, VARIAN PRODUK)
+      // ============================================================
+      const isProductPage = /(jual|beli|order|pesan|pemesanan|pembelian|produk|material|bahan|spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian|polosan|motif|custom)\s+(beton|readymix|precast|paving|panel|box|u-ditch|kansteen|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|paving\s*block|pagar\s*panel|box\s*culvert|u\s*ditch|kanstin|gorong\s*gorong)/i.test(h1 + title);
+      if (isProductPage) {
+        console.log(`[Schema v7.5] ⏭️ Skip: Product/Material/Variant Produk detected → NO schema`);
+        return false;
+      }
+      
+      // ============================================================
+      // ✅ CEK 1: DETEKSI "JUAL" / "BELI" (PRODUK)
+      // ============================================================
+      const isJual = /(jual|beli|order|pesan|pemesanan|pembelian)\s+(beton|readymix|precast|paving|panel|material|bahan|produk|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen)/i.test(h1 + title);
+      if (isJual) {
+        console.log(`[Schema v7.5] ⏭️ Skip: "Jual" detected → PRODUCT, NOT service`);
+        return false;
+      }
+      
+      // ============================================================
+      // ✅ CEK 2: POLA URL (PALING AKURAT)
+      // ============================================================
+      const urlJasaPatterns = [
+        /\/jasa-/i, /\/jasa\//i, /\/p\/jasa-/i, 
+        /\/layanan-/i, /\/service-/i,
+        /\/borongan-/i, /\/kontraktor-/i,
+        /\/sewa-/i, /\/rental-/i, /\/p\/sewa-/i
+      ];
+      for (let pattern of urlJasaPatterns) {
+        if (pattern.test(url)) {
+          const isProductUrl = /\/p\/(beton|readymix|precast|paving|panel|box|u-ditch|kansteen|gorong|material|jual|beli|order|pesan|produk|bahan|spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian|polosan|motif|custom)/i.test(url);
+          if (!isProductUrl) {
+            console.log(`[Schema v7.5] ✅ isServicePage: URL pattern matched: ${pattern}`);
+            return true;
+          }
+        }
+      }
+      
+      // ============================================================
+      // ✅ CEK 3: KATA KUNCI JASA DI H1 / TITLE
+      // ============================================================
+      const h1Title = h1 + " " + title;
+      
+      const strongServiceKeywords = [
+        'jasa', 'layanan', 'service', 'borongan',
+        'kontraktor', 'tukang', 'renovasi', 'bongkar', 'pemasangan',
+        'instalasi', 'pengerjaan', 'perbaikan', 'pembangunan', 'proyek',
+        'bore pile', 'pondasi', 'tiang pancang', 'sumur bor', 'coring',
+        'pasang', 'bangun', 'perawatan', 'perbaikan',
+        'sewa', 'rental', 'sewa alat', 'rental alat'
+      ];
+      
+      for (let keyword of strongServiceKeywords) {
+        if (h1Title.includes(keyword)) {
+          const productExceptions = /(beton|readymix|precast|paving|panel|box culvert|u-ditch|kansteen|gorong|material|besi|baja)\s+(harga|biaya|spesifikasi|ukuran)/i.test(h1Title);
+          if (!productExceptions) {
+            console.log(`[Schema v7.5] ✅ isServicePage: Strong keyword "${keyword}" found in H1/Title`);
+            return true;
+          }
+        }
+      }
+      
+      // ============================================================
+      // ✅ CEK 4: POLA KALIMAT "JASA [LAYANAN]" / "SEWA [ALAT]"
+      // ============================================================
+      const servicePhrases = [
+        /jasa\s+(pasang|pemasangan|instalasi|bongkar|bor|sumur|cor|beton|renovasi|bangun|perbaikan|perawatan|pengerjaan|pembangunan)/i,
+        /layanan\s+(pasang|pemasangan|instalasi|bongkar|bor|sumur|cor|beton|renovasi|bangun|perbaikan|perawatan|pengerjaan|pembangunan)/i,
+        /service\s+(pasang|pemasangan|instalasi|bongkar|bor|sumur|cor|beton|renovasi|bangun|perbaikan|perawatan|pengerjaan|pembangunan)/i,
+        /borongan\s+(bangun|renovasi|perbaikan|pembangunan|proyek|rumah|gedung|ruko|gudang)/i,
+        /kontraktor\s+(bangun|renovasi|perbaikan|pembangunan|proyek|rumah|gedung|ruko|gudang)/i,
+        /sewa\s+(alat|excavator|buldozer|dumptruck|crane|forklift|beton|molen|vibrator|scaffolding|steger|perancah|pompa|concrete\s*pump|truk|mobil|dump\s*truck|backhoe|loader|grader|roller|vibro|pile|hammer)/i,
+        /rental\s+(alat|excavator|buldozer|dumptruck|crane|forklift|beton|molen|vibrator|scaffolding|steger|perancah|pompa|concrete\s*pump|truk|mobil|dump\s*truck|backhoe|loader|grader|roller|vibro|pile|hammer)/i,
+        /sewa\s+(harian|mingguan|bulanan|tahunan)/i,
+        /rental\s+(harian|mingguan|bulanan|tahunan)/i
+      ];
+      
+      for (let pattern of servicePhrases) {
+        if (pattern.test(h1Title)) {
+          console.log(`[Schema v7.5] ✅ isServicePage: Service phrase matched: ${pattern}`);
+          return true;
+        }
+      }
+      
+      // ============================================================
+      // ✅ CEK 5: PAGE LEVEL DARI PLD
+      // ============================================================
+      if (pageLevel) {
+        const servicePageLevels = ['money-master', 'money-page', 'money-child', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'];
+        if (servicePageLevels.includes(pageLevel)) {
+          const hasServiceWord = /(jasa|layanan|service|sewa|borongan|kontraktor|tukang|renovasi|bongkar|pemasangan|instalasi|perbaikan|rental)/i.test(combined);
+          if (hasServiceWord) {
+            const isProduct = /(beton|readymix|precast|paving|panel|box culvert|u-ditch|kansteen|gorong|material|bahan|besi|baja)(?!\s*(pasang|pemasangan|instalasi|bongkar|bor|sumur|coring|bangun|renovasi|perbaikan|perawatan|pengerjaan|pembangunan|sewa|rental))/i.test(combined);
+            if (!isProduct) {
+              console.log(`[Schema v7.5] ✅ isServicePage: Page level ${pageLevel} + service word found`);
+              return true;
+            }
+          }
+        }
+        
+        if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
+          const hasServiceInVariant = /(jasa|layanan|service|sewa|borongan|kontraktor|tukang|renovasi|bongkar|pemasangan|instalasi|perbaikan|rental)/i.test(h1Title);
+          if (hasServiceInVariant) {
+            console.log(`[Schema v7.5] ✅ isServicePage: Variant page with service keyword`);
+            return true;
+          }
+        }
+      }
+      
+      // ============================================================
+      // ✅ CEK 6: KONTEN (FALLBACK)
+      // ============================================================
+      const contentPatterns = [
+        /kami\s+melayani\s+jasa/i,
+        /kami\s+menyediakan\s+layanan/i,
+        /jasa\s+(profesional|berkualitas|terbaik|murah|terpercaya)/i,
+        /layanan\s+(profesional|berkualitas|terbaik|murah|terpercaya)/i,
+        /(harga|biaya|tarif)\s+jasa/i,
+        /pengerjaan\s+oleh\s+tim\s+profesional/i,
+        /tim\s+ahli\s+(bersertifikat|berpengalaman)/i,
+        /(sewa|rental)\s+(alat|kendaraan|peralatan|mesin|konstruksi)/i,
+        /(harga|biaya|tarif)\s+sewa/i,
+        /sewa\s+(harian|mingguan|bulanan|tahunan)/i,
+        /rental\s+(harian|mingguan|bulanan|tahunan)/i,
+        /(durasi|waktu|jangka)\s+sewa/i,
+        /(minimum|maksimum)\s+sewa/i,
+        /(tersedia|ready)\s+untuk\s+sewa/i,
+        /(alat|kendaraan|peralatan)\s+sewa/i,
+        /sewa\s+(excavator|buldozer|dumptruck|crane|forklift|molen|vibrator|scaffolding|steger|pompa|concrete\s*pump)/i,
+        /rental\s+(excavator|buldozer|dumptruck|crane|forklift|molen|vibrator|scaffolding|steger|pompa|concrete\s*pump)/i
+      ];
+      
+      for (let pattern of contentPatterns) {
+        if (pattern.test(combined)) {
+          const isProductContent = /(beli|order|pesan|jual)\s+(beton|readymix|precast|paving|panel|material|bahan)/i.test(combined);
+          if (!isProductContent) {
+            console.log(`[Schema v7.5] ✅ isServicePage: Content pattern matched: ${pattern}`);
+            return true;
+          }
+        }
+      }
+      
+      // ============================================================
+      // ✅ CEK 7: DEFAULT UNTUK VARIAN JASA / SEWA
+      // ============================================================
+      if ((pageLevel === 'variant' || pageLevel === 'sub-variant') && /(jasa|sewa|rental)/i.test(h1Title + url)) {
+        console.log(`[Schema v7.5] ✅ isServicePage: Variant page with "jasa/sewa/rental" in title/URL`);
+        return true;
+      }
+      
+      console.log(`[Schema v7.5] ⏭️ Skip: Not identified as service page → NO schema`);
+      return false;
+    }
+
+    // ============================================================
+    // 🔥🔥🔥 EKSTRAK SERVICE TYPE DARI JUDUL 🔥🔥🔥
+    // ============================================================
+    function extractServiceType(title) {
+      let serviceType = title
+        .replace(/^(harga|biaya|tarif|estimasi)\s*/i, '')
+        .replace(/\s*2026|\s*2025|\s*2024/g, '')
+        .replace(/\s*terbaru|\s*update|\s*terkini/g, '')
+        .replace(/[-,|:].*$/, '')
+        .trim();
+      
+      if (serviceType.length > 50) {
+        serviceType = serviceType.substring(0, 50);
+      }
+      
+      // Untuk variant jasa
+      if (/spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian/i.test(title)) {
+        if (!/^spesifikasi/i.test(serviceType) && !/^varian/i.test(serviceType) && !/^ukuran/i.test(serviceType)) {
+          serviceType = 'Spesifikasi ' + serviceType;
+        }
+      }
+      
+      // Tambahkan "Jasa" jika belum ada
+      if (!/^(jasa|layanan|service|sewa|borongan|spesifikasi|varian|ukuran|mutu|rental)/i.test(serviceType)) {
+        serviceType = 'Jasa ' + serviceType;
+      }
+      
+      return serviceType;
     }
 
     // ============================================================
@@ -271,96 +468,41 @@ document.addEventListener("DOMContentLoaded", () => {
     // CEK SKIP PRODUCT
     // ============================================================
     function shouldSkipProductSchema(pageLevel) {
-      if (pageLevel === 'variant' || pageLevel === 'sub-variant') return false;
-      if (['money-master', 'money-page', 'money-child'].includes(pageLevel)) return false;
-
-      const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
-      const title = document.title.toLowerCase();
-
-      const edukasiPatterns = ["panduan", "cara memilih", "tips memilih", "langkah memilih", "pengertian", "definisi", "apa itu"];
-      for (let pattern of edukasiPatterns) {
-        if (h1.includes(pattern) || title.includes(pattern)) return true;
-      }
-      return false;
+      // Selalu skip product schema (karena fokus ke jasa/sewa/rental)
+      return true;
     }
 
     // ============================================================
-    // BUILD VARIANT PRODUCT
-    // ============================================================
-    function buildVariantProduct(pageLevel, cleanUrl, PAGE) {
-      const productNode = {
-        "@type": "Product",
-        "@id": cleanUrl + "#product",
-        name: PAGE.title,
-        description: PAGE.description,
-        image: [PAGE.image],
-        brand: { "@type": "Brand", name: PAGE.business.name },
-        category: "ConstructionProduct",
-        productType: pageLevel === 'variant' ? "Variant" : "Sub-Variant",
-        material: "Beton Precast",
-        manufacturer: { "@type": "Organization", name: PAGE.business.name }
-      };
-
-      const specText = document.querySelector(".post-body, article, main")?.innerText || "";
-      const variant = {};
-
-      const sizeMatch = specText.match(/(\d{1,3}\s*x\s*\d{1,3})\s*(cm|meter|m)/i);
-      if (sizeMatch) variant.size = sizeMatch[1] + " " + sizeMatch[2];
-
-      const heightMatch = specText.match(/tinggi\s*([\d.]+)\s*(meter|m|cm)/i);
-      if (heightMatch) variant.height = heightMatch[1] + " " + heightMatch[2];
-
-      const thickMatch = specText.match(/tebal\s*([\d.]+)\s*(cm|mm)/i);
-      if (thickMatch) variant.thickness = thickMatch[1] + " " + thickMatch[2];
-
-      if (Object.keys(variant).length > 0) {
-        productNode.variant = { "@type": "ProductVariant", ...variant };
-      } else {
-        productNode.variant = { "@type": "ProductVariant" };
-      }
-
-      return productNode;
-    }
-
-    // ============================================================
-    // 🔥🔥🔥 EKSTRAK OFFER NAME HANYA DARI TABEL 🔥🔥🔥
+    // 🔥🔥🔥 EKSTRAK OFFER HANYA DARI TABEL 🔥🔥🔥
     // ============================================================
     function extractOffersFromTable() {
       const offers = [];
       const seenItems = new Set();
 
-      // Cari semua tabel
       const tables = document.querySelectorAll('table');
       
       tables.forEach((table, tableIndex) => {
-        // Cari semua baris dalam tabel
         const rows = table.querySelectorAll('tr');
         
         rows.forEach((row, rowIndex) => {
-          // Skip header row (jika mengandung kata "nama", "produk", "harga", dll)
           const rowText = row.innerText.toLowerCase();
-          const headerKeywords = ['nama', 'produk', 'item', 'layanan', 'jasa', 'deskripsi', 'harga', 'biaya', 'tarif', 'paket'];
+          const headerKeywords = ['nama', 'produk', 'item', 'layanan', 'jasa', 'deskripsi', 'harga', 'biaya', 'tarif', 'paket', 'jenis', 'tipe'];
           const isHeader = headerKeywords.some(keyword => rowText.includes(keyword) && rowText.length < 50);
           
           if (isHeader && rowIndex === 0) {
-            // Ini header, skip
             return;
           }
 
-          // Cari sel dalam baris
           const cells = row.querySelectorAll('td');
           
-          // Jika baris memiliki sel
           if (cells.length > 0) {
             let name = '';
             let price = null;
             let description = '';
 
-            // Loop melalui sel untuk mencari nama dan harga
             cells.forEach((cell, cellIndex) => {
               const text = cell.innerText.trim();
               
-              // Cek apakah sel ini berisi harga (Rp)
               const priceMatch = text.match(/Rp\s*([\d.,]+)/);
               if (priceMatch) {
                 const priceValue = parseInt(priceMatch[1].replace(/[^\d]/g, ''));
@@ -369,12 +511,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
               }
               
-              // Jika sel ini bukan harga, ambil sebagai nama
               if (!priceMatch && text.length > 2 && text.length < 100) {
-                // Cek apakah ini label harga (skip)
-                const priceLabels = ['harga', 'biaya', 'tarif', 'price', 'cost'];
+                const priceLabels = ['harga', 'biaya', 'tarif', 'price', 'cost', 'rp', 'rp.'];
                 if (!priceLabels.some(label => text.toLowerCase().includes(label))) {
-                  // Jika name masih kosong atau sel ini lebih panjang
                   if (!name || text.length > name.length) {
                     name = text;
                   }
@@ -382,30 +521,26 @@ document.addEventListener("DOMContentLoaded", () => {
               }
             });
 
-            // Jika tidak ada nama, coba ambil dari sel pertama
             if (!name && cells.length > 0) {
               const firstCell = cells[0].innerText.trim();
               if (firstCell.length > 2 && firstCell.length < 100) {
-                // Cek apakah bukan header harga
-                const priceLabels = ['harga', 'biaya', 'tarif', 'price', 'cost'];
+                const priceLabels = ['harga', 'biaya', 'tarif', 'price', 'cost', 'rp', 'rp.'];
                 if (!priceLabels.some(label => firstCell.toLowerCase().includes(label))) {
                   name = firstCell;
                 }
               }
             }
 
-            // Jika masih tidak ada nama, coba dari sel kedua
             if (!name && cells.length > 1) {
               const secondCell = cells[1].innerText.trim();
               if (secondCell.length > 2 && secondCell.length < 100) {
-                const priceLabels = ['harga', 'biaya', 'tarif', 'price', 'cost'];
+                const priceLabels = ['harga', 'biaya', 'tarif', 'price', 'cost', 'rp', 'rp.'];
                 if (!priceLabels.some(label => secondCell.toLowerCase().includes(label))) {
                   name = secondCell;
                 }
               }
             }
 
-            // Clean nama
             if (name) {
               name = name
                 .replace(/^(harga|biaya|tarif|paket|jasa|layanan)\s*/i, '')
@@ -413,7 +548,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 .trim();
             }
 
-            // Jika ada nama dan harga, tambahkan ke offers
             if (name && price && name.length > 2 && name.length < 80) {
               const idKey = `${name}|${price}`;
               if (!seenItems.has(idKey)) {
@@ -429,7 +563,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
 
-      // Jika tidak ada offers dari tabel, coba dari list/li
       if (offers.length === 0) {
         document.querySelectorAll('li').forEach(li => {
           const text = li.innerText.trim();
@@ -438,7 +571,6 @@ document.addEventListener("DOMContentLoaded", () => {
             const price = parseInt(priceMatch[1].replace(/[^\d]/g, ''));
             if (price > 10000 && price < 1000000000) {
               let name = text.split('Rp')[0].trim();
-              // Clean name
               name = name
                 .replace(/^(harga|biaya|tarif|paket|jasa|layanan)\s*/i, '')
                 .replace(/\s{2,}/g, ' ')
@@ -460,37 +592,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
-      // Jika masih tidak ada, coba dari paragraf
-      if (offers.length === 0) {
-        document.querySelectorAll('p').forEach(p => {
-          const text = p.innerText.trim();
-          const priceMatch = text.match(/Rp\s*([\d.,]+)/);
-          if (priceMatch) {
-            const price = parseInt(priceMatch[1].replace(/[^\d]/g, ''));
-            if (price > 10000 && price < 1000000000) {
-              let name = text.split('Rp')[0].trim();
-              name = name
-                .replace(/^(harga|biaya|tarif|paket|jasa|layanan)\s*/i, '')
-                .replace(/\s{2,}/g, ' ')
-                .trim();
-              
-              if (name && name.length > 2 && name.length < 80) {
-                const idKey = `${name}|${price}`;
-                if (!seenItems.has(idKey)) {
-                  seenItems.add(idKey);
-                  offers.push({
-                    name: name,
-                    price: price,
-                    description: name
-                  });
-                }
-              }
-            }
-          }
-        });
-      }
-
-      console.log(`[Schema v7.1] Extracted ${offers.length} offers from table:`);
+      console.log(`[Schema v7.5] Extracted ${offers.length} offers from table:`);
       offers.forEach(o => console.log(`  - ${o.name}: Rp${o.price.toLocaleString()}`));
 
       return offers;
@@ -502,7 +604,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v7.1 🚀] Starting (ZERO CORB)");
+      console.log("[Schema v7.5 🚀] Starting (ZERO CORB) - Fokus JASA & SEWA/RENTAL (SKIP PRODUK/MATERIAL/VARIAN PRODUK)");
 
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
@@ -513,7 +615,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
 
       const pageLevel = getPageLevel();
-      console.log(`[Schema v7.1] Page Level: ${pageLevel}`);
+      console.log(`[Schema v7.5] Page Level: ${pageLevel}`);
 
       const PAGE = {
         url: cleanUrl,
@@ -522,7 +624,7 @@ document.addEventListener("DOMContentLoaded", () => {
           document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 200) || title,
         image: document.querySelector('meta[property="og:image"]')?.content ||
           document.querySelector("article img, main img, .post-body img")?.getAttribute("src") ||
-          "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png",
+          "https://www.betonjayareadymix.com/favicon.ico",
         business: {
           name: "Beton Jaya Readymix",
           url: "https://www.betonjayareadymix.com",
@@ -541,7 +643,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "@id": parentData.parentUrl, 
         name: parentData.parentName || "Parent Page" 
       }];
-      console.log(`[Schema v7.1] Parent: ${parentData.parentName}`);
+      console.log(`[Schema v7.5] Parent: ${parentData.parentName}`);
 
       // ===== AREA SERVED =====
       const defaultAreaServed = [
@@ -552,12 +654,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const knowsAbout = detectKnowsAbout();
 
-      // ===== 🔥🔥🔥 EKSTRAK OFFER HANYA DARI TABEL 🔥🔥🔥 =====
+      // ===== EKSTRAK OFFER DARI TABEL =====
       const tableOffers = [];
-      const skipProduct = shouldSkipProductSchema(pageLevel);
       const isMoneyPage = ['money-master', 'money-page', 'money-child'].includes(pageLevel);
 
-      if (!skipProduct && isMoneyPage) {
+      // Hanya ekstrak offer jika halaman money
+      if (isMoneyPage) {
         const extractedOffers = extractOffersFromTable();
         extractedOffers.forEach(offer => {
           tableOffers.push({
@@ -575,7 +677,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
-      // ===== BUILD GRAPH =====
+      // ============================================================
+      // 🔥🔥🔥 BUILD GRAPH - TANPA FAQ 🔥🔥🔥
+      // ============================================================
       const graph = [
         {
           "@type": ["LocalBusiness", "GeneralContractor"],
@@ -605,48 +709,34 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       ];
 
-      // ===== PRODUCT SCHEMA =====
+      // ============================================================
+      // 🔥🔥🔥 CEK APAKAH INI HALAMAN JASA / SEWA / RENTAL 🔥🔥🔥
+      // ============================================================
+      const isService = isServicePage(pageLevel);
       const isVariantPage = (pageLevel === 'variant' || pageLevel === 'sub-variant');
-      const isProductPage = !skipProduct && (isVariantPage || isMoneyPage || tableOffers.length > 0);
 
-      if (isProductPage) {
-        let productNode;
-        if (isVariantPage) {
-          productNode = buildVariantProduct(pageLevel, cleanUrl, PAGE);
-        } else {
-          productNode = {
-            "@type": "Product",
-            "@id": cleanUrl + "#product",
-            name: PAGE.title,
-            description: PAGE.description,
-            image: [PAGE.image],
-            brand: { "@type": "Brand", name: PAGE.business.name },
-            category: "ConstructionProduct"
-          };
-        }
+      console.log(`[Schema v7.5] isVariantPage: ${isVariantPage}, isService: ${isService}`);
 
-        if (tableOffers.length > 0) {
-          productNode.offers = {
-            "@type": "AggregateOffer",
-            lowPrice: Math.min(...tableOffers.map(o => o.price)),
-            highPrice: Math.max(...tableOffers.map(o => o.price)),
-            offerCount: tableOffers.length,
-            priceCurrency: "IDR",
-            offers: tableOffers
-          };
-        }
-        graph.push(productNode);
-      }
+      // ============================================================
+      // 🔥🔥🔥 PRODUCT SCHEMA - SELALU SKIP (FOKUS JASA) 🔥🔥🔥
+      // ============================================================
+      console.log(`[Schema v7.5] ⏭️ Skip Product schema (fokus ke JASA/SEWA/RENTAL)`);
 
-      // ===== SERVICE SCHEMA =====
-      if (!isVariantPage) {
+      // ============================================================
+      // 🔥🔥🔥 SERVICE SCHEMA - UNTUK JASA/LAYANAN 🔥🔥🔥
+      // ============================================================
+      // ✅ Hanya buat Service jika ini halaman jasa (isService = true)
+      // ✅ Termasuk variant jasa, sewa, rental
+      if (isService) {
+        const serviceType = extractServiceType(PAGE.title);
+        
         const serviceNode = {
           "@type": "Service",
           "@id": cleanUrl + "#service",
           name: PAGE.title,
           description: PAGE.description,
           image: PAGE.image,
-          serviceType: PAGE.title.split('-')[0].trim(),
+          serviceType: serviceType,
           areaServed: defaultAreaServed,
           provider: { "@id": PAGE.business.url + "#localbusiness" },
           brand: { "@type": "Brand", name: PAGE.business.name },
@@ -664,9 +754,14 @@ document.addEventListener("DOMContentLoaded", () => {
           };
         }
         graph.push(serviceNode);
+        console.log(`[Schema v7.5] ✅ Service schema (jasa/layanan/sewa/rental)`);
+      } else {
+        console.log(`[Schema v7.5] ⏭️ Skip Service schema (bukan halaman jasa/sewa/rental)`);
       }
 
-      // ===== INJECT SCHEMA =====
+      // ============================================================
+      // 🔥🔥🔥 INJECT SCHEMA 🔥🔥🔥
+      // ============================================================
       const schema = { "@context": "https://schema.org", "@graph": graph };
 
       let el = document.querySelector("#auto-schema-service");
@@ -679,9 +774,9 @@ document.addEventListener("DOMContentLoaded", () => {
       el.textContent = JSON.stringify(schema, null, 2);
 
       console.log(
-        `[Schema v7.1 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
-        `Product: ${isProductPage ? '✅' : '❌'} | Service: ${!isVariantPage ? '✅' : '❌'} | ` +
-        `KnowsAbout: ${knowsAbout.length} | CORB: ✅ ZERO`
+        `[Schema v7.5 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
+        `Product: ❌ (SKIP) | Service: ${isService ? '✅' : '❌'} | ` +
+        `KnowsAbout: ${knowsAbout.length} | CORB: ✅ ZERO | FAQ: ❌`
       );
     }
 
