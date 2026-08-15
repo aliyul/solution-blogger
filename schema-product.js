@@ -1,14 +1,14 @@
 /**
- * ⚡ AutoSchema Hybrid v4.58 — Use PLD's pageLevel
+ * ⚡ AutoSchema Hybrid v4.59 — FOKUS PRODUK & MATERIAL
  * 
- * UPDATE v4.58:
- * - FIX: Ambil pageLevel dari PLD (Page Level Detector) yang sudah berjalan
- * - ADD: Event listener untuk menunggu PLD ready
- * - ADD: Fallback jika PLD tidak tersedia
- * - REMOVE: detectPageLevel() sendiri (pakai dari PLD)
+ * UPDATE v4.59:
+ * - FIX: Deteksi "Jual" tetap generate Product schema
+ * - FIX: Kategori produk lebih spesifik (ConcreteProduct, PavingProduct, dll)
+ * - FIX: Deteksi produk dari URL mapping diperluas
+ * - FIX: Hanya generate Product, bukan Service
  * 
- * @version 4.58
- * @date 2026-08-12
+ * @version 4.59
+ * @date 2026-08-15
  */
 
 (function() {
@@ -28,9 +28,9 @@
 
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️" };
+    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.58] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.59] ${msg}`);
   }
 
   // ===================== LOAD EXTERNAL JS =====================
@@ -94,11 +94,11 @@
   }
 
   // ============================================================
-  // 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD (Page Level Detector) 🔥🔥🔥
+  // 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD 🔥🔥🔥
   // ============================================================
   
   function getPageLevelFromPLD() {
-    // ✅ PRIORITAS 1: PLD v22.x (weighted voting system)
+    // ✅ PRIORITAS 1: PLD v22.x
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorv22.detect();
@@ -164,7 +164,7 @@
       }
     }
     
-    // ✅ CEK DARI BODY ATTRIBUTE (jika sudah di-set oleh PLD)
+    // ✅ CEK DARI BODY ATTRIBUTE
     const bodyPageLevel = document.body.getAttribute('data-page-level') || 
                           document.body.getAttribute('data-schema-page-level');
     if (bodyPageLevel) {
@@ -217,7 +217,6 @@
   // ============================================================
   function waitForPLD() {
     return new Promise((resolve) => {
-      // Jika sudah ada, langsung resolve
       if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
           window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
           window.pageLevelDetectorV17 || window.pageLevelDetector) {
@@ -225,7 +224,6 @@
         return;
       }
       
-      // Event listener untuk PLD
       const onReady = () => {
         log("PLD ready (event)", "SUCCESS");
         resolve(true);
@@ -236,7 +234,6 @@
       window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
       window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
       
-      // Timeout
       setTimeout(() => {
         if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
             window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
@@ -252,22 +249,40 @@
   }
 
   // ============================================================
-  // CEK APAKAH SKIP PRODUCT (pakai pageLevel dari PLD)
+  // CEK APAKAH SKIP PRODUCT (FOKUS PRODUK/MATERIAL)
   // ============================================================
   function shouldSkipProductSchema(pageLevel) {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
     const title = document.title.toLowerCase();
     const url = location.href.toLowerCase();
+    const combined = h1 + " " + title + " " + url;
+    
+    // ===== ✅ PRODUK/MATERIAL TIDAK PERNAH DI-SKIP =====
+    // Deteksi produk/material
+    const isProduct = /(beton|readymix|precast|paving|panel|box|u-ditch|kanstin|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|pagar\s*panel|paving\s*block|box\s*culvert|u\s*ditch|gorong\s*gorong)/i.test(combined);
+    
+    if (isProduct) {
+      log(`🏗️ Product/Material detected → GENERATE Product schema`, "PRODUCT");
+      return false;
+    }
     
     // ===== VARIANT TIDAK PERNAH DI-SKIP =====
     if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
-      log(`Variant page detected → TETAP generate Product schema`, "SUCCESS");
+      log(`Variant page detected → GENERATE Product schema`, "SUCCESS");
       return false;
     }
     
     // ===== MONEY PAGES TIDAK PERNAH DI-SKIP =====
     if (['money-master', 'money-page', 'money-child'].includes(pageLevel)) {
-      log(`Money page detected → TETAP generate Product schema`, "SUCCESS");
+      // Cek apakah ini produk atau jasa
+      const isProductMoney = /(beton|readymix|precast|paving|panel|box|u-ditch|kanstin|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|pagar\s*panel|paving\s*block|box\s*culvert|u\s*ditch|gorong\s*gorong)/i.test(combined);
+      if (isProductMoney) {
+        log(`🏗️ Product Money page → GENERATE Product schema`, "PRODUCT");
+        return false;
+      }
+      
+      // Jika money page tapi bukan produk (jasa), tetap generate
+      log(`Money page detected → GENERATE Product schema`, "SUCCESS");
       return false;
     }
     
@@ -308,12 +323,12 @@
       return true;
     }
     
-    log("Halaman LAYAK untuk Product schema", "SUCCESS");
+    log("🏗️ Halaman LAYAK untuk Product schema", "PRODUCT");
     return false;
   }
 
   // ============================================================
-  // UTILITY FUNCTIONS (sama seperti sebelumnya)
+  // UTILITY FUNCTIONS
   // ============================================================
   function sanitizeText(text) {
     if (!text) return "";
@@ -385,7 +400,7 @@
   }
 
   // ============================================================
-  // DETECT PRODUCT NAME
+  // DETECT PRODUCT NAME (FIXED v4.59)
   // ============================================================
   function detectProductName(pageLevel) {
     const h1 = document.querySelector("h1")?.innerText?.trim();
@@ -394,16 +409,37 @@
     const pathKey = location.pathname.split("/").pop().replace(".html", "").replace(/-/g, " ");
     
     const urlMapping = {
+      // Beton Precast
       "pagar panel beton polosan": "Pagar Panel Beton Polosan",
       "pagar panel beton motif": "Pagar Panel Beton Motif",
       "pagar panel beton custom": "Pagar Panel Beton Custom",
       "pagar panel beton tinggi": "Pagar Panel Beton Tinggi",
       "pagar panel beton rendah": "Pagar Panel Beton Rendah",
       "pagar panel beton": "Pagar Panel Beton",
+      
+      // Produk Precast
       "u ditch": "U-Ditch",
       "box culvert": "Box Culvert",
+      "gorong-gorong": "Gorong-Gorong",
+      "kanstin beton": "Kanstin Beton",
+      "kansteen beton": "Kanstin Beton",
+      
+      // Paving
       "paving block": "Paving Block",
-      "kanstin beton": "Kanstin Beton"
+      "conblock": "Conblock",
+      "grassblock": "Grassblock",
+      
+      // Beton Readymix
+      "beton readymix": "Beton Readymix",
+      "readymix": "Beton Readymix",
+      "beton cor": "Beton Cor",
+      "beton ready mix": "Beton Ready Mix",
+      
+      // Material
+      "besi beton": "Besi Beton",
+      "baja ringan": "Baja Ringan",
+      "pipa paralon": "Pipa Paralon",
+      "atap genteng": "Atap Genteng"
     };
     
     let productName = urlMapping[pathKey.toLowerCase()];
@@ -412,6 +448,39 @@
     }
     
     return productName || "Produk Konstruksi";
+  }
+
+  // ============================================================
+  // DETECT PRODUCT CATEGORY (FIXED v4.59)
+  // ============================================================
+  function detectProductCategory(pageLevel) {
+    const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
+    const title = document.title.toLowerCase();
+    const url = location.href.toLowerCase();
+    const combined = h1 + " " + title + " " + url;
+    
+    // ✅ DETEKSI KATEGORI PRODUK
+    if (/(beton|readymix|ready mix|cor|concrete)/i.test(combined)) {
+      return "ConcreteProduct";
+    }
+    if (/(paving|block|conblock|grassblock|paving\s*block)/i.test(combined)) {
+      return "PavingProduct";
+    }
+    if (/(pagar|panel|booth|gorong|box|culvert|u-ditch|kanstin|kansteen|gorong\s*gorong)/i.test(combined)) {
+      return "PrecastProduct";
+    }
+    if (/(besi|baja|pipa|atap|genteng|baja\s*ringan|besi\s*beton)/i.test(combined)) {
+      return "SteelProduct";
+    }
+    if (/(keramik|marmer|granit|kayu|pintu|jendela|kusen)/i.test(combined)) {
+      return "BuildingMaterial";
+    }
+    
+    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
+      return "VariantProduct";
+    }
+    
+    return "BuildingMaterial";
   }
 
   // ============================================================
@@ -566,21 +635,11 @@
   }
 
   // ============================================================
-  // DETECT CATEGORY
-  // ============================================================
-  function detectProductCategory(pageLevel) {
-    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
-      return "VariantProduct";
-    }
-    return "BuildingMaterial";
-  }
-
-  // ============================================================
   // MAIN FUNCTION
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.58 DIMULAI", "INFO");
+    log("AutoSchema Hybrid v4.59 — FOKUS PRODUK & MATERIAL", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     // ===== LOAD PARENT MAPPING =====
@@ -708,17 +767,18 @@
     // ===== SUMMARY =====
     log("═══════════════════════════════════════════════════", "INFO");
     log("EXECUTION SUMMARY:", "INFO");
+    log(`🏗️  Fokus: PRODUK & MATERIAL`, "PRODUCT");
     log(`  Page Level (dari PLD): ${pageLevel}`, "SUCCESS");
     log(`  Product Name   : ${productName}`, "SUCCESS");
+    log(`  Product Category: ${productCategory}`, "SUCCESS");
     log(`  Offers Count   : ${offers.length}`, "SUCCESS");
     log(`  Valid Prices   : ${offers.filter(o => o.price > 0).length}`, "SUCCESS");
     log(`  Is Variant     : ${(pageLevel === 'variant' || pageLevel === 'sub-variant') ? '✅' : '❌'}`, "INFO");
-    log(`  Category       : ${productCategory}`, "INFO");
     if (parentUrls.length > 0 && parentUrls[0]["@id"]) {
       log(`  Parent URL     : ${parentUrls[0]["@id"]}`, "INFO");
     }
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.58 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.59 SELESAI", "SUCCESS");
   }
   
   // ============================================================
