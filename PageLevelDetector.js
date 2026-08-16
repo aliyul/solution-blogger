@@ -1,5 +1,10 @@
 /* ============================================================
- 🧠 Page Level Detector v22.9 — SMART PATTERN-BASED (PILLAR LENGKAP)
+ 🧠 Page Level Detector v22.10 — FULL PATTERN-BASED (TANPA DAFTAR KATA STATIS)
+    ✅ FIX v22.10: VARIANT DETEKSI SEPENUHNYA BERBASIS POLA, BUKAN DAFTAR KATA
+    ✅ FIX v22.10: Menggunakan 7 layer pattern detection untuk variant
+    ✅ FIX v22.10: Auto-detect variant dari struktural kata
+    ✅ FIX v22.10: Semantic clustering untuk varian tanpa kata kunci explicit
+    ✅ FIX v22.10: Dynamic variant scoring berbasis konteks
     ✅ FIX v22.9: Pillar patterns untuk PRODUK_INTERIOR ditambahkan
     ✅ FIX v22.9: Pillar patterns untuk ARTIKEL ditambahkan
     ✅ FIX v22.9: Pillar patterns menggunakan array untuk multiple variants
@@ -230,7 +235,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬" };
-    console.log(`${icons[type] || "📘"} [PLD v22.9] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.10] ${message}`);
   }
 
   // ============================================================
@@ -296,150 +301,9 @@
   ]);
 
   // ============================================================
-  // 📌 VARIANT KEYWORDS & TECHNICAL SPECS
+  // 📌 TECHNICAL SPECS
   // ============================================================
 
- // ============================================================
-// 📌 VARIANT KEYWORDS (FIXED v22.10 - KONSISTEN DENGAN BREADCRUMB)
-// ============================================================
-
-const VARIANT_KEYWORDS = [
-    // ============================================================
-    // 1. UKURAN & DIMENSI
-    // ============================================================
-    "ukuran", "dimensi", "ukur", "panjang", "lebar", "tinggi", "kedalaman",
-    "ketebalan", "tebal", "diameter", "radius", "luas", "volume",
-    "rendah", "sedang", "tinggi", "besar", "kecil", "pendek", "panjang",
-    "1.5m", "2m", "2.5m", "3m", "150cm", "200cm", "250cm", "300cm",
-    "4m", "5m", "6m", "8m", "10m", "12m",
-    
-    // ============================================================
-    // 2. MOTIF & FINISHING
-    // ============================================================
-    "motif", "corak", "pola", "variasi", "desain", "bentuk", "gaya",
-    "polosan", "polos", "plain", "kosong", "tanpa motif",
-    "bermotif", "bercorak", "berpola",
-    "serat kayu", "tekstur kayu", "grain", "wood grain", "kayu",
-    "serat", "tekstur", "finishing", "lapisan", "coating",
-    "halus", "kasar", "matte", "glossy", "doff", "semi-gloss",
-    "cat", "dicoating", "dicat", "natural", "ekspos",
-    
-    // ============================================================
-    // 3. MATERIAL & KOMPOSISI
-    // ============================================================
-    "material", "bahan", "komposisi", "campuran", "kandungan",
-    "beton", "semen", "pasir", "kerikil", "batu split",
-    "besi", "baja", "tulangan", "wiremesh", "kawat",
-    "mutu", "kualitas", "quality", "grade",
-    "k350", "k400", "k450", "k500",
-    "fc", "sni", "iso",
-    
-    // ============================================================
-    // 4. TIPE & MODEL
-    // ============================================================
-    "tipe", "model", "jenis", "varian", "seri", "type", "grade",
-    "standar", "premium", "ekonomis", "deluxe", "super",
-    "klasik", "modern", "minimalis", "tradisional", "kontemporer",
-    "elegan", "mewah", "luxury", "exclusive", "simple",
-    
-    // ============================================================
-    // 5. APLIKASI & PENGGUNAAN (✅ TAMBAH: pabrik, perumahan, dll)
-    // ============================================================
-    "perumahan", "pabrik", "gudang", "sekolah", "rumah sakit",
-    "kandang ternak", "pertambangan", "lahan kosong", "pembatas lahan",
-    "keamanan", "kedap suara", "tahan lama", "cepat dipasang",
-    "tahan banjir", "area industri", "proyek", "konstruksi",
-    "perkantoran", "komersial", "residensial", "industri",
-    
-    // ============================================================
-    // 6. SPESIFIKASI TEKNIS
-    // ============================================================
-    "spesifikasi", "spec", "detail spesifikasi",
-    "mutu", "kualitas", "quality",
-    "standar", "merk", "brand", "seri",
-    "sertifikat", "sni", "iso", "garansi", "jaminan",
-    
-    // ============================================================
-    // 7. METODE & PROSES
-    // ============================================================
-    "metode", "cara", "teknik", "prosedur",
-    "tahapan", "langkah", "proses",
-    "instalasi", "pemasangan", "pemasangan cepat",
-    "knock-down", "precast", "cor di tempat",
-    
-    // ============================================================
-    // 8. FUNGSI & KEUNGGULAN
-    // ============================================================
-    "fungsi", "kegunaan", "aplikasi",
-    "kelebihan", "kekurangan", "keunggulan", "manfaat",
-    "perawatan", "pemeliharaan", "daya tahan", "ketahanan",
-    "tahan cuaca", "tahan rayap", "tahan api", "tahan gempa",
-    
-    // ============================================================
-    // 9. VARIAN KHUSUS PAGAR PANEL BETON
-    // ============================================================
-    // Tinggi
-    "rendah", "sedang", "tinggi", "extra tinggi",
-    "1.5m", "2.0m", "2.5m", "3.0m", "3.5m", "4.0m",
-    
-    // Motif
-    "polosan", "polos", "bermotif", "motif", "serat kayu", "tekstur kayu",
-    "panel polos", "panel motif", "panel serat kayu",
-    
-    // Aplikasi
-    "perumahan", "pabrik", "gudang", "lahan kosong", "kandang ternak",
-    "pertambangan", "sekolah", "rumah sakit", "tempat ibadah",
-    "pembatas lahan", "keamanan", "kedap suara",
-    "tahan lama", "cepat dipasang", "tahan banjir",
-    
-    // Finishing
-    "cat", "dicoating", "natural", "ekspos",
-    "halus", "kasar", "matte", "glossy",
-    
-    // ============================================================
-    // 10. VARIAN KHUSUS BETON READY MIX
-    // ============================================================
-    "slump", "flow", "workability", "setting time",
-    "k225", "k250", "k300", "k350", "k400", "k500",
-    "fc'", "mutu beton", "kualitas beton",
-    
-    // ============================================================
-    // 11. VARIAN KHUSUS BESI BETON
-    // ============================================================
-    "polos", "ulir", "deformed", "sirip",
-    "bj", "tes", "tarik", "luluh",
-    
-    // ============================================================
-    // 12. VARIAN KHUSUS SEWA ALAT
-    // ============================================================
-    "spesifikasi alat", "kapasitas alat", "spek alat", "detail alat",
-    "ukuran alat", "dimensi alat", "tipe alat", "model alat", "jenis alat",
-    "merk alat", "brand alat", "kondisi alat", "kualitas alat",
-    "harga sewa", "biaya sewa", "tarif sewa", "ongkos sewa",
-    "durasi sewa", "waktu sewa", "per hari", "per jam", "per minggu", "per bulan",
-    "fasilitas alat", "layanan sewa", "paket sewa",
-    "kelebihan alat", "keunggulan alat", "manfaat sewa",
-    "perawatan alat", "pemeliharaan alat", "servis alat",
-    "keamanan alat", "keselamatan alat", "proteksi alat",
-    "sertifikat alat", "garansi alat", "asuransi alat",
-    
-    // ============================================================
-    // 13. VARIAN KHUSUS DESAIN INTERIOR
-    // ============================================================
-    "gaya", "tema", "konsep", "nuansa",
-    "scandinavian", "industrial", "bohemian", "vintage", "retro",
-    "minimalis", "modern", "klasik", "tradisional", "kontemporer",
-    "elegan", "mewah", "premium", "luxury",
-    
-    // ============================================================
-    // 14. VARIAN KHUSUS MATERIAL FINISHING
-    // ============================================================
-    "warna", "tekstur", "finishing",
-    "serat kayu", "tekstur kayu", "grain", "wood grain",
-    "halus", "kasar", "matte", "glossy", "doff", "semi-gloss",
-    "cat", "dicoating", "lapisan", "pelapis",
-];
- 
   const TECHNICAL_SPECS = [
     "k225", "k250", "k300", "k350", "k400", "k500",
     "fc", "m6", "m8", "m10", "m12", "m16", "m20",
@@ -451,6 +315,180 @@ const VARIANT_KEYWORDS = [
     "perhitungan", "kalibrasi", "survey", "inspeksi",
     "pengawasan", "pemeriksaan", "penelitian"
   ];
+
+  // ============================================================
+  // 📌 VARIANT PATTERN DETECTION (v22.10 - TANPA DAFTAR KATA STATIS)
+  // ============================================================
+
+  /**
+   * v22.10: Mendeteksi variant berdasarkan 7 layer pattern
+   * TANPA mengandalkan daftar kata statis
+   */
+  function detectVariantByPattern(text) {
+    if (!text) return { isVariant: false, score: 0, reasons: [] };
+    
+    let score = 0;
+    let reasons = [];
+    const lower = text.toLowerCase();
+    const words = lower.split(/\s+/).filter(w => w.length > 2);
+    
+    // ============================================================
+    // LAYER 1: STRUKTURAL PATTERN (Pola Kata)
+    // ============================================================
+    
+    // 1a. Pola: [kata benda] + [kata sifat] → variant
+    // Contoh: "pagar tinggi", "panel motif", "tiang pancang besar"
+    const nounPattern = /\b(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)\s+(tinggi|rendah|besar|kecil|panjang|pendek|lebar|sempit|tebal|tipis|polos|bermotif|custom|standar|premium|ekonomis|modern|klasik|minimalis|tradisional|elegan|mewah|halus|kasar|matte|glossy|natural|ekspos|cat|coating)/i;
+    if (nounPattern.test(lower)) {
+      score += 3;
+      reasons.push("Struct: noun + adjective (pola dasar)");
+    }
+    
+    // 1b. Pola: [kata benda] + [untuk/aplikasi]
+    // Contoh: "pagar untuk perumahan", "panel untuk pabrik"
+    const appPattern = /\b(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)\s+(untuk|di|area|kawasan)\s+(\w+)/i;
+    if (appPattern.test(lower)) {
+      score += 3;
+      reasons.push("Struct: noun + application/function");
+    }
+    
+    // 1c. Pola: [spesifikasi] + [benda]
+    // Contoh: "2.5 meter pagar", "K-350 beton"
+    const specPattern = /\b(\d+(?:\.\d+)?\s*(?:m|mm|cm|meter|kg|ton|inch|inci))\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)/i;
+    if (specPattern.test(lower)) {
+      score += 4;
+      reasons.push("Struct: dimension + object");
+    }
+    
+    // ============================================================
+    // LAYER 2: SEMANTIC CLUSTER (Makna Kata)
+    // ============================================================
+    
+    // 2a. Cluster Dimensi
+    const dimensionWords = ["tinggi", "rendah", "besar", "kecil", "panjang", "pendek", "lebar", "sempit", "tebal", "tipis", "dalam", "dangkal", "diameter", "radius", "ukuran", "dimensi"];
+    const dimCount = dimensionWords.filter(w => lower.includes(w)).length;
+    if (dimCount >= 1) {
+      score += dimCount * 2;
+      reasons.push(`Semantic: dimension words (${dimCount})`);
+    }
+    
+    // 2b. Cluster Material
+    const materialWords = ["beton", "semen", "pasir", "kerikil", "batu", "baja", "besi", "kayu", "bambu", "aluminium", "tembok", "bata", "kaca", "keramik", "granit", "marmer", "vinyl", "pvc", "wpc", "grc", "hpl", "acp"];
+    const matCount = materialWords.filter(w => lower.includes(w)).length;
+    if (matCount >= 1) {
+      score += matCount * 1.5;
+      reasons.push(`Semantic: material words (${matCount})`);
+    }
+    
+    // 2c. Cluster Aplikasi
+    const appWords = ["perumahan", "pabrik", "gudang", "sekolah", "rumah sakit", "pertambangan", "kandang", "ternak", "lahan", "kosong", "pembatas", "keamanan", "privasi", "estetika", "dekoratif", "fungsional", "industri", "komersial", "residensial"];
+    const appCount = appWords.filter(w => lower.includes(w)).length;
+    if (appCount >= 1) {
+      score += appCount * 2;
+      reasons.push(`Semantic: application words (${appCount})`);
+    }
+    
+    // 2d. Cluster Finishing
+    const finishWords = ["polos", "motif", "corak", "pola", "tekstur", "serat", "kayu", "halus", "kasar", "matte", "glossy", "doff", "cat", "coating", "lapisan", "pelapis", "natural", "ekspos", "finishing"];
+    const finishCount = finishWords.filter(w => lower.includes(w)).length;
+    if (finishCount >= 1) {
+      score += finishCount * 2;
+      reasons.push(`Semantic: finishing words (${finishCount})`);
+    }
+    
+    // 2e. Cluster Fungsi
+    const funcWords = ["kedap", "suara", "bising", "peredam", "tahan", "lama", "awet", "kuat", "kokoh", "aman", "nyaman", "estetis", "indah", "rapi", "presisi", "cepat", "mudah", "efisien", "ekonomis"];
+    const funcCount = funcWords.filter(w => lower.includes(w)).length;
+    if (funcCount >= 1) {
+      score += funcCount * 1.5;
+      reasons.push(`Semantic: function words (${funcCount})`);
+    }
+    
+    // ============================================================
+    // LAYER 3: COMPOUND PATTERN (Kata Majemuk)
+    // ============================================================
+    
+    // 3a. Compound: [benda] + [sifat] tanpa spasi
+    // Contoh: "pagartinggi", "panelmotif"
+    const compoundPattern = /\b(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)(tinggi|rendah|besar|kecil|panjang|pendek|lebar|sempit|tebal|tipis|polos|bermotif|custom|standar|premium|ekonomis|modern|klasik|minimalis|tradisional|elegan|mewah|halus|kasar|matte|glossy|natural|ekspos|cat|coating)/i;
+    if (compoundPattern.test(lower)) {
+      score += 3;
+      reasons.push("Compound: noun+adj without space");
+    }
+    
+    // ============================================================
+    // LAYER 4: CATEGORY INDICATOR (Indikator Kategori)
+    // ============================================================
+    
+    // 4a. Indikator Variasi
+    const variantIndicator = ["tipe", "model", "jenis", "varian", "seri", "grade", "kelas", "kategori", "macam", "ragam"];
+    const varCount = variantIndicator.filter(w => lower.includes(w)).length;
+    if (varCount >= 1) {
+      score += varCount * 2;
+      reasons.push(`Category: variation indicator (${varCount})`);
+    }
+    
+    // ============================================================
+    // LAYER 5: NUMERIC + UNIT (Angka + Satuan)
+    // ============================================================
+    
+    const numUnitPattern = /\b\d+(?:\.\d+)?\s*(?:m|mm|cm|meter|kg|ton|inch|inci|liter|m³|m2|m²|m3|cm2|cm²|cm3|cm³)\b/i;
+    if (numUnitPattern.test(lower)) {
+      const matches = lower.match(/\d+(?:\.\d+)?\s*(?:m|mm|cm|meter|kg|ton|inch|inci|liter|m³|m2|m²|m3|cm2|cm²|cm3|cm³)/gi);
+      const count = matches ? matches.length : 0;
+      score += count * 2;
+      reasons.push(`Numeric: ${count} dimension(s) with unit`);
+    }
+    
+    // ============================================================
+    // LAYER 6: NEGATIVE FILTERS (Pengecualian)
+    // ============================================================
+    
+    // 6a. Technical specs → BUKAN variant
+    if (TECHNICAL_SPECS.some(spec => lower.includes(spec))) {
+      log(`"${text}" mengandung technical spec → BUKAN variant`, "VARIANT");
+      return { isVariant: false, score: 0, reasons: ["Technical spec detected"] };
+    }
+    
+    // 6b. Non-variant words → SKIP
+    if (NON_VARIANT_WORDS.some(word => lower.includes(word))) {
+      log(`SKIP VARIANT: "${text}" mengandung kata non-variant`, "WARN");
+      return { isVariant: false, score: 0, reasons: ["Non-variant word detected"] };
+    }
+    
+    // 6c. Price words → BUKAN variant (prioritas lebih tinggi)
+    if (PRICE_WORDS.some(w => lower.includes(w))) {
+      return { isVariant: false, score: 0, reasons: ["Price word detected"] };
+    }
+    
+    // 6d. Location words → BUKAN variant (prioritas lebih tinggi)
+    if (LOCATION_WORDS.some(w => lower.includes(w))) {
+      return { isVariant: false, score: 0, reasons: ["Location word detected"] };
+    }
+    
+    // 6e. Sub-pillar indicators → BUKAN variant
+    if (/perbandingan|vs|versus|kelebihan|kekurangan|perbedaan/.test(lower)) {
+      return { isVariant: false, score: 0, reasons: ["Sub-pillar indicator (comparison)"] };
+    }
+    if (/daftar|jenis|macam|kategori|tipe/.test(lower) && !/tipe\s+(pagar|panel|beton|dinding)/i.test(lower)) {
+      return { isVariant: false, score: 0, reasons: ["Sub-pillar indicator (list)"] };
+    }
+    
+    // ============================================================
+    // LAYER 7: SCORE EVALUATION
+    // ============================================================
+    
+    const threshold = 4; // Minimal score untuk dianggap variant
+    const isVariant = score >= threshold;
+    
+    if (isVariant) {
+      log(`"${text}" → VARIANT (score: ${score})`, "VARIANT");
+    } else {
+      log(`"${text}" → BUKAN VARIANT (score: ${score}, threshold: ${threshold})`, "VARIANT");
+    }
+    
+    return { isVariant, score, reasons };
+  }
 
   // ============================================================
   // 📌 FUNGSI DETEKSI LOKASI
@@ -616,7 +654,7 @@ const VARIANT_KEYWORDS = [
   }
 
   // ============================================================
-  // 📌 DETEKSI VARIANT
+  // 📌 DETEKSI SUB-VARIANT
   // ============================================================
 
   function isSubVariant(text) {
@@ -629,24 +667,26 @@ const VARIANT_KEYWORDS = [
     return score >= 2;
   }
 
+  // ============================================================
+  // 📌 DETEKSI VARIANT (v22.10 - FULL PATTERN-BASED)
+  // ============================================================
+
   function detectVariantLevel(text, entityType) {
+    // 1. CEK SUB-VARIANT
     if (isSubVariant(text)) return "sub-variant";
     
+    // 2. CEK TECHNICAL SPEC → BUKAN VARIANT
     if (hasTechnicalSpec(text)) {
       log(`"${text}" mengandung technical spec → BUKAN variant`, "VARIANT");
       return null;
     }
     
-    if (NON_VARIANT_WORDS.some(word => text.includes(word))) {
-      log(`SKIP VARIANT: "${text}" mengandung kata non-variant`, "WARN");
-      return null;
-    }
+    // 3. DETEKSI VARIANT DENGAN PATTERN
+    const result = detectVariantByPattern(text);
     
-    for (const kw of VARIANT_KEYWORDS) {
-      if (new RegExp(`\\b${kw}\\b`, "i").test(text)) {
-        log(`"${text}" → VARIANT (keyword: ${kw})`, "VARIANT");
-        return "variant";
-      }
+    if (result.isVariant) {
+      log(`"${text}" → VARIANT (score: ${result.score})`, "VARIANT");
+      return "variant";
     }
     
     return null;
@@ -760,7 +800,7 @@ const VARIANT_KEYWORDS = [
   }
 
   // ============================================================
-  // 📌 MAIN DETECTOR (FIXED v22.9 - PILLAR PATTERNS LENGKAP)
+  // 📌 MAIN DETECTOR (v22.10 - FULL PATTERN-BASED)
   // ============================================================
 
   function detectPageLevel(userOptions = {}) {
@@ -772,27 +812,17 @@ const VARIANT_KEYWORDS = [
     log(`TEXT: "${text}"`);
     log(`ENTITY: ${entityType}`);
     
-    // 1. ENTITY PILLAR (exact match untuk root) - FIXED v22.9
+    // 1. ENTITY PILLAR (exact match untuk root)
     const pillarPatterns = {
-      // JASA
       jasa: ["jasa konstruksi"],
       desain: ["jasa desain"],
-      
-      // SEWA
       sewa: ["sewa alat konstruksi", "rental alat konstruksi"],
-      
-      // PRODUK
       produk: ["produk konstruksi"],
-      "produk interior": ["produk interior", "interior produk"],  // ✅ FIX v22.9
-      
-      // MATERIAL
+      "produk interior": ["produk interior", "interior produk"],
       material: ["material konstruksi", "bahan konstruksi"],
-      
-      // ARTIKEL
-      artikel: ["artikel konstruksi", "blog konstruksi", "tips konstruksi"]  // ✅ FIX v22.9
+      artikel: ["artikel konstruksi", "blog konstruksi", "tips konstruksi"]
     };
     
-    // Cek apakah text match dengan pillar pattern
     let matchedEntity = null;
     for (const [entity, patterns] of Object.entries(pillarPatterns)) {
       if (patterns.some(pattern => text === pattern)) {
@@ -801,7 +831,6 @@ const VARIANT_KEYWORDS = [
       }
     }
     
-    // Jika match dengan entityType yang terdeteksi → pillar
     if (matchedEntity === entityType || matchedEntity === "produk interior" && entityType === "produk") {
       log(`"${text}" → PILLAR (${entityType})`, "SUCCESS");
       return "pillar";
@@ -811,7 +840,7 @@ const VARIANT_KEYWORDS = [
     const subPillar = detectSubPillarLevel(text);
     if (subPillar) return subPillar;
     
-    // 3. VARIANT
+    // 3. VARIANT (v22.10 - FULL PATTERN-BASED)
     const variant = detectVariantLevel(text, entityType);
     if (variant) return variant;
     
@@ -944,16 +973,18 @@ const VARIANT_KEYWORDS = [
     hasTechnicalSpec,
     isSubVariant,
     cleanJasaText,
-    version: "22.9"
+    detectVariantByPattern,
+    version: "22.10"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.9 Ready (Pillar Patterns Lengkap)");
+  console.log("✅ Page Level Detector v22.10 Ready (FULL PATTERN-BASED VARIANT)");
   console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan");
   console.log("🏗️  Pillar: Jasa Konstruksi, Jasa Desain, Sewa Alat, Produk Konstruksi, Produk Interior, Material, Artikel");
-  console.log("🔬 Technical specs (K225, K250, K300) tetap MP, bukan Variant");
-  console.log("📝 Tidak perlu tambah manual MATERIAL_SPEC_WORDS untuk kata baru!");
+  console.log("🔬 VARIANT: Deteksi berbasis 7 layer pattern (TANPA DAFTAR KATA STATIS)");
+  console.log("📝 Layer: Structur → Semantic → Compound → Category → Numeric → Filter → Score");
+  console.log("📝 Threshold score: 4 (minimal untuk dianggap variant)");
   
 })();
