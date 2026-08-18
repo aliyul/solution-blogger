@@ -2,7 +2,7 @@
     // Peta link WA asal → tujuan
     const redirectMap = {
      //INI REDIRECT DARU NOMOR ASAL KE YANG BARU JIKA MAU TINGGAL SETTTING AJA SESUAI NOMOR ASAL DAN BARU NYA
-      //"https://wa.me/6283839000968": "https://wa.me/6281299842508"
+      "https://wa.me/6283839000968": "https://wa.me/628218044304"
       //"https://wa.me/6283839001968": "https://wa.me/6281234560002",
      // "https://wa.me/6283839002968": "https://wa.me/6281234560003"
     };
