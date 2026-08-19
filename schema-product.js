@@ -1,14 +1,14 @@
 /**
- * ⚡ AutoSchema Hybrid v4.59 — FOKUS PRODUK & MATERIAL
+ * ⚡ AutoSchema Hybrid v4.60 — FOKUS PRODUK & MATERIAL (FIXED)
  * 
- * UPDATE v4.59:
- * - FIX: Deteksi "Jual" tetap generate Product schema
- * - FIX: Kategori produk lebih spesifik (ConcreteProduct, PavingProduct, dll)
- * - FIX: Deteksi produk dari URL mapping diperluas
- * - FIX: Hanya generate Product, bukan Service
+ * UPDATE v4.60:
+ * - FIX: Jangan skip product schema jika tidak ada harga
+ * - FIX: Tetap buat Product schema, offers opsional
+ * - FIX: Fallback image menggunakan logo
+ * - FIX: Deteksi produk lebih akurat
  * 
- * @version 4.59
- * @date 2026-08-15
+ * @version 4.60
+ * @date 2026-08-19
  */
 
 (function() {
@@ -26,11 +26,14 @@
     PLD_TIMEOUT: 5000
   };
 
+  // ✅ FALLBACK IMAGE (logo)
+  const FALLBACK_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.59] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.60] ${msg}`);
   }
 
   // ===================== LOAD EXTERNAL JS =====================
@@ -98,7 +101,6 @@
   // ============================================================
   
   function getPageLevelFromPLD() {
-    // ✅ PRIORITAS 1: PLD v22.x
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorv22.detect();
@@ -109,7 +111,6 @@
       }
     }
     
-    // ✅ PRIORITAS 2: PLD v20.x
     if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorv20.detect();
@@ -120,7 +121,6 @@
       }
     }
     
-    // ✅ PRIORITAS 3: PLD v19.0
     if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorv19.detect();
@@ -131,7 +131,6 @@
       }
     }
     
-    // ✅ PRIORITAS 4: PLD v18
     if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorV18.detect();
@@ -142,7 +141,6 @@
       }
     }
     
-    // ✅ PRIORITAS 5: PLD v17
     if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorV17.detect();
@@ -153,7 +151,6 @@
       }
     }
     
-    // ✅ PRIORITAS 6: PLD legacy
     if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetector.detect();
@@ -164,7 +161,6 @@
       }
     }
     
-    // ✅ CEK DARI BODY ATTRIBUTE
     const bodyPageLevel = document.body.getAttribute('data-page-level') || 
                           document.body.getAttribute('data-schema-page-level');
     if (bodyPageLevel) {
@@ -172,20 +168,18 @@
       return bodyPageLevel;
     }
     
-    // ❌ FALLBACK: detect sendiri
     log("PLD tidak tersedia, menggunakan fallback detection", "WARN");
     return detectPageLevelFallback();
   }
 
   // ============================================================
-  // FALLBACK DETECTION (jika PLD tidak tersedia)
+  // FALLBACK DETECTION
   // ============================================================
   function detectPageLevelFallback() {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
     const title = document.title.toLowerCase();
     const url = location.href.toLowerCase();
     
-    // VARIANT
     const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom", "tinggi", "rendah"];
     for (let pattern of variantPatterns) {
       if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) {
@@ -197,16 +191,12 @@
       }
     }
     
-    // MONEY CHILD (lokasi)
     const locations = ["jakarta", "bekasi", "bogor", "depok", "tangerang", "karawang", "surabaya", "bandung", "cirebon", "ciamis"];
     for (let loc of locations) {
       if (h1.includes(loc) || title.includes(loc) || url.includes(loc)) return "money-child";
     }
     
-    // MONEY PAGE (harga)
     if (/\b(harga|biaya|tarif)\b/i.test(h1 + title)) return "money-page";
-    
-    // MONEY MASTER
     if (/\b(jasa|sewa|borongan)\b/i.test(h1 + title) && !/\b(panduan|tips|cara)\b/i.test(h1 + title)) return "money-master";
     
     return "pillar";
@@ -249,7 +239,7 @@
   }
 
   // ============================================================
-  // CEK APAKAH SKIP PRODUCT (FOKUS PRODUK/MATERIAL)
+  // CEK APAKAH SKIP PRODUCT (FIXED v4.60)
   // ============================================================
   function shouldSkipProductSchema(pageLevel) {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
@@ -258,7 +248,6 @@
     const combined = h1 + " " + title + " " + url;
     
     // ===== ✅ PRODUK/MATERIAL TIDAK PERNAH DI-SKIP =====
-    // Deteksi produk/material
     const isProduct = /(beton|readymix|precast|paving|panel|box|u-ditch|kanstin|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|pagar\s*panel|paving\s*block|box\s*culvert|u\s*ditch|gorong\s*gorong)/i.test(combined);
     
     if (isProduct) {
@@ -274,19 +263,16 @@
     
     // ===== MONEY PAGES TIDAK PERNAH DI-SKIP =====
     if (['money-master', 'money-page', 'money-child'].includes(pageLevel)) {
-      // Cek apakah ini produk atau jasa
       const isProductMoney = /(beton|readymix|precast|paving|panel|box|u-ditch|kanstin|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|pagar\s*panel|paving\s*block|box\s*culvert|u\s*ditch|gorong\s*gorong)/i.test(combined);
       if (isProductMoney) {
         log(`🏗️ Product Money page → GENERATE Product schema`, "PRODUCT");
         return false;
       }
-      
-      // Jika money page tapi bukan produk (jasa), tetap generate
       log(`Money page detected → GENERATE Product schema`, "SUCCESS");
       return false;
     }
     
-    // ===== HANYA SKIP UNTUK PILLAR MURNI =====
+    // ===== HANYA SKIP UNTUK PILLAR MURNI (EDUKASI) =====
     const pillarPatterns = [
       "panduan lengkap", "pengertian", "definisi", "apa itu",
       "overview", "komprehensif", "cara memilih", "tips memilih",
@@ -295,33 +281,13 @@
     
     for (let pattern of pillarPatterns) {
       if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) {
-        const hasPriceElement = document.querySelector('table td:contains("Rp"), .price, .harga');
-        if (!hasPriceElement) {
-          log(`Skip: Halaman edukasi murni (pattern: "${pattern}")`, "SKIP");
-          return true;
-        }
+        log(`Skip: Halaman edukasi murni (pattern: "${pattern}")`, "SKIP");
+        return true;
       }
     }
     
-    // ===== CEK PANJANG KONTEN =====
-    const content = document.querySelector(".post-body.entry-content, .post-body, article, main");
-    if (content) {
-      const wordCount = (content.innerText || "").split(/\s+/).filter(Boolean).length;
-      if (wordCount > CONFIG.SKIP_WORD_COUNT) {
-        const hasPriceTable = document.querySelector('table td:contains("Rp"), table td:contains("harga")');
-        if (!hasPriceTable) {
-          log(`Skip: Konten panjang (${wordCount} kata) tanpa tabel harga`, "SKIP");
-          return true;
-        }
-      }
-    }
-    
-    // ===== CEK KEBERADAAN HARGA =====
-    const hasPriceElement = document.querySelector('table td:contains("Rp"), .price, .harga');
-    if (!hasPriceElement) {
-      log(`Skip: Tidak ditemukan elemen harga`, "SKIP");
-      return true;
-    }
+    // ✅ FIX v4.60: JANGAN SKIP hanya karena tidak ada harga
+    // Tetap generate Product schema untuk semua halaman produk
     
     log("🏗️ Halaman LAYAK untuk Product schema", "PRODUCT");
     return false;
@@ -400,7 +366,7 @@
   }
 
   // ============================================================
-  // DETECT PRODUCT NAME (FIXED v4.59)
+  // DETECT PRODUCT NAME
   // ============================================================
   function detectProductName(pageLevel) {
     const h1 = document.querySelector("h1")?.innerText?.trim();
@@ -409,33 +375,24 @@
     const pathKey = location.pathname.split("/").pop().replace(".html", "").replace(/-/g, " ");
     
     const urlMapping = {
-      // Beton Precast
       "pagar panel beton polosan": "Pagar Panel Beton Polosan",
       "pagar panel beton motif": "Pagar Panel Beton Motif",
       "pagar panel beton custom": "Pagar Panel Beton Custom",
       "pagar panel beton tinggi": "Pagar Panel Beton Tinggi",
       "pagar panel beton rendah": "Pagar Panel Beton Rendah",
       "pagar panel beton": "Pagar Panel Beton",
-      
-      // Produk Precast
       "u ditch": "U-Ditch",
       "box culvert": "Box Culvert",
       "gorong-gorong": "Gorong-Gorong",
       "kanstin beton": "Kanstin Beton",
       "kansteen beton": "Kanstin Beton",
-      
-      // Paving
       "paving block": "Paving Block",
       "conblock": "Conblock",
       "grassblock": "Grassblock",
-      
-      // Beton Readymix
       "beton readymix": "Beton Readymix",
       "readymix": "Beton Readymix",
       "beton cor": "Beton Cor",
       "beton ready mix": "Beton Ready Mix",
-      
-      // Material
       "besi beton": "Besi Beton",
       "baja ringan": "Baja Ringan",
       "pipa paralon": "Pipa Paralon",
@@ -451,7 +408,7 @@
   }
 
   // ============================================================
-  // DETECT PRODUCT CATEGORY (FIXED v4.59)
+  // DETECT PRODUCT CATEGORY
   // ============================================================
   function detectProductCategory(pageLevel) {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
@@ -459,7 +416,6 @@
     const url = location.href.toLowerCase();
     const combined = h1 + " " + title + " " + url;
     
-    // ✅ DETEKSI KATEGORI PRODUK
     if (/(beton|readymix|ready mix|cor|concrete)/i.test(combined)) {
       return "ConcreteProduct";
     }
@@ -639,40 +595,32 @@
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.59 — FOKUS PRODUK & MATERIAL", "INFO");
+    log("AutoSchema Hybrid v4.60 — FOKUS PRODUK & MATERIAL (FIXED)", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
-    // ===== LOAD PARENT MAPPING =====
     await loadParentMapping();
-    
-    // ===== TUNGGU PLD READY =====
     await waitForPLD();
     
-    // ===== AMBIL PAGE LEVEL DARI PLD =====
     const pageLevel = getPageLevelFromPLD();
     log(`Page Level dari PLD: ${pageLevel}`, "SUCCESS");
     
-    // ===== CEK SKIP =====
     if (shouldSkipProductSchema(pageLevel)) {
       log("Product schema SKIPPED untuk halaman ini", "SKIP");
       return;
     }
     
-    // ===== EKSTRAKSI DATA DASAR =====
     const currentUrl = location.href.replace(/[?&]m=1/, "");
-    const fallbackImage = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
-    
     const productName = detectProductName(pageLevel);
     const desc = document.querySelector('meta[name="description"]')?.content?.trim() || 
                  document.querySelector("article p, main p, section p")?.innerText?.trim()?.substring(0, 300) ||
                  `Produk ${productName} berkualitas dari Beton Jaya Readymix`;
     
-    const contentImage = document.querySelector("article img, main img, .post-body img, .product-image img")?.src || fallbackImage;
+    // ✅ FIX v4.60: Gunakan FALLBACK_IMAGE
+    const contentImage = document.querySelector("article img, main img, .post-body img, .product-image img")?.src || FALLBACK_IMAGE;
     const parentUrls = detectParentUrls(currentUrl);
     const areaServed = getAreaServed();
     const productCategory = detectProductCategory(pageLevel);
     
-    // ===== PARSE OFFERS =====
     log("Parsing offers...", "INFO");
     let hasTableOffers = parseTableOffers();
     
@@ -684,33 +632,20 @@
       }
     }
     
-    // ===== FALLBACK =====
+    // ✅ FIX v4.60: Tetap buat Product schema meskipun tidak ada offers
     if (offers.length === 0) {
-      log("Menggunakan final fallback offer", "WARN");
-      const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-      offers.push({
-        "@type": "Offer",
-        name: productName + " (Hubungi Kami)",
-        url: currentUrl,
-        priceCurrency: "IDR",
-        price: 0,
-        priceValidUntil: validUntil,
-        availability: "https://schema.org/PreOrder",
-        itemCondition: "https://schema.org/NewCondition",
-        seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" },
-        description: "Hubungi Beton Jaya Readymix untuk informasi harga terbaru."
-      });
+      log("Tidak ada harga ditemukan, tetap buat Product schema tanpa offers", "WARN");
     }
     
-    // ===== BUILD PRODUCT =====
     const business = {
       "@type": "LocalBusiness",
       "@id": "https://www.betonjayareadymix.com/#localbusiness",
       name: "Beton Jaya Readymix",
       url: "https://www.betonjayareadymix.com",
-      logo: fallbackImage
+      logo: FALLBACK_IMAGE
     };
     
+    // ✅ FIX v4.60: Product schema tetap dibuat, dengan atau tanpa offers
     const product = {
       "@type": "Product",
       "@id": currentUrl + "#product",
@@ -719,12 +654,15 @@
       description: desc,
       brand: { "@type": "Brand", name: "Beton Jaya Readymix" },
       category: productCategory,
-      offers: offers,
       areaServed: areaServed,
       isPartOf: parentUrls
     };
     
-    // ===== TAMBAHKAN PROPERTI UNTUK VARIANT =====
+    // ✅ Hanya tambahkan offers jika ada
+    if (offers.length > 0) {
+      product.offers = offers;
+    }
+    
     if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
       product.productType = pageLevel === 'variant' ? "Variant" : "Sub-Variant";
       product.material = "Beton Precast";
@@ -736,7 +674,6 @@
       }
     }
     
-    // ===== BUILD GRAPH =====
     const webpage = {
       "@type": "WebPage",
       "@id": currentUrl + "#webpage",
@@ -749,7 +686,6 @@
     
     const graph = [webpage, business, product];
     
-    // ===== INJECT SCHEMA =====
     let existingScript = document.querySelector("#auto-schema-product");
     if (!existingScript) {
       existingScript = document.createElement("script");
@@ -764,7 +700,6 @@
       "@graph": graph
     }, null, 2);
     
-    // ===== SUMMARY =====
     log("═══════════════════════════════════════════════════", "INFO");
     log("EXECUTION SUMMARY:", "INFO");
     log(`🏗️  Fokus: PRODUK & MATERIAL`, "PRODUCT");
@@ -774,16 +709,14 @@
     log(`  Offers Count   : ${offers.length}`, "SUCCESS");
     log(`  Valid Prices   : ${offers.filter(o => o.price > 0).length}`, "SUCCESS");
     log(`  Is Variant     : ${(pageLevel === 'variant' || pageLevel === 'sub-variant') ? '✅' : '❌'}`, "INFO");
+    log(`  Has Image      : ${contentImage !== FALLBACK_IMAGE ? '✅ (custom)' : '⚠️ (fallback)'}`, "INFO");
     if (parentUrls.length > 0 && parentUrls[0]["@id"]) {
       log(`  Parent URL     : ${parentUrls[0]["@id"]}`, "INFO");
     }
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.59 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.60 SELESAI", "SUCCESS");
   }
   
-  // ============================================================
-  // START
-  // ============================================================
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
       setTimeout(init, CONFIG.DELAY_MS);
