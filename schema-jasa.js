@@ -1,4 +1,4 @@
-/*⚡ AUTO SCHEMA UNIVERSAL v7.8 — SERVICE + PRODUCT HYBRID (TERBAIK DARI KEDUA SCRIPT) */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.10 — SERVICE + PRODUCT HYBRID (LOGO & FALLBACK IMAGE FIX) */
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -6,7 +6,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.8] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.10] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -15,7 +15,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.8] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.10] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -27,6 +27,12 @@ XMLHttpRequest.prototype.open = function(method, url, ...rest) {
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(async () => {
     let schemaInjected = false;
+
+    // ============================================================
+    // 🔥🔥🔥 IMAGE URLS (FIXED v7.10) 🔥🔥🔥
+    // ============================================================
+    const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+    const FALLBACK_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiWWAP6ezcmzgbGtHmmJqBjYkbsdQBrwCeC9pl9ocjL-VSQYftirdvXAF1T-eg_QMSqu1WiFidDc9fnChi0yaOqi0Dd6EVMy4ZX3P7vccY4XJMu-7k2TGVd5TS1wIG5jgIm_6beYVb2zuNQGS7eBuODJqd20c4ckvd0-HaEqGf4W-B_750I91wi9IhqqnI/s320/No_Image_Available.jpg";
 
     // ============================================================
     // 🔥🔥🔥 AMBIL PARENT URL DARI BREADCRUMB 🔥🔥🔥
@@ -240,7 +246,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // ============================================================
       const isProductPage = /(jual|beli|order|pesan|pemesanan|pembelian|produk|material|bahan|spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian|polosan|motif|custom)\s+(beton|readymix|precast|paving|panel|box|u-ditch|kansteen|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|paving\s*block|pagar\s*panel|box\s*culvert|u\s*ditch|kanstin|gorong\s*gorong)/i.test(h1 + title);
       if (isProductPage) {
-        console.log(`[Schema v7.8] ⏭️ Skip: Product/Material detected → NO schema`);
+        console.log(`[Schema v7.10] ⏭️ Skip: Product/Material detected → NO schema`);
         return false;
       }
       
@@ -249,7 +255,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // ============================================================
       const isJual = /(jual|beli|order|pesan|pemesanan|pembelian)\s+(beton|readymix|precast|paving|panel|material|bahan|produk|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen)/i.test(h1 + title);
       if (isJual) {
-        console.log(`[Schema v7.8] ⏭️ Skip: "Jual" detected → PRODUCT`);
+        console.log(`[Schema v7.10] ⏭️ Skip: "Jual" detected → PRODUCT`);
         return false;
       }
       
@@ -266,7 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (pattern.test(url)) {
           const isProductUrl = /\/p\/(beton|readymix|precast|paving|panel|box|u-ditch|kansteen|gorong|material|jual|beli|order|pesan|produk|bahan|spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian|polosan|motif|custom)/i.test(url);
           if (!isProductUrl) {
-            console.log(`[Schema v7.8] ✅ isServicePage: URL pattern matched: ${pattern}`);
+            console.log(`[Schema v7.10] ✅ isServicePage: URL pattern matched: ${pattern}`);
             return true;
           }
         }
@@ -290,7 +296,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (h1Title.includes(keyword)) {
           const productExceptions = /(beton|readymix|precast|paving|panel|box culvert|u-ditch|kansteen|gorong|material|besi|baja)\s+(harga|biaya|spesifikasi|ukuran)/i.test(h1Title);
           if (!productExceptions) {
-            console.log(`[Schema v7.8] ✅ isServicePage: Strong keyword "${keyword}" found`);
+            console.log(`[Schema v7.10] ✅ isServicePage: Strong keyword "${keyword}" found`);
             return true;
           }
         }
@@ -313,7 +319,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       for (let pattern of servicePhrases) {
         if (pattern.test(h1Title)) {
-          console.log(`[Schema v7.8] ✅ isServicePage: Service phrase matched`);
+          console.log(`[Schema v7.10] ✅ isServicePage: Service phrase matched`);
           return true;
         }
       }
@@ -328,7 +334,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (hasServiceWord) {
             const isProduct = /(beton|readymix|precast|paving|panel|box culvert|u-ditch|kansteen|gorong|material|bahan|besi|baja)(?!\s*(pasang|pemasangan|instalasi|bongkar|bor|sumur|coring|bangun|renovasi|perbaikan|perawatan|pengerjaan|pembangunan|sewa|rental))/i.test(combined);
             if (!isProduct) {
-              console.log(`[Schema v7.8] ✅ isServicePage: Page level ${pageLevel} + service word`);
+              console.log(`[Schema v7.10] ✅ isServicePage: Page level ${pageLevel} + service word`);
               return true;
             }
           }
@@ -337,7 +343,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
           const hasServiceInVariant = /(jasa|layanan|service|sewa|borongan|kontraktor|tukang|renovasi|bongkar|pemasangan|instalasi|perbaikan|rental)/i.test(h1Title);
           if (hasServiceInVariant) {
-            console.log(`[Schema v7.8] ✅ isServicePage: Variant page with service keyword`);
+            console.log(`[Schema v7.10] ✅ isServicePage: Variant page with service keyword`);
             return true;
           }
         }
@@ -364,7 +370,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (pattern.test(combined)) {
           const isProductContent = /(beli|order|pesan|jual)\s+(beton|readymix|precast|paving|panel|material|bahan)/i.test(combined);
           if (!isProductContent) {
-            console.log(`[Schema v7.8] ✅ isServicePage: Content pattern matched`);
+            console.log(`[Schema v7.10] ✅ isServicePage: Content pattern matched`);
             return true;
           }
         }
@@ -374,11 +380,11 @@ document.addEventListener("DOMContentLoaded", () => {
       // ✅ CEK 7: DEFAULT VARIAN JASA / SEWA
       // ============================================================
       if ((pageLevel === 'variant' || pageLevel === 'sub-variant') && /(jasa|sewa|rental)/i.test(h1Title + url)) {
-        console.log(`[Schema v7.8] ✅ isServicePage: Variant page with "jasa/sewa/rental"`);
+        console.log(`[Schema v7.10] ✅ isServicePage: Variant page with "jasa/sewa/rental"`);
         return true;
       }
       
-      console.log(`[Schema v7.8] ⏭️ Skip: Not identified as service page`);
+      console.log(`[Schema v7.10] ⏭️ Skip: Not identified as service page`);
       return false;
     }
 
@@ -597,7 +603,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
-      console.log(`[Schema v7.8] Extracted ${offers.length} offers:`);
+      console.log(`[Schema v7.10] Extracted ${offers.length} offers:`);
       offers.forEach(o => console.log(`  - ${o.name}: Rp${o.price.toLocaleString()}`));
 
       return offers;
@@ -609,7 +615,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v7.8 🚀] Starting - SERVICE + PRODUCT HYBRID (Gabungan terbaik)");
+      console.log("[Schema v7.10 🚀] Starting - SERVICE + PRODUCT HYBRID (Logo & Fallback Image Fixed)");
 
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
@@ -620,8 +626,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
 
       const pageLevel = getPageLevel();
-      console.log(`[Schema v7.8] Page Level: ${pageLevel}`);
+      console.log(`[Schema v7.10] Page Level: ${pageLevel}`);
 
+      // ============================================================
+      // 🔥🔥🔥 PAGE OBJECT DENGAN LOGO & FALLBACK IMAGE 🔥🔥🔥
+      // ============================================================
       const PAGE = {
         url: cleanUrl,
         title,
@@ -629,7 +638,7 @@ document.addEventListener("DOMContentLoaded", () => {
           document.querySelector("article p, main p, .post-body p")?.innerText?.substring(0, 200) || title,
         image: document.querySelector('meta[property="og:image"]')?.content ||
           document.querySelector("article img, main img, .post-body img")?.getAttribute("src") ||
-          "https://www.betonjayareadymix.com/favicon.ico",
+          FALLBACK_IMAGE,
         business: {
           name: "Beton Jaya Readymix",
           url: "https://www.betonjayareadymix.com",
@@ -637,7 +646,8 @@ document.addEventListener("DOMContentLoaded", () => {
           openingHours: "Mo-Sa 08:00-17:00",
           description: "Beton Jaya Readymix melayani jasa konstruksi, beton cor, precast, dan sewa alat berat di seluruh Indonesia.",
           address: { "@type": "PostalAddress", addressLocality: "Bogor", addressRegion: "Jawa Barat", addressCountry: "ID" },
-          sameAs: ["https://www.facebook.com/betonjayareadymix", "https://www.instagram.com/betonjayareadymix"]
+          sameAs: ["https://www.facebook.com/betonjayareadymix", "https://www.instagram.com/betonjayareadymix"],
+          logo: LOGO_IMAGE
         }
       };
 
@@ -648,7 +658,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "@id": parentData.parentUrl, 
         name: parentData.parentName || "Parent Page" 
       }];
-      console.log(`[Schema v7.8] Parent: ${parentData.parentName}`);
+      console.log(`[Schema v7.10] Parent: ${parentData.parentName}`);
 
       // ===== AREA SERVED =====
       const areaProv = {
@@ -695,7 +705,7 @@ document.addEventListener("DOMContentLoaded", () => {
           description: PAGE.business.description,
           address: PAGE.business.address,
           openingHours: PAGE.business.openingHours,
-          logo: PAGE.image,
+          logo: LOGO_IMAGE,
           sameAs: PAGE.business.sameAs,
           areaServed: defaultAreaServed,
           knowsAbout: knowsAbout
@@ -720,7 +730,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const isService = isServicePage(pageLevel);
       const isVariantPage = (pageLevel === 'variant' || pageLevel === 'sub-variant');
 
-      console.log(`[Schema v7.8] isVariantPage: ${isVariantPage}, isService: ${isService}`);
+      console.log(`[Schema v7.10] isVariantPage: ${isVariantPage}, isService: ${isService}`);
 
       // ============================================================
       // 🔥🔥🔥 SERVICE SCHEMA + PRODUCT UNTUK HARGA 🔥🔥🔥
@@ -741,7 +751,7 @@ document.addEventListener("DOMContentLoaded", () => {
           mainEntityOfPage: { "@id": cleanUrl + "#webpage" }
         };
 
-        // ✅ FIX v7.8: Buat Product schema untuk setiap offer (terbaik dari v4.63-Fix2)
+        // ✅ Product schema untuk setiap offer (agar harga terdeteksi Google)
         if (tableOffers.length > 0) {
           const lowPrice = Math.min(...tableOffers.map(o => o.price));
           const highPrice = Math.max(...tableOffers.map(o => o.price));
@@ -801,13 +811,13 @@ document.addEventListener("DOMContentLoaded", () => {
             }))
           };
           
-          console.log(`[Schema v7.8] ✅ ${tableOffers.length} Product offers added (harga terdeteksi Google)`);
+          console.log(`[Schema v7.10] ✅ ${tableOffers.length} Product offers added (harga terdeteksi Google)`);
         }
         
         graph.push(serviceNode);
-        console.log(`[Schema v7.8] ✅ Service schema (jasa/layanan/sewa/rental) dengan Product hybrid`);
+        console.log(`[Schema v7.10] ✅ Service schema (jasa/layanan/sewa/rental) dengan Product hybrid`);
       } else {
-        console.log(`[Schema v7.8] ⏭️ Skip Service schema (bukan jasa)`);
+        console.log(`[Schema v7.10] ⏭️ Skip Service schema (bukan jasa)`);
       }
 
       // ============================================================
@@ -846,7 +856,7 @@ document.addEventListener("DOMContentLoaded", () => {
           numberOfItems: internalLinks.length,
           itemListElement: internalLinks
         });
-        console.log(`[Schema v7.8] ✅ ${internalLinks.length} internal links added`);
+        console.log(`[Schema v7.10] ✅ ${internalLinks.length} internal links added`);
       }
 
       // ============================================================
@@ -864,7 +874,7 @@ document.addEventListener("DOMContentLoaded", () => {
       el.textContent = JSON.stringify(schema, null, 2);
 
       console.log(
-        `[Schema v7.8 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
+        `[Schema v7.10 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
         `Service: ${isService ? '✅' : '❌'} | Product hybrid: ${isService && tableOffers.length > 0 ? '✅' : '❌'} | ` +
         `Internal Links: ${internalLinks.length} | KnowsAbout: ${knowsAbout.length} | CORB: ✅ ZERO`
       );
