@@ -1,4 +1,4 @@
-/*⚡ AUTO SCHEMA UNIVERSAL v7.6 — FOKUS JASA, SEWA/RENTAL DENGAN HASOFFERCATALOG */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.7 — SERVICE + PRODUCT HYBRID UNTUK HARGA TERDETEKSI */
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -6,7 +6,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.6] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.7] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -15,7 +15,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.6] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.7] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -240,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // ============================================================
       const isProductPage = /(jual|beli|order|pesan|pemesanan|pembelian|produk|material|bahan|spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian|polosan|motif|custom)\s+(beton|readymix|precast|paving|panel|box|u-ditch|kansteen|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|paving\s*block|pagar\s*panel|box\s*culvert|u\s*ditch|kanstin|gorong\s*gorong)/i.test(h1 + title);
       if (isProductPage) {
-        console.log(`[Schema v7.6] ⏭️ Skip: Product/Material detected → NO schema`);
+        console.log(`[Schema v7.7] ⏭️ Skip: Product/Material detected → NO schema`);
         return false;
       }
       
@@ -249,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // ============================================================
       const isJual = /(jual|beli|order|pesan|pemesanan|pembelian)\s+(beton|readymix|precast|paving|panel|material|bahan|produk|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen)/i.test(h1 + title);
       if (isJual) {
-        console.log(`[Schema v7.6] ⏭️ Skip: "Jual" detected → PRODUCT`);
+        console.log(`[Schema v7.7] ⏭️ Skip: "Jual" detected → PRODUCT`);
         return false;
       }
       
@@ -266,7 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (pattern.test(url)) {
           const isProductUrl = /\/p\/(beton|readymix|precast|paving|panel|box|u-ditch|kansteen|gorong|material|jual|beli|order|pesan|produk|bahan|spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian|polosan|motif|custom)/i.test(url);
           if (!isProductUrl) {
-            console.log(`[Schema v7.6] ✅ isServicePage: URL pattern matched: ${pattern}`);
+            console.log(`[Schema v7.7] ✅ isServicePage: URL pattern matched: ${pattern}`);
             return true;
           }
         }
@@ -290,7 +290,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (h1Title.includes(keyword)) {
           const productExceptions = /(beton|readymix|precast|paving|panel|box culvert|u-ditch|kansteen|gorong|material|besi|baja)\s+(harga|biaya|spesifikasi|ukuran)/i.test(h1Title);
           if (!productExceptions) {
-            console.log(`[Schema v7.6] ✅ isServicePage: Strong keyword "${keyword}" found`);
+            console.log(`[Schema v7.7] ✅ isServicePage: Strong keyword "${keyword}" found`);
             return true;
           }
         }
@@ -313,7 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       for (let pattern of servicePhrases) {
         if (pattern.test(h1Title)) {
-          console.log(`[Schema v7.6] ✅ isServicePage: Service phrase matched`);
+          console.log(`[Schema v7.7] ✅ isServicePage: Service phrase matched`);
           return true;
         }
       }
@@ -328,7 +328,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (hasServiceWord) {
             const isProduct = /(beton|readymix|precast|paving|panel|box culvert|u-ditch|kansteen|gorong|material|bahan|besi|baja)(?!\s*(pasang|pemasangan|instalasi|bongkar|bor|sumur|coring|bangun|renovasi|perbaikan|perawatan|pengerjaan|pembangunan|sewa|rental))/i.test(combined);
             if (!isProduct) {
-              console.log(`[Schema v7.6] ✅ isServicePage: Page level ${pageLevel} + service word`);
+              console.log(`[Schema v7.7] ✅ isServicePage: Page level ${pageLevel} + service word`);
               return true;
             }
           }
@@ -337,7 +337,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
           const hasServiceInVariant = /(jasa|layanan|service|sewa|borongan|kontraktor|tukang|renovasi|bongkar|pemasangan|instalasi|perbaikan|rental)/i.test(h1Title);
           if (hasServiceInVariant) {
-            console.log(`[Schema v7.6] ✅ isServicePage: Variant page with service keyword`);
+            console.log(`[Schema v7.7] ✅ isServicePage: Variant page with service keyword`);
             return true;
           }
         }
@@ -364,7 +364,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (pattern.test(combined)) {
           const isProductContent = /(beli|order|pesan|jual)\s+(beton|readymix|precast|paving|panel|material|bahan)/i.test(combined);
           if (!isProductContent) {
-            console.log(`[Schema v7.6] ✅ isServicePage: Content pattern matched`);
+            console.log(`[Schema v7.7] ✅ isServicePage: Content pattern matched`);
             return true;
           }
         }
@@ -374,11 +374,11 @@ document.addEventListener("DOMContentLoaded", () => {
       // ✅ CEK 7: DEFAULT VARIAN JASA / SEWA
       // ============================================================
       if ((pageLevel === 'variant' || pageLevel === 'sub-variant') && /(jasa|sewa|rental)/i.test(h1Title + url)) {
-        console.log(`[Schema v7.6] ✅ isServicePage: Variant page with "jasa/sewa/rental"`);
+        console.log(`[Schema v7.7] ✅ isServicePage: Variant page with "jasa/sewa/rental"`);
         return true;
       }
       
-      console.log(`[Schema v7.6] ⏭️ Skip: Not identified as service page`);
+      console.log(`[Schema v7.7] ⏭️ Skip: Not identified as service page`);
       return false;
     }
 
@@ -408,6 +408,19 @@ document.addEventListener("DOMContentLoaded", () => {
       }
       
       return serviceType;
+    }
+
+    // ============================================================
+    // 🔥🔥🔥 SLUGIFY UNTUK ID PRODUCT 🔥🔥🔥
+    // ============================================================
+    function slugify(text) {
+      if (!text) return 'product';
+      return text
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/--+/g, '-')
+        .substring(0, 50);
     }
 
     // ============================================================
@@ -584,7 +597,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
-      console.log(`[Schema v7.6] Extracted ${offers.length} offers:`);
+      console.log(`[Schema v7.7] Extracted ${offers.length} offers:`);
       offers.forEach(o => console.log(`  - ${o.name}: Rp${o.price.toLocaleString()}`));
 
       return offers;
@@ -596,7 +609,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v7.6 🚀] Starting - Fokus JASA & SEWA/RENTAL dengan hasOfferCatalog");
+      console.log("[Schema v7.7 🚀] Starting - SERVICE + PRODUCT HYBRID untuk harga terdeteksi Google");
 
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
@@ -607,7 +620,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
 
       const pageLevel = getPageLevel();
-      console.log(`[Schema v7.6] Page Level: ${pageLevel}`);
+      console.log(`[Schema v7.7] Page Level: ${pageLevel}`);
 
       const PAGE = {
         url: cleanUrl,
@@ -635,7 +648,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "@id": parentData.parentUrl, 
         name: parentData.parentName || "Parent Page" 
       }];
-      console.log(`[Schema v7.6] Parent: ${parentData.parentName}`);
+      console.log(`[Schema v7.7] Parent: ${parentData.parentName}`);
 
       // ===== AREA SERVED =====
       const defaultAreaServed = [
@@ -654,15 +667,8 @@ document.addEventListener("DOMContentLoaded", () => {
         const extractedOffers = extractOffersFromTable();
         extractedOffers.forEach(offer => {
           tableOffers.push({
-            "@type": "Offer",
-            name: offer.name.substring(0, 100),
-            url: cleanUrl,
-            priceCurrency: "IDR",
+            name: offer.name,
             price: offer.price,
-            itemCondition: "https://schema.org/NewCondition",
-            availability: "https://schema.org/InStock",
-            priceValidUntil: new Date(Date.now() + 180*24*60*60*1000).toISOString().split("T")[0],
-            seller: { "@id": PAGE.business.url + "#localbusiness" },
             description: offer.description || offer.name
           });
         });
@@ -706,10 +712,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const isService = isServicePage(pageLevel);
       const isVariantPage = (pageLevel === 'variant' || pageLevel === 'sub-variant');
 
-      console.log(`[Schema v7.6] isVariantPage: ${isVariantPage}, isService: ${isService}`);
+      console.log(`[Schema v7.7] isVariantPage: ${isVariantPage}, isService: ${isService}`);
 
       // ============================================================
-      // 🔥🔥🔥 SERVICE SCHEMA DENGAN hasOfferCatalog 🔥🔥🔥
+      // 🔥🔥🔥 SERVICE SCHEMA + PRODUCT UNTUK HARGA 🔥🔥🔥
       // ============================================================
       if (isService) {
         const serviceType = extractServiceType(PAGE.title);
@@ -727,40 +733,59 @@ document.addEventListener("DOMContentLoaded", () => {
           mainEntityOfPage: { "@id": cleanUrl + "#webpage" }
         };
 
-        // ✅ FIX: Gunakan hasOfferCatalog untuk harga (lebih dideteksi oleh Google)
+        // ✅ FIX v7.7: Buat Product schema untuk setiap offer (agar harga terdeteksi Google)
         if (tableOffers.length > 0) {
+          // 1. Buat Product nodes untuk setiap offer
+          tableOffers.forEach(offer => {
+            const productNode = {
+              "@type": "Product",
+              "@id": cleanUrl + "#product-" + slugify(offer.name),
+              name: offer.name,
+              description: offer.description || offer.name,
+              brand: { "@type": "Brand", name: PAGE.business.name },
+              offers: {
+                "@type": "Offer",
+                "price": offer.price,
+                "priceCurrency": "IDR",
+                "availability": "https://schema.org/InStock",
+                "priceValidUntil": new Date(Date.now() + 180*24*60*60*1000).toISOString().split("T")[0],
+                "seller": { "@id": PAGE.business.url + "#localbusiness" }
+              }
+            };
+            graph.push(productNode);
+          });
+          
+          // 2. Aggregate offer di Service (tetap dipertahankan)
+          serviceNode.offers = {
+            "@type": "AggregateOffer",
+            "lowPrice": Math.min(...tableOffers.map(o => o.price)),
+            "highPrice": Math.max(...tableOffers.map(o => o.price)),
+            "offerCount": tableOffers.length,
+            "priceCurrency": "IDR"
+          };
+          
+          // 3. hasOfferCatalog sebagai tambahan
           serviceNode.hasOfferCatalog = {
             "@type": "OfferCatalog",
-            "name": "Daftar Harga " + PAGE.title,
+            "name": "Daftar Layanan " + PAGE.title,
             "itemListElement": tableOffers.map(offer => ({
               "@type": "Offer",
               "itemOffered": {
-                "@type": "Service",
+                "@type": "Product",
                 "name": offer.name
               },
               "price": offer.price,
-              "priceCurrency": "IDR",
-              "availability": "https://schema.org/InStock",
-              "priceValidUntil": new Date(Date.now() + 180*24*60*60*1000).toISOString().split("T")[0],
-              "url": cleanUrl
+              "priceCurrency": "IDR"
             }))
           };
           
-          // ✅ Tambahkan juga offers sebagai fallback (tetap dipertahankan)
-          serviceNode.offers = {
-            "@type": "AggregateOffer",
-            lowPrice: Math.min(...tableOffers.map(o => o.price)),
-            highPrice: Math.max(...tableOffers.map(o => o.price)),
-            offerCount: tableOffers.length,
-            priceCurrency: "IDR",
-            offers: tableOffers
-          };
+          console.log(`[Schema v7.7] ✅ ${tableOffers.length} Product offers added (harga akan terdeteksi Google)`);
         }
         
         graph.push(serviceNode);
-        console.log(`[Schema v7.6] ✅ Service schema (jasa/layanan/sewa/rental) dengan hasOfferCatalog`);
+        console.log(`[Schema v7.7] ✅ Service schema (jasa/layanan/sewa/rental) dengan Product hybrid`);
       } else {
-        console.log(`[Schema v7.6] ⏭️ Skip Service schema (bukan jasa)`);
+        console.log(`[Schema v7.7] ⏭️ Skip Service schema (bukan jasa)`);
       }
 
       // ============================================================
@@ -778,8 +803,8 @@ document.addEventListener("DOMContentLoaded", () => {
       el.textContent = JSON.stringify(schema, null, 2);
 
       console.log(
-        `[Schema v7.6 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
-        `Service: ${isService ? '✅' : '❌'} | hasOfferCatalog: ${isService && tableOffers.length > 0 ? '✅' : '❌'}` +
+        `[Schema v7.7 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
+        `Service: ${isService ? '✅' : '❌'} | Product hybrid: ${isService && tableOffers.length > 0 ? '✅' : '❌'} | ` +
         `KnowsAbout: ${knowsAbout.length} | CORB: ✅ ZERO`
       );
     }
