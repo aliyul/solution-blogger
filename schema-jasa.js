@@ -1,3 +1,4 @@
+/*⚡ AUTO SCHEMA UNIVERSAL v7.6 — FOKUS JASA, SEWA/RENTAL DENGAN HASOFFERCATALOG */
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -5,7 +6,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.5] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.6] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -14,7 +15,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.5] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.6] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -235,11 +236,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const combined = h1 + " " + title + " " + url + " " + metaDesc + " " + text;
       
       // ============================================================
-      // ✅ CEK 0: SKIP PRODUK/MATERIAL (JUAL, BELI, PRODUK, MATERIAL, VARIAN PRODUK)
+      // ✅ CEK 0: SKIP PRODUK/MATERIAL
       // ============================================================
       const isProductPage = /(jual|beli|order|pesan|pemesanan|pembelian|produk|material|bahan|spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian|polosan|motif|custom)\s+(beton|readymix|precast|paving|panel|box|u-ditch|kansteen|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|paving\s*block|pagar\s*panel|box\s*culvert|u\s*ditch|kanstin|gorong\s*gorong)/i.test(h1 + title);
       if (isProductPage) {
-        console.log(`[Schema v7.5] ⏭️ Skip: Product/Material/Variant Produk detected → NO schema`);
+        console.log(`[Schema v7.6] ⏭️ Skip: Product/Material detected → NO schema`);
         return false;
       }
       
@@ -248,12 +249,12 @@ document.addEventListener("DOMContentLoaded", () => {
       // ============================================================
       const isJual = /(jual|beli|order|pesan|pemesanan|pembelian)\s+(beton|readymix|precast|paving|panel|material|bahan|produk|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen)/i.test(h1 + title);
       if (isJual) {
-        console.log(`[Schema v7.5] ⏭️ Skip: "Jual" detected → PRODUCT, NOT service`);
+        console.log(`[Schema v7.6] ⏭️ Skip: "Jual" detected → PRODUCT`);
         return false;
       }
       
       // ============================================================
-      // ✅ CEK 2: POLA URL (PALING AKURAT)
+      // ✅ CEK 2: POLA URL
       // ============================================================
       const urlJasaPatterns = [
         /\/jasa-/i, /\/jasa\//i, /\/p\/jasa-/i, 
@@ -265,14 +266,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (pattern.test(url)) {
           const isProductUrl = /\/p\/(beton|readymix|precast|paving|panel|box|u-ditch|kansteen|gorong|material|jual|beli|order|pesan|produk|bahan|spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian|polosan|motif|custom)/i.test(url);
           if (!isProductUrl) {
-            console.log(`[Schema v7.5] ✅ isServicePage: URL pattern matched: ${pattern}`);
+            console.log(`[Schema v7.6] ✅ isServicePage: URL pattern matched: ${pattern}`);
             return true;
           }
         }
       }
       
       // ============================================================
-      // ✅ CEK 3: KATA KUNCI JASA DI H1 / TITLE
+      // ✅ CEK 3: KATA KUNCI JASA
       // ============================================================
       const h1Title = h1 + " " + title;
       
@@ -289,14 +290,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (h1Title.includes(keyword)) {
           const productExceptions = /(beton|readymix|precast|paving|panel|box culvert|u-ditch|kansteen|gorong|material|besi|baja)\s+(harga|biaya|spesifikasi|ukuran)/i.test(h1Title);
           if (!productExceptions) {
-            console.log(`[Schema v7.5] ✅ isServicePage: Strong keyword "${keyword}" found in H1/Title`);
+            console.log(`[Schema v7.6] ✅ isServicePage: Strong keyword "${keyword}" found`);
             return true;
           }
         }
       }
       
       // ============================================================
-      // ✅ CEK 4: POLA KALIMAT "JASA [LAYANAN]" / "SEWA [ALAT]"
+      // ✅ CEK 4: POLA KALIMAT
       // ============================================================
       const servicePhrases = [
         /jasa\s+(pasang|pemasangan|instalasi|bongkar|bor|sumur|cor|beton|renovasi|bangun|perbaikan|perawatan|pengerjaan|pembangunan)/i,
@@ -312,13 +313,13 @@ document.addEventListener("DOMContentLoaded", () => {
       
       for (let pattern of servicePhrases) {
         if (pattern.test(h1Title)) {
-          console.log(`[Schema v7.5] ✅ isServicePage: Service phrase matched: ${pattern}`);
+          console.log(`[Schema v7.6] ✅ isServicePage: Service phrase matched`);
           return true;
         }
       }
       
       // ============================================================
-      // ✅ CEK 5: PAGE LEVEL DARI PLD
+      // ✅ CEK 5: PAGE LEVEL
       // ============================================================
       if (pageLevel) {
         const servicePageLevels = ['money-master', 'money-page', 'money-child', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'];
@@ -327,7 +328,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (hasServiceWord) {
             const isProduct = /(beton|readymix|precast|paving|panel|box culvert|u-ditch|kansteen|gorong|material|bahan|besi|baja)(?!\s*(pasang|pemasangan|instalasi|bongkar|bor|sumur|coring|bangun|renovasi|perbaikan|perawatan|pengerjaan|pembangunan|sewa|rental))/i.test(combined);
             if (!isProduct) {
-              console.log(`[Schema v7.5] ✅ isServicePage: Page level ${pageLevel} + service word found`);
+              console.log(`[Schema v7.6] ✅ isServicePage: Page level ${pageLevel} + service word`);
               return true;
             }
           }
@@ -336,14 +337,14 @@ document.addEventListener("DOMContentLoaded", () => {
         if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
           const hasServiceInVariant = /(jasa|layanan|service|sewa|borongan|kontraktor|tukang|renovasi|bongkar|pemasangan|instalasi|perbaikan|rental)/i.test(h1Title);
           if (hasServiceInVariant) {
-            console.log(`[Schema v7.5] ✅ isServicePage: Variant page with service keyword`);
+            console.log(`[Schema v7.6] ✅ isServicePage: Variant page with service keyword`);
             return true;
           }
         }
       }
       
       // ============================================================
-      // ✅ CEK 6: KONTEN (FALLBACK)
+      // ✅ CEK 6: KONTEN
       // ============================================================
       const contentPatterns = [
         /kami\s+melayani\s+jasa/i,
@@ -356,34 +357,28 @@ document.addEventListener("DOMContentLoaded", () => {
         /(sewa|rental)\s+(alat|kendaraan|peralatan|mesin|konstruksi)/i,
         /(harga|biaya|tarif)\s+sewa/i,
         /sewa\s+(harian|mingguan|bulanan|tahunan)/i,
-        /rental\s+(harian|mingguan|bulanan|tahunan)/i,
-        /(durasi|waktu|jangka)\s+sewa/i,
-        /(minimum|maksimum)\s+sewa/i,
-        /(tersedia|ready)\s+untuk\s+sewa/i,
-        /(alat|kendaraan|peralatan)\s+sewa/i,
-        /sewa\s+(excavator|buldozer|dumptruck|crane|forklift|molen|vibrator|scaffolding|steger|pompa|concrete\s*pump)/i,
-        /rental\s+(excavator|buldozer|dumptruck|crane|forklift|molen|vibrator|scaffolding|steger|pompa|concrete\s*pump)/i
+        /rental\s+(harian|mingguan|bulanan|tahunan)/i
       ];
       
       for (let pattern of contentPatterns) {
         if (pattern.test(combined)) {
           const isProductContent = /(beli|order|pesan|jual)\s+(beton|readymix|precast|paving|panel|material|bahan)/i.test(combined);
           if (!isProductContent) {
-            console.log(`[Schema v7.5] ✅ isServicePage: Content pattern matched: ${pattern}`);
+            console.log(`[Schema v7.6] ✅ isServicePage: Content pattern matched`);
             return true;
           }
         }
       }
       
       // ============================================================
-      // ✅ CEK 7: DEFAULT UNTUK VARIAN JASA / SEWA
+      // ✅ CEK 7: DEFAULT VARIAN JASA / SEWA
       // ============================================================
       if ((pageLevel === 'variant' || pageLevel === 'sub-variant') && /(jasa|sewa|rental)/i.test(h1Title + url)) {
-        console.log(`[Schema v7.5] ✅ isServicePage: Variant page with "jasa/sewa/rental" in title/URL`);
+        console.log(`[Schema v7.6] ✅ isServicePage: Variant page with "jasa/sewa/rental"`);
         return true;
       }
       
-      console.log(`[Schema v7.5] ⏭️ Skip: Not identified as service page → NO schema`);
+      console.log(`[Schema v7.6] ⏭️ Skip: Not identified as service page`);
       return false;
     }
 
@@ -402,14 +397,12 @@ document.addEventListener("DOMContentLoaded", () => {
         serviceType = serviceType.substring(0, 50);
       }
       
-      // Untuk variant jasa
       if (/spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian/i.test(title)) {
         if (!/^spesifikasi/i.test(serviceType) && !/^varian/i.test(serviceType) && !/^ukuran/i.test(serviceType)) {
           serviceType = 'Spesifikasi ' + serviceType;
         }
       }
       
-      // Tambahkan "Jasa" jika belum ada
       if (!/^(jasa|layanan|service|sewa|borongan|spesifikasi|varian|ukuran|mutu|rental)/i.test(serviceType)) {
         serviceType = 'Jasa ' + serviceType;
       }
@@ -468,12 +461,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // CEK SKIP PRODUCT
     // ============================================================
     function shouldSkipProductSchema(pageLevel) {
-      // Selalu skip product schema (karena fokus ke jasa/sewa/rental)
       return true;
     }
 
     // ============================================================
-    // 🔥🔥🔥 EKSTRAK OFFER HANYA DARI TABEL 🔥🔥🔥
+    // 🔥🔥🔥 EKSTRAK OFFER DARI TABEL 🔥🔥🔥
     // ============================================================
     function extractOffersFromTable() {
       const offers = [];
@@ -592,7 +584,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       }
 
-      console.log(`[Schema v7.5] Extracted ${offers.length} offers from table:`);
+      console.log(`[Schema v7.6] Extracted ${offers.length} offers:`);
       offers.forEach(o => console.log(`  - ${o.name}: Rp${o.price.toLocaleString()}`));
 
       return offers;
@@ -604,7 +596,7 @@ document.addEventListener("DOMContentLoaded", () => {
     async function initSchema() {
       if (schemaInjected) return;
       schemaInjected = true;
-      console.log("[Schema v7.5 🚀] Starting (ZERO CORB) - Fokus JASA & SEWA/RENTAL (SKIP PRODUK/MATERIAL/VARIAN PRODUK)");
+      console.log("[Schema v7.6 🚀] Starting - Fokus JASA & SEWA/RENTAL dengan hasOfferCatalog");
 
       const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
       const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
@@ -615,7 +607,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
 
       const pageLevel = getPageLevel();
-      console.log(`[Schema v7.5] Page Level: ${pageLevel}`);
+      console.log(`[Schema v7.6] Page Level: ${pageLevel}`);
 
       const PAGE = {
         url: cleanUrl,
@@ -643,7 +635,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "@id": parentData.parentUrl, 
         name: parentData.parentName || "Parent Page" 
       }];
-      console.log(`[Schema v7.5] Parent: ${parentData.parentName}`);
+      console.log(`[Schema v7.6] Parent: ${parentData.parentName}`);
 
       // ===== AREA SERVED =====
       const defaultAreaServed = [
@@ -658,7 +650,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const tableOffers = [];
       const isMoneyPage = ['money-master', 'money-page', 'money-child'].includes(pageLevel);
 
-      // Hanya ekstrak offer jika halaman money
       if (isMoneyPage) {
         const extractedOffers = extractOffersFromTable();
         extractedOffers.forEach(offer => {
@@ -678,7 +669,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       // ============================================================
-      // 🔥🔥🔥 BUILD GRAPH - TANPA FAQ 🔥🔥🔥
+      // 🔥🔥🔥 BUILD GRAPH 🔥🔥🔥
       // ============================================================
       const graph = [
         {
@@ -710,23 +701,16 @@ document.addEventListener("DOMContentLoaded", () => {
       ];
 
       // ============================================================
-      // 🔥🔥🔥 CEK APAKAH INI HALAMAN JASA / SEWA / RENTAL 🔥🔥🔥
+      // 🔥🔥🔥 CEK JASA / SEWA / RENTAL 🔥🔥🔥
       // ============================================================
       const isService = isServicePage(pageLevel);
       const isVariantPage = (pageLevel === 'variant' || pageLevel === 'sub-variant');
 
-      console.log(`[Schema v7.5] isVariantPage: ${isVariantPage}, isService: ${isService}`);
+      console.log(`[Schema v7.6] isVariantPage: ${isVariantPage}, isService: ${isService}`);
 
       // ============================================================
-      // 🔥🔥🔥 PRODUCT SCHEMA - SELALU SKIP (FOKUS JASA) 🔥🔥🔥
+      // 🔥🔥🔥 SERVICE SCHEMA DENGAN hasOfferCatalog 🔥🔥🔥
       // ============================================================
-      console.log(`[Schema v7.5] ⏭️ Skip Product schema (fokus ke JASA/SEWA/RENTAL)`);
-
-      // ============================================================
-      // 🔥🔥🔥 SERVICE SCHEMA - UNTUK JASA/LAYANAN 🔥🔥🔥
-      // ============================================================
-      // ✅ Hanya buat Service jika ini halaman jasa (isService = true)
-      // ✅ Termasuk variant jasa, sewa, rental
       if (isService) {
         const serviceType = extractServiceType(PAGE.title);
         
@@ -743,7 +727,26 @@ document.addEventListener("DOMContentLoaded", () => {
           mainEntityOfPage: { "@id": cleanUrl + "#webpage" }
         };
 
+        // ✅ FIX: Gunakan hasOfferCatalog untuk harga (lebih dideteksi oleh Google)
         if (tableOffers.length > 0) {
+          serviceNode.hasOfferCatalog = {
+            "@type": "OfferCatalog",
+            "name": "Daftar Harga " + PAGE.title,
+            "itemListElement": tableOffers.map(offer => ({
+              "@type": "Offer",
+              "itemOffered": {
+                "@type": "Service",
+                "name": offer.name
+              },
+              "price": offer.price,
+              "priceCurrency": "IDR",
+              "availability": "https://schema.org/InStock",
+              "priceValidUntil": new Date(Date.now() + 180*24*60*60*1000).toISOString().split("T")[0],
+              "url": cleanUrl
+            }))
+          };
+          
+          // ✅ Tambahkan juga offers sebagai fallback (tetap dipertahankan)
           serviceNode.offers = {
             "@type": "AggregateOffer",
             lowPrice: Math.min(...tableOffers.map(o => o.price)),
@@ -753,10 +756,11 @@ document.addEventListener("DOMContentLoaded", () => {
             offers: tableOffers
           };
         }
+        
         graph.push(serviceNode);
-        console.log(`[Schema v7.5] ✅ Service schema (jasa/layanan/sewa/rental)`);
+        console.log(`[Schema v7.6] ✅ Service schema (jasa/layanan/sewa/rental) dengan hasOfferCatalog`);
       } else {
-        console.log(`[Schema v7.5] ⏭️ Skip Service schema (bukan halaman jasa/sewa/rental)`);
+        console.log(`[Schema v7.6] ⏭️ Skip Service schema (bukan jasa)`);
       }
 
       // ============================================================
@@ -774,9 +778,9 @@ document.addEventListener("DOMContentLoaded", () => {
       el.textContent = JSON.stringify(schema, null, 2);
 
       console.log(
-        `[Schema v7.5 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
-        `Product: ❌ (SKIP) | Service: ${isService ? '✅' : '❌'} | ` +
-        `KnowsAbout: ${knowsAbout.length} | CORB: ✅ ZERO | FAQ: ❌`
+        `[Schema v7.6 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
+        `Service: ${isService ? '✅' : '❌'} | hasOfferCatalog: ${isService && tableOffers.length > 0 ? '✅' : '❌'}` +
+        `KnowsAbout: ${knowsAbout.length} | CORB: ✅ ZERO`
       );
     }
 
