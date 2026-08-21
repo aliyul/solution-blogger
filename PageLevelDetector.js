@@ -1,5 +1,10 @@
 /* ============================================================
- 🧠 Page Level Detector v22.16 — FULL ENTITY DETECTION FIX
+ 🧠 Page Level Detector v22.17 — UNIVERSAL QUALITY DETECTION
+    ✅ FIX v22.17: UNIVERSAL QUALITY WORDS untuk SEMUA ENTITY
+    ✅ FIX v22.17: Sinkronisasi deteksi quality words ke semua JASA
+    ✅ FIX v22.17: Satu kali tambah → langsung berlaku untuk semua
+    ✅ FIX v22.17: Tidak perlu modifikasi per entity type
+    ✅ FIX v22.17: Lebih mudah maintenance & scalable
     ✅ FIX v22.16: JASA & SEWA bisa menjadi VARIANT (dengan syarat)
     ✅ FIX v22.16: Syarat variant untuk JASA: ada spesifikasi teknis/metode
     ✅ FIX v22.16: Syarat variant untuk SEWA: ada spesifikasi alat/durasi
@@ -75,7 +80,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬" };
-    console.log(`${icons[type] || "📘"} [PLD v22.16] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.17] ${message}`);
   }
 
   // ============================================================
@@ -194,7 +199,7 @@
   };
 
   // ============================================================
-  // 📌 KEYWORDS
+  // 📌 KEYWORDS & UNIVERSAL QUALITY WORDS (v22.17)
   // ============================================================
 
   const ENTITY_TRIGGERS = {
@@ -227,6 +232,37 @@
     "custom", "tanah", "beton", "batu", "kayu", "besi", "baja"
   ];
 
+  // 🔧 v22.17: UNIVERSAL QUALITY WORDS (Berlaku untuk SEMUA entity)
+  const UNIVERSAL_QUALITY_WORDS = {
+    // Kualitas & Standar
+    quality: [
+      "mutu", "kualitas", "grade", "kelas", "standar", "spesifikasi",
+      "detail", "parameter", "dimensi", "ukuran"
+    ],
+    // Metode Pengerjaan
+    method: [
+      "hidrolik", "manual", "auger", "rotary", "percussive", 
+      "dry", "wet", "basah", "kering", "otomatis", "semi"
+    ],
+    // Kondisi / Hasil
+    condition: [
+      "terpasang", "terinstal", "tertanam", "terbenam", 
+      "tercetak", "terbentuk", "terbuat", "terpancang", "tertimbun", "tersusun"
+    ],
+    // Teknik Pengerjaan
+    technique: [
+      "coring", "cutting", "drilling", "pengeboran", "pemasangan",
+      "pengerjaan", "pemancangan", "bongkar", "pasang", "potong",
+      "grinding", "welding", "sambung", "las"
+    ],
+    // Spesifikasi Teknis
+    technical: [
+      "dalam", "dangkal", "kedalaman", "diameter", "ketebalan",
+      "panjang", "lebar", "tinggi", "volume", "kapasitas",
+      "tebal", "tipis", "besar", "kecil", "medium"
+    ]
+  };
+
   const JASA_ULTRA_COMMON_WORDS = [
     "jasa", "kontraktor", "tukang", "borongan", "renovasi",
     "pasang", "bangun", "perbaikan", "instalasi", "proyek",
@@ -248,8 +284,34 @@
 
   const NON_VARIANT_WORDS = ["pengukuran", "pengujian", "kalibrasi", "survey"];
 
-// ============================================================
-  // 📌 VARIANT PATTERN DETECTION (v22.16 - FIXED)
+  // ============================================================
+  // 📌 FUNGSI DETEKSI UNIVERSAL QUALITY WORDS (v22.17)
+  // ============================================================
+
+  function detectUniversalQualityWords(text) {
+    if (!text) return { hasSpec: false, score: 0, reasons: [] };
+    
+    const lower = text.toLowerCase();
+    let hasSpec = false;
+    let score = 0;
+    let reasons = [];
+    
+    for (const [category, words] of Object.entries(UNIVERSAL_QUALITY_WORDS)) {
+      for (const word of words) {
+        if (lower.includes(word)) {
+          hasSpec = true;
+          score += 3;
+          reasons.push(`Quality word [${category}]: "${word}"`);
+          break; // Cukup satu kata per kategori
+        }
+      }
+    }
+    
+    return { hasSpec, score, reasons };
+  }
+
+  // ============================================================
+  // 📌 VARIANT PATTERN DETECTION (v22.17 - UNIVERSAL)
   // ============================================================
 
   function detectVariantByPattern(text, entityType) {
@@ -258,6 +320,40 @@
     let score = 0;
     let reasons = [];
     const lower = text.toLowerCase();
+    
+    // ============================================================
+    // 🔧 v22.17: UNIVERSAL QUALITY DETECTION (Berlaku untuk SEMUA)
+    // ============================================================
+    
+    // 🔧 UNIVERSAL: Berlaku untuk semua entity yang mendukung variant
+    const supportedEntities = ["jasa", "sewa", "produk", "material"];
+    
+    if (supportedEntities.includes(entityType)) {
+      
+      // 🔧 UNIVERSAL QUALITY DETECTION
+      const qualityResult = detectUniversalQualityWords(text);
+      
+      if (qualityResult.hasSpec) {
+        score += qualityResult.score;
+        reasons = reasons.concat(qualityResult.reasons);
+        log(`UNIVERSAL QUALITY: "${text}" → +${qualityResult.score} points`, "VARIANT");
+      }
+      
+      // 🔧 Jika ada quality word, langsung deteksi sebagai variant
+      // (kecuali ada price/location yang lebih prioritas)
+      if (qualityResult.hasSpec && score >= 3) {
+        // Cek price/location dulu (prioritas lebih tinggi)
+        if (PRICE_WORDS.some(w => lower.includes(w))) {
+          return { isVariant: false, score: 0, reasons: ["Price word detected → MONEY_PAGE"] };
+        }
+        if (LOCATION_WORDS.some(w => lower.includes(w))) {
+          return { isVariant: false, score: 0, reasons: ["Location word detected → MONEY_CHILD"] };
+        }
+        
+        log(`"${text}" → VARIANT (universal quality detection, score: ${score})`, "SUCCESS");
+        return { isVariant: true, score, reasons };
+      }
+    }
     
     // ============================================================
     // 🔧 FIX v22.16: JASA & SEWA BISA variant (dengan syarat)
@@ -282,7 +378,8 @@
       // SYARAT 3: Cek spesifikasi teknis
       let hasSpec = false;
       
-      // 🔧 FIX: Deteksi "mutu" sebagai quality word
+      // 🔧 FIX: Deteksi "mutu" sebagai quality word (SUDAH TERCOVER OLEH UNIVERSAL)
+      // Tapi tetap dijaga untuk backward compatibility
       const hasQualityWord = /\b(mutu|kualitas|grade|kelas|standar|spesifikasi)\b/i.test(lower);
       
       // Untuk JASA: spesifikasi teknis/metode pengerjaan
@@ -294,7 +391,7 @@
           /\b(beton|baja|kayu|batu|keramik|granit|marmer)\s+(coring|potong|bor|pasang|bongkar|cutting|drilling)\b/i,
           /\b(spesifikasi|ukuran|dimensi|detail|parameter)\s+(jasa|layanan)\b/i,
           /\b(metode|cara|teknik)\s+(pengeboran|pemasangan|pengerjaan|pemancangan)\b/i,
-          // 🔧 FIX: Tambahan untuk "mutu"
+          // 🔧 FIX: Tambahan untuk "mutu" (backward compatibility)
           /\b(mutu|kualitas|grade|kelas|standar)\s+(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan|beton|tiang)\b/i,
           /\b(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan)\s+(mutu|kualitas|grade|kelas|standar)\b/i
         ];
@@ -330,6 +427,7 @@
       }
       
       // 🔧 FIX: Jika ada quality word (mutu/kualitas) tanpa spec → tetap dianggap spec
+      // (SUDAH TERTANGAN OLEH UNIVERSAL, tapi tetap dijaga)
       if (hasQualityWord && !hasSpec) {
         hasSpec = true;
         score += 3;
@@ -457,7 +555,7 @@
     
     return { isVariant: false, score: 0, reasons: [`Entity ${entityType} tidak support variant`] };
   }
- 
+
   // ============================================================
   // 📌 FUNGSI DETEKSI LOKASI
   // ============================================================
@@ -653,12 +751,11 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI VARIANT (v22.16 - FULL)
+  // 📌 DETEKSI VARIANT (v22.17)
   // ============================================================
 
   function detectVariantLevel(text, entityType) {
-    // 🔧 FIX v22.16: JASA & SEWA bisa variant dengan syarat
-    // Cek di dalam detectVariantByPattern
+    // 🔧 v22.17: Universal quality detection sudah di dalam detectVariantByPattern
     
     if (isSubVariant(text)) return "sub-variant";
     if (hasTechnicalSpec(text)) return null;
@@ -718,7 +815,7 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI MONEY LEVEL (v22.16)
+  // 📌 DETEKSI MONEY LEVEL (v22.17)
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -777,7 +874,7 @@
   }
 
   // ============================================================
-  // 📌 MAIN DETECTOR (v22.16)
+  // 📌 MAIN DETECTOR (v22.17)
   // ============================================================
 
   function detectPageLevel(userOptions = {}) {
@@ -817,7 +914,7 @@
     const subPillar = detectSubPillarLevel(text);
     if (subPillar) return subPillar;
     
-    // 3. VARIANT (v22.16)
+    // 3. VARIANT (v22.17)
     const variant = detectVariantLevel(text, entityType);
     if (variant) return variant;
     
@@ -942,18 +1039,21 @@
     isSubVariant,
     cleanJasaText,
     detectVariantByPattern,
-    version: "22.16"
+    detectUniversalQualityWords,
+    UNIVERSAL_QUALITY_WORDS,
+    version: "22.17"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.16 Ready (FULL ENTITY DETECTION FIX)");
+  console.log("✅ Page Level Detector v22.17 Ready (UNIVERSAL QUALITY DETECTION)");
   console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan");
   console.log("🏗️  ENTITY: JASA, SEWA, PRODUK, MATERIAL, DESAIN, ARTIKEL");
-  console.log("🔬 VARIANT: JASA & SEWA BISA variant (dengan syarat spesifikasi teknis)");
+  console.log("🔬 UNIVERSAL QUALITY: Satu kali tambah → langsung berlaku untuk semua");
+  console.log("📝 Quality categories: quality, method, condition, technique, technical");
   console.log("📝 JASA: ≤2 kata → MM, ≥3 kata → MP");
-  console.log("📝 Mini/Midi/Maxi: BUKAN variant untuk JASA/SEWA (kecuali ada spesifikasi)");
+  console.log("📝 Mini/Midi/Maxi: BUKAN variant (kecuali ada spesifikasi)");
   console.log("📝 Priority: Price > Location > Word Count");
   
 })();
