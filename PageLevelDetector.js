@@ -1,68 +1,18 @@
 /* ============================================================
- 🧠 Page Level Detector v22.17 — UNIVERSAL QUALITY DETECTION
-    ✅ FIX v22.17: UNIVERSAL QUALITY WORDS untuk SEMUA ENTITY
-    ✅ FIX v22.17: Sinkronisasi deteksi quality words ke semua JASA
-    ✅ FIX v22.17: Satu kali tambah → langsung berlaku untuk semua
-    ✅ FIX v22.17: Tidak perlu modifikasi per entity type
-    ✅ FIX v22.17: Lebih mudah maintenance & scalable
+ 🧠 Page Level Detector v22.18 — UNIVERSAL UNTUK SEMUA ENTITY
+    ✅ FIX v22.18: UNIVERSAL QUALITY WORDS berlaku untuk SEMUA ENTITY
+    ✅ FIX v22.18: JASA, PRODUK, MATERIAL, SEWA semua pakai universal
+    ✅ FIX v22.18: Satu kali tambah → langsung berlaku untuk semua
+    ✅ FIX v22.18: Tidak perlu duplikasi pola per entity
+    ✅ FIX v22.17: UNIVERSAL QUALITY DETECTION
     ✅ FIX v22.16: JASA & SEWA bisa menjadi VARIANT (dengan syarat)
-    ✅ FIX v22.16: Syarat variant untuk JASA: ada spesifikasi teknis/metode
-    ✅ FIX v22.16: Syarat variant untuk SEWA: ada spesifikasi alat/durasi
-    ✅ FIX v22.16: Mini/Midi/Maxi BUKAN variant untuk JASA/SEWA (kecuali ada spesifikasi lain)
+    ✅ FIX v22.16: Mini/Midi/Maxi BUKAN variant (kecuali ada spesifikasi lain)
     ✅ FIX v22.16: Location & Price tetap prioritas utama
-    ✅ FIX v22.15: Entity Type detection improved (JASA, PRODUK, MATERIAL, SEWA)
-    ✅ FIX v22.15: Variant detection dibatasi untuk PRODUK/MATERIAL saja
-    ✅ FIX v22.15: JASA tidak terdeteksi sebagai variant (kecuali ada kata spesifik)
-    ✅ FIX v22.15: Mini/Midi/Maxi tidak dianggap variant untuk JASA
-    ✅ FIX v22.15: JASA detection kembali ke pola word count
+    ✅ FIX v22.15: Entity Type detection improved
     ✅ FIX v22.15: Money level priority: Price > Location > Word Count
     ✅ FIX: LOCATION_DATABASE disertakan lengkap
     ✅ FIX: log() didefinisikan sebelum digunakan
-    ✅ FIX v22.14: Threshold diturunkan dari 3 → 2
-    ✅ FIX v22.14: Pola "per meter", "per titik" skor ditingkatkan
-    ✅ FIX v22.14: Kata spesifikasi ditambahkan ke cluster
-    ✅ FIX v22.14: Pola "spesifikasi + produk" ditambahkan
-    ✅ FIX v22.14: Pola "jenis" dikembalikan ke SP2 (bukan variant)
-    ✅ FIX v22.14: isSubVariant improved untuk deteksi sub-variant
-    ✅ FIX v22.14: Terpasang detection improved
-    ✅ FIX v22.13: Hanya tambahkan keyword untuk VARIANT (level 7)
-    ✅ FIX v22.13: Tidak mengganggu deteksi MC, SP2, atau level lainnya
-    ✅ FIX v22.13: Keyword difokuskan untuk deteksi variant saja
-    ✅ FIX v22.12: Tambahan pola "terpasang", "terinstal", "tertanam" untuk variant
-    ✅ FIX v22.12: Tambahan cluster kondisi/hasil (condition words)
-    ✅ FIX v22.11: Perbaikan deteksi variant untuk "Harga Coring Beton Per Titik"
-    ✅ FIX v22.11: Perbaikan scoring untuk kata dengan akhiran "-an" (ukuran, dimensi)
-    ✅ FIX v22.11: Perbaikan deteksi "per meter", "per titik" sebagai indikator variant
-    ✅ FIX v22.10: VARIANT DETEKSI SEPENUHNYA BERBASIS POLA, BUKAN DAFTAR KATA
-    ✅ FIX v22.10: Menggunakan 7 layer pattern detection untuk variant
-    ✅ FIX v22.10: Auto-detect variant dari struktural kata
-    ✅ FIX v22.10: Semantic clustering untuk varian tanpa kata kunci explicit
-    ✅ FIX v22.10: Dynamic variant scoring berbasis konteks
-    ✅ FIX v22.9: Pillar patterns untuk PRODUK_INTERIOR ditambahkan
-    ✅ FIX v22.9: Pillar patterns untuk ARTIKEL ditambahkan
-    ✅ FIX v22.9: Pillar patterns menggunakan array untuk multiple variants
-    ✅ FIX v22.9: "produk interior", "interior produk" masuk pillar
-    ✅ FIX v22.9: "artikel konstruksi", "blog konstruksi" masuk pillar
-    ✅ FIX v22.8: JASA_DESAIN ditambahkan ke VALID_ENTITY_TYPES
-    ✅ FIX v22.8: ENTITY_TRIGGERS untuk "desain" ditambahkan
-    ✅ FIX v22.7: Deteksi MM/MP JASA OTOMATIS (>= 2 → MP, <= 1 → MM)
-    ✅ FIX v22.7: Tidak perlu tambah manual MATERIAL_SPEC_WORDS
-    ✅ FIX v22.7: Angka (3d, k250) otomatis terdeteksi sebagai MP
-    ✅ FIX v22.6: JASA dengan material spec (baja, beton, dll) → MP, bukan MM
-    ✅ FIX v22.5: Variant TIDAK campur dengan MP (K250/K300 tetap MP)
-    ✅ FIX v22.5: Variant hanya jika ada KATA KUNCI VARIANT
-    ✅ FIX v22.5: Technical specs (K225, K250, K300) tetap MP
-    ✅ FIX: "pengukuran", "pengujian", "pengecekan" tidak terdeteksi sebagai variant
-    ✅ FIX: Variant detection sekarang lebih presisi (hanya kata exact match)
-    ✅ FIX: Menambahkan NON_VARIANT_WORDS untuk mencegah false positive
-    ✅ FIX: "Sewa Pompa Air" sekarang terdeteksi sebagai MM
-    ✅ FIX: Alat Pattern tidak lagi meng-override word count untuk SEWA
-    ✅ PRIORITAS: Location > Price > Word Count untuk SEWA & JASA
     ✅ UNIVERSAL: Untuk semua entity (JASA, SEWA, PRODUK, MATERIAL, DESAIN)
-    ✅ NEW: Semua kecamatan masuk ke masing-masing kabupaten/kota
-    ✅ NEW: Hierarki lokasi (Provinsi -> Kabupaten/Kota -> Kecamatan)
-    ✅ NEW: Auto-detect lokasi dari URL dan konten
-    ✅ Maintenance minimal
 ============================================================ */
 
 (function () {
@@ -72,7 +22,7 @@
   if (window.pageLevelDetectorv22) return;
 
   // ============================================================
-  // 📌 KONFIGURASI (HARUS DI ATAS SEMUA)
+  // 📌 KONFIGURASI
   // ============================================================
 
   const CONFIG = { DEBUG: true };
@@ -80,7 +30,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬" };
-    console.log(`${icons[type] || "📘"} [PLD v22.17] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.18] ${message}`);
   }
 
   // ============================================================
@@ -199,7 +149,7 @@
   };
 
   // ============================================================
-  // 📌 KEYWORDS & UNIVERSAL QUALITY WORDS (v22.17)
+  // 📌 KEYWORDS & UNIVERSAL QUALITY WORDS (v22.18)
   // ============================================================
 
   const ENTITY_TRIGGERS = {
@@ -232,34 +182,44 @@
     "custom", "tanah", "beton", "batu", "kayu", "besi", "baja"
   ];
 
-  // 🔧 v22.17: UNIVERSAL QUALITY WORDS (Berlaku untuk SEMUA entity)
+  // 🔧 v22.18: UNIVERSAL QUALITY WORDS (Berlaku untuk SEMUA ENTITY)
   const UNIVERSAL_QUALITY_WORDS = {
     // Kualitas & Standar
     quality: [
       "mutu", "kualitas", "grade", "kelas", "standar", "spesifikasi",
-      "detail", "parameter", "dimensi", "ukuran"
+      "detail", "parameter", "dimensi", "ukuran", "kwalitas"
     ],
-    // Metode Pengerjaan
+    // Metode Pengerjaan (untuk JASA & SEWA)
     method: [
       "hidrolik", "manual", "auger", "rotary", "percussive", 
-      "dry", "wet", "basah", "kering", "otomatis", "semi"
+      "dry", "wet", "basah", "kering", "otomatis", "semi",
+      "konvensional", "digital", "mekanik", "elektrik"
     ],
-    // Kondisi / Hasil
+    // Kondisi / Hasil (untuk JASA & PRODUK)
     condition: [
       "terpasang", "terinstal", "tertanam", "terbenam", 
-      "tercetak", "terbentuk", "terbuat", "terpancang", "tertimbun", "tersusun"
+      "tercetak", "terbentuk", "terbuat", "terpancang", 
+      "tertimbun", "tersusun", "terikat", "terkunci", "tertutup"
     ],
-    // Teknik Pengerjaan
+    // Teknik Pengerjaan (untuk JASA)
     technique: [
       "coring", "cutting", "drilling", "pengeboran", "pemasangan",
       "pengerjaan", "pemancangan", "bongkar", "pasang", "potong",
-      "grinding", "welding", "sambung", "las"
+      "grinding", "welding", "sambung", "las", "bending", "forming"
     ],
-    // Spesifikasi Teknis
+    // Spesifikasi Teknis (untuk PRODUK & MATERIAL)
     technical: [
       "dalam", "dangkal", "kedalaman", "diameter", "ketebalan",
       "panjang", "lebar", "tinggi", "volume", "kapasitas",
-      "tebal", "tipis", "besar", "kecil", "medium"
+      "tebal", "tipis", "besar", "kecil", "medium", "berat", "ringan"
+    ],
+    // Finishing (untuk PRODUK)
+    finishing: [
+      "polos", "motif", "corak", "pola", "tekstur", "serat", 
+      "halus", "kasar", "matte", "glossy", "doff", "cat", 
+      "coating", "lapisan", "pelapis", "natural", "ekspos",
+      "gloss", "satin", "anyaman", "lis", "plint", "skirting",
+      "bermotif", "polosan", "custom"
     ]
   };
 
@@ -285,10 +245,10 @@
   const NON_VARIANT_WORDS = ["pengukuran", "pengujian", "kalibrasi", "survey"];
 
   // ============================================================
-  // 📌 FUNGSI DETEKSI UNIVERSAL QUALITY WORDS (v22.17)
+  // 📌 FUNGSI DETEKSI UNIVERSAL QUALITY WORDS (v22.18)
   // ============================================================
 
-  function detectUniversalQualityWords(text) {
+  function detectUniversalQualityWords(text, entityType) {
     if (!text) return { hasSpec: false, score: 0, reasons: [] };
     
     const lower = text.toLowerCase();
@@ -296,7 +256,22 @@
     let score = 0;
     let reasons = [];
     
-    for (const [category, words] of Object.entries(UNIVERSAL_QUALITY_WORDS)) {
+    // 🔧 v22.18: Pilih kategori yang relevan dengan entity
+    let relevantCategories = [];
+    
+    if (entityType === "jasa") {
+      relevantCategories = ["quality", "method", "condition", "technique", "technical"];
+    } else if (entityType === "sewa") {
+      relevantCategories = ["quality", "method", "condition", "technical"];
+    } else if (entityType === "produk" || entityType === "material") {
+      relevantCategories = ["quality", "technical", "finishing", "condition"];
+    } else {
+      // Default: semua kategori
+      relevantCategories = Object.keys(UNIVERSAL_QUALITY_WORDS);
+    }
+    
+    for (const category of relevantCategories) {
+      const words = UNIVERSAL_QUALITY_WORDS[category] || [];
       for (const word of words) {
         if (lower.includes(word)) {
           hasSpec = true;
@@ -307,11 +282,19 @@
       }
     }
     
+    // 🔧 v22.18: Tambahan deteksi angka + satuan untuk semua entity
+    const numUnitPattern = /\b(\d+(?:\.\d+)?)\s*(m|mm|cm|meter|kg|ton|inch|inci|liter|m³|m2|m²|m3|cm2|cm²|cm3|cm³|km|milimeter|sentimeter|kilogram|satuan|titik)\b/i;
+    if (numUnitPattern.test(lower)) {
+      hasSpec = true;
+      score += 2;
+      reasons.push(`Quality word [technical]: "numeric + unit detected"`);
+    }
+    
     return { hasSpec, score, reasons };
   }
 
   // ============================================================
-  // 📌 VARIANT PATTERN DETECTION (v22.17 - UNIVERSAL)
+  // 📌 VARIANT PATTERN DETECTION (v22.18 - UNIVERSAL UNTUK SEMUA)
   // ============================================================
 
   function detectVariantByPattern(text, entityType) {
@@ -322,25 +305,23 @@
     const lower = text.toLowerCase();
     
     // ============================================================
-    // 🔧 v22.17: UNIVERSAL QUALITY DETECTION (Berlaku untuk SEMUA)
+    // 🔧 v22.18: UNIVERSAL QUALITY DETECTION UNTUK SEMUA ENTITY
     // ============================================================
     
-    // 🔧 UNIVERSAL: Berlaku untuk semua entity yang mendukung variant
     const supportedEntities = ["jasa", "sewa", "produk", "material"];
     
     if (supportedEntities.includes(entityType)) {
       
-      // 🔧 UNIVERSAL QUALITY DETECTION
-      const qualityResult = detectUniversalQualityWords(text);
+      // 🔧 UNIVERSAL QUALITY DETECTION (sesuai entity)
+      const qualityResult = detectUniversalQualityWords(text, entityType);
       
       if (qualityResult.hasSpec) {
         score += qualityResult.score;
         reasons = reasons.concat(qualityResult.reasons);
-        log(`UNIVERSAL QUALITY: "${text}" → +${qualityResult.score} points`, "VARIANT");
+        log(`UNIVERSAL QUALITY [${entityType}]: "${text}" → +${qualityResult.score} points`, "VARIANT");
       }
       
       // 🔧 Jika ada quality word, langsung deteksi sebagai variant
-      // (kecuali ada price/location yang lebih prioritas)
       if (qualityResult.hasSpec && score >= 3) {
         // Cek price/location dulu (prioritas lebih tinggi)
         if (PRICE_WORDS.some(w => lower.includes(w))) {
@@ -350,110 +331,106 @@
           return { isVariant: false, score: 0, reasons: ["Location word detected → MONEY_CHILD"] };
         }
         
-        log(`"${text}" → VARIANT (universal quality detection, score: ${score})`, "SUCCESS");
+        log(`"${text}" [${entityType}] → VARIANT (universal quality, score: ${score})`, "SUCCESS");
         return { isVariant: true, score, reasons };
       }
     }
     
     // ============================================================
-    // 🔧 FIX v22.16: JASA & SEWA BISA variant (dengan syarat)
+    // 🔧 FALLBACK: Entity-specific detection (backward compatibility)
     // ============================================================
     
-    if (entityType === "jasa" || entityType === "sewa") {
-      log(`DETEKSI VARIANT UNTUK ${entityType.toUpperCase()}: "${text}"`, "VARIANT");
-      
-      // SYARAT 1: BUKAN lokasi atau harga (prioritas lebih tinggi)
+    // JASA specific
+    if (entityType === "jasa") {
+      // SYARAT 1: BUKAN lokasi atau harga
       if (PRICE_WORDS.some(w => lower.includes(w))) {
         return { isVariant: false, score: 0, reasons: ["Price word detected → MONEY_PAGE"] };
       }
-      
       if (LOCATION_WORDS.some(w => lower.includes(w))) {
         return { isVariant: false, score: 0, reasons: ["Location word detected → MONEY_CHILD"] };
       }
       
-      // SYARAT 2: BUKAN ukuran layanan umum (mini, midi, maxi) tanpa spesifikasi
+      // SYARAT 2: BUKAN ukuran layanan umum
       const sizeWords = /\b(mini|midi|maxi|standar|premium|ekonomis|reguler)\b/i;
       const hasSizeWord = sizeWords.test(lower);
       
       // SYARAT 3: Cek spesifikasi teknis
       let hasSpec = false;
-      
-      // 🔧 FIX: Deteksi "mutu" sebagai quality word (SUDAH TERCOVER OLEH UNIVERSAL)
-      // Tapi tetap dijaga untuk backward compatibility
       const hasQualityWord = /\b(mutu|kualitas|grade|kelas|standar|spesifikasi)\b/i.test(lower);
       
-      // Untuk JASA: spesifikasi teknis/metode pengerjaan
-      if (entityType === "jasa") {
-        const jasaSpecs = [
-          /\b(hidrolik|manual|auger|rotary|percussive|dry|wet|basah|kering)\b/i,
-          /\b(dalam|dangkal|kedalaman|diameter)\s+\d+/i,
-          /\b(terpasang|terinstal|tertanam|terbenam|tercetak|terbentuk|terbuat)\b/i,
-          /\b(beton|baja|kayu|batu|keramik|granit|marmer)\s+(coring|potong|bor|pasang|bongkar|cutting|drilling)\b/i,
-          /\b(spesifikasi|ukuran|dimensi|detail|parameter)\s+(jasa|layanan)\b/i,
-          /\b(metode|cara|teknik)\s+(pengeboran|pemasangan|pengerjaan|pemancangan)\b/i,
-          // 🔧 FIX: Tambahan untuk "mutu" (backward compatibility)
-          /\b(mutu|kualitas|grade|kelas|standar)\s+(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan|beton|tiang)\b/i,
-          /\b(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan)\s+(mutu|kualitas|grade|kelas|standar)\b/i
-        ];
-        
-        for (const pattern of jasaSpecs) {
-          if (pattern.test(lower)) {
-            hasSpec = true;
-            score += 3;
-            reasons.push("JASA tech spec found");
-          }
+      const jasaSpecs = [
+        /\b(hidrolik|manual|auger|rotary|percussive|dry|wet|basah|kering)\b/i,
+        /\b(dalam|dangkal|kedalaman|diameter)\s+\d+/i,
+        /\b(terpasang|terinstal|tertanam|terbenam|tercetak|terbentuk|terbuat)\b/i,
+        /\b(beton|baja|kayu|batu|keramik|granit|marmer)\s+(coring|potong|bor|pasang|bongkar|cutting|drilling)\b/i,
+        /\b(spesifikasi|ukuran|dimensi|detail|parameter)\s+(jasa|layanan)\b/i,
+        /\b(metode|cara|teknik)\s+(pengeboran|pemasangan|pengerjaan|pemancangan)\b/i,
+        /\b(mutu|kualitas|grade|kelas|standar)\s+(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan|beton|tiang)\b/i,
+        /\b(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan)\s+(mutu|kualitas|grade|kelas|standar)\b/i
+      ];
+      
+      for (const pattern of jasaSpecs) {
+        if (pattern.test(lower)) {
+          hasSpec = true;
+          score += 3;
+          reasons.push("JASA tech spec found");
         }
       }
       
-      // Untuk SEWA: spesifikasi alat atau durasi sewa
-      if (entityType === "sewa") {
-        const sewaSpecs = [
-          /\b(mini|mikro|kecil|besar|medium|jumbo|ekstra)\b/i,
-          /\b(hidrolik|manual|diesel|bensin|listrik|pneumatik)\b/i,
-          /\b(ringan|berat|sedang)\b/i,
-          /\b(track|wheel|roda|ban|rantai)\b/i,
-          /\b(kapasitas|tonase|daya|cc|hp|kw)\s+\d+/i,
-          /\b(harian|mingguan|bulanan|tahunan|per jam|per hari|per minggu|per bulan|per tahun)\b/i,
-          /\b(jam|hari|minggu|bulan|tahun)\s+(sewa|rental)\b/i
-        ];
-        
-        for (const pattern of sewaSpecs) {
-          if (pattern.test(lower)) {
-            hasSpec = true;
-            score += 3;
-            reasons.push("SEWA spec found");
-          }
-        }
-      }
-      
-      // 🔧 FIX: Jika ada quality word (mutu/kualitas) tanpa spec → tetap dianggap spec
-      // (SUDAH TERTANGAN OLEH UNIVERSAL, tapi tetap dijaga)
       if (hasQualityWord && !hasSpec) {
         hasSpec = true;
         score += 3;
-        reasons.push("Quality word detected (mutu/kualitas)");
-        log(`"${text}" → QUALITY WORD DETECTED, added 3 points`, "VARIANT");
+        reasons.push("Quality word detected");
       }
       
-      // SYARAT 4: Jika ada size word tanpa spesifikasi → BUKAN variant
       if (hasSizeWord && !hasSpec) {
-        log(`"${text}" → BUKAN variant (size word tanpa spesifikasi)`, "VARIANT");
         return { isVariant: false, score: 0, reasons: ["Size word without spec → bukan variant"] };
       }
       
-      // SYARAT 5: Minimal ada spesifikasi ATAU quality word
       if ((hasSpec || hasQualityWord) && score >= 3) {
-        log(`"${text}" → VARIANT (score: ${score})`, "VARIANT");
         return { isVariant: true, score, reasons };
       }
       
-      // SYARAT 6: Jika tidak ada spesifikasi → BUKAN variant
-      log(`"${text}" → BUKAN variant (no spec found, score: ${score})`, "VARIANT");
       return { isVariant: false, score: 0, reasons: ["No tech spec found for service"] };
     }
     
+    // SEWA specific
+    if (entityType === "sewa") {
+      if (PRICE_WORDS.some(w => lower.includes(w))) {
+        return { isVariant: false, score: 0, reasons: ["Price word detected → MONEY_PAGE"] };
+      }
+      if (LOCATION_WORDS.some(w => lower.includes(w))) {
+        return { isVariant: false, score: 0, reasons: ["Location word detected → MONEY_CHILD"] };
+      }
+      
+      const sewaSpecs = [
+        /\b(mini|mikro|kecil|besar|medium|jumbo|ekstra)\b/i,
+        /\b(hidrolik|manual|diesel|bensin|listrik|pneumatik)\b/i,
+        /\b(ringan|berat|sedang)\b/i,
+        /\b(track|wheel|roda|ban|rantai)\b/i,
+        /\b(kapasitas|tonase|daya|cc|hp|kw)\s+\d+/i,
+        /\b(harian|mingguan|bulanan|tahunan|per jam|per hari|per minggu|per bulan|per tahun)\b/i,
+        /\b(jam|hari|minggu|bulan|tahun)\s+(sewa|rental)\b/i
+      ];
+      
+      let hasSpec = false;
+      for (const pattern of sewaSpecs) {
+        if (pattern.test(lower)) {
+          hasSpec = true;
+          score += 3;
+          reasons.push("SEWA spec found");
+        }
+      }
+      
+      if (hasSpec && score >= 3) {
+        return { isVariant: true, score, reasons };
+      }
+      
+      return { isVariant: false, score: 0, reasons: ["No spec found for SEWA"] };
+    }
+    
     // ============================================================
-    // 📌 VARIANT UNTUK PRODUK / MATERIAL (v22.14)
+    // 📌 PRODUK / MATERIAL (v22.14)
     // ============================================================
     
     if (entityType === "produk" || entityType === "material") {
@@ -751,11 +728,11 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI VARIANT (v22.17)
+  // 📌 DETEKSI VARIANT (v22.18)
   // ============================================================
 
   function detectVariantLevel(text, entityType) {
-    // 🔧 v22.17: Universal quality detection sudah di dalam detectVariantByPattern
+    // 🔧 v22.18: Universal quality detection sudah di dalam detectVariantByPattern
     
     if (isSubVariant(text)) return "sub-variant";
     if (hasTechnicalSpec(text)) return null;
@@ -815,7 +792,7 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI MONEY LEVEL (v22.17)
+  // 📌 DETEKSI MONEY LEVEL
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -874,7 +851,7 @@
   }
 
   // ============================================================
-  // 📌 MAIN DETECTOR (v22.17)
+  // 📌 MAIN DETECTOR (v22.18)
   // ============================================================
 
   function detectPageLevel(userOptions = {}) {
@@ -914,7 +891,7 @@
     const subPillar = detectSubPillarLevel(text);
     if (subPillar) return subPillar;
     
-    // 3. VARIANT (v22.17)
+    // 3. VARIANT (v22.18)
     const variant = detectVariantLevel(text, entityType);
     if (variant) return variant;
     
@@ -1041,17 +1018,18 @@
     detectVariantByPattern,
     detectUniversalQualityWords,
     UNIVERSAL_QUALITY_WORDS,
-    version: "22.17"
+    version: "22.18"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.17 Ready (UNIVERSAL QUALITY DETECTION)");
+  console.log("✅ Page Level Detector v22.18 Ready (UNIVERSAL UNTUK SEMUA ENTITY)");
   console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan");
   console.log("🏗️  ENTITY: JASA, SEWA, PRODUK, MATERIAL, DESAIN, ARTIKEL");
-  console.log("🔬 UNIVERSAL QUALITY: Satu kali tambah → langsung berlaku untuk semua");
-  console.log("📝 Quality categories: quality, method, condition, technique, technical");
+  console.log("🔬 UNIVERSAL QUALITY: Berlaku untuk SEMUA ENTITY");
+  console.log("📝 Quality categories: quality, method, condition, technique, technical, finishing");
+  console.log("📝 Setiap entity punya kategori relevan masing-masing");
   console.log("📝 JASA: ≤2 kata → MM, ≥3 kata → MP");
   console.log("📝 Mini/Midi/Maxi: BUKAN variant (kecuali ada spesifikasi)");
   console.log("📝 Priority: Price > Location > Word Count");
