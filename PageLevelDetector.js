@@ -248,8 +248,8 @@
 
   const NON_VARIANT_WORDS = ["pengukuran", "pengujian", "kalibrasi", "survey"];
 
-  // ============================================================
-  // 📌 VARIANT PATTERN DETECTION (v22.16 - FULL)
+// ============================================================
+  // 📌 VARIANT PATTERN DETECTION (v22.16 - FIXED)
   // ============================================================
 
   function detectVariantByPattern(text, entityType) {
@@ -282,6 +282,9 @@
       // SYARAT 3: Cek spesifikasi teknis
       let hasSpec = false;
       
+      // 🔧 FIX: Deteksi "mutu" sebagai quality word
+      const hasQualityWord = /\b(mutu|kualitas|grade|kelas|standar|spesifikasi)\b/i.test(lower);
+      
       // Untuk JASA: spesifikasi teknis/metode pengerjaan
       if (entityType === "jasa") {
         const jasaSpecs = [
@@ -290,7 +293,10 @@
           /\b(terpasang|terinstal|tertanam|terbenam|tercetak|terbentuk|terbuat)\b/i,
           /\b(beton|baja|kayu|batu|keramik|granit|marmer)\s+(coring|potong|bor|pasang|bongkar|cutting|drilling)\b/i,
           /\b(spesifikasi|ukuran|dimensi|detail|parameter)\s+(jasa|layanan)\b/i,
-          /\b(metode|cara|teknik)\s+(pengeboran|pemasangan|pengerjaan|pemancangan)\b/i
+          /\b(metode|cara|teknik)\s+(pengeboran|pemasangan|pengerjaan|pemancangan)\b/i,
+          // 🔧 FIX: Tambahan untuk "mutu"
+          /\b(mutu|kualitas|grade|kelas|standar)\s+(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan|beton|tiang)\b/i,
+          /\b(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan)\s+(mutu|kualitas|grade|kelas|standar)\b/i
         ];
         
         for (const pattern of jasaSpecs) {
@@ -323,19 +329,28 @@
         }
       }
       
+      // 🔧 FIX: Jika ada quality word (mutu/kualitas) tanpa spec → tetap dianggap spec
+      if (hasQualityWord && !hasSpec) {
+        hasSpec = true;
+        score += 3;
+        reasons.push("Quality word detected (mutu/kualitas)");
+        log(`"${text}" → QUALITY WORD DETECTED, added 3 points`, "VARIANT");
+      }
+      
       // SYARAT 4: Jika ada size word tanpa spesifikasi → BUKAN variant
       if (hasSizeWord && !hasSpec) {
         log(`"${text}" → BUKAN variant (size word tanpa spesifikasi)`, "VARIANT");
         return { isVariant: false, score: 0, reasons: ["Size word without spec → bukan variant"] };
       }
       
-      // SYARAT 5: Minimal ada spesifikasi
-      if (hasSpec && score >= 3) {
+      // SYARAT 5: Minimal ada spesifikasi ATAU quality word
+      if ((hasSpec || hasQualityWord) && score >= 3) {
         log(`"${text}" → VARIANT (score: ${score})`, "VARIANT");
         return { isVariant: true, score, reasons };
       }
       
       // SYARAT 6: Jika tidak ada spesifikasi → BUKAN variant
+      log(`"${text}" → BUKAN variant (no spec found, score: ${score})`, "VARIANT");
       return { isVariant: false, score: 0, reasons: ["No tech spec found for service"] };
     }
     
@@ -442,7 +457,7 @@
     
     return { isVariant: false, score: 0, reasons: [`Entity ${entityType} tidak support variant`] };
   }
-
+ 
   // ============================================================
   // 📌 FUNGSI DETEKSI LOKASI
   // ============================================================
