@@ -1,19 +1,15 @@
 /* ============================================================
- 🧠 Page Level Detector v22.19 — UNIVERSAL UNTUK SEMUA ENTITY
+ 🧠 Page Level Detector v22.20 — UNIVERSAL UNTUK SEMUA ENTITY
+    ✅ FIX v22.20: POSISI KATA untuk deteksi variant yang akurat
+    ✅ FIX v22.20: Mencegah false positive (kata mirip variant)
+    ✅ FIX v22.20: Pola [Spesifikasi + Benda] → VARIANT
+    ✅ FIX v22.20: Pola [Benda + Spesifikasi di akhir] → VARIANT (hanya jika singkat)
+    ✅ FIX v22.20: Pola [Angka + Satuan + Benda] → VARIANT
+    ✅ FIX v22.20: Universal Quality Words disaring (hanya kata spesifik)
+    ✅ FIX v22.20: Negative filters untuk mencegah false positive
     ✅ FIX v22.19: "per meter", "per titik" → MONEY_PAGE (BUKAN variant)
     ✅ FIX v22.19: "terpasang" → VARIANT (kecuali ada harga/lokasi)
     ✅ FIX v22.18: UNIVERSAL QUALITY WORDS berlaku untuk SEMUA ENTITY
-    ✅ FIX v22.18: JASA, PRODUK, MATERIAL, SEWA semua pakai universal
-    ✅ FIX v22.18: Satu kali tambah → langsung berlaku untuk semua
-    ✅ FIX v22.17: UNIVERSAL QUALITY DETECTION
-    ✅ FIX v22.16: JASA & SEWA bisa menjadi VARIANT (dengan syarat)
-    ✅ FIX v22.16: Mini/Midi/Maxi BUKAN variant (kecuali ada spesifikasi lain)
-    ✅ FIX v22.16: Location & Price tetap prioritas utama
-    ✅ FIX v22.15: Entity Type detection improved
-    ✅ FIX v22.15: Money level priority: Price > Location > Word Count
-    ✅ FIX: LOCATION_DATABASE disertakan lengkap
-    ✅ FIX: log() didefinisikan sebelum digunakan
-    ✅ UNIVERSAL: Untuk semua entity (JASA, SEWA, PRODUK, MATERIAL, DESAIN)
 ============================================================ */
 
 (function () {
@@ -31,7 +27,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬" };
-    console.log(`${icons[type] || "📘"} [PLD v22.19] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.20] ${message}`);
   }
 
   // ============================================================
@@ -150,7 +146,7 @@
   };
 
   // ============================================================
-  // 📌 KEYWORDS & UNIVERSAL QUALITY WORDS (v22.19)
+  // 📌 KEYWORDS & UNIVERSAL QUALITY WORDS (v22.20 - DISARING)
   // ============================================================
 
   const ENTITY_TRIGGERS = {
@@ -183,44 +179,34 @@
     "custom", "tanah", "beton", "batu", "kayu", "besi", "baja"
   ];
 
-  // 🔧 v22.19: UNIVERSAL QUALITY WORDS (Berlaku untuk SEMUA ENTITY)
+  // 🔧 v22.20: UNIVERSAL QUALITY WORDS - DISARING (hanya kata spesifik)
   const UNIVERSAL_QUALITY_WORDS = {
-    // Kualitas & Standar
+    // Kualitas & Standar (hanya kata yang benar-benar menunjukkan spesifikasi)
     quality: [
-      "mutu", "kualitas", "grade", "kelas", "standar", "spesifikasi",
-      "detail", "parameter", "dimensi", "ukuran", "kwalitas"
+      "mutu", "kualitas", "grade", "kelas", "standar"
     ],
-    // Metode Pengerjaan (untuk JASA & SEWA)
+    // Metode Pengerjaan
     method: [
-      "hidrolik", "manual", "auger", "rotary", "percussive", 
-      "dry", "wet", "basah", "kering", "otomatis", "semi",
-      "konvensional", "digital", "mekanik", "elektrik"
+      "hidrolik", "manual", "auger", "rotary", "percussive", "dry", "wet"
     ],
-    // Kondisi / Hasil (untuk JASA & PRODUK)
+    // Kondisi / Hasil (hanya 2 kata yang jelas)
     condition: [
-      "terpasang", "terinstal", "tertanam", "terbenam", 
-      "tercetak", "terbentuk", "terbuat", "terpancang", 
-      "tertimbun", "tersusun", "terikat", "terkunci", "tertutup"
+      "terpasang", "terinstal"
     ],
-    // Teknik Pengerjaan (untuk JASA)
+    // Teknik Pengerjaan
     technique: [
-      "coring", "cutting", "drilling", "pengeboran", "pemasangan",
-      "pengerjaan", "pemancangan", "bongkar", "pasang", "potong",
-      "grinding", "welding", "sambung", "las", "bending", "forming"
+      "coring", "cutting", "drilling", "pengeboran"
     ],
-    // Spesifikasi Teknis (untuk PRODUK & MATERIAL)
+    // Spesifikasi Teknis
     technical: [
-      "dalam", "dangkal", "kedalaman", "diameter", "ketebalan",
-      "panjang", "lebar", "tinggi", "volume", "kapasitas",
-      "tebal", "tipis", "besar", "kecil", "medium", "berat", "ringan"
+      "dalam", "dangkal", "kedalaman", "diameter", "ketebalan"
     ],
-    // Finishing (untuk PRODUK)
+    // Finishing (kata yang jelas menunjukkan varian)
     finishing: [
-      "polos", "motif", "corak", "pola", "tekstur", "serat", 
-      "halus", "kasar", "matte", "glossy", "doff", "cat", 
-      "coating", "lapisan", "pelapis", "natural", "ekspos",
-      "gloss", "satin", "anyaman", "lis", "plint", "skirting",
-      "bermotif", "polosan", "custom"
+      "polos", "motif", "tekstur", "serat", "halus", "kasar",
+      "matte", "glossy", "doff", "gloss", "satin", "natural", "ekspos",
+      "custom", "standar", "premium", "ekonomis", "modern", "klasik",
+      "minimalis", "tradisional", "elegan", "mewah"
     ]
   };
 
@@ -246,7 +232,7 @@
   const NON_VARIANT_WORDS = ["pengukuran", "pengujian", "kalibrasi", "survey"];
 
   // ============================================================
-  // 📌 FUNGSI DETEKSI UNIVERSAL QUALITY WORDS (v22.19)
+  // 📌 FUNGSI DETEKSI UNIVERSAL QUALITY WORDS (v22.20)
   // ============================================================
 
   function detectUniversalQualityWords(text, entityType) {
@@ -257,7 +243,6 @@
     let score = 0;
     let reasons = [];
     
-    // 🔧 v22.19: Pilih kategori yang relevan dengan entity
     let relevantCategories = [];
     
     if (entityType === "jasa") {
@@ -267,7 +252,6 @@
     } else if (entityType === "produk" || entityType === "material") {
       relevantCategories = ["quality", "technical", "finishing", "condition"];
     } else {
-      // Default: semua kategori
       relevantCategories = Object.keys(UNIVERSAL_QUALITY_WORDS);
     }
     
@@ -275,27 +259,46 @@
       const words = UNIVERSAL_QUALITY_WORDS[category] || [];
       for (const word of words) {
         if (lower.includes(word)) {
+          // 🔧 v22.20: Cek posisi kata
+          const wordPos = lower.indexOf(word);
+          const totalLen = lower.length;
+          const positionRatio = wordPos / totalLen;
+          
+          // Jika kata di akhir (ratio > 0.7) dan tanpa konteks, kurangi skor
+          let addScore = 3;
+          if (positionRatio > 0.7 && words.length <= 3) {
+            addScore = 1; // Kurangi skor jika di akhir
+          }
+          
           hasSpec = true;
-          score += 3;
-          reasons.push(`Quality word [${category}]: "${word}"`);
-          break; // Cukup satu kata per kategori
+          score += addScore;
+          reasons.push(`Quality word [${category}]: "${word}" (pos: ${Math.round(positionRatio * 100)}%)`);
+          break;
         }
       }
     }
     
-    // 🔧 v22.19: Tambahan deteksi angka + satuan untuk semua entity
+    // 🔧 v22.20: Deteksi angka + satuan (hanya jika ada kata benda di dekatnya)
     const numUnitPattern = /\b(\d+(?:\.\d+)?)\s*(m|mm|cm|meter|kg|ton|inch|inci|liter|m³|m2|m²|m3|cm2|cm²|cm3|cm³|km|milimeter|sentimeter|kilogram|satuan|titik)\b/i;
-    if (numUnitPattern.test(lower)) {
-      hasSpec = true;
-      score += 2;
-      reasons.push(`Quality word [technical]: "numeric + unit detected"`);
+    const numMatch = numUnitPattern.exec(lower);
+    if (numMatch) {
+      // Cek apakah ada kata benda di sekitar angka
+      const beforeText = lower.substring(0, numMatch.index);
+      const afterText = lower.substring(numMatch.index + numMatch[0].length);
+      const nounNearby = /\b(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|pekerjaan|pemasangan|pengeboran)\b/i.test(beforeText + afterText);
+      
+      if (nounNearby) {
+        hasSpec = true;
+        score += 2;
+        reasons.push(`Quality word [technical]: "numeric + unit" with nearby noun`);
+      }
     }
     
     return { hasSpec, score, reasons };
   }
 
   // ============================================================
-  // 📌 VARIANT PATTERN DETECTION (v22.19 - FIX PER METER & TERPASANG)
+  // 📌 VARIANT PATTERN DETECTION (v22.20 - DENGAN POSISI KATA)
   // ============================================================
 
   function detectVariantByPattern(text, entityType) {
@@ -304,261 +307,207 @@
     let score = 0;
     let reasons = [];
     const lower = text.toLowerCase();
+    const words = lower.split(/\s+/);
     
     // ============================================================
-    // 🔧 FIX v22.19: "per meter", "per titik" → MONEY_PAGE (BUKAN variant)
+    // 🔥 PRIORITAS 1: BUKAN VARIANT (EXCLUSION)
     // ============================================================
-    const perUnitPattern = /\bper\s+(meter|titik|m|kg|hari|jam|minggu|bulan|unit|buah|item|lembar|bagian|paket|sesi|kali|kubik|m2|m3|liter|ton|meter lari|m')\b/i;
-    if (perUnitPattern.test(lower)) {
-      log(`"${text}" → BUKAN variant (per unit pattern → MONEY_PAGE)`, "VARIANT");
-      return { isVariant: false, score: 0, reasons: ["Per unit pattern → MONEY_PAGE"] };
+    
+    // 1A. Price word → MONEY_PAGE
+    if (PRICE_WORDS.some(w => lower.includes(w))) {
+      log(`"${text}" → BUKAN variant (price word → MONEY_PAGE)`, "VARIANT");
+      return { isVariant: false, score: 0, reasons: ["Price word → MONEY_PAGE"] };
+    }
+    
+    // 1B. Location word → MONEY_CHILD
+    if (LOCATION_WORDS.some(w => lower.includes(w))) {
+      log(`"${text}" → BUKAN variant (location word → MONEY_CHILD)`, "VARIANT");
+      return { isVariant: false, score: 0, reasons: ["Location word → MONEY_CHILD"] };
+    }
+    
+    // 1C. Per unit pattern → MONEY_PAGE
+    if (/\bper\s+(meter|titik|m|kg|hari|jam|minggu|bulan|unit|buah|item|lembar|bagian|paket|sesi|kali|kubik|m2|m3|liter|ton|meter lari|m')\b/i.test(lower)) {
+      log(`"${text}" → BUKAN variant (per unit → MONEY_PAGE)`, "VARIANT");
+      return { isVariant: false, score: 0, reasons: ["Per unit → MONEY_PAGE"] };
+    }
+    
+    // 1D. Comparison pattern → SUB-PILLAR-1
+    if (/perbandingan|vs|versus|kelebihan|kekurangan|perbedaan/.test(lower)) {
+      return { isVariant: false, score: 0, reasons: ["Comparison → SP1"] };
+    }
+    
+    // 1E. List/type pattern → SUB-PILLAR-2
+    if (/(^|\s)(daftar|jenis|macam|kategori|tipe|ragam|variasi)(\s|$)/i.test(lower)) {
+      return { isVariant: false, score: 0, reasons: ["List/type → SP2"] };
+    }
+    
+    // 1F. Guide/tutorial pattern → PILLAR
+    if (/(^|\s)(panduan|cara|tips|tutorial|langkah|pedoman|petunjuk)(\s|$)/i.test(lower)) {
+      return { isVariant: false, score: 0, reasons: ["Guide → PILLAR"] };
     }
     
     // ============================================================
-    // 🔧 FIX v22.19: "terpasang" → VARIANT (kecuali ada harga/lokasi)
+    // 🔥 PRIORITAS 2: DETEKSI VARIANT BERDASARKAN POSISI
     // ============================================================
-    const hasTerpasang = /\b(terpasang|terinstal|tertanam|terbenam|tercetak|terbentuk|terbuat|terpancang|tertimbun|tersusun)\b/i.test(lower);
     
-    if (hasTerpasang) {
-      // PRIORITAS: Price > Location > Variant
-      if (PRICE_WORDS.some(w => lower.includes(w))) {
-        log(`"${text}" → BUKAN variant (terpasang + price → MONEY_PAGE)`, "VARIANT");
-        return { isVariant: false, score: 0, reasons: ["Price + terpasang → MONEY_PAGE"] };
+    // 2A. Pola: [Spesifikasi di Awal] + [Benda] → VARIANT
+    const specFirstPatterns = [
+      // Ukuran/Dimensi di awal
+      { pattern: /^(tinggi|rendah|besar|kecil|panjang|pendek|lebar|sempit|tebal|tipis|dalam|dangkal)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)/i,
+        score: 4, 
+        reason: "Specification + noun (spec first)" },
+      // Finishing di awal
+      { pattern: /^(polos|motif|bermotif|bercorak|tekstur|serat|halus|kasar|matte|glossy|doff|gloss|satin|anyaman|natural|ekspos|custom|standar|premium|ekonomis|modern|klasik|minimalis|tradisional|elegan|mewah)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)/i,
+        score: 4,
+        reason: "Finishing + noun (spec first)" },
+      // Aplikasi spesifik di awal
+      { pattern: /^(perumahan|pabrik|gudang|sekolah|rumah sakit|pertambangan|kandang|ternak|industri|komersial|residensial|kavling|lahan|kosong|pembatas|keamanan|kedap|suara|banjir|tahan|lama|cepat|dipasang)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)/i,
+        score: 3,
+        reason: "Application + noun (spec first)" },
+    ];
+    
+    for (const pattern of specFirstPatterns) {
+      if (pattern.pattern.test(lower)) {
+        score += pattern.score;
+        reasons.push(pattern.reason);
       }
-      
-      if (LOCATION_WORDS.some(w => lower.includes(w))) {
-        log(`"${text}" → BUKAN variant (terpasang + location → MONEY_CHILD)`, "VARIANT");
-        return { isVariant: false, score: 0, reasons: ["Location + terpasang → MONEY_CHILD"] };
+    }
+    
+    // 2B. Pola: [Benda di Awal] + [Spesifikasi di Akhir] → VARIANT (hanya jika singkat)
+    // Contoh: "Pagar Tinggi" → ✅ VARIANT
+    //         "Pagar Panel Beton Tinggi" → ❌ BUKAN VARIANT (terlalu panjang)
+    const nounFirstPatterns = [
+      { pattern: /^(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)\s+(tinggi|rendah|besar|kecil|panjang|pendek|lebar|sempit|tebal|tipis|dalam|dangkal|polos|motif|bermotif|tekstur|serat|halus|kasar|matte|glossy|doff|gloss|satin|anyaman|natural|ekspos|custom|standar|premium|ekonomis|modern|klasik|minimalis|tradisional|elegan|mewah|perumahan|pabrik|gudang|sekolah|rumah sakit|pertambangan|kandang|ternak|industri|komersial|residensial|kavling|lahan|kosong|pembatas|keamanan|kedap|suara|banjir|tahan|lama|cepat|dipasang)$/i,
+        score: 3,
+        reason: "Noun + specification (noun first, single spec)" },
+    ];
+    
+    for (const pattern of nounFirstPatterns) {
+      if (pattern.pattern.test(lower)) {
+        // Cek jumlah kata total
+        if (words.length <= 4) {
+          score += pattern.score;
+          reasons.push(pattern.reason + " (short phrase)");
+        } else {
+          reasons.push("Noun + spec (too long → not variant)");
+        }
       }
-      
-      // 🔧 Jika hanya "terpasang" tanpa harga/lokasi → VARIANT
-      log(`"${text}" → VARIANT (terpasang tanpa price/location)`, "VARIANT");
-      return { isVariant: true, score: 4, reasons: ["Condition word 'terpasang' → variant"] };
+    }
+    
+    // 2C. Pola: [Angka + Satuan] di Awal + [Benda] → VARIANT
+    // Contoh: "30 cm Pagar" → ✅ VARIANT
+    if (/(\d+(?:\.\d+)?)\s*(m|mm|cm|meter|kg|ton|inch|inci|liter|m³|m2|m²|m3|cm2|cm²|cm3|cm³|km|milimeter|sentimeter|kilogram)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)/i.test(lower)) {
+      score += 5;
+      reasons.push("Dimension + noun (number first)");
+    }
+    
+    // 2D. Pola: [Benda] + [Angka + Satuan] di Akhir → VARIANT (hanya jika singkat)
+    // Contoh: "Pagar 2 Meter" → ✅ VARIANT
+    //         "Jasa Pasang Pagar 2 Meter" → ❌ BUKAN VARIANT (terlalu panjang)
+    if (/^(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)\s+\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|liter|m³|m2|m²|m3|cm2|cm²|cm3|cm³|km|milimeter|sentimeter|kilogram)/i.test(lower)) {
+      // Cek jumlah kata total
+      if (words.length <= 4) {
+        score += 4;
+        reasons.push("Noun + dimension (short phrase)");
+      } else {
+        reasons.push("Noun + dimension (too long → not variant)");
+      }
+    }
+    
+    // 2E. Kata "terpasang" di AKHIR → VARIANT (kecuali ada harga/lokasi)
+    if (/\b(terpasang|terinstal|tertanam|terbenam|tercetak|terbentuk|terbuat|terpancang|tertimbun|tersusun|terikat|terkunci|tertutup)$/i.test(lower)) {
+      // Cek apakah ada price/location di awal
+      if (!PRICE_WORDS.some(w => lower.includes(w)) && !LOCATION_WORDS.some(w => lower.includes(w))) {
+        score += 3;
+        reasons.push("Condition word at end → variant");
+      }
     }
     
     // ============================================================
-    // 🔧 v22.19: UNIVERSAL QUALITY DETECTION UNTUK SEMUA ENTITY
+    // 🔥 PRIORITAS 3: NEGATIVE FILTERS (MENCEGAH FALSE POSITIVE)
+    // ============================================================
+    
+    // 3A. Kata "jasa" di awal → BUKAN VARIANT (ini adalah layanan utama)
+    if (/^jasa\s/.test(lower) && words.length <= 3) {
+      return { isVariant: false, score: 0, reasons: ["Jasa + short phrase → MONEY_MASTER"] };
+    }
+    
+    // 3B. Kata "harga" di awal → BUKAN VARIANT
+    if (/^harga\s/.test(lower)) {
+      return { isVariant: false, score: 0, reasons: ["Harga at start → MONEY_PAGE"] };
+    }
+    
+    // 3C. Kata "biaya" di awal → BUKAN VARIANT
+    if (/^biaya\s/.test(lower)) {
+      return { isVariant: false, score: 0, reasons: ["Biaya at start → MONEY_PAGE"] };
+    }
+    
+    // 3D. Kata "panduan" di awal → BUKAN VARIANT
+    if (/^panduan\s/.test(lower)) {
+      return { isVariant: false, score: 0, reasons: ["Panduan at start → PILLAR"] };
+    }
+    
+    // 3E. Kata "spesifikasi" di awal → VARIANT (halaman spesifikasi)
+    if (/^spesifikasi\s/.test(lower)) {
+      // Ini adalah halaman spesifikasi itu sendiri, jadi biarkan sebagai variant
+      score += 3;
+      reasons.push("Spesifikasi at start → variant page");
+      // Tapi jangan return false, biarkan proses lanjut
+    }
+    
+    // 3F. Kata "metode" di awal → VARIANT (halaman metode)
+    if (/^metode\s/.test(lower)) {
+      score += 3;
+      reasons.push("Metode at start → variant page");
+    }
+    
+    // 3G. Kata "mutu" di awal → VARIANT (halaman mutu)
+    if (/^mutu\s/.test(lower)) {
+      score += 3;
+      reasons.push("Mutu at start → variant page");
+    }
+    
+    // 3H. Kata "ukuran" di awal → VARIANT (halaman ukuran)
+    if (/^ukuran\s/.test(lower)) {
+      score += 3;
+      reasons.push("Ukuran at start → variant page");
+    }
+    
+    // ============================================================
+    // 🔥 PRIORITAS 4: UNIVERSAL QUALITY DETECTION (v22.20)
     // ============================================================
     
     const supportedEntities = ["jasa", "sewa", "produk", "material"];
     
-    if (supportedEntities.includes(entityType)) {
-      
-      // 🔧 UNIVERSAL QUALITY DETECTION (sesuai entity)
+    if (supportedEntities.includes(entityType) && !reasons.some(r => r.includes("BUKAN variant"))) {
       const qualityResult = detectUniversalQualityWords(text, entityType);
       
       if (qualityResult.hasSpec) {
-        score += qualityResult.score;
-        reasons = reasons.concat(qualityResult.reasons);
-        log(`UNIVERSAL QUALITY [${entityType}]: "${text}" → +${qualityResult.score} points`, "VARIANT");
-      }
-      
-      // 🔧 Jika ada quality word, langsung deteksi sebagai variant
-      if (qualityResult.hasSpec && score >= 3) {
-        // Cek price/location dulu (prioritas lebih tinggi)
-        if (PRICE_WORDS.some(w => lower.includes(w))) {
-          return { isVariant: false, score: 0, reasons: ["Price word detected → MONEY_PAGE"] };
+        // 🔧 v22.20: Quality words hanya ditambahkan jika sudah ada indikasi variant lain
+        // atau jika skor quality cukup tinggi (>= 3)
+        if (score >= 1 || qualityResult.score >= 3) {
+          score += qualityResult.score;
+          reasons = reasons.concat(qualityResult.reasons);
+          log(`UNIVERSAL QUALITY [${entityType}]: "${text}" → +${qualityResult.score} points`, "VARIANT");
         }
-        if (LOCATION_WORDS.some(w => lower.includes(w))) {
-          return { isVariant: false, score: 0, reasons: ["Location word detected → MONEY_CHILD"] };
-        }
-        
-        log(`"${text}" [${entityType}] → VARIANT (universal quality, score: ${score})`, "SUCCESS");
-        return { isVariant: true, score, reasons };
       }
     }
     
     // ============================================================
-    // 🔧 FALLBACK: Entity-specific detection (backward compatibility)
+    // 🔥 PRIORITAS 5: THRESHOLD & FINAL DECISION
     // ============================================================
     
-    // JASA specific
-    if (entityType === "jasa") {
-      // SYARAT 1: BUKAN lokasi atau harga
-      if (PRICE_WORDS.some(w => lower.includes(w))) {
-        return { isVariant: false, score: 0, reasons: ["Price word detected → MONEY_PAGE"] };
-      }
-      if (LOCATION_WORDS.some(w => lower.includes(w))) {
-        return { isVariant: false, score: 0, reasons: ["Location word detected → MONEY_CHILD"] };
-      }
-      
-      // SYARAT 2: BUKAN ukuran layanan umum
-      const sizeWords = /\b(mini|midi|maxi|standar|premium|ekonomis|reguler)\b/i;
-      const hasSizeWord = sizeWords.test(lower);
-      
-      // SYARAT 3: Cek spesifikasi teknis
-      let hasSpec = false;
-      const hasQualityWord = /\b(mutu|kualitas|grade|kelas|standar|spesifikasi)\b/i.test(lower);
-      
-      const jasaSpecs = [
-        /\b(hidrolik|manual|auger|rotary|percussive|dry|wet|basah|kering)\b/i,
-        /\b(dalam|dangkal|kedalaman|diameter)\s+\d+/i,
-        /\b(terpasang|terinstal|tertanam|terbenam|tercetak|terbentuk|terbuat)\b/i,
-        /\b(beton|baja|kayu|batu|keramik|granit|marmer)\s+(coring|potong|bor|pasang|bongkar|cutting|drilling)\b/i,
-        /\b(spesifikasi|ukuran|dimensi|detail|parameter)\s+(jasa|layanan)\b/i,
-        /\b(metode|cara|teknik)\s+(pengeboran|pemasangan|pengerjaan|pemancangan)\b/i,
-        /\b(mutu|kualitas|grade|kelas|standar)\s+(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan|beton|tiang)\b/i,
-        /\b(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan)\s+(mutu|kualitas|grade|kelas|standar)\b/i
-      ];
-      
-      for (const pattern of jasaSpecs) {
-        if (pattern.test(lower)) {
-          hasSpec = true;
-          score += 3;
-          reasons.push("JASA tech spec found");
-        }
-      }
-      
-      if (hasQualityWord && !hasSpec) {
-        hasSpec = true;
-        score += 3;
-        reasons.push("Quality word detected");
-      }
-      
-      if (hasSizeWord && !hasSpec) {
-        return { isVariant: false, score: 0, reasons: ["Size word without spec → bukan variant"] };
-      }
-      
-      if ((hasSpec || hasQualityWord) && score >= 3) {
-        return { isVariant: true, score, reasons };
-      }
-      
-      return { isVariant: false, score: 0, reasons: ["No tech spec found for service"] };
+    // 🔧 v22.20: Threshold dinaikkan menjadi 4 untuk mengurangi false positive
+    const threshold = 4;
+    const isVariant = score >= threshold;
+    
+    if (isVariant) {
+      log(`✅ VARIANT DETECTED: "${text}" [${entityType}] | Score: ${score} | Reasons: ${reasons.join(', ')}`, "SUCCESS");
+    } else {
+      log(`❌ NOT VARIANT: "${text}" [${entityType}] | Score: ${score} | Reasons: ${reasons.join(', ')}`, "INFO");
     }
     
-    // SEWA specific
-    if (entityType === "sewa") {
-      if (PRICE_WORDS.some(w => lower.includes(w))) {
-        return { isVariant: false, score: 0, reasons: ["Price word detected → MONEY_PAGE"] };
-      }
-      if (LOCATION_WORDS.some(w => lower.includes(w))) {
-        return { isVariant: false, score: 0, reasons: ["Location word detected → MONEY_CHILD"] };
-      }
-      
-      const sewaSpecs = [
-        /\b(mini|mikro|kecil|besar|medium|jumbo|ekstra)\b/i,
-        /\b(hidrolik|manual|diesel|bensin|listrik|pneumatik)\b/i,
-        /\b(ringan|berat|sedang)\b/i,
-        /\b(track|wheel|roda|ban|rantai)\b/i,
-        /\b(kapasitas|tonase|daya|cc|hp|kw)\s+\d+/i,
-        /\b(harian|mingguan|bulanan|tahunan|per jam|per hari|per minggu|per bulan|per tahun)\b/i,
-        /\b(jam|hari|minggu|bulan|tahun)\s+(sewa|rental)\b/i
-      ];
-      
-      let hasSpec = false;
-      for (const pattern of sewaSpecs) {
-        if (pattern.test(lower)) {
-          hasSpec = true;
-          score += 3;
-          reasons.push("SEWA spec found");
-        }
-      }
-      
-      if (hasSpec && score >= 3) {
-        return { isVariant: true, score, reasons };
-      }
-      
-      return { isVariant: false, score: 0, reasons: ["No spec found for SEWA"] };
-    }
-    
-    // ============================================================
-    // 📌 PRODUK / MATERIAL (v22.14)
-    // ============================================================
-    
-    if (entityType === "produk" || entityType === "material") {
-      // Mini/Midi/Maxi tanpa spesifikasi → BUKAN variant
-      const sizeWords = /\b(mini|midi|maxi|jumbo|ekstra)\b/i;
-      const hasSizeWord = sizeWords.test(lower);
-      const hasSpecWord = /\b(spesifikasi|ukuran|dimensi|detail|jenis|macam|tipe|model|varian|standar|mutu|kualitas|grade|kelas)\b/i.test(lower);
-      
-      if (hasSizeWord && !hasSpecWord) {
-        return { isVariant: false, score: 0, reasons: ["Size word without spec → bukan variant"] };
-      }
-      
-      // Pola: [kata benda] + [kata sifat] → variant
-      const nounPattern = /\b(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|bata|hebel|genteng|parket|vinil|gypsum|cat|epoxy|coating|mata|bor|coring|molen|vibrator|profil|lis|plint|skirting|trap|tangga|railing|handle|engsel)\s+(?!mini|midi|maxi)(tinggi|rendah|besar|kecil|panjang|pendek|lebar|sempit|tebal|tipis|polos|bermotif|custom|standar|premium|ekonomis|modern|klasik|minimalis|tradisional|elegan|mewah|halus|kasar|matte|glossy|natural|ekspos|doff|gloss|satin|tekstur|serat|anyaman|lis|plint|skirting)\b/i;
-      if (nounPattern.test(lower)) { score += 4; reasons.push("Struct: noun + adjective"); }
-      
-      // Pola: [benda] + [aplikasi spesifik] → variant
-      const appPattern = /\b(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)\s+(untuk|di|area|kawasan|proyek|bangunan|rumah|gedung|jalan|jembatan|terowongan)\s+(perumahan|pabrik|gudang|sekolah|rumah sakit|pertambangan|kandang|ternak|industri|komersial|residensial)\b/i;
-      if (appPattern.test(lower)) { score += 4; reasons.push("Struct: noun + specific application"); }
-      
-      // Pola: [spesifikasi/dimensi] + [benda] → variant
-      const dimPattern = /\b(\d+(?:\.\d+)?\s*(?:m|mm|cm|meter|kg|ton|inch|inci|km|milimeter|sentimeter|kilogram))\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)\b/i;
-      if (dimPattern.test(lower)) { score += 5; reasons.push("Struct: dimension + object"); }
-      
-      // Pola "Per [Satuan]" → BUKAN variant (SUDAH DITANGANI DI ATAS)
-      
-      // Pola "Beton + [spesifikasi]" → variant
-      const betonPattern = /\bbeton\s+(readymix|ready\s*mix|cor|coring|precast|bertulang|polos|instan|kering|basah|struktural|non-struktural|pracetak|cast\s*in\s*situ)\b/i;
-      if (betonPattern.test(lower)) { score += 4; reasons.push("Struct: beton + specification"); }
-      
-      // Pola "Terpasang" → SUDAH DITANGANI DI ATAS
-      
-      // Pola "Kualitas + [produk]" → variant
-      const kualitasPattern = /\b(kualitas|mutu|grade|kelas|standar|spesifikasi|detail|dimensi|ukuran|varian|tipe|model|seri)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)\b/i;
-      if (kualitasPattern.test(lower)) { score += 5; reasons.push("Struct: quality + product"); }
-      
-      // Pola "Jenis + [produk]" → BUKAN variant
-      const jenisPattern = /\b(jenis|macam|ragam|kategori|tipe|model|varian)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)\b/i;
-      if (jenisPattern.test(lower)) {
-        return { isVariant: false, score: 0, reasons: ["Jenis pattern → SP2"] };
-      }
-      
-      // Pola "Spesifikasi + [produk]" → variant
-      const specPattern = /\b(spesifikasi|dimensi|ukuran|detail|parameter|standar|mutu|kualitas|grade|kelas)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|bata|hebel|genteng|parket|vinil|gypsum|cat|epoxy|coating|mata|bor|coring|molen|vibrator|profil|lis|plint|skirting|trap|tangga|railing|handle|engsel)\b/i;
-      if (specPattern.test(lower)) { score += 5; reasons.push("Struct: specification + product"); }
-      
-      // Semantic Cluster
-      const dimensionWords = ["tinggi", "rendah", "besar", "kecil", "panjang", "pendek", "lebar", "sempit", "tebal", "tipis", "dalam", "dangkal", "diameter", "radius", "ukuran", "dimensi", "luas", "volume", "kedalaman", "ketebalan", "spesifikasi", "detail", "parameter"];
-      const dimCount = dimensionWords.filter(w => lower.includes(w)).length;
-      if (dimCount >= 1) { score += dimCount * 2; reasons.push(`Semantic: dimension words (${dimCount})`); }
-      
-      const finishWords = ["polos", "motif", "corak", "pola", "tekstur", "serat", "kayu", "halus", "kasar", "matte", "glossy", "doff", "cat", "coating", "lapisan", "pelapis", "natural", "ekspos", "finishing", "coring", "bor", "potong", "lubang", "titik", "meter", "kedalaman", "diameter", "gloss", "satin", "anyaman", "lis", "plint", "skirting", "custom", "standar", "premium", "ekonomis", "modern", "klasik", "minimalis", "tradisional", "elegan", "mewah", "polosan", "bermotif"];
-      const finishCount = finishWords.filter(w => lower.includes(w)).length;
-      if (finishCount >= 1) { score += finishCount * 2; reasons.push(`Semantic: finishing/spec words (${finishCount})`); }
-      
-      const conditionWords = ["terpasang", "terinstal", "tertanam", "terbenam", "tercetak", "terbentuk", "terbuat", "terpancang", "tertimbun", "tersusun", "hasil", "akhir", "jadi", "selesai", "finished", "installed", "ready", "complete", "final"];
-      const condCount = conditionWords.filter(w => lower.includes(w)).length;
-      if (condCount >= 1) { score += condCount * 2; reasons.push(`Semantic: condition/result words (${condCount})`); }
-      
-      // Category Indicator
-      const variantIndicator = ["tipe", "model", "varian", "seri", "grade", "kelas", "kategori", "macam", "ragam", "spesifikasi", "detail", "dimensi", "ukuran", "mutu", "kualitas", "standar", "alternatif", "pilihan"];
-      const varCount = variantIndicator.filter(w => lower.includes(w)).length;
-      if (varCount >= 1) { score += varCount * 2; reasons.push(`Category: variation indicator (${varCount})`); }
-      
-      // Numeric + Unit
-      const numUnitPattern = /\b\d+(?:\.\d+)?\s*(?:m|mm|cm|meter|kg|ton|inch|inci|liter|m³|m2|m²|m3|cm2|cm²|cm3|cm³|km|milimeter|sentimeter|kilogram|satuan|titik)\b/i;
-      if (numUnitPattern.test(lower)) {
-        const matches = lower.match(/\d+(?:\.\d+)?\s*(?:m|mm|cm|meter|kg|ton|inch|inci|liter|m³|m2|m²|m3|cm2|cm²|cm3|cm³|km|milimeter|sentimeter|kilogram|satuan|titik)/gi);
-        const count = matches ? matches.length : 0;
-        if (count >= 1) { score += count * 2; reasons.push(`Numeric: ${count} dimension(s) with unit`); }
-      }
-      
-      // Negative Filters
-      if (TECHNICAL_SPECS.some(spec => lower.includes(spec))) {
-        return { isVariant: false, score: 0, reasons: ["Technical spec detected"] };
-      }
-      if (NON_VARIANT_WORDS.some(word => lower.includes(word))) {
-        return { isVariant: false, score: 0, reasons: ["Non-variant word detected"] };
-      }
-      if (PRICE_WORDS.some(w => lower.includes(w))) {
-        return { isVariant: false, score: 0, reasons: ["Price word detected"] };
-      }
-      if (LOCATION_WORDS.some(w => lower.includes(w))) {
-        return { isVariant: false, score: 0, reasons: ["Location word detected"] };
-      }
-      if (/perbandingan|vs|versus|kelebihan|kekurangan|perbedaan/.test(lower)) {
-        return { isVariant: false, score: 0, reasons: ["Sub-pillar indicator (comparison)"] };
-      }
-      
-      const threshold = 2;
-      const isVariant = score >= threshold;
-      
-      return { isVariant, score, reasons };
-    }
-    
-    return { isVariant: false, score: 0, reasons: [`Entity ${entityType} tidak support variant`] };
+    return { isVariant, score, reasons };
   }
 
   // ============================================================
@@ -756,16 +705,14 @@
   }
 
   // ============================================================
-  // 📌 DETEKSI VARIANT (v22.19)
+  // 📌 DETEKSI VARIANT (v22.20)
   // ============================================================
 
   function detectVariantLevel(text, entityType) {
-    // 🔧 v22.19: Universal quality detection sudah di dalam detectVariantByPattern
-    
     if (isSubVariant(text)) return "sub-variant";
     if (hasTechnicalSpec(text)) return null;
     
-    // 🔧 Cek price & location dulu (prioritas lebih tinggi)
+    // Cek price & location dulu (prioritas lebih tinggi)
     if (PRICE_WORDS.some(w => text.includes(w))) {
       return null; // Ini MONEY_PAGE
     }
@@ -879,7 +826,7 @@
   }
 
   // ============================================================
-  // 📌 MAIN DETECTOR (v22.19)
+  // 📌 MAIN DETECTOR (v22.20)
   // ============================================================
 
   function detectPageLevel(userOptions = {}) {
@@ -919,7 +866,7 @@
     const subPillar = detectSubPillarLevel(text);
     if (subPillar) return subPillar;
     
-    // 3. VARIANT (v22.19)
+    // 3. VARIANT (v22.20)
     const variant = detectVariantLevel(text, entityType);
     if (variant) return variant;
     
@@ -1046,20 +993,23 @@
     detectVariantByPattern,
     detectUniversalQualityWords,
     UNIVERSAL_QUALITY_WORDS,
-    version: "22.19"
+    version: "22.20"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.19 Ready (UNIVERSAL UNTUK SEMUA ENTITY)");
+  console.log("✅ Page Level Detector v22.20 Ready (UNIVERSAL UNTUK SEMUA ENTITY)");
   console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan");
   console.log("🏗️  ENTITY: JASA, SEWA, PRODUK, MATERIAL, DESAIN, ARTIKEL");
-  console.log("🔬 UNIVERSAL QUALITY: Berlaku untuk SEMUA ENTITY");
-  console.log("📝 Quality categories: quality, method, condition, technique, technical, finishing");
-  console.log("📝 Setiap entity punya kategori relevan masing-masing");
-  console.log("📝 FIX: 'per meter', 'per titik' → MONEY_PAGE (BUKAN variant)");
-  console.log("📝 FIX: 'terpasang' → VARIANT (kecuali ada harga/lokasi)");
+  console.log("🔬 UNIVERSAL QUALITY: Berlaku untuk SEMUA ENTITY (disaring)");
+  console.log("📝 FIX v22.20: POSISI KATA untuk deteksi variant yang akurat");
+  console.log("📝 FIX v22.20: Mencegah false positive (kata mirip variant)");
+  console.log("📝 FIX v22.20: Pola [Spesifikasi + Benda] → VARIANT");
+  console.log("📝 FIX v22.20: Pola [Benda + Spesifikasi di akhir] → VARIANT (hanya jika singkat)");
+  console.log("📝 FIX v22.20: Negative filters untuk mencegah false positive");
+  console.log("📝 FIX v22.19: 'per meter', 'per titik' → MONEY_PAGE (BUKAN variant)");
+  console.log("📝 FIX v22.19: 'terpasang' → VARIANT (kecuali ada harga/lokasi)");
   console.log("📝 JASA: ≤2 kata → MM, ≥3 kata → MP");
   console.log("📝 Mini/Midi/Maxi: BUKAN variant (kecuali ada spesifikasi)");
   console.log("📝 Priority: Price > Location > Word Count");
