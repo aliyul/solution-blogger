@@ -1,10 +1,12 @@
 /* ============================================================
- 🧠 Page Level Detector v22.23 — UNIVERSAL UNTUK SEMUA ENTITY
+ 🧠 Page Level Detector v22.24 — UNIVERSAL UNTUK SEMUA ENTITY
+    ✅ FIX v22.24: OVERRIDE PILLAR → MONEY_MASTER
+    ✅ FIX v22.24: Parent SP1 → Child HARUS MONEY_MASTER
+    ✅ FIX v22.24: PILLAR hanya nama-nama yang sudah ditentukan
+    ✅ FIX v22.24: SUB-PILLAR-1 → WAJIB MONEY_MASTER
     ✅ FIX v22.23: PILLAR & SUB-PILLAR TIDAK DIUBAH
-    ✅ FIX v22.23: ENTITY PILLAR TETAP (Produk, Material, Jasa, Sewa, Desain)
-    ✅ FIX v22.23: FOKUS: MM, MP, MC, VARIANT, SUB-VARIANT
+    ✅ FIX v22.23: ENTITY PILLAR TETAP
     ✅ FIX v22.22: DETEKSI SPEC DI AKHIR → VARIANT
-    ✅ FIX v22.22: "kedap suara", "tahan banjir" di akhir → VARIANT
     ✅ FIX v22.21: "ukuran/spesifikasi/dimensi + jasa + benda" → VARIANT
     ✅ FIX v22.21: Prioritas: SPEC > PRICE > LOCATION
 ============================================================ */
@@ -24,7 +26,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬" };
-    console.log(`${icons[type] || "📘"} [PLD v22.23] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.24] ${message}`);
   }
 
   // ============================================================
@@ -48,7 +50,21 @@
   const VALID_ENTITY_TYPES = ["produk", "material", "jasa", "desain", "sewa", "artikel"];
 
   // ============================================================
-  // 📌 DATABASE LOKASI (LENGKAP) - TIDAK DIUBAH
+  // 📌 ENTITY PILLAR NAMES (HANYA INI YANG BISA PILLAR)
+  // ============================================================
+
+  const ENTITY_PILLAR_NAMES = {
+    jasa: ["jasa konstruksi"],
+    desain: ["jasa desain interior"],
+    sewa: ["sewa alat konstruksi", "rental alat konstruksi"],
+    produk: ["produk konstruksi"],
+    "produk interior": ["produk interior", "interior produk"],
+    material: ["material konstruksi", "bahan konstruksi"],
+    artikel: ["artikel konstruksi", "blog konstruksi", "tips konstruksi"]
+  };
+
+  // ============================================================
+  // 📌 DATABASE LOKASI (LENGKAP)
   // ============================================================
 
   const LOCATION_DATABASE = {
@@ -143,7 +159,7 @@
   };
 
   // ============================================================
-  // 📌 KEYWORDS - TIDAK DIUBAH
+  // 📌 KEYWORDS
   // ============================================================
 
   const ENTITY_TRIGGERS = {
@@ -240,7 +256,62 @@
   };
 
   // ============================================================
-  // 📌 FUNGSI DETEKSI VARIANT (v22.23 - FOKUS VARIANT)
+  // 📌 MONEY MASTER OVERRIDES (FIX v22.24)
+  // ============================================================
+
+  const MONEY_MASTER_OVERRIDES = [
+    // Produk utama
+    'pagar panel', 'pagar beton', 'panel beton',
+    'tiang pancang', 'bore pile', 'strauss pile',
+    'pondasi', 'cor beton', 'readymix', 'ready mix',
+    'jasa konstruksi', 'jasa bangunan',
+    // Layanan utama
+    'jasa pasang', 'jasa pemasangan', 'jasa perbaikan',
+    'jasa renovasi', 'jasa pembongkaran', 'jasa pengaspalan',
+    // Produk material
+    'baja ringan', 'besi beton', 'semen', 'pasir', 'batu split',
+    'keramik', 'granit', 'marmer', 'plafon', 'gypsum',
+    'kanopi', 'paving block', 'u ditch', 'box culvert',
+    // Jasa spesifik
+    'jasa cor', 'jasa pondasi', 'jasa tiang pancang',
+    'jasa bore pile', 'jasa strauss pile', 'jasa pengaspalan jalan'
+  ];
+
+  // ============================================================
+  // 📌 FUNGSI OVERRIDE PILLAR → MONEY_MASTER (FIX v22.24)
+  // ============================================================
+
+  function overridePillarToMoneyMaster(pageName, detectedLevel, parentLevel) {
+    // 🔥 Jika parent adalah SUB-PILLAR-1, child HARUS MONEY_MASTER
+    if (parentLevel === 'sub-pillar-tipe-1') {
+      log(`OVERRIDE: "${pageName}" → PILLAR → MONEY_MASTER (parent is SP1)`, 'SUCCESS');
+      return 'money-master';
+    }
+    
+    // 🔥 Jika detected PILLAR tapi ada kata kunci MM
+    if (detectedLevel === 'pillar') {
+      const lower = pageName.toLowerCase();
+      for (const kw of MONEY_MASTER_OVERRIDES) {
+        if (lower.includes(kw)) {
+          // Cek apakah ini PANDUAN/DAFTAR/JENIS (yang benar-benar Pillar)
+          const isGuide = /panduan|cara|tips|tutorial|langkah|pedoman/.test(lower);
+          const isList = /daftar|jenis|macam|kategori|tipe/.test(lower);
+          const isComparison = /perbandingan|vs|versus|kelebihan|kekurangan|perbedaan/.test(lower);
+          
+          // Jika bukan panduan/daftar/perbandingan, maka ini MONEY_MASTER
+          if (!isGuide && !isList && !isComparison) {
+            log(`OVERRIDE: "${pageName}" → PILLAR → MONEY_MASTER (keyword: ${kw})`, 'SUCCESS');
+            return 'money-master';
+          }
+        }
+      }
+    }
+    
+    return detectedLevel;
+  }
+
+  // ============================================================
+  // 📌 FUNGSI DETEKSI VARIANT
   // ============================================================
 
   function detectVariantByPattern(text, entityType) {
@@ -255,19 +326,19 @@
     // 🔥 PRIORITAS 1: BUKAN VARIANT (EXCLUSION)
     // ============================================================
     
-    // 1A. Price word → MONEY_PAGE (BUKAN VARIANT)
+    // 1A. Price word → MONEY_PAGE
     if (PRICE_WORDS.some(w => lower.includes(w))) {
       log(`"${text}" → BUKAN variant (price word)`, "VARIANT");
       return { isVariant: false, score: 0, reasons: ["Price word → MONEY_PAGE"] };
     }
     
-    // 1B. Location word → MONEY_CHILD (BUKAN VARIANT)
+    // 1B. Location word → MONEY_CHILD
     if (LOCATION_WORDS.some(w => lower.includes(w))) {
       log(`"${text}" → BUKAN variant (location word)`, "VARIANT");
       return { isVariant: false, score: 0, reasons: ["Location word → MONEY_CHILD"] };
     }
     
-    // 1C. Per unit pattern → MONEY_PAGE (BUKAN VARIANT)
+    // 1C. Per unit pattern → MONEY_PAGE
     if (/\bper\s+(meter|titik|m|kg|hari|jam|minggu|bulan|unit|buah|item|lembar|bagian|paket|sesi|kali|kubik|m2|m3|liter|ton|meter lari|m')\b/i.test(lower)) {
       log(`"${text}" → BUKAN variant (per unit pattern)`, "VARIANT");
       return { isVariant: false, score: 0, reasons: ["Per unit → MONEY_PAGE"] };
@@ -310,7 +381,7 @@
       }
     }
     
-    // 2C. Spesifikasi di AKHIR → VARIANT (FIX v22.23)
+    // 2C. Spesifikasi di AKHIR → VARIANT
     const lastWord = words[words.length - 1] || "";
     const isSpecAtEnd = ALL_SPEC_WORDS.some(spec => lastWord === spec);
     
@@ -470,7 +541,7 @@
   }
 
   // ============================================================
-  // 📌 FUNGSI DASAR (TIDAK DIUBAH)
+  // 📌 FUNGSI DASAR
   // ============================================================
 
   function cleanText(text) {
@@ -510,7 +581,7 @@
   }
 
   // ============================================================
-  // 📌 PILLAR & SUB-PILLAR DETECTION (TIDAK DIUBAH)
+  // 📌 PILLAR & SUB-PILLAR DETECTION (FIX v22.24)
   // ============================================================
 
   function detectSubPillarLevel(text) {
@@ -575,7 +646,7 @@
   }
 
   // ============================================================
-  // 📌 MONEY LEVEL DETECTION (FOKUS: MM, MP, MC)
+  // 📌 MONEY LEVEL DETECTION
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -735,7 +806,7 @@
   }
 
   // ============================================================
-  // 📌 MAIN DETECTOR (v22.23)
+  // 📌 MAIN DETECTOR (v22.24)
   // ============================================================
 
   function detectPageLevel(userOptions = {}) {
@@ -746,56 +817,136 @@
     log(`ENTITY: ${entityType}`, "INFO");
     
     // ============================================================
-    // 🔥 PILLAR DETECTION (TIDAK DIUBAH)
+    // 🔥 STEP 1: PILLAR DETECTION (HANYA NAMA YANG SUDAH DITENTUKAN)
     // ============================================================
     
-    const pillarPatterns = { 
-      jasa: ["jasa konstruksi"], 
-      desain: ["jasa desain interior"], 
-      sewa: ["sewa alat konstruksi", "rental alat konstruksi"], 
-      produk: ["produk konstruksi"], 
-      "produk interior": ["produk interior", "interior produk"], 
-      material: ["material konstruksi", "bahan konstruksi"], 
-      artikel: ["artikel konstruksi", "blog konstruksi", "tips konstruksi"] 
-    };
-    let matchedEntity = null;
-    for (const [entity, patterns] of Object.entries(pillarPatterns)) {
-      if (patterns.some(pattern => text === pattern)) { 
-        matchedEntity = entity; 
-        break; 
+    const cleanTextLower = text.toLowerCase();
+    let isPillar = false;
+    let matchedPillarEntity = null;
+    
+    for (const [entity, patterns] of Object.entries(ENTITY_PILLAR_NAMES)) {
+      if (patterns.some(pattern => cleanTextLower === pattern)) {
+        isPillar = true;
+        matchedPillarEntity = entity;
+        break;
       }
     }
-    if (matchedEntity === entityType || (matchedEntity === "produk interior" && entityType === "produk")) { 
-      log(`"${text}" → PILLAR (${entityType})`, "SUCCESS"); 
-      return "pillar"; 
+    
+    // 🔥 Jika PILLAR dan entity sesuai → return PILLAR
+    if (isPillar) {
+      const isEntityMatch = matchedPillarEntity === entityType || 
+                           (matchedPillarEntity === "produk interior" && entityType === "produk");
+      if (isEntityMatch) {
+        log(`"${text}" → PILLAR (${entityType})`, "SUCCESS");
+        // Reset parent tracker
+        window._lastSubPillarLevel = null;
+        return "pillar";
+      }
     }
     
     // ============================================================
-    // 🔥 SUB-PILLAR DETECTION (TIDAK DIUBAH)
+    // 🔥 STEP 2: SUB-PILLAR DETECTION
     // ============================================================
     
     const subPillar = detectSubPillarLevel(text);
-    if (subPillar) return subPillar;
+    if (subPillar) {
+      // 🔥 Simpan level parent untuk override nanti
+      window._lastSubPillarLevel = subPillar;
+      log(`"${text}" → ${subPillar}`, "SUCCESS");
+      return subPillar;
+    }
     
     // ============================================================
-    // 🔥 VARIANT DETECTION
+    // 🔥 STEP 3: GET PARENT LEVEL (untuk override)
     // ============================================================
     
+    const parentLevel = window._lastSubPillarLevel || null;
+    log(`Parent level: ${parentLevel || 'none'}`, "INFO");
+    
+    // ============================================================
+    // 🔥 STEP 4: DETECT LEVEL (VARIANT / MONEY)
+    // ============================================================
+    
+    let detectedLevel = null;
+    
+    // 4A. VARIANT DETECTION
     const variant = detectVariantLevel(text, entityType);
-    if (variant) return variant;
+    if (variant) detectedLevel = variant;
+    
+    // 4B. MONEY LEVEL DETECTION
+    if (!detectedLevel) {
+      const money = detectMoneyLevel(text, entityType);
+      if (money) detectedLevel = money;
+    }
+    
+    // 4C. Jika masih null, tentukan default
+    if (!detectedLevel) {
+      // Jika ada kata panduan/daftar/perbandingan tapi tidak terdeteksi sebelumnya
+      if (/panduan|cara|tips|tutorial|langkah|pedoman/.test(text)) {
+        detectedLevel = "pillar";
+      } else if (/daftar|jenis|macam|kategori|tipe/.test(text)) {
+        detectedLevel = "sub-pillar-tipe-2";
+      } else if (/perbandingan|vs|versus|kelebihan|kekurangan|perbedaan/.test(text)) {
+        detectedLevel = "sub-pillar-tipe-1";
+      } else {
+        // Default: MONEY_MASTER
+        detectedLevel = "money-master";
+      }
+    }
+    
+    log(`Initial detected: "${text}" → ${detectedLevel}`, "INFO");
     
     // ============================================================
-    // 🔥 MONEY LEVEL DETECTION (MM, MP, MC)
+    // 🔥 STEP 5: OVERRIDE PILLAR → MONEY_MASTER (FIX v22.24)
     // ============================================================
     
-    const money = detectMoneyLevel(text, entityType);
-    if (money) return money;
+    // 5A. Jika parent adalah SUB-PILLAR-1, child HARUS MONEY_MASTER
+    if (parentLevel === 'sub-pillar-tipe-1') {
+      // Cek apakah ini benar-benar PILLAR (tidak sesuai nama yang ditentukan)
+      const isRealPillar = Object.values(ENTITY_PILLAR_NAMES).some(patterns => 
+        patterns.some(pattern => cleanTextLower === pattern)
+      );
+      
+      if (!isRealPillar) {
+        log(`FORCE: parent is SP1, "${text}" → MONEY_MASTER`, 'SUCCESS');
+        detectedLevel = 'money-master';
+        // Reset parent setelah digunakan
+        window._lastSubPillarLevel = null;
+        return detectedLevel;
+      }
+    }
     
-    // ============================================================
-    // 🔥 DEFAULT
-    // ============================================================
+    // 5B. Jika detected PILLAR tapi ada kata kunci MM
+    if (detectedLevel === 'pillar') {
+      // Cek apakah ini benar-benar PILLAR (sesuai nama yang ditentukan)
+      const isRealPillar = Object.values(ENTITY_PILLAR_NAMES).some(patterns => 
+        patterns.some(pattern => cleanTextLower === pattern)
+      );
+      
+      if (!isRealPillar) {
+        const overridden = overridePillarToMoneyMaster(text, detectedLevel, parentLevel);
+        if (overridden !== detectedLevel) {
+          detectedLevel = overridden;
+          log(`OVERRIDE RESULT: "${text}" → ${detectedLevel}`, 'SUCCESS');
+        }
+      }
+    }
     
-    return "sub-pillar-tipe-2";
+    // 5C. Jika detected adalah SUB-PILLAR-1, reset parent untuk next level
+    if (detectedLevel === 'sub-pillar-tipe-1') {
+      // Ini adalah SP1, next level harus MM
+      window._lastSubPillarLevel = 'sub-pillar-tipe-1';
+    }
+    
+    // 5D. Jika detected adalah MONEY_MASTER, reset parent
+    if (detectedLevel === 'money-master' || detectedLevel === 'money-page' || detectedLevel === 'money-child') {
+      // Reset parent setelah mencapai money level
+      window._lastSubPillarLevel = null;
+    }
+    
+    log(`FINAL LEVEL: "${text}" → ${detectedLevel}`, 'SUCCESS');
+    
+    return detectedLevel || "sub-pillar-tipe-2";
   }
 
   // ============================================================
@@ -828,18 +979,23 @@
     SPECIFICATION_WORDS,
     ALL_SPEC_WORDS,
     SPEC_PHRASES_AT_END,
-    version: "22.23"
+    MONEY_MASTER_OVERRIDES,
+    ENTITY_PILLAR_NAMES,
+    version: "22.24"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.23 Ready");
+  console.log("✅ Page Level Detector v22.24 Ready");
   console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan");
   console.log("🏗️  ENTITY: JASA, SEWA, PRODUK, MATERIAL, DESAIN, ARTIKEL");
-  console.log("🔬 FIX v22.23: PILLAR & SUB-PILLAR TIDAK DIUBAH");
-  console.log("📝 ENTITY PILLAR TETAP: Produk, Material, Jasa, Sewa, Desain");
-  console.log("📝 FOKUS: MM, MP, MC, VARIANT, SUB-VARIANT");
+  console.log("🔬 FIX v22.24: OVERRIDE PILLAR → MONEY_MASTER");
+  console.log("📝 Parent SP1 → Child HARUS MONEY_MASTER");
+  console.log("📝 PILLAR hanya nama-nama yang sudah ditentukan:");
+  console.log("   - produk konstruksi, material konstruksi, produk interior");
+  console.log("   - jasa konstruksi, sewa alat konstruksi, jasa desain interior");
+  console.log("📝 SUB-PILLAR-1 → WAJIB MONEY_MASTER");
   console.log("📝 'kedap suara', 'tahan banjir', 'perumahan' di akhir → VARIANT");
   console.log("📝 'ukuran/spesifikasi/dimensi + jasa + benda' → VARIANT");
   console.log("📝 Prioritas: SPEC > PRICE > LOCATION");
