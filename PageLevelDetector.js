@@ -1,5 +1,7 @@
 /* ============================================================
- 🧠 Page Level Detector v22.24 — UNIVERSAL UNTUK SEMUA ENTITY
+ 🧠 Page Level Detector v22.25 — UNIVERSAL UNTUK SEMUA ENTITY
+    ✅ FIX v22.25: COMMERCIAL INTENT OVERRIDE (NEW!)
+    ✅ FIX v22.25: "jual/beli/sewa/rental" → MONEY_MASTER
     ✅ FIX v22.24: OVERRIDE PILLAR → MONEY_MASTER
     ✅ FIX v22.24: Parent SP1 → Child HARUS MONEY_MASTER
     ✅ FIX v22.24: PILLAR hanya nama-nama yang sudah ditentukan
@@ -25,8 +27,8 @@
 
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬" };
-    console.log(`${icons[type] || "📘"} [PLD v22.24] ${message}`);
+    const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬", COMMERCIAL: "🛒" };
+    console.log(`${icons[type] || "📘"} [PLD v22.25] ${message}`);
   }
 
   // ============================================================
@@ -185,7 +187,13 @@
     "bali", "denpasar", "gianyar", "tabanan", "bangli", "karangasem", "klungkung", "buleleng",
     "mataram", "kupang", "terdekat"
   ];
-  
+
+  // ============================================================
+  // 📌 COMMERCIAL WORDS (FIX v22.25)
+  // ============================================================
+
+  const COMMERCIAL_WORDS = ['jual', 'beli', 'sewa', 'rental', 'order', 'pesan', 'pemesanan'];
+
   // ============================================================
   // 📌 SPECIFICATION WORDS (UNTUK VARIANT DETECTION)
   // ============================================================
@@ -646,7 +654,7 @@
   }
 
   // ============================================================
-  // 📌 MONEY LEVEL DETECTION
+  // 📌 MONEY LEVEL DETECTION (FIX v22.25 - COMMERCIAL INTENT)
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -683,13 +691,43 @@
       return "money-page";
     }
     
+    // ============================================================
+    // 🔥 FIX v22.25: PRODUK/MATERIAL dengan COMMERCIAL INTENT OVERRIDE
+    // ============================================================
+    
     if (entityType === "produk" || entityType === "material") {
       let words = text.split(/\s+/).filter(w => w.length > 2);
       words = words.filter(w => !STOPWORDS.has(w));
       words = words.filter(w => !LOCATION_WORDS.some(loc => w.includes(loc)));
       const wordCount = words.length;
       const specific = /\d/.test(text) || hasTechnicalSpec(text);
-      if (wordCount <= 2 && !specific) return "money-master";
+      
+      // 🔥 FIX v22.25: COMMERCIAL INTENT OVERRIDE
+      const lowerText = text.toLowerCase();
+      const hasCommercialIntent = COMMERCIAL_WORDS.some(w => lowerText.startsWith(w));
+      
+      if (hasCommercialIntent) {
+        // Hitung kata setelah kata komersial
+        let coreText = lowerText;
+        for (const cw of COMMERCIAL_WORDS) {
+          coreText = coreText.replace(new RegExp(`^${cw}\\s+`), '');
+        }
+        const coreWords = coreText.split(/\s+/).filter(w => w.length > 2);
+        // Filter stopwords & location
+        const filteredCore = coreWords.filter(w => 
+          !STOPWORDS.has(w) && !LOCATION_WORDS.some(loc => w.includes(loc))
+        );
+        
+        // Jika core words <= 2, ini adalah MONEY_MASTER
+        if (filteredCore.length <= 2 && !specific) {
+          log(`🎯 COMMERCIAL OVERRIDE: "${text}" → MM (core: ${filteredCore.join(' ')})`, 'COMMERCIAL');
+          return "money-master";
+        }
+      }
+      
+      if (wordCount <= 2 && !specific) {
+        return "money-master";
+      }
       return "money-page";
     }
     
@@ -787,6 +825,26 @@
       if (words.length <= 2 && !hasNumber && !hasLocation) strategies.push("JASA: ≤2 kata → MM");
       else strategies.push("JASA: ≥3 kata → MP");
     }
+    if (entityType === "produk" || entityType === "material") {
+      const hasCommercial = COMMERCIAL_WORDS.some(w => text.toLowerCase().startsWith(w));
+      if (hasCommercial) {
+        let coreText = text.toLowerCase();
+        for (const cw of COMMERCIAL_WORDS) {
+          coreText = coreText.replace(new RegExp(`^${cw}\\s+`), '');
+        }
+        const coreWords = coreText.split(/\s+/).filter(w => w.length > 2);
+        const filteredCore = coreWords.filter(w => 
+          !STOPWORDS.has(w) && !LOCATION_WORDS.some(loc => w.includes(loc))
+        );
+        if (filteredCore.length <= 2) strategies.push("PRODUK: commercial override → MM");
+        else strategies.push("PRODUK: commercial → MP");
+      } else {
+        const words = text.split(/\s+/).filter(w => w.length > 2);
+        const filtered = words.filter(w => !STOPWORDS.has(w) && !LOCATION_WORDS.some(loc => w.includes(loc)));
+        if (filtered.length <= 2) strategies.push("PRODUK: ≤2 kata → MM");
+        else strategies.push("PRODUK: ≥3 kata → MP");
+      }
+    }
     return { level, confidence, strategies, strategyCount: strategies.length };
   }
 
@@ -806,7 +864,7 @@
   }
 
   // ============================================================
-  // 📌 MAIN DETECTOR (v22.24)
+  // 📌 MAIN DETECTOR (v22.25)
   // ============================================================
 
   function detectPageLevel(userOptions = {}) {
@@ -873,7 +931,7 @@
     const variant = detectVariantLevel(text, entityType);
     if (variant) detectedLevel = variant;
     
-    // 4B. MONEY LEVEL DETECTION
+    // 4B. MONEY LEVEL DETECTION (dengan commercial override)
     if (!detectedLevel) {
       const money = detectMoneyLevel(text, entityType);
       if (money) detectedLevel = money;
@@ -981,15 +1039,19 @@
     SPEC_PHRASES_AT_END,
     MONEY_MASTER_OVERRIDES,
     ENTITY_PILLAR_NAMES,
-    version: "22.24"
+    COMMERCIAL_WORDS, // 🔥 FIX v22.25: Ekspor commercial words
+    version: "22.25"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.24 Ready");
+  console.log("✅ Page Level Detector v22.25 Ready");
   console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan");
   console.log("🏗️  ENTITY: JASA, SEWA, PRODUK, MATERIAL, DESAIN, ARTIKEL");
+  console.log("🛒 FIX v22.25: COMMERCIAL INTENT OVERRIDE");
+  console.log("   - 'jual/beli/sewa/rental' → MONEY_MASTER");
+  console.log("   - Jika core words <= 2, force MM");
   console.log("🔬 FIX v22.24: OVERRIDE PILLAR → MONEY_MASTER");
   console.log("📝 Parent SP1 → Child HARUS MONEY_MASTER");
   console.log("📝 PILLAR hanya nama-nama yang sudah ditentukan:");
