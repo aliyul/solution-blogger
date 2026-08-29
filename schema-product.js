@@ -1,16 +1,16 @@
 /**
- * ⚡ AutoSchema Hybrid v4.62 — FOKUS PRODUK & MATERIAL + AUTO FIX GAMBAR + DETEKSI LAYAK GAMBAR
+ * ⚡ AutoSchema Hybrid v4.63 — FOKUS PRODUK & MATERIAL + AUTO FIX GAMBAR + DETEKSI LAYAK + POSISI DI DALAM ARTICLE
  * 
- * UPDATE v4.62:
- * - ADD: Fungsi isImageEligible() untuk deteksi halaman layak gambar
- * - FIX: Hanya perbaiki gambar jika halaman LAYAK mendapat gambar
- * - FIX: Skip gambar untuk Pillar edukasi murni
- * - FIX: Skip gambar untuk konten sangat pendek (< 300 kata)
- * - FIX: Skip gambar untuk halaman HARGA tanpa harga
+ * UPDATE v4.63:
+ * - FIX: Posisi gambar di dalam tag <article> paling atas
+ * - FIX: Jika ada update-badge, gambar diletakkan SETELAH badge
+ * - FIX: Jika tidak ada badge, gambar diletakkan SETELAH H1 atau paling atas article
+ * - ADD: Fungsi getImageInsertionPoint() untuk menentukan posisi sisipan
+ * - ADD: Fungsi createFigure() untuk membuat figure baru
  * - Logo dan gambar menggunakan konsep auto fix gambar
  * - Parent halaman dari breadcrumbs terdekat saja
  * 
- * @version 4.62
+ * @version 4.63
  * @date 2026-08-29
  */
 
@@ -24,7 +24,7 @@
     MAX_OFFERS: 8,
     MIN_PRICE: 10000,
     MAX_PRICE: 100000000,
-    SKIP_WORD_COUNT: 300, // Minimum kata untuk layak gambar
+    SKIP_WORD_COUNT: 300,
     PLD_TIMEOUT: 5000
   };
 
@@ -36,7 +36,7 @@
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.62] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.63] ${msg}`);
   }
 
   // ============================================================
@@ -64,7 +64,6 @@
         }
       }
       
-      // Pillar yang mengandung produk/jasa tetap layak
       const productKeywords = ["beton", "readymix", "precast", "paving", "tiang", "pancang", "pondasi", "jasa", "sewa"];
       for (let keyword of productKeywords) {
         if (combined.includes(keyword)) {
@@ -73,7 +72,6 @@
         }
       }
       
-      // Pillar tanpa produk/jasa = skip
       log(`⏭️ Skip gambar: Pillar tanpa produk/jasa`, "SKIP");
       return false;
     }
@@ -120,51 +118,116 @@
       return true;
     }
 
-    // 6. DEFAULT: Tidak layak
     log(`⏭️ Skip gambar: Halaman tidak masuk kriteria layak`, "SKIP");
     return false;
   }
 
   // ============================================================
-  // 🔥🔥🔥 AUTO FIX GAMBAR (FORMAT 1) 🔥🔥🔥
+  // 🔥🔥🔥 AUTO FIX GAMBAR (FORMAT 1) — REVISI: DI DALAM ARTICLE 🔥🔥🔥
   // ============================================================
   function fixImagesToFormat1() {
-    log('Fixing images to Format 1...', "IMAGE");
+    log('Fixing images to Format 1 inside article...', "IMAGE");
     
     const h1Element = document.querySelector('h1');
     const h1Text = h1Element ? h1Element.textContent.trim() : document.title;
 
-    // Cari gambar pertama setelah H1
+    // ===== CARI TEMPAT TARUH GAMBAR (DI DALAM ARTICLE) =====
+    function getImageInsertionPoint() {
+      // 1. Cari tag article
+      let article = document.querySelector('article');
+      
+      // 2. Jika tidak ada article, cari container konten utama
+      if (!article) {
+        const candidates = [
+          '.post-body', 'main', '.content', '.entry-content', 
+          '.post-content', '.article-content', '.blog-post'
+        ];
+        for (let selector of candidates) {
+          const el = document.querySelector(selector);
+          if (el) {
+            article = el;
+            break;
+          }
+        }
+      }
+      
+      // 3. Jika masih tidak ada, gunakan parent dari H1
+      if (!article && h1Element) {
+        article = h1Element.closest('section, div, main');
+      }
+      
+      // 4. Fallback: body
+      if (!article) {
+        article = document.body;
+      }
+      
+      // Cari update-badge di dalam article
+      const badge = article.querySelector('.update-badge, .update-badge-class, [class*="update-badge"]');
+      
+      // Jika ada badge, letakkan setelah badge
+      if (badge && badge.parentElement === article) {
+        return {
+          container: article,
+          referenceNode: badge,
+          position: 'after'
+        };
+      }
+      
+      // Jika tidak ada badge, cari elemen pertama di dalam article
+      const firstChild = article.firstElementChild;
+      
+      // Jika firstChild adalah H1, letakkan setelah H1
+      if (firstChild && firstChild.tagName === 'H1') {
+        return {
+          container: article,
+          referenceNode: firstChild,
+          position: 'after'
+        };
+      }
+      
+      // Jika firstChild bukan H1, letakkan di awal article
+      return {
+        container: article,
+        referenceNode: null,
+        position: 'first'
+      };
+    }
+
+    // ===== CARI GAMBAR YANG SUDAH ADA =====
     let targetImage = null;
     let targetFigure = null;
 
+    // Cari gambar pertama setelah H1 di dalam article
     if (h1Element) {
-      const siblings = h1Element.parentElement.children;
-      let foundH1 = false;
-      for (let i = 0; i < siblings.length; i++) {
-        if (siblings[i] === h1Element) {
-          foundH1 = true;
-          continue;
-        }
-        if (foundH1) {
-          const img = siblings[i].querySelector('img');
-          if (img) {
-            targetImage = img;
-            targetFigure = siblings[i].tagName === 'FIGURE' ? siblings[i] : siblings[i].closest('figure');
-            break;
+      const article = h1Element.closest('article, .post-body, main, section, div');
+      if (article) {
+        const siblings = article.children;
+        let foundH1 = false;
+        for (let i = 0; i < siblings.length; i++) {
+          if (siblings[i] === h1Element) {
+            foundH1 = true;
+            continue;
           }
-          if (siblings[i].tagName === 'FIGURE' && siblings[i].querySelector('img')) {
-            targetImage = siblings[i].querySelector('img');
-            targetFigure = siblings[i];
-            break;
+          if (foundH1) {
+            const img = siblings[i].querySelector('img');
+            if (img) {
+              targetImage = img;
+              targetFigure = siblings[i].tagName === 'FIGURE' ? siblings[i] : siblings[i].closest('figure');
+              break;
+            }
+            if (siblings[i].tagName === 'FIGURE' && siblings[i].querySelector('img')) {
+              targetImage = siblings[i].querySelector('img');
+              targetFigure = siblings[i];
+              break;
+            }
           }
         }
       }
     }
 
-    // Jika tidak ada, cari di konten utama
+    // Jika tidak ada gambar setelah H1, cari di konten utama
     if (!targetImage) {
-      const contentAreas = document.querySelectorAll('section, article, .post-body, main, .content, .entry-content');
+      const contentAreas = document.querySelectorAll('article, section, .post-body, main, .content, .entry-content');
       for (const area of contentAreas) {
         const img = area.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
         if (img) {
@@ -192,13 +255,13 @@
     // Generate caption
     function generateCaption(img) {
       let caption = '';
-      if (img.alt && img.alt.trim() !== '' && !img.alt.toLowerCase().includes('no image')) {
+      if (img && img.alt && img.alt.trim() !== '' && !img.alt.toLowerCase().includes('no image')) {
         caption = img.alt;
       }
-      if (!caption && img.title && img.title.trim() !== '') {
+      if (!caption && img && img.title && img.title.trim() !== '') {
         caption = img.title;
       }
-      const existingFigcaption = img.closest('figure')?.querySelector('figcaption');
+      const existingFigcaption = img ? img.closest('figure')?.querySelector('figcaption') : null;
       if (!caption && existingFigcaption && existingFigcaption.textContent.trim() !== '') {
         caption = existingFigcaption.textContent.trim();
       }
@@ -215,9 +278,8 @@
       return caption;
     }
 
-    // Jika tidak ada gambar, tambahkan fallback
-    if (!targetImage) {
-      log('No image found, inserting fallback...', "IMAGE");
+    // ===== BUAT FIGURE BARU =====
+    function createFigure(imageSrc, altText, titleText, captionText) {
       const figure = document.createElement('figure');
       figure.style.padding = '1em 0px';
       figure.style.margin = '20px 0';
@@ -226,9 +288,9 @@
       figure.style.borderRadius = '12px';
 
       const img = document.createElement('img');
-      img.src = FALLBACK_IMAGE;
-      img.alt = generateAltText();
-      img.title = generateAltText();
+      img.src = imageSrc;
+      img.alt = altText || generateAltText();
+      img.title = titleText || img.alt || generateAltText();
       img.setAttribute('loading', 'lazy');
       img.setAttribute('decoding', 'async');
       img.setAttribute('width', '100%');
@@ -245,36 +307,51 @@
       figcaption.style.marginTop = '10px';
       figcaption.style.padding = '0 20px';
       figcaption.style.textAlign = 'center';
-      figcaption.textContent = '📊 ' + (h1Text || document.title) + ' — ' + new Date().getFullYear();
+      figcaption.textContent = captionText || generateCaption(null);
 
       figure.appendChild(img);
       figure.appendChild(figcaption);
 
-      if (h1Element && h1Element.nextSibling) {
-        h1Element.parentElement.insertBefore(figure, h1Element.nextSibling);
-      } else if (document.querySelector('.post-body, main, article')) {
-        const container = document.querySelector('.post-body, main, article');
-        container.insertBefore(figure, container.firstChild);
-      } else {
-        document.body.insertBefore(figure, document.body.firstChild);
-      }
-
-      log('✅ Fallback image inserted', "SUCCESS");
-      return img.src;
+      return figure;
     }
 
-    // Perbaiki gambar yang ada
+    // ===== DAPATKAN TEMPAT SISIPAN =====
+    const insertPoint = getImageInsertionPoint();
+    log(`Insertion point found`, "IMAGE");
+
+    // ===== JIKA TIDAK ADA GAMBAR, TAMBAHKAN FALLBACK =====
+    if (!targetImage) {
+      log('No image found, inserting fallback...', "IMAGE");
+      
+      const captionText = '📊 ' + (h1Text || document.title) + ' — ' + new Date().getFullYear();
+      const figure = createFigure(
+        FALLBACK_IMAGE,
+        generateAltText(),
+        generateAltText(),
+        captionText
+      );
+
+      // Sisipkan di posisi yang ditentukan
+      if (insertPoint.referenceNode && insertPoint.position === 'after') {
+        insertPoint.container.insertBefore(figure, insertPoint.referenceNode.nextSibling);
+      } else {
+        insertPoint.container.insertBefore(figure, insertPoint.container.firstChild);
+      }
+
+      log('✅ Fallback image inserted inside article', "SUCCESS");
+      return figure.querySelector('img').src;
+    }
+
+    // ===== PERBAIKI GAMBAR YANG ADA =====
     log('Fixing existing image...', "IMAGE");
     const img = targetImage;
     const captionText = generateCaption(img);
+    const altText = img.alt && !img.alt.toLowerCase().includes('no image') ? img.alt : generateAltText();
+    const titleText = img.title || altText;
 
-    // Perbaiki atribut
-    if (!img.alt || img.alt.trim() === '' || img.alt.toLowerCase().includes('no image')) {
-      img.alt = generateAltText();
-    }
-    if (!img.title || img.title.trim() === '') {
-      img.title = img.alt || generateAltText();
-    }
+    // --- Perbaiki atribut gambar ---
+    img.alt = altText;
+    img.title = titleText;
     if (!img.hasAttribute('loading') || img.getAttribute('loading') !== 'lazy') {
       img.setAttribute('loading', 'lazy');
     }
@@ -298,10 +375,11 @@
     img.style.margin = '0 auto';
     img.style.height = 'auto';
 
-    // Perbaiki figure
+    // --- Perbaiki atau buat figure ---
     let figure = img.closest('figure');
 
     if (figure && figure.tagName === 'FIGURE') {
+      // Perbaiki figure yang sudah ada
       figure.style.padding = '1em 0px';
       figure.style.margin = '20px 0';
       figure.style.textAlign = 'center';
@@ -336,29 +414,19 @@
         }
       }
     } else {
+      // Buat figure baru
+      const newFigure = createFigure(img.src, altText, titleText, captionText);
+      
+      // Ganti posisi gambar dengan figure baru
       const parent = img.parentElement;
-      const newFigure = document.createElement('figure');
-      newFigure.style.padding = '1em 0px';
-      newFigure.style.margin = '20px 0';
-      newFigure.style.textAlign = 'center';
-      newFigure.style.background = '#f8fafc';
-      newFigure.style.borderRadius = '12px';
-
       parent.insertBefore(newFigure, img);
-      newFigure.appendChild(img);
+      parent.removeChild(img);
 
-      const figcaption = document.createElement('figcaption');
-      figcaption.style.color = '#555';
-      figcaption.style.fontSize = '14px';
-      figcaption.style.marginTop = '10px';
-      figcaption.style.padding = '0 20px';
-      figcaption.style.textAlign = 'center';
-      figcaption.textContent = captionText;
-      newFigure.appendChild(figcaption);
+      figure = newFigure;
     }
 
     img.setAttribute('data-fixed', 'true');
-    log('✅ Image fixed to Format 1', "SUCCESS");
+    log('✅ Image fixed to Format 1 inside article', "SUCCESS");
     return img.src;
   }
 
@@ -383,7 +451,6 @@
       }
     }
 
-    // Fallback: cari di div yang mengandung breadcrumb
     if (breadcrumbLinks.length === 0) {
       const allDivs = document.querySelectorAll('div');
       for (let div of allDivs) {
@@ -411,7 +478,6 @@
     }
 
     if (breadcrumbLinks.length > 0) {
-      // Cari link terdekat (bukan Home dan bukan halaman saat ini)
       const validLinks = breadcrumbLinks.filter(a => {
         const href = a.href || '';
         const text = a.innerText?.trim() || '';
@@ -585,7 +651,7 @@
   }
 
   // ============================================================
-  // CEK APAKAH SKIP PRODUCT (FIXED v4.62)
+  // CEK APAKAH SKIP PRODUCT (FIXED v4.63)
   // ============================================================
   function shouldSkipProductSchema(pageLevel) {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
@@ -593,7 +659,6 @@
     const url = location.href.toLowerCase();
     const combined = h1 + " " + title + " " + url;
     
-    // ===== ✅ PRODUK/MATERIAL TIDAK PERNAH DI-SKIP =====
     const isProduct = /(beton|readymix|precast|paving|panel|box|u-ditch|kanstin|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|pagar\s*panel|paving\s*block|box\s*culvert|u\s*ditch|gorong\s*gorong)/i.test(combined);
     
     if (isProduct) {
@@ -601,13 +666,11 @@
       return false;
     }
     
-    // ===== VARIANT TIDAK PERNAH DI-SKIP =====
     if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
       log(`Variant page detected → GENERATE Product schema`, "SUCCESS");
       return false;
     }
     
-    // ===== MONEY PAGES TIDAK PERNAH DI-SKIP =====
     if (['money-master', 'money-page', 'money-child'].includes(pageLevel)) {
       const isProductMoney = /(beton|readymix|precast|paving|panel|box|u-ditch|kanstin|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|pagar\s*panel|paving\s*block|box\s*culvert|u\s*ditch|gorong\s*gorong)/i.test(combined);
       if (isProductMoney) {
@@ -618,7 +681,6 @@
       return false;
     }
     
-    // ===== HANYA SKIP UNTUK PILLAR MURNI (EDUKASI) =====
     const pillarPatterns = [
       "panduan lengkap", "pengertian", "definisi", "apa itu",
       "overview", "komprehensif", "cara memilih", "tips memilih",
@@ -900,23 +962,19 @@
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.62 — FOKUS PRODUK & MATERIAL + AUTO FIX GAMBAR + DETEKSI LAYAK", "INFO");
+    log("AutoSchema Hybrid v4.63 — FOKUS PRODUK & MATERIAL + AUTO FIX GAMBAR + DETEKSI LAYAK + POSISI DI DALAM ARTICLE", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
-    // ===== STEP 1: Tunggu PLD =====
     await waitForPLD();
     
-    // ===== STEP 2: Dapatkan Page Level =====
     const pageLevel = getPageLevelFromPLD();
     log(`Page Level dari PLD: ${pageLevel}`, "SUCCESS");
     
-    // ===== STEP 3: Cek apakah skip product schema =====
     if (shouldSkipProductSchema(pageLevel)) {
       log("Product schema SKIPPED untuk halaman ini", "SKIP");
       return;
     }
     
-    // ===== STEP 4: Cek apakah halaman LAYAK mendapat gambar =====
     let imageUrl = LOGO_IMAGE;
     const isEligible = isImageEligible(pageLevel);
     
@@ -930,7 +988,6 @@
       }
     } else {
       log(`⏭️ Halaman TIDAK LAYAK mendapat gambar, skip fix gambar`, "SKIP");
-      // Cek apakah sudah ada gambar di halaman
       const existingImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
       if (existingImage) {
         imageUrl = existingImage.src || LOGO_IMAGE;
@@ -938,7 +995,6 @@
       }
     }
     
-    // ===== STEP 5: Dapatkan Parent dari breadcrumbs =====
     const currentUrl = location.href.replace(/[?&]m=1/, "");
     const parentData = getParentFromBreadcrumbs(currentUrl);
     const parentUrls = [{
@@ -947,7 +1003,6 @@
       name: parentData.parentName
     }];
     
-    // ===== STEP 6: Deteksi produk =====
     const productName = detectProductName(pageLevel);
     const desc = document.querySelector('meta[name="description"]')?.content?.trim() || 
                  document.querySelector("article p, main p, section p")?.innerText?.trim()?.substring(0, 300) ||
@@ -956,7 +1011,6 @@
     const areaServed = getAreaServed();
     const productCategory = detectProductCategory(pageLevel);
     
-    // ===== STEP 7: Parse offers =====
     log("Parsing offers...", "INFO");
     let hasTableOffers = parseTableOffers();
     
@@ -972,7 +1026,6 @@
       log("Tidak ada harga ditemukan, tetap buat Product schema tanpa offers", "WARN");
     }
     
-    // ===== STEP 8: Build Schema =====
     const business = {
       "@type": "LocalBusiness",
       "@id": "https://www.betonjayareadymix.com/#localbusiness",
@@ -1020,7 +1073,6 @@
     
     const graph = [webpage, business, product];
     
-    // ===== STEP 9: Inject Schema =====
     let existingScript = document.querySelector("#auto-schema-product");
     if (!existingScript) {
       existingScript = document.createElement("script");
@@ -1035,7 +1087,6 @@
       "@graph": graph
     }, null, 2);
     
-    // ===== STEP 10: Summary =====
     log("═══════════════════════════════════════════════════", "INFO");
     log("EXECUTION SUMMARY:", "INFO");
     log(`🏗️  Fokus: PRODUK & MATERIAL`, "PRODUCT");
@@ -1050,7 +1101,7 @@
     log(`  Parent URL     : ${parentData.parentUrl}`, "INFO");
     log(`  Parent Name    : ${parentData.parentName}`, "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.62 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.63 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
