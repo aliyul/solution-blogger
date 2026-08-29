@@ -1,14 +1,17 @@
 /**
- * ⚡ AutoSchema Hybrid v4.60 — FOKUS PRODUK & MATERIAL (FIXED)
+ * ⚡ AutoSchema Hybrid v4.62 — FOKUS PRODUK & MATERIAL + AUTO FIX GAMBAR + DETEKSI LAYAK GAMBAR
  * 
- * UPDATE v4.60:
- * - FIX: Jangan skip product schema jika tidak ada harga
- * - FIX: Tetap buat Product schema, offers opsional
- * - FIX: Fallback image menggunakan logo
- * - FIX: Deteksi produk lebih akurat
+ * UPDATE v4.62:
+ * - ADD: Fungsi isImageEligible() untuk deteksi halaman layak gambar
+ * - FIX: Hanya perbaiki gambar jika halaman LAYAK mendapat gambar
+ * - FIX: Skip gambar untuk Pillar edukasi murni
+ * - FIX: Skip gambar untuk konten sangat pendek (< 300 kata)
+ * - FIX: Skip gambar untuk halaman HARGA tanpa harga
+ * - Logo dan gambar menggunakan konsep auto fix gambar
+ * - Parent halaman dari breadcrumbs terdekat saja
  * 
- * @version 4.60
- * @date 2026-08-19
+ * @version 4.62
+ * @date 2026-08-29
  */
 
 (function() {
@@ -21,85 +24,428 @@
     MAX_OFFERS: 8,
     MIN_PRICE: 10000,
     MAX_PRICE: 100000000,
-    SKIP_WORD_COUNT: 800,
-    PARENT_MAPPING_URL: 'https://raw.githack.com/aliyul/solution-blogger/main/parent-mapping.js',
+    SKIP_WORD_COUNT: 300, // Minimum kata untuk layak gambar
     PLD_TIMEOUT: 5000
   };
 
   // ✅ FALLBACK IMAGE (logo)
-  const FALLBACK_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+  const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+  const FALLBACK_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiWWAP6ezcmzgbGtHmmJqBjYkbsdQBrwCeC9pl9ocjL-VSQYftirdvXAF1T-eg_QMSqu1WiFidDc9fnChi0yaOqi0Dd6EVMy4ZX3P7vccY4XJMu-7k2TGVd5TS1wIG5jgIm_6beYVb2zuNQGS7eBuODJqd20c4ckvd0-HaEqGf4W-B_750I91wi9IhqqnI/s320/No_Image_Available.jpg";
 
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️" };
+    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.60] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.62] ${msg}`);
   }
 
-  // ===================== LOAD EXTERNAL JS =====================
-  function loadExternalJS(src) {
-    return new Promise((resolve) => {
-      if (document.querySelector(`script[src="${src}"]`)) {
-        resolve();
-        return;
-      }
-      const s = document.createElement("script");
-      s.src = src;
-      s.defer = true;
-      s.onload = resolve;
-      s.onerror = () => {
-        log(`Gagal load: ${src}`, "WARN");
-        resolve();
-      };
-      document.head.appendChild(s);
-    });
-  }
+  // ============================================================
+  // 🔥🔥🔥 DETEKSI HALAMAN LAYAK GAMBAR 🔥🔥🔥
+  // ============================================================
+  function isImageEligible(pageLevel) {
+    log(`Checking image eligibility for page level: ${pageLevel}`, "IMAGE");
 
-  // ===================== PARENT MAPPING =====================
-  let parentMappingGlobal = null;
-
-  async function loadParentMapping() {
-    try {
-      await loadExternalJS(CONFIG.PARENT_MAPPING_URL);
-      await new Promise(resolve => setTimeout(resolve, 100));
+    // 1. SKIP: Pillar edukasi murni (panduan, tips, cara, dll)
+    if (pageLevel === 'pillar') {
+      const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
+      const title = document.title.toLowerCase();
+      const combined = h1 + " " + title;
       
-      if (typeof getParentForMoneyPage === 'function') {
-        parentMappingGlobal = getParentForMoneyPage;
-        log("Parent mapping loaded from getParentForMoneyPage()", "SUCCESS");
-        return true;
-      } else if (window.PARENT_MAPPING) {
-        parentMappingGlobal = (url) => window.PARENT_MAPPING[url] || null;
-        log("Parent mapping loaded from window.PARENT_MAPPING", "SUCCESS");
-        return true;
+      const pillarEdukasi = [
+        "panduan", "tips", "cara", "apa itu", "pengertian", "definisi",
+        "overview", "komprehensif", "langkah", "tutorial", "pedoman",
+        "petunjuk", "kenali", "mengenal", "memahami", "belajar"
+      ];
+      
+      for (let keyword of pillarEdukasi) {
+        if (combined.includes(keyword)) {
+          log(`⏭️ Skip gambar: Pillar edukasi murni (keyword: "${keyword}")`, "SKIP");
+          return false;
+        }
       }
-      return false;
-    } catch (error) {
-      log(`Error loading parent mapping: ${error.message}`, "ERROR");
+      
+      // Pillar yang mengandung produk/jasa tetap layak
+      const productKeywords = ["beton", "readymix", "precast", "paving", "tiang", "pancang", "pondasi", "jasa", "sewa"];
+      for (let keyword of productKeywords) {
+        if (combined.includes(keyword)) {
+          log(`✅ Pillar dengan produk/jasa tetap layak gambar (keyword: "${keyword}")`, "SUCCESS");
+          return true;
+        }
+      }
+      
+      // Pillar tanpa produk/jasa = skip
+      log(`⏭️ Skip gambar: Pillar tanpa produk/jasa`, "SKIP");
       return false;
     }
+
+    // 2. SKIP: Halaman dengan konten sangat pendek
+    const content = document.querySelector(".post-body.entry-content, .post-body, article, main")?.innerText || "";
+    const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
+    
+    if (wordCount < CONFIG.SKIP_WORD_COUNT) {
+      log(`⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata < ${CONFIG.SKIP_WORD_COUNT})`, "SKIP");
+      return false;
+    }
+    log(`✅ Konten mencukupi (${wordCount} kata)`, "SUCCESS");
+
+    // 3. SKIP: Halaman HARGA tanpa harga
+    if (pageLevel === 'money-page' || pageLevel === 'money-child') {
+      const url = location.href.toLowerCase();
+      if (url.includes('harga')) {
+        const hasPrice = /Rp\s*[\d.,]+/.test(document.body.innerText);
+        if (!hasPrice) {
+          log(`⏭️ Skip gambar: Halaman HARGA tanpa harga ditemukan`, "SKIP");
+          return false;
+        }
+        log(`✅ Halaman HARGA dengan harga ditemukan`, "SUCCESS");
+      }
+    }
+
+    // 4. LAYAK: Money pages, Variant, Sub-Variant, SP1, SP2
+    const eligibleLevels = [
+      'money-master', 'money-page', 'money-child', 
+      'variant', 'sub-variant', 
+      'sub-pillar-tipe-1', 'sub-pillar-tipe-2'
+    ];
+    
+    if (eligibleLevels.includes(pageLevel)) {
+      log(`✅ Halaman LAYAK mendapat gambar (level: ${pageLevel})`, "SUCCESS");
+      return true;
+    }
+
+    // 5. LAYAK: Jika halaman sudah memiliki gambar
+    const hasImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
+    if (hasImage) {
+      log(`✅ Halaman sudah memiliki gambar, tetap layak`, "SUCCESS");
+      return true;
+    }
+
+    // 6. DEFAULT: Tidak layak
+    log(`⏭️ Skip gambar: Halaman tidak masuk kriteria layak`, "SKIP");
+    return false;
   }
 
-  function getParentFromMapping(currentUrl) {
-    if (!parentMappingGlobal) return null;
-    try {
-      const parent = parentMappingGlobal(currentUrl);
-      if (parent && parent.parentUrl) {
+  // ============================================================
+  // 🔥🔥🔥 AUTO FIX GAMBAR (FORMAT 1) 🔥🔥🔥
+  // ============================================================
+  function fixImagesToFormat1() {
+    log('Fixing images to Format 1...', "IMAGE");
+    
+    const h1Element = document.querySelector('h1');
+    const h1Text = h1Element ? h1Element.textContent.trim() : document.title;
+
+    // Cari gambar pertama setelah H1
+    let targetImage = null;
+    let targetFigure = null;
+
+    if (h1Element) {
+      const siblings = h1Element.parentElement.children;
+      let foundH1 = false;
+      for (let i = 0; i < siblings.length; i++) {
+        if (siblings[i] === h1Element) {
+          foundH1 = true;
+          continue;
+        }
+        if (foundH1) {
+          const img = siblings[i].querySelector('img');
+          if (img) {
+            targetImage = img;
+            targetFigure = siblings[i].tagName === 'FIGURE' ? siblings[i] : siblings[i].closest('figure');
+            break;
+          }
+          if (siblings[i].tagName === 'FIGURE' && siblings[i].querySelector('img')) {
+            targetImage = siblings[i].querySelector('img');
+            targetFigure = siblings[i];
+            break;
+          }
+        }
+      }
+    }
+
+    // Jika tidak ada, cari di konten utama
+    if (!targetImage) {
+      const contentAreas = document.querySelectorAll('section, article, .post-body, main, .content, .entry-content');
+      for (const area of contentAreas) {
+        const img = area.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
+        if (img) {
+          targetImage = img;
+          targetFigure = img.closest('figure');
+          break;
+        }
+      }
+    }
+
+    // Generate alt text
+    function generateAltText() {
+      let alt = h1Text || document.title;
+      const url = location.href.toLowerCase();
+      if (!url.includes('harga') && alt.includes('Harga')) {
+        alt = alt.replace('Harga', '').trim();
+      }
+      const year = new Date().getFullYear();
+      if (!alt.includes(year.toString())) {
+        alt = alt + ' ' + year;
+      }
+      return alt;
+    }
+
+    // Generate caption
+    function generateCaption(img) {
+      let caption = '';
+      if (img.alt && img.alt.trim() !== '' && !img.alt.toLowerCase().includes('no image')) {
+        caption = img.alt;
+      }
+      if (!caption && img.title && img.title.trim() !== '') {
+        caption = img.title;
+      }
+      const existingFigcaption = img.closest('figure')?.querySelector('figcaption');
+      if (!caption && existingFigcaption && existingFigcaption.textContent.trim() !== '') {
+        caption = existingFigcaption.textContent.trim();
+      }
+      if (!caption) {
+        caption = h1Text || document.title;
+      }
+      if (!caption.includes('📊') && !caption.includes('📌') && !caption.includes('📸')) {
+        caption = '📊 ' + caption;
+      }
+      const year = new Date().getFullYear();
+      if (!caption.includes(year.toString())) {
+        caption = caption + ' — ' + year;
+      }
+      return caption;
+    }
+
+    // Jika tidak ada gambar, tambahkan fallback
+    if (!targetImage) {
+      log('No image found, inserting fallback...', "IMAGE");
+      const figure = document.createElement('figure');
+      figure.style.padding = '1em 0px';
+      figure.style.margin = '20px 0';
+      figure.style.textAlign = 'center';
+      figure.style.background = '#f8fafc';
+      figure.style.borderRadius = '12px';
+
+      const img = document.createElement('img');
+      img.src = FALLBACK_IMAGE;
+      img.alt = generateAltText();
+      img.title = generateAltText();
+      img.setAttribute('loading', 'lazy');
+      img.setAttribute('decoding', 'async');
+      img.setAttribute('width', '100%');
+      img.setAttribute('height', 'auto');
+      img.style.maxWidth = '800px';
+      img.style.borderRadius = '8px';
+      img.style.display = 'block';
+      img.style.margin = '0 auto';
+      img.style.height = 'auto';
+
+      const figcaption = document.createElement('figcaption');
+      figcaption.style.color = '#555';
+      figcaption.style.fontSize = '14px';
+      figcaption.style.marginTop = '10px';
+      figcaption.style.padding = '0 20px';
+      figcaption.style.textAlign = 'center';
+      figcaption.textContent = '📊 ' + (h1Text || document.title) + ' — ' + new Date().getFullYear();
+
+      figure.appendChild(img);
+      figure.appendChild(figcaption);
+
+      if (h1Element && h1Element.nextSibling) {
+        h1Element.parentElement.insertBefore(figure, h1Element.nextSibling);
+      } else if (document.querySelector('.post-body, main, article')) {
+        const container = document.querySelector('.post-body, main, article');
+        container.insertBefore(figure, container.firstChild);
+      } else {
+        document.body.insertBefore(figure, document.body.firstChild);
+      }
+
+      log('✅ Fallback image inserted', "SUCCESS");
+      return img.src;
+    }
+
+    // Perbaiki gambar yang ada
+    log('Fixing existing image...', "IMAGE");
+    const img = targetImage;
+    const captionText = generateCaption(img);
+
+    // Perbaiki atribut
+    if (!img.alt || img.alt.trim() === '' || img.alt.toLowerCase().includes('no image')) {
+      img.alt = generateAltText();
+    }
+    if (!img.title || img.title.trim() === '') {
+      img.title = img.alt || generateAltText();
+    }
+    if (!img.hasAttribute('loading') || img.getAttribute('loading') !== 'lazy') {
+      img.setAttribute('loading', 'lazy');
+    }
+    if (!img.hasAttribute('decoding') || img.getAttribute('decoding') !== 'async') {
+      img.setAttribute('decoding', 'async');
+    }
+    if (img.getAttribute('width') && img.getAttribute('width') !== '100%' && img.getAttribute('width') !== 'auto') {
+      img.setAttribute('width', '100%');
+    } else if (!img.hasAttribute('width')) {
+      img.setAttribute('width', '100%');
+    }
+    if (img.getAttribute('height') && img.getAttribute('height') !== 'auto') {
+      img.setAttribute('height', 'auto');
+    } else if (!img.hasAttribute('height')) {
+      img.setAttribute('height', 'auto');
+    }
+
+    img.style.maxWidth = '800px';
+    img.style.borderRadius = '8px';
+    img.style.display = 'block';
+    img.style.margin = '0 auto';
+    img.style.height = 'auto';
+
+    // Perbaiki figure
+    let figure = img.closest('figure');
+
+    if (figure && figure.tagName === 'FIGURE') {
+      figure.style.padding = '1em 0px';
+      figure.style.margin = '20px 0';
+      figure.style.textAlign = 'center';
+      figure.style.background = '#f8fafc';
+      figure.style.borderRadius = '12px';
+
+      if (img.parentElement !== figure) {
+        figure.insertBefore(img, figure.firstChild);
+      }
+
+      let figcaption = figure.querySelector('figcaption');
+      if (!figcaption) {
+        figcaption = document.createElement('figcaption');
+        figcaption.style.color = '#555';
+        figcaption.style.fontSize = '14px';
+        figcaption.style.marginTop = '10px';
+        figcaption.style.padding = '0 20px';
+        figcaption.style.textAlign = 'center';
+        figcaption.textContent = captionText;
+        figure.appendChild(figcaption);
+      } else {
+        if (!figcaption.textContent || figcaption.textContent.trim() === '') {
+          figcaption.textContent = captionText;
+        }
+        figcaption.style.color = '#555';
+        figcaption.style.fontSize = '14px';
+        figcaption.style.marginTop = '10px';
+        figcaption.style.padding = '0 20px';
+        figcaption.style.textAlign = 'center';
+        if (!figcaption.textContent.includes('📊') && !figcaption.textContent.includes('📌')) {
+          figcaption.textContent = '📊 ' + figcaption.textContent;
+        }
+      }
+    } else {
+      const parent = img.parentElement;
+      const newFigure = document.createElement('figure');
+      newFigure.style.padding = '1em 0px';
+      newFigure.style.margin = '20px 0';
+      newFigure.style.textAlign = 'center';
+      newFigure.style.background = '#f8fafc';
+      newFigure.style.borderRadius = '12px';
+
+      parent.insertBefore(newFigure, img);
+      newFigure.appendChild(img);
+
+      const figcaption = document.createElement('figcaption');
+      figcaption.style.color = '#555';
+      figcaption.style.fontSize = '14px';
+      figcaption.style.marginTop = '10px';
+      figcaption.style.padding = '0 20px';
+      figcaption.style.textAlign = 'center';
+      figcaption.textContent = captionText;
+      newFigure.appendChild(figcaption);
+    }
+
+    img.setAttribute('data-fixed', 'true');
+    log('✅ Image fixed to Format 1', "SUCCESS");
+    return img.src;
+  }
+
+  // ============================================================
+  // 🔥🔥🔥 PARENT DARI BREADCRUMBS TERDEKAT 🔥🔥🔥
+  // ============================================================
+  function getParentFromBreadcrumbs(currentUrl) {
+    const breadcrumbSelectors = [
+      '.breadcrumbs a', '.breadcrumb a', '.nav-trail a',
+      '.breadcrumb-item a', '.crumbs a', '.breadcrumb-link',
+      '[aria-label="breadcrumb"] a', '.post-breadcrumb a',
+      '.breadcrumb-nav a', '.nav-breadcrumb a'
+    ];
+
+    let breadcrumbLinks = [];
+
+    for (let selector of breadcrumbSelectors) {
+      const links = document.querySelectorAll(selector);
+      if (links.length > 0) {
+        breadcrumbLinks = Array.from(links);
+        break;
+      }
+    }
+
+    // Fallback: cari di div yang mengandung breadcrumb
+    if (breadcrumbLinks.length === 0) {
+      const allDivs = document.querySelectorAll('div');
+      for (let div of allDivs) {
+        const text = div.innerText || '';
+        if (text.includes('Home') || text.includes('Beranda') || 
+            text.includes('›') || text.includes('»') || 
+            text.includes('/')) {
+          const links = div.querySelectorAll('a');
+          if (links.length > 1) {
+            breadcrumbLinks = Array.from(links);
+            break;
+          }
+        }
+      }
+    }
+
+    if (breadcrumbLinks.length === 0) {
+      const nav = document.querySelector('nav');
+      if (nav) {
+        const links = nav.querySelectorAll('a');
+        if (links.length > 1) {
+          breadcrumbLinks = Array.from(links);
+        }
+      }
+    }
+
+    if (breadcrumbLinks.length > 0) {
+      // Cari link terdekat (bukan Home dan bukan halaman saat ini)
+      const validLinks = breadcrumbLinks.filter(a => {
+        const href = a.href || '';
+        const text = a.innerText?.trim() || '';
+        if (!href || !text) return false;
+        if (href === currentUrl || href.includes(currentUrl)) return false;
+        if (text.toLowerCase() === 'home' || text.toLowerCase() === 'beranda') {
+          if (breadcrumbLinks.length === 1) return true;
+          return false;
+        }
+        return true;
+      });
+
+      if (validLinks.length > 0) {
+        const parentLink = validLinks[validLinks.length - 1];
+        const parentUrl = parentLink.href;
+        const parentName = parentLink.innerText?.trim() || 'Parent Page';
+        log(`Parent dari breadcrumbs: ${parentName} (${parentUrl})`, "SUCCESS");
         return {
-          "@type": "WebPage",
-          "@id": parent.parentUrl,
-          name: parent.parentName || "Parent Page"
+          parentUrl: parentUrl,
+          parentName: parentName
         };
       }
-      return null;
-    } catch (error) {
-      return null;
     }
+
+    log('Breadcrumbs tidak ditemukan, menggunakan origin sebagai parent', "WARN");
+    return {
+      parentUrl: location.origin,
+      parentName: 'Home'
+    };
   }
 
   // ============================================================
   // 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD 🔥🔥🔥
   // ============================================================
-  
   function getPageLevelFromPLD() {
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
       try {
@@ -239,7 +585,7 @@
   }
 
   // ============================================================
-  // CEK APAKAH SKIP PRODUCT (FIXED v4.60)
+  // CEK APAKAH SKIP PRODUCT (FIXED v4.62)
   // ============================================================
   function shouldSkipProductSchema(pageLevel) {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
@@ -286,9 +632,6 @@
       }
     }
     
-    // ✅ FIX v4.60: JANGAN SKIP hanya karena tidak ada harga
-    // Tetap generate Product schema untuk semua halaman produk
-    
     log("🏗️ Halaman LAYAK untuk Product schema", "PRODUCT");
     return false;
   }
@@ -325,44 +668,6 @@
       "Kabupaten Karawang": "Jawa Barat"
     };
     return Object.keys(areaProv).map(a => ({ "@type": "Place", name: a }));
-  }
-
-  // ============================================================
-  // DETECT PARENT URLS
-  // ============================================================
-  function detectParentUrls(currentUrl) {
-    const parentFromMapping = getParentFromMapping(currentUrl);
-    if (parentFromMapping) {
-      log(`Parent detected from mapping: ${parentFromMapping["@id"]}`, "SUCCESS");
-      return [parentFromMapping];
-    }
-    
-    const breadcrumbSelectors = [
-      ".breadcrumbs a", ".breadcrumb a", ".nav-trail a",
-      ".breadcrumb-nav a", ".site-breadcrumb a",
-      "[class*='breadcrumb'] a", "[class*='breadcrumbs'] a"
-    ];
-    
-    let lastBreadcrumbUrl = null;
-    for (const selector of breadcrumbSelectors) {
-      const links = document.querySelectorAll(selector);
-      if (links.length > 0) {
-        const lastLink = links[links.length - 1];
-        if (lastLink.href && lastLink.href !== currentUrl && lastLink.href !== location.href) {
-          lastBreadcrumbUrl = lastLink.href;
-          break;
-        }
-      }
-    }
-    
-    if (!lastBreadcrumbUrl) {
-      const metaParent = document.querySelector('meta[name="parent-url"]')?.content;
-      if (metaParent) lastBreadcrumbUrl = metaParent;
-    }
-    
-    if (!lastBreadcrumbUrl) lastBreadcrumbUrl = location.origin;
-    
-    return [{ "@type": "WebPage", "@id": lastBreadcrumbUrl }];
   }
 
   // ============================================================
@@ -595,32 +900,63 @@
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.60 — FOKUS PRODUK & MATERIAL (FIXED)", "INFO");
+    log("AutoSchema Hybrid v4.62 — FOKUS PRODUK & MATERIAL + AUTO FIX GAMBAR + DETEKSI LAYAK", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
-    await loadParentMapping();
+    // ===== STEP 1: Tunggu PLD =====
     await waitForPLD();
     
+    // ===== STEP 2: Dapatkan Page Level =====
     const pageLevel = getPageLevelFromPLD();
     log(`Page Level dari PLD: ${pageLevel}`, "SUCCESS");
     
+    // ===== STEP 3: Cek apakah skip product schema =====
     if (shouldSkipProductSchema(pageLevel)) {
       log("Product schema SKIPPED untuk halaman ini", "SKIP");
       return;
     }
     
+    // ===== STEP 4: Cek apakah halaman LAYAK mendapat gambar =====
+    let imageUrl = LOGO_IMAGE;
+    const isEligible = isImageEligible(pageLevel);
+    
+    if (isEligible) {
+      log(`✅ Halaman LAYAK mendapat gambar, memproses...`, "IMAGE");
+      try {
+        imageUrl = fixImagesToFormat1() || LOGO_IMAGE;
+      } catch(e) {
+        log(`Error fixing images: ${e.message}`, "ERROR");
+        imageUrl = LOGO_IMAGE;
+      }
+    } else {
+      log(`⏭️ Halaman TIDAK LAYAK mendapat gambar, skip fix gambar`, "SKIP");
+      // Cek apakah sudah ada gambar di halaman
+      const existingImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
+      if (existingImage) {
+        imageUrl = existingImage.src || LOGO_IMAGE;
+        log(`📸 Menggunakan gambar yang sudah ada di halaman`, "IMAGE");
+      }
+    }
+    
+    // ===== STEP 5: Dapatkan Parent dari breadcrumbs =====
     const currentUrl = location.href.replace(/[?&]m=1/, "");
+    const parentData = getParentFromBreadcrumbs(currentUrl);
+    const parentUrls = [{
+      "@type": "WebPage",
+      "@id": parentData.parentUrl,
+      name: parentData.parentName
+    }];
+    
+    // ===== STEP 6: Deteksi produk =====
     const productName = detectProductName(pageLevel);
     const desc = document.querySelector('meta[name="description"]')?.content?.trim() || 
                  document.querySelector("article p, main p, section p")?.innerText?.trim()?.substring(0, 300) ||
                  `Produk ${productName} berkualitas dari Beton Jaya Readymix`;
     
-    // ✅ FIX v4.60: Gunakan FALLBACK_IMAGE
-    const contentImage = document.querySelector("article img, main img, .post-body img, .product-image img")?.src || FALLBACK_IMAGE;
-    const parentUrls = detectParentUrls(currentUrl);
     const areaServed = getAreaServed();
     const productCategory = detectProductCategory(pageLevel);
     
+    // ===== STEP 7: Parse offers =====
     log("Parsing offers...", "INFO");
     let hasTableOffers = parseTableOffers();
     
@@ -632,25 +968,24 @@
       }
     }
     
-    // ✅ FIX v4.60: Tetap buat Product schema meskipun tidak ada offers
     if (offers.length === 0) {
       log("Tidak ada harga ditemukan, tetap buat Product schema tanpa offers", "WARN");
     }
     
+    // ===== STEP 8: Build Schema =====
     const business = {
       "@type": "LocalBusiness",
       "@id": "https://www.betonjayareadymix.com/#localbusiness",
       name: "Beton Jaya Readymix",
       url: "https://www.betonjayareadymix.com",
-      logo: FALLBACK_IMAGE
+      logo: LOGO_IMAGE
     };
     
-    // ✅ FIX v4.60: Product schema tetap dibuat, dengan atau tanpa offers
     const product = {
       "@type": "Product",
       "@id": currentUrl + "#product",
       name: productName,
-      image: [contentImage],
+      image: [imageUrl || LOGO_IMAGE],
       description: desc,
       brand: { "@type": "Brand", name: "Beton Jaya Readymix" },
       category: productCategory,
@@ -658,7 +993,6 @@
       isPartOf: parentUrls
     };
     
-    // ✅ Hanya tambahkan offers jika ada
     if (offers.length > 0) {
       product.offers = offers;
     }
@@ -686,6 +1020,7 @@
     
     const graph = [webpage, business, product];
     
+    // ===== STEP 9: Inject Schema =====
     let existingScript = document.querySelector("#auto-schema-product");
     if (!existingScript) {
       existingScript = document.createElement("script");
@@ -700,6 +1035,7 @@
       "@graph": graph
     }, null, 2);
     
+    // ===== STEP 10: Summary =====
     log("═══════════════════════════════════════════════════", "INFO");
     log("EXECUTION SUMMARY:", "INFO");
     log(`🏗️  Fokus: PRODUK & MATERIAL`, "PRODUCT");
@@ -709,12 +1045,12 @@
     log(`  Offers Count   : ${offers.length}`, "SUCCESS");
     log(`  Valid Prices   : ${offers.filter(o => o.price > 0).length}`, "SUCCESS");
     log(`  Is Variant     : ${(pageLevel === 'variant' || pageLevel === 'sub-variant') ? '✅' : '❌'}`, "INFO");
-    log(`  Has Image      : ${contentImage !== FALLBACK_IMAGE ? '✅ (custom)' : '⚠️ (fallback)'}`, "INFO");
-    if (parentUrls.length > 0 && parentUrls[0]["@id"]) {
-      log(`  Parent URL     : ${parentUrls[0]["@id"]}`, "INFO");
-    }
+    log(`  Image Eligible : ${isEligible ? '✅' : '❌'}`, "IMAGE");
+    log(`  Has Image      : ${imageUrl !== LOGO_IMAGE ? '✅ (custom)' : '⚠️ (fallback)'}`, "IMAGE");
+    log(`  Parent URL     : ${parentData.parentUrl}`, "INFO");
+    log(`  Parent Name    : ${parentData.parentName}`, "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.60 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.62 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
