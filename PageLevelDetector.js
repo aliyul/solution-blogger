@@ -1,7 +1,7 @@
 /* ============================================================
- 🧠 Page Level Detector v22.25 — UNIVERSAL UNTUK SEMUA ENTITY
-    ✅ FIX v22.25: COMMERCIAL INTENT OVERRIDE (NEW!)
-    ✅ FIX v22.25: "jual/beli/sewa/rental" → MONEY_MASTER
+ 🧠 Page Level Detector v22.26 — UNIVERSAL UNTUK SEMUA ENTITY
+    ✅ FIX v22.26: TAMBAHAN KATA VARIANT (murah, hemat, mini, dll)
+    ✅ FIX v22.25: COMMERCIAL INTENT OVERRIDE
     ✅ FIX v22.24: OVERRIDE PILLAR → MONEY_MASTER
     ✅ FIX v22.24: Parent SP1 → Child HARUS MONEY_MASTER
     ✅ FIX v22.24: PILLAR hanya nama-nama yang sudah ditentukan
@@ -28,7 +28,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬", COMMERCIAL: "🛒" };
-    console.log(`${icons[type] || "📘"} [PLD v22.25] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.26] ${message}`);
   }
 
   // ============================================================
@@ -196,17 +196,22 @@
 
   // ============================================================
   // 📌 SPECIFICATION WORDS (UNTUK VARIANT DETECTION)
+  // 🔥 FIX v22.26: TAMBAHAN KATA VARIANT
   // ============================================================
 
   const SPECIFICATION_WORDS = {
     primary: [
       "ukuran", "spesifikasi", "dimensi", "detail", "parameter", 
-      "standar", "mutu", "kualitas", "grade", "kelas", "tipe", "model", "varian", "seri"
+      "standar", "mutu", "kualitas", "grade", "kelas", "tipe", "model", "varian", "seri",
+      // 🔥 FIX v22.26: TAMBAHAN KATA VARIANT
+      "murah", "hemat", "ekonomis", "terjangkau", "budget", "premium", "luxury", "mewah"
     ],
     dimension: [
       "tinggi", "rendah", "besar", "kecil", "panjang", "pendek", 
       "lebar", "sempit", "tebal", "tipis", "dalam", "dangkal",
-      "diameter", "radius", "luas", "volume", "kedalaman", "ketebalan"
+      "diameter", "radius", "luas", "volume", "kedalaman", "ketebalan",
+      // 🔥 FIX v22.26: TAMBAHAN KATA VARIANT
+      "mini", "maksimal", "minimal", "standar", "medium", "sedang", "extra", "ekstra"
     ],
     finishing: [
       "polos", "motif", "bermotif", "bercorak", "tekstur", "serat", 
@@ -247,7 +252,10 @@
     "kedap suara", "tahan banjir", "tahan lama", "cepat dipasang",
     "rumah sakit", "pembatas lahan", "perumahan", "pertambangan",
     "keamanan", "kedap", "suara", "banjir", "tahan", "lama",
-    "cepat", "dipasang", "terpasang", "terinstal"
+    "cepat", "dipasang", "terpasang", "terinstal",
+    // 🔥 FIX v22.26: TAMBAHAN PHRASE VARIANT
+    "harga murah", "biaya hemat", "ekonomis", "terjangkau", "budget friendly",
+    "mini", "besar", "kecil", "sedang", "medium", "extra", "ekstra"
   ];
 
   // ============================================================
@@ -320,6 +328,7 @@
 
   // ============================================================
   // 📌 FUNGSI DETEKSI VARIANT
+  // 🔥 FIX v22.26: TAMBAHAN DETEKSI "murah", "mini", "hemat", dll
   // ============================================================
 
   function detectVariantByPattern(text, entityType) {
@@ -373,8 +382,8 @@
     
     // 2B. Pola: [Spesifikasi] + [Benda] di AWAL → VARIANT
     const specFirstPatterns = [
-      { pattern: /^(tinggi|rendah|besar|kecil|panjang|pendek|lebar|sempit|tebal|tipis|dalam|dangkal|diameter|radius|ukuran|dimensi)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|produk|material)/i, score: 4, reason: "Dimension + noun (spec first)" },
-      { pattern: /^(polos|motif|bermotif|bercorak|tekstur|serat|halus|kasar|matte|glossy|doff|gloss|satin|anyaman|natural|ekspos|custom|standar|premium|ekonomis|modern|klasik|minimalis|tradisional|elegan|mewah|polosan)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|produk|material)/i, score: 4, reason: "Finishing + noun (spec first)" },
+      { pattern: /^(tinggi|rendah|besar|kecil|panjang|pendek|lebar|sempit|tebal|tipis|dalam|dangkal|diameter|radius|ukuran|dimensi|mini|medium|sedang|extra|ekstra)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|produk|material)/i, score: 4, reason: "Dimension + noun (spec first)" },
+      { pattern: /^(polos|motif|bermotif|bercorak|tekstur|serat|halus|kasar|matte|glossy|doff|gloss|satin|anyaman|natural|ekspos|custom|standar|premium|ekonomis|modern|klasik|minimalis|tradisional|elegan|mewah|polosan|murah|hemat|terjangkau|budget)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|produk|material)/i, score: 4, reason: "Finishing/price + noun (spec first)" },
       { pattern: /^(perumahan|pabrik|gudang|sekolah|rumah sakit|pertambangan|kandang|ternak|industri|komersial|residensial|kavling|lahan|kosong|pembatas|keamanan|kedap|suara|banjir|tahan|lama|cepat|dipasang|terpasang|terinstal)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|produk|material)/i, score: 3, reason: "Application + noun (spec first)" },
       { pattern: /^(hidrolik|manual|auger|rotary|percussive|dry|wet|basah|kering|coring|cutting|drilling|pengeboran|pemancangan|pemasangan|bongkar|pasang|potong|las|sambung)\s+(jasa|layanan|produk|material|sewa)/i, score: 4, reason: "Method/technique + service (spec first)" },
     ];
@@ -414,9 +423,9 @@
     // 2D. ENTITY-SPECIFIC VARIANT PATTERNS
     if (entityType === "jasa") {
       const jasaSpecPatterns = [
-        /^(spesifikasi|metode|mutu|kualitas|standar|ukuran|dimensi)\s+(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan|pancang|strauss|tiang)/i,
+        /^(spesifikasi|metode|mutu|kualitas|standar|ukuran|dimensi|murah|hemat|ekonomis|terjangkau|premium)\s+(jasa|layanan|bore|pile|pondasi|pengeboran|pemasangan|pancang|strauss|tiang)/i,
         /^(hidrolik|manual|auger|rotary|percussive|coring|cutting|drilling)\s+(jasa|layanan|bore|pile|pondasi|pengeboran)/i,
-        /\b(jasa|layanan|pasang|pemasangan|pengeboran|pancang)\s+(pagar|panel|beton|tiang|pondasi|bore|pile)\s+(perumahan|pabrik|gudang|sekolah|rumah sakit|pertambangan|kandang|ternak|industri|komersial|residensial|kavling|lahan|kosong|pembatas|keamanan|kedap suara|tahan banjir|tahan lama|cepat dipasang)/i
+        /\b(jasa|layanan|pasang|pemasangan|pengeboran|pancang)\s+(pagar|panel|beton|tiang|pondasi|bore|pile)\s+(perumahan|pabrik|gudang|sekolah|rumah sakit|pertambangan|kandang|ternak|industri|komersial|residensial|kavling|lahan|kosong|pembatas|keamanan|kedap suara|tahan banjir|tahan lama|cepat dipasang|murah|hemat|ekonomis|terjangkau|premium)/i
       ];
       
       for (const pattern of jasaSpecPatterns) {
@@ -432,8 +441,8 @@
     
     if (entityType === "produk" || entityType === "material") {
       const prodSpecPatterns = [
-        /^(ukuran|spesifikasi|dimensi|detail|standar|mutu|kualitas|grade|kelas|tipe|model|varian|seri)\s+(produk|material|barang|bahan|pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)/i,
-        /^(polos|motif|bermotif|tekstur|serat|halus|kasar|matte|glossy|doff|gloss|satin|anyaman|natural|ekspos|custom|premium|ekonomis)\s+(produk|material|barang|bahan|pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)/i
+        /^(ukuran|spesifikasi|dimensi|detail|standar|mutu|kualitas|grade|kelas|tipe|model|varian|seri|murah|hemat|ekonomis|terjangkau|premium)\s+(produk|material|barang|bahan|pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)/i,
+        /^(polos|motif|bermotif|tekstur|serat|halus|kasar|matte|glossy|doff|gloss|satin|anyaman|natural|ekspos|custom|premium|ekonomis|mini|medium|sedang|extra|ekstra)\s+(produk|material|barang|bahan|pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer)/i
       ];
       
       for (const pattern of prodSpecPatterns) {
@@ -864,7 +873,7 @@
   }
 
   // ============================================================
-  // 📌 MAIN DETECTOR (v22.25)
+  // 📌 MAIN DETECTOR (v22.26)
   // ============================================================
 
   function detectPageLevel(userOptions = {}) {
@@ -1039,24 +1048,27 @@
     SPEC_PHRASES_AT_END,
     MONEY_MASTER_OVERRIDES,
     ENTITY_PILLAR_NAMES,
-    COMMERCIAL_WORDS, // 🔥 FIX v22.25: Ekspor commercial words
-    version: "22.25"
+    COMMERCIAL_WORDS,
+    version: "22.26"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.25 Ready");
+  console.log("✅ Page Level Detector v22.26 Ready");
   console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan");
   console.log("🏗️  ENTITY: JASA, SEWA, PRODUK, MATERIAL, DESAIN, ARTIKEL");
   console.log("🛒 FIX v22.25: COMMERCIAL INTENT OVERRIDE");
   console.log("   - 'jual/beli/sewa/rental' → MONEY_MASTER");
   console.log("   - Jika core words <= 2, force MM");
-  console.log("🔬 FIX v22.24: OVERRIDE PILLAR → MONEY_MASTER");
+  console.log("🔬 FIX v22.26: TAMBAHAN KATA VARIANT");
+  console.log("   - primary: murah, hemat, ekonomis, terjangkau, budget, premium, luxury, mewah");
+  console.log("   - dimension: mini, maksimal, minimal, standar, medium, sedang, extra, ekstra");
+  console.log("   - phrase: harga murah, biaya hemat, ekonomis, terjangkau, budget friendly");
+  console.log("   - mini, besar, kecil, sedang, medium, extra, ekstra");
+  console.log("📝 FIX v22.24: OVERRIDE PILLAR → MONEY_MASTER");
   console.log("📝 Parent SP1 → Child HARUS MONEY_MASTER");
-  console.log("📝 PILLAR hanya nama-nama yang sudah ditentukan:");
-  console.log("   - produk konstruksi, material konstruksi, produk interior");
-  console.log("   - jasa konstruksi, sewa alat konstruksi, jasa desain interior");
+  console.log("📝 PILLAR hanya nama-nama yang sudah ditentukan");
   console.log("📝 SUB-PILLAR-1 → WAJIB MONEY_MASTER");
   console.log("📝 'kedap suara', 'tahan banjir', 'perumahan' di akhir → VARIANT");
   console.log("📝 'ukuran/spesifikasi/dimensi + jasa + benda' → VARIANT");
