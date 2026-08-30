@@ -1,10 +1,15 @@
 /**
- * ⚡ AutoSchema Hybrid v4.65 — GAMBAR TETAP FIGURE + AUTO GENERATE + AUTO UPDATE TAHUN
+ * ⚡ AutoSchema Hybrid v4.66 — KONSEP GAMBAR BARU: CEK GAMBAR + FIGURE SEO + URL BERSIH + RESPONSIF
  * 
- * UPDATE v4.65:
+ * UPDATE v4.66:
+ * - FIX: Cek gambar di konten terlebih dahulu (jika ada, perbaiki; jika tidak, buat baru)
  * - FIX: Gambar tetap menggunakan format FIGURE (tidak diubah strukturnya)
  * - FIX: Hanya mengganti src, alt, title, dan figcaption
  * - FIX: Figure tetap mempertahankan style dan posisinya
+ * - FIX: Teks gambar diambil dari URL BERSIH (bukan H1) — hapus /p/, tahun, bulan, .html
+ * - FIX: Tulisan atas (Beton Jaya Readymix) JELAS 100% PUTIH + pill background
+ * - FIX: Tulisan bawah (© Beton Jaya Readymix) JELAS 70% PUTIH + pill background
+ * - FIX: Gambar RESPONSIF dengan media query untuk mobile
  * - ADD: Auto Generate Gambar dari Canvas (dengan teks nama halaman + tahun)
  * - ADD: Auto Update H1 (tahun diupdate jika kurang dari tahun sekarang)
  * - ADD: Auto Update Gambar (alt/title/caption diupdate jika tahun kurang)
@@ -13,9 +18,8 @@
  * - ADD: Warna Unik per Level (background berbeda untuk setiap level)
  * - ADD: Tanpa Tanggal di Gambar (stabil, tidak berubah-ubah)
  * - ADD: Semua Elemen Rata Tengah (center)
- * - FIX: Posisi gambar di dalam tag <article> paling atas
  * 
- * @version 4.65
+ * @version 4.66
  * @date 2026-08-30
  */
 
@@ -41,11 +45,11 @@
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.65] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.66] ${msg}`);
   }
 
   // ============================================================
-  // 🔥🔥🔥 FUNGSI GENERATE GAMBAR DARI CANVAS 🔥🔥🔥
+  // 🔥🔥🔥 FUNGSI PENDUKUNG 🔥🔥🔥
   // ============================================================
 
   function getColorConfig(level) {
@@ -85,15 +89,78 @@
     return match ? parseInt(match[1]) : null;
   }
 
-  function getPageNameForImage(level) {
-    let title = document.querySelector('h1')?.innerText || document.title || window.location.pathname;
-    title = title.replace(/\b(20[2-9][0-9])\b/g, '').trim();
-    title = title.split(/\s*[–—\-|]\s*/)[0].trim();
+  // ============================================================
+  // 🔥🔥🔥 AMBIL NAMA DARI URL BERSIH 🔥🔥🔥
+  // ============================================================
+  function getCleanPageName(level) {
+    let cleanName = '';
+    
+    // ===== 1. PRIORITAS UTAMA: AMBIL DARI URL BERSIH =====
+    let path = window.location.pathname;
+    path = path.replace(/^\/p\//, '');              // Hapus /p/
+    path = path.replace(/\/\d{4}\/\d{2}\//g, '/');  // Hapus tahun/bulan
+    path = path.replace(/\.html$/, '');             // Hapus .html
+    
+    let segments = path.split('/').filter(s => s.length > 0);
+    let lastSegment = segments.length > 0 ? segments[segments.length - 1] : '';
+    
+    cleanName = lastSegment.replace(/[-_]+/g, ' ');
+    cleanName = cleanName.replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+    cleanName = cleanName.replace(/\s\d+$/, '');
+    
     if (level === 'pillar' || level === 'sub-pillar-tipe-1' || level === 'sub-pillar-tipe-2') {
-      title = title.replace(/^(Harga|Jasa)\s*/i, '').trim();
+      cleanName = cleanName.replace(/^(Harga|Jasa|Biaya|Tarif)\s*/i, '').trim();
     }
-    if (title.length > 55) title = title.substring(0, 52) + '...';
-    return title || 'Halaman Utama';
+    
+    // ===== 2. FALLBACK: H1 =====
+    if (cleanName.length < 3) {
+      let h1Text = document.querySelector('h1')?.innerText?.trim();
+      if (h1Text && h1Text.length > 3) {
+        cleanName = h1Text
+          .replace(/\b(20[2-9][0-9])\b/g, '')
+          .replace(/\s*[–—\-|]\s*/g, ' ')
+          .replace(/^(Harga|Jasa|Biaya|Tarif|Estimasi)\s*/i, '')
+          .trim();
+      }
+    }
+    
+    // ===== 3. FALLBACK: Title =====
+    if (cleanName.length < 3) {
+      let title = document.title
+        .replace(/\b(20[2-9][0-9])\b/g, '')
+        .replace(/\s*[–—\-|]\s*/g, ' ')
+        .trim();
+      if (title.length > 3) cleanName = title;
+    }
+    
+    // ===== 4. DEFAULT =====
+    if (cleanName.length < 3) cleanName = 'Halaman Utama';
+    if (cleanName.length > 55) cleanName = cleanName.substring(0, 52) + '...';
+    
+    log(`📝 Clean page name from URL: "${cleanName}"`, "IMAGE");
+    return cleanName;
+  }
+
+  // ============================================================
+  // 🔥🔥🔥 GENERATE GAMBAR DARI CANVAS 🔥🔥🔥
+  // ============================================================
+
+  // Polyfill roundRect
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+      if (r > w/2) r = w/2;
+      if (r > h/2) r = h/2;
+      this.moveTo(x + r, y);
+      this.lineTo(x + w - r, y);
+      this.quadraticCurveTo(x + w, y, x + w, y + r);
+      this.lineTo(x + w, y + h - r);
+      this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      this.lineTo(x + r, y + h);
+      this.quadraticCurveTo(x, y + h, x, y + h - r);
+      this.lineTo(x, y + r);
+      this.quadraticCurveTo(x, y, x + r, y);
+      return this;
+    };
   }
 
   function createImageWithText(pageName, level, year) {
@@ -111,7 +178,7 @@
     canvas.height = height;
     const ctx = canvas.getContext('2d');
 
-    // Background
+    // ===== BACKGROUND =====
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, colors.bg);
     gradient.addColorStop(0.5, colors.bg);
@@ -119,7 +186,7 @@
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    // Border
+    // ===== BORDER =====
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.strokeStyle = colors.accent;
@@ -127,22 +194,49 @@
     const bPad = 15;
     ctx.strokeRect(bPad, bPad, width - (bPad * 2), height - (bPad * 2));
 
-    // Logo
-    ctx.fillStyle = 'rgba(255,255,255,0.12)';
-    ctx.font = 'bold 16px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-    ctx.fillText('🏗️ Beton Jaya Readymix', width / 2, padding - 2);
+    // ============================================================
+    // 🔥 TULISAN ATAS (LOGO) — JELAS 100% PUTIH 🔥
+    // ============================================================
+    const logoText = '🏗️ Beton Jaya Readymix';
+    ctx.font = 'bold 18px Arial, sans-serif';
+    const logoMetrics = ctx.measureText(logoText);
+    const logoWidth = logoMetrics.width + 40;
+    const logoHeight = 36;
+    const logoX = (width - logoWidth) / 2;
+    const logoY = padding - 10;
 
-    // Garis pemisah
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-    ctx.lineWidth = 1;
+    // Background pill
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
     ctx.beginPath();
-    ctx.moveTo(padding, 68);
-    ctx.lineTo(width - padding, 68);
+    ctx.roundRect(logoX, logoY, logoWidth, logoHeight, 18);
+    ctx.fill();
+
+    // Text logo — PUTIH 100%
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 18px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(logoText, width / 2, padding + 8);
+
+    // ===== GARIS PEMISAH =====
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(padding, 72);
+    ctx.lineTo(width - padding, 72);
     ctx.stroke();
 
-    // Teks utama
+    // ============================================================
+    // 🔥 TEKS UTAMA (DARI URL BERSIH) 🔥
+    // ============================================================
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -154,11 +248,11 @@
     if (textLength > 60) fontSize = 24;
 
     ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = 12;
+    ctx.shadowBlur = 14;
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 3;
 
-    // Wrap teks
+    // WRAP TEKS
     const maxCharsPerLine = 24;
     const words = fullText.split(' ');
     let lines = [];
@@ -193,20 +287,20 @@
       }
     }
 
-    const centerY = height / 2 + 5;
+    const centerY = height / 2 + 8;
 
     if (lines.length === 1) {
-      ctx.font = `bold ${fontSize + 6}px Arial, sans-serif`;
+      ctx.font = `bold ${fontSize + 8}px Arial, sans-serif`;
       ctx.fillStyle = colors.text;
       ctx.fillText(lines[0], width / 2, centerY);
     } else if (lines.length === 2) {
-      const lineHeight = fontSize + 12;
+      const lineHeight = fontSize + 14;
       ctx.font = `bold ${fontSize}px Arial, sans-serif`;
       ctx.fillStyle = colors.text;
       ctx.fillText(lines[0], width / 2, centerY - (lineHeight / 2));
       ctx.fillText(lines[1], width / 2, centerY + (lineHeight / 2));
     } else {
-      const lineHeight = fontSize + 10;
+      const lineHeight = fontSize + 12;
       const startY = centerY - ((lines.length - 1) * lineHeight / 2);
       ctx.font = `bold ${fontSize}px Arial, sans-serif`;
       ctx.fillStyle = colors.text;
@@ -215,19 +309,285 @@
       });
     }
 
+    // ============================================================
+    // 🔥 TULISAN BAWAH (WATERMARK) — JELAS 70% PUTIH 🔥
+    // ============================================================
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
 
-    // Watermark
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
-    ctx.font = '11px Arial';
+    const watermarkText = '© Beton Jaya Readymix';
+    ctx.font = '13px Arial, sans-serif';
+    const wmMetrics = ctx.measureText(watermarkText);
+    const wmWidth = wmMetrics.width + 30;
+    const wmHeight = 28;
+    const wmX = (width - wmWidth) / 2;
+    const wmY = height - padding + 2;
+
+    // Background pill
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.roundRect(wmX, wmY, wmWidth, wmHeight, 14);
+    ctx.fill();
+
+    // Text watermark — 70% PUTIH
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '13px Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText('© Beton Jaya Readymix', width / 2, height - padding + 5);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(watermarkText, width / 2, height - padding + 16);
 
     return canvas.toDataURL('image/png');
+  }
+
+  // ============================================================
+  // 🔥🔥🔥 STYLE RESPONSIF UNTUK FIGURE 🔥🔥🔥
+  // ============================================================
+  function applyResponsiveStyles(figure, img) {
+    figure.style.padding = '1em 0px';
+    figure.style.margin = '20px 0';
+    figure.style.textAlign = 'center';
+    figure.style.background = '#f8fafc';
+    figure.style.borderRadius = '12px';
+    figure.style.width = '100%';
+    figure.style.maxWidth = '100%';
+    figure.style.display = 'block';
+    figure.style.overflow = 'hidden';
+
+    img.style.width = '100%';
+    img.style.maxWidth = '820px';
+    img.style.height = 'auto';
+    img.style.aspectRatio = '820/360';
+    img.style.objectFit = 'contain';
+    img.style.borderRadius = '8px';
+    img.style.display = 'block';
+    img.style.margin = '0 auto';
+    img.style.padding = '0 10px';
+    img.style.boxSizing = 'border-box';
+
+    // Media query untuk mobile
+    const styleId = 'responsive-image-style-v466';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        @media (max-width: 820px) {
+          figure[data-auto-figure="true"] img {
+            max-width: 100% !important;
+            height: auto !important;
+            aspect-ratio: auto !important;
+          }
+          figure[data-auto-figure="true"] {
+            padding: 0.5em 0px !important;
+            margin: 10px 0 !important;
+          }
+        }
+        @media (max-width: 480px) {
+          figure[data-auto-figure="true"] figcaption {
+            font-size: 12px !important;
+            padding: 0 10px !important;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    figure.setAttribute('data-auto-figure', 'true');
+  }
+
+  // ============================================================
+  // 🔥🔥🔥 CEK GAMBAR & PERBAIKI — TETAP FIGURE 🔥🔥🔥
+  // ============================================================
+  function fixImagesToFormat1() {
+    log('Checking images in content...', "IMAGE");
+    
+    const pageLevel = getPageLevelFromPLD();
+    const currentYear = getCurrentYear();
+    const needYearFlag = needYear(pageLevel);
+    const pageName = getCleanPageName(pageLevel);
+    const displayName = needYearFlag ? pageName + ' ' + currentYear : pageName;
+
+    // ===== CARI TEMPAT TARUH GAMBAR =====
+    function getImageInsertionPoint() {
+      let article = document.querySelector('article');
+      if (!article) {
+        const candidates = ['.post-body', 'main', '.content', '.entry-content', '.post-content', '.article-content', '.blog-post'];
+        for (let selector of candidates) {
+          const el = document.querySelector(selector);
+          if (el) { article = el; break; }
+        }
+      }
+      if (!article) {
+        const h1 = document.querySelector('h1');
+        if (h1) article = h1.closest('section, div, main');
+      }
+      if (!article) article = document.body;
+
+      const badge = article.querySelector('.update-badge, .update-badge-class, [class*="update-badge"]');
+      if (badge && badge.parentElement === article) {
+        return { container: article, referenceNode: badge, position: 'after' };
+      }
+
+      const firstChild = article.firstElementChild;
+      if (firstChild && firstChild.tagName === 'H1') {
+        return { container: article, referenceNode: firstChild, position: 'after' };
+      }
+
+      return { container: article, referenceNode: null, position: 'first' };
+    }
+
+    // ===== CARI GAMBAR DI KONTEN =====
+    let targetImage = null;
+    let targetFigure = null;
+
+    const h1Element = document.querySelector('h1');
+    if (h1Element) {
+      const article = h1Element.closest('article, .post-body, main, section, div');
+      if (article) {
+        const siblings = article.children;
+        let foundH1 = false;
+        for (let i = 0; i < siblings.length; i++) {
+          if (siblings[i] === h1Element) { foundH1 = true; continue; }
+          if (foundH1) {
+            const img = siblings[i].querySelector('img');
+            if (img) {
+              targetImage = img;
+              targetFigure = siblings[i].tagName === 'FIGURE' ? siblings[i] : siblings[i].closest('figure');
+              break;
+            }
+            if (siblings[i].tagName === 'FIGURE' && siblings[i].querySelector('img')) {
+              targetImage = siblings[i].querySelector('img');
+              targetFigure = siblings[i];
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (!targetImage) {
+      const contentAreas = document.querySelectorAll('article, section, .post-body, main, .content, .entry-content');
+      for (const area of contentAreas) {
+        const img = area.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
+        if (img) {
+          targetImage = img;
+          targetFigure = img.closest('figure');
+          break;
+        }
+      }
+    }
+
+    const autoImageDataUrl = createImageWithText(pageName, pageLevel, currentYear);
+    const captionText = '📊 ' + displayName;
+
+    // ============================================================
+    // 🔥 KASUS 1: ADA GAMBAR — PERBAIKI 🔥
+    // ============================================================
+    if (targetImage) {
+      log('Image found in content, fixing for SEO...', "IMAGE");
+
+      const img = targetImage;
+      const figure = targetFigure || img.closest('figure');
+
+      // Update src hanya jika gambar rusak/placeholder
+      const currentSrc = img.src || '';
+      if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
+        img.src = autoImageDataUrl;
+        log('Image src replaced with auto-generated', "IMAGE");
+      } else {
+        log('Existing image preserved, only updating attributes', "IMAGE");
+      }
+
+      // Update atribut
+      img.alt = displayName;
+      img.title = displayName;
+      img.setAttribute('loading', 'lazy');
+      img.setAttribute('decoding', 'async');
+      img.setAttribute('data-auto-generated', 'true');
+      img.setAttribute('data-page-level', pageLevel);
+      img.setAttribute('data-year', currentYear);
+
+      if (figure && figure.tagName === 'FIGURE') {
+        applyResponsiveStyles(figure, img);
+
+        let figcaption = figure.querySelector('figcaption');
+        if (!figcaption) {
+          figcaption = document.createElement('figcaption');
+          figcaption.style.color = '#555';
+          figcaption.style.fontSize = '14px';
+          figcaption.style.marginTop = '10px';
+          figcaption.style.padding = '0 20px';
+          figcaption.style.textAlign = 'center';
+          figcaption.textContent = captionText;
+          figure.appendChild(figcaption);
+        } else {
+          figcaption.textContent = captionText;
+          figcaption.style.color = '#555';
+          figcaption.style.fontSize = '14px';
+          figcaption.style.marginTop = '10px';
+          figcaption.style.padding = '0 20px';
+          figcaption.style.textAlign = 'center';
+        }
+      } else {
+        log('Wrapping image with FIGURE...', "IMAGE");
+        const newFigure = document.createElement('figure');
+        const parent = img.parentElement;
+        parent.insertBefore(newFigure, img);
+        newFigure.appendChild(img);
+
+        const figcaption = document.createElement('figcaption');
+        figcaption.style.color = '#555';
+        figcaption.style.fontSize = '14px';
+        figcaption.style.marginTop = '10px';
+        figcaption.style.padding = '0 20px';
+        figcaption.style.textAlign = 'center';
+        figcaption.textContent = captionText;
+        newFigure.appendChild(figcaption);
+        applyResponsiveStyles(newFigure, img);
+      }
+
+      log('✅ Image fixed with SEO FIGURE', "SUCCESS");
+      return figure;
+    }
+
+    // ============================================================
+    // 🔥 KASUS 2: TIDAK ADA GAMBAR — BUAT BARU 🔥
+    // ============================================================
+    log('No image found, creating new responsive FIGURE...', "IMAGE");
+
+    const insertPoint = getImageInsertionPoint();
+    const figure = document.createElement('figure');
+    const img = document.createElement('img');
+
+    img.src = autoImageDataUrl;
+    img.alt = displayName;
+    img.title = displayName;
+    img.setAttribute('loading', 'lazy');
+    img.setAttribute('decoding', 'async');
+    img.setAttribute('data-auto-generated', 'true');
+    img.setAttribute('data-page-level', pageLevel);
+    img.setAttribute('data-year', currentYear);
+
+    const figcaption = document.createElement('figcaption');
+    figcaption.style.color = '#555';
+    figcaption.style.fontSize = '14px';
+    figcaption.style.marginTop = '10px';
+    figcaption.style.padding = '0 20px';
+    figcaption.style.textAlign = 'center';
+    figcaption.textContent = captionText;
+
+    figure.appendChild(img);
+    figure.appendChild(figcaption);
+    applyResponsiveStyles(figure, img);
+
+    if (insertPoint.referenceNode && insertPoint.position === 'after') {
+      insertPoint.container.insertBefore(figure, insertPoint.referenceNode.nextSibling);
+    } else {
+      insertPoint.container.insertBefore(figure, insertPoint.container.firstChild);
+    }
+
+    log('✅ New responsive FIGURE created', "SUCCESS");
+    return figure;
   }
 
   // ============================================================
@@ -266,266 +626,6 @@
 
     log(`✅ H1: Tahun sudah sesuai (${detectedYear})`, "YEAR");
     return true;
-  }
-
-  // ============================================================
-  // 🔥🔥🔥 AUTO FIX GAMBAR — TETAP FIGURE, HANYA GANTI ISI 🔥🔥🔥
-  // ============================================================
-  function fixImagesToFormat1() {
-    log('Fixing images... (tetap FIGURE, hanya ganti src/alt/title/caption)', "IMAGE");
-    
-    const h1Element = document.querySelector('h1');
-    const h1Text = h1Element ? h1Element.textContent.trim() : document.title;
-    const pageLevel = getPageLevelFromPLD();
-    const currentYear = getCurrentYear();
-    const needYearFlag = needYear(pageLevel);
-    const pageName = getPageNameForImage(pageLevel);
-    const displayName = needYearFlag ? pageName + ' ' + currentYear : pageName;
-
-    // ===== CARI TEMPAT TARUH GAMBAR (DI DALAM ARTICLE) =====
-    function getImageInsertionPoint() {
-      let article = document.querySelector('article');
-      
-      if (!article) {
-        const candidates = [
-          '.post-body', 'main', '.content', '.entry-content', 
-          '.post-content', '.article-content', '.blog-post'
-        ];
-        for (let selector of candidates) {
-          const el = document.querySelector(selector);
-          if (el) {
-            article = el;
-            break;
-          }
-        }
-      }
-      
-      if (!article && h1Element) {
-        article = h1Element.closest('section, div, main');
-      }
-      
-      if (!article) {
-        article = document.body;
-      }
-      
-      const badge = article.querySelector('.update-badge, .update-badge-class, [class*="update-badge"]');
-      
-      if (badge && badge.parentElement === article) {
-        return {
-          container: article,
-          referenceNode: badge,
-          position: 'after'
-        };
-      }
-      
-      const firstChild = article.firstElementChild;
-      
-      if (firstChild && firstChild.tagName === 'H1') {
-        return {
-          container: article,
-          referenceNode: firstChild,
-          position: 'after'
-        };
-      }
-      
-      return {
-        container: article,
-        referenceNode: null,
-        position: 'first'
-      };
-    }
-
-    // ===== CARI GAMBAR YANG SUDAH ADA (PERTAMA KALI) =====
-    let targetImage = null;
-    let targetFigure = null;
-
-    if (h1Element) {
-      const article = h1Element.closest('article, .post-body, main, section, div');
-      if (article) {
-        const siblings = article.children;
-        let foundH1 = false;
-        for (let i = 0; i < siblings.length; i++) {
-          if (siblings[i] === h1Element) {
-            foundH1 = true;
-            continue;
-          }
-          if (foundH1) {
-            const img = siblings[i].querySelector('img');
-            if (img) {
-              targetImage = img;
-              targetFigure = siblings[i].tagName === 'FIGURE' ? siblings[i] : siblings[i].closest('figure');
-              break;
-            }
-            if (siblings[i].tagName === 'FIGURE' && siblings[i].querySelector('img')) {
-              targetImage = siblings[i].querySelector('img');
-              targetFigure = siblings[i];
-              break;
-            }
-          }
-        }
-      }
-    }
-
-    if (!targetImage) {
-      const contentAreas = document.querySelectorAll('article, section, .post-body, main, .content, .entry-content');
-      for (const area of contentAreas) {
-        const img = area.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
-        if (img) {
-          targetImage = img;
-          targetFigure = img.closest('figure');
-          break;
-        }
-      }
-    }
-
-    // ===== GENERATE GAMBAR OTOMATIS =====
-    const autoImageDataUrl = createImageWithText(pageName, pageLevel, currentYear);
-    const captionText = '📊 ' + displayName;
-
-    // ===== JIKA TIDAK ADA GAMBAR, BUAT FIGURE BARU =====
-    if (!targetImage) {
-      log('No image found, creating new FIGURE...', "IMAGE");
-      
-      const insertPoint = getImageInsertionPoint();
-      
-      // Buat figure dengan style SEO
-      const figure = document.createElement('figure');
-      figure.style.padding = '1em 0px';
-      figure.style.margin = '20px 0';
-      figure.style.textAlign = 'center';
-      figure.style.background = '#f8fafc';
-      figure.style.borderRadius = '12px';
-
-      const img = document.createElement('img');
-      img.src = autoImageDataUrl;
-      img.alt = displayName;
-      img.title = displayName;
-      img.setAttribute('loading', 'lazy');
-      img.setAttribute('decoding', 'async');
-      img.style.maxWidth = '800px';
-      img.style.borderRadius = '8px';
-      img.style.display = 'block';
-      img.style.margin = '0 auto';
-      img.style.height = 'auto';
-      img.setAttribute('data-auto-generated', 'true');
-      img.setAttribute('data-page-level', pageLevel);
-      img.setAttribute('data-year', currentYear);
-
-      const figcaption = document.createElement('figcaption');
-      figcaption.style.color = '#555';
-      figcaption.style.fontSize = '14px';
-      figcaption.style.marginTop = '10px';
-      figcaption.style.padding = '0 20px';
-      figcaption.style.textAlign = 'center';
-      figcaption.textContent = captionText;
-
-      figure.appendChild(img);
-      figure.appendChild(figcaption);
-
-      // Sisipkan di posisi yang ditentukan
-      if (insertPoint.referenceNode && insertPoint.position === 'after') {
-        insertPoint.container.insertBefore(figure, insertPoint.referenceNode.nextSibling);
-      } else {
-        insertPoint.container.insertBefore(figure, insertPoint.container.firstChild);
-      }
-
-      log('✅ New FIGURE created with auto-generated image', "SUCCESS");
-      return figure;
-    }
-
-    // ============================================================
-    // 🔥🔥🔥 PERBAIKI GAMBAR YANG ADA — TETAP FIGURE 🔥🔥🔥
-    // ============================================================
-    log('Fixing existing image (tetap FIGURE, hanya ganti konten)...', "IMAGE");
-
-    const img = targetImage;
-    const figure = targetFigure || img.closest('figure');
-
-    // --- 1. UPDATE SRC GAMBAR ---
-    img.src = autoImageDataUrl;
-
-    // --- 2. UPDATE ALT & TITLE ---
-    img.alt = displayName;
-    img.title = displayName;
-
-    // --- 3. UPDATE ATTRIBUT LAINNYA ---
-    if (!img.hasAttribute('loading') || img.getAttribute('loading') !== 'lazy') {
-      img.setAttribute('loading', 'lazy');
-    }
-    if (!img.hasAttribute('decoding') || img.getAttribute('decoding') !== 'async') {
-      img.setAttribute('decoding', 'async');
-    }
-    img.style.maxWidth = '800px';
-    img.style.borderRadius = '8px';
-    img.style.display = 'block';
-    img.style.margin = '0 auto';
-    img.style.height = 'auto';
-    img.setAttribute('data-auto-generated', 'true');
-    img.setAttribute('data-page-level', pageLevel);
-    img.setAttribute('data-year', currentYear);
-
-    // --- 4. UPDATE FIGURE (JIKA ADA) ---
-    if (figure && figure.tagName === 'FIGURE') {
-      // Pastikan style figure tetap
-      figure.style.padding = figure.style.padding || '1em 0px';
-      figure.style.margin = figure.style.margin || '20px 0';
-      figure.style.textAlign = figure.style.textAlign || 'center';
-      figure.style.background = figure.style.background || '#f8fafc';
-      figure.style.borderRadius = figure.style.borderRadius || '12px';
-
-      // Pastikan img ada di dalam figure
-      if (img.parentElement !== figure) {
-        figure.insertBefore(img, figure.firstChild);
-      }
-
-      // --- 5. UPDATE FIGCAPTION ---
-      let figcaption = figure.querySelector('figcaption');
-      if (!figcaption) {
-        // Buat figcaption baru jika belum ada
-        figcaption = document.createElement('figcaption');
-        figcaption.style.color = '#555';
-        figcaption.style.fontSize = '14px';
-        figcaption.style.marginTop = '10px';
-        figcaption.style.padding = '0 20px';
-        figcaption.style.textAlign = 'center';
-        figcaption.textContent = captionText;
-        figure.appendChild(figcaption);
-      } else {
-        // Update figcaption yang sudah ada
-        figcaption.textContent = captionText;
-        figcaption.style.color = '#555';
-        figcaption.style.fontSize = '14px';
-        figcaption.style.marginTop = '10px';
-        figcaption.style.padding = '0 20px';
-        figcaption.style.textAlign = 'center';
-      }
-    } else {
-      // Jika tidak ada figure, bungkus gambar dengan figure
-      log('No FIGURE found, wrapping image with FIGURE...', "IMAGE");
-      
-      const newFigure = document.createElement('figure');
-      newFigure.style.padding = '1em 0px';
-      newFigure.style.margin = '20px 0';
-      newFigure.style.textAlign = 'center';
-      newFigure.style.background = '#f8fafc';
-      newFigure.style.borderRadius = '12px';
-      
-      const parent = img.parentElement;
-      parent.insertBefore(newFigure, img);
-      newFigure.appendChild(img);
-
-      const figcaption = document.createElement('figcaption');
-      figcaption.style.color = '#555';
-      figcaption.style.fontSize = '14px';
-      figcaption.style.marginTop = '10px';
-      figcaption.style.padding = '0 20px';
-      figcaption.style.textAlign = 'center';
-      figcaption.textContent = captionText;
-      newFigure.appendChild(figcaption);
-    }
-
-    log('✅ Image fixed, FIGURE structure tetap dipertahankan', "SUCCESS");
-    return figure;
   }
 
   // ============================================================
@@ -594,118 +694,26 @@
   }
 
   // ============================================================
-  // 🔥🔥🔥 PARENT DARI BREADCRUMBS TERDEKAT 🔥🔥🔥
-  // ============================================================
-  function getParentFromBreadcrumbs(currentUrl) {
-    const breadcrumbSelectors = [
-      '.breadcrumbs a', '.breadcrumb a', '.nav-trail a',
-      '.breadcrumb-item a', '.crumbs a', '.breadcrumb-link',
-      '[aria-label="breadcrumb"] a', '.post-breadcrumb a',
-      '.breadcrumb-nav a', '.nav-breadcrumb a'
-    ];
-
-    let breadcrumbLinks = [];
-
-    for (let selector of breadcrumbSelectors) {
-      const links = document.querySelectorAll(selector);
-      if (links.length > 0) {
-        breadcrumbLinks = Array.from(links);
-        break;
-      }
-    }
-
-    if (breadcrumbLinks.length === 0) {
-      const allDivs = document.querySelectorAll('div');
-      for (let div of allDivs) {
-        const text = div.innerText || '';
-        if (text.includes('Home') || text.includes('Beranda') || 
-            text.includes('›') || text.includes('»') || 
-            text.includes('/')) {
-          const links = div.querySelectorAll('a');
-          if (links.length > 1) {
-            breadcrumbLinks = Array.from(links);
-            break;
-          }
-        }
-      }
-    }
-
-    if (breadcrumbLinks.length === 0) {
-      const nav = document.querySelector('nav');
-      if (nav) {
-        const links = nav.querySelectorAll('a');
-        if (links.length > 1) {
-          breadcrumbLinks = Array.from(links);
-        }
-      }
-    }
-
-    if (breadcrumbLinks.length > 0) {
-      const validLinks = breadcrumbLinks.filter(a => {
-        const href = a.href || '';
-        const text = a.innerText?.trim() || '';
-        if (!href || !text) return false;
-        if (href === currentUrl || href.includes(currentUrl)) return false;
-        if (text.toLowerCase() === 'home' || text.toLowerCase() === 'beranda') {
-          if (breadcrumbLinks.length === 1) return true;
-          return false;
-        }
-        return true;
-      });
-
-      if (validLinks.length > 0) {
-        const parentLink = validLinks[validLinks.length - 1];
-        return {
-          parentUrl: parentLink.href,
-          parentName: parentLink.innerText?.trim() || 'Parent Page'
-        };
-      }
-    }
-
-    return {
-      parentUrl: location.origin,
-      parentName: 'Home'
-    };
-  }
-
-  // ============================================================
   // 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD 🔥🔥🔥
   // ============================================================
   function getPageLevelFromPLD() {
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
-      try {
-        return window.pageLevelDetectorv22.detect();
-      } catch(e) {}
+      try { return window.pageLevelDetectorv22.detect(); } catch(e) {}
     }
-    
     if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
-      try {
-        return window.pageLevelDetectorv20.detect();
-      } catch(e) {}
+      try { return window.pageLevelDetectorv20.detect(); } catch(e) {}
     }
-    
     if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
-      try {
-        return window.pageLevelDetectorv19.detect();
-      } catch(e) {}
+      try { return window.pageLevelDetectorv19.detect(); } catch(e) {}
     }
-    
     if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
-      try {
-        return window.pageLevelDetectorV18.detect();
-      } catch(e) {}
+      try { return window.pageLevelDetectorV18.detect(); } catch(e) {}
     }
-    
     if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
-      try {
-        return window.pageLevelDetectorV17.detect();
-      } catch(e) {}
+      try { return window.pageLevelDetectorV17.detect(); } catch(e) {}
     }
-    
     if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
-      try {
-        return window.pageLevelDetector.detect();
-      } catch(e) {}
+      try { return window.pageLevelDetector.detect(); } catch(e) {}
     }
     
     const bodyPageLevel = document.body.getAttribute('data-page-level') || 
@@ -779,7 +787,6 @@
     const combined = h1 + " " + title + " " + url;
     
     const isProduct = /(beton|readymix|precast|paving|panel|box|u-ditch|kanstin|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|pagar\s*panel|paving\s*block|box\s*culvert|u\s*ditch|gorong\s*gorong)/i.test(combined);
-    
     if (isProduct) return false;
     if (pageLevel === 'variant' || pageLevel === 'sub-variant') return false;
     
@@ -993,7 +1000,7 @@
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.65 — GAMBAR TETAP FIGURE + AUTO GENERATE + AUTO TAHUN", "INFO");
+    log("AutoSchema Hybrid v4.66 — KONSEP GAMBAR BARU", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     await waitForPLD();
@@ -1008,7 +1015,7 @@
     updateH1Year(pageLevel);
 
     // ============================================================
-    // STEP 2: CEK LAYAK GAMBAR & FIX GAMBAR (TETAP FIGURE)
+    // STEP 2: CEK GAMBAR & FIX GAMBAR (TETAP FIGURE)
     // ============================================================
     let imageUrl = LOGO_IMAGE;
     const isEligible = isImageEligible(pageLevel);
@@ -1016,7 +1023,6 @@
     if (isEligible) {
       log(`✅ Halaman LAYAK mendapat gambar, memproses...`, "IMAGE");
       try {
-        // Fix gambar dengan auto-generated image (tetap FIGURE)
         const fixedFigure = fixImagesToFormat1();
         if (fixedFigure) {
           const img = fixedFigure.querySelector('img');
@@ -1135,11 +1141,13 @@
     log(`  Product Name    : ${productName}`, "SUCCESS");
     log(`  Offers Count    : ${offers.length}`, "SUCCESS");
     log(`  Image Eligible  : ${isEligible ? '✅' : '❌'}`, "IMAGE");
-    log(`  Image Generated : ${isEligible ? '✅ (Canvas + FIGURE)' : '⚠️ (skip)'}`, "IMAGE");
+    log(`  Image Source    : ${isEligible ? '✅ (Canvas + FIGURE)' : '⚠️ (skip)'}`, "IMAGE");
     log(`  Auto Year H1    : ${needYear(pageLevel) ? '✅' : '❌'}`, "YEAR");
+    log(`  Text from URL   : ✅`, "IMAGE");
     log(`  Figure Structure: ✅ TETAP DIJAGA`, "IMAGE");
+    log(`  Responsive      : ✅`, "IMAGE");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.65 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.66 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
