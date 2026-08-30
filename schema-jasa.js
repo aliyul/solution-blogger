@@ -1,4 +1,4 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.18 — CEK GAMBAR + FIGURE SEO + TEKS DARI URL BERSIH */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.18 — TEKS TENGAH DARI URL BERSIH */
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -70,21 +70,12 @@ function extractYear(text) {
 }
 
 // ============================================================
-// 🔥🔥🔥 AMBIL NAMA DARI URL BERSIH (TANPA /p/, TAHUN, BULAN) 🔥🔥🔥
+// 🔥🔥🔥 AMBIL NAMA DARI URL BERSIH (PRIORITAS UTAMA) 🔥🔥🔥
 // ============================================================
 function getCleanPageName(level) {
-    // Ambil dari H1 dulu, jika ada
-    let h1Text = document.querySelector('h1')?.innerText?.trim();
-    if (h1Text && h1Text.length > 3 && h1Text.length < 120) {
-        let clean = h1Text
-            .replace(/\b(20[2-9][0-9])\b/g, '') // hapus tahun
-            .replace(/\s*[–—\-|]\s*/g, ' ') // hapus pemisah
-            .replace(/^(Harga|Jasa|Biaya|Tarif|Estimasi)\s*/i, '') // hapus prefix
-            .trim();
-        if (clean.length > 3) return clean;
-    }
-
-    // Ambil dari URL
+    let cleanName = '';
+    
+    // ===== 1. PRIORITAS UTAMA: AMBIL DARI URL BERSIH =====
     let path = window.location.pathname;
     
     // Hapus /p/ jika ada
@@ -101,7 +92,7 @@ function getCleanPageName(level) {
     let lastSegment = segments.length > 0 ? segments[segments.length - 1] : '';
     
     // Ubah dash/underscore jadi spasi
-    let cleanName = lastSegment.replace(/[-_]+/g, ' ');
+    cleanName = lastSegment.replace(/[-_]+/g, ' ');
     
     // Kapitalisasi setiap kata
     cleanName = cleanName.replace(/\b\w/g, function(l) { return l.toUpperCase(); });
@@ -114,20 +105,38 @@ function getCleanPageName(level) {
         cleanName = cleanName.replace(/^(Harga|Jasa|Biaya|Tarif)\s*/i, '').trim();
     }
     
+    // ===== 2. FALLBACK: Jika URL tidak menghasilkan nama yang bagus, ambil dari H1 =====
     if (cleanName.length < 3) {
-        // Fallback ke document title
+        let h1Text = document.querySelector('h1')?.innerText?.trim();
+        if (h1Text && h1Text.length > 3) {
+            cleanName = h1Text
+                .replace(/\b(20[2-9][0-9])\b/g, '')
+                .replace(/\s*[–—\-|]\s*/g, ' ')
+                .replace(/^(Harga|Jasa|Biaya|Tarif|Estimasi)\s*/i, '')
+                .trim();
+        }
+    }
+    
+    // ===== 3. FALLBACK TERAKHIR: Document title =====
+    if (cleanName.length < 3) {
         let title = document.title
             .replace(/\b(20[2-9][0-9])\b/g, '')
             .replace(/\s*[–—\-|]\s*/g, ' ')
             .trim();
-        if (title.length > 3) return title;
-        return 'Halaman Utama';
+        if (title.length > 3) cleanName = title;
     }
     
+    // ===== 4. DEFAULT =====
+    if (cleanName.length < 3) {
+        cleanName = 'Halaman Utama';
+    }
+    
+    // Batasi panjang
     if (cleanName.length > 55) {
         cleanName = cleanName.substring(0, 52) + '...';
     }
     
+    console.log('[Schema v7.18] 📝 Clean page name from URL:', cleanName);
     return cleanName;
 }
 
@@ -218,7 +227,7 @@ function createImageWithText(pageName, level, year) {
     ctx.lineTo(width - padding, 72);
     ctx.stroke();
 
-    // ===== TEKS UTAMA — WRAP RAPI UNTUK TEKS PANJANG =====
+    // ===== TEKS UTAMA — DARI URL BERSIH =====
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -234,7 +243,7 @@ function createImageWithText(pageName, level, year) {
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 3;
 
-    // WRAP TEKS — otomatis pecah per kata
+    // WRAP TEKS
     const maxCharsPerLine = 24;
     const words = fullText.split(' ');
     let lines = [];
@@ -250,7 +259,6 @@ function createImageWithText(pageName, level, year) {
     }
     if (currentLine) lines.push(currentLine);
 
-    // Jika masih kepanjangan, paksa potong
     if (lines.length > 3) {
         const combined = fullText;
         lines = [];
@@ -331,7 +339,6 @@ function fixImagesToFormat1(pageLevel) {
     const pageName = getCleanPageName(pageLevel);
     const displayName = needYearFlag ? pageName + ' ' + currentYear : pageName;
 
-    // ===== CARI TEMPAT TARUH GAMBAR =====
     function getImageInsertionPoint() {
         let article = document.querySelector('article');
         if (!article) {
@@ -360,7 +367,6 @@ function fixImagesToFormat1(pageLevel) {
         return { container: article, referenceNode: null, position: 'first' };
     }
 
-    // ===== STYLE RESPONSIF UNTUK FIGURE =====
     function applyResponsiveStyles(figure, img) {
         figure.style.padding = '1em 0px';
         figure.style.margin = '20px 0';
@@ -411,11 +417,9 @@ function fixImagesToFormat1(pageLevel) {
         figure.setAttribute('data-auto-figure', 'true');
     }
 
-    // ===== CARI GAMBAR DI KONTEN =====
     let targetImage = null;
     let targetFigure = null;
 
-    // Cari gambar setelah H1
     const h1Element = document.querySelector('h1');
     if (h1Element) {
         const article = h1Element.closest('article, .post-body, main, section, div');
@@ -441,7 +445,6 @@ function fixImagesToFormat1(pageLevel) {
         }
     }
 
-    // Jika belum ketemu, cari di seluruh konten
     if (!targetImage) {
         const contentAreas = document.querySelectorAll('article, section, .post-body, main, .content, .entry-content');
         for (const area of contentAreas) {
@@ -457,26 +460,20 @@ function fixImagesToFormat1(pageLevel) {
     const autoImageDataUrl = createImageWithText(pageName, pageLevel, currentYear);
     const captionText = '📊 ' + displayName;
 
-    // ============================================================
-    // 🔥 KASUS 1: ADA GAMBAR — PERBAIKI AGAR SESUAI SEO 🔥
-    // ============================================================
+    // ===== KASUS 1: ADA GAMBAR — PERBAIKI =====
     if (targetImage) {
         console.log('[Schema v7.18 📸] Image found in content, fixing for SEO...');
 
         const img = targetImage;
         const figure = targetFigure || img.closest('figure');
 
-        // Update src dengan gambar auto-generated (jika perlu)
-        // TAPI: Jika gambar sudah bagus (bukan no-image), tetap pertahankan
         const currentSrc = img.src || '';
         if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
             img.src = autoImageDataUrl;
         } else {
-            // Jika gambar sudah ada, tetap pertahankan tapi update atribut
             console.log('[Schema v7.18 📸] Existing image preserved, only updating attributes');
         }
 
-        // Update ALT & TITLE (WAJIB)
         img.alt = displayName;
         img.title = displayName;
         img.setAttribute('loading', 'lazy');
@@ -485,7 +482,6 @@ function fixImagesToFormat1(pageLevel) {
         img.setAttribute('data-page-level', pageLevel);
         img.setAttribute('data-year', currentYear);
 
-        // Update atau buat FIGURE
         if (figure && figure.tagName === 'FIGURE') {
             applyResponsiveStyles(figure, img);
 
@@ -508,7 +504,6 @@ function fixImagesToFormat1(pageLevel) {
                 figcaption.style.textAlign = 'center';
             }
         } else {
-            // Bungkus dengan FIGURE
             console.log('[Schema v7.18 📸] Wrapping image with FIGURE...');
             const newFigure = document.createElement('figure');
             const parent = img.parentElement;
@@ -531,9 +526,7 @@ function fixImagesToFormat1(pageLevel) {
         return figure;
     }
 
-    // ============================================================
-    // 🔥 KASUS 2: TIDAK ADA GAMBAR — BUAT BARU 🔥
-    // ============================================================
+    // ===== KASUS 2: TIDAK ADA GAMBAR — BUAT BARU =====
     console.log('[Schema v7.18 📸] No image found, creating new responsive FIGURE...');
 
     const insertPoint = getImageInsertionPoint();
@@ -1056,11 +1049,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isEligible) {
             console.log(`[Schema v7.18] ✅ Halaman LAYAK mendapat gambar, memproses...`);
             try {
-                // CEK GAMBAR → perbaiki jika ada, buat jika tidak ada
                 fixImagesToFormat1(pageLevel);
-                // Update tahun di gambar
                 updateImageYear(pageLevel);
-                // Re-generate jika tahun kurang
                 regenerateImageWithNewYear(pageLevel);
             } catch(e) {
                 console.warn('[Schema v7.18 📸] Error processing images:', e);
