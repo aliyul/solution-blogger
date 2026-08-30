@@ -1,4 +1,4 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.17 — PLD EKSTERNAL + GAMBAR TETAP FIGURE + RESPONSIF + TULISAN JELAS */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.18 — CEK GAMBAR + FIGURE SEO + TEKS DARI URL BERSIH */
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -6,7 +6,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.17] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.18] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -15,14 +15,14 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.17] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.18] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
 };
 
 // ============================================================
-// 🔥🔥🔥 KONFIGURASI GAMBAR 🔥🔥🔥
+// 🔥🔥🔥 KONFIGURASI 🔥🔥🔥
 // ============================================================
 const IMAGE_CONFIG = {
   FALLBACK_IMAGE: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiWWAP6ezcmzgbGtHmmJqBjYkbsdQBrwCeC9pl9ocjL-VSQYftirdvXAF1T-eg_QMSqu1WiFidDc9fnChi0yaOqi0Dd6EVMy4ZX3P7vccY4XJMu-7k2TGVd5TS1wIG5jgIm_6beYVb2zuNQGS7eBuODJqd20c4ckvd0-HaEqGf4W-B_750I91wi9IhqqnI/s320/No_Image_Available.jpg",
@@ -30,7 +30,7 @@ const IMAGE_CONFIG = {
 };
 
 // ============================================================
-// 🔥🔥🔥 FUNGSI PENDUKUNG GAMBAR 🔥🔥🔥
+// 🔥🔥🔥 FUNGSI PENDUKUNG 🔥🔥🔥
 // ============================================================
 function getColorConfig(level) {
     const colors = {
@@ -69,21 +69,71 @@ function extractYear(text) {
     return match ? parseInt(match[1]) : null;
 }
 
-function getPageNameForImage(level) {
-    let title = document.querySelector('h1')?.innerText || document.title || window.location.pathname;
-    title = title.replace(/\b(20[2-9][0-9])\b/g, '').trim();
-    title = title.split(/\s*[–—\-|]\s*/)[0].trim();
-    if (level === 'pillar' || level === 'sub-pillar-tipe-1' || level === 'sub-pillar-tipe-2') {
-        title = title.replace(/^(Harga|Jasa)\s*/i, '').trim();
+// ============================================================
+// 🔥🔥🔥 AMBIL NAMA DARI URL BERSIH (TANPA /p/, TAHUN, BULAN) 🔥🔥🔥
+// ============================================================
+function getCleanPageName(level) {
+    // Ambil dari H1 dulu, jika ada
+    let h1Text = document.querySelector('h1')?.innerText?.trim();
+    if (h1Text && h1Text.length > 3 && h1Text.length < 120) {
+        let clean = h1Text
+            .replace(/\b(20[2-9][0-9])\b/g, '') // hapus tahun
+            .replace(/\s*[–—\-|]\s*/g, ' ') // hapus pemisah
+            .replace(/^(Harga|Jasa|Biaya|Tarif|Estimasi)\s*/i, '') // hapus prefix
+            .trim();
+        if (clean.length > 3) return clean;
     }
-    if (title.length > 55) title = title.substring(0, 52) + '...';
-    return title || 'Halaman Utama';
+
+    // Ambil dari URL
+    let path = window.location.pathname;
+    
+    // Hapus /p/ jika ada
+    path = path.replace(/^\/p\//, '');
+    
+    // Hapus tahun/bulan (contoh: /2019/08/)
+    path = path.replace(/\/\d{4}\/\d{2}\//g, '/');
+    
+    // Hapus ekstensi .html
+    path = path.replace(/\.html$/, '');
+    
+    // Ambil bagian terakhir URL
+    let segments = path.split('/').filter(s => s.length > 0);
+    let lastSegment = segments.length > 0 ? segments[segments.length - 1] : '';
+    
+    // Ubah dash/underscore jadi spasi
+    let cleanName = lastSegment.replace(/[-_]+/g, ' ');
+    
+    // Kapitalisasi setiap kata
+    cleanName = cleanName.replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+    
+    // Hapus angka beruntun di akhir
+    cleanName = cleanName.replace(/\s\d+$/, '');
+    
+    // Hapus kata "Harga" atau "Jasa" untuk level edukasi
+    if (level === 'pillar' || level === 'sub-pillar-tipe-1' || level === 'sub-pillar-tipe-2') {
+        cleanName = cleanName.replace(/^(Harga|Jasa|Biaya|Tarif)\s*/i, '').trim();
+    }
+    
+    if (cleanName.length < 3) {
+        // Fallback ke document title
+        let title = document.title
+            .replace(/\b(20[2-9][0-9])\b/g, '')
+            .replace(/\s*[–—\-|]\s*/g, ' ')
+            .trim();
+        if (title.length > 3) return title;
+        return 'Halaman Utama';
+    }
+    
+    if (cleanName.length > 55) {
+        cleanName = cleanName.substring(0, 52) + '...';
+    }
+    
+    return cleanName;
 }
 
 // ============================================================
-// 🔥🔥🔥 AUTO GENERATE GAMBAR DENGAN TEKS (CANVAS) 🔥🔥🔥
+// 🔥🔥🔥 AUTO GENERATE GAMBAR DARI CANVAS 🔥🔥🔥
 // ============================================================
-// Polyfill roundRect untuk browser lama
 if (!CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
         if (r > w/2) r = w/2;
@@ -116,7 +166,7 @@ function createImageWithText(pageName, level, year) {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
 
-    // ===== 1. BACKGROUND =====
+    // ===== BACKGROUND =====
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, colors.bg);
     gradient.addColorStop(0.5, colors.bg);
@@ -124,7 +174,7 @@ function createImageWithText(pageName, level, year) {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    // ===== 2. BORDER =====
+    // ===== BORDER =====
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.strokeStyle = colors.accent;
@@ -132,9 +182,7 @@ function createImageWithText(pageName, level, year) {
     const bPad = 15;
     ctx.strokeRect(bPad, bPad, width - (bPad * 2), height - (bPad * 2));
 
-    // ============================================================
-    // 🔥🔥🔥 TULISAN ATAS (LOGO) — JELAS 🔥🔥🔥
-    // ============================================================
+    // ===== TULISAN ATAS (LOGO) — JELAS =====
     const logoText = '🏗️ Beton Jaya Readymix';
     ctx.font = 'bold 18px Arial, sans-serif';
     const logoMetrics = ctx.measureText(logoText);
@@ -143,7 +191,6 @@ function createImageWithText(pageName, level, year) {
     const logoX = (width - logoWidth) / 2;
     const logoY = padding - 10;
 
-    // Background pill untuk logo
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -151,7 +198,6 @@ function createImageWithText(pageName, level, year) {
     ctx.roundRect(logoX, logoY, logoWidth, logoHeight, 18);
     ctx.fill();
 
-    // Text logo (JELAS 100% PUTIH)
     ctx.shadowColor = 'rgba(0,0,0,0.4)';
     ctx.shadowBlur = 8;
     ctx.shadowOffsetX = 1;
@@ -162,7 +208,7 @@ function createImageWithText(pageName, level, year) {
     ctx.textBaseline = 'middle';
     ctx.fillText(logoText, width / 2, padding + 8);
 
-    // ===== 3. GARIS PEMISAH =====
+    // ===== GARIS PEMISAH =====
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.strokeStyle = 'rgba(255,255,255,0.15)';
@@ -172,9 +218,7 @@ function createImageWithText(pageName, level, year) {
     ctx.lineTo(width - padding, 72);
     ctx.stroke();
 
-    // ============================================================
-    // 🔥🔥🔥 TEKS UTAMA (NAMA HALAMAN + TAHUN) 🔥🔥🔥
-    // ============================================================
+    // ===== TEKS UTAMA — WRAP RAPI UNTUK TEKS PANJANG =====
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -190,7 +234,7 @@ function createImageWithText(pageName, level, year) {
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 3;
 
-    // Wrap teks
+    // WRAP TEKS — otomatis pecah per kata
     const maxCharsPerLine = 24;
     const words = fullText.split(' ');
     let lines = [];
@@ -206,6 +250,7 @@ function createImageWithText(pageName, level, year) {
     }
     if (currentLine) lines.push(currentLine);
 
+    // Jika masih kepanjangan, paksa potong
     if (lines.length > 3) {
         const combined = fullText;
         lines = [];
@@ -247,9 +292,7 @@ function createImageWithText(pageName, level, year) {
         });
     }
 
-    // ============================================================
-    // 🔥🔥🔥 TULISAN BAWAH (WATERMARK) — JELAS 🔥🔥🔥
-    // ============================================================
+    // ===== TULISAN BAWAH (WATERMARK) — JELAS =====
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
@@ -263,13 +306,11 @@ function createImageWithText(pageName, level, year) {
     const wmX = (width - wmWidth) / 2;
     const wmY = height - padding + 2;
 
-    // Background pill untuk watermark
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.beginPath();
     ctx.roundRect(wmX, wmY, wmWidth, wmHeight, 14);
     ctx.fill();
 
-    // Text watermark (JELAS 70% PUTIH)
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.font = '13px Arial, sans-serif';
     ctx.textAlign = 'center';
@@ -280,147 +321,225 @@ function createImageWithText(pageName, level, year) {
 }
 
 // ============================================================
-// 🔥🔥🔥 AUTO FIX GAMBAR — TETAP FIGURE + RESPONSIF 🔥🔥🔥
+// 🔥🔥🔥 CEK & PERBAIKI GAMBAR — TETAP FIGURE + RESPONSIF 🔥🔥🔥
 // ============================================================
 function fixImagesToFormat1(pageLevel) {
-  console.log('[Schema v7.17 📸] Fixing images (tetap FIGURE, responsif, tulisan jelas)...');
+    console.log('[Schema v7.18 📸] Checking images in content...');
 
-  const h1Element = document.querySelector('h1');
-  const h1Text = h1Element ? h1Element.textContent.trim() : document.title;
-  const currentYear = getCurrentYear();
-  const needYearFlag = needYear(pageLevel);
-  const pageName = getPageNameForImage(pageLevel);
-  const displayName = needYearFlag ? pageName + ' ' + currentYear : pageName;
+    const currentYear = getCurrentYear();
+    const needYearFlag = needYear(pageLevel);
+    const pageName = getCleanPageName(pageLevel);
+    const displayName = needYearFlag ? pageName + ' ' + currentYear : pageName;
 
-  // ===== STYLE RESPONSIF UNTUK FIGURE =====
-  function applyResponsiveStyles(figure, img) {
-    // Figure responsive
-    figure.style.padding = '1em 0px';
-    figure.style.margin = '20px 0';
-    figure.style.textAlign = 'center';
-    figure.style.background = '#f8fafc';
-    figure.style.borderRadius = '12px';
-    figure.style.width = '100%';
-    figure.style.maxWidth = '100%';
-    figure.style.display = 'block';
-    figure.style.overflow = 'hidden';
-
-    // Image responsive
-    img.style.width = '100%';
-    img.style.maxWidth = '820px';
-    img.style.height = 'auto';
-    img.style.aspectRatio = '820/360';
-    img.style.objectFit = 'contain';
-    img.style.borderRadius = '8px';
-    img.style.display = 'block';
-    img.style.margin = '0 auto';
-    img.style.padding = '0 10px';
-    img.style.boxSizing = 'border-box';
-
-    // Tambahkan media query untuk layar kecil
-    const styleId = 'responsive-image-style';
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement('style');
-      style.id = styleId;
-      style.textContent = `
-        @media (max-width: 820px) {
-          figure[data-auto-figure="true"] img {
-            max-width: 100% !important;
-            height: auto !important;
-            aspect-ratio: auto !important;
-          }
-          figure[data-auto-figure="true"] {
-            padding: 0.5em 0px !important;
-            margin: 10px 0 !important;
-          }
+    // ===== CARI TEMPAT TARUH GAMBAR =====
+    function getImageInsertionPoint() {
+        let article = document.querySelector('article');
+        if (!article) {
+            const candidates = ['.post-body', 'main', '.content', '.entry-content', '.post-content', '.article-content', '.blog-post'];
+            for (let selector of candidates) {
+                const el = document.querySelector(selector);
+                if (el) { article = el; break; }
+            }
         }
-        @media (max-width: 480px) {
-          figure[data-auto-figure="true"] figcaption {
-            font-size: 12px !important;
-            padding: 0 10px !important;
-          }
+        if (!article) {
+            const h1 = document.querySelector('h1');
+            if (h1) article = h1.closest('section, div, main');
         }
-      `;
-      document.head.appendChild(style);
-    }
+        if (!article) article = document.body;
 
-    figure.setAttribute('data-auto-figure', 'true');
-  }
-
-  // ===== CARI TEMPAT TARUH GAMBAR =====
-  function getImageInsertionPoint() {
-    let article = document.querySelector('article');
-    if (!article) {
-      const candidates = ['.post-body', 'main', '.content', '.entry-content', '.post-content', '.article-content', '.blog-post'];
-      for (let selector of candidates) {
-        const el = document.querySelector(selector);
-        if (el) { article = el; break; }
-      }
-    }
-    if (!article && h1Element) {
-      article = h1Element.closest('section, div, main');
-    }
-    if (!article) {
-      article = document.body;
-    }
-
-    const badge = article.querySelector('.update-badge, .update-badge-class, [class*="update-badge"]');
-    if (badge && badge.parentElement === article) {
-      return { container: article, referenceNode: badge, position: 'after' };
-    }
-
-    const firstChild = article.firstElementChild;
-    if (firstChild && firstChild.tagName === 'H1') {
-      return { container: article, referenceNode: firstChild, position: 'after' };
-    }
-
-    return { container: article, referenceNode: null, position: 'first' };
-  }
-
-  // ===== CARI GAMBAR YANG SUDAH ADA =====
-  let targetImage = null;
-  let targetFigure = null;
-
-  if (h1Element) {
-    const article = h1Element.closest('article, .post-body, main, section, div');
-    if (article) {
-      const siblings = article.children;
-      let foundH1 = false;
-      for (let i = 0; i < siblings.length; i++) {
-        if (siblings[i] === h1Element) { foundH1 = true; continue; }
-        if (foundH1) {
-          const img = siblings[i].querySelector('img');
-          if (img) { targetImage = img; targetFigure = siblings[i].tagName === 'FIGURE' ? siblings[i] : siblings[i].closest('figure'); break; }
-          if (siblings[i].tagName === 'FIGURE' && siblings[i].querySelector('img')) {
-            targetImage = siblings[i].querySelector('img');
-            targetFigure = siblings[i];
-            break;
-          }
+        const badge = article.querySelector('.update-badge, .update-badge-class, [class*="update-badge"]');
+        if (badge && badge.parentElement === article) {
+            return { container: article, referenceNode: badge, position: 'after' };
         }
-      }
+
+        const firstChild = article.firstElementChild;
+        if (firstChild && firstChild.tagName === 'H1') {
+            return { container: article, referenceNode: firstChild, position: 'after' };
+        }
+
+        return { container: article, referenceNode: null, position: 'first' };
     }
-  }
 
-  if (!targetImage) {
-    const contentAreas = document.querySelectorAll('article, section, .post-body, main, .content, .entry-content');
-    for (const area of contentAreas) {
-      const img = area.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
-      if (img) { targetImage = img; targetFigure = img.closest('figure'); break; }
+    // ===== STYLE RESPONSIF UNTUK FIGURE =====
+    function applyResponsiveStyles(figure, img) {
+        figure.style.padding = '1em 0px';
+        figure.style.margin = '20px 0';
+        figure.style.textAlign = 'center';
+        figure.style.background = '#f8fafc';
+        figure.style.borderRadius = '12px';
+        figure.style.width = '100%';
+        figure.style.maxWidth = '100%';
+        figure.style.display = 'block';
+        figure.style.overflow = 'hidden';
+
+        img.style.width = '100%';
+        img.style.maxWidth = '820px';
+        img.style.height = 'auto';
+        img.style.aspectRatio = '820/360';
+        img.style.objectFit = 'contain';
+        img.style.borderRadius = '8px';
+        img.style.display = 'block';
+        img.style.margin = '0 auto';
+        img.style.padding = '0 10px';
+        img.style.boxSizing = 'border-box';
+
+        const styleId = 'responsive-image-style';
+        if (!document.getElementById(styleId)) {
+            const style = document.createElement('style');
+            style.id = styleId;
+            style.textContent = `
+                @media (max-width: 820px) {
+                    figure[data-auto-figure="true"] img {
+                        max-width: 100% !important;
+                        height: auto !important;
+                        aspect-ratio: auto !important;
+                    }
+                    figure[data-auto-figure="true"] {
+                        padding: 0.5em 0px !important;
+                        margin: 10px 0 !important;
+                    }
+                }
+                @media (max-width: 480px) {
+                    figure[data-auto-figure="true"] figcaption {
+                        font-size: 12px !important;
+                        padding: 0 10px !important;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        figure.setAttribute('data-auto-figure', 'true');
     }
-  }
 
-  // ===== GENERATE GAMBAR OTOMATIS =====
-  const autoImageDataUrl = createImageWithText(pageName, pageLevel, currentYear);
-  const captionText = '📊 ' + displayName;
+    // ===== CARI GAMBAR DI KONTEN =====
+    let targetImage = null;
+    let targetFigure = null;
 
-  // ===== JIKA TIDAK ADA GAMBAR, BUAT FIGURE BARU =====
-  if (!targetImage) {
-    console.log('[Schema v7.17 📸] No image found, creating new responsive FIGURE...');
-    
+    // Cari gambar setelah H1
+    const h1Element = document.querySelector('h1');
+    if (h1Element) {
+        const article = h1Element.closest('article, .post-body, main, section, div');
+        if (article) {
+            const siblings = article.children;
+            let foundH1 = false;
+            for (let i = 0; i < siblings.length; i++) {
+                if (siblings[i] === h1Element) { foundH1 = true; continue; }
+                if (foundH1) {
+                    const img = siblings[i].querySelector('img');
+                    if (img) {
+                        targetImage = img;
+                        targetFigure = siblings[i].tagName === 'FIGURE' ? siblings[i] : siblings[i].closest('figure');
+                        break;
+                    }
+                    if (siblings[i].tagName === 'FIGURE' && siblings[i].querySelector('img')) {
+                        targetImage = siblings[i].querySelector('img');
+                        targetFigure = siblings[i];
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Jika belum ketemu, cari di seluruh konten
+    if (!targetImage) {
+        const contentAreas = document.querySelectorAll('article, section, .post-body, main, .content, .entry-content');
+        for (const area of contentAreas) {
+            const img = area.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
+            if (img) {
+                targetImage = img;
+                targetFigure = img.closest('figure');
+                break;
+            }
+        }
+    }
+
+    const autoImageDataUrl = createImageWithText(pageName, pageLevel, currentYear);
+    const captionText = '📊 ' + displayName;
+
+    // ============================================================
+    // 🔥 KASUS 1: ADA GAMBAR — PERBAIKI AGAR SESUAI SEO 🔥
+    // ============================================================
+    if (targetImage) {
+        console.log('[Schema v7.18 📸] Image found in content, fixing for SEO...');
+
+        const img = targetImage;
+        const figure = targetFigure || img.closest('figure');
+
+        // Update src dengan gambar auto-generated (jika perlu)
+        // TAPI: Jika gambar sudah bagus (bukan no-image), tetap pertahankan
+        const currentSrc = img.src || '';
+        if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
+            img.src = autoImageDataUrl;
+        } else {
+            // Jika gambar sudah ada, tetap pertahankan tapi update atribut
+            console.log('[Schema v7.18 📸] Existing image preserved, only updating attributes');
+        }
+
+        // Update ALT & TITLE (WAJIB)
+        img.alt = displayName;
+        img.title = displayName;
+        img.setAttribute('loading', 'lazy');
+        img.setAttribute('decoding', 'async');
+        img.setAttribute('data-auto-generated', 'true');
+        img.setAttribute('data-page-level', pageLevel);
+        img.setAttribute('data-year', currentYear);
+
+        // Update atau buat FIGURE
+        if (figure && figure.tagName === 'FIGURE') {
+            applyResponsiveStyles(figure, img);
+
+            let figcaption = figure.querySelector('figcaption');
+            if (!figcaption) {
+                figcaption = document.createElement('figcaption');
+                figcaption.style.color = '#555';
+                figcaption.style.fontSize = '14px';
+                figcaption.style.marginTop = '10px';
+                figcaption.style.padding = '0 20px';
+                figcaption.style.textAlign = 'center';
+                figcaption.textContent = captionText;
+                figure.appendChild(figcaption);
+            } else {
+                figcaption.textContent = captionText;
+                figcaption.style.color = '#555';
+                figcaption.style.fontSize = '14px';
+                figcaption.style.marginTop = '10px';
+                figcaption.style.padding = '0 20px';
+                figcaption.style.textAlign = 'center';
+            }
+        } else {
+            // Bungkus dengan FIGURE
+            console.log('[Schema v7.18 📸] Wrapping image with FIGURE...');
+            const newFigure = document.createElement('figure');
+            const parent = img.parentElement;
+            parent.insertBefore(newFigure, img);
+            newFigure.appendChild(img);
+
+            const figcaption = document.createElement('figcaption');
+            figcaption.style.color = '#555';
+            figcaption.style.fontSize = '14px';
+            figcaption.style.marginTop = '10px';
+            figcaption.style.padding = '0 20px';
+            figcaption.style.textAlign = 'center';
+            figcaption.textContent = captionText;
+            newFigure.appendChild(figcaption);
+
+            applyResponsiveStyles(newFigure, img);
+        }
+
+        console.log('[Schema v7.18 📸] ✅ Image fixed with SEO FIGURE');
+        return figure;
+    }
+
+    // ============================================================
+    // 🔥 KASUS 2: TIDAK ADA GAMBAR — BUAT BARU 🔥
+    // ============================================================
+    console.log('[Schema v7.18 📸] No image found, creating new responsive FIGURE...');
+
     const insertPoint = getImageInsertionPoint();
     const figure = document.createElement('figure');
     const img = document.createElement('img');
-    
+
     img.src = autoImageDataUrl;
     img.alt = displayName;
     img.title = displayName;
@@ -440,79 +559,16 @@ function fixImagesToFormat1(pageLevel) {
 
     figure.appendChild(img);
     figure.appendChild(figcaption);
-
     applyResponsiveStyles(figure, img);
 
     if (insertPoint.referenceNode && insertPoint.position === 'after') {
-      insertPoint.container.insertBefore(figure, insertPoint.referenceNode.nextSibling);
+        insertPoint.container.insertBefore(figure, insertPoint.referenceNode.nextSibling);
     } else {
-      insertPoint.container.insertBefore(figure, insertPoint.container.firstChild);
+        insertPoint.container.insertBefore(figure, insertPoint.container.firstChild);
     }
 
-    console.log('[Schema v7.17 📸] ✅ Responsive FIGURE created');
+    console.log('[Schema v7.18 📸] ✅ New responsive FIGURE created');
     return figure;
-  }
-
-  // ============================================================
-  // PERBAIKI GAMBAR YANG ADA — TETAP FIGURE + RESPONSIF
-  // ============================================================
-  console.log('[Schema v7.17 📸] Fixing existing image (responsif)...');
-
-  const img = targetImage;
-  const figure = targetFigure || img.closest('figure');
-
-  img.src = autoImageDataUrl;
-  img.alt = displayName;
-  img.title = displayName;
-  img.setAttribute('loading', 'lazy');
-  img.setAttribute('decoding', 'async');
-  img.setAttribute('data-auto-generated', 'true');
-  img.setAttribute('data-page-level', pageLevel);
-  img.setAttribute('data-year', currentYear);
-
-  if (figure && figure.tagName === 'FIGURE') {
-    applyResponsiveStyles(figure, img);
-
-    let figcaption = figure.querySelector('figcaption');
-    if (!figcaption) {
-      figcaption = document.createElement('figcaption');
-      figcaption.style.color = '#555';
-      figcaption.style.fontSize = '14px';
-      figcaption.style.marginTop = '10px';
-      figcaption.style.padding = '0 20px';
-      figcaption.style.textAlign = 'center';
-      figcaption.textContent = captionText;
-      figure.appendChild(figcaption);
-    } else {
-      figcaption.textContent = captionText;
-      figcaption.style.color = '#555';
-      figcaption.style.fontSize = '14px';
-      figcaption.style.marginTop = '10px';
-      figcaption.style.padding = '0 20px';
-      figcaption.style.textAlign = 'center';
-    }
-  } else {
-    console.log('[Schema v7.17 📸] Wrapping image with responsive FIGURE...');
-    
-    const newFigure = document.createElement('figure');
-    const parent = img.parentElement;
-    parent.insertBefore(newFigure, img);
-    newFigure.appendChild(img);
-
-    const figcaption = document.createElement('figcaption');
-    figcaption.style.color = '#555';
-    figcaption.style.fontSize = '14px';
-    figcaption.style.marginTop = '10px';
-    figcaption.style.padding = '0 20px';
-    figcaption.style.textAlign = 'center';
-    figcaption.textContent = captionText;
-    newFigure.appendChild(figcaption);
-
-    applyResponsiveStyles(newFigure, img);
-  }
-
-  console.log('[Schema v7.17 📸] ✅ Image fixed, responsive FIGURE');
-  return figure;
 }
 
 // ============================================================
@@ -520,14 +576,14 @@ function fixImagesToFormat1(pageLevel) {
 // ============================================================
 function updateH1Year(pageLevel) {
     if (!needYear(pageLevel)) {
-        console.log('[Schema v7.17] ⏭️ Level ini TIDAK butuh tahun di H1');
+        console.log('[Schema v7.18] ⏭️ Level ini TIDAK butuh tahun di H1');
         return false;
     }
 
     const currentYear = getCurrentYear();
     const h1 = document.querySelector('h1');
     if (!h1) {
-        console.log('[Schema v7.17] ⚠️ Tidak ada H1 ditemukan');
+        console.log('[Schema v7.18] ⚠️ Tidak ada H1 ditemukan');
         return false;
     }
 
@@ -537,18 +593,18 @@ function updateH1Year(pageLevel) {
     if (!detectedYear) {
         const newText = originalText + ' ' + currentYear;
         h1.innerText = newText;
-        console.log('[Schema v7.17] ✅ H1: Tahun ditambahkan → "' + newText + '"');
+        console.log('[Schema v7.18] ✅ H1: Tahun ditambahkan → "' + newText + '"');
         return true;
     }
 
     if (detectedYear < currentYear) {
         const newText = originalText.replace(/\b(20[2-9][0-9])\b/, currentYear);
         h1.innerText = newText;
-        console.log('[Schema v7.17] ✅ H1: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
+        console.log('[Schema v7.18] ✅ H1: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
         return true;
     }
 
-    console.log('[Schema v7.17] ✅ H1: Tahun sudah sesuai (' + detectedYear + ')');
+    console.log('[Schema v7.18] ✅ H1: Tahun sudah sesuai (' + detectedYear + ')');
     return true;
 }
 
@@ -557,7 +613,7 @@ function updateH1Year(pageLevel) {
 // ============================================================
 function updateImageYear(pageLevel) {
     if (!needYear(pageLevel)) {
-        console.log('[Schema v7.17] ⏭️ Level ini TIDAK butuh tahun di gambar');
+        console.log('[Schema v7.18] ⏭️ Level ini TIDAK butuh tahun di gambar');
         return false;
     }
 
@@ -575,7 +631,7 @@ function updateImageYear(pageLevel) {
             const newTitle = title + ' ' + currentYear;
             img.setAttribute('alt', newAlt);
             img.setAttribute('title', newTitle);
-            console.log('[Schema v7.17] ✅ Gambar: Tahun ditambahkan → "' + newAlt + '"');
+            console.log('[Schema v7.18] ✅ Gambar: Tahun ditambahkan → "' + newAlt + '"');
             updatedCount++;
             return;
         }
@@ -585,28 +641,28 @@ function updateImageYear(pageLevel) {
             const newTitle = title.replace(/\b(20[2-9][0-9])\b/, currentYear);
             img.setAttribute('alt', newAlt);
             img.setAttribute('title', newTitle);
-            console.log('[Schema v7.17] ✅ Gambar: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
+            console.log('[Schema v7.18] ✅ Gambar: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
             updatedCount++;
         }
     });
 
     if (updatedCount === 0) {
-        console.log('[Schema v7.17] ✅ Gambar: Tidak ada yang perlu diupdate');
+        console.log('[Schema v7.18] ✅ Gambar: Tidak ada yang perlu diupdate');
     }
     return updatedCount > 0;
 }
 
 // ============================================================
-// 🔥🔥🔥 AUTO UPDATE GAMBAR (RE-GENERATE) 🔥🔥🔥
+// 🔥🔥🔥 AUTO RE-GENERATE GAMBAR 🔥🔥🔥
 // ============================================================
 function regenerateImageWithNewYear(pageLevel) {
     if (!needYear(pageLevel)) {
-        console.log('[Schema v7.17] ⏭️ Level ini TIDAK butuh re-generate gambar');
+        console.log('[Schema v7.18] ⏭️ Level ini TIDAK butuh re-generate gambar');
         return false;
     }
 
     const currentYear = getCurrentYear();
-    const pageName = getPageNameForImage(pageLevel);
+    const pageName = getCleanPageName(pageLevel);
     const images = document.querySelectorAll('img[data-auto-generated="true"]');
     let regenCount = 0;
 
@@ -620,7 +676,7 @@ function regenerateImageWithNewYear(pageLevel) {
             img.setAttribute('alt', pageName + ' ' + currentYear);
             img.setAttribute('title', pageName + ' ' + currentYear);
             img.setAttribute('data-year', currentYear);
-            
+
             const figure = img.closest('figure');
             if (figure) {
                 const figcaption = figure.querySelector('figcaption');
@@ -628,14 +684,14 @@ function regenerateImageWithNewYear(pageLevel) {
                     figcaption.textContent = '📊 ' + pageName + ' ' + currentYear;
                 }
             }
-            
-            console.log('[Schema v7.17] ✅ Gambar: Re-generate dengan tahun ' + currentYear);
+
+            console.log('[Schema v7.18] ✅ Gambar: Re-generate dengan tahun ' + currentYear);
             regenCount++;
         }
     });
 
     if (regenCount === 0) {
-        console.log('[Schema v7.17] ✅ Gambar: Tidak ada yang perlu di-regen');
+        console.log('[Schema v7.18] ✅ Gambar: Tidak ada yang perlu di-regen');
     }
     return regenCount > 0;
 }
@@ -644,17 +700,17 @@ function regenerateImageWithNewYear(pageLevel) {
 // 🔥🔥🔥 DETEKSI HALAMAN LAYAK GAMBAR 🔥🔥🔥
 // ============================================================
 function isImageEligible(pageLevel) {
-    console.log('[Schema v7.17 📸] Checking image eligibility for page level:', pageLevel);
+    console.log('[Schema v7.18 📸] Checking image eligibility for page level:', pageLevel);
 
     if (pageLevel === 'pillar') {
         const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
         const title = document.title.toLowerCase();
         const combined = h1 + " " + title;
-        
+
         const pillarEdukasi = ["panduan", "tips", "cara", "apa itu", "pengertian", "definisi", "overview", "komprehensif", "langkah", "tutorial", "pedoman", "petunjuk", "kenali", "mengenal", "memahami", "belajar"];
         for (let keyword of pillarEdukasi) {
             if (combined.includes(keyword)) {
-                console.log(`[Schema v7.17] ⏭️ Skip gambar: Pillar edukasi murni (keyword: "${keyword}")`);
+                console.log(`[Schema v7.18] ⏭️ Skip gambar: Pillar edukasi murni (keyword: "${keyword}")`);
                 return false;
             }
         }
@@ -662,35 +718,35 @@ function isImageEligible(pageLevel) {
     }
 
     if (pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2' || pageLevel === 'variant' || pageLevel === 'sub-variant') {
-        console.log(`[Schema v7.17] ✅ Halaman LAYAK mendapat gambar (level: ${pageLevel})`);
+        console.log(`[Schema v7.18] ✅ Halaman LAYAK mendapat gambar (level: ${pageLevel})`);
         return true;
     }
 
     const content = document.querySelector(".post-body, article, main")?.innerText || "";
     const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
     if (wordCount < 300) {
-        console.log(`[Schema v7.17] ⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata < 300)`);
+        console.log(`[Schema v7.18] ⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata < 300)`);
         return false;
     }
 
     const moneyLevels = ['money-master', 'money-page', 'money-child'];
     if (moneyLevels.includes(pageLevel)) {
-        console.log(`[Schema v7.17] ✅ Halaman LAYAK mendapat gambar (level: ${pageLevel})`);
+        console.log(`[Schema v7.18] ✅ Halaman LAYAK mendapat gambar (level: ${pageLevel})`);
         return true;
     }
 
     const hasImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
     if (hasImage) {
-        console.log(`[Schema v7.17] ✅ Halaman sudah memiliki gambar, tetap layak`);
+        console.log(`[Schema v7.18] ✅ Halaman sudah memiliki gambar, tetap layak`);
         return true;
     }
 
-    console.log(`[Schema v7.17] ⏭️ Skip gambar: Halaman tidak masuk kriteria layak`);
+    console.log(`[Schema v7.18] ⏭️ Skip gambar: Halaman tidak masuk kriteria layak`);
     return false;
 }
 
 // ============================================================
-// 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD EKSTERNAL 🔥🔥🔥
+// 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD 🔥🔥🔥
 // ============================================================
 function getPageLevelFromPLD() {
     const pldVersions = [
@@ -707,29 +763,25 @@ function getPageLevelFromPLD() {
             try {
                 const level = pld.obj.detect();
                 if (level) {
-                    console.log(`[Schema v7.17] Page Level dari PLD ${pld.name}: ${level}`);
+                    console.log(`[Schema v7.18] Page Level dari PLD ${pld.name}: ${level}`);
                     return level;
                 }
             } catch(e) {
-                console.warn(`[Schema v7.17] Error calling PLD ${pld.name}:`, e.message);
+                console.warn(`[Schema v7.18] Error calling PLD ${pld.name}:`, e.message);
             }
         }
     }
 
-    const bodyLevel = document.body.getAttribute('data-page-level') || 
-                      document.body.getAttribute('data-schema-page-level');
+    const bodyLevel = document.body.getAttribute('data-page-level') || document.body.getAttribute('data-schema-page-level');
     if (bodyLevel) {
-        console.log(`[Schema v7.17] Page Level dari body attribute: ${bodyLevel}`);
+        console.log(`[Schema v7.18] Page Level dari body attribute: ${bodyLevel}`);
         return bodyLevel;
     }
 
-    console.log('[Schema v7.17] PLD tidak tersedia, menggunakan fallback detection');
+    console.log('[Schema v7.18] PLD tidak tersedia, menggunakan fallback detection');
     return detectPageLevelFallback();
 }
 
-// ============================================================
-// 🔥🔥🔥 FALLBACK DETECTION 🔥🔥🔥
-// ============================================================
 function detectPageLevelFallback() {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
     const title = document.title.toLowerCase();
@@ -737,9 +789,7 @@ function detectPageLevelFallback() {
 
     const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom"];
     for (let pattern of variantPatterns) {
-        if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) {
-            return "variant";
-        }
+        if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) return "variant";
     }
 
     const locations = ["jakarta", "bekasi", "bogor", "depok", "tangerang", "karawang", "surabaya", "bandung"];
@@ -755,9 +805,6 @@ function detectPageLevelFallback() {
     return "pillar";
 }
 
-// ============================================================
-// 🔥🔥🔥 MENUNGGU PLD READY 🔥🔥🔥
-// ============================================================
 function waitForPLD() {
     return new Promise((resolve) => {
         if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
@@ -767,11 +814,7 @@ function waitForPLD() {
             return;
         }
 
-        const onReady = () => {
-            console.log('[Schema v7.17] PLD ready (event)');
-            resolve(true);
-        };
-
+        const onReady = () => { console.log('[Schema v7.18] PLD ready (event)'); resolve(true); };
         window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
         window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
         window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
@@ -781,10 +824,10 @@ function waitForPLD() {
             if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
                 window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
                 window.pageLevelDetectorV17 || window.pageLevelDetector) {
-                console.log('[Schema v7.17] PLD ready (timeout)');
+                console.log('[Schema v7.18] PLD ready (timeout)');
                 resolve(true);
             } else {
-                console.log('[Schema v7.17] PLD timeout, using fallback');
+                console.log('[Schema v7.18] PLD timeout, using fallback');
                 resolve(false);
             }
         }, 5000);
@@ -792,15 +835,11 @@ function waitForPLD() {
 }
 
 // ============================================================
-// 🔥🔥🔥 FUNGSI LAINNYA (DARI SCHEMA ORIGINAL) 🔥🔥🔥
+// 🔥🔥🔥 FUNGSI SCHEMA LAINNYA 🔥🔥🔥
 // ============================================================
 function hasPriceOnPage() {
     const text = document.body.innerText;
-    const pricePatterns = [
-        /Rp\s*[\d.,]+/, /Rp[\d.,]+/, /harga\s*Rp/i, /biaya\s*Rp/i,
-        /mulai\s*Rp/i, /Rp\s*[\d.,]+\s*-\s*Rp\s*[\d.,]+/
-    ];
-    return pricePatterns.some(pattern => pattern.test(text));
+    return /Rp\s*[\d.,]+/.test(text);
 }
 
 function getParentFromBreadcrumb(currentUrl) {
@@ -849,11 +888,6 @@ function getParentFromBreadcrumb(currentUrl) {
 
 function detectKnowsAbout() {
     const knowsAbout = [];
-    const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
-    const title = document.title.toLowerCase();
-    const url = location.href.toLowerCase();
-    const fullText = document.body.innerText.toLowerCase() + " " + h1 + " " + title + " " + url;
-
     document.querySelectorAll('.breadcrumbs a, .breadcrumb a, .nav-trail a').forEach(link => {
         const name = link.innerText?.trim();
         if (name && name.length > 2 && name.length < 50) {
@@ -861,7 +895,6 @@ function detectKnowsAbout() {
             if (!skipLabels.includes(name.toLowerCase())) knowsAbout.push(name);
         }
     });
-
     const result = [...new Set(knowsAbout)].slice(0, 10);
     if (result.length === 0) return ['Jasa Konstruksi', 'Beton Precast'];
     return result;
@@ -1006,46 +1039,37 @@ function generateInternalLinks() {
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
-        let schemaInjected = false;
-
-        // ============================================================
-        // STEP 0: TUNGGU PLD
-        // ============================================================
+        // ===== STEP 0: TUNGGU PLD =====
         await waitForPLD();
 
-        // ============================================================
-        // STEP 1: DAPATKAN PAGE LEVEL DARI PLD
-        // ============================================================
+        // ===== STEP 1: DAPATKAN PAGE LEVEL =====
         const pageLevel = getPageLevelFromPLD();
-        console.log(`[Schema v7.17] Page Level terdeteksi: ${pageLevel}`);
+        console.log(`[Schema v7.18] Page Level terdeteksi: ${pageLevel}`);
 
-        // ============================================================
-        // STEP 2: AUTO UPDATE TAHUN DI KONTEN
-        // ============================================================
-        console.log('[Schema v7.17] 📅 UPDATE TAHUN DI KONTEN:');
+        // ===== STEP 2: UPDATE TAHUN DI H1 =====
+        console.log('[Schema v7.18] 📅 UPDATE TAHUN DI KONTEN:');
         updateH1Year(pageLevel);
 
-        // ============================================================
-        // STEP 3: AUTO GENERATE / UPDATE GAMBAR
-        // ============================================================
+        // ===== STEP 3: CEK & PERBAIKI GAMBAR =====
         const isEligible = isImageEligible(pageLevel);
 
         if (isEligible) {
-            console.log(`[Schema v7.17] ✅ Halaman LAYAK mendapat gambar, memproses...`);
+            console.log(`[Schema v7.18] ✅ Halaman LAYAK mendapat gambar, memproses...`);
             try {
+                // CEK GAMBAR → perbaiki jika ada, buat jika tidak ada
                 fixImagesToFormat1(pageLevel);
+                // Update tahun di gambar
                 updateImageYear(pageLevel);
+                // Re-generate jika tahun kurang
                 regenerateImageWithNewYear(pageLevel);
             } catch(e) {
-                console.warn('[Schema v7.17 📸] Error processing images:', e);
+                console.warn('[Schema v7.18 📸] Error processing images:', e);
             }
         } else {
-            console.log(`[Schema v7.17] ⏭️ Halaman TIDAK LAYAK mendapat gambar, skip`);
+            console.log(`[Schema v7.18] ⏭️ Halaman TIDAK LAYAK mendapat gambar, skip`);
         }
 
-        // ============================================================
-        // STEP 4: INJECT SCHEMA
-        // ============================================================
+        // ===== STEP 4: INJECT SCHEMA =====
         const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
         const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
         const baseUrl = ogUrl || canonical || location.href;
@@ -1169,7 +1193,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 };
             }
             graph.push(serviceNode);
-            console.log(`[Schema v7.17] ✅ Service schema (jasa/layanan/sewa/rental)`);
+            console.log(`[Schema v7.18] ✅ Service schema (jasa/layanan/sewa/rental)`);
 
             if (hasPrice && tableOffers.length > 0) {
                 const lowPrice = Math.min(...tableOffers.map(o => o.price));
@@ -1204,12 +1228,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 };
                 graph.push(productNode);
-                console.log(`[Schema v7.17] ✅ Product schema (${tableOffers.length} offers)`);
+                console.log(`[Schema v7.18] ✅ Product schema (${tableOffers.length} offers)`);
             } else {
-                console.log(`[Schema v7.17] ⏭️ Skip Product schema (tidak ada harga/offers)`);
+                console.log(`[Schema v7.18] ⏭️ Skip Product schema (tidak ada harga/offers)`);
             }
         } else {
-            console.log(`[Schema v7.17] ⏭️ Skip Service schema (bukan jasa)`);
+            console.log(`[Schema v7.18] ⏭️ Skip Service schema (bukan jasa)`);
         }
 
         const internalLinks = generateInternalLinks();
@@ -1222,7 +1246,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 numberOfItems: internalLinks.length,
                 itemListElement: internalLinks
             });
-            console.log(`[Schema v7.17] ✅ ${internalLinks.length} internal links added`);
+            console.log(`[Schema v7.18] ✅ ${internalLinks.length} internal links added`);
         }
 
         const schema = { "@context": "https://schema.org", "@graph": graph };
@@ -1236,10 +1260,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         el.textContent = JSON.stringify(schema, null, 2);
 
-        console.log(`[Schema v7.17 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
+        console.log(`[Schema v7.18 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
             `Service: ${isService ? '✅' : '❌'} | Product: ${(isService && hasPrice && tableOffers.length > 0) ? '✅' : '❌'} | ` +
             `Internal Links: ${internalLinks.length} | KnowsAbout: ${knowsAbout.length} | ` +
-            `Image Eligible: ${isEligible ? '✅' : '❌'} | Auto Image: ✅ | Auto Year: ✅ | Figure: ✅ TETAP | Responsif: ✅ | CORB: ✅ ZERO`
+            `Image Eligible: ${isEligible ? '✅' : '❌'} | Auto Image: ✅ | Auto Year: ✅ | Figure: ✅ SEO | Responsif: ✅ | CORB: ✅ ZERO`
         );
 
     }, 700);
