@@ -1,20 +1,21 @@
 /**
- * ⚡ AutoSchema Hybrid v4.64 — AUTO GENERATE GAMBAR + AUTO UPDATE TAHUN + FOKUS PRODUK & MATERIAL
+ * ⚡ AutoSchema Hybrid v4.65 — GAMBAR TETAP FIGURE + AUTO GENERATE + AUTO UPDATE TAHUN
  * 
- * UPDATE v4.64:
+ * UPDATE v4.65:
+ * - FIX: Gambar tetap menggunakan format FIGURE (tidak diubah strukturnya)
+ * - FIX: Hanya mengganti src, alt, title, dan figcaption
+ * - FIX: Figure tetap mempertahankan style dan posisinya
  * - ADD: Auto Generate Gambar dari Canvas (dengan teks nama halaman + tahun)
  * - ADD: Auto Update H1 (tahun diupdate jika kurang dari tahun sekarang)
- * - ADD: Auto Update Gambar (alt/title diupdate jika tahun kurang)
+ * - ADD: Auto Update Gambar (alt/title/caption diupdate jika tahun kurang)
  * - ADD: Auto Re-generate Gambar (gambar dibuat ulang dengan tahun baru)
  * - ADD: Deteksi Kebutuhan Tahun per Level (Money level = pakai tahun)
  * - ADD: Warna Unik per Level (background berbeda untuk setiap level)
  * - ADD: Tanpa Tanggal di Gambar (stabil, tidak berubah-ubah)
  * - ADD: Semua Elemen Rata Tengah (center)
  * - FIX: Posisi gambar di dalam tag <article> paling atas
- * - FIX: Jika ada update-badge, gambar diletakkan SETELAH badge
- * - FIX: Jika tidak ada badge, gambar diletakkan SETELAH H1 atau paling atas article
  * 
- * @version 4.64
+ * @version 4.65
  * @date 2026-08-30
  */
 
@@ -40,14 +41,13 @@
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.64] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.65] ${msg}`);
   }
 
   // ============================================================
   // 🔥🔥🔥 FUNGSI GENERATE GAMBAR DARI CANVAS 🔥🔥🔥
   // ============================================================
 
-  // ----- WARNA PER LEVEL -----
   function getColorConfig(level) {
     const colors = {
       'pillar': { bg: '#0a2a44', text: '#ffffff', accent: '#25d366' },
@@ -71,7 +71,6 @@
     return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
   }
 
-  // ----- CEK APAKAH BUTUH TAHUN -----
   function needYear(level) {
     const moneyLevels = ['money-master', 'money-page', 'money-child'];
     return moneyLevels.includes(level);
@@ -97,7 +96,6 @@
     return title || 'Halaman Utama';
   }
 
-  // ----- BUAT GAMBAR DARI CANVAS -----
   function createImageWithText(pageName, level, year) {
     const colors = getColorConfig(level);
     const needYearFlag = needYear(level);
@@ -263,7 +261,6 @@
       const newText = originalText.replace(/\b(20[2-9][0-9])\b/, currentYear);
       h1.innerText = newText;
       log(`✅ H1: Tahun diupdate ${detectedYear} → ${currentYear}`, "YEAR");
-      log(`   "${newText}"`, "YEAR");
       return true;
     }
 
@@ -271,96 +268,11 @@
     return true;
   }
 
-  function updateImageYear() {
-    const pageLevel = getPageLevelFromPLD();
-    if (!needYear(pageLevel)) {
-      log(`⏭️ Level ini TIDAK butuh tahun di gambar (${pageLevel})`, "YEAR");
-      return false;
-    }
-
-    const currentYear = getCurrentYear();
-    const images = document.querySelectorAll('img[data-auto-generated="true"]');
-    let updatedCount = 0;
-
-    images.forEach(function(img) {
-      const alt = img.getAttribute('alt') || '';
-      const title = img.getAttribute('title') || '';
-      const detectedYear = extractYear(alt) || extractYear(title);
-
-      if (!detectedYear) {
-        const newAlt = alt + ' ' + currentYear;
-        const newTitle = title + ' ' + currentYear;
-        img.setAttribute('alt', newAlt);
-        img.setAttribute('title', newTitle);
-        log(`✅ Gambar: Tahun ditambahkan → "${newAlt}"`, "YEAR");
-        updatedCount++;
-        return;
-      }
-
-      if (detectedYear < currentYear) {
-        const newAlt = alt.replace(/\b(20[2-9][0-9])\b/, currentYear);
-        const newTitle = title.replace(/\b(20[2-9][0-9])\b/, currentYear);
-        img.setAttribute('alt', newAlt);
-        img.setAttribute('title', newTitle);
-        log(`✅ Gambar: Tahun diupdate ${detectedYear} → ${currentYear}`, "YEAR");
-        updatedCount++;
-      }
-    });
-
-    if (updatedCount === 0) {
-      log(`✅ Gambar: Tidak ada yang perlu diupdate`, "YEAR");
-    }
-    return updatedCount > 0;
-  }
-
-  function regenerateImageWithNewYear() {
-    const pageLevel = getPageLevelFromPLD();
-    if (!needYear(pageLevel)) {
-      log(`⏭️ Level ini TIDAK butuh re-generate gambar (${pageLevel})`, "YEAR");
-      return false;
-    }
-
-    const currentYear = getCurrentYear();
-    const pageName = getPageNameForImage(pageLevel);
-    const images = document.querySelectorAll('img[data-auto-generated="true"]');
-    let regenCount = 0;
-
-    images.forEach(function(img) {
-      const alt = img.getAttribute('alt') || '';
-      const detectedYear = extractYear(alt);
-
-      if (!detectedYear || detectedYear < currentYear) {
-        const newImageData = createImageWithText(pageName, pageLevel, currentYear);
-        img.setAttribute('src', newImageData);
-        img.setAttribute('alt', pageName + ' ' + currentYear);
-        img.setAttribute('title', pageName + ' ' + currentYear);
-        img.setAttribute('data-year', currentYear);
-
-        // Update figcaption jika ada
-        const figure = img.closest('figure');
-        if (figure) {
-          const figcaption = figure.querySelector('figcaption');
-          if (figcaption) {
-            figcaption.textContent = '📊 ' + pageName + ' ' + currentYear;
-          }
-        }
-
-        log(`✅ Gambar: Re-generate dengan tahun ${currentYear}`, "YEAR");
-        regenCount++;
-      }
-    });
-
-    if (regenCount === 0) {
-      log(`✅ Gambar: Tidak ada yang perlu di-regen`, "YEAR");
-    }
-    return regenCount > 0;
-  }
-
   // ============================================================
-  // 🔥🔥🔥 AUTO FIX GAMBAR (FORMAT 1) — REVISI: DI DALAM ARTICLE 🔥🔥🔥
+  // 🔥🔥🔥 AUTO FIX GAMBAR — TETAP FIGURE, HANYA GANTI ISI 🔥🔥🔥
   // ============================================================
   function fixImagesToFormat1() {
-    log('Fixing images to Format 1 inside article...', "IMAGE");
+    log('Fixing images... (tetap FIGURE, hanya ganti src/alt/title/caption)', "IMAGE");
     
     const h1Element = document.querySelector('h1');
     const h1Text = h1Element ? h1Element.textContent.trim() : document.title;
@@ -370,7 +282,7 @@
     const pageName = getPageNameForImage(pageLevel);
     const displayName = needYearFlag ? pageName + ' ' + currentYear : pageName;
 
-    // ===== CARI TEMPAT TARUH GAMBAR =====
+    // ===== CARI TEMPAT TARUH GAMBAR (DI DALAM ARTICLE) =====
     function getImageInsertionPoint() {
       let article = document.querySelector('article');
       
@@ -423,7 +335,7 @@
       };
     }
 
-    // ===== CARI GAMBAR YANG SUDAH ADA =====
+    // ===== CARI GAMBAR YANG SUDAH ADA (PERTAMA KALI) =====
     let targetImage = null;
     let targetFigure = null;
 
@@ -470,11 +382,13 @@
     const autoImageDataUrl = createImageWithText(pageName, pageLevel, currentYear);
     const captionText = '📊 ' + displayName;
 
-    // ===== JIKA TIDAK ADA GAMBAR, TAMBAHKAN =====
+    // ===== JIKA TIDAK ADA GAMBAR, BUAT FIGURE BARU =====
     if (!targetImage) {
-      log('No image found, inserting auto-generated image...', "IMAGE");
+      log('No image found, creating new FIGURE...', "IMAGE");
       
       const insertPoint = getImageInsertionPoint();
+      
+      // Buat figure dengan style SEO
       const figure = document.createElement('figure');
       figure.style.padding = '1em 0px';
       figure.style.margin = '20px 0';
@@ -508,25 +422,33 @@
       figure.appendChild(img);
       figure.appendChild(figcaption);
 
+      // Sisipkan di posisi yang ditentukan
       if (insertPoint.referenceNode && insertPoint.position === 'after') {
         insertPoint.container.insertBefore(figure, insertPoint.referenceNode.nextSibling);
       } else {
         insertPoint.container.insertBefore(figure, insertPoint.container.firstChild);
       }
 
-      log('✅ Auto-generated image inserted inside article', "SUCCESS");
-      return img;
+      log('✅ New FIGURE created with auto-generated image', "SUCCESS");
+      return figure;
     }
 
-    // ===== PERBAIKI GAMBAR YANG ADA =====
-    log('Fixing existing image with auto-generated...', "IMAGE");
+    // ============================================================
+    // 🔥🔥🔥 PERBAIKI GAMBAR YANG ADA — TETAP FIGURE 🔥🔥🔥
+    // ============================================================
+    log('Fixing existing image (tetap FIGURE, hanya ganti konten)...', "IMAGE");
 
     const img = targetImage;
-    let figure = img.closest('figure');
+    const figure = targetFigure || img.closest('figure');
 
+    // --- 1. UPDATE SRC GAMBAR ---
     img.src = autoImageDataUrl;
+
+    // --- 2. UPDATE ALT & TITLE ---
     img.alt = displayName;
     img.title = displayName;
+
+    // --- 3. UPDATE ATTRIBUT LAINNYA ---
     if (!img.hasAttribute('loading') || img.getAttribute('loading') !== 'lazy') {
       img.setAttribute('loading', 'lazy');
     }
@@ -542,19 +464,24 @@
     img.setAttribute('data-page-level', pageLevel);
     img.setAttribute('data-year', currentYear);
 
+    // --- 4. UPDATE FIGURE (JIKA ADA) ---
     if (figure && figure.tagName === 'FIGURE') {
-      figure.style.padding = '1em 0px';
-      figure.style.margin = '20px 0';
-      figure.style.textAlign = 'center';
-      figure.style.background = '#f8fafc';
-      figure.style.borderRadius = '12px';
+      // Pastikan style figure tetap
+      figure.style.padding = figure.style.padding || '1em 0px';
+      figure.style.margin = figure.style.margin || '20px 0';
+      figure.style.textAlign = figure.style.textAlign || 'center';
+      figure.style.background = figure.style.background || '#f8fafc';
+      figure.style.borderRadius = figure.style.borderRadius || '12px';
 
+      // Pastikan img ada di dalam figure
       if (img.parentElement !== figure) {
         figure.insertBefore(img, figure.firstChild);
       }
 
+      // --- 5. UPDATE FIGCAPTION ---
       let figcaption = figure.querySelector('figcaption');
       if (!figcaption) {
+        // Buat figcaption baru jika belum ada
         figcaption = document.createElement('figcaption');
         figcaption.style.color = '#555';
         figcaption.style.fontSize = '14px';
@@ -564,6 +491,7 @@
         figcaption.textContent = captionText;
         figure.appendChild(figcaption);
       } else {
+        // Update figcaption yang sudah ada
         figcaption.textContent = captionText;
         figcaption.style.color = '#555';
         figcaption.style.fontSize = '14px';
@@ -572,6 +500,9 @@
         figcaption.style.textAlign = 'center';
       }
     } else {
+      // Jika tidak ada figure, bungkus gambar dengan figure
+      log('No FIGURE found, wrapping image with FIGURE...', "IMAGE");
+      
       const newFigure = document.createElement('figure');
       newFigure.style.padding = '1em 0px';
       newFigure.style.margin = '20px 0';
@@ -593,8 +524,8 @@
       newFigure.appendChild(figcaption);
     }
 
-    log('✅ Image replaced with auto-generated image', "SUCCESS");
-    return img;
+    log('✅ Image fixed, FIGURE structure tetap dipertahankan', "SUCCESS");
+    return figure;
   }
 
   // ============================================================
@@ -603,7 +534,6 @@
   function isImageEligible(pageLevel) {
     log(`Checking image eligibility for page level: ${pageLevel}`, "IMAGE");
 
-    // 1. SKIP: Pillar edukasi murni
     if (pageLevel === 'pillar') {
       const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
       const title = document.title.toLowerCase();
@@ -617,7 +547,7 @@
       
       for (let keyword of pillarEdukasi) {
         if (combined.includes(keyword)) {
-          log(`⏭️ Skip gambar: Pillar edukasi murni (keyword: "${keyword}")`, "SKIP");
+          log(`⏭️ Skip gambar: Pillar edukasi murni`, "SKIP");
           return false;
         }
       }
@@ -634,17 +564,14 @@
       return false;
     }
 
-    // 2. SKIP: Halaman dengan konten sangat pendek
     const content = document.querySelector(".post-body.entry-content, .post-body, article, main")?.innerText || "";
     const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
     
     if (wordCount < CONFIG.SKIP_WORD_COUNT) {
-      log(`⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata < ${CONFIG.SKIP_WORD_COUNT})`, "SKIP");
+      log(`⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata)`, "SKIP");
       return false;
     }
-    log(`✅ Konten mencukupi (${wordCount} kata)`, "SUCCESS");
 
-    // 3. LAYAK: Money pages, Variant, Sub-Variant, SP1, SP2
     const eligibleLevels = [
       'money-master', 'money-page', 'money-child', 
       'variant', 'sub-variant', 
@@ -656,7 +583,6 @@
       return true;
     }
 
-    // 4. LAYAK: Jika halaman sudah memiliki gambar
     const hasImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
     if (hasImage) {
       log(`✅ Halaman sudah memiliki gambar, tetap layak`, "SUCCESS");
@@ -729,17 +655,13 @@
 
       if (validLinks.length > 0) {
         const parentLink = validLinks[validLinks.length - 1];
-        const parentUrl = parentLink.href;
-        const parentName = parentLink.innerText?.trim() || 'Parent Page';
-        log(`Parent dari breadcrumbs: ${parentName} (${parentUrl})`, "SUCCESS");
         return {
-          parentUrl: parentUrl,
-          parentName: parentName
+          parentUrl: parentLink.href,
+          parentName: parentLink.innerText?.trim() || 'Parent Page'
         };
       }
     }
 
-    log('Breadcrumbs tidak ditemukan, menggunakan origin sebagai parent', "WARN");
     return {
       parentUrl: location.origin,
       parentName: 'Home'
@@ -752,78 +674,47 @@
   function getPageLevelFromPLD() {
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
       try {
-        const pageLevel = window.pageLevelDetectorv22.detect();
-        log(`Page Level dari PLD v22.x: ${pageLevel}`, "SUCCESS");
-        return pageLevel;
-      } catch(e) {
-        log(`Error calling PLD v22.x: ${e.message}`, "ERROR");
-      }
+        return window.pageLevelDetectorv22.detect();
+      } catch(e) {}
     }
     
     if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
       try {
-        const pageLevel = window.pageLevelDetectorv20.detect();
-        log(`Page Level dari PLD v20.x: ${pageLevel}`, "SUCCESS");
-        return pageLevel;
-      } catch(e) {
-        log(`Error calling PLD v20.x: ${e.message}`, "ERROR");
-      }
+        return window.pageLevelDetectorv20.detect();
+      } catch(e) {}
     }
     
     if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
       try {
-        const pageLevel = window.pageLevelDetectorv19.detect();
-        log(`Page Level dari PLD v19.0: ${pageLevel}`, "SUCCESS");
-        return pageLevel;
-      } catch(e) {
-        log(`Error calling PLD v19.0: ${e.message}`, "ERROR");
-      }
+        return window.pageLevelDetectorv19.detect();
+      } catch(e) {}
     }
     
     if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
       try {
-        const pageLevel = window.pageLevelDetectorV18.detect();
-        log(`Page Level dari PLD v18.7: ${pageLevel}`, "SUCCESS");
-        return pageLevel;
-      } catch(e) {
-        log(`Error calling PLD v18.7: ${e.message}`, "ERROR");
-      }
+        return window.pageLevelDetectorV18.detect();
+      } catch(e) {}
     }
     
     if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
       try {
-        const pageLevel = window.pageLevelDetectorV17.detect();
-        log(`Page Level dari PLD v17.0: ${pageLevel}`, "SUCCESS");
-        return pageLevel;
-      } catch(e) {
-        log(`Error calling PLD v17.0: ${e.message}`, "ERROR");
-      }
+        return window.pageLevelDetectorV17.detect();
+      } catch(e) {}
     }
     
     if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
       try {
-        const pageLevel = window.pageLevelDetector.detect();
-        log(`Page Level dari PLD legacy: ${pageLevel}`, "SUCCESS");
-        return pageLevel;
-      } catch(e) {
-        log(`Error calling PLD legacy: ${e.message}`, "ERROR");
-      }
+        return window.pageLevelDetector.detect();
+      } catch(e) {}
     }
     
     const bodyPageLevel = document.body.getAttribute('data-page-level') || 
                           document.body.getAttribute('data-schema-page-level');
-    if (bodyPageLevel) {
-      log(`Page Level dari body attribute: ${bodyPageLevel}`, "SUCCESS");
-      return bodyPageLevel;
-    }
+    if (bodyPageLevel) return bodyPageLevel;
     
-    log("PLD tidak tersedia, menggunakan fallback detection", "WARN");
     return detectPageLevelFallback();
   }
 
-  // ============================================================
-  // FALLBACK DETECTION
-  // ============================================================
   function detectPageLevelFallback() {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
     const title = document.title.toLowerCase();
@@ -851,9 +742,6 @@
     return "pillar";
   }
 
-  // ============================================================
-  // MENUNGGU PLD READY
-  // ============================================================
   function waitForPLD() {
     return new Promise((resolve) => {
       if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
@@ -863,11 +751,7 @@
         return;
       }
       
-      const onReady = () => {
-        log("PLD ready (event)", "SUCCESS");
-        resolve(true);
-      };
-      
+      const onReady = () => resolve(true);
       window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
       window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
       window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
@@ -877,10 +761,8 @@
         if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
             window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
             window.pageLevelDetectorV17 || window.pageLevelDetector) {
-          log("PLD ready (timeout)", "SUCCESS");
           resolve(true);
         } else {
-          log("PLD timeout, using fallback", "WARN");
           resolve(false);
         }
       }, CONFIG.PLD_TIMEOUT);
@@ -888,7 +770,7 @@
   }
 
   // ============================================================
-  // CEK APAKAH SKIP PRODUCT
+  // 🔥🔥🔥 FUNGSI LAINNYA (PRODUCT SCHEMA) 🔥🔥🔥
   // ============================================================
   function shouldSkipProductSchema(pageLevel) {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
@@ -898,46 +780,23 @@
     
     const isProduct = /(beton|readymix|precast|paving|panel|box|u-ditch|kanstin|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|pagar\s*panel|paving\s*block|box\s*culvert|u\s*ditch|gorong\s*gorong)/i.test(combined);
     
-    if (isProduct) {
-      log(`🏗️ Product/Material detected → GENERATE Product schema`, "PRODUCT");
-      return false;
-    }
-    
-    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
-      log(`Variant page detected → GENERATE Product schema`, "SUCCESS");
-      return false;
-    }
+    if (isProduct) return false;
+    if (pageLevel === 'variant' || pageLevel === 'sub-variant') return false;
     
     if (['money-master', 'money-page', 'money-child'].includes(pageLevel)) {
       const isProductMoney = /(beton|readymix|precast|paving|panel|box|u-ditch|kanstin|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|pagar\s*panel|paving\s*block|box\s*culvert|u\s*ditch|gorong\s*gorong)/i.test(combined);
-      if (isProductMoney) {
-        log(`🏗️ Product Money page → GENERATE Product schema`, "PRODUCT");
-        return false;
-      }
-      log(`Money page detected → GENERATE Product schema`, "SUCCESS");
+      if (isProductMoney) return false;
       return false;
     }
     
-    const pillarPatterns = [
-      "panduan lengkap", "pengertian", "definisi", "apa itu",
-      "overview", "komprehensif", "cara memilih", "tips memilih",
-      "langkah memilih", "kriteria memilih"
-    ];
-    
+    const pillarPatterns = ["panduan lengkap", "pengertian", "definisi", "apa itu", "overview", "komprehensif", "cara memilih", "tips memilih", "langkah memilih", "kriteria memilih"];
     for (let pattern of pillarPatterns) {
-      if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) {
-        log(`Skip: Halaman edukasi murni (pattern: "${pattern}")`, "SKIP");
-        return true;
-      }
+      if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) return true;
     }
     
-    log("🏗️ Halaman LAYAK untuk Product schema", "PRODUCT");
     return false;
   }
 
-  // ============================================================
-  // UTILITY FUNCTIONS
-  // ============================================================
   function sanitizeText(text) {
     if (!text) return "";
     return text.replace(/[\t\n\r]+/g, ' ').replace(/\s{2,}/g, ' ').trim().substring(0, 100);
@@ -969,9 +828,6 @@
     return Object.keys(areaProv).map(a => ({ "@type": "Place", name: a }));
   }
 
-  // ============================================================
-  // DETECT PRODUCT NAME
-  // ============================================================
   function detectProductName(pageLevel) {
     const h1 = document.querySelector("h1")?.innerText?.trim();
     if (h1 && h1.length < 120) return h1;
@@ -996,11 +852,8 @@
       "beton readymix": "Beton Readymix",
       "readymix": "Beton Readymix",
       "beton cor": "Beton Cor",
-      "beton ready mix": "Beton Ready Mix",
       "besi beton": "Besi Beton",
-      "baja ringan": "Baja Ringan",
-      "pipa paralon": "Pipa Paralon",
-      "atap genteng": "Atap Genteng"
+      "baja ringan": "Baja Ringan"
     };
     
     let productName = urlMapping[pathKey.toLowerCase()];
@@ -1011,84 +864,51 @@
     return productName || "Produk Konstruksi";
   }
 
-  // ============================================================
-  // DETECT PRODUCT CATEGORY
-  // ============================================================
   function detectProductCategory(pageLevel) {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
     const title = document.title.toLowerCase();
     const url = location.href.toLowerCase();
     const combined = h1 + " " + title + " " + url;
     
-    if (/(beton|readymix|ready mix|cor|concrete)/i.test(combined)) {
-      return "ConcreteProduct";
-    }
-    if (/(paving|block|conblock|grassblock|paving\s*block)/i.test(combined)) {
-      return "PavingProduct";
-    }
-    if (/(pagar|panel|booth|gorong|box|culvert|u-ditch|kanstin|kansteen|gorong\s*gorong)/i.test(combined)) {
-      return "PrecastProduct";
-    }
-    if (/(besi|baja|pipa|atap|genteng|baja\s*ringan|besi\s*beton)/i.test(combined)) {
-      return "SteelProduct";
-    }
-    if (/(keramik|marmer|granit|kayu|pintu|jendela|kusen)/i.test(combined)) {
-      return "BuildingMaterial";
-    }
-    
-    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
-      return "VariantProduct";
-    }
-    
+    if (/(beton|readymix|ready mix|cor|concrete)/i.test(combined)) return "ConcreteProduct";
+    if (/(paving|block|conblock|grassblock|paving\s*block)/i.test(combined)) return "PavingProduct";
+    if (/(pagar|panel|booth|gorong|box|culvert|u-ditch|kanstin|kansteen|gorong\s*gorong)/i.test(combined)) return "PrecastProduct";
+    if (/(besi|baja|pipa|atap|genteng|baja\s*ringan|besi\s*beton)/i.test(combined)) return "SteelProduct";
+    if (/(keramik|marmer|granit|kayu|pintu|jendela|kusen)/i.test(combined)) return "BuildingMaterial";
+    if (pageLevel === 'variant' || pageLevel === 'sub-variant') return "VariantProduct";
     return "BuildingMaterial";
   }
 
-  // ============================================================
-  // EXTRACT VARIANT SPEC
-  // ============================================================
   function extractVariantSpec() {
     const content = document.querySelector(".post-body.entry-content, .post-body, article, main");
     if (!content) return null;
-    
     const text = content.innerText;
     const spec = {};
-    
     const sizeMatch = text.match(/(\d{1,3}\s*x\s*\d{1,3})\s*(cm|meter|m)/i);
     if (sizeMatch) spec.size = sizeMatch[1] + " " + sizeMatch[2];
-    
     const heightMatch = text.match(/tinggi\s*([\d.]+)\s*(meter|m|cm)/i);
     if (heightMatch) spec.height = heightMatch[1] + " " + heightMatch[2];
-    
     const thickMatch = text.match(/tebal\s*([\d.]+)\s*(cm|mm)/i);
     if (thickMatch) spec.thickness = thickMatch[1] + " " + thickMatch[2];
-    
     if (Object.keys(spec).length === 0) return null;
     return { "@type": "ProductVariant", ...spec };
   }
 
-  // ============================================================
-  // OFFER PARSING
-  // ============================================================
   const seenItems = new Set();
   const offers = [];
 
-  function addOffer(name, price, desc = "") {
+  function addOffer(name, price) {
     if (!price || price <= 0) return;
     if (price < CONFIG.MIN_PRICE || price > CONFIG.MAX_PRICE) return;
     if (offers.length >= CONFIG.MAX_OFFERS) return;
-    
     let cleanName = sanitizeText(name);
     if (!cleanName || cleanName.length < 3) return;
-    
     const skipKeywords = ["estimasi", "per meter", "hubungi", "call", "whatsapp", "konsultasi", "mulai dari"];
     if (skipKeywords.some(kw => cleanName.toLowerCase().includes(kw))) return;
-    
     const key = cleanName + "|" + price;
     if (seenItems.has(key)) return;
     seenItems.add(key);
-    
     const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-    
     offers.push({
       "@type": "Offer",
       name: cleanName,
@@ -1100,18 +920,14 @@
       itemCondition: "https://schema.org/NewCondition",
       seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" }
     });
-    
-    log(`Offer added: ${cleanName} = Rp ${price.toLocaleString()}`, "SUCCESS");
   }
 
   function parseTableOffers() {
     const tableSelectors = ['section table', '.product-table', '.price-table', '.harga-table', 'table'];
     let found = false;
-    
     for (const selector of tableSelectors) {
       const tables = document.querySelectorAll(selector);
       if (tables.length === 0) continue;
-      
       for (const table of tables) {
         const rows = table.querySelectorAll('tr');
         for (const row of rows) {
@@ -1119,21 +935,11 @@
           if (cells.length >= 2) {
             const productCell = cells[0].innerText.trim();
             const priceCell = cells[1].innerText;
-            
-            if (productCell.toLowerCase().includes('produk') || 
-                productCell.toLowerCase().includes('jenis') ||
-                priceCell.toLowerCase().includes('harga')) {
-              continue;
-            }
-            
+            if (productCell.toLowerCase().includes('produk') || productCell.toLowerCase().includes('jenis') || priceCell.toLowerCase().includes('harga')) continue;
             const price = extractPrice(priceCell);
             if (price && productCell && productCell.length > 0 && productCell.length < 150) {
-              const isEstimasi = productCell.toLowerCase().includes('estimasi') || 
-                                 priceCell.toLowerCase().includes('estimasi');
-              if (!isEstimasi) {
-                addOffer(productCell, price);
-                found = true;
-              }
+              const isEstimasi = productCell.toLowerCase().includes('estimasi') || priceCell.toLowerCase().includes('estimasi');
+              if (!isEstimasi) { addOffer(productCell, price); found = true; }
             }
           }
         }
@@ -1146,24 +952,19 @@
   function parseVariantOffers() {
     const content = document.querySelector(".post-body.entry-content, .post-body, article, main");
     if (!content) return false;
-    
     const text = content.innerText;
     const variantPatterns = [
       /(tinggi|ukuran|dimensi)\s*([\d.]+)\s*(meter|m|cm)\s*(?:Rp\s*([\d.,]+))/i,
       /(panel|pagar)\s*(polosan|motif|custom)\s*(?:Rp\s*([\d.,]+))/i,
       /(tipe|varian)\s*([a-zA-Z0-9\s]+?)\s*(?:Rp\s*([\d.,]+))/i
     ];
-    
     let found = false;
     for (const pattern of variantPatterns) {
       const matches = text.matchAll(pattern);
       for (const match of matches) {
         const name = match[0].split("Rp")[0]?.trim() || match[0].substring(0, 50);
         const price = extractPrice(match[0]);
-        if (price && price > CONFIG.MIN_PRICE && price < CONFIG.MAX_PRICE) {
-          addOffer(name, price, "Variant");
-          found = true;
-        }
+        if (price && price > CONFIG.MIN_PRICE && price < CONFIG.MAX_PRICE) { addOffer(name, price); found = true; }
       }
     }
     return found;
@@ -1172,40 +973,33 @@
   function parseListOffers() {
     const elements = document.querySelectorAll("li, p, .price-item, .product-item");
     const tempOffers = [];
-    
     for (const el of elements) {
       const text = el.innerText;
       const price = extractPrice(text);
       if (price && price > CONFIG.MIN_PRICE && price < CONFIG.MAX_PRICE) {
         let productText = text.replace(/Rp\s*[\d.,]+/g, '').trim();
-        if (productText.length > 0 && productText.length < 150) {
-          tempOffers.push({ name: productText, price: price });
-        }
+        if (productText.length > 0 && productText.length < 150) tempOffers.push({ name: productText, price: price });
       }
     }
-    
     const seen = new Set();
     for (const offer of tempOffers) {
       const key = offer.name + "|" + offer.price;
-      if (!seen.has(key) && offers.length < 5) {
-        seen.add(key);
-        addOffer(offer.name, offer.price);
-      }
+      if (!seen.has(key) && offers.length < 5) { seen.add(key); addOffer(offer.name, offer.price); }
     }
   }
 
   // ============================================================
-  // MAIN FUNCTION
+  // 🚀 MAIN FUNCTION
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.64 — AUTO GENERATE GAMBAR + AUTO UPDATE TAHUN", "INFO");
+    log("AutoSchema Hybrid v4.65 — GAMBAR TETAP FIGURE + AUTO GENERATE + AUTO TAHUN", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     await waitForPLD();
     
     const pageLevel = getPageLevelFromPLD();
-    log(`Page Level dari PLD: ${pageLevel}`, "SUCCESS");
+    log(`Page Level: ${pageLevel}`, "SUCCESS");
 
     // ============================================================
     // STEP 1: AUTO UPDATE TAHUN DI KONTEN (H1)
@@ -1214,7 +1008,7 @@
     updateH1Year(pageLevel);
 
     // ============================================================
-    // STEP 2: CEK LAYAK GAMBAR
+    // STEP 2: CEK LAYAK GAMBAR & FIX GAMBAR (TETAP FIGURE)
     // ============================================================
     let imageUrl = LOGO_IMAGE;
     const isEligible = isImageEligible(pageLevel);
@@ -1222,28 +1016,21 @@
     if (isEligible) {
       log(`✅ Halaman LAYAK mendapat gambar, memproses...`, "IMAGE");
       try {
-        // Fix gambar dengan auto-generated image
-        const fixedImg = fixImagesToFormat1();
-        if (fixedImg) {
-          imageUrl = fixedImg.src || LOGO_IMAGE;
+        // Fix gambar dengan auto-generated image (tetap FIGURE)
+        const fixedFigure = fixImagesToFormat1();
+        if (fixedFigure) {
+          const img = fixedFigure.querySelector('img');
+          if (img) imageUrl = img.src || LOGO_IMAGE;
         }
-        
-        // Update tahun di gambar (alt/title)
-        updateImageYear();
-        
-        // Re-generate gambar jika tahun kurang
-        regenerateImageWithNewYear();
-        
       } catch(e) {
         log(`Error processing images: ${e.message}`, "ERROR");
         imageUrl = LOGO_IMAGE;
       }
     } else {
-      log(`⏭️ Halaman TIDAK LAYAK mendapat gambar, skip fix gambar`, "SKIP");
+      log(`⏭️ Halaman TIDAK LAYAK mendapat gambar`, "SKIP");
       const existingImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
       if (existingImage) {
         imageUrl = existingImage.src || LOGO_IMAGE;
-        log(`📸 Menggunakan gambar yang sudah ada di halaman`, "IMAGE");
       }
     }
 
@@ -1273,17 +1060,13 @@
     
     log("Parsing offers...", "INFO");
     let hasTableOffers = parseTableOffers();
-    
     if (!hasTableOffers || offers.length === 0) {
-      log("Tidak ada offers dari tabel, mencoba varian...", "WARN");
       const hasVariantOffers = parseVariantOffers();
-      if (!hasVariantOffers || offers.length === 0) {
-        parseListOffers();
-      }
+      if (!hasVariantOffers || offers.length === 0) parseListOffers();
     }
     
     if (offers.length === 0) {
-      log("Tidak ada harga ditemukan, tetap buat Product schema tanpa offers", "WARN");
+      log("Tidak ada harga ditemukan", "WARN");
     }
     
     const business = {
@@ -1314,11 +1097,8 @@
       product.productType = pageLevel === 'variant' ? "Variant" : "Sub-Variant";
       product.material = "Beton Precast";
       product.manufacturer = { "@type": "Organization", name: "Beton Jaya Readymix" };
-      
       const variantSpec = extractVariantSpec();
-      if (variantSpec) {
-        product.variant = variantSpec;
-      }
+      if (variantSpec) product.variant = variantSpec;
     }
     
     const webpage = {
@@ -1339,7 +1119,6 @@
       existingScript.type = "application/ld+json";
       existingScript.id = "auto-schema-product";
       document.head.appendChild(existingScript);
-      log("Element #auto-schema-product dibuat baru", "SUCCESS");
     }
     
     existingScript.textContent = JSON.stringify({
@@ -1352,20 +1131,15 @@
     // ============================================================
     log("═══════════════════════════════════════════════════", "INFO");
     log("EXECUTION SUMMARY:", "INFO");
-    log(`🏗️  Fokus: PRODUK & MATERIAL + AUTO GAMBAR + AUTO TAHUN`, "PRODUCT");
-    log(`  Page Level (dari PLD): ${pageLevel}`, "SUCCESS");
-    log(`  Product Name   : ${productName}`, "SUCCESS");
-    log(`  Product Category: ${productCategory}`, "SUCCESS");
-    log(`  Offers Count   : ${offers.length}`, "SUCCESS");
-    log(`  Valid Prices   : ${offers.filter(o => o.price > 0).length}`, "SUCCESS");
-    log(`  Is Variant     : ${(pageLevel === 'variant' || pageLevel === 'sub-variant') ? '✅' : '❌'}`, "INFO");
-    log(`  Image Eligible : ${isEligible ? '✅' : '❌'}`, "IMAGE");
-    log(`  Auto Image     : ${isEligible ? '✅ (generated from canvas)' : '⚠️ (skip)'}`, "IMAGE");
-    log(`  Auto Year H1   : ${needYear(pageLevel) ? '✅' : '❌'}`, "YEAR");
-    log(`  Parent URL     : ${parentData.parentUrl}`, "INFO");
-    log(`  Parent Name    : ${parentData.parentName}`, "INFO");
+    log(`  Page Level      : ${pageLevel}`, "SUCCESS");
+    log(`  Product Name    : ${productName}`, "SUCCESS");
+    log(`  Offers Count    : ${offers.length}`, "SUCCESS");
+    log(`  Image Eligible  : ${isEligible ? '✅' : '❌'}`, "IMAGE");
+    log(`  Image Generated : ${isEligible ? '✅ (Canvas + FIGURE)' : '⚠️ (skip)'}`, "IMAGE");
+    log(`  Auto Year H1    : ${needYear(pageLevel) ? '✅' : '❌'}`, "YEAR");
+    log(`  Figure Structure: ✅ TETAP DIJAGA`, "IMAGE");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.64 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.65 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
