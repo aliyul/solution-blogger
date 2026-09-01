@@ -1,12 +1,16 @@
 /**
- * ⚡ AutoSchema Hybrid v4.66 — KONSEP GAMBAR BARU: CEK GAMBAR + FIGURE SEO + URL BERSIH + RESPONSIF
+ * ⚡ AutoSchema Hybrid v4.67 — WAJIB GAMBAR UNTUK VARIANT & SUB-VARIANT
  * 
- * UPDATE v4.66:
+ * UPDATE v4.67:
+ * - FIX: VARIANT dan SUB-VARIANT WAJIB DAPAT GAMBAR (tanpa syarat wordCount)
+ * - FIX: MONEY_MASTER, MONEY_PAGE, MONEY_CHILD WAJIB GAMBAR (tanpa syarat)
+ * - FIX: PILLAR tetap LAYAK (dengan syarat edukasi)
+ * - FIX: SUB-PILLAR TIPE 1 & 2 LAYAK (dengan wordCount ≥ 300)
  * - FIX: Cek gambar di konten terlebih dahulu (jika ada, perbaiki; jika tidak, buat baru)
  * - FIX: Gambar tetap menggunakan format FIGURE (tidak diubah strukturnya)
  * - FIX: Hanya mengganti src, alt, title, dan figcaption
  * - FIX: Figure tetap mempertahankan style dan posisinya
- * - FIX: Teks gambar diambil dari URL BERSIH (bukan H1) — hapus /p/, tahun, bulan, .html
+ * - FIX: Teks gambar diambil dari URL BERSIH (bukan H1)
  * - FIX: Tulisan atas (Beton Jaya Readymix) JELAS 100% PUTIH + pill background
  * - FIX: Tulisan bawah (© Beton Jaya Readymix) JELAS 70% PUTIH + pill background
  * - FIX: Gambar RESPONSIF dengan media query untuk mobile
@@ -19,8 +23,8 @@
  * - ADD: Tanpa Tanggal di Gambar (stabil, tidak berubah-ubah)
  * - ADD: Semua Elemen Rata Tengah (center)
  * 
- * @version 4.66
- * @date 2026-08-30
+ * @version 4.67
+ * @date 2026-09-01
  */
 
 (function() {
@@ -45,7 +49,7 @@
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.66] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.67] ${msg}`);
   }
 
   // ============================================================
@@ -367,7 +371,7 @@
     img.style.boxSizing = 'border-box';
 
     // Media query untuk mobile
-    const styleId = 'responsive-image-style-v466';
+    const styleId = 'responsive-image-style-v467';
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
@@ -630,15 +634,35 @@
 
   // ============================================================
   // 🔥🔥🔥 DETEKSI HALAMAN LAYAK GAMBAR 🔥🔥🔥
+  // 🔥 FIX v4.67: VARIANT & SUB-VARIANT WAJIB GAMBAR (TANPA SYARAT)
   // ============================================================
   function isImageEligible(pageLevel) {
     log(`Checking image eligibility for page level: ${pageLevel}`, "IMAGE");
 
+    // ============================================================
+    // 🔥 LEVEL YANG WAJIB DAPAT GAMBAR (TANPA SYARAT)
+    // ============================================================
+    const mandatoryImageLevels = [
+      'money-master', 
+      'money-page', 
+      'money-child',
+      'variant',
+      'sub-variant'
+    ];
+    
+    if (mandatoryImageLevels.includes(pageLevel)) {
+      log(`✅ WAJIB GAMBAR (level: ${pageLevel}) — TANPA SYARAT`, "SUCCESS");
+      return true;
+    }
+
+    // ============================================================
+    // 🔥 PILLAR: Skip jika edukasi murni
+    // ============================================================
     if (pageLevel === 'pillar') {
       const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
       const title = document.title.toLowerCase();
       const combined = h1 + " " + title;
-      
+
       const pillarEdukasi = [
         "panduan", "tips", "cara", "apa itu", "pengertian", "definisi",
         "overview", "komprehensif", "langkah", "tutorial", "pedoman",
@@ -647,7 +671,7 @@
       
       for (let keyword of pillarEdukasi) {
         if (combined.includes(keyword)) {
-          log(`⏭️ Skip gambar: Pillar edukasi murni`, "SKIP");
+          log(`⏭️ Skip gambar: Pillar edukasi murni (keyword: "${keyword}")`, "SKIP");
           return false;
         }
       }
@@ -664,23 +688,31 @@
       return false;
     }
 
+    // ============================================================
+    // 🔥 SUB-PILLAR: LAYAK DAPAT GAMBAR (dengan wordCount)
+    // ============================================================
+    if (pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
+      const content = document.querySelector(".post-body.entry-content, .post-body, article, main")?.innerText || "";
+      const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
+      
+      if (wordCount < CONFIG.SKIP_WORD_COUNT) {
+        log(`⏭️ Skip gambar: Sub-Pillar konten terlalu pendek (${wordCount} kata)`, "SKIP");
+        return false;
+      }
+      
+      log(`✅ LAYAK GAMBAR (level: ${pageLevel})`, "SUCCESS");
+      return true;
+    }
+
+    // ============================================================
+    // 🔥 FALLBACK: CEK KONTEN
+    // ============================================================
     const content = document.querySelector(".post-body.entry-content, .post-body, article, main")?.innerText || "";
     const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
     
     if (wordCount < CONFIG.SKIP_WORD_COUNT) {
-      log(`⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata)`, "SKIP");
+      log(`⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata < ${CONFIG.SKIP_WORD_COUNT})`, "SKIP");
       return false;
-    }
-
-    const eligibleLevels = [
-      'money-master', 'money-page', 'money-child', 
-      'variant', 'sub-variant', 
-      'sub-pillar-tipe-1', 'sub-pillar-tipe-2'
-    ];
-    
-    if (eligibleLevels.includes(pageLevel)) {
-      log(`✅ Halaman LAYAK mendapat gambar (level: ${pageLevel})`, "SUCCESS");
-      return true;
     }
 
     const hasImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
@@ -728,7 +760,7 @@
     const title = document.title.toLowerCase();
     const url = location.href.toLowerCase();
     
-    const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom", "tinggi", "rendah"];
+    const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom", "tinggi", "rendah", "metode", "teknik"];
     for (let pattern of variantPatterns) {
       if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) {
         const subVariantPatterns = ["detail", "lengkap", "spesifikasi teknis"];
@@ -995,12 +1027,56 @@
     }
   }
 
+  function getParentFromBreadcrumbs(currentUrl) {
+    const breadcrumbSelectors = [
+      '.breadcrumbs a', '.breadcrumb a', '.nav-trail a',
+      '.breadcrumb-item a', '.crumbs a', '.breadcrumb-link',
+      '[aria-label="breadcrumb"] a', '.post-breadcrumb a',
+      '.breadcrumb-nav a', '.nav-breadcrumb a'
+    ];
+
+    let breadcrumbLinks = [];
+    for (let selector of breadcrumbSelectors) {
+      const links = document.querySelectorAll(selector);
+      if (links.length > 0) { breadcrumbLinks = Array.from(links); break; }
+    }
+
+    if (breadcrumbLinks.length === 0) {
+      const nav = document.querySelector('nav');
+      if (nav) {
+        const links = nav.querySelectorAll('a');
+        if (links.length > 1) breadcrumbLinks = Array.from(links);
+      }
+    }
+
+    if (breadcrumbLinks.length > 0) {
+      const validLinks = breadcrumbLinks.filter(a => {
+        const href = a.href || '';
+        const text = a.innerText?.trim() || '';
+        if (!href || !text) return false;
+        if (href === currentUrl || href.includes(currentUrl)) return false;
+        if (text.toLowerCase() === 'home' || text.toLowerCase() === 'beranda') {
+          if (breadcrumbLinks.length === 1) return true;
+          return false;
+        }
+        return true;
+      });
+
+      if (validLinks.length > 0) {
+        const parentLink = validLinks[validLinks.length - 1];
+        return { parentUrl: parentLink.href, parentName: parentLink.innerText?.trim() || 'Parent Page' };
+      }
+    }
+
+    return { parentUrl: location.origin, parentName: 'Home' };
+  }
+
   // ============================================================
   // 🚀 MAIN FUNCTION
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.66 — KONSEP GAMBAR BARU", "INFO");
+    log("AutoSchema Hybrid v4.67 — WAJIB GAMBAR UNTUK VARIANT & SUB-VARIANT", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     await waitForPLD();
@@ -1146,8 +1222,10 @@
     log(`  Text from URL   : ✅`, "IMAGE");
     log(`  Figure Structure: ✅ TETAP DIJAGA`, "IMAGE");
     log(`  Responsive      : ✅`, "IMAGE");
+    log(`  VARIANT WAJIB   : ✅ (tanpa syarat wordCount)`, "SUCCESS");
+    log(`  SUB-VARIANT WAJIB: ✅ (tanpa syarat wordCount)`, "SUCCESS");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.66 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.67 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
