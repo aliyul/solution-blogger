@@ -1,4 +1,4 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.18 — TEKS TENGAH DARI URL BERSIH */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.19 — TEKS TENGAH DARI URL BERSIH */
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -6,7 +6,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.18] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.19] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -15,7 +15,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.18] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.19] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -136,7 +136,7 @@ function getCleanPageName(level) {
         cleanName = cleanName.substring(0, 52) + '...';
     }
     
-    console.log('[Schema v7.18] 📝 Clean page name from URL:', cleanName);
+    console.log('[Schema v7.19] 📝 Clean page name from URL:', cleanName);
     return cleanName;
 }
 
@@ -332,7 +332,7 @@ function createImageWithText(pageName, level, year) {
 // 🔥🔥🔥 CEK & PERBAIKI GAMBAR — TETAP FIGURE + RESPONSIF 🔥🔥🔥
 // ============================================================
 function fixImagesToFormat1(pageLevel) {
-    console.log('[Schema v7.18 📸] Checking images in content...');
+    console.log('[Schema v7.19 📸] Checking images in content...');
 
     const currentYear = getCurrentYear();
     const needYearFlag = needYear(pageLevel);
@@ -462,7 +462,7 @@ function fixImagesToFormat1(pageLevel) {
 
     // ===== KASUS 1: ADA GAMBAR — PERBAIKI =====
     if (targetImage) {
-        console.log('[Schema v7.18 📸] Image found in content, fixing for SEO...');
+        console.log('[Schema v7.19 📸] Image found in content, fixing for SEO...');
 
         const img = targetImage;
         const figure = targetFigure || img.closest('figure');
@@ -471,7 +471,7 @@ function fixImagesToFormat1(pageLevel) {
         if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
             img.src = autoImageDataUrl;
         } else {
-            console.log('[Schema v7.18 📸] Existing image preserved, only updating attributes');
+            console.log('[Schema v7.19 📸] Existing image preserved, only updating attributes');
         }
 
         img.alt = displayName;
@@ -504,7 +504,7 @@ function fixImagesToFormat1(pageLevel) {
                 figcaption.style.textAlign = 'center';
             }
         } else {
-            console.log('[Schema v7.18 📸] Wrapping image with FIGURE...');
+            console.log('[Schema v7.19 📸] Wrapping image with FIGURE...');
             const newFigure = document.createElement('figure');
             const parent = img.parentElement;
             parent.insertBefore(newFigure, img);
@@ -522,12 +522,12 @@ function fixImagesToFormat1(pageLevel) {
             applyResponsiveStyles(newFigure, img);
         }
 
-        console.log('[Schema v7.18 📸] ✅ Image fixed with SEO FIGURE');
+        console.log('[Schema v7.19 📸] ✅ Image fixed with SEO FIGURE');
         return figure;
     }
 
     // ===== KASUS 2: TIDAK ADA GAMBAR — BUAT BARU =====
-    console.log('[Schema v7.18 📸] No image found, creating new responsive FIGURE...');
+    console.log('[Schema v7.19 📸] No image found, creating new responsive FIGURE...');
 
     const insertPoint = getImageInsertionPoint();
     const figure = document.createElement('figure');
@@ -560,7 +560,7 @@ function fixImagesToFormat1(pageLevel) {
         insertPoint.container.insertBefore(figure, insertPoint.container.firstChild);
     }
 
-    console.log('[Schema v7.18 📸] ✅ New responsive FIGURE created');
+    console.log('[Schema v7.19 📸] ✅ New responsive FIGURE created');
     return figure;
 }
 
@@ -569,14 +569,14 @@ function fixImagesToFormat1(pageLevel) {
 // ============================================================
 function updateH1Year(pageLevel) {
     if (!needYear(pageLevel)) {
-        console.log('[Schema v7.18] ⏭️ Level ini TIDAK butuh tahun di H1');
+        console.log('[Schema v7.19] ⏭️ Level ini TIDAK butuh tahun di H1');
         return false;
     }
 
     const currentYear = getCurrentYear();
     const h1 = document.querySelector('h1');
     if (!h1) {
-        console.log('[Schema v7.18] ⚠️ Tidak ada H1 ditemukan');
+        console.log('[Schema v7.19] ⚠️ Tidak ada H1 ditemukan');
         return false;
     }
 
@@ -586,18 +586,18 @@ function updateH1Year(pageLevel) {
     if (!detectedYear) {
         const newText = originalText + ' ' + currentYear;
         h1.innerText = newText;
-        console.log('[Schema v7.18] ✅ H1: Tahun ditambahkan → "' + newText + '"');
+        console.log('[Schema v7.19] ✅ H1: Tahun ditambahkan → "' + newText + '"');
         return true;
     }
 
     if (detectedYear < currentYear) {
         const newText = originalText.replace(/\b(20[2-9][0-9])\b/, currentYear);
         h1.innerText = newText;
-        console.log('[Schema v7.18] ✅ H1: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
+        console.log('[Schema v7.19] ✅ H1: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
         return true;
     }
 
-    console.log('[Schema v7.18] ✅ H1: Tahun sudah sesuai (' + detectedYear + ')');
+    console.log('[Schema v7.19] ✅ H1: Tahun sudah sesuai (' + detectedYear + ')');
     return true;
 }
 
@@ -606,7 +606,7 @@ function updateH1Year(pageLevel) {
 // ============================================================
 function updateImageYear(pageLevel) {
     if (!needYear(pageLevel)) {
-        console.log('[Schema v7.18] ⏭️ Level ini TIDAK butuh tahun di gambar');
+        console.log('[Schema v7.19] ⏭️ Level ini TIDAK butuh tahun di gambar');
         return false;
     }
 
@@ -624,7 +624,7 @@ function updateImageYear(pageLevel) {
             const newTitle = title + ' ' + currentYear;
             img.setAttribute('alt', newAlt);
             img.setAttribute('title', newTitle);
-            console.log('[Schema v7.18] ✅ Gambar: Tahun ditambahkan → "' + newAlt + '"');
+            console.log('[Schema v7.19] ✅ Gambar: Tahun ditambahkan → "' + newAlt + '"');
             updatedCount++;
             return;
         }
@@ -634,13 +634,13 @@ function updateImageYear(pageLevel) {
             const newTitle = title.replace(/\b(20[2-9][0-9])\b/, currentYear);
             img.setAttribute('alt', newAlt);
             img.setAttribute('title', newTitle);
-            console.log('[Schema v7.18] ✅ Gambar: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
+            console.log('[Schema v7.19] ✅ Gambar: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
             updatedCount++;
         }
     });
 
     if (updatedCount === 0) {
-        console.log('[Schema v7.18] ✅ Gambar: Tidak ada yang perlu diupdate');
+        console.log('[Schema v7.19] ✅ Gambar: Tidak ada yang perlu diupdate');
     }
     return updatedCount > 0;
 }
@@ -650,7 +650,7 @@ function updateImageYear(pageLevel) {
 // ============================================================
 function regenerateImageWithNewYear(pageLevel) {
     if (!needYear(pageLevel)) {
-        console.log('[Schema v7.18] ⏭️ Level ini TIDAK butuh re-generate gambar');
+        console.log('[Schema v7.19] ⏭️ Level ini TIDAK butuh re-generate gambar');
         return false;
     }
 
@@ -678,23 +678,43 @@ function regenerateImageWithNewYear(pageLevel) {
                 }
             }
 
-            console.log('[Schema v7.18] ✅ Gambar: Re-generate dengan tahun ' + currentYear);
+            console.log('[Schema v7.19] ✅ Gambar: Re-generate dengan tahun ' + currentYear);
             regenCount++;
         }
     });
 
     if (regenCount === 0) {
-        console.log('[Schema v7.18] ✅ Gambar: Tidak ada yang perlu di-regen');
+        console.log('[Schema v7.19] ✅ Gambar: Tidak ada yang perlu di-regen');
     }
     return regenCount > 0;
 }
 
 // ============================================================
 // 🔥🔥🔥 DETEKSI HALAMAN LAYAK GAMBAR 🔥🔥🔥
+// 🔥 FIX v7.19: VARIANT & SUB-VARIANT WAJIB DAPAT GAMBAR
 // ============================================================
 function isImageEligible(pageLevel) {
-    console.log('[Schema v7.18 📸] Checking image eligibility for page level:', pageLevel);
+    console.log('[Schema v7.19 📸] Checking image eligibility for page level:', pageLevel);
 
+    // ============================================================
+    // 🔥 LEVEL YANG WAJIB DAPAT GAMBAR (TANPA SYARAT)
+    // ============================================================
+    const mandatoryImageLevels = [
+        'money-master', 
+        'money-page', 
+        'money-child',
+        'variant',
+        'sub-variant'
+    ];
+    
+    if (mandatoryImageLevels.includes(pageLevel)) {
+        console.log(`[Schema v7.19] ✅ WAJIB GAMBAR (level: ${pageLevel})`);
+        return true;
+    }
+
+    // ============================================================
+    // 🔥 PILLAR: Skip jika edukasi murni
+    // ============================================================
     if (pageLevel === 'pillar') {
         const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
         const title = document.title.toLowerCase();
@@ -703,38 +723,38 @@ function isImageEligible(pageLevel) {
         const pillarEdukasi = ["panduan", "tips", "cara", "apa itu", "pengertian", "definisi", "overview", "komprehensif", "langkah", "tutorial", "pedoman", "petunjuk", "kenali", "mengenal", "memahami", "belajar"];
         for (let keyword of pillarEdukasi) {
             if (combined.includes(keyword)) {
-                console.log(`[Schema v7.18] ⏭️ Skip gambar: Pillar edukasi murni (keyword: "${keyword}")`);
+                console.log(`[Schema v7.19] ⏭️ Skip gambar: Pillar edukasi murni (keyword: "${keyword}")`);
                 return false;
             }
         }
         return true;
     }
 
-    if (pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2' || pageLevel === 'variant' || pageLevel === 'sub-variant') {
-        console.log(`[Schema v7.18] ✅ Halaman LAYAK mendapat gambar (level: ${pageLevel})`);
+    // ============================================================
+    // 🔥 SUB-PILLAR: LAYAK DAPAT GAMBAR
+    // ============================================================
+    if (pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
+        console.log(`[Schema v7.19] ✅ LAYAK GAMBAR (level: ${pageLevel})`);
         return true;
     }
 
+    // ============================================================
+    // 🔥 FALLBACK: CEK KONTEN
+    // ============================================================
     const content = document.querySelector(".post-body, article, main")?.innerText || "";
     const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
     if (wordCount < 300) {
-        console.log(`[Schema v7.18] ⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata < 300)`);
+        console.log(`[Schema v7.19] ⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata < 300)`);
         return false;
-    }
-
-    const moneyLevels = ['money-master', 'money-page', 'money-child'];
-    if (moneyLevels.includes(pageLevel)) {
-        console.log(`[Schema v7.18] ✅ Halaman LAYAK mendapat gambar (level: ${pageLevel})`);
-        return true;
     }
 
     const hasImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
     if (hasImage) {
-        console.log(`[Schema v7.18] ✅ Halaman sudah memiliki gambar, tetap layak`);
+        console.log(`[Schema v7.19] ✅ Halaman sudah memiliki gambar, tetap layak`);
         return true;
     }
 
-    console.log(`[Schema v7.18] ⏭️ Skip gambar: Halaman tidak masuk kriteria layak`);
+    console.log(`[Schema v7.19] ⏭️ Skip gambar: Halaman tidak masuk kriteria layak`);
     return false;
 }
 
@@ -756,22 +776,22 @@ function getPageLevelFromPLD() {
             try {
                 const level = pld.obj.detect();
                 if (level) {
-                    console.log(`[Schema v7.18] Page Level dari PLD ${pld.name}: ${level}`);
+                    console.log(`[Schema v7.19] Page Level dari PLD ${pld.name}: ${level}`);
                     return level;
                 }
             } catch(e) {
-                console.warn(`[Schema v7.18] Error calling PLD ${pld.name}:`, e.message);
+                console.warn(`[Schema v7.19] Error calling PLD ${pld.name}:`, e.message);
             }
         }
     }
 
     const bodyLevel = document.body.getAttribute('data-page-level') || document.body.getAttribute('data-schema-page-level');
     if (bodyLevel) {
-        console.log(`[Schema v7.18] Page Level dari body attribute: ${bodyLevel}`);
+        console.log(`[Schema v7.19] Page Level dari body attribute: ${bodyLevel}`);
         return bodyLevel;
     }
 
-    console.log('[Schema v7.18] PLD tidak tersedia, menggunakan fallback detection');
+    console.log('[Schema v7.19] PLD tidak tersedia, menggunakan fallback detection');
     return detectPageLevelFallback();
 }
 
@@ -780,7 +800,7 @@ function detectPageLevelFallback() {
     const title = document.title.toLowerCase();
     const url = location.href.toLowerCase();
 
-    const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom"];
+    const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom", "metode", "teknik"];
     for (let pattern of variantPatterns) {
         if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) return "variant";
     }
@@ -807,7 +827,7 @@ function waitForPLD() {
             return;
         }
 
-        const onReady = () => { console.log('[Schema v7.18] PLD ready (event)'); resolve(true); };
+        const onReady = () => { console.log('[Schema v7.19] PLD ready (event)'); resolve(true); };
         window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
         window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
         window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
@@ -817,10 +837,10 @@ function waitForPLD() {
             if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
                 window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
                 window.pageLevelDetectorV17 || window.pageLevelDetector) {
-                console.log('[Schema v7.18] PLD ready (timeout)');
+                console.log('[Schema v7.19] PLD ready (timeout)');
                 resolve(true);
             } else {
-                console.log('[Schema v7.18] PLD timeout, using fallback');
+                console.log('[Schema v7.19] PLD timeout, using fallback');
                 resolve(false);
             }
         }, 5000);
@@ -1037,26 +1057,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // ===== STEP 1: DAPATKAN PAGE LEVEL =====
         const pageLevel = getPageLevelFromPLD();
-        console.log(`[Schema v7.18] Page Level terdeteksi: ${pageLevel}`);
+        console.log(`[Schema v7.19] Page Level terdeteksi: ${pageLevel}`);
 
         // ===== STEP 2: UPDATE TAHUN DI H1 =====
-        console.log('[Schema v7.18] 📅 UPDATE TAHUN DI KONTEN:');
+        console.log('[Schema v7.19] 📅 UPDATE TAHUN DI KONTEN:');
         updateH1Year(pageLevel);
 
         // ===== STEP 3: CEK & PERBAIKI GAMBAR =====
         const isEligible = isImageEligible(pageLevel);
 
         if (isEligible) {
-            console.log(`[Schema v7.18] ✅ Halaman LAYAK mendapat gambar, memproses...`);
+            console.log(`[Schema v7.19] ✅ Halaman LAYAK mendapat gambar, memproses...`);
             try {
                 fixImagesToFormat1(pageLevel);
                 updateImageYear(pageLevel);
                 regenerateImageWithNewYear(pageLevel);
             } catch(e) {
-                console.warn('[Schema v7.18 📸] Error processing images:', e);
+                console.warn('[Schema v7.19 📸] Error processing images:', e);
             }
         } else {
-            console.log(`[Schema v7.18] ⏭️ Halaman TIDAK LAYAK mendapat gambar, skip`);
+            console.log(`[Schema v7.19] ⏭️ Halaman TIDAK LAYAK mendapat gambar, skip`);
         }
 
         // ===== STEP 4: INJECT SCHEMA =====
@@ -1183,7 +1203,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 };
             }
             graph.push(serviceNode);
-            console.log(`[Schema v7.18] ✅ Service schema (jasa/layanan/sewa/rental)`);
+            console.log(`[Schema v7.19] ✅ Service schema (jasa/layanan/sewa/rental)`);
 
             if (hasPrice && tableOffers.length > 0) {
                 const lowPrice = Math.min(...tableOffers.map(o => o.price));
@@ -1218,12 +1238,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 };
                 graph.push(productNode);
-                console.log(`[Schema v7.18] ✅ Product schema (${tableOffers.length} offers)`);
+                console.log(`[Schema v7.19] ✅ Product schema (${tableOffers.length} offers)`);
             } else {
-                console.log(`[Schema v7.18] ⏭️ Skip Product schema (tidak ada harga/offers)`);
+                console.log(`[Schema v7.19] ⏭️ Skip Product schema (tidak ada harga/offers)`);
             }
         } else {
-            console.log(`[Schema v7.18] ⏭️ Skip Service schema (bukan jasa)`);
+            console.log(`[Schema v7.19] ⏭️ Skip Service schema (bukan jasa)`);
         }
 
         const internalLinks = generateInternalLinks();
@@ -1236,7 +1256,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 numberOfItems: internalLinks.length,
                 itemListElement: internalLinks
             });
-            console.log(`[Schema v7.18] ✅ ${internalLinks.length} internal links added`);
+            console.log(`[Schema v7.19] ✅ ${internalLinks.length} internal links added`);
         }
 
         const schema = { "@context": "https://schema.org", "@graph": graph };
@@ -1250,10 +1270,11 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         el.textContent = JSON.stringify(schema, null, 2);
 
-        console.log(`[Schema v7.18 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
+        console.log(`[Schema v7.19 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
             `Service: ${isService ? '✅' : '❌'} | Product: ${(isService && hasPrice && tableOffers.length > 0) ? '✅' : '❌'} | ` +
             `Internal Links: ${internalLinks.length} | KnowsAbout: ${knowsAbout.length} | ` +
-            `Image Eligible: ${isEligible ? '✅' : '❌'} | Auto Image: ✅ | Auto Year: ✅ | Figure: ✅ SEO | Responsif: ✅ | CORB: ✅ ZERO`
+            `Image Eligible: ${isEligible ? '✅' : '❌'} | Auto Image: ✅ | Auto Year: ✅ | Figure: ✅ SEO | Responsif: ✅ | CORB: ✅ ZERO | ` +
+            `Variant/Sub-Variant: ✅ WAJIB GAMBAR (FIX v7.19)`
         );
 
     }, 700);
