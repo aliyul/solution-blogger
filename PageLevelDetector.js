@@ -1,10 +1,11 @@
 /* ============================================================
  🧠 Page Level Detector v22.28 — HIGH VOLUME KEYWORD → MONEY_PAGE
+    ✅ FIX v22.28: PRIORITAS LOCATION > SIZE (MC lebih prioritas)
     ✅ FIX v22.28: "terdekat/sekitar/dekat/near" → MONEY_CHILD
-    ✅ FIX v22.28: Location detection diperkuat untuk MC
+    ✅ FIX v22.28: Location city + service → MONEY_CHILD (sebelum SIZE)
     ✅ FIX v22.27: "murah/hemat/ekonomis/terjangkau" → MONEY_PAGE
     ✅ FIX v22.27: "mini/besar/kecil/sedang" + harga/jasa → MONEY_PAGE
-    ✅ FIX v22.27: Prioritas: PRICE > COMMERCIAL > LOCATION > SPEC
+    ✅ FIX v22.27: Prioritas: PRICE > LOCATION > COMMERCIAL > SPEC
     ✅ FIX v22.26: TAMBAHAN KATA VARIANT (tapi dibatasi)
     ✅ FIX v22.25: COMMERCIAL INTENT OVERRIDE
     ✅ FIX v22.24: OVERRIDE PILLAR → MONEY_MASTER
@@ -205,12 +206,11 @@
     "pontianak", "balikpapan", "samarinda", "banjarmasin", "makassar", "manado", "palu", "kendari",
     "bali", "denpasar", "gianyar", "tabanan", "bangli", "karangasem", "klungkung", "buleleng",
     "mataram", "kupang",
-    "terdekat", "sekitar", "dekat", "near"  // ← FIX v22.28: TAMBAHAN UNTUK MC
+    "terdekat", "sekitar", "dekat", "near"
   ];
 
   // ============================================================
   // 📌 SPECIFICATION WORDS (UNTUK VARIANT DETECTION YANG TERSISA)
-  // 🔥 FIX v22.27: DIBATASI, TIDAK TERMASUK HIGH VOLUME KEYWORD
   // ============================================================
 
   const SPECIFICATION_WORDS = {
@@ -247,9 +247,6 @@
     ]
   };
 
-  // ============================================================
-  // 🔥 FIX v22.27: ALL_SPEC_WORDS TANPA HIGH VOLUME KEYWORD
-  // ============================================================
   const ALL_SPEC_WORDS = [
     ...SPECIFICATION_WORDS.primary,
     ...SPECIFICATION_WORDS.dimension,
@@ -259,9 +256,6 @@
     ...SPECIFICATION_WORDS.technique
   ];
 
-  // ============================================================
-  // 🔥 FIX v22.27: SPEC PHRASES TANPA HIGH VOLUME KEYWORD
-  // ============================================================
   const SPEC_PHRASES_AT_END = [
     "kedap suara", "tahan banjir", "tahan lama", "cepat dipasang",
     "rumah sakit", "pembatas lahan", "perumahan", "pertambangan",
@@ -283,7 +277,7 @@
   };
 
   // ============================================================
-  // 📌 MONEY MASTER OVERRIDES (FIX v22.24)
+  // 📌 MONEY MASTER OVERRIDES
   // ============================================================
 
   const MONEY_MASTER_OVERRIDES = [
@@ -301,7 +295,7 @@
   ];
 
   // ============================================================
-  // 📌 FUNGSI DETEKSI VARIANT (DENGAN BATASAN HIGH VOLUME)
+  // 📌 FUNGSI DETEKSI VARIANT
   // ============================================================
 
   function detectVariantByPattern(text, entityType) {
@@ -313,30 +307,23 @@
     const words = lower.split(/\s+/);
     
     // ============================================================
-    // 🔥 PRIORITAS 1: BUKAN VARIANT (EXCLUSION) — PRIORITAS TERTINGGI
+    // 🔥 EXCLUSION: BUKAN VARIANT (PRIORITAS TERTINGGI)
     // ============================================================
     
-    // 1A. Price word → MONEY_PAGE (TIDAK BISA VARIANT)
     if (PRICE_WORDS.some(w => lower.includes(w))) {
       log(`"${text}" → BUKAN variant (price word) → MONEY_PAGE`, "PRICE");
       return { isVariant: false, score: 0, reasons: ["Price word → MONEY_PAGE"] };
     }
     
-    // ============================================================
-    // 🔥 FIX v22.27: HIGH VOLUME KEYWORD → MONEY_PAGE
-    // ============================================================
-    
-    // 1B. "murah/hemat/ekonomis/terjangkau" + ada kata benda → MONEY_PAGE
     const hasHighVolume = HIGH_VOLUME_WORDS.some(w => lower.includes(w));
     if (hasHighVolume) {
       const hasNoun = /\b(jasa|layanan|produk|material|barang|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|peralatan|bangunan|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur)\b/i.test(lower);
       if (hasNoun) {
-        log(`"${text}" → BUKAN variant (high volume: murah/hemat/ekonomis) → MONEY_PAGE`, "PRICE");
+        log(`"${text}" → BUKAN variant (high volume) → MONEY_PAGE`, "PRICE");
         return { isVariant: false, score: 0, reasons: ["High volume keyword → MONEY_PAGE"] };
       }
     }
     
-    // 1C. "mini/besar/kecil/sedang" + "harga/jasa/sewa" → MONEY_PAGE
     const hasSizeWord = SIZE_WORDS.some(w => lower.includes(w));
     if (hasSizeWord) {
       const hasServiceWord = /\b(jasa|harga|biaya|sewa|layanan|produk|material)\b/i.test(lower);
@@ -346,34 +333,28 @@
       }
     }
     
-    // 1D. Commercial word → MONEY_PAGE
     if (COMMERCIAL_WORDS.some(w => lower.includes(w))) {
       log(`"${text}" → BUKAN variant (commercial word) → MONEY_PAGE`, "COMMERCIAL");
       return { isVariant: false, score: 0, reasons: ["Commercial word → MONEY_PAGE"] };
     }
     
-    // ============================================================
-    // 🔥 FIX v22.28: Location word + service → MONEY_CHILD
-    // ============================================================
     if (LOCATION_WORDS.some(w => lower.includes(w))) {
       const hasService = /\b(jasa|layanan|sewa|produk|material|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur)\b/i.test(lower);
       if (hasService) {
-        log(`"${text}" → BUKAN variant (location word + service) → MONEY_CHILD`, "LOCATION");
+        log(`"${text}" → BUKAN variant (location + service) → MONEY_CHILD`, "LOCATION");
         return { isVariant: false, score: 0, reasons: ["Location word → MONEY_CHILD"] };
       }
     }
     
-    // 1E. Per unit pattern → MONEY_PAGE
     if (/\bper\s+(meter|titik|m|kg|hari|jam|minggu|bulan|unit|buah|item|lembar|bagian|paket|sesi|kali|kubik|m2|m3|liter|ton|meter lari|m')\b/i.test(lower)) {
       log(`"${text}" → BUKAN variant (per unit pattern) → MONEY_PAGE`, "PRICE");
       return { isVariant: false, score: 0, reasons: ["Per unit → MONEY_PAGE"] };
     }
     
     // ============================================================
-    // 🔥 PRIORITAS 2: VARIANT DETECTION (SISA YANG TIDAK TERCOVER)
+    // 🔥 VARIANT DETECTION (SISA YANG TIDAK TERCOVER)
     // ============================================================
     
-    // 2A. Kata spesifikasi di AWAL → VARIANT
     const firstWord = words[0] || "";
     const isSpecWord = ALL_SPEC_WORDS.some(spec => firstWord === spec);
     
@@ -381,16 +362,11 @@
       if (!PRICE_WORDS.some(w => lower.includes(w)) && !LOCATION_WORDS.some(w => lower.includes(w))) {
         if (!HIGH_VOLUME_WORDS.some(w => lower.includes(w)) && !SIZE_WORDS.some(w => lower.includes(w))) {
           log(`✅ VARIANT: specification at start: "${firstWord}" → "${text}"`, "VARIANT");
-          return { 
-            isVariant: true, 
-            score: 5, 
-            reasons: [`Specification word "${firstWord}" at start → VARIANT`] 
-          };
+          return { isVariant: true, score: 5, reasons: [`Specification word "${firstWord}" at start → VARIANT`] };
         }
       }
     }
     
-    // 2B. Pola spesifikasi di AWAL (tanpa high volume)
     const specFirstPatterns = [
       { pattern: /^(tinggi|rendah|panjang|pendek|lebar|sempit|tebal|tipis|dalam|dangkal|diameter|radius|ukuran|dimensi)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|produk|material)/i, score: 4, reason: "Dimension + noun (spec first)" },
       { pattern: /^(polos|motif|bermotif|bercorak|tekstur|serat|halus|kasar|matte|glossy|doff|gloss|satin|anyaman|natural|ekspos|custom|standar|premium|ekonomis|modern|klasik|minimalis|tradisional|elegan|mewah|polosan)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|produk|material)/i, score: 4, reason: "Finishing + noun (spec first)" },
@@ -410,10 +386,8 @@
       }
     }
     
-    // 2C. Spesifikasi di AKHIR → VARIANT
     const lastWord = words[words.length - 1] || "";
     const isSpecAtEnd = ALL_SPEC_WORDS.some(spec => lastWord === spec);
-    
     const lastTwoWords = words.slice(-2).join(" ");
     const isSpecPhraseAtEnd = SPEC_PHRASES_AT_END.some(phrase => lastTwoWords === phrase);
     
@@ -423,17 +397,12 @@
           const hasNoun = /^(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|produk|material|sewa|alat|mesin)/i.test(lower);
           if (hasNoun || words.length >= 3) {
             log(`✅ VARIANT: specification at end: "${lastWord || lastTwoWords}" → "${text}"`, "VARIANT");
-            return { 
-              isVariant: true, 
-              score: 5, 
-              reasons: [`Specification "${lastWord || lastTwoWords}" at end → VARIANT`] 
-            };
+            return { isVariant: true, score: 5, reasons: [`Specification "${lastWord || lastTwoWords}" at end → VARIANT`] };
           }
         }
       }
     }
     
-    // 2D. Universal Quality (tanpa high volume)
     const supportedEntities = ["jasa", "sewa", "produk", "material", "desain"];
     if (supportedEntities.includes(entityType)) {
       const qualityResult = detectUniversalQualityWords(text, entityType);
@@ -447,10 +416,6 @@
         }
       }
     }
-    
-    // ============================================================
-    // 🔥 THRESHOLD
-    // ============================================================
     
     const threshold = 3;
     const isVariant = score >= threshold;
@@ -542,14 +507,13 @@
   }
 
   // ============================================================
-  // 📌 FUNGSI DETEKSI VARIANT LEVEL (DENGAN BATASAN)
+  // 📌 FUNGSI DETEKSI VARIANT LEVEL
   // ============================================================
 
   function detectVariantLevel(text, entityType) {
     if (isSubVariant(text)) return "sub-variant";
     if (hasTechnicalSpec(text)) return null;
     
-    // 🔥 FIX v22.27: HIGH VOLUME → BUKAN VARIANT
     if (PRICE_WORDS.some(w => text.includes(w))) return null;
     if (HIGH_VOLUME_WORDS.some(w => text.includes(w))) {
       const hasNoun = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|peralatan|bangunan|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur)\b/i.test(text);
@@ -561,7 +525,6 @@
     }
     if (COMMERCIAL_WORDS.some(w => text.includes(w))) return null;
     
-    // 🔥 FIX v22.28: Location word → BUKAN VARIANT
     if (LOCATION_WORDS.some(w => text.includes(w))) {
       const hasService = /\b(jasa|layanan|sewa|produk|material|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur)\b/i.test(text);
       if (hasService) return null;
@@ -651,7 +614,6 @@
   function isLocation(text) {
     if (!text) return false;
     const lower = cleanText(text);
-    // Cek semua kata lokasi termasuk "terdekat", "sekitar", "dekat", "near"
     const allLocationWords = [...LOCATION_WORDS, "terdekat", "sekitar", "dekat", "near"];
     for (const word of allLocationWords) {
       if (new RegExp(`\\b${word.replace(/\s+/g, '\\s+')}\\b`, "i").test(lower)) return true;
@@ -681,8 +643,7 @@
   }
 
   // ============================================================
-  // 📌 MONEY LEVEL DETECTION (DENGAN HIGH VOLUME OVERRIDE)
-  // 🔥 FIX v22.28: PRIORITAS "terdekat" → MONEY_CHILD
+  // 🔥 FIX v22.28: MONEY LEVEL DETECTION (PRIORITAS LOCATION > SIZE)
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -691,13 +652,37 @@
     const lowerText = text.toLowerCase();
     
     // ============================================================
-    // 🔥 FIX v22.27: HIGH VOLUME OVERRIDE
+    // 🔥 PRIORITAS 1: Price → MONEY_PAGE (TETAP)
     // ============================================================
-    
-    // PRIORITAS 1: Price → MONEY_PAGE
     if (hasPriceWord) return "money-page";
     
-    // PRIORITAS 2: HIGH VOLUME (murah, hemat, dll) → MONEY_PAGE
+    // ============================================================
+    // 🔥 PRIORITAS 2: LOCATION + "terdekat" → MONEY_CHILD (DIPERKUAT)
+    // 🔥 FIX v22.28: INI SEBELUM SIZE + SERVICE
+    // ============================================================
+    
+    // 2A. "terdekat/sekitar/dekat/near" + kata benda → MONEY_CHILD
+    const hasNearWord = /\b(terdekat|sekitar|dekat|near)\b/i.test(lowerText);
+    if (hasNearWord) {
+      const hasService = /\b(jasa|layanan|sewa|produk|material|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur|mini|pile|bore|strauss)\b/i.test(lowerText);
+      if (hasService) {
+        log(`🎯 "terdekat" OVERRIDE: "${text}" → MONEY_CHILD`, 'LOCATION');
+        return "money-child";
+      }
+    }
+    
+    // 2B. Location city (jakarta, bogor, dll) + service → MONEY_CHILD
+    if (hasLocationWord) {
+      const hasService = /\b(jasa|layanan|sewa|produk|material|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur|mini|pile|bore|strauss)\b/i.test(lowerText);
+      if (hasService) {
+        log(`🎯 LOCATION OVERRIDE: "${text}" → MONEY_CHILD`, 'LOCATION');
+        return "money-child";
+      }
+    }
+    
+    // ============================================================
+    // 🔥 PRIORITAS 3: HIGH VOLUME → MONEY_PAGE
+    // ============================================================
     const hasHighVolume = HIGH_VOLUME_WORDS.some(w => lowerText.includes(w));
     if (hasHighVolume) {
       const hasNoun = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|peralatan|bangunan|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur|mini|pile|bore|strauss|spesifikasi|ukuran|dimensi)\b/i.test(lowerText);
@@ -707,7 +692,9 @@
       }
     }
     
-    // PRIORITAS 3: SIZE + SERVICE → MONEY_PAGE
+    // ============================================================
+    // 🔥 PRIORITAS 4: SIZE + SERVICE → MONEY_PAGE (SEKARANG DI BAWAH LOCATION)
+    // ============================================================
     const hasSizeWord = SIZE_WORDS.some(w => lowerText.includes(w));
     if (hasSizeWord) {
       const hasService = /\b(jasa|harga|biaya|sewa|layanan|produk|material)\b/i.test(lowerText);
@@ -718,26 +705,16 @@
     }
     
     // ============================================================
-    // 🔥 FIX v22.28: PRIORITAS "terdekat" → MONEY_CHILD
+    // 🔥 PRIORITAS 5: Commercial → MONEY_PAGE
     // ============================================================
-    
-    // PRIORITAS 3.5: "terdekat/sekitar/dekat/near" + kata benda → MONEY_CHILD
-    const hasNearWord = /\b(terdekat|sekitar|dekat|near)\b/i.test(lowerText);
-    if (hasNearWord) {
-      const hasService = /\b(jasa|layanan|sewa|produk|material|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur)\b/i.test(lowerText);
-      if (hasService) {
-        log(`🎯 "terdekat" OVERRIDE: "${text}" → MONEY_CHILD`, 'LOCATION');
-        return "money-child";
-      }
+    if (COMMERCIAL_WORDS.some(w => lowerText.includes(w))) {
+      log(`🎯 COMMERCIAL: "${text}" → MONEY_PAGE`, 'COMMERCIAL');
+      return "money-page";
     }
     
-    // PRIORITAS 4: Location → MONEY_CHILD
-    if (hasLocationWord) {
-      log(`🎯 LOCATION OVERRIDE: "${text}" → MONEY_CHILD`, 'LOCATION');
-      return "money-child";
-    }
-    
-    // PRIORITAS 5: Cek jumlah kata untuk MONEY_MASTER
+    // ============================================================
+    // 🔥 PRIORITAS 6: Cek jumlah kata untuk MONEY_MASTER
+    // ============================================================
     
     if (entityType === "sewa") {
       let core = text.replace(/\bsewa\b/g, "").replace(/\brental\b/g, "").trim();
@@ -833,7 +810,6 @@
         return result;
       }
     }
-    // 🔥 FIX v22.28: Jika ada kata "terdekat" tapi tidak ada lokasi spesifik
     if (/\b(terdekat|sekitar|dekat|near)\b/i.test(lowerText)) {
       result.kota_utama = "terdekat";
       result.provinsi = null;
@@ -990,11 +966,11 @@
     
     let detectedLevel = null;
     
-    // 4A. VARIANT DETECTION (dengan batasan high volume)
+    // 4A. VARIANT DETECTION
     const variant = detectVariantLevel(text, entityType);
     if (variant) detectedLevel = variant;
     
-    // 4B. MONEY LEVEL DETECTION (dengan high volume override)
+    // 4B. MONEY LEVEL DETECTION (dengan prioritas baru)
     if (!detectedLevel) {
       const money = detectMoneyLevel(text, entityType);
       if (money) detectedLevel = money;
@@ -1106,7 +1082,9 @@
   console.log("💰 FIX v22.27: HIGH VOLUME KEYWORD → MONEY_PAGE");
   console.log("   - 'murah/hemat/ekonomis/terjangkau' → MONEY_PAGE");
   console.log("   - 'mini/besar/kecil/sedang' + harga/jasa → MONEY_PAGE");
-  console.log("📍 FIX v22.28: 'terdekat/sekitar/dekat/near' → MONEY_CHILD");
+  console.log("📍 FIX v22.28: PRIORITAS LOCATION > SIZE (MC lebih prioritas)");
+  console.log("📍 'terdekat/sekitar/dekat/near' + service → MONEY_CHILD");
+  console.log("📍 Location city + service → MONEY_CHILD (sebelum SIZE)");
   console.log("📍 Tersedia " + getAllKecamatan().length + " kecamatan");
   console.log("🏗️  ENTITY: JASA, SEWA, PRODUK, MATERIAL, DESAIN, ARTIKEL");
   console.log("🛒 COMMERCIAL INTENT OVERRIDE");
