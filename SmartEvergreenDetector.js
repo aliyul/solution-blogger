@@ -1,12 +1,3 @@
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔧 UPDATE SCRIPT — SMART EVERGREEN DETECTOR v14.2
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Saya akan update script dengan kemampuan membedakan **tabel harga** vs **tabel spesifikasi** untuk mencegah deteksi salah pada konten informatif.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-
-```javascript
 /* ============================================================
  🧠 Smart Evergreen Detector v14.2 — UNTUK betonjayareadymix.com
     ✅ SINKRON dengan V37 FULL SITE AUTO ARCHITECTURE
