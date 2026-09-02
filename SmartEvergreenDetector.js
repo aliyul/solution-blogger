@@ -1,13 +1,13 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v15.1 — UNTUK betonjayareadymix.com
+ 🧠 Smart Evergreen Detector v15.2 — UNTUK betonjayareadymix.com
     ✅ SINKRON dengan V37 FULL SITE AUTO ARCHITECTURE
-    ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Non-Evergreen)
-    ✅ COMPLETE RULES untuk SEMUA ENTITY (V37 Standard)
+    ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Cek Tabel)
+    ✅ ATURAN TAHUN: H1 mengandung tahun → NON-EVERGREEN
+    ✅ ATURAN HARGA: H1 harga + tabel harga → NON-EVERGREEN
+    ✅ ATURAN INFORMASI: H1 informatif tanpa harga → EVERGREEN
     ✅ SUPPORT PLD v22.x, v20.x, v19.0, v18, v17, legacy
     ✅ FIXED: JASA rules (money-master=30, money-page=30, money-child=30)
     ✅ FIXED: PRODUK rules (variant 730 hari, sub-variant 730 hari)
-    ✅ ADD: Deteksi jenis konten berdasarkan H1
-    ✅ ADD: Override otomatis untuk konten informatif
 ============================================================ */
 
 (function () {
@@ -72,38 +72,70 @@
   const DEFAULT_RULE = { type: 'evergreen', validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft' };
 
   // ============================================================
-  // 📌 FUNGSI DETEKSI JENIS KONTEN BERDASARKAN H1 (PATOKAN UTAMA)
+  // 📌 FUNGSI DETEKSI KONTEN BERDASARKAN H1 (PATOKAN UTAMA)
   // ============================================================
   function detectContentTypeByH1() {
     const h1 = document.querySelector('h1');
     if (!h1) {
       console.warn('⚠️ H1 tidak ditemukan, menggunakan fallback konten');
-      return { isInformational: false, isPrice: false, h1Text: '', confidence: 'low' };
+      return { 
+        isInformational: false, 
+        isPrice: false, 
+        hasYear: false,
+        h1Text: '', 
+        confidence: 'low',
+        reason: 'H1 tidak ditemukan'
+      };
     }
     
     const h1Text = h1.innerText.toLowerCase();
     
     // ============================================================
-    // KATA KUNCI INFORMATIF (EVERGREEN)
+    // 1. CEK TAHUN DI H1 (WAJIB NON-EVERGREEN)
+    // ============================================================
+    const yearPattern = /\b(19|20)\d{2}\b/;
+    const hasYear = yearPattern.test(h1Text);
+    
+    if (hasYear) {
+      console.log(`📅 H1 mengandung tahun → NON-EVERGREEN (wajib)`);
+      return {
+        isInformational: false,
+        isPrice: true, // Dianggap price karena ada tahun
+        hasYear: true,
+        h1Text: h1Text,
+        infoScore: 0,
+        priceScore: 0,
+        hasRpFormat: false,
+        hasNumberWithUnit: false,
+        hasPriceNumber: false,
+        reason: 'H1 mengandung tahun (wajib non-evergreen)',
+        confidence: 'high'
+      };
+    }
+    
+    // ============================================================
+    // 2. KATA KUNCI INFORMATIF (EVERGREEN)
     // ============================================================
     const informationalKeywords = [
       'panduan', 'spesifikasi', 'keunggulan', 'cara memilih', 'tips', 
       'perbedaan', 'jenis', 'apa itu', 'pengertian', 'informasi',
       'standar', 'mutu', 'ukuran', 'komponen', 'bahan', 'material',
-      'panduan lengkap', 'lengkap', 'solusi', 'rekomendasi'
+      'panduan lengkap', 'lengkap', 'solusi', 'rekomendasi', 'penjelasan',
+      'karakteristik', 'kelebihan', 'kekurangan', 'fungsi', 'manfaat'
     ];
     
     // ============================================================
-    // KATA KUNCI HARGA (NON-EVERGREEN)
+    // 3. KATA KUNCI HARGA (NON-EVERGREEN)
     // ============================================================
     const priceKeywords = [
       'harga', 'biaya', 'tarif', 'estimasi', 'rp', 'rupiah',
       'per meter', 'per lembar', 'per batang', 'per kubik',
-      'promo', 'diskon', 'penawaran'
+      'promo', 'diskon', 'penawaran', 'cost', 'budget',
+      'uang', 'pembayaran', 'cicilan', 'kredit'
     ];
     
     // ============================================================
-    // CEK KATA KUNCI
+    // 4. CEK KATA KUNCI
     // ============================================================
     let infoScore = 0;
     let priceScore = 0;
@@ -117,59 +149,57 @@
     });
     
     // ============================================================
-    // CEK FORMAT H1
+    // 5. CEK FORMAT HARGA DI H1
     // ============================================================
     const hasRpFormat = /Rp\s*[\d.,]+/.test(h1Text);
-    const hasNumberWithUnit = /[\d.,]+\s*(per|meter|lembar|batang|kubik)/.test(h1Text);
-    const hasPriceNumber = /[\d.,]+\s*(juta|ribu|rb|jt|k)/.test(h1Text);
+    const hasNumberWithUnit = /[\d.,]+\s*(per|meter|lembar|batang|kubik|m2|m²|cm|mm|kg|ton)/.test(h1Text);
+    const hasPriceNumber = /[\d.,]+\s*(juta|ribu|rb|jt|k|juta-an|jutaan)/.test(h1Text);
     
     // ============================================================
-    // CEK APAKAH H1 BERISI "PANDUAN LENGKAP" → PASTI INFORMASI
-    // ============================================================
-    const isGuide = h1Text.includes('panduan') || h1Text.includes('lengkap');
-    
-    // ============================================================
-    // KESIMPULAN
+    // 6. KESIMPULAN
     // ============================================================
     let isInformational = false;
     let isPrice = false;
     let reason = '';
     
-    // ATURAN 1: Jika H1 mengandung "panduan", "spesifikasi", "keunggulan" → INFORMASI
-    if (infoScore >= 2 || isGuide) {
+    // ATURAN 1: Jika H1 mengandung "panduan", "spesifikasi", "keunggulan" → INFORMASI (tanpa harga)
+    if (infoScore >= 2 && priceScore === 0 && !hasRpFormat && !hasNumberWithUnit) {
       isInformational = true;
-      reason = `H1 mengandung kata informatif (score: ${infoScore})`;
+      reason = `H1 mengandung kata informatif tanpa harga (score: ${infoScore})`;
     }
-    // ATURAN 2: Jika H1 mengandung "harga", "biaya", "estimasi" → HARGA
-    else if (priceScore >= 2 || hasRpFormat || hasNumberWithUnit) {
+    // ATURAN 2: Jika H1 mengandung harga → HARGA (perlu cek tabel)
+    else if (priceScore >= 2 || hasRpFormat || hasNumberWithUnit || hasPriceNumber) {
       isPrice = true;
       reason = `H1 mengandung kata harga (score: ${priceScore})`;
     }
-    // ATURAN 3: Jika H1 mengandung angka harga → HARGA
-    else if (hasPriceNumber) {
-      isPrice = true;
-      reason = 'H1 mengandung angka dengan konteks harga';
+    // ATURAN 3: Jika H1 mengandung "panduan" atau "spesifikasi" → INFORMASI
+    else if (h1Text.includes('panduan') || h1Text.includes('spesifikasi') || h1Text.includes('keunggulan')) {
+      isInformational = true;
+      reason = `H1 mengandung kata 'panduan/spesifikasi/keunggulan'`;
     }
     // ATURAN 4: Default → cek konten
     else {
-      // Fallback: cek konten untuk keyword informatif
       const bodyText = document.body.innerText.toLowerCase();
-      const eduKeywords = ['panduan', 'spesifikasi', 'keunggulan', 'cara memilih', 'tips', 'perbedaan', 'jenis'];
+      const eduKeywords = ['panduan', 'spesifikasi', 'keunggulan', 'cara memilih', 'tips', 'perbedaan', 'jenis', 'apa itu'];
       let eduScore = 0;
       eduKeywords.forEach(k => {
         if (bodyText.includes(k)) eduScore++;
       });
-      if (eduScore >= 3) {
+      if (eduScore >= 3 && !bodyText.includes('harga') && !bodyText.includes('biaya')) {
         isInformational = true;
         reason = `Fallback: konten edukatif (score: ${eduScore})`;
-      } else {
+      } else if (bodyText.includes('harga') || bodyText.includes('biaya')) {
         isPrice = true;
-        reason = 'Fallback: default ke harga (tidak terdeteksi informatif)';
+        reason = 'Fallback: konten mengandung kata harga/biaya';
+      } else {
+        isInformational = true;
+        reason = 'Fallback: default ke evergreen (tidak terdeteksi harga)';
       }
     }
     
     console.log('📊 H1 Content Detection:', {
       h1Text: h1Text,
+      hasYear: hasYear,
       isInformational,
       isPrice,
       infoScore,
@@ -183,6 +213,7 @@
     return {
       isInformational,
       isPrice,
+      hasYear,
       h1Text: h1Text,
       infoScore,
       priceScore,
@@ -190,8 +221,51 @@
       hasNumberWithUnit,
       hasPriceNumber,
       reason,
-      confidence: infoScore >= 2 || priceScore >= 2 ? 'high' : 'medium'
+      confidence: infoScore >= 2 || priceScore >= 2 || hasYear ? 'high' : 'medium'
     };
+  }
+
+  // ============================================================
+  // 📌 FUNGSI CEK TABEL HARGA (VALIDASI)
+  // ============================================================
+  function hasPriceTable() {
+    const tables = document.querySelectorAll('table');
+    let priceTableFound = false;
+    let tableDetails = [];
+    
+    tables.forEach((table, index) => {
+      const tableText = table.innerText.toLowerCase();
+      
+      // Cek apakah tabel mengandung kolom harga
+      const hasPriceColumn = /harga|biaya|estimasi|rp|rupiah|per meter|per lembar|total|subtotal/i.test(tableText);
+      
+      // Cek apakah tabel mengandung angka (minimal 3)
+      const numbers = tableText.match(/[\d.,]+/g);
+      const hasNumbers = numbers && numbers.length >= 3;
+      
+      // Cek apakah tabel mengandung satuan harga
+      const hasUnit = /per\s*(meter|m|lembar|lbr|batang|buah|unit|kg|ton|kubik|m³|m2|m²)/i.test(tableText);
+      
+      if (hasPriceColumn && hasNumbers) {
+        priceTableFound = true;
+        tableDetails.push({
+          index: index,
+          hasPriceColumn,
+          hasNumbers,
+          hasUnit,
+          numberCount: numbers ? numbers.length : 0,
+          preview: tableText.substring(0, 100)
+        });
+      }
+    });
+    
+    if (priceTableFound) {
+      console.log('💰 Tabel HARGA ditemukan:', tableDetails);
+    } else {
+      console.log('📋 Tidak ada tabel harga (hanya tabel spesifikasi/informasi)');
+    }
+    
+    return { found: priceTableFound, details: tableDetails };
   }
 
   // ============================================================
@@ -367,15 +441,25 @@
   // ============================================================
   function getRulesByEntityType(entityType, pageLevel, h1Detection) {
     console.log(`📌 Getting rules for entityType=${entityType}, pageLevel=${pageLevel}`);
-    console.log(`   📊 H1 Detection: informational=${h1Detection.isInformational}, price=${h1Detection.isPrice}`);
+    console.log(`   📊 H1 Detection: informational=${h1Detection.isInformational}, price=${h1Detection.isPrice}, hasYear=${h1Detection.hasYear}`);
     
     const isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(pageLevel);
     
     // ============================================================
-    // ATURAN UTAMA: PATOKAN H1
+    // ATURAN 1: H1 mengandung TAHUN → WAJIB NON-EVERGREEN
     // ============================================================
-    if (isMoneyLevel && h1Detection.isInformational) {
-      console.warn(`⚠️ PERINGATAN: Halaman ${pageLevel} terdeteksi sebagai Money Level tapi H1 INFORMATIF!`);
+    if (isMoneyLevel && h1Detection.hasYear) {
+      console.warn(`⚠️ H1 mengandung TAHUN → WAJIB NON-EVERGREEN`);
+      console.warn(`   → H1: "${h1Detection.h1Text}"`);
+      console.warn(`   → Tahun terdeteksi, halaman ini harus non-evergreen`);
+      // Gunakan aturan normal (non-evergreen)
+    }
+    
+    // ============================================================
+    // ATURAN 2: H1 INFORMATIF tanpa harga → EVERGREEN
+    // ============================================================
+    if (isMoneyLevel && h1Detection.isInformational && !h1Detection.isPrice && !h1Detection.hasYear) {
+      console.warn(`⚠️ PERINGATAN: Halaman ${pageLevel} terdeteksi sebagai Money Level tapi H1 INFORMATIF TANPA HARGA!`);
       console.warn(`   → H1: "${h1Detection.h1Text}"`);
       console.warn(`   → Alasan: ${h1Detection.reason}`);
       console.warn(`   → Meng-override ke EVERGREEN (3 tahun)`);
@@ -390,21 +474,44 @@
         allowPriceRange: false, 
         ctaIntensity: 'soft-medium',
         overridden: true,
-        overrideReason: `H1 informatif: "${h1Detection.h1Text}" — ${h1Detection.reason}`
+        overrideReason: `H1 informatif tanpa harga: "${h1Detection.h1Text}" — ${h1Detection.reason}`
       };
     }
     
     // ============================================================
-    // ATURAN 2: Jika H1 mengandung harga → NON-EVERGREEN
+    // ATURAN 3: H1 mengandung HARGA → CEK TABEL HARGA
     // ============================================================
     if (isMoneyLevel && h1Detection.isPrice) {
-      console.log(`✅ H1 mengandung harga → NON-EVERGREEN (30 hari)`);
-      console.log(`   → H1: "${h1Detection.h1Text}"`);
-      console.log(`   → Alasan: ${h1Detection.reason}`);
+      // Cek tabel harga
+      const priceTableResult = hasPriceTable();
+      
+      if (priceTableResult.found) {
+        console.log(`✅ H1 mengandung harga DAN ada tabel harga → NON-EVERGREEN`);
+        console.log(`   → H1: "${h1Detection.h1Text}"`);
+        console.log(`   → Alasan: ${h1Detection.reason} + tabel harga ditemukan`);
+        // Gunakan aturan normal (non-evergreen)
+      } else {
+        console.warn(`⚠️ H1 mengandung harga TAPI TIDAK ADA TABEL HARGA!`);
+        console.warn(`   → H1: "${h1Detection.h1Text}"`);
+        console.warn(`   → Alasan: ${h1Detection.reason} tapi tidak ada tabel harga`);
+        console.warn(`   → Meng-override ke EVERGREEN (konten informatif)`);
+        
+        document.body.classList.add('warning-h1-price-no-table');
+        
+        return { 
+          type: 'evergreen', 
+          validityDays: 1095, 
+          usePriceValidUntil: false, 
+          allowPriceRange: false, 
+          ctaIntensity: 'soft-medium',
+          overridden: true,
+          overrideReason: `H1 mengandung harga tapi tidak ada tabel harga: "${h1Detection.h1Text}"`
+        };
+      }
     }
     
     // ============================================================
-    // ATURAN 3: Default berdasarkan entity
+    // ATURAN 4: Default berdasarkan entity
     // ============================================================
     
     // JASA
@@ -462,7 +569,7 @@
   // 📌 FUNGSI UTAMA DETECT EVERGREEN
   // ============================================================
   async function detectEvergreen({ customDateModified = null } = {}) {
-    console.log("🧩 detectEvergreen() v15.1 — Loading...");
+    console.log("🧩 detectEvergreen() v15.2 — Loading...");
     
     await waitForPageLevelDetector();
     
@@ -476,7 +583,7 @@
     
     // DETEKSI JENIS KONTEN BERDASARKAN H1 (PATOKAN UTAMA)
     const h1Detection = detectContentTypeByH1();
-    console.log(`📊 H1 Detection Result: informational=${h1Detection.isInformational}, price=${h1Detection.isPrice}`);
+    console.log(`📊 H1 Detection Result: informational=${h1Detection.isInformational}, price=${h1Detection.isPrice}, hasYear=${h1Detection.hasYear}`);
     console.log(`   📝 H1: "${h1Detection.h1Text}"`);
     console.log(`   📌 Reason: ${h1Detection.reason}`);
     
@@ -573,6 +680,9 @@
       if (h1Detection.isPrice) {
         document.body.classList.add('h1-price');
       }
+      if (h1Detection.hasYear) {
+        document.body.classList.add('h1-has-year');
+      }
     }
     
     if (isOverridden) {
@@ -584,7 +694,7 @@
     const validityDays = validityMs / 86400000;
 
     if (isOverridden) {
-      validityLabel = `EVERGREEN (OVERRIDE) — ${validityDays} hari — ${entityType} / ${pageLevel} (H1 informatif)`;
+      validityLabel = `EVERGREEN (OVERRIDE) — ${validityDays} hari — ${entityType} / ${pageLevel} (H1 informatif tanpa harga)`;
       console.warn(`   ⚠️ OVERRIDE ACTIVE: ${validityLabel}`);
     } else if (finalType === 'evergreen') {
         if (validityDays >= 1095) validityLabel = 'EVERGREEN (3 tahun) — V37';
@@ -633,7 +743,12 @@
             validityLabel = `NON-EVERGREEN (${validityDays} hari) — V37 — ${entityType}/${pageLevel}`;
         }
         
-        validityLabel += ' — ⚠️ H1 WAJIB mengandung tahun berjalan';
+        // Tambahan untuk tahun
+        if (h1Detection && h1Detection.hasYear) {
+          validityLabel += ' — ⚠️ H1 mengandung TAHUN (wajib non-evergreen)';
+        } else {
+          validityLabel += ' — ⚠️ H1 WAJIB mengandung tahun berjalan';
+        }
         
     } else {
         validityLabel = `${finalType.toUpperCase()} (${validityDays} hari) — ${entityType} / ${pageLevel}`;
@@ -651,7 +766,7 @@
       usePriceValidUntil,
       ctaIntensity,
       allowPriceRange,
-      detectorVersion: detectorVersion || 'v15.1',
+      detectorVersion: detectorVersion || 'v15.2',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
@@ -672,20 +787,21 @@
     console.log(`   - Use Price Valid Until: ${usePriceValidUntil}`);
     console.log(`   - Next Update: ${nextUpdate}`);
     console.log(`   - H1: "${h1Detection?.h1Text || '(no h1)'}"`);
-    console.log(`   - H1 Type: ${h1Detection?.isInformational ? 'INFORMATIONAL' : h1Detection?.isPrice ? 'PRICE' : 'UNKNOWN'}`);
+    console.log(`   - H1 Type: ${h1Detection?.hasYear ? 'HAS_YEAR' : h1Detection?.isInformational ? 'INFORMATIONAL' : h1Detection?.isPrice ? 'PRICE' : 'UNKNOWN'}`);
+    console.log(`   - H1 Reason: ${h1Detection?.reason || 'N/A'}`);
     if (isOverridden) {
       console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
     }
     if (confidence) {
       console.log(`   - Detection Confidence: ${confidence}%`);
     }
-    console.log(`🧩 detectEvergreen() v15.1 — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v15.2 — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
   
-  console.log("✅ Smart Evergreen Detector v15.1 ready (V37 rules + H1-based content detection)");
+  console.log("✅ Smart Evergreen Detector v15.2 ready (V37 rules + H1-based with year & table validation)");
   
 })();
