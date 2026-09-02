@@ -1,12 +1,3 @@
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🔧 UPDATE SCRIPT — AUTOSCHEMA HYBRID v4.69
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Saya akan update script dengan perbaikan error `matchAll` dan beberapa peningkatan lain untuk kompatibilitas dengan V37.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-
-```javascript
 /**
  * ⚡ AutoSchema Hybrid v4.69 — DETEKSI FOKUS KONTEN + ATURAN TAHUN DINAMIS
  * 
