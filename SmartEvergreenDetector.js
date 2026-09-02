@@ -1,15 +1,16 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v14.2 — UNTUK betonjayareadymix.com
+ 🧠 Smart Evergreen Detector v15.0 — UNTUK betonjayareadymix.com
     ✅ SINKRON dengan V37 FULL SITE AUTO ARCHITECTURE
     ✅ COMPLETE RULES untuk SEMUA ENTITY (V37 Standard)
     ✅ SUPPORT PLD v22.x, v20.x, v19.0, v18, v17, legacy
     ✅ FIXED: JASA rules (money-master=30, money-page=30, money-child=30) — NON-EVERGREEN
     ✅ FIXED: PRODUK rules (variant 730 hari, sub-variant 730 hari)
     ✅ FIXED: MATERIAL rules (sama dengan PRODUK)
-    ✅ FIXED: Deteksi tabel harga vs tabel spesifikasi (v14.2)
-    ✅ ADD: Deteksi konten tanpa harga spesifik → override ke evergreen
-    ✅ ADD: Peringatan untuk Money Page tanpa harga
-    ✅ ENHANCED: Mendapatkan confidence score dari PLD v22.x
+    ✅ ADD: Deteksi JENIS KONTEN (Informasi vs Harga)
+    ✅ ADD: Override otomatis untuk konten informatif
+    ✅ ADD: Deteksi tabel harga vs tabel spesifikasi
+    ✅ ADD: Logika gabungan untuk halaman Jasa + Harga
+    ✅ ENHANCED: Hierarki berdasarkan V37
 ============================================================ */
 
 (function () {
@@ -74,199 +75,146 @@
   const DEFAULT_RULE = { type: 'evergreen', validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft' };
 
   // ============================================================
-  // 📌 FUNGSI DETEKSI TABEL HARGA VS SPESIFIKASI (BARU v14.2)
+  // 📌 FUNGSI DETEKSI JENIS KONTEN (BARU — V15.0)
   // ============================================================
-  function detectPriceTable() {
-    const tables = document.querySelectorAll('table');
-    let hasPriceTable = false;
-    let priceTableCount = 0;
-    let specTableCount = 0;
-    let otherTableCount = 0;
-    const tableDetails = [];
-    
-    tables.forEach((table, index) => {
-        const tableText = table.innerText.toLowerCase();
-        const caption = table.querySelector('caption');
-        const captionText = caption ? caption.innerText.toLowerCase() : '';
-        const thead = table.querySelector('thead');
-        const theadText = thead ? thead.innerText.toLowerCase() : '';
-        
-        // CEK APAKAH TABEL HARGA
-        const hasRupiahInTable = /rp\s*[\d.,]+/i.test(tableText);
-        const hasPriceInCaption = /harga|biaya|estimasi|rp/i.test(captionText);
-        const hasPriceInThead = /harga|biaya|estimasi|rp/i.test(theadText);
-        const hasUnitPrice = /per\s*(meter|lembar|batang|buah|kg|ton|kubik|m³|m2|m²)/i.test(tableText);
-        const hasPriceInTable = /harga|biaya|estimasi|rp/i.test(tableText);
-        
-        // CEK APAKAH TABEL SPESIFIKASI
-        const isSpecTable = /spesifikasi|ukuran|mutu|standar|komponen|keterangan|dimensi|tebal|panjang|tinggi|berat/i.test(captionText) ||
-                            /spesifikasi|ukuran|mutu|standar|komponen|dimensi|tebal|panjang|tinggi|berat/i.test(theadText) ||
-                            /spesifikasi|ukuran|mutu|standar|komponen|dimensi/i.test(tableText);
-        
-        // CEK APAKAH TABEL PERBANDINGAN (bukan harga)
-        const isComparisonTable = /perbandingan|vs|atau|lebih|kurang|kelebihan|kekurangan/i.test(captionText) ||
-                                  /perbandingan|vs|atau/i.test(theadText);
-        
-        // KESIMPULAN
-        const isPriceTable = (hasRupiahInTable || hasPriceInCaption || hasPriceInThead || hasUnitPrice) && 
-                             !isSpecTable && 
-                             !isComparisonTable;
-        
-        if (isPriceTable) {
-            hasPriceTable = true;
-            priceTableCount++;
-            tableDetails.push({
-                index: index + 1,
-                type: 'PRICE_TABLE',
-                reason: `Rupiah:${hasRupiahInTable}, PriceCaption:${hasPriceInCaption}, UnitPrice:${hasUnitPrice}`
-            });
-            console.log(`💰 Tabel #${index + 1}: TABEL HARGA (${captionText || theadText || 'no caption'})`);
-        } else if (isSpecTable) {
-            specTableCount++;
-            tableDetails.push({
-                index: index + 1,
-                type: 'SPEC_TABLE',
-                reason: 'Specification table'
-            });
-            console.log(`📋 Tabel #${index + 1}: TABEL SPESIFIKASI (${captionText || theadText || 'no caption'})`);
-        } else if (isComparisonTable) {
-            otherTableCount++;
-            tableDetails.push({
-                index: index + 1,
-                type: 'COMPARISON_TABLE',
-                reason: 'Comparison table'
-            });
-            console.log(`📊 Tabel #${index + 1}: TABEL PERBANDINGAN (${captionText || theadText || 'no caption'})`);
-        } else {
-            otherTableCount++;
-            tableDetails.push({
-                index: index + 1,
-                type: 'OTHER_TABLE',
-                reason: 'Other table'
-            });
-            console.log(`📄 Tabel #${index + 1}: TABEL LAINNYA (${captionText || theadText || 'no caption'})`);
-        }
-    });
-    
-    return {
-        hasPriceTable,
-        priceTableCount,
-        specTableCount,
-        otherTableCount,
-        totalTables: tables.length,
-        tableDetails: tableDetails
-    };
-  }
-
-  // ============================================================
-  // 📌 FUNGSI DETEKSI HARGA (VERSI 2 — DENGAN DETEKSI TABEL)
-  // ============================================================
-  function detectPriceInContent() {
-    // Keyword harga (untuk deteksi awal)
-    const priceKeywords = ['harga', 'biaya', 'tarif', 'estimasi', 'rupiah'];
-    
-    // Pola harga dengan angka (lebih akurat)
-    const rupiahPattern = /Rp\s*[\d.,]+/gi;
-    const numberWithUnitPattern = /[\d.,]+\s*(per\s*(meter|m|lembar|lbr|batang|buah|unit|kg|ton|kubik|m³|m2|m²|cm|mm))/gi;
-    const numberWithPriceContext = /[\d.,]+\s*(ribu|juta|jt|k|rb|juta-an|jutaan)/gi;
-    
+  function detectContentType() {
     const bodyText = document.body.innerText.toLowerCase();
     const h1 = document.querySelector('h1');
     const h1Text = h1 ? h1.innerText.toLowerCase() : '';
     const allText = bodyText + ' ' + h1Text;
     
-    // CEK 1: Format Rupiah (Rp X.XXX)
+    // ============================================================
+    // 1. CEK TABEL HARGA vs TABEL SPESIFIKASI
+    // ============================================================
+    const tables = document.querySelectorAll('table');
+    let hasPriceTable = false;
+    let hasSpecTable = false;
+    let tableCount = 0;
+    
+    tables.forEach(table => {
+      const tableText = table.innerText.toLowerCase();
+      tableCount++;
+      
+      // Tabel HARGA: ada kolom "harga", "biaya", "estimasi", "rp" + angka
+      if (tableText.match(/harga|biaya|estimasi|rp|rupiah/i) && tableText.match(/[\d.,]+/)) {
+        hasPriceTable = true;
+      }
+      
+      // Tabel SPESIFIKASI: ada kolom "spesifikasi", "ukuran", "mutu", "komponen", "keterangan"
+      if (tableText.match(/spesifikasi|ukuran|mutu|komponen|keterangan|standar|dimensi/i)) {
+        hasSpecTable = true;
+      }
+    });
+    
+    // ============================================================
+    // 2. CEK HEADING: apakah ada "Harga" di H1/H2?
+    // ============================================================
+    const headings = document.querySelectorAll('h1, h2, h3');
+    let hasPriceHeading = false;
+    let hasEduHeading = false;
+    
+    headings.forEach(h => {
+      const text = h.innerText.toLowerCase();
+      if (text.includes('harga') || text.includes('biaya') || text.includes('estimasi') || text.includes('rp')) {
+        hasPriceHeading = true;
+      }
+      if (text.includes('panduan') || text.includes('spesifikasi') || text.includes('keunggulan') || 
+          text.includes('cara memilih') || text.includes('tips') || text.includes('perbedaan') || 
+          text.includes('jenis') || text.includes('apa itu')) {
+        hasEduHeading = true;
+      }
+    });
+    
+    // ============================================================
+    // 3. CEK KONTEN EDUKASI (kata kunci informatif)
+    // ============================================================
+    const eduKeywords = ['panduan', 'spesifikasi', 'keunggulan', 'cara memilih', 'tips', 
+                         'perbedaan', 'jenis', 'apa itu', 'pengertian', 'informasi', 
+                         'standar', 'mutu', 'ukuran', 'komponen', 'bahan', 'material'];
+    let eduScore = 0;
+    eduKeywords.forEach(keyword => {
+      const regex = new RegExp(keyword, 'gi');
+      const matches = allText.match(regex);
+      if (matches) eduScore += matches.length;
+    });
+    
+    // ============================================================
+    // 4. CEK FORMAT RUPIAH (angka harga)
+    // ============================================================
+    const rupiahPattern = /Rp\s*[\d.,]+/gi;
     const rupiahMatches = allText.match(rupiahPattern);
     const hasRupiahFormat = rupiahMatches && rupiahMatches.length > 0;
     
-    // CEK 2: Angka dengan satuan harga (per meter, per lembar, dll)
-    const unitMatches = allText.match(numberWithUnitPattern);
+    // ============================================================
+    // 5. CEK SATUAN HARGA (per meter, per lembar)
+    // ============================================================
+    const unitPattern = /[\d.,]+\s*(per\s*(meter|m|lembar|lbr|batang|buah|unit|kg|ton|kubik|m³|m2|m²))/gi;
+    const unitMatches = allText.match(unitPattern);
     const hasUnitPrice = unitMatches && unitMatches.length > 0;
     
-    // CEK 3: Angka dengan konteks harga (ribu, juta)
-    const contextMatches = allText.match(numberWithPriceContext);
-    const hasPriceContext = contextMatches && contextMatches.length > 0;
-    
-    // CEK 4: Ada daftar/list dengan angka harga
-    const lists = document.querySelectorAll('ul, ol');
-    let hasListWithPrices = false;
-    lists.forEach(list => {
-        const listText = list.innerText;
-        if (listText.match(/Rp\s*[\d.,]+/i) || listText.match(/[\d.,]+\s*per\s*(meter|lembar)/i)) {
-            hasListWithPrices = true;
-        }
+    // ============================================================
+    // 6. CEK APAKAH KONTEN JASA + HARGA (GABUNGAN)
+    // ============================================================
+    const jasaKeywords = ['jasa', 'layanan', 'kontraktor', 'pemasangan', 'borongan', 'renovasi'];
+    let jasaScore = 0;
+    jasaKeywords.forEach(keyword => {
+      const regex = new RegExp(keyword, 'gi');
+      const matches = allText.match(regex);
+      if (matches) jasaScore += matches.length;
     });
     
-    // CEK 5: Ada heading yang mengandung "harga" + angka di dekatnya
-    const headings = document.querySelectorAll('h2, h3, h4');
-    let hasHeadingWithPrice = false;
-    headings.forEach(heading => {
-        const headingText = heading.innerText.toLowerCase();
-        const nextElement = heading.nextElementSibling;
-        if (headingText.includes('harga') || headingText.includes('biaya')) {
-            if (nextElement && nextElement.innerText.match(/[\d.,]+/)) {
-                hasHeadingWithPrice = true;
-            }
-        }
+    const isJasaContent = jasaScore >= 2;
+    
+    // ============================================================
+    // 7. KESIMPULAN JENIS KONTEN
+    // ============================================================
+    // Konten INFORMATIF jika:
+    // - Edu score >= 3
+    // - TIDAK ada heading harga
+    // - TIDAK ada tabel harga
+    // - TIDAK ada format Rupiah
+    const isInformational = eduScore >= 3 && !hasPriceHeading && !hasPriceTable && !hasRupiahFormat;
+    
+    // Konten HARGA jika:
+    // - Ada tabel harga ATAU
+    // - Ada heading harga ATAU
+    // - Ada format Rupiah ATAU
+    // - Ada satuan harga
+    const isPriceContent = hasPriceTable || hasPriceHeading || hasRupiahFormat || hasUnitPrice;
+    
+    // Konten JASA + HARGA (gabungan) jika:
+    // - Ada jasa keywords DAN ada indikasi harga
+    const isJasaPriceContent = isJasaContent && isPriceContent;
+    
+    console.log('📊 Content Type Detection:', {
+      isInformational,
+      isPriceContent,
+      isJasaContent,
+      isJasaPriceContent,
+      eduScore,
+      hasPriceHeading,
+      hasPriceTable,
+      hasSpecTable,
+      hasRupiahFormat,
+      hasUnitPrice,
+      tableCount,
+      rupiahMatches: rupiahMatches ? rupiahMatches.length : 0,
+      unitMatches: unitMatches ? unitMatches.length : 0
     });
     
-    // CEK 6: DETEKSI TABEL HARGA (BARU v14.2)
-    const priceTableResult = detectPriceTable();
-    const hasPriceTable = priceTableResult.hasPriceTable;
-    const priceTableCount = priceTableResult.priceTableCount;
-    const specTableCount = priceTableResult.specTableCount;
-    
-    // KESIMPULAN: Ada harga jika memenuhi minimal 1 dari kriteria di atas
-    // TAPI: tabel spesifikasi TIDAK dianggap sebagai harga
-    const hasActualPrice = hasRupiahFormat || 
-                           hasUnitPrice || 
-                           hasListWithPrices || 
-                           hasHeadingWithPrice ||
-                           hasPriceTable; // <-- SEKARANG hanya tabel harga yang dianggap
-    
-    // Hitung total keyword harga (untuk logging)
-    let keywordCount = 0;
-    priceKeywords.forEach(keyword => {
-        const regex = new RegExp(keyword, 'gi');
-        const matches = allText.match(regex);
-        if (matches) keywordCount += matches.length;
-    });
-    
-    // Detail untuk debugging
-    const result = {
-        hasPrice: hasActualPrice,
-        keywordCount: keywordCount,
-        hasRupiahFormat: hasRupiahFormat,
-        hasUnitPrice: hasUnitPrice,
-        hasPriceContext: hasPriceContext,
-        hasListWithPrices: hasListWithPrices,
-        hasHeadingWithPrice: hasHeadingWithPrice,
-        hasPriceTable: hasPriceTable,
-        priceTableCount: priceTableCount,
-        specTableCount: specTableCount,
-        tableDetails: priceTableResult.tableDetails || [],
-        raw: {
-            rupiahMatches: rupiahMatches || [],
-            unitMatches: unitMatches || [],
-            contextMatches: contextMatches || []
-        }
+    return {
+      isInformational,
+      isPriceContent,
+      isJasaContent,
+      isJasaPriceContent,
+      eduScore,
+      hasPriceHeading,
+      hasPriceTable,
+      hasSpecTable,
+      hasRupiahFormat,
+      hasUnitPrice,
+      tableCount
     };
-    
-    console.log('💰 Price Detection Details:', {
-        hasPrice: result.hasPrice,
-        keywordCount: result.keywordCount,
-        hasRupiahFormat: result.hasRupiahFormat,
-        hasUnitPrice: result.hasUnitPrice,
-        hasListWithPrices: result.hasListWithPrices,
-        hasHeadingWithPrice: result.hasHeadingWithPrice,
-        hasPriceTable: result.hasPriceTable,
-        priceTableCount: result.priceTableCount,
-        specTableCount: result.specTableCount,
-        sampleRupiah: result.raw.rupiahMatches.slice(0, 3),
-        sampleUnit: result.raw.unitMatches.slice(0, 3)
-    });
-    
-    return result;
   }
 
   // ============================================================
@@ -438,26 +386,26 @@
   }
 
   // ============================================================
-  // 📌 GET RULES BERDASARKAN ENTITY TYPE DAN PAGE LEVEL (V37)
+  // 📌 GET RULES BERDASARKAN ENTITY TYPE, PAGE LEVEL, DAN JENIS KONTEN
   // ============================================================
-  function getRulesByEntityType(entityType, pageLevel, priceDetection) {
-    console.log(`📌 Getting rules for entityType=${entityType}, pageLevel=${pageLevel}, hasPrice=${priceDetection?.hasPrice || false}`);
+  function getRulesByEntityType(entityType, pageLevel, contentType) {
+    console.log(`📌 Getting rules for entityType=${entityType}, pageLevel=${pageLevel}`);
+    console.log(`   📊 Content Type: informational=${contentType.isInformational}, price=${contentType.isPriceContent}`);
     
-    // CEK: Jika Money Level tapi tidak ada harga → override ke evergreen
     const isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(pageLevel);
     
-    if (isMoneyLevel && !priceDetection?.hasPrice) {
-      const specTableCount = priceDetection?.specTableCount || 0;
-      const priceTableCount = priceDetection?.priceTableCount || 0;
-      
-      console.warn(`⚠️ PERINGATAN: Halaman ${pageLevel} terdeteksi sebagai Money Level tapi TIDAK ADA ANGKA HARGA!`);
-      console.warn(`   → Tabel spesifikasi terdeteksi: ${specTableCount} tabel, Tabel harga: ${priceTableCount} tabel`);
-      console.warn(`   → Keyword 'harga' mungkin ditemukan tapi tanpa format Rupiah atau angka spesifik.`);
-      console.warn(`   → Meng-override ke EVERGREEN (konten informatif tanpa harga)`);
+    // ============================================================
+    // ATURAN 1: JIKA KONTEN INFORMATIF (panduan, spesifikasi) → EVERGREEN
+    // ============================================================
+    if (isMoneyLevel && contentType.isInformational) {
+      console.warn(`⚠️ PERINGATAN: Halaman ${pageLevel} terdeteksi sebagai Money Level tapi KONTEN INFORMATIF!`);
+      console.warn(`   → Edu score: ${contentType.eduScore}`);
+      console.warn(`   → Tidak ada heading harga, tidak ada tabel harga`);
+      console.warn(`   → Meng-override ke EVERGREEN (3 tahun)`);
       console.warn(`   → H1 TIDAK WAJIB tahun, TIDAK perlu update berkala`);
-      console.warn(`   → Rekomendasi: Ubah page level ke Pillar/Sub-Pillar/Variant jika konten informatif`);
+      console.warn(`   → Rekomendasi: Ubah page level ke Pillar/Sub-Pillar/Variant`);
       
-      document.body.classList.add('warning-money-no-price');
+      document.body.classList.add('warning-informational-content');
       
       return { 
         type: 'evergreen', 
@@ -466,9 +414,34 @@
         allowPriceRange: false, 
         ctaIntensity: 'soft-medium',
         overridden: true,
-        overrideReason: `Money level detected but no actual price numbers found (spec tables: ${specTableCount}, price tables: ${priceTableCount})`
+        overrideReason: 'Informational content detected (panduan/spesifikasi) — should be Pillar/Sub-Pillar'
       };
     }
+    
+    // ============================================================
+    // ATURAN 2: JIKA KONTEN HARGA (tabel harga, Rp, satuan) → NON-EVERGREEN
+    // ============================================================
+    if (isMoneyLevel && contentType.isPriceContent) {
+      console.log(`✅ Konten HARGA terdeteksi → NON-EVERGREEN (30 hari)`);
+      console.log(`   → Has price table: ${contentType.hasPriceTable}`);
+      console.log(`   → Has price heading: ${contentType.hasPriceHeading}`);
+      console.log(`   → Has Rupiah format: ${contentType.hasRupiahFormat}`);
+      console.log(`   → Has unit price: ${contentType.hasUnitPrice}`);
+      // Gunakan aturan normal
+    }
+    
+    // ============================================================
+    // ATURAN 3: JIKA KONTEN JASA + HARGA (gabungan) → SESUAI ENTITY
+    // ============================================================
+    if (entityType === 'jasa' && contentType.isJasaPriceContent) {
+      console.log(`📌 Konten JASA + HARGA (gabungan) terdeteksi`);
+      console.log(`   → Menggunakan JASA_RULES dengan catatan: bisa digabung atau dipisah`);
+      // Gunakan aturan JASA
+    }
+    
+    // ============================================================
+    // ATURAN 4: DEFAULT — gunakan aturan berdasarkan entity
+    // ============================================================
     
     // JASA
     if (entityType === 'jasa') {
@@ -525,7 +498,7 @@
   // 📌 FUNGSI UTAMA DETECT EVERGREEN
   // ============================================================
   async function detectEvergreen({ customDateModified = null } = {}) {
-    console.log("🧩 detectEvergreen() v14.2 — Loading...");
+    console.log("🧩 detectEvergreen() v15.0 — Loading...");
     
     await waitForPageLevelDetector();
     
@@ -537,12 +510,12 @@
       console.log(`   🎯 Detection Confidence: ${confidence}% (${strategyCount} strategies)`);
     }
     
-    // DETEKSI HARGA (VERSI 2 — DENGAN DETEKSI TABEL)
-    const priceDetection = detectPriceInContent();
-    console.log(`💰 Price Detection Result: hasPrice=${priceDetection.hasPrice}, keywordCount=${priceDetection.keywordCount}, priceTableCount=${priceDetection.priceTableCount}, specTableCount=${priceDetection.specTableCount}`);
+    // DETEKSI JENIS KONTEN (BARU — V15.0)
+    const contentType = detectContentType();
+    console.log(`📊 Content Type: informational=${contentType.isInformational}, price=${contentType.isPriceContent}`);
     
-    // Get appropriate rules with price detection
-    const rule = getRulesByEntityType(entityType, pageLevel, priceDetection);
+    // Get appropriate rules with content type
+    const rule = getRulesByEntityType(entityType, pageLevel, contentType);
     const finalType = rule.type;
     const validityDays = rule.validityDays;
     const validityMs = validityDays * 86400000;
@@ -557,13 +530,13 @@
       console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
     }
     
-    await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, priceDetection);
+    await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, contentType);
   }
   
   // ============================================================
   // 📌 FUNGSI PROSES META DATES
   // ============================================================
-  async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, priceDetection) {
+  async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, contentType) {
     
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
@@ -604,7 +577,7 @@
     metaNext.setAttribute("content", nextUpdate);
 
     // Schema Offer - priceValidUntil (hanya jika usePriceValidUntil = true DAN ada harga)
-    if (usePriceValidUntil && priceDetection && priceDetection.hasPrice) {
+    if (usePriceValidUntil && contentType && contentType.isPriceContent) {
       document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
         el.setAttribute("priceValidUntil", nextUpdate);
       });
@@ -613,7 +586,7 @@
       document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
         el.removeAttribute("priceValidUntil");
       });
-      console.log(`✅ priceValidUntil removed (${finalType} content - no fixed pricing)`);
+      console.log(`✅ priceValidUntil removed (${finalType} content - no price data)`);
     }
     
     // Tambahkan class ke body
@@ -626,10 +599,20 @@
       document.body.classList.add(`allow-price-range`);
     }
     
-    if (priceDetection && priceDetection.hasPrice) {
-      document.body.classList.add('has-price');
-    } else {
-      document.body.classList.add('no-price');
+    // Tambahkan class untuk jenis konten
+    if (contentType) {
+      if (contentType.isInformational) {
+        document.body.classList.add('content-informational');
+      }
+      if (contentType.isPriceContent) {
+        document.body.classList.add('content-price');
+      }
+      if (contentType.isJasaContent) {
+        document.body.classList.add('content-jasa');
+      }
+      if (contentType.isJasaPriceContent) {
+        document.body.classList.add('content-jasa-price');
+      }
     }
     
     if (isOverridden) {
@@ -641,7 +624,7 @@
     const validityDays = validityMs / 86400000;
 
     if (isOverridden) {
-      validityLabel = `EVERGREEN (OVERRIDE) — ${validityDays} hari — ${entityType} / ${pageLevel} (tidak ada harga spesifik)`;
+      validityLabel = `EVERGREEN (OVERRIDE) — ${validityDays} hari — ${entityType} / ${pageLevel} (konten informatif)`;
       console.warn(`   ⚠️ OVERRIDE ACTIVE: ${validityLabel}`);
     } else if (finalType === 'evergreen') {
         if (validityDays >= 1095) validityLabel = 'EVERGREEN (3 tahun) — V37';
@@ -708,13 +691,13 @@
       usePriceValidUntil,
       ctaIntensity,
       allowPriceRange,
-      detectorVersion: detectorVersion || 'v14.2',
+      detectorVersion: detectorVersion || 'v15.0',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
       isOverridden: isOverridden || false,
       overrideReason: overrideReason || null,
-      priceDetection: priceDetection || null
+      contentType: contentType || null
     };
 
     window.EvergreenDetectorResults = window.AEDMetaDates;
@@ -728,21 +711,20 @@
     console.log(`   - Allow Price Range: ${allowPriceRange}`);
     console.log(`   - Use Price Valid Until: ${usePriceValidUntil}`);
     console.log(`   - Next Update: ${nextUpdate}`);
-    console.log(`   - Has Price: ${priceDetection?.hasPrice || false} (keyword count: ${priceDetection?.keywordCount || 0})`);
-    console.log(`   - Price Tables: ${priceDetection?.priceTableCount || 0}, Spec Tables: ${priceDetection?.specTableCount || 0}`);
+    console.log(`   - Content Info: informational=${contentType?.isInformational || false}, price=${contentType?.isPriceContent || false}`);
     if (isOverridden) {
       console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
     }
     if (confidence) {
       console.log(`   - Detection Confidence: ${confidence}%`);
     }
-    console.log(`🧩 detectEvergreen() v14.2 — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v15.0 — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
   
-  console.log("✅ Smart Evergreen Detector v14.2 ready (V37 rules + accurate price table detection)");
+  console.log("✅ Smart Evergreen Detector v15.0 ready (V37 rules + content type detection)");
   
 })();
