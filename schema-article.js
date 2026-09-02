@@ -1,15 +1,18 @@
 /**
- * AUTO-SCHEMA GENERATOR v6.8 FINAL STABLE
+ * AUTO-SCHEMA GENERATOR v6.9 FINAL STABLE
  * INTEGRATED WITH Page Level Detector v22.x
  * 
- * ✅ FIX: Article schema hanya untuk Pillar, SP2, SP1
- * ✅ FIX: Variant & Sub-Variant pakai Product schema
- * ✅ FIX: Money pages pakai Service/Product schema
- * ✅ FIX: Hapus WebPage schema fallback
- * ✅ FIX: Article type = Article / BlogPosting (bukan HowTo/Product)
+ * ✅ FIX: Article schema berdasarkan aturan V37 (dengan deteksi fokus konten)
+ * ✅ FIX: Artikel schema UNTUK SEMUA LEVEL INFORMASI/EDUKASI
+ * ✅ FIX: Pillar, SP2, SP1 → WAJIB Article
+ * ✅ FIX: MONEY_PAGE INFORMASI → WAJIB Article (TANPA tahun di H1)
+ * ✅ FIX: MONEY_PAGE HARGA → TIDAK PAKAI Article (pakai Service/Product)
+ * ✅ FIX: Variant & Sub-Variant → WAJIB TechArticle
+ * ✅ FIX: Money Master & Money Child → TIDAK PAKAI Article
+ * ✅ FIX: Hapus WebPage schema fallback untuk artikel
  *
- * @version 6.8 FINAL STABLE
- * @date 2026-08-11
+ * @version 6.9 FINAL STABLE
+ * @date 2026-09-02
  */
 
 (function () {
@@ -31,46 +34,21 @@
   };
 
   // =========================================================
-  // TYPE LEVEL MAP
-  // =========================================================
-
-  const TYPE_LEVEL_MAP = {
-    home: 0,
-    pillar: 1,
-    "sub-pillar-tipe-2": 2,
-    "sub-pillar-tipe-1": 3,
-    "money-master": 4,
-    "money-page": 5,
-    "money-child": 6,
-    variant: 7,
-    "sub-variant": 8
-  };
-
-  // =========================================================
-  // YANG PAKAI ARTICLE SCHEMA (HANYA INI)
-  // =========================================================
-  // Article schema HANYA untuk konten edukasi:
-  // - pillar
-  // - sub-pillar-tipe-2
-  // - sub-pillar-tipe-1
-  //
-  // Variant, Sub-Variant, dan semua Money pages
-  // TIDAK menggunakan Article schema
-
-  const ARTICLE_SCHEMA_LEVELS = [
-    'pillar',
-    'sub-pillar-tipe-2',
-    'sub-pillar-tipe-1'
-  ];
-
-  // =========================================================
   // LOGGER
   // =========================================================
 
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", CONFIDENCE: "🎯" };
-    console.log(`${icons[type] || "📘"} [Schema v6.8] ${msg}`);
+    const icons = { 
+      INFO: "📘", 
+      WARN: "⚠️", 
+      ERROR: "❌", 
+      SUCCESS: "✅", 
+      CONFIDENCE: "🎯",
+      FOCUS: "🎯",
+      SKIP: "⏭️"
+    };
+    console.log(`${icons[type] || "📘"} [Schema v6.9] ${msg}`);
   }
 
   // =========================================================
@@ -145,6 +123,102 @@
         }
       }, CONFIG.PLD_TIMEOUT);
     });
+  }
+
+  // =========================================================
+  // DETEKSI FOKUS KONTEN (INFORMASI vs HARGA)
+  // =========================================================
+
+  function detectContentFocus() {
+    const h1 = document.querySelector('h1')?.innerText?.toLowerCase() || '';
+    const title = document.title?.toLowerCase() || '';
+    const content = document.querySelector('.post-body.entry-content, .post-body, article, main, section')?.innerText?.toLowerCase() || '';
+    const url = location.href.toLowerCase();
+    const combined = h1 + ' ' + title + ' ' + content + ' ' + url;
+
+    log(`🎯 Detecting content focus...`, "FOCUS");
+
+    // ===== KATA KUNCI INFORMASI/EDUKASI =====
+    const eduKeywords = [
+      'panduan', 'spesifikasi', 'keunggulan', 'ukuran', 'dimensi', 'cara memilih',
+      'tips', 'informasi', 'pengertian', 'definisi', 'jenis', 'macam', 'tipe',
+      'perbedaan', 'kelebihan', 'kekurangan', 'material', 'bahan', 'standar',
+      'mutu', 'k225', 'k250', 'k300', 'komposisi', 'struktur', 'aplikasi',
+      'penggunaan', 'manfaat', 'keuntungan', 'solusi', 'rekomendasi',
+      'panduan lengkap', 'langkah', 'tutorial', 'pedoman', 'petunjuk',
+      'kenali', 'mengenal', 'memahami', 'belajar'
+    ];
+
+    // ===== KATA KUNCI HARGA =====
+    const priceKeywords = [
+      'harga', 'biaya', 'estimasi', 'tarif', 'mulai dari', 'per meter',
+      'per lembar', 'per kubik', 'per unit', 'promo', 'diskon', 'penawaran',
+      'daftar harga', 'tabel harga', 'rincian biaya', 'simulasi biaya',
+      'total biaya', 'anggaran', 'budget', 'cost', 'price'
+    ];
+
+    // ===== CEK DI URL =====
+    const urlHasHarga = url.includes('harga') || url.includes('biaya') || url.includes('tarif');
+    const urlHasEdu = url.includes('spesifikasi') || url.includes('panduan') || url.includes('jenis');
+
+    // ===== CEK DI H1 =====
+    const h1HasPrice = priceKeywords.some(k => h1.includes(k));
+    const h1HasEdu = eduKeywords.some(k => h1.includes(k));
+
+    // ===== CEK DI KONTEN =====
+    let eduScore = 0;
+    let priceScore = 0;
+
+    for (const kw of eduKeywords) {
+      if (combined.includes(kw)) eduScore++;
+    }
+    for (const kw of priceKeywords) {
+      if (combined.includes(kw)) priceScore++;
+    }
+
+    // ===== CEK KEBERADAAN TABEL HARGA =====
+    const hasPriceTable = document.querySelector('table')?.innerText?.toLowerCase()?.includes('harga') || false;
+    if (hasPriceTable) priceScore += 3;
+
+    // ===== CEK KEBERADAAN CTA HARGA =====
+    const hasPriceCTA = document.querySelector('.cta-box, .cta-button, .btn-wa, [href*="wa.me"]')?.innerText?.toLowerCase()?.includes('harga') || false;
+    if (hasPriceCTA) priceScore += 2;
+
+    // ===== LOGIKA FINAL =====
+    log(`📊 Edu Score: ${eduScore}, Price Score: ${priceScore}`, "FOCUS");
+
+    // Jika skor harga jauh lebih tinggi
+    if (priceScore > eduScore * 1.5) {
+      log(`🎯 Fokus: HARGA (price: ${priceScore}, edu: ${eduScore})`, "FOCUS");
+      return 'harga';
+    }
+
+    // Jika skor edukasi jauh lebih tinggi
+    if (eduScore > priceScore * 1.5) {
+      log(`🎯 Fokus: INFORMASI/EDUKASI (edu: ${eduScore}, price: ${priceScore})`, "FOCUS");
+      return 'informasi';
+    }
+
+    // Jika keduanya rendah, cek H1 dan URL
+    if (eduScore < 2 && priceScore < 2) {
+      if (urlHasHarga || h1HasPrice) {
+        log(`🎯 Fokus: HARGA (from H1/URL)`, "FOCUS");
+        return 'harga';
+      }
+      if (urlHasEdu || h1HasEdu) {
+        log(`🎯 Fokus: INFORMASI/EDUKASI (from H1/URL)`, "FOCUS");
+        return 'informasi';
+      }
+    }
+
+    // Default: jika skor edukasi >= skor harga
+    if (eduScore >= priceScore) {
+      log(`🎯 Fokus: INFORMASI/EDUKASI (default)`, "FOCUS");
+      return 'informasi';
+    }
+
+    log(`🎯 Fokus: HARGA (default)`, "FOCUS");
+    return 'harga';
   }
 
   // =========================================================
@@ -290,33 +364,87 @@
   }
 
   // =========================================================
-  // CEK APAKAH PERLU ARTICLE SCHEMA
+  // CEK APAKAH PERLU ARTICLE SCHEMA (BERDASARKAN V37)
   // =========================================================
 
   function shouldGenerateArticleSchema(pageLevel, entityType) {
-    // Hanya generate Article schema untuk level EDUKASI (Pillar, SP2, SP1)
-    if (!ARTICLE_SCHEMA_LEVELS.includes(pageLevel)) {
-      log(`Skip Article schema for ${pageLevel} - use Service/Product schema instead`, "INFO");
+    // =========================================================
+    // LEVEL YANG WAJIB ARTICLE SCHEMA
+    // =========================================================
+    const mandatoryArticleLevels = [
+      'pillar',
+      'sub-pillar-tipe-2',
+      'sub-pillar-tipe-1'
+    ];
+    
+    // =========================================================
+    // LEVEL YANG WAJIB TechArticle (untuk konten teknis)
+    // =========================================================
+    const techArticleLevels = [
+      'variant',
+      'sub-variant'
+    ];
+    
+    // =========================================================
+    // LEVEL YANG TIDAK PAKAI ARTICLE (pakai Service/Product)
+    // =========================================================
+    const nonArticleLevels = [
+      'money-master',
+      'money-child'
+    ];
+
+    // 1. CEK: Pillar, SP2, SP1 → WAJIB Article
+    if (mandatoryArticleLevels.includes(pageLevel)) {
+      log(`✅ WAJIB Article schema untuk ${pageLevel} (${entityType})`, "SUCCESS");
+      return true;
+    }
+
+    // 2. CEK: Variant, Sub-Variant → WAJIB TechArticle
+    if (techArticleLevels.includes(pageLevel)) {
+      log(`✅ WAJIB TechArticle schema untuk ${pageLevel} (${entityType})`, "SUCCESS");
+      return true;
+    }
+
+    // 3. CEK: Money Master, Money Child → TIDAK PAKAI Article
+    if (nonArticleLevels.includes(pageLevel)) {
+      log(`⏭️ Skip Article schema untuk ${pageLevel} - pakai Service/Product schema`, "SKIP");
       return false;
     }
-    
-    // Variant dan Sub-Variant TIDAK pakai Article schema
-    const variantLevels = ['variant', 'sub-variant'];
-    if (variantLevels.includes(pageLevel)) {
-      log(`Skip Article schema for ${pageLevel} - Product schema handled by other script`, "INFO");
-      return false;
+
+    // 4. CEK: Money Page → Tergantung fokus konten (DETEKSI OTOMATIS)
+    if (pageLevel === 'money-page') {
+      const focus = detectContentFocus();
+      if (focus === 'informasi') {
+        log(`✅ WAJIB Article schema untuk MONEY_PAGE INFORMASI (${entityType})`, "SUCCESS");
+        return true;
+      } else {
+        log(`⏭️ Skip Article schema untuk MONEY_PAGE HARGA - pakai Service/Product schema`, "SKIP");
+        return false;
+      }
+    }
+
+    // 5. FALLBACK: Jika tidak masuk kriteria di atas
+    log(`⏭️ Skip Article schema untuk ${pageLevel} - tidak masuk kriteria`, "SKIP");
+    return false;
+  }
+
+  // =========================================================
+  // GET ARTICLE TYPE (Article / TechArticle / BlogPosting)
+  // =========================================================
+
+  function getArticleType(pageLevel) {
+    // Variant & Sub-Variant → TechArticle
+    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
+      return 'TechArticle';
     }
     
-    // SEMUA money pages TIDAK pakai Article schema
-    const moneyLevels = ['money-master', 'money-page', 'money-child'];
-    if (moneyLevels.includes(pageLevel)) {
-      log(`Skip Article schema for ${pageLevel} - Service/Product schema handled by other script`, "INFO");
-      return false;
+    // Pillar → BlogPosting (konten panduan mendalam)
+    if (pageLevel === 'pillar') {
+      return 'BlogPosting';
     }
     
-    // Hanya Pillar, SP2, SP1 yang pakai Article schema
-    log(`Generate Article schema for ${pageLevel} (${entityType})`, "SUCCESS");
-    return true;
+    // Sub-Pillar & Money Page Informasi → Article
+    return 'Article';
   }
 
   // =========================================================
@@ -373,13 +501,27 @@
   }
 
   // =========================================================
-  // ARTICLE SCHEMA (KHUSUS UNTUK KONTEN EDUKASI)
+  // ARTICLE SCHEMA (DENGAN DETEKSI FOKUS KONTEN)
   // =========================================================
 
   function generateArticleSchema(data, dates, pageLevel, entityType) {
-    // Article schema HANYA untuk konten edukasi
-    // Gunakan Article atau BlogPosting
-    const articleType = pageLevel === 'pillar' ? "BlogPosting" : "Article";
+    const articleType = getArticleType(pageLevel);
+    const focus = detectContentFocus();
+    
+    // ===== TENTUKAN ABOUT BERDASARKAN ENTITY TYPE =====
+    let aboutName = "Konstruksi";
+    if (entityType === "jasa") aboutName = "Jasa Konstruksi";
+    else if (entityType === "sewa") aboutName = "Sewa Alat Konstruksi";
+    else if (entityType === "produk") aboutName = "Produk Konstruksi";
+    else if (entityType === "material") aboutName = "Material Konstruksi";
+    
+    // ===== TENTUKAN ARTICLE SECTION =====
+    let articleSection = "Informasi";
+    if (pageLevel === 'pillar') articleSection = "Panduan Lengkap";
+    else if (pageLevel === 'sub-pillar-tipe-2') articleSection = "Jenis & Kategori";
+    else if (pageLevel === 'sub-pillar-tipe-1') articleSection = "Perbandingan & Analisis";
+    else if (pageLevel === 'variant' || pageLevel === 'sub-variant') articleSection = "Spesifikasi Teknis";
+    else if (pageLevel === 'money-page' && focus === 'informasi') articleSection = "Informasi Produk";
     
     return {
       "@context": "https://schema.org",
@@ -409,11 +551,10 @@
       "keywords": getCleanKeywords(data.title),
       "articleBody": getCleanArticleBody(data.content),
       "inLanguage": "id-ID",
+      "articleSection": articleSection,
       "about": {
         "@type": "Thing",
-        "name": entityType === "jasa" ? "Jasa Konstruksi" : 
-                entityType === "sewa" ? "Sewa Alat Konstruksi" :
-                entityType === "produk" ? "Produk Konstruksi" : "Material Konstruksi"
+        "name": aboutName
       }
     };
   }
@@ -458,14 +599,15 @@
 
   async function init() {
     log("================================");
-    log("AUTO SCHEMA GENERATOR v6.8");
+    log("AUTO SCHEMA GENERATOR v6.9");
+    log("ARTICLE SCHEMA ONLY");
     log("================================");
     
     // Gunakan PLD untuk deteksi
     const { pageLevel, entityType, source, confidence, strategies, strategyCount } = await getPageLevelAndEntityType();
     
     log(`ENTITY TYPE: ${entityType} (source: ${source})`, "SUCCESS");
-    log(`PAGE LEVEL: ${pageLevel} (L${TYPE_LEVEL_MAP[pageLevel]})`, "SUCCESS");
+    log(`PAGE LEVEL: ${pageLevel}`, "SUCCESS");
     if (confidence) {
       log(`   🎯 Detection Confidence: ${confidence}% (${strategyCount} strategies: ${strategies?.join(", ")})`, "CONFIDENCE");
     }
@@ -490,7 +632,7 @@
     }
     
     // =============================================
-    // ARTICLE SCHEMA (KHUSUS EDUKASI: PILLAR, SP2, SP1)
+    // ARTICLE SCHEMA (BERDASARKAN ATURAN V37)
     // =============================================
     const articleElem = document.getElementById("auto-schema");
     if (articleElem && shouldGenerateArticleSchema(pageLevel, entityType)) {
@@ -500,7 +642,7 @@
           null,
           2
         );
-        log("ARTICLE SCHEMA GENERATED", "SUCCESS");
+        log(`ARTICLE SCHEMA GENERATED (${getArticleType(pageLevel)})`, "SUCCESS");
       });
     } else if (articleElem) {
       // Kosongkan jika tidak generate Article schema
