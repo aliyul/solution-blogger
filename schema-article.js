@@ -1,17 +1,17 @@
 /**
- * AUTO-SCHEMA GENERATOR v6.9 FINAL STABLE
- * INTEGRATED WITH Page Level Detector v22.x
+ * AUTO-SCHEMA GENERATOR v7.0 FINAL STABLE
+ * INTEGRATED WITH Page Level Detector v22.x & Smart Evergreen Detector v15.2
  * 
- * ✅ FIX: Article schema berdasarkan aturan V37 (dengan deteksi fokus konten)
- * ✅ FIX: Artikel schema UNTUK SEMUA LEVEL INFORMASI/EDUKASI
- * ✅ FIX: Pillar, SP2, SP1 → WAJIB Article
- * ✅ FIX: MONEY_PAGE INFORMASI → WAJIB Article (TANPA tahun di H1)
- * ✅ FIX: MONEY_PAGE HARGA → TIDAK PAKAI Article (pakai Service/Product)
- * ✅ FIX: Variant & Sub-Variant → WAJIB TechArticle
- * ✅ FIX: Money Master & Money Child → TIDAK PAKAI Article
+ * ✅ FIX: Deteksi fokus konten berdasarkan H1 (prioritas utama)
+ * ✅ FIX: Tabel harga → PRIORITAS HARGA
+ * ✅ FIX: H1 mengandung tahun → PRIORITAS HARGA (non-evergreen)
+ * ✅ FIX: H1 mengandung Rp → PRIORITAS HARGA
+ * ✅ FIX: Sinkron dengan v15.2 (Smart Evergreen Detector)
+ * ✅ FIX: Money Page Harga → PAKAI Product schema
+ * ✅ FIX: Money Page Informasi → PAKAI Article schema
  * ✅ FIX: Hapus WebPage schema fallback untuk artikel
  *
- * @version 6.9 FINAL STABLE
+ * @version 7.0 FINAL STABLE
  * @date 2026-09-02
  */
 
@@ -46,9 +46,12 @@
       SUCCESS: "✅", 
       CONFIDENCE: "🎯",
       FOCUS: "🎯",
-      SKIP: "⏭️"
+      SKIP: "⏭️",
+      TABLE: "📊",
+      H1: "📝",
+      PRIORITY: "🔴"
     };
-    console.log(`${icons[type] || "📘"} [Schema v6.9] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.0] ${msg}`);
   }
 
   // =========================================================
@@ -57,49 +60,37 @@
 
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
-      // ✅ SUPPORT v22.x
       if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
         log("Page Level Detector v22.x already ready", "SUCCESS");
         resolve(true);
         return;
       }
-      
-      // ✅ SUPPORT v20.x
       if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
         log("Page Level Detector v20.x already ready", "SUCCESS");
         resolve(true);
         return;
       }
-      
-      // ✅ SUPPORT v19.0
       if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
         log("Page Level Detector v19.0 already ready", "SUCCESS");
         resolve(true);
         return;
       }
-      
-      // ✅ SUPPORT v18
       if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
         log("Page Level Detector v18 already ready", "SUCCESS");
         resolve(true);
         return;
       }
-      
-      // ✅ SUPPORT v17
       if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
         log("Page Level Detector v17 already ready", "SUCCESS");
         resolve(true);
         return;
       }
-      
-      // ✅ SUPPORT legacy
       if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
         log("Page Level Detector legacy already ready", "SUCCESS");
         resolve(true);
         return;
       }
       
-      // ✅ Event listener untuk semua versi
       const onReady = () => {
         log("Page Level Detector ready (event)", "SUCCESS");
         resolve(true);
@@ -110,7 +101,6 @@
       window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
       window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
       
-      // Fallback timeout
       setTimeout(() => {
         if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
             window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
@@ -126,19 +116,90 @@
   }
 
   // =========================================================
-  // DETEKSI FOKUS KONTEN (INFORMASI vs HARGA)
+  // DETEKSI FOKUS KONTEN (PRIORITAS H1 + TABEL HARGA)
   // =========================================================
 
   function detectContentFocus() {
     const h1 = document.querySelector('h1')?.innerText?.toLowerCase() || '';
+    const h1Text = h1;
     const title = document.title?.toLowerCase() || '';
     const content = document.querySelector('.post-body.entry-content, .post-body, article, main, section')?.innerText?.toLowerCase() || '';
     const url = location.href.toLowerCase();
-    const combined = h1 + ' ' + title + ' ' + content + ' ' + url;
+    const combined = h1Text + ' ' + title + ' ' + content + ' ' + url;
 
     log(`🎯 Detecting content focus...`, "FOCUS");
 
-    // ===== KATA KUNCI INFORMASI/EDUKASI =====
+    // =========================================================
+    // PRIORITAS 1: CEK H1 (PATOKAN UTAMA)
+    // =========================================================
+    
+    // CEK TAHUN DI H1
+    const yearPattern = /\b(19|20)\d{2}\b/;
+    const hasYear = yearPattern.test(h1Text);
+    
+    if (hasYear) {
+      log(`🔴 PRIORITAS: H1 mengandung tahun → HARGA (non-evergreen)`, "PRIORITY");
+      log(`   📝 H1: "${h1Text}"`, "H1");
+      return 'harga';
+    }
+
+    // CEK Rp DI H1
+    const hasRpFormat = /Rp\s*[\d.,]+/.test(h1Text);
+    if (hasRpFormat) {
+      log(`🔴 PRIORITAS: H1 mengandung Rp → HARGA`, "PRIORITY");
+      log(`   📝 H1: "${h1Text}"`, "H1");
+      return 'harga';
+    }
+
+    // CEK KATA HARGA DI H1
+    const priceKeywordsInH1 = ['harga', 'biaya', 'tarif', 'estimasi', 'penawaran', 'promo', 'diskon'];
+    const hasPriceInH1 = priceKeywordsInH1.some(k => h1Text.includes(k));
+    if (hasPriceInH1) {
+      log(`🔴 PRIORITAS: H1 mengandung kata harga → HARGA`, "PRIORITY");
+      log(`   📝 H1: "${h1Text}"`, "H1");
+      return 'harga';
+    }
+
+    // CEK SATUAN HARGA DI H1
+    const unitPattern = /per\s*(meter|lembar|batang|kubik|m|m2|m²|lbr|buah|unit)/;
+    const hasUnitInH1 = unitPattern.test(h1Text);
+    if (hasUnitInH1) {
+      log(`🔴 PRIORITAS: H1 mengandung satuan harga → HARGA`, "PRIORITY");
+      log(`   📝 H1: "${h1Text}"`, "H1");
+      return 'harga';
+    }
+
+    // =========================================================
+    // PRIORITAS 2: CEK TABEL HARGA
+    // =========================================================
+    
+    const tables = document.querySelectorAll('table');
+    let hasPriceTable = false;
+    let priceTableDetails = '';
+    
+    tables.forEach((table, index) => {
+      const tableText = table.innerText.toLowerCase();
+      const hasPriceColumn = /harga|biaya|estimasi|rp|rupiah|total|subtotal/i.test(tableText);
+      const hasNumbers = (tableText.match(/[\d.,]+/g) || []).length >= 3;
+      const hasUnit = /per\s*(meter|lembar|batang|kubik|m|m2|m²|lbr|buah|unit)/i.test(tableText);
+      
+      if (hasPriceColumn && hasNumbers) {
+        hasPriceTable = true;
+        priceTableDetails = `Tabel ${index+1}: price column + ${(tableText.match(/[\d.,]+/g) || []).length} angka`;
+      }
+    });
+    
+    if (hasPriceTable) {
+      log(`🔴 PRIORITAS: Ada tabel harga → HARGA`, "PRIORITY");
+      log(`   📊 ${priceTableDetails}`, "TABLE");
+      return 'harga';
+    }
+
+    // =========================================================
+    // PRIORITAS 3: CEK KONTEN (SKOR)
+    // =========================================================
+    
+    // KATA KUNCI INFORMASI/EDUKASI
     const eduKeywords = [
       'panduan', 'spesifikasi', 'keunggulan', 'ukuran', 'dimensi', 'cara memilih',
       'tips', 'informasi', 'pengertian', 'definisi', 'jenis', 'macam', 'tipe',
@@ -149,7 +210,7 @@
       'kenali', 'mengenal', 'memahami', 'belajar'
     ];
 
-    // ===== KATA KUNCI HARGA =====
+    // KATA KUNCI HARGA
     const priceKeywords = [
       'harga', 'biaya', 'estimasi', 'tarif', 'mulai dari', 'per meter',
       'per lembar', 'per kubik', 'per unit', 'promo', 'diskon', 'penawaran',
@@ -157,15 +218,6 @@
       'total biaya', 'anggaran', 'budget', 'cost', 'price'
     ];
 
-    // ===== CEK DI URL =====
-    const urlHasHarga = url.includes('harga') || url.includes('biaya') || url.includes('tarif');
-    const urlHasEdu = url.includes('spesifikasi') || url.includes('panduan') || url.includes('jenis');
-
-    // ===== CEK DI H1 =====
-    const h1HasPrice = priceKeywords.some(k => h1.includes(k));
-    const h1HasEdu = eduKeywords.some(k => h1.includes(k));
-
-    // ===== CEK DI KONTEN =====
     let eduScore = 0;
     let priceScore = 0;
 
@@ -176,16 +228,15 @@
       if (combined.includes(kw)) priceScore++;
     }
 
-    // ===== CEK KEBERADAAN TABEL HARGA =====
-    const hasPriceTable = document.querySelector('table')?.innerText?.toLowerCase()?.includes('harga') || false;
-    if (hasPriceTable) priceScore += 3;
-
-    // ===== CEK KEBERADAAN CTA HARGA =====
+    // Bonus: CTA harga
     const hasPriceCTA = document.querySelector('.cta-box, .cta-button, .btn-wa, [href*="wa.me"]')?.innerText?.toLowerCase()?.includes('harga') || false;
     if (hasPriceCTA) priceScore += 2;
 
-    // ===== LOGIKA FINAL =====
     log(`📊 Edu Score: ${eduScore}, Price Score: ${priceScore}`, "FOCUS");
+
+    // =========================================================
+    // PRIORITAS 4: LOGIKA FINAL BERDASARKAN SKOR
+    // =========================================================
 
     // Jika skor harga jauh lebih tinggi
     if (priceScore > eduScore * 1.5) {
@@ -201,19 +252,22 @@
 
     // Jika keduanya rendah, cek H1 dan URL
     if (eduScore < 2 && priceScore < 2) {
-      if (urlHasHarga || h1HasPrice) {
-        log(`🎯 Fokus: HARGA (from H1/URL)`, "FOCUS");
+      const urlHasHarga = url.includes('harga') || url.includes('biaya') || url.includes('tarif');
+      const urlHasEdu = url.includes('spesifikasi') || url.includes('panduan') || url.includes('jenis');
+      
+      if (urlHasHarga) {
+        log(`🎯 Fokus: HARGA (from URL)`, "FOCUS");
         return 'harga';
       }
-      if (urlHasEdu || h1HasEdu) {
-        log(`🎯 Fokus: INFORMASI/EDUKASI (from H1/URL)`, "FOCUS");
+      if (urlHasEdu) {
+        log(`🎯 Fokus: INFORMASI/EDUKASI (from URL)`, "FOCUS");
         return 'informasi';
       }
     }
 
     // Default: jika skor edukasi >= skor harga
     if (eduScore >= priceScore) {
-      log(`🎯 Fokus: INFORMASI/EDUKASI (default)`, "FOCUS");
+      log(`🎯 Fokus: INFORMASI/EDUKASI (default: edu >= price)`, "FOCUS");
       return 'informasi';
     }
 
@@ -228,7 +282,6 @@
   async function getPageLevelAndEntityType() {
     const pldReady = await waitForPageLevelDetector();
     
-    // ✅ PRIORITAS v22.x
     if (pldReady && window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorv22.detect();
@@ -254,7 +307,6 @@
       }
     }
     
-    // ✅ FALLBACK v20.x
     if (pldReady && window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorv20.detect();
@@ -266,7 +318,6 @@
       }
     }
     
-    // ✅ FALLBACK v19.0
     if (pldReady && window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
       try {
         const pageLevel = window.pageLevelDetectorv19.detect();
@@ -278,7 +329,6 @@
       }
     }
     
-    // ✅ FALLBACK standalone
     log("Using fallback standalone detection", "WARN");
     const entityType = detectEntityTypeStandalone();
     const pageLevel = detectPageLevelStandalone(entityType);
@@ -337,7 +387,6 @@
     const LOCATIONS = ["jakarta", "bandung", "bekasi", "tangerang", "depok", "bogor", "surabaya", "semarang"];
     const HAS_LOCATION = LOCATIONS.some(loc => primaryText.includes(loc));
     
-    // Deteksi variant
     if (primaryText.includes("spesifikasi") || primaryText.includes("ukuran") || 
         primaryText.includes("dimensi") || primaryText.includes("varian") ||
         primaryText.includes("polosan") || primaryText.includes("motif")) {
@@ -367,7 +416,9 @@
   // CEK APAKAH PERLU ARTICLE SCHEMA (BERDASARKAN V37)
   // =========================================================
 
-  function shouldGenerateArticleSchema(pageLevel, entityType) {
+  function shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) {
+    log(`📌 Evaluating: pageLevel=${pageLevel}, entityType=${entityType}, focus=${contentFocus}`, "INFO");
+    
     // =========================================================
     // LEVEL YANG WAJIB ARTICLE SCHEMA
     // =========================================================
@@ -411,14 +462,13 @@
       return false;
     }
 
-    // 4. CEK: Money Page → Tergantung fokus konten (DETEKSI OTOMATIS)
+    // 4. CEK: Money Page → Tergantung fokus konten
     if (pageLevel === 'money-page') {
-      const focus = detectContentFocus();
-      if (focus === 'informasi') {
+      if (contentFocus === 'informasi') {
         log(`✅ WAJIB Article schema untuk MONEY_PAGE INFORMASI (${entityType})`, "SUCCESS");
         return true;
       } else {
-        log(`⏭️ Skip Article schema untuk MONEY_PAGE HARGA - pakai Service/Product schema`, "SKIP");
+        log(`⏭️ Skip Article schema untuk MONEY_PAGE HARGA - pakai Product schema`, "SKIP");
         return false;
       }
     }
@@ -433,17 +483,12 @@
   // =========================================================
 
   function getArticleType(pageLevel) {
-    // Variant & Sub-Variant → TechArticle
     if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
       return 'TechArticle';
     }
-    
-    // Pillar → BlogPosting (konten panduan mendalam)
     if (pageLevel === 'pillar') {
       return 'BlogPosting';
     }
-    
-    // Sub-Pillar & Money Page Informasi → Article
     return 'Article';
   }
 
@@ -508,14 +553,12 @@
     const articleType = getArticleType(pageLevel);
     const focus = detectContentFocus();
     
-    // ===== TENTUKAN ABOUT BERDASARKAN ENTITY TYPE =====
     let aboutName = "Konstruksi";
     if (entityType === "jasa") aboutName = "Jasa Konstruksi";
     else if (entityType === "sewa") aboutName = "Sewa Alat Konstruksi";
     else if (entityType === "produk") aboutName = "Produk Konstruksi";
     else if (entityType === "material") aboutName = "Material Konstruksi";
     
-    // ===== TENTUKAN ARTICLE SECTION =====
     let articleSection = "Informasi";
     if (pageLevel === 'pillar') articleSection = "Panduan Lengkap";
     else if (pageLevel === 'sub-pillar-tipe-2') articleSection = "Jenis & Kategori";
@@ -599,25 +642,29 @@
 
   async function init() {
     log("================================");
-    log("AUTO SCHEMA GENERATOR v6.9");
-    log("ARTICLE SCHEMA ONLY");
+    log("AUTO SCHEMA GENERATOR v7.0");
+    log("V37 COMPLIANT");
     log("================================");
     
-    // Gunakan PLD untuk deteksi
     const { pageLevel, entityType, source, confidence, strategies, strategyCount } = await getPageLevelAndEntityType();
     
     log(`ENTITY TYPE: ${entityType} (source: ${source})`, "SUCCESS");
     log(`PAGE LEVEL: ${pageLevel}`, "SUCCESS");
     if (confidence) {
-      log(`   🎯 Detection Confidence: ${confidence}% (${strategyCount} strategies: ${strategies?.join(", ")})`, "CONFIDENCE");
+      log(`   🎯 Confidence: ${confidence}% (${strategyCount} strategies: ${strategies?.join(", ")})`, "CONFIDENCE");
     }
     
     const pageData = extractPageData();
+    
+    // DETEKSI FOKUS KONTEN (PRIORITAS H1 + TABEL HARGA)
+    const contentFocus = detectContentFocus();
+    log(`📌 Content Focus: ${contentFocus.toUpperCase()}`, "FOCUS");
     
     // Tambahkan atribut ke body
     document.body.setAttribute("data-schema-page-level", pageLevel);
     document.body.setAttribute("data-schema-entity-type", entityType);
     document.body.setAttribute("data-schema-source", source);
+    document.body.setAttribute("data-schema-content-focus", contentFocus);
     if (confidence) {
       document.body.setAttribute("data-schema-confidence", confidence);
     }
@@ -635,7 +682,7 @@
     // ARTICLE SCHEMA (BERDASARKAN ATURAN V37)
     // =============================================
     const articleElem = document.getElementById("auto-schema");
-    if (articleElem && shouldGenerateArticleSchema(pageLevel, entityType)) {
+    if (articleElem && shouldGenerateArticleSchema(pageLevel, entityType, contentFocus)) {
       waitForAEDMetaDates((dates) => {
         articleElem.textContent = JSON.stringify(
           generateArticleSchema(pageData, dates, pageLevel, entityType),
@@ -645,7 +692,6 @@
         log(`ARTICLE SCHEMA GENERATED (${getArticleType(pageLevel)})`, "SUCCESS");
       });
     } else if (articleElem) {
-      // Kosongkan jika tidak generate Article schema
       articleElem.textContent = "";
       log("Article schema skipped - using Service/Product schema instead", "INFO");
     }
