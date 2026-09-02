@@ -1,8 +1,11 @@
 /**
- * ⚡ AutoSchema Hybrid v4.67 — WAJIB GAMBAR UNTUK VARIANT & SUB-VARIANT
+ * ⚡ AutoSchema Hybrid v4.68 — DETEKSI FOKUS KONTEN + ATURAN TAHUN DINAMIS
  * 
- * UPDATE v4.67:
- * - FIX: VARIANT dan SUB-VARIANT WAJIB DAPAT GAMBAR (tanpa syarat wordCount)
+ * UPDATE v4.68:
+ * - ADD: Deteksi fokus konten (INFORMASI vs HARGA) untuk MONEY_PAGE
+ * - FIX: MONEY_PAGE INFORMASI/EDUKASI → TANPA tahun di H1
+ * - FIX: MONEY_PAGE HARGA → TETAP pakai tahun di H1
+ * - FIX: VARIANT dan SUB-VARIANT WAJIB GAMBAR (tanpa syarat wordCount)
  * - FIX: MONEY_MASTER, MONEY_PAGE, MONEY_CHILD WAJIB GAMBAR (tanpa syarat)
  * - FIX: PILLAR tetap LAYAK (dengan syarat edukasi)
  * - FIX: SUB-PILLAR TIPE 1 & 2 LAYAK (dengan wordCount ≥ 300)
@@ -23,8 +26,8 @@
  * - ADD: Tanpa Tanggal di Gambar (stabil, tidak berubah-ubah)
  * - ADD: Semua Elemen Rata Tengah (center)
  * 
- * @version 4.67
- * @date 2026-09-01
+ * @version 4.68
+ * @date 2026-09-02
  */
 
 (function() {
@@ -47,9 +50,102 @@
 
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅" };
+    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.67] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.68] ${msg}`);
+  }
+
+  // ============================================================
+  // 🔥🔥🔥 DETEKSI FOKUS KONTEN (INFORMASI vs HARGA) 🔥🔥🔥
+  // ============================================================
+  function detectContentFocus() {
+    const h1 = document.querySelector('h1')?.innerText?.toLowerCase() || '';
+    const title = document.title?.toLowerCase() || '';
+    const content = document.querySelector('.post-body.entry-content, .post-body, article, main, section')?.innerText?.toLowerCase() || '';
+    const url = location.href.toLowerCase();
+    const combined = h1 + ' ' + title + ' ' + content + ' ' + url;
+
+    log(`🎯 Detecting content focus...`, "FOCUS");
+
+    // ===== KATA KUNCI INFORMASI/EDUKASI =====
+    const eduKeywords = [
+      'panduan', 'spesifikasi', 'keunggulan', 'ukuran', 'dimensi', 'cara memilih',
+      'tips', 'informasi', 'pengertian', 'definisi', 'jenis', 'macam', 'tipe',
+      'perbedaan', 'kelebihan', 'kekurangan', 'material', 'bahan', 'standar',
+      'mutu', 'k225', 'k250', 'k300', 'komposisi', 'struktur', 'aplikasi',
+      'penggunaan', 'manfaat', 'keuntungan', 'solusi', 'rekomendasi'
+    ];
+
+    // ===== KATA KUNCI HARGA =====
+    const priceKeywords = [
+      'harga', 'biaya', 'estimasi', 'tarif', 'mulai dari', 'per meter',
+      'per lembar', 'per kubik', 'per unit', 'promo', 'diskon', 'penawaran',
+      'daftar harga', 'tabel harga', 'rincian biaya', 'simulasi biaya',
+      'total biaya', 'anggaran', 'budget', 'cost'
+    ];
+
+    // ===== CEK DI URL =====
+    const urlHasHarga = url.includes('harga') || url.includes('biaya') || url.includes('tarif');
+    const urlHasEdu = url.includes('spesifikasi') || url.includes('panduan') || url.includes('jenis');
+
+    // ===== CEK DI H1 =====
+    const h1HasPrice = priceKeywords.some(k => h1.includes(k));
+    const h1HasEdu = eduKeywords.some(k => h1.includes(k));
+
+    // ===== CEK DI KONTEN =====
+    let eduScore = 0;
+    let priceScore = 0;
+
+    for (const kw of eduKeywords) {
+      if (combined.includes(kw)) eduScore++;
+    }
+    for (const kw of priceKeywords) {
+      if (combined.includes(kw)) priceScore++;
+    }
+
+    // ===== CEK KEBERADAAN TABEL HARGA =====
+    const hasPriceTable = document.querySelector('table')?.innerText?.toLowerCase()?.includes('harga') || false;
+    if (hasPriceTable) priceScore += 3;
+
+    // ===== CEK KEBERADAAN CTA HARGA =====
+    const hasPriceCTA = document.querySelector('.cta-box, .cta-button, .btn-wa, [href*="wa.me"]')?.innerText?.toLowerCase()?.includes('harga') || false;
+    if (hasPriceCTA) priceScore += 2;
+
+    // ===== LOGIKA FINAL =====
+    log(`📊 Edu Score: ${eduScore}, Price Score: ${priceScore}`, "FOCUS");
+
+    // Jika skor harga jauh lebih tinggi
+    if (priceScore > eduScore * 1.5) {
+      log(`🎯 Fokus: HARGA (price: ${priceScore}, edu: ${eduScore})`, "FOCUS");
+      return 'harga';
+    }
+
+    // Jika skor edukasi jauh lebih tinggi
+    if (eduScore > priceScore * 1.5) {
+      log(`🎯 Fokus: INFORMASI/EDUKASI (edu: ${eduScore}, price: ${priceScore})`, "FOCUS");
+      return 'informasi';
+    }
+
+    // Jika keduanya rendah, cek H1 dan URL
+    if (eduScore < 2 && priceScore < 2) {
+      if (urlHasHarga || h1HasPrice) {
+        log(`🎯 Fokus: HARGA (from H1/URL)`, "FOCUS");
+        return 'harga';
+      }
+      if (urlHasEdu || h1HasEdu) {
+        log(`🎯 Fokus: INFORMASI/EDUKASI (from H1/URL)`, "FOCUS");
+        return 'informasi';
+      }
+    }
+
+    // Default: jika skor edukasi >= skor harga
+    if (eduScore >= priceScore) {
+      log(`🎯 Fokus: INFORMASI/EDUKASI (default)`, "FOCUS");
+      return 'informasi';
+    }
+
+    log(`🎯 Fokus: HARGA (default)`, "FOCUS");
+    return 'harga';
   }
 
   // ============================================================
@@ -79,9 +175,32 @@
     return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
   }
 
+  // ============================================================
+  // 🔥🔥🔥 ATURAN TAHUN (DENGAN DETEKSI FOKUS KONTEN) 🔥🔥🔥
+  // ============================================================
   function needYear(level) {
     const moneyLevels = ['money-master', 'money-page', 'money-child'];
-    return moneyLevels.includes(level);
+    
+    // Jika bukan Money Level → TIDAK pakai tahun
+    if (!moneyLevels.includes(level)) {
+      log(`⏭️ Level ${level} → TIDAK butuh tahun`, "YEAR");
+      return false;
+    }
+
+    // ===== KHUSUS MONEY_PAGE: CEK FOKUS KONTEN =====
+    if (level === 'money-page') {
+      const focus = detectContentFocus();
+      if (focus === 'informasi') {
+        log(`⏭️ MONEY_PAGE INFORMASI/EDUKASI → SKIP tahun`, "YEAR");
+        return false;
+      }
+      log(`✅ MONEY_PAGE HARGA → WAJIB tahun`, "YEAR");
+      return true;
+    }
+
+    // ===== MONEY_MASTER & MONEY_CHILD → WAJIB tahun =====
+    log(`✅ ${level} → WAJIB tahun`, "YEAR");
+    return true;
   }
 
   function getCurrentYear() {
@@ -371,7 +490,7 @@
     img.style.boxSizing = 'border-box';
 
     // Media query untuk mobile
-    const styleId = 'responsive-image-style-v467';
+    const styleId = 'responsive-image-style-v468';
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
@@ -634,7 +753,7 @@
 
   // ============================================================
   // 🔥🔥🔥 DETEKSI HALAMAN LAYAK GAMBAR 🔥🔥🔥
-  // 🔥 FIX v4.67: VARIANT & SUB-VARIANT WAJIB GAMBAR (TANPA SYARAT)
+  // 🔥 FIX v4.68: VARIANT & SUB-VARIANT WAJIB GAMBAR (TANPA SYARAT)
   // ============================================================
   function isImageEligible(pageLevel) {
     log(`Checking image eligibility for page level: ${pageLevel}`, "IMAGE");
@@ -1076,7 +1195,7 @@
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.67 — WAJIB GAMBAR UNTUK VARIANT & SUB-VARIANT", "INFO");
+    log("AutoSchema Hybrid v4.68 — DETEKSI FOKUS KONTEN", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     await waitForPLD();
@@ -1211,9 +1330,12 @@
     // ============================================================
     // EXECUTION SUMMARY
     // ============================================================
+    const focus = pageLevel === 'money-page' ? detectContentFocus() : 'N/A';
+    
     log("═══════════════════════════════════════════════════", "INFO");
     log("EXECUTION SUMMARY:", "INFO");
     log(`  Page Level      : ${pageLevel}`, "SUCCESS");
+    log(`  Content Focus   : ${focus}`, "FOCUS");
     log(`  Product Name    : ${productName}`, "SUCCESS");
     log(`  Offers Count    : ${offers.length}`, "SUCCESS");
     log(`  Image Eligible  : ${isEligible ? '✅' : '❌'}`, "IMAGE");
@@ -1224,8 +1346,10 @@
     log(`  Responsive      : ✅`, "IMAGE");
     log(`  VARIANT WAJIB   : ✅ (tanpa syarat wordCount)`, "SUCCESS");
     log(`  SUB-VARIANT WAJIB: ✅ (tanpa syarat wordCount)`, "SUCCESS");
+    log(`  MONEY_PAGE INFO : ✅ TANPA tahun (otomatis)`, "FOCUS");
+    log(`  MONEY_PAGE HARGA: ✅ PAKAI tahun (otomatis)`, "FOCUS");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.67 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.68 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
