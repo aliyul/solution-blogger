@@ -1,32 +1,28 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔧 UPDATE SCRIPT — AUTOSCHEMA HYBRID v4.69
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Saya akan update script dengan perbaikan error `matchAll` dan beberapa peningkatan lain untuk kompatibilitas dengan V37.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+
+```javascript
 /**
- * ⚡ AutoSchema Hybrid v4.68 — DETEKSI FOKUS KONTEN + ATURAN TAHUN DINAMIS
+ * ⚡ AutoSchema Hybrid v4.69 — DETEKSI FOKUS KONTEN + ATURAN TAHUN DINAMIS
  * 
- * UPDATE v4.68:
- * - ADD: Deteksi fokus konten (INFORMASI vs HARGA) untuk MONEY_PAGE
+ * UPDATE v4.69:
+ * - FIX: Error matchAll (tambahkan flag 'g' pada semua pattern)
+ * - FIX: Fallback match untuk browser yang tidak support matchAll
  * - FIX: MONEY_PAGE INFORMASI/EDUKASI → TANPA tahun di H1
  * - FIX: MONEY_PAGE HARGA → TETAP pakai tahun di H1
  * - FIX: VARIANT dan SUB-VARIANT WAJIB GAMBAR (tanpa syarat wordCount)
  * - FIX: MONEY_MASTER, MONEY_PAGE, MONEY_CHILD WAJIB GAMBAR (tanpa syarat)
- * - FIX: PILLAR tetap LAYAK (dengan syarat edukasi)
- * - FIX: SUB-PILLAR TIPE 1 & 2 LAYAK (dengan wordCount ≥ 300)
- * - FIX: Cek gambar di konten terlebih dahulu (jika ada, perbaiki; jika tidak, buat baru)
- * - FIX: Gambar tetap menggunakan format FIGURE (tidak diubah strukturnya)
- * - FIX: Hanya mengganti src, alt, title, dan figcaption
- * - FIX: Figure tetap mempertahankan style dan posisinya
- * - FIX: Teks gambar diambil dari URL BERSIH (bukan H1)
- * - FIX: Tulisan atas (Beton Jaya Readymix) JELAS 100% PUTIH + pill background
- * - FIX: Tulisan bawah (© Beton Jaya Readymix) JELAS 70% PUTIH + pill background
- * - FIX: Gambar RESPONSIF dengan media query untuk mobile
  * - ADD: Auto Generate Gambar dari Canvas (dengan teks nama halaman + tahun)
  * - ADD: Auto Update H1 (tahun diupdate jika kurang dari tahun sekarang)
- * - ADD: Auto Update Gambar (alt/title/caption diupdate jika tahun kurang)
- * - ADD: Auto Re-generate Gambar (gambar dibuat ulang dengan tahun baru)
  * - ADD: Deteksi Kebutuhan Tahun per Level (Money level = pakai tahun)
  * - ADD: Warna Unik per Level (background berbeda untuk setiap level)
- * - ADD: Tanpa Tanggal di Gambar (stabil, tidak berubah-ubah)
- * - ADD: Semua Elemen Rata Tengah (center)
  * 
- * @version 4.68
+ * @version 4.69
  * @date 2026-09-02
  */
 
@@ -52,7 +48,7 @@
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.68] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.69] ${msg}`);
   }
 
   // ============================================================
@@ -114,19 +110,16 @@
     // ===== LOGIKA FINAL =====
     log(`📊 Edu Score: ${eduScore}, Price Score: ${priceScore}`, "FOCUS");
 
-    // Jika skor harga jauh lebih tinggi
     if (priceScore > eduScore * 1.5) {
       log(`🎯 Fokus: HARGA (price: ${priceScore}, edu: ${eduScore})`, "FOCUS");
       return 'harga';
     }
 
-    // Jika skor edukasi jauh lebih tinggi
     if (eduScore > priceScore * 1.5) {
       log(`🎯 Fokus: INFORMASI/EDUKASI (edu: ${eduScore}, price: ${priceScore})`, "FOCUS");
       return 'informasi';
     }
 
-    // Jika keduanya rendah, cek H1 dan URL
     if (eduScore < 2 && priceScore < 2) {
       if (urlHasHarga || h1HasPrice) {
         log(`🎯 Fokus: HARGA (from H1/URL)`, "FOCUS");
@@ -138,7 +131,6 @@
       }
     }
 
-    // Default: jika skor edukasi >= skor harga
     if (eduScore >= priceScore) {
       log(`🎯 Fokus: INFORMASI/EDUKASI (default)`, "FOCUS");
       return 'informasi';
@@ -181,13 +173,11 @@
   function needYear(level) {
     const moneyLevels = ['money-master', 'money-page', 'money-child'];
     
-    // Jika bukan Money Level → TIDAK pakai tahun
     if (!moneyLevels.includes(level)) {
       log(`⏭️ Level ${level} → TIDAK butuh tahun`, "YEAR");
       return false;
     }
 
-    // ===== KHUSUS MONEY_PAGE: CEK FOKUS KONTEN =====
     if (level === 'money-page') {
       const focus = detectContentFocus();
       if (focus === 'informasi') {
@@ -198,7 +188,6 @@
       return true;
     }
 
-    // ===== MONEY_MASTER & MONEY_CHILD → WAJIB tahun =====
     log(`✅ ${level} → WAJIB tahun`, "YEAR");
     return true;
   }
@@ -218,11 +207,10 @@
   function getCleanPageName(level) {
     let cleanName = '';
     
-    // ===== 1. PRIORITAS UTAMA: AMBIL DARI URL BERSIH =====
     let path = window.location.pathname;
-    path = path.replace(/^\/p\//, '');              // Hapus /p/
-    path = path.replace(/\/\d{4}\/\d{2}\//g, '/');  // Hapus tahun/bulan
-    path = path.replace(/\.html$/, '');             // Hapus .html
+    path = path.replace(/^\/p\//, '');
+    path = path.replace(/\/\d{4}\/\d{2}\//g, '/');
+    path = path.replace(/\.html$/, '');
     
     let segments = path.split('/').filter(s => s.length > 0);
     let lastSegment = segments.length > 0 ? segments[segments.length - 1] : '';
@@ -235,7 +223,6 @@
       cleanName = cleanName.replace(/^(Harga|Jasa|Biaya|Tarif)\s*/i, '').trim();
     }
     
-    // ===== 2. FALLBACK: H1 =====
     if (cleanName.length < 3) {
       let h1Text = document.querySelector('h1')?.innerText?.trim();
       if (h1Text && h1Text.length > 3) {
@@ -247,7 +234,6 @@
       }
     }
     
-    // ===== 3. FALLBACK: Title =====
     if (cleanName.length < 3) {
       let title = document.title
         .replace(/\b(20[2-9][0-9])\b/g, '')
@@ -256,7 +242,6 @@
       if (title.length > 3) cleanName = title;
     }
     
-    // ===== 4. DEFAULT =====
     if (cleanName.length < 3) cleanName = 'Halaman Utama';
     if (cleanName.length > 55) cleanName = cleanName.substring(0, 52) + '...';
     
@@ -268,7 +253,6 @@
   // 🔥🔥🔥 GENERATE GAMBAR DARI CANVAS 🔥🔥🔥
   // ============================================================
 
-  // Polyfill roundRect
   if (!CanvasRenderingContext2D.prototype.roundRect) {
     CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
       if (r > w/2) r = w/2;
@@ -301,7 +285,6 @@
     canvas.height = height;
     const ctx = canvas.getContext('2d');
 
-    // ===== BACKGROUND =====
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, colors.bg);
     gradient.addColorStop(0.5, colors.bg);
@@ -309,7 +292,6 @@
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    // ===== BORDER =====
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.strokeStyle = colors.accent;
@@ -317,9 +299,7 @@
     const bPad = 15;
     ctx.strokeRect(bPad, bPad, width - (bPad * 2), height - (bPad * 2));
 
-    // ============================================================
-    // 🔥 TULISAN ATAS (LOGO) — JELAS 100% PUTIH 🔥
-    // ============================================================
+    // TULISAN ATAS
     const logoText = '🏗️ Beton Jaya Readymix';
     ctx.font = 'bold 18px Arial, sans-serif';
     const logoMetrics = ctx.measureText(logoText);
@@ -328,7 +308,6 @@
     const logoX = (width - logoWidth) / 2;
     const logoY = padding - 10;
 
-    // Background pill
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -336,7 +315,6 @@
     ctx.roundRect(logoX, logoY, logoWidth, logoHeight, 18);
     ctx.fill();
 
-    // Text logo — PUTIH 100%
     ctx.shadowColor = 'rgba(0,0,0,0.4)';
     ctx.shadowBlur = 8;
     ctx.shadowOffsetX = 1;
@@ -347,7 +325,7 @@
     ctx.textBaseline = 'middle';
     ctx.fillText(logoText, width / 2, padding + 8);
 
-    // ===== GARIS PEMISAH =====
+    // GARIS PEMISAH
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.strokeStyle = 'rgba(255,255,255,0.15)';
@@ -357,9 +335,7 @@
     ctx.lineTo(width - padding, 72);
     ctx.stroke();
 
-    // ============================================================
-    // 🔥 TEKS UTAMA (DARI URL BERSIH) 🔥
-    // ============================================================
+    // TEKS UTAMA
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -375,7 +351,6 @@
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 3;
 
-    // WRAP TEKS
     const maxCharsPerLine = 24;
     const words = fullText.split(' ');
     let lines = [];
@@ -432,9 +407,7 @@
       });
     }
 
-    // ============================================================
-    // 🔥 TULISAN BAWAH (WATERMARK) — JELAS 70% PUTIH 🔥
-    // ============================================================
+    // TULISAN BAWAH
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
@@ -448,13 +421,11 @@
     const wmX = (width - wmWidth) / 2;
     const wmY = height - padding + 2;
 
-    // Background pill
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.beginPath();
     ctx.roundRect(wmX, wmY, wmWidth, wmHeight, 14);
     ctx.fill();
 
-    // Text watermark — 70% PUTIH
     ctx.fillStyle = 'rgba(255,255,255,0.7)';
     ctx.font = '13px Arial, sans-serif';
     ctx.textAlign = 'center';
@@ -489,8 +460,7 @@
     img.style.padding = '0 10px';
     img.style.boxSizing = 'border-box';
 
-    // Media query untuk mobile
-    const styleId = 'responsive-image-style-v468';
+    const styleId = 'responsive-image-style-v469';
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
@@ -530,7 +500,6 @@
     const pageName = getCleanPageName(pageLevel);
     const displayName = needYearFlag ? pageName + ' ' + currentYear : pageName;
 
-    // ===== CARI TEMPAT TARUH GAMBAR =====
     function getImageInsertionPoint() {
       let article = document.querySelector('article');
       if (!article) {
@@ -559,7 +528,6 @@
       return { container: article, referenceNode: null, position: 'first' };
     }
 
-    // ===== CARI GAMBAR DI KONTEN =====
     let targetImage = null;
     let targetFigure = null;
 
@@ -603,16 +571,12 @@
     const autoImageDataUrl = createImageWithText(pageName, pageLevel, currentYear);
     const captionText = '📊 ' + displayName;
 
-    // ============================================================
-    // 🔥 KASUS 1: ADA GAMBAR — PERBAIKI 🔥
-    // ============================================================
     if (targetImage) {
       log('Image found in content, fixing for SEO...', "IMAGE");
 
       const img = targetImage;
       const figure = targetFigure || img.closest('figure');
 
-      // Update src hanya jika gambar rusak/placeholder
       const currentSrc = img.src || '';
       if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
         img.src = autoImageDataUrl;
@@ -621,7 +585,6 @@
         log('Existing image preserved, only updating attributes', "IMAGE");
       }
 
-      // Update atribut
       img.alt = displayName;
       img.title = displayName;
       img.setAttribute('loading', 'lazy');
@@ -673,9 +636,6 @@
       return figure;
     }
 
-    // ============================================================
-    // 🔥 KASUS 2: TIDAK ADA GAMBAR — BUAT BARU 🔥
-    // ============================================================
     log('No image found, creating new responsive FIGURE...', "IMAGE");
 
     const insertPoint = getImageInsertionPoint();
@@ -753,14 +713,10 @@
 
   // ============================================================
   // 🔥🔥🔥 DETEKSI HALAMAN LAYAK GAMBAR 🔥🔥🔥
-  // 🔥 FIX v4.68: VARIANT & SUB-VARIANT WAJIB GAMBAR (TANPA SYARAT)
   // ============================================================
   function isImageEligible(pageLevel) {
     log(`Checking image eligibility for page level: ${pageLevel}`, "IMAGE");
 
-    // ============================================================
-    // 🔥 LEVEL YANG WAJIB DAPAT GAMBAR (TANPA SYARAT)
-    // ============================================================
     const mandatoryImageLevels = [
       'money-master', 
       'money-page', 
@@ -774,9 +730,6 @@
       return true;
     }
 
-    // ============================================================
-    // 🔥 PILLAR: Skip jika edukasi murni
-    // ============================================================
     if (pageLevel === 'pillar') {
       const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
       const title = document.title.toLowerCase();
@@ -807,9 +760,6 @@
       return false;
     }
 
-    // ============================================================
-    // 🔥 SUB-PILLAR: LAYAK DAPAT GAMBAR (dengan wordCount)
-    // ============================================================
     if (pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
       const content = document.querySelector(".post-body.entry-content, .post-body, article, main")?.innerText || "";
       const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
@@ -823,9 +773,6 @@
       return true;
     }
 
-    // ============================================================
-    // 🔥 FALLBACK: CEK KONTEN
-    // ============================================================
     const content = document.querySelector(".post-body.entry-content, .post-body, article, main")?.innerText || "";
     const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
     
@@ -1107,22 +1054,51 @@
     return found;
   }
 
+  // ============================================================
+  // 🔥🔥🔥 PARSE VARIAN OFFERS (DIPERBAIKI v4.69) 🔥🔥🔥
+  // ============================================================
   function parseVariantOffers() {
     const content = document.querySelector(".post-body.entry-content, .post-body, article, main");
     if (!content) return false;
     const text = content.innerText;
+    
+    // ✅ SEMUA PATTERN PAKAI FLAG 'g' (GLOBAL)
+    // ✅ TAMBAHKAN TRY-CATCH UNTUK FALLBACK
     const variantPatterns = [
-      /(tinggi|ukuran|dimensi)\s*([\d.]+)\s*(meter|m|cm)\s*(?:Rp\s*([\d.,]+))/i,
-      /(panel|pagar)\s*(polosan|motif|custom)\s*(?:Rp\s*([\d.,]+))/i,
-      /(tipe|varian)\s*([a-zA-Z0-9\s]+?)\s*(?:Rp\s*([\d.,]+))/i
+      /(tinggi|ukuran|dimensi)\s*([\d.]+)\s*(meter|m|cm)\s*(?:Rp\s*([\d.,]+))/gi,
+      /(panel|pagar)\s*(polosan|motif|custom)\s*(?:Rp\s*([\d.,]+))/gi,
+      /(tipe|varian)\s*([a-zA-Z0-9\s]+?)\s*(?:Rp\s*([\d.,]+))/gi,
+      /(harga|biaya)\s*([a-zA-Z0-9\s]+?)\s*(?:Rp\s*([\d.,]+))/gi,
+      /Rp\s*([\d.,]+)\s*(?:per\s*(meter|lembar|buah|unit))/gi
     ];
+    
     let found = false;
     for (const pattern of variantPatterns) {
-      const matches = text.matchAll(pattern);
-      for (const match of matches) {
-        const name = match[0].split("Rp")[0]?.trim() || match[0].substring(0, 50);
-        const price = extractPrice(match[0]);
-        if (price && price > CONFIG.MIN_PRICE && price < CONFIG.MAX_PRICE) { addOffer(name, price); found = true; }
+      try {
+        // matchAll() membutuhkan regex dengan flag 'g'
+        const matches = text.matchAll(pattern);
+        for (const match of matches) {
+          const name = match[0].split("Rp")[0]?.trim() || match[0].substring(0, 50);
+          const price = extractPrice(match[0]);
+          if (price && price > CONFIG.MIN_PRICE && price < CONFIG.MAX_PRICE) {
+            addOffer(name, price);
+            found = true;
+          }
+        }
+      } catch(e) {
+        // Fallback: jika matchAll gagal, gunakan match biasa
+        log(`Fallback match untuk pattern`, "WARN");
+        const matches = text.match(pattern);
+        if (matches) {
+          for (const match of matches) {
+            const name = match.split("Rp")[0]?.trim() || match.substring(0, 50);
+            const price = extractPrice(match);
+            if (price && price > CONFIG.MIN_PRICE && price < CONFIG.MAX_PRICE) {
+              addOffer(name, price);
+              found = true;
+            }
+          }
+        }
       }
     }
     return found;
@@ -1195,7 +1171,7 @@
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.68 — DETEKSI FOKUS KONTEN", "INFO");
+    log("AutoSchema Hybrid v4.69 — DETEKSI FOKUS KONTEN", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     await waitForPLD();
@@ -1203,15 +1179,11 @@
     const pageLevel = getPageLevelFromPLD();
     log(`Page Level: ${pageLevel}`, "SUCCESS");
 
-    // ============================================================
     // STEP 1: AUTO UPDATE TAHUN DI KONTEN (H1)
-    // ============================================================
     log("📅 UPDATE TAHUN DI KONTEN:", "YEAR");
     updateH1Year(pageLevel);
 
-    // ============================================================
     // STEP 2: CEK GAMBAR & FIX GAMBAR (TETAP FIGURE)
-    // ============================================================
     let imageUrl = LOGO_IMAGE;
     const isEligible = isImageEligible(pageLevel);
     
@@ -1235,9 +1207,7 @@
       }
     }
 
-    // ============================================================
     // STEP 3: PRODUCT SCHEMA
-    // ============================================================
     if (shouldSkipProductSchema(pageLevel)) {
       log("Product schema SKIPPED untuk halaman ini", "SKIP");
       return;
@@ -1327,9 +1297,7 @@
       "@graph": graph
     }, null, 2);
     
-    // ============================================================
     // EXECUTION SUMMARY
-    // ============================================================
     const focus = pageLevel === 'money-page' ? detectContentFocus() : 'N/A';
     
     log("═══════════════════════════════════════════════════", "INFO");
@@ -1349,7 +1317,7 @@
     log(`  MONEY_PAGE INFO : ✅ TANPA tahun (otomatis)`, "FOCUS");
     log(`  MONEY_PAGE HARGA: ✅ PAKAI tahun (otomatis)`, "FOCUS");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.68 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.69 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
