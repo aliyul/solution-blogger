@@ -1,20 +1,15 @@
 /**
- * ⚡ AutoSchema Hybrid v4.70 — DETEKSI FOKUS KONTEN (PRIORITAS H1 + TABEL)
+ * ⚡ AutoSchema Hybrid v4.71 — UPDATE TAHUN DENGAN LOGIKA BARU
  * 
- * UPDATE v4.70:
- * - FIX: Prioritas H1 (tahun, Rp, kata harga, satuan) → HARGA
- * - FIX: Prioritas tabel harga → HARGA (di atas skor)
- * - FIX: Sinkron dengan Smart Evergreen Detector v15.2
- * - FIX: Money Page Informasi → TANPA tahun di H1
- * - FIX: Money Page Harga → PAKAI tahun di H1
- * - FIX: Error matchAll (tambahkan flag 'g' pada semua pattern)
- * - FIX: Fallback match untuk browser yang tidak support matchAll
- * - FIX: VARIANT dan SUB-VARIANT WAJIB GAMBAR (tanpa syarat wordCount)
- * - FIX: MONEY_MASTER, MONEY_PAGE, MONEY_CHILD WAJIB GAMBAR (tanpa syarat)
- * - ADD: Deteksi Kebutuhan Tahun per Level (Money level = pakai tahun)
- * - ADD: Warna Unik per Level (background berbeda untuk setiap level)
+ * UPDATE v4.71:
+ * - FIX: Jika H1 mengandung tahun < 2025 → STOP, JANGAN UPDATE
+ * - FIX: Jika H1 mengandung tahun 2025 → STOP, JANGAN UPDATE
+ * - FIX: Jika H1 mengandung tahun > 2025 → UPDATE ke tahun sekarang
+ * - FIX: Jika H1 tidak mengandung tahun → TAMBAHKAN tahun (jika perlu)
+ * - FIX: Jika ada tahun di konten → SESUAIKAN dengan tahun sekarang
+ * - ADD: Deteksi tahun di seluruh konten (body, meta, schema)
  * 
- * @version 4.70
+ * @version 4.71
  * @date 2026-09-02
  */
 
@@ -29,7 +24,9 @@
     MIN_PRICE: 10000,
     MAX_PRICE: 100000000,
     SKIP_WORD_COUNT: 300,
-    PLD_TIMEOUT: 5000
+    PLD_TIMEOUT: 5000,
+    // ✅ TAHUN MINIMAL UNTUK UPDATE (2025 = STOP)
+    MIN_YEAR_TO_UPDATE: 2026
   };
 
   // ✅ FALLBACK IMAGE (logo)
@@ -38,9 +35,9 @@
 
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯", TABLE: "📊", H1: "📝", PRIORITY: "🔴" };
+    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯", TABLE: "📊", H1: "📝", PRIORITY: "🔴", STOP: "🛑" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.70] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.71] ${msg}`);
   }
 
   // ============================================================
@@ -56,21 +53,15 @@
 
     log(`🎯 Detecting content focus...`, "FOCUS");
 
-    // =========================================================
     // PRIORITAS 1: CEK H1 (PATOKAN UTAMA)
-    // =========================================================
-    
-    // CEK TAHUN DI H1
     const yearPattern = /\b(19|20)\d{2}\b/;
     const hasYear = yearPattern.test(h1Text);
-    
     if (hasYear) {
       log(`🔴 PRIORITAS: H1 mengandung tahun → HARGA (non-evergreen)`, "PRIORITY");
       log(`   📝 H1: "${h1Text}"`, "H1");
       return 'harga';
     }
 
-    // CEK Rp DI H1
     const hasRpFormat = /Rp\s*[\d.,]+/.test(h1Text);
     if (hasRpFormat) {
       log(`🔴 PRIORITAS: H1 mengandung Rp → HARGA`, "PRIORITY");
@@ -78,7 +69,6 @@
       return 'harga';
     }
 
-    // CEK KATA HARGA DI H1
     const priceKeywordsInH1 = ['harga', 'biaya', 'tarif', 'estimasi', 'penawaran', 'promo', 'diskon'];
     const hasPriceInH1 = priceKeywordsInH1.some(k => h1Text.includes(k));
     if (hasPriceInH1) {
@@ -87,7 +77,6 @@
       return 'harga';
     }
 
-    // CEK SATUAN HARGA DI H1
     const unitPattern = /per\s*(meter|lembar|batang|kubik|m|m2|m²|lbr|buah|unit)/;
     const hasUnitInH1 = unitPattern.test(h1Text);
     if (hasUnitInH1) {
@@ -96,7 +85,6 @@
       return 'harga';
     }
 
-    // CEK KATA INFORMASI DI H1
     const infoKeywordsInH1 = ['panduan', 'spesifikasi', 'keunggulan', 'cara memilih', 'tips', 'perbedaan', 'jenis', 'apa itu', 'pengertian'];
     const hasInfoInH1 = infoKeywordsInH1.some(k => h1Text.includes(k));
     if (hasInfoInH1 && !hasPriceInH1 && !hasRpFormat && !hasYear) {
@@ -105,106 +93,57 @@
       return 'informasi';
     }
 
-    // =========================================================
     // PRIORITAS 2: CEK TABEL HARGA
-    // =========================================================
-    
     const tables = document.querySelectorAll('table');
     let hasPriceTable = false;
     let priceTableDetails = '';
-    
     tables.forEach((table, index) => {
       const tableText = table.innerText.toLowerCase();
       const hasPriceColumn = /harga|biaya|estimasi|rp|rupiah|total|subtotal/i.test(tableText);
       const hasNumbers = (tableText.match(/[\d.,]+/g) || []).length >= 3;
       const hasUnit = /per\s*(meter|lembar|batang|kubik|m|m2|m²|lbr|buah|unit)/i.test(tableText);
-      
       if (hasPriceColumn && hasNumbers) {
         hasPriceTable = true;
         priceTableDetails = `Tabel ${index+1}: price column + ${(tableText.match(/[\d.,]+/g) || []).length} angka`;
       }
     });
-    
     if (hasPriceTable) {
       log(`🔴 PRIORITAS: Ada tabel harga → HARGA`, "PRIORITY");
       log(`   📊 ${priceTableDetails}`, "TABLE");
       return 'harga';
     }
 
-    // =========================================================
     // PRIORITAS 3: CEK KONTEN (SKOR)
-    // =========================================================
-    
-    // KATA KUNCI INFORMASI/EDUKASI
-    const eduKeywords = [
-      'panduan', 'spesifikasi', 'keunggulan', 'ukuran', 'dimensi', 'cara memilih',
-      'tips', 'informasi', 'pengertian', 'definisi', 'jenis', 'macam', 'tipe',
-      'perbedaan', 'kelebihan', 'kekurangan', 'material', 'bahan', 'standar',
-      'mutu', 'k225', 'k250', 'k300', 'komposisi', 'struktur', 'aplikasi',
-      'penggunaan', 'manfaat', 'keuntungan', 'solusi', 'rekomendasi'
-    ];
+    const eduKeywords = ['panduan', 'spesifikasi', 'keunggulan', 'ukuran', 'dimensi', 'cara memilih', 'tips', 'informasi', 'pengertian', 'definisi', 'jenis', 'macam', 'tipe', 'perbedaan', 'kelebihan', 'kekurangan', 'material', 'bahan', 'standar', 'mutu', 'k225', 'k250', 'k300', 'komposisi', 'struktur', 'aplikasi', 'penggunaan', 'manfaat', 'keuntungan', 'solusi', 'rekomendasi'];
+    const priceKeywords = ['harga', 'biaya', 'estimasi', 'tarif', 'mulai dari', 'per meter', 'per lembar', 'per kubik', 'per unit', 'promo', 'diskon', 'penawaran', 'daftar harga', 'tabel harga', 'rincian biaya', 'simulasi biaya', 'total biaya', 'anggaran', 'budget', 'cost'];
 
-    // KATA KUNCI HARGA
-    const priceKeywords = [
-      'harga', 'biaya', 'estimasi', 'tarif', 'mulai dari', 'per meter',
-      'per lembar', 'per kubik', 'per unit', 'promo', 'diskon', 'penawaran',
-      'daftar harga', 'tabel harga', 'rincian biaya', 'simulasi biaya',
-      'total biaya', 'anggaran', 'budget', 'cost'
-    ];
+    let eduScore = 0, priceScore = 0;
+    for (const kw of eduKeywords) { if (combined.includes(kw)) eduScore++; }
+    for (const kw of priceKeywords) { if (combined.includes(kw)) priceScore++; }
 
-    let eduScore = 0;
-    let priceScore = 0;
-
-    for (const kw of eduKeywords) {
-      if (combined.includes(kw)) eduScore++;
-    }
-    for (const kw of priceKeywords) {
-      if (combined.includes(kw)) priceScore++;
-    }
-
-    // Bonus: CTA harga
     const hasPriceCTA = document.querySelector('.cta-box, .cta-button, .btn-wa, [href*="wa.me"]')?.innerText?.toLowerCase()?.includes('harga') || false;
     if (hasPriceCTA) priceScore += 2;
 
     log(`📊 Edu Score: ${eduScore}, Price Score: ${priceScore}`, "FOCUS");
 
-    // =========================================================
-    // PRIORITAS 4: LOGIKA FINAL BERDASARKAN SKOR
-    // =========================================================
-
-    // Jika skor harga jauh lebih tinggi
     if (priceScore > eduScore * 1.5) {
       log(`🎯 Fokus: HARGA (price: ${priceScore}, edu: ${eduScore})`, "FOCUS");
       return 'harga';
     }
-
-    // Jika skor edukasi jauh lebih tinggi
     if (eduScore > priceScore * 1.5) {
       log(`🎯 Fokus: INFORMASI/EDUKASI (edu: ${eduScore}, price: ${priceScore})`, "FOCUS");
       return 'informasi';
     }
-
-    // Jika keduanya rendah, cek H1 dan URL
     if (eduScore < 2 && priceScore < 2) {
       const urlHasHarga = url.includes('harga') || url.includes('biaya') || url.includes('tarif');
       const urlHasEdu = url.includes('spesifikasi') || url.includes('panduan') || url.includes('jenis');
-      
-      if (urlHasHarga) {
-        log(`🎯 Fokus: HARGA (from URL)`, "FOCUS");
-        return 'harga';
-      }
-      if (urlHasEdu) {
-        log(`🎯 Fokus: INFORMASI/EDUKASI (from URL)`, "FOCUS");
-        return 'informasi';
-      }
+      if (urlHasHarga) { log(`🎯 Fokus: HARGA (from URL)`, "FOCUS"); return 'harga'; }
+      if (urlHasEdu) { log(`🎯 Fokus: INFORMASI/EDUKASI (from URL)`, "FOCUS"); return 'informasi'; }
     }
-
-    // Default: jika skor edukasi >= skor harga
     if (eduScore >= priceScore) {
       log(`🎯 Fokus: INFORMASI/EDUKASI (default: edu >= price)`, "FOCUS");
       return 'informasi';
     }
-
     log(`🎯 Fokus: HARGA (default)`, "FOCUS");
     return 'harga';
   }
@@ -241,8 +180,6 @@
   // ============================================================
   function needYear(level) {
     const moneyLevels = ['money-master', 'money-page', 'money-child'];
-    
-    // Untuk Money Page → tergantung fokus konten
     if (level === 'money-page') {
       const focus = detectContentFocus();
       if (focus === 'informasi') {
@@ -252,13 +189,10 @@
       log(`✅ MONEY_PAGE HARGA → WAJIB tahun`, "YEAR");
       return true;
     }
-    
-    // Money Master & Money Child → WAJIB tahun
     if (moneyLevels.includes(level)) {
       log(`✅ ${level} → WAJIB tahun`, "YEAR");
       return true;
     }
-
     log(`⏭️ Level ${level} → TIDAK butuh tahun`, "YEAR");
     return false;
   }
@@ -267,9 +201,135 @@
     return new Date().getFullYear();
   }
 
+  function extractAllYears(text) {
+    const matches = text.match(/\b(19|20)\d{2}\b/g);
+    if (!matches) return [];
+    return matches.map(Number).filter(y => y >= 1900 && y <= 2099);
+  }
+
   function extractYear(text) {
-    const match = text.match(/\b(20[2-9][0-9])\b/);
-    return match ? parseInt(match[1]) : null;
+    const years = extractAllYears(text);
+    return years.length > 0 ? years[0] : null;
+  }
+
+  // ============================================================
+  // 🔥🔥🔥 UPDATE TAHUN DENGAN LOGIKA BARU (v4.71) 🔥🔥🔥
+  // ============================================================
+  function updateH1Year(pageLevel) {
+    if (!needYear(pageLevel)) {
+      log(`⏭️ Level ini TIDAK butuh tahun di H1 (${pageLevel})`, "YEAR");
+      return false;
+    }
+
+    const currentYear = getCurrentYear();
+    const h1 = document.querySelector('h1');
+    if (!h1) {
+      log(`⚠️ Tidak ada H1 ditemukan`, "WARN");
+      return false;
+    }
+
+    const originalText = h1.innerText;
+    const detectedYear = extractYear(originalText);
+
+    // ============================================================
+    // ATURAN BARU v4.71: CEK TAHUN
+    // ============================================================
+    if (detectedYear) {
+      // ✅ Jika tahun < 2025 → STOP, JANGAN UPDATE
+      if (detectedYear < CONFIG.MIN_YEAR_TO_UPDATE) {
+        log(`🛑 STOP: H1 mengandung tahun ${detectedYear} (< ${CONFIG.MIN_YEAR_TO_UPDATE})`, "STOP");
+        log(`   📝 H1: "${originalText}"`, "H1");
+        log(`   ⚠️ TIDAK DIUPDATE — konten dianggap data historis`, "WARN");
+        return false;
+      }
+
+      // ✅ Jika tahun = 2025 → STOP, JANGAN UPDATE
+      if (detectedYear === 2025) {
+        log(`🛑 STOP: H1 mengandung tahun ${detectedYear} (masih valid)`, "STOP");
+        log(`   📝 H1: "${originalText}"`, "H1");
+        log(`   ⚠️ TIDAK DIUPDATE — tahun 2025 masih dianggap valid`, "WARN");
+        return false;
+      }
+
+      // ✅ Jika tahun > 2025 → UPDATE ke tahun sekarang
+      if (detectedYear > 2025) {
+        const newText = originalText.replace(/\b(19|20)\d{2}\b/, currentYear);
+        h1.innerText = newText;
+        log(`✅ H1: Tahun diupdate ${detectedYear} → ${currentYear}`, "YEAR");
+        log(`   📝 H1 baru: "${newText}"`, "H1");
+        return true;
+      }
+    }
+
+    // ✅ Jika tidak ada tahun → TAMBAHKAN tahun sekarang
+    if (!detectedYear) {
+      const newText = originalText + ' ' + currentYear;
+      h1.innerText = newText;
+      log(`✅ H1: Tahun ditambahkan → "${newText}"`, "YEAR");
+      return true;
+    }
+
+    log(`✅ H1: Tahun sudah sesuai (${detectedYear})`, "YEAR");
+    return true;
+  }
+
+  // ============================================================
+  // 🔥🔥🔥 UPDATE TAHUN DI KONTEN (BODY, META, SCHEMA) 🔥🔥🔥
+  // ============================================================
+  function updateContentYears() {
+    const currentYear = getCurrentYear();
+    let updated = 0;
+
+    // 1. CEK DI BODY (paragraf, heading, list)
+    const bodyElements = document.querySelectorAll('p, h2, h3, h4, li, td, th, figcaption, .post-body, .entry-content');
+    const yearPattern = /\b(202[6-9]|2030)\b/g; // Hanya tahun 2026-2030
+
+    bodyElements.forEach(el => {
+      const text = el.innerText;
+      if (text && yearPattern.test(text)) {
+        const newText = text.replace(/\b(202[6-9]|2030)\b/g, currentYear);
+        if (newText !== text) {
+          el.innerText = newText;
+          updated++;
+        }
+      }
+    });
+
+    // 2. CEK DI META DESCRIPTION
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      const content = metaDesc.getAttribute('content');
+      if (content && yearPattern.test(content)) {
+        const newContent = content.replace(/\b(202[6-9]|2030)\b/g, currentYear);
+        if (newContent !== content) {
+          metaDesc.setAttribute('content', newContent);
+          updated++;
+        }
+      }
+    }
+
+    // 3. CEK DI SCHEMA JSON-LD
+    const schemaScripts = document.querySelectorAll('script[type="application/ld+json"]');
+    schemaScripts.forEach(script => {
+      try {
+        let content = script.textContent;
+        if (content && yearPattern.test(content)) {
+          const newContent = content.replace(/\b(202[6-9]|2030)\b/g, currentYear);
+          if (newContent !== content) {
+            script.textContent = newContent;
+            updated++;
+          }
+        }
+      } catch(e) {
+        // Skip jika tidak bisa parse
+      }
+    });
+
+    if (updated > 0) {
+      log(`✅ ${updated} elemen konten diupdate ke tahun ${currentYear}`, "YEAR");
+    }
+
+    return updated;
   }
 
   // ============================================================
@@ -277,23 +337,18 @@
   // ============================================================
   function getCleanPageName(level) {
     let cleanName = '';
-    
     let path = window.location.pathname;
     path = path.replace(/^\/p\//, '');
     path = path.replace(/\/\d{4}\/\d{2}\//g, '/');
     path = path.replace(/\.html$/, '');
-    
     let segments = path.split('/').filter(s => s.length > 0);
     let lastSegment = segments.length > 0 ? segments[segments.length - 1] : '';
-    
     cleanName = lastSegment.replace(/[-_]+/g, ' ');
     cleanName = cleanName.replace(/\b\w/g, function(l) { return l.toUpperCase(); });
     cleanName = cleanName.replace(/\s\d+$/, '');
-    
     if (level === 'pillar' || level === 'sub-pillar-tipe-1' || level === 'sub-pillar-tipe-2') {
       cleanName = cleanName.replace(/^(Harga|Jasa|Biaya|Tarif)\s*/i, '').trim();
     }
-    
     if (cleanName.length < 3) {
       let h1Text = document.querySelector('h1')?.innerText?.trim();
       if (h1Text && h1Text.length > 3) {
@@ -304,7 +359,6 @@
           .trim();
       }
     }
-    
     if (cleanName.length < 3) {
       let title = document.title
         .replace(/\b(20[2-9][0-9])\b/g, '')
@@ -312,10 +366,8 @@
         .trim();
       if (title.length > 3) cleanName = title;
     }
-    
     if (cleanName.length < 3) cleanName = 'Halaman Utama';
     if (cleanName.length > 55) cleanName = cleanName.substring(0, 52) + '...';
-    
     log(`📝 Clean page name from URL: "${cleanName}"`, "IMAGE");
     return cleanName;
   }
@@ -370,7 +422,6 @@
     const bPad = 15;
     ctx.strokeRect(bPad, bPad, width - (bPad * 2), height - (bPad * 2));
 
-    // TULISAN ATAS
     const logoText = '🏗️ Beton Jaya Readymix';
     ctx.font = 'bold 18px Arial, sans-serif';
     const logoMetrics = ctx.measureText(logoText);
@@ -396,7 +447,6 @@
     ctx.textBaseline = 'middle';
     ctx.fillText(logoText, width / 2, padding + 8);
 
-    // GARIS PEMISAH
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.strokeStyle = 'rgba(255,255,255,0.15)';
@@ -406,7 +456,6 @@
     ctx.lineTo(width - padding, 72);
     ctx.stroke();
 
-    // TEKS UTAMA
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -478,7 +527,6 @@
       });
     }
 
-    // TULISAN BAWAH
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
@@ -531,7 +579,7 @@
     img.style.padding = '0 10px';
     img.style.boxSizing = 'border-box';
 
-    const styleId = 'responsive-image-style-v470';
+    const styleId = 'responsive-image-style-v471';
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
@@ -742,44 +790,6 @@
 
     log('✅ New responsive FIGURE created', "SUCCESS");
     return figure;
-  }
-
-  // ============================================================
-  // 🔥🔥🔥 AUTO UPDATE TAHUN 🔥🔥🔥
-  // ============================================================
-
-  function updateH1Year(pageLevel) {
-    if (!needYear(pageLevel)) {
-      log(`⏭️ Level ini TIDAK butuh tahun di H1 (${pageLevel})`, "YEAR");
-      return false;
-    }
-
-    const currentYear = getCurrentYear();
-    const h1 = document.querySelector('h1');
-    if (!h1) {
-      log(`⚠️ Tidak ada H1 ditemukan`, "WARN");
-      return false;
-    }
-
-    const originalText = h1.innerText;
-    const detectedYear = extractYear(originalText);
-
-    if (!detectedYear) {
-      const newText = originalText + ' ' + currentYear;
-      h1.innerText = newText;
-      log(`✅ H1: Tahun ditambahkan → "${newText}"`, "YEAR");
-      return true;
-    }
-
-    if (detectedYear < currentYear) {
-      const newText = originalText.replace(/\b(20[2-9][0-9])\b/, currentYear);
-      h1.innerText = newText;
-      log(`✅ H1: Tahun diupdate ${detectedYear} → ${currentYear}`, "YEAR");
-      return true;
-    }
-
-    log(`✅ H1: Tahun sudah sesuai (${detectedYear})`, "YEAR");
-    return true;
   }
 
   // ============================================================
@@ -1125,16 +1135,11 @@
     return found;
   }
 
-  // ============================================================
-  // 🔥🔥🔥 PARSE VARIAN OFFERS (DIPERBAIKI v4.70) 🔥🔥🔥
-  // ============================================================
   function parseVariantOffers() {
     const content = document.querySelector(".post-body.entry-content, .post-body, article, main");
     if (!content) return false;
     const text = content.innerText;
     
-    // ✅ SEMUA PATTERN PAKAI FLAG 'g' (GLOBAL)
-    // ✅ TAMBAHKAN TRY-CATCH UNTUK FALLBACK
     const variantPatterns = [
       /(tinggi|ukuran|dimensi)\s*([\d.]+)\s*(meter|m|cm)\s*(?:Rp\s*([\d.,]+))/gi,
       /(panel|pagar)\s*(polosan|motif|custom)\s*(?:Rp\s*([\d.,]+))/gi,
@@ -1146,7 +1151,6 @@
     let found = false;
     for (const pattern of variantPatterns) {
       try {
-        // matchAll() membutuhkan regex dengan flag 'g'
         const matches = text.matchAll(pattern);
         for (const match of matches) {
           const name = match[0].split("Rp")[0]?.trim() || match[0].substring(0, 50);
@@ -1157,7 +1161,6 @@
           }
         }
       } catch(e) {
-        // Fallback: jika matchAll gagal, gunakan match biasa
         log(`Fallback match untuk pattern`, "WARN");
         const matches = text.match(pattern);
         if (matches) {
@@ -1242,7 +1245,7 @@
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.70 — PRIORITAS H1 + TABEL", "INFO");
+    log("AutoSchema Hybrid v4.71 — UPDATE TAHUN DENGAN LOGIKA BARU", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     await waitForPLD();
@@ -1255,9 +1258,16 @@
 
     // STEP 1: AUTO UPDATE TAHUN DI KONTEN (H1)
     log("📅 UPDATE TAHUN DI KONTEN:", "YEAR");
-    updateH1Year(pageLevel);
+    const h1Updated = updateH1Year(pageLevel);
+    
+    // STEP 2: UPDATE TAHUN DI KONTEN LAINNYA (BODY, META, SCHEMA)
+    const contentUpdated = updateContentYears();
+    
+    if (!h1Updated && contentUpdated === 0) {
+      log(`📅 Tidak ada perubahan tahun yang dilakukan`, "YEAR");
+    }
 
-    // STEP 2: CEK GAMBAR & FIX GAMBAR (TETAP FIGURE)
+    // STEP 3: CEK GAMBAR & FIX GAMBAR (TETAP FIGURE)
     let imageUrl = LOGO_IMAGE;
     const isEligible = isImageEligible(pageLevel);
     
@@ -1281,7 +1291,7 @@
       }
     }
 
-    // STEP 3: PRODUCT SCHEMA
+    // STEP 4: PRODUCT SCHEMA
     if (shouldSkipProductSchema(pageLevel)) {
       log("Product schema SKIPPED untuk halaman ini", "SKIP");
       return;
@@ -1380,15 +1390,17 @@
     log(`  Offers Count    : ${offers.length}`, "SUCCESS");
     log(`  Image Eligible  : ${isEligible ? '✅' : '❌'}`, "IMAGE");
     log(`  Image Source    : ${isEligible ? '✅ (Canvas + FIGURE)' : '⚠️ (skip)'}`, "IMAGE");
-    log(`  Auto Year H1    : ${needYear(pageLevel) ? '✅' : '❌'}`, "YEAR");
+    log(`  Auto Year H1    : ${h1Updated ? '✅ UPDATE' : '⏭️ SKIP/STOP'}`, "YEAR");
+    log(`  Content Year    : ${contentUpdated > 0 ? `✅ ${contentUpdated} elemen diupdate` : '⏭️ TIDAK ADA'}`, "YEAR");
     log(`  Money Page Info : ${focus === 'informasi' ? '✅ TANPA tahun' : '❌ PAKAI tahun'}`, "FOCUS");
     log(`  Text from URL   : ✅`, "IMAGE");
     log(`  Figure Structure: ✅ TETAP DIJAGA`, "IMAGE");
     log(`  Responsive      : ✅`, "IMAGE");
     log(`  VARIANT WAJIB   : ✅ (tanpa syarat wordCount)`, "SUCCESS");
     log(`  SUB-VARIANT WAJIB: ✅ (tanpa syarat wordCount)`, "SUCCESS");
+    log(`  ATURAN TAHUN    : STOP jika < 2026, UPDATE jika > 2026`, "YEAR");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.70 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.71 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
