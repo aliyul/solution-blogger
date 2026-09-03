@@ -1,14 +1,12 @@
 /* ============================================================
- 🧠 Page Level Detector v22.34 — PILLAR EXACT + TANPA DAFTAR
+ 🧠 Page Level Detector v22.35 — HAPUS KATA ENTITY & HARGA
+    ✅ FIX v22.35: Hapus kata entity (jasa, sewa, material, produk, desain, artikel)
+    ✅ FIX v22.35: Hapus kata harga (harga, biaya, tarif, estimasi)
+    ✅ FIX v22.35: Hitung kata sisanya → baru tentukan level
     ✅ FIX v22.34: PILLAR EXACT MATCH (hanya daftar PILLAR)
     ✅ FIX v22.34: SP2 (daftar/jenis/macam/kategori/tipe)
     ✅ FIX v22.34: SP1 (perbandingan/vs/kelebihan/kekurangan)
-    ✅ FIX v22.34: Entity Lain (Jasa, Sewa, Material) - logika sama
-    ✅ FIX v22.33: HAPUS SEMUA DAFTAR KATA (MONEY_MASTER_OVERRIDES)
-    ✅ FIX v22.33: Deteksi base keyword otomatis (2 kata pertama)
-    ✅ FIX v22.33: Deteksi tambahan kata → MP/MC
-    ✅ FIX v22.33: Deteksi lokasi otomatis → MC
-    ✅ FIX v22.33: Deteksi spesifikasi otomatis → MC
+    ✅ FIX v22.33: TANPA DAFTAR KATA (logika murni)
 ============================================================ */
 
 (function () {
@@ -26,7 +24,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬", COMMERCIAL: "🛒", PRICE: "💰", MM: "🏛️", CORE: "🧠", DETECT: "🎯" };
-    console.log(`${icons[type] || "📘"} [PLD v22.34] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.35] ${message}`);
   }
 
   // ============================================================
@@ -50,7 +48,7 @@
   const VALID_ENTITY_TYPES = ["produk", "material", "jasa", "desain", "sewa", "artikel"];
 
   // ============================================================
-  // 🔥 PILLAR NAMES (EXACT MATCH) — TIDAK BISA DIPAKAI LEVEL LAIN
+  // 🔥 PILLAR NAMES (EXACT MATCH)
   // ============================================================
 
   const PILLAR_NAMES = {
@@ -79,8 +77,17 @@
   const ENTITY_PRIORITY = ["jasa", "sewa", "desain", "produk", "material", "artikel"];
 
   // ============================================================
-  // 🔥 LOCATION WORDS (OTOMATIS)
+  // 🔥 KATA YANG DIHAPUS SAAT DETEKSI
   // ============================================================
+
+  const ENTITY_WORDS = ['jasa', 'sewa', 'material', 'produk', 'desain', 'artikel'];
+  const PRICE_WORDS = ['harga', 'biaya', 'tarif', 'estimasi'];
+  const SKIP_WORDS = [...ENTITY_WORDS, ...PRICE_WORDS];
+
+  // ============================================================
+  // 🔥 LOCATION WORDS
+  // ============================================================
+
   const LOCATION_WORDS = [
     "jakarta", "jakarta pusat", "jakarta barat", "jakarta selatan", "jakarta timur", "jakarta utara",
     "bogor", "depok", "tangerang", "bekasi", "bandung", "karawang", "purwakarta", "cikarang",
@@ -95,7 +102,7 @@
   ];
 
   // ============================================================
-  // 🔥 SPECIFICATION WORDS (OTOMATIS)
+  // 🔥 SPECIFICATION WORDS
   // ============================================================
 
   const SPECIFICATION_WORDS = {
@@ -113,11 +120,6 @@
   for (let category in SPECIFICATION_WORDS) {
     ALL_SPEC_WORDS.push(...SPECIFICATION_WORDS[category]);
   }
-
-  // ============================================================
-  // 🔥 PRICE WORDS
-  // ============================================================
-  const PRICE_WORDS = ["harga", "biaya", "tarif", "ongkos", "estimasi"];
 
   // ============================================================
   // 🔥 STOPWORDS
@@ -197,39 +199,54 @@
   }
 
   // ============================================================
+  // 🔥 FUNGSI GET CORE WORDS (HAPUS ENTITY & HARGA) — v22.35
+  // ============================================================
+
+  function getCoreWords(text) {
+    const words = text.toLowerCase().split(/\s+/);
+    
+    // Hapus kata entity
+    let filteredWords = words.filter(w => !ENTITY_WORDS.includes(w) && w.length > 1);
+    
+    // Hapus kata harga
+    filteredWords = filteredWords.filter(w => !PRICE_WORDS.includes(w));
+    
+    // Hapus stopwords
+    filteredWords = filteredWords.filter(w => !STOPWORDS.has(w));
+    
+    return filteredWords;
+  }
+
+  // ============================================================
   // 🔥 FUNGSI GET BASE KEYWORD (TANPA DAFTAR)
   // ============================================================
 
   function getBaseKeyword(text) {
-    const words = text.toLowerCase().split(/\s+/);
-    
-    // Skip kata "harga", "biaya", "tarif", "estimasi"
-    const skipWords = ['harga', 'biaya', 'tarif', 'estimasi'];
-    let filteredWords = words.filter(w => !skipWords.includes(w) && w.length > 1);
+    const coreWords = getCoreWords(text);
     
     // Ambil 2 kata pertama sebagai base
-    let baseWords = filteredWords.slice(0, 2);
+    let baseWords = coreWords.slice(0, 2);
     let baseKeyword = baseWords.join(' ');
     
     // Jika baseKeyword terlalu pendek (<3 karakter), ambil 3 kata
-    if (baseKeyword.length < 3 && filteredWords.length >= 3) {
-      baseKeyword = filteredWords.slice(0, 3).join(' ');
+    if (baseKeyword.length < 3 && coreWords.length >= 3) {
+      baseKeyword = coreWords.slice(0, 3).join(' ');
     }
     
     return baseKeyword;
   }
 
   // ============================================================
-  // 🔥 DETEKSI LEVEL UTAMA (TANPA DAFTAR) — v22.34
+  // 🔥 DETEKSI LEVEL UTAMA (TANPA DAFTAR) — v22.35
   // ============================================================
 
   function detectLevelWithoutList(text, entityType) {
     const lowerText = text.toLowerCase();
-    const words = lowerText.split(/\s+/);
     
     // ============================================================
-    // STEP 1: DAPATKAN BASE KEYWORD
+    // STEP 1: DAPATKAN CORE WORDS & BASE KEYWORD
     // ============================================================
+    const coreWords = getCoreWords(text);
     const baseKeyword = getBaseKeyword(text);
     const baseWords = baseKeyword.split(' ');
     
@@ -239,12 +256,7 @@
     let hasAdditional = false;
     let additionalWords = [];
     
-    // Skip kata "harga", "biaya", "tarif", "estimasi"
-    const skipWords = ['harga', 'biaya', 'tarif', 'estimasi'];
-    
-    for (let word of words) {
-      if (word.length < 2) continue;
-      if (skipWords.includes(word)) continue;
+    for (let word of coreWords) {
       if (!baseWords.includes(word)) {
         hasAdditional = true;
         additionalWords.push(word);
@@ -267,7 +279,7 @@
     
     // 🔥 Jika tidak ada tambahan kata → MONEY_MASTER
     if (!hasAdditional) {
-      log(`🏛️ TANPA TAMBAHAN: "${text}" → MONEY_MASTER (base: ${baseKeyword})`, 'MM');
+      log(`🏛️ TANPA TAMBAHAN: "${text}" → MONEY_MASTER (core: ${coreWords.join(' ')})`, 'MM');
       return "money-master";
     }
     
@@ -377,10 +389,9 @@
     let confidence = 100;
     let strategies = [];
     
-    const words = text.split(/\s+/).filter(w => w.length > 2);
+    const coreWords = getCoreWords(text);
     const hasLocation = isLocation(text);
     const hasSpec = hasSpecification(text);
-    const hasPriceWord = hasPrice(text);
     
     if (level === 'pillar') {
       strategies.push(`PILLAR: exact match "${text}"`);
@@ -392,10 +403,10 @@
       strategies.push("MC: lokasi terdeteksi");
     } else if (hasSpec && level === 'money-child') {
       strategies.push("MC: spesifikasi terdeteksi");
-    } else if (hasPriceWord && level === 'money-page') {
-      strategies.push("MP: harga + tambahan kata");
-    } else if (!hasPriceWord && !hasLocation && !hasSpec && level === 'money-master') {
-      strategies.push("MM: tanpa tambahan kata");
+    } else if (level === 'money-page' && coreWords.length > 2) {
+      strategies.push(`MP: ${coreWords.length} core words (ada tambahan)`);
+    } else if (level === 'money-master' && coreWords.length <= 2) {
+      strategies.push(`MM: ${coreWords.length} core words (tanpa tambahan)`);
     }
     
     return { level, confidence, strategies, strategyCount: strategies.length };
@@ -419,21 +430,20 @@
     TYPE_LEVEL_MAP,
     VALID_ENTITY_TYPES,
     PILLAR_NAMES,
-    version: "22.34"
+    version: "22.35"
   };
 
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
 
-  console.log("✅ Page Level Detector v22.34 Ready");
+  console.log("✅ Page Level Detector v22.35 Ready");
+  console.log("🧠 FIX v22.35: HAPUS KATA ENTITY & HARGA");
+  console.log("   - Hapus kata entity: jasa, sewa, material, produk, desain, artikel");
+  console.log("   - Hapus kata harga: harga, biaya, tarif, estimasi");
+  console.log("   - Hitung kata sisanya → baru tentukan level");
   console.log("📌 PILLAR EXACT MATCH (hanya daftar PILLAR)");
   console.log("📌 SP2: daftar/jenis/macam/kategori/tipe");
   console.log("📌 SP1: perbandingan/vs/kelebihan/kekurangan");
-  console.log("🧠 TANPA DAFTAR KATA UNTUK MM/MP/MC (logika murni)");
-  console.log("   - Base keyword: 2 kata pertama");
-  console.log("   - Deteksi tambahan kata → MP/MC");
-  console.log("   - Deteksi lokasi otomatis → MC");
-  console.log("   - Deteksi spesifikasi otomatis → MC");
   console.log("🏗️  ENTITY: JASA, SEWA, PRODUK, MATERIAL, DESAIN, ARTIKEL");
 
 })();
