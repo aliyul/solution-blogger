@@ -1,9 +1,9 @@
 /* ============================================================
- 🧠 Page Level Detector v22.35 — HAPUS KATA ENTITY & HARGA
-    ✅ FIX v22.35: Hapus kata entity (jasa, sewa, material, produk, desain, artikel)
-    ✅ FIX v22.35: Hapus kata harga (harga, biaya, tarif, estimasi)
-    ✅ FIX v22.35: Hitung kata sisanya → baru tentukan level
-    ✅ FIX v22.34: PILLAR EXACT MATCH (hanya daftar PILLAR)
+ 🧠 Page Level Detector v22.36 — TAMBAH KATEGORI "HARGA"
+    ✅ FIX v22.36: Tambah kategori "harga" ke SPECIFICATION_WORDS
+    ✅ FIX v22.36: "murah/hemat/ekonomis/terjangkau" → MC
+    ✅ FIX v22.35: Hapus kata entity & harga
+    ✅ FIX v22.34: PILLAR EXACT MATCH
     ✅ FIX v22.34: SP2 (daftar/jenis/macam/kategori/tipe)
     ✅ FIX v22.34: SP1 (perbandingan/vs/kelebihan/kekurangan)
     ✅ FIX v22.33: TANPA DAFTAR KATA (logika murni)
@@ -24,7 +24,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬", COMMERCIAL: "🛒", PRICE: "💰", MM: "🏛️", CORE: "🧠", DETECT: "🎯" };
-    console.log(`${icons[type] || "📘"} [PLD v22.35] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.36] ${message}`);
   }
 
   // ============================================================
@@ -102,7 +102,7 @@
   ];
 
   // ============================================================
-  // 🔥 SPECIFICATION WORDS
+  // 🔥 SPECIFICATION WORDS (DENGAN KATEGORI "HARGA") — v22.36
   // ============================================================
 
   const SPECIFICATION_WORDS = {
@@ -112,7 +112,9 @@
     dimensi: ["ukuran", "dimensi", "spesifikasi", "tipe", "model", "varian", "seri", "tinggi", "rendah", "panjang", "pendek", "lebar", "sempit", "tebal", "tipis", "dalam", "dangkal", "diameter", "radius"],
     metode: ["hidrolik", "manual", "auger", "rotary", "percussive", "dry", "wet", "basah", "kering", "coring", "cutting", "drilling", "pengeboran", "pemancangan", "pemasangan", "bongkar", "pasang", "potong", "las", "sambung", "metode", "teknik", "cara"],
     jasa: ["borongan", "harian", "mingguan", "bulanan", "kontrak", "proyek", "renovasi", "perbaikan", "pemasangan", "instalasi"],
-    sewa: ["mini", "besar", "kecil", "sedang", "medium", "extra", "ekstra", "standar", "premium", "ekonomis"]
+    sewa: ["mini", "besar", "kecil", "sedang", "medium", "extra", "ekstra", "standar", "premium", "ekonomis"],
+    // ✅ BARU: KATEGORI "HARGA" (v22.36)
+    harga: ["murah", "hemat", "ekonomis", "terjangkau", "budget", "premium", "mahal", "mewah"]
   };
 
   // Gabungkan semua spesifikasi
@@ -199,7 +201,7 @@
   }
 
   // ============================================================
-  // 🔥 FUNGSI GET CORE WORDS (HAPUS ENTITY & HARGA) — v22.35
+  // 🔥 FUNGSI GET CORE WORDS (HAPUS ENTITY & HARGA)
   // ============================================================
 
   function getCoreWords(text) {
@@ -237,7 +239,7 @@
   }
 
   // ============================================================
-  // 🔥 DETEKSI LEVEL UTAMA (TANPA DAFTAR) — v22.35
+  // 🔥 DETEKSI LEVEL UTAMA (TANPA DAFTAR) — v22.36
   // ============================================================
 
   function detectLevelWithoutList(text, entityType) {
@@ -269,7 +271,7 @@
     const hasLocation = isLocation(lowerText);
     
     // ============================================================
-    // STEP 4: CEK SPESIFIKASI
+    // STEP 4: CEK SPESIFIKASI (termasuk "murah")
     // ============================================================
     const hasSpec = hasSpecification(lowerText);
     
@@ -291,7 +293,7 @@
     
     // 🔥 Jika ada spesifikasi → MONEY_CHILD
     if (hasSpec) {
-      log(`🔧 SPESIFIKASI: "${text}" → MONEY_CHILD`, 'VARIANT');
+      log(`🔧 SPESIFIKASI: "${text}" → MONEY_CHILD (spesifikasi ditemukan)`, 'VARIANT');
       return "money-child";
     }
     
@@ -430,18 +432,18 @@
     TYPE_LEVEL_MAP,
     VALID_ENTITY_TYPES,
     PILLAR_NAMES,
-    version: "22.35"
+    version: "22.36"
   };
 
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
 
-  console.log("✅ Page Level Detector v22.35 Ready");
+  console.log("✅ Page Level Detector v22.36 Ready");
+  console.log("🧠 FIX v22.36: TAMBAH KATEGORI 'HARGA'");
+  console.log("   - murah, hemat, ekonomis, terjangkau → MC");
+  console.log("   - premium, mahal, mewah → MC");
   console.log("🧠 FIX v22.35: HAPUS KATA ENTITY & HARGA");
-  console.log("   - Hapus kata entity: jasa, sewa, material, produk, desain, artikel");
-  console.log("   - Hapus kata harga: harga, biaya, tarif, estimasi");
-  console.log("   - Hitung kata sisanya → baru tentukan level");
-  console.log("📌 PILLAR EXACT MATCH (hanya daftar PILLAR)");
+  console.log("📌 PILLAR EXACT MATCH");
   console.log("📌 SP2: daftar/jenis/macam/kategori/tipe");
   console.log("📌 SP1: perbandingan/vs/kelebihan/kekurangan");
   console.log("🏗️  ENTITY: JASA, SEWA, PRODUK, MATERIAL, DESAIN, ARTIKEL");
