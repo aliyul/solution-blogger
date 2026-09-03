@@ -1,11 +1,13 @@
 /* ============================================================
- 🧠 Page Level Detector v22.31 — MM OVERRIDE DENGAN LOGIKA CORE
+ 🧠 Page Level Detector v22.32 — PRIORITAS HARGA > VARIANT
+    ✅ FIX v22.32: PRIORITAS HARGA > VARIANT (jika ada "harga" → MONEY)
+    ✅ FIX v22.32: "harga pagar panel beton k225" → MONEY_CHILD (bukan variant)
     ✅ FIX v22.31: MM dengan kata "harga" TETAP MM (logika core)
     ✅ FIX v22.31: "harga pagar panel" → MM (core: "pagar panel")
     ✅ FIX v22.31: "harga pagar panel beton" → MP (core: "pagar panel beton")
     ✅ FIX v22.30: MM TETAP MM (walaupun ada kata "harga")
-    ✅ FIX v22.29: VARIANT detection lebih dulu dari MONEY
-    ✅ FIX v22.28: PRIORITAS LOCATION > SIZE (MC lebih prioritas)
+    ✅ FIX v22.29: VARIANT detection (tanpa harga)
+    ✅ FIX v22.28: PRIORITAS LOCATION > SIZE
     ✅ FIX v22.28: "terdekat/sekitar/dekat/near" → MONEY_CHILD
     ✅ FIX v22.27: "murah/hemat/ekonomis/terjangkau" → MONEY_PAGE
 ============================================================ */
@@ -24,8 +26,8 @@
 
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬", COMMERCIAL: "🛒", PRICE: "💰", MM: "🏛️", CORE: "🧠" };
-    console.log(`${icons[type] || "📘"} [PLD v22.31] ${message}`);
+    const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬", COMMERCIAL: "🛒", PRICE: "💰", MM: "🏛️", CORE: "🧠", FIX: "🔧" };
+    console.log(`${icons[type] || "📘"} [PLD v22.32] ${message}`);
   }
 
   // ============================================================
@@ -265,7 +267,15 @@
   ];
 
   // ============================================================
-  // 📌 FUNGSI DETEKSI VARIANT
+  // 🔥 FUNGSI PRIORITAS: HARGA > VARIANT (v22.32)
+  // ============================================================
+
+  function hasPriceWord(text) {
+    return PRICE_WORDS.some(w => text.includes(w));
+  }
+
+  // ============================================================
+  // 📌 FUNGSI DETEKSI VARIANT (DENGAN PRIORITAS HARGA)
   // ============================================================
 
   function detectVariantByPattern(text, entityType) {
@@ -276,13 +286,18 @@
     const lower = text.toLowerCase();
     const words = lower.split(/\s+/);
     
-    // EXCLUSION: Price word → MONEY_PAGE
+    // ============================================================
+    // 🔥 PRIORITAS TERTINGGI: HARGA > VARIANT (v22.32 FIX)
+    // ============================================================
+    // Jika ada kata "harga" → BUKAN VARIANT, tapi MONEY LEVEL
+    // Ini mengatasi masalah PLD sebelumnya yang mendeteksi 
+    // "harga pagar panel beton k225" sebagai VARIANT
     if (PRICE_WORDS.some(w => lower.includes(w))) {
-      log(`"${text}" → BUKAN variant (price word) → MONEY_PAGE`, "PRICE");
-      return { isVariant: false, score: 0, reasons: ["Price word → MONEY_PAGE"] };
+      log(`🔧 [v22.32] PRIORITAS HARGA > VARIANT: "${text}" → BUKAN variant (ada price word)`, "FIX");
+      return { isVariant: false, score: 0, reasons: ["Price word → MONEY LEVEL (bukan variant)"] };
     }
     
-    // High volume → MONEY_PAGE
+    // High volume → MONEY_PAGE (BUKAN VARIANT)
     const hasHighVolume = HIGH_VOLUME_WORDS.some(w => lower.includes(w));
     if (hasHighVolume) {
       const hasNoun = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|bangunan|konstruksi)\b/i.test(lower);
@@ -292,13 +307,13 @@
       }
     }
     
-    // Commercial word → MONEY_PAGE
+    // Commercial word → MONEY_PAGE (BUKAN VARIANT)
     if (COMMERCIAL_WORDS.some(w => lower.includes(w))) {
       log(`"${text}" → BUKAN variant (commercial word) → MONEY_PAGE`, "COMMERCIAL");
       return { isVariant: false, score: 0, reasons: ["Commercial word → MONEY_PAGE"] };
     }
     
-    // Location + service → MONEY_CHILD
+    // Location + service → MONEY_CHILD (BUKAN VARIANT)
     if (LOCATION_WORDS.some(w => lower.includes(w))) {
       const hasService = /\b(jasa|layanan|sewa|produk|material|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur)\b/i.test(lower);
       if (hasService) {
@@ -307,18 +322,21 @@
       }
     }
     
-    // Per unit pattern → MONEY_PAGE
+    // Per unit pattern → MONEY_PAGE (BUKAN VARIANT)
     if (/\bper\s+(meter|titik|m|kg|hari|jam|minggu|bulan|unit|buah|item|lembar|bagian|paket|sesi|kali|kubik|m2|m3|liter|ton|meter lari|m')\b/i.test(lower)) {
       log(`"${text}" → BUKAN variant (per unit pattern) → MONEY_PAGE`, "PRICE");
       return { isVariant: false, score: 0, reasons: ["Per unit → MONEY_PAGE"] };
     }
     
-    // VARIANT DETECTION
+    // ============================================================
+    // VARIANT DETECTION (HANYA JIKA TIDAK ADA "HARGA")
+    // ============================================================
+    
     const firstWord = words[0] || "";
     const isSpecWord = ALL_SPEC_WORDS.some(spec => firstWord === spec);
     
     if (isSpecWord) {
-      if (!PRICE_WORDS.some(w => lower.includes(w)) && !LOCATION_WORDS.some(w => lower.includes(w))) {
+      if (!LOCATION_WORDS.some(w => lower.includes(w))) {
         if (!HIGH_VOLUME_WORDS.some(w => lower.includes(w)) && !SIZE_WORDS.some(w => lower.includes(w))) {
           log(`✅ VARIANT: specification at start: "${firstWord}" → "${text}"`, "VARIANT");
           return { isVariant: true, score: 5, reasons: [`Specification word "${firstWord}" at start → VARIANT`] };
@@ -335,7 +353,7 @@
     
     for (const pattern of specFirstPatterns) {
       if (pattern.pattern.test(lower)) {
-        if (!PRICE_WORDS.some(w => lower.includes(w)) && !LOCATION_WORDS.some(w => lower.includes(w))) {
+        if (!LOCATION_WORDS.some(w => lower.includes(w))) {
           if (!HIGH_VOLUME_WORDS.some(w => lower.includes(w)) && !SIZE_WORDS.some(w => lower.includes(w))) {
             score += pattern.score;
             reasons.push(pattern.reason);
@@ -351,7 +369,7 @@
     const isSpecPhraseAtEnd = SPEC_PHRASES_AT_END.some(phrase => lastTwoWords === phrase);
     
     if (isSpecAtEnd || isSpecPhraseAtEnd) {
-      if (!PRICE_WORDS.some(w => lower.includes(w)) && !LOCATION_WORDS.some(w => lower.includes(w))) {
+      if (!LOCATION_WORDS.some(w => lower.includes(w))) {
         if (!HIGH_VOLUME_WORDS.some(w => lower.includes(w)) && !SIZE_WORDS.some(w => lower.includes(w))) {
           const hasNoun = /^(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|produk|material|sewa|alat|mesin)/i.test(lower);
           if (hasNoun || words.length >= 3) {
@@ -366,7 +384,7 @@
     if (supportedEntities.includes(entityType)) {
       const qualityResult = detectUniversalQualityWords(text, entityType);
       if (qualityResult.hasSpec) {
-        if (!PRICE_WORDS.some(w => lower.includes(w)) && !LOCATION_WORDS.some(w => lower.includes(w))) {
+        if (!LOCATION_WORDS.some(w => lower.includes(w))) {
           if (!HIGH_VOLUME_WORDS.some(w => lower.includes(w)) && !SIZE_WORDS.some(w => lower.includes(w))) {
             score += qualityResult.score;
             reasons = reasons.concat(qualityResult.reasons);
@@ -539,7 +557,7 @@
   }
 
   // ============================================================
-  // 🔥 MONEY LEVEL DETECTION (v22.31 — MM OVERRIDE DENGAN CORE)
+  // 🔥 MONEY LEVEL DETECTION (v22.32 — PRIORITAS HARGA)
   // ============================================================
 
   function detectMoneyLevel(text, entityType) {
@@ -767,7 +785,7 @@
   }
 
   // ============================================================
-  // 📌 MAIN DETECTOR (v22.31)
+  // 📌 MAIN DETECTOR (v22.32 — PRIORITAS HARGA > VARIANT)
   // ============================================================
 
   function detectPageLevel(userOptions = {}) {
@@ -812,26 +830,39 @@
     const parentLevel = window._lastSubPillarLevel || null;
     log(`Parent level: ${parentLevel || 'none'}`, "INFO");
     
-    // STEP 4: DETECT LEVEL — PRIORITAS VARIANT > MONEY
+    // STEP 4: DETECT LEVEL — PRIORITAS HARGA > VARIANT (v22.32)
     let detectedLevel = null;
     
-    // 4A. VARIANT DETECTION
-    const variant = detectVariantLevel(text, entityType);
-    if (variant) {
-      detectedLevel = variant;
-      log(`✅ VARIANT DETECTED: "${text}" → ${variant}`, 'VARIANT');
-    }
-    
-    // 4B. MONEY LEVEL DETECTION (dengan logika core)
-    if (!detectedLevel) {
+    // 🔥 4A. CEK APAKAH ADA "HARGA" — PRIORITAS UTAMA (v22.32 FIX)
+    // Jika ada "harga", langsung ke MONEY LEVEL, BUKAN VARIANT
+    if (hasPriceWord(text)) {
+      log(`🔧 [v22.32] PRIORITAS HARGA: "${text}" → MONEY LEVEL (bukan variant)`, "FIX");
+      
+      // Deteksi Money Level
       const money = detectMoneyLevel(text, entityType);
       if (money) {
         detectedLevel = money;
         log(`💰 MONEY DETECTED: "${text}" → ${money}`, 'PRICE');
       }
+    } else {
+      // 4B. TANPA "HARGA" → VARIANT DETECTION
+      const variant = detectVariantLevel(text, entityType);
+      if (variant) {
+        detectedLevel = variant;
+        log(`✅ VARIANT DETECTED: "${text}" → ${variant}`, 'VARIANT');
+      }
     }
     
-    // 4C. Jika masih null, tentukan default
+    // 4C. Jika masih null, coba MONEY LEVEL (fallback)
+    if (!detectedLevel) {
+      const money = detectMoneyLevel(text, entityType);
+      if (money) {
+        detectedLevel = money;
+        log(`💰 MONEY DETECTED (fallback): "${text}" → ${money}`, 'PRICE');
+      }
+    }
+    
+    // 4D. Jika masih null, tentukan default
     if (!detectedLevel) {
       if (/panduan|cara|tips|tutorial|langkah|pedoman/.test(text)) {
         detectedLevel = "pillar";
@@ -960,18 +991,21 @@
     SIZE_WORDS,
     LOCATION_WORDS,
     isLocation,
-    version: "22.31"
+    version: "22.32"
   };
   
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
   
-  console.log("✅ Page Level Detector v22.31 Ready");
+  console.log("✅ Page Level Detector v22.32 Ready");
+  console.log("🔧 FIX v22.32: PRIORITAS HARGA > VARIANT");
+  console.log("   - 'harga pagar panel beton k225' → MONEY_CHILD ✅ (bukan variant)");
+  console.log("   - 'pagar panel beton k225' → VARIANT ✅ (tanpa harga)");
   console.log("🧠 FIX v22.31: MM OVERRIDE DENGAN LOGIKA CORE");
   console.log("   - 'harga pagar panel' → core: 'pagar panel' (2 kata) → MM ✅");
   console.log("   - 'harga pagar panel beton' → core: 'pagar panel beton' (3 kata) → MP ✅");
   console.log("🏛️ FIX v22.30: MM TETAP MM (walaupun ada kata 'harga')");
-  console.log("🔬 FIX v22.29: PRIORITAS VARIANT > MONEY");
+  console.log("🔬 FIX v22.29: VARIANT detection (tanpa harga)");
   console.log("📍 FIX v22.28: PRIORITAS LOCATION > SIZE");
   console.log("💰 FIX v22.27: HIGH VOLUME KEYWORD → MONEY_PAGE");
   console.log("📌 Tersedia " + getAllKecamatan().length + " kecamatan");
