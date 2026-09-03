@@ -1,7 +1,8 @@
 /* ============================================================
- 🧠 Page Level Detector v22.36 — TAMBAH KATEGORI "HARGA"
-    ✅ FIX v22.36: Tambah kategori "harga" ke SPECIFICATION_WORDS
-    ✅ FIX v22.36: "murah/hemat/ekonomis/terjangkau" → MC
+ 🧠 Page Level Detector v22.37 — TAMBAH KATEGORI "PRODUK"
+    ✅ FIX v22.37: Tambah kategori "produk" ke SPECIFICATION_WORDS
+    ✅ FIX v22.37: "precast/pracetak/ready mix" → MC
+    ✅ FIX v22.36: Tambah kategori "harga" (murah/hemat/ekonomis)
     ✅ FIX v22.35: Hapus kata entity & harga
     ✅ FIX v22.34: PILLAR EXACT MATCH
     ✅ FIX v22.34: SP2 (daftar/jenis/macam/kategori/tipe)
@@ -24,7 +25,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬", COMMERCIAL: "🛒", PRICE: "💰", MM: "🏛️", CORE: "🧠", DETECT: "🎯" };
-    console.log(`${icons[type] || "📘"} [PLD v22.36] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.37] ${message}`);
   }
 
   // ============================================================
@@ -102,7 +103,7 @@
   ];
 
   // ============================================================
-  // 🔥 SPECIFICATION WORDS (DENGAN KATEGORI "HARGA") — v22.36
+  // 🔥 SPECIFICATION WORDS (DENGAN KATEGORI "PRODUK") — v22.37
   // ============================================================
 
   const SPECIFICATION_WORDS = {
@@ -113,8 +114,9 @@
     metode: ["hidrolik", "manual", "auger", "rotary", "percussive", "dry", "wet", "basah", "kering", "coring", "cutting", "drilling", "pengeboran", "pemancangan", "pemasangan", "bongkar", "pasang", "potong", "las", "sambung", "metode", "teknik", "cara"],
     jasa: ["borongan", "harian", "mingguan", "bulanan", "kontrak", "proyek", "renovasi", "perbaikan", "pemasangan", "instalasi"],
     sewa: ["mini", "besar", "kecil", "sedang", "medium", "extra", "ekstra", "standar", "premium", "ekonomis"],
-    // ✅ BARU: KATEGORI "HARGA" (v22.36)
-    harga: ["murah", "hemat", "ekonomis", "terjangkau", "budget", "premium", "mahal", "mewah"]
+    harga: ["murah", "hemat", "ekonomis", "terjangkau", "budget", "premium", "mahal", "mewah"],
+    // ✅ BARU: KATEGORI "PRODUK" (v22.37)
+    produk: ["precast", "pracetak", "ready mix", "readymix", "siap pakai", "custom", "standar"]
   };
 
   // Gabungkan semua spesifikasi
@@ -239,22 +241,16 @@
   }
 
   // ============================================================
-  // 🔥 DETEKSI LEVEL UTAMA (TANPA DAFTAR) — v22.36
+  // 🔥 DETEKSI LEVEL UTAMA — v22.37
   // ============================================================
 
   function detectLevelWithoutList(text, entityType) {
     const lowerText = text.toLowerCase();
     
-    // ============================================================
-    // STEP 1: DAPATKAN CORE WORDS & BASE KEYWORD
-    // ============================================================
     const coreWords = getCoreWords(text);
     const baseKeyword = getBaseKeyword(text);
     const baseWords = baseKeyword.split(' ');
     
-    // ============================================================
-    // STEP 2: CEK APAKAH ADA TAMBAHAN KATA
-    // ============================================================
     let hasAdditional = false;
     let additionalWords = [];
     
@@ -265,19 +261,8 @@
       }
     }
     
-    // ============================================================
-    // STEP 3: CEK LOKASI
-    // ============================================================
     const hasLocation = isLocation(lowerText);
-    
-    // ============================================================
-    // STEP 4: CEK SPESIFIKASI (termasuk "murah")
-    // ============================================================
     const hasSpec = hasSpecification(lowerText);
-    
-    // ============================================================
-    // STEP 5: LOGIKA FINAL (TANPA DAFTAR)
-    // ============================================================
     
     // 🔥 Jika tidak ada tambahan kata → MONEY_MASTER
     if (!hasAdditional) {
@@ -303,20 +288,17 @@
   }
 
   // ============================================================
-  // 🔥 DETEKSI VARIANT (OTOMATIS)
+  // 🔥 DETEKSI VARIANT
   // ============================================================
 
   function detectVariantLevel(text, entityType) {
     const lowerText = text.toLowerCase();
     
-    // Jika ada "harga" → BUKAN VARIANT
     if (hasPrice(lowerText)) {
       return null;
     }
     
-    // Jika ada spesifikasi → VARIANT
     if (hasSpecification(lowerText)) {
-      // Cek apakah sub-variant (angka spesifik)
       if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci)/gi.test(lowerText)) {
         return "sub-variant";
       }
@@ -337,43 +319,33 @@
     log(`TEXT: "${text}"`, "INFO");
     log(`ENTITY: ${entityType}`, "INFO");
     
-    // ============================================================
-    // STEP 1: CEK PILLAR (EXACT MATCH)
-    // ============================================================
+    // STEP 1: PILLAR (EXACT MATCH)
     if (isExactPillar(text, entityType)) {
       log(`"${text}" → PILLAR (EXACT MATCH)`, "SUCCESS");
       return "pillar";
     }
     
-    // ============================================================
-    // STEP 2: CEK SUB-PILLAR TIPE 2 (Daftar/Jenis/Kategori)
-    // ============================================================
+    // STEP 2: SUB-PILLAR TIPE 2
     const lowerText = text.toLowerCase();
     if (/daftar|jenis|macam|kategori|tipe/.test(lowerText)) {
       log(`"${text}" → SUB-PILLAR TIPE 2`, "SUCCESS");
       return "sub-pillar-tipe-2";
     }
     
-    // ============================================================
-    // STEP 3: CEK SUB-PILLAR TIPE 1 (Perbandingan/VS)
-    // ============================================================
+    // STEP 3: SUB-PILLAR TIPE 1
     if (/perbandingan|vs|versus|kelebihan|kekurangan|perbedaan/.test(lowerText)) {
       log(`"${text}" → SUB-PILLAR TIPE 1`, "SUCCESS");
       return "sub-pillar-tipe-1";
     }
     
-    // ============================================================
-    // STEP 4: CEK VARIANT (jika TANPA harga)
-    // ============================================================
+    // STEP 4: VARIANT
     const variant = detectVariantLevel(text, entityType);
     if (variant) {
       log(`✅ VARIANT: "${text}" → ${variant}`, 'VARIANT');
       return variant;
     }
     
-    // ============================================================
-    // STEP 5: DETEKSI LEVEL UTAMA (TANPA DAFTAR)
-    // ============================================================
+    // STEP 5: LEVEL UTAMA
     const level = detectLevelWithoutList(text, entityType);
     log(`🎯 LEVEL: "${text}" → ${level}`, 'DETECT');
     
@@ -432,16 +404,17 @@
     TYPE_LEVEL_MAP,
     VALID_ENTITY_TYPES,
     PILLAR_NAMES,
-    version: "22.36"
+    version: "22.37"
   };
 
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
 
-  console.log("✅ Page Level Detector v22.36 Ready");
+  console.log("✅ Page Level Detector v22.37 Ready");
+  console.log("🧠 FIX v22.37: TAMBAH KATEGORI 'PRODUK'");
+  console.log("   - precast, pracetak, ready mix → MC");
   console.log("🧠 FIX v22.36: TAMBAH KATEGORI 'HARGA'");
   console.log("   - murah, hemat, ekonomis, terjangkau → MC");
-  console.log("   - premium, mahal, mewah → MC");
   console.log("🧠 FIX v22.35: HAPUS KATA ENTITY & HARGA");
   console.log("📌 PILLAR EXACT MATCH");
   console.log("📌 SP2: daftar/jenis/macam/kategori/tipe");
