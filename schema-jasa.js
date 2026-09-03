@@ -1,4 +1,4 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.19 — TEKS TENGAH DARI URL BERSIH */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.20 — V37 COMPLIANT (JASA & SEWA) */
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -6,7 +6,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.19] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.20] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -15,7 +15,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.19] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.20] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -70,42 +70,27 @@ function extractYear(text) {
 }
 
 // ============================================================
-// 🔥🔥🔥 AMBIL NAMA DARI URL BERSIH (PRIORITAS UTAMA) 🔥🔥🔥
+// 🔥🔥🔥 AMBIL NAMA DARI URL BERSIH 🔥🔥🔥
 // ============================================================
 function getCleanPageName(level) {
     let cleanName = '';
     
-    // ===== 1. PRIORITAS UTAMA: AMBIL DARI URL BERSIH =====
     let path = window.location.pathname;
-    
-    // Hapus /p/ jika ada
     path = path.replace(/^\/p\//, '');
-    
-    // Hapus tahun/bulan (contoh: /2019/08/)
     path = path.replace(/\/\d{4}\/\d{2}\//g, '/');
-    
-    // Hapus ekstensi .html
     path = path.replace(/\.html$/, '');
     
-    // Ambil bagian terakhir URL
     let segments = path.split('/').filter(s => s.length > 0);
     let lastSegment = segments.length > 0 ? segments[segments.length - 1] : '';
     
-    // Ubah dash/underscore jadi spasi
     cleanName = lastSegment.replace(/[-_]+/g, ' ');
-    
-    // Kapitalisasi setiap kata
     cleanName = cleanName.replace(/\b\w/g, function(l) { return l.toUpperCase(); });
-    
-    // Hapus angka beruntun di akhir
     cleanName = cleanName.replace(/\s\d+$/, '');
     
-    // Hapus kata "Harga" atau "Jasa" untuk level edukasi
     if (level === 'pillar' || level === 'sub-pillar-tipe-1' || level === 'sub-pillar-tipe-2') {
         cleanName = cleanName.replace(/^(Harga|Jasa|Biaya|Tarif)\s*/i, '').trim();
     }
     
-    // ===== 2. FALLBACK: Jika URL tidak menghasilkan nama yang bagus, ambil dari H1 =====
     if (cleanName.length < 3) {
         let h1Text = document.querySelector('h1')?.innerText?.trim();
         if (h1Text && h1Text.length > 3) {
@@ -117,7 +102,6 @@ function getCleanPageName(level) {
         }
     }
     
-    // ===== 3. FALLBACK TERAKHIR: Document title =====
     if (cleanName.length < 3) {
         let title = document.title
             .replace(/\b(20[2-9][0-9])\b/g, '')
@@ -126,17 +110,10 @@ function getCleanPageName(level) {
         if (title.length > 3) cleanName = title;
     }
     
-    // ===== 4. DEFAULT =====
-    if (cleanName.length < 3) {
-        cleanName = 'Halaman Utama';
-    }
+    if (cleanName.length < 3) cleanName = 'Halaman Utama';
+    if (cleanName.length > 55) cleanName = cleanName.substring(0, 52) + '...';
     
-    // Batasi panjang
-    if (cleanName.length > 55) {
-        cleanName = cleanName.substring(0, 52) + '...';
-    }
-    
-    console.log('[Schema v7.19] 📝 Clean page name from URL:', cleanName);
+    console.log('[Schema v7.20] 📝 Clean page name from URL:', cleanName);
     return cleanName;
 }
 
@@ -175,7 +152,6 @@ function createImageWithText(pageName, level, year) {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
 
-    // ===== BACKGROUND =====
     const gradient = ctx.createLinearGradient(0, 0, width, height);
     gradient.addColorStop(0, colors.bg);
     gradient.addColorStop(0.5, colors.bg);
@@ -183,7 +159,6 @@ function createImageWithText(pageName, level, year) {
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
 
-    // ===== BORDER =====
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.strokeStyle = colors.accent;
@@ -191,7 +166,6 @@ function createImageWithText(pageName, level, year) {
     const bPad = 15;
     ctx.strokeRect(bPad, bPad, width - (bPad * 2), height - (bPad * 2));
 
-    // ===== TULISAN ATAS (LOGO) — JELAS =====
     const logoText = '🏗️ Beton Jaya Readymix';
     ctx.font = 'bold 18px Arial, sans-serif';
     const logoMetrics = ctx.measureText(logoText);
@@ -217,7 +191,6 @@ function createImageWithText(pageName, level, year) {
     ctx.textBaseline = 'middle';
     ctx.fillText(logoText, width / 2, padding + 8);
 
-    // ===== GARIS PEMISAH =====
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.strokeStyle = 'rgba(255,255,255,0.15)';
@@ -227,7 +200,6 @@ function createImageWithText(pageName, level, year) {
     ctx.lineTo(width - padding, 72);
     ctx.stroke();
 
-    // ===== TEKS UTAMA — DARI URL BERSIH =====
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -243,7 +215,6 @@ function createImageWithText(pageName, level, year) {
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 3;
 
-    // WRAP TEKS
     const maxCharsPerLine = 24;
     const words = fullText.split(' ');
     let lines = [];
@@ -300,7 +271,6 @@ function createImageWithText(pageName, level, year) {
         });
     }
 
-    // ===== TULISAN BAWAH (WATERMARK) — JELAS =====
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
@@ -329,10 +299,10 @@ function createImageWithText(pageName, level, year) {
 }
 
 // ============================================================
-// 🔥🔥🔥 CEK & PERBAIKI GAMBAR — TETAP FIGURE + RESPONSIF 🔥🔥🔥
+// 🔥🔥🔥 CEK & PERBAIKI GAMBAR 🔥🔥🔥
 // ============================================================
 function fixImagesToFormat1(pageLevel) {
-    console.log('[Schema v7.19 📸] Checking images in content...');
+    console.log('[Schema v7.20 📸] Checking images in content...');
 
     const currentYear = getCurrentYear();
     const needYearFlag = needYear(pageLevel);
@@ -389,7 +359,7 @@ function fixImagesToFormat1(pageLevel) {
         img.style.padding = '0 10px';
         img.style.boxSizing = 'border-box';
 
-        const styleId = 'responsive-image-style';
+        const styleId = 'responsive-image-style-v720';
         if (!document.getElementById(styleId)) {
             const style = document.createElement('style');
             style.id = styleId;
@@ -460,9 +430,8 @@ function fixImagesToFormat1(pageLevel) {
     const autoImageDataUrl = createImageWithText(pageName, pageLevel, currentYear);
     const captionText = '📊 ' + displayName;
 
-    // ===== KASUS 1: ADA GAMBAR — PERBAIKI =====
     if (targetImage) {
-        console.log('[Schema v7.19 📸] Image found in content, fixing for SEO...');
+        console.log('[Schema v7.20 📸] Image found in content, fixing for SEO...');
 
         const img = targetImage;
         const figure = targetFigure || img.closest('figure');
@@ -471,7 +440,7 @@ function fixImagesToFormat1(pageLevel) {
         if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
             img.src = autoImageDataUrl;
         } else {
-            console.log('[Schema v7.19 📸] Existing image preserved, only updating attributes');
+            console.log('[Schema v7.20 📸] Existing image preserved, only updating attributes');
         }
 
         img.alt = displayName;
@@ -504,7 +473,7 @@ function fixImagesToFormat1(pageLevel) {
                 figcaption.style.textAlign = 'center';
             }
         } else {
-            console.log('[Schema v7.19 📸] Wrapping image with FIGURE...');
+            console.log('[Schema v7.20 📸] Wrapping image with FIGURE...');
             const newFigure = document.createElement('figure');
             const parent = img.parentElement;
             parent.insertBefore(newFigure, img);
@@ -522,12 +491,11 @@ function fixImagesToFormat1(pageLevel) {
             applyResponsiveStyles(newFigure, img);
         }
 
-        console.log('[Schema v7.19 📸] ✅ Image fixed with SEO FIGURE');
+        console.log('[Schema v7.20 📸] ✅ Image fixed with SEO FIGURE');
         return figure;
     }
 
-    // ===== KASUS 2: TIDAK ADA GAMBAR — BUAT BARU =====
-    console.log('[Schema v7.19 📸] No image found, creating new responsive FIGURE...');
+    console.log('[Schema v7.20 📸] No image found, creating new responsive FIGURE...');
 
     const insertPoint = getImageInsertionPoint();
     const figure = document.createElement('figure');
@@ -560,23 +528,23 @@ function fixImagesToFormat1(pageLevel) {
         insertPoint.container.insertBefore(figure, insertPoint.container.firstChild);
     }
 
-    console.log('[Schema v7.19 📸] ✅ New responsive FIGURE created');
+    console.log('[Schema v7.20 📸] ✅ New responsive FIGURE created');
     return figure;
 }
 
 // ============================================================
-// 🔥🔥🔥 AUTO UPDATE TAHUN DI KONTEN (H1) 🔥🔥🔥
+// 🔥🔥🔥 AUTO UPDATE TAHUN 🔥🔥🔥
 // ============================================================
 function updateH1Year(pageLevel) {
     if (!needYear(pageLevel)) {
-        console.log('[Schema v7.19] ⏭️ Level ini TIDAK butuh tahun di H1');
+        console.log('[Schema v7.20] ⏭️ Level ini TIDAK butuh tahun di H1');
         return false;
     }
 
     const currentYear = getCurrentYear();
     const h1 = document.querySelector('h1');
     if (!h1) {
-        console.log('[Schema v7.19] ⚠️ Tidak ada H1 ditemukan');
+        console.log('[Schema v7.20] ⚠️ Tidak ada H1 ditemukan');
         return false;
     }
 
@@ -586,27 +554,24 @@ function updateH1Year(pageLevel) {
     if (!detectedYear) {
         const newText = originalText + ' ' + currentYear;
         h1.innerText = newText;
-        console.log('[Schema v7.19] ✅ H1: Tahun ditambahkan → "' + newText + '"');
+        console.log('[Schema v7.20] ✅ H1: Tahun ditambahkan → "' + newText + '"');
         return true;
     }
 
     if (detectedYear < currentYear) {
         const newText = originalText.replace(/\b(20[2-9][0-9])\b/, currentYear);
         h1.innerText = newText;
-        console.log('[Schema v7.19] ✅ H1: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
+        console.log('[Schema v7.20] ✅ H1: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
         return true;
     }
 
-    console.log('[Schema v7.19] ✅ H1: Tahun sudah sesuai (' + detectedYear + ')');
+    console.log('[Schema v7.20] ✅ H1: Tahun sudah sesuai (' + detectedYear + ')');
     return true;
 }
 
-// ============================================================
-// 🔥🔥🔥 AUTO UPDATE TAHUN DI GAMBAR 🔥🔥🔥
-// ============================================================
 function updateImageYear(pageLevel) {
     if (!needYear(pageLevel)) {
-        console.log('[Schema v7.19] ⏭️ Level ini TIDAK butuh tahun di gambar');
+        console.log('[Schema v7.20] ⏭️ Level ini TIDAK butuh tahun di gambar');
         return false;
     }
 
@@ -624,7 +589,7 @@ function updateImageYear(pageLevel) {
             const newTitle = title + ' ' + currentYear;
             img.setAttribute('alt', newAlt);
             img.setAttribute('title', newTitle);
-            console.log('[Schema v7.19] ✅ Gambar: Tahun ditambahkan → "' + newAlt + '"');
+            console.log('[Schema v7.20] ✅ Gambar: Tahun ditambahkan → "' + newAlt + '"');
             updatedCount++;
             return;
         }
@@ -634,23 +599,20 @@ function updateImageYear(pageLevel) {
             const newTitle = title.replace(/\b(20[2-9][0-9])\b/, currentYear);
             img.setAttribute('alt', newAlt);
             img.setAttribute('title', newTitle);
-            console.log('[Schema v7.19] ✅ Gambar: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
+            console.log('[Schema v7.20] ✅ Gambar: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
             updatedCount++;
         }
     });
 
     if (updatedCount === 0) {
-        console.log('[Schema v7.19] ✅ Gambar: Tidak ada yang perlu diupdate');
+        console.log('[Schema v7.20] ✅ Gambar: Tidak ada yang perlu diupdate');
     }
     return updatedCount > 0;
 }
 
-// ============================================================
-// 🔥🔥🔥 AUTO RE-GENERATE GAMBAR 🔥🔥🔥
-// ============================================================
 function regenerateImageWithNewYear(pageLevel) {
     if (!needYear(pageLevel)) {
-        console.log('[Schema v7.19] ⏭️ Level ini TIDAK butuh re-generate gambar');
+        console.log('[Schema v7.20] ⏭️ Level ini TIDAK butuh re-generate gambar');
         return false;
     }
 
@@ -678,90 +640,21 @@ function regenerateImageWithNewYear(pageLevel) {
                 }
             }
 
-            console.log('[Schema v7.19] ✅ Gambar: Re-generate dengan tahun ' + currentYear);
+            console.log('[Schema v7.20] ✅ Gambar: Re-generate dengan tahun ' + currentYear);
             regenCount++;
         }
     });
 
     if (regenCount === 0) {
-        console.log('[Schema v7.19] ✅ Gambar: Tidak ada yang perlu di-regen');
+        console.log('[Schema v7.20] ✅ Gambar: Tidak ada yang perlu di-regen');
     }
     return regenCount > 0;
 }
 
 // ============================================================
-// 🔥🔥🔥 DETEKSI HALAMAN LAYAK GAMBAR 🔥🔥🔥
-// 🔥 FIX v7.19: VARIANT & SUB-VARIANT WAJIB DAPAT GAMBAR
+// 🔥🔥🔥 DETEKSI ENTITY TYPE — V37 COMPLIANT 🔥🔥🔥
 // ============================================================
-function isImageEligible(pageLevel) {
-    console.log('[Schema v7.19 📸] Checking image eligibility for page level:', pageLevel);
-
-    // ============================================================
-    // 🔥 LEVEL YANG WAJIB DAPAT GAMBAR (TANPA SYARAT)
-    // ============================================================
-    const mandatoryImageLevels = [
-        'money-master', 
-        'money-page', 
-        'money-child',
-        'variant',
-        'sub-variant'
-    ];
-    
-    if (mandatoryImageLevels.includes(pageLevel)) {
-        console.log(`[Schema v7.19] ✅ WAJIB GAMBAR (level: ${pageLevel})`);
-        return true;
-    }
-
-    // ============================================================
-    // 🔥 PILLAR: Skip jika edukasi murni
-    // ============================================================
-    if (pageLevel === 'pillar') {
-        const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
-        const title = document.title.toLowerCase();
-        const combined = h1 + " " + title;
-
-        const pillarEdukasi = ["panduan", "tips", "cara", "apa itu", "pengertian", "definisi", "overview", "komprehensif", "langkah", "tutorial", "pedoman", "petunjuk", "kenali", "mengenal", "memahami", "belajar"];
-        for (let keyword of pillarEdukasi) {
-            if (combined.includes(keyword)) {
-                console.log(`[Schema v7.19] ⏭️ Skip gambar: Pillar edukasi murni (keyword: "${keyword}")`);
-                return false;
-            }
-        }
-        return true;
-    }
-
-    // ============================================================
-    // 🔥 SUB-PILLAR: LAYAK DAPAT GAMBAR
-    // ============================================================
-    if (pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
-        console.log(`[Schema v7.19] ✅ LAYAK GAMBAR (level: ${pageLevel})`);
-        return true;
-    }
-
-    // ============================================================
-    // 🔥 FALLBACK: CEK KONTEN
-    // ============================================================
-    const content = document.querySelector(".post-body, article, main")?.innerText || "";
-    const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
-    if (wordCount < 300) {
-        console.log(`[Schema v7.19] ⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata < 300)`);
-        return false;
-    }
-
-    const hasImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
-    if (hasImage) {
-        console.log(`[Schema v7.19] ✅ Halaman sudah memiliki gambar, tetap layak`);
-        return true;
-    }
-
-    console.log(`[Schema v7.19] ⏭️ Skip gambar: Halaman tidak masuk kriteria layak`);
-    return false;
-}
-
-// ============================================================
-// 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD 🔥🔥🔥
-// ============================================================
-function getPageLevelFromPLD() {
+function getEntityTypeFromPLD() {
     const pldVersions = [
         { obj: window.pageLevelDetectorv22, name: 'v22.x' },
         { obj: window.pageLevelDetectorv20, name: 'v20.x' },
@@ -772,83 +665,160 @@ function getPageLevelFromPLD() {
     ];
 
     for (let pld of pldVersions) {
-        if (pld.obj && typeof pld.obj.detect === 'function') {
+        if (pld.obj && typeof pld.obj.detectEntityType === 'function') {
             try {
-                const level = pld.obj.detect();
-                if (level) {
-                    console.log(`[Schema v7.19] Page Level dari PLD ${pld.name}: ${level}`);
-                    return level;
+                const entityType = pld.obj.detectEntityType();
+                if (entityType) {
+                    console.log(`[Schema v7.20] Entity Type dari PLD ${pld.name}: ${entityType}`);
+                    return entityType;
                 }
             } catch(e) {
-                console.warn(`[Schema v7.19] Error calling PLD ${pld.name}:`, e.message);
+                console.warn(`[Schema v7.20] Error calling PLD ${pld.name}:`, e.message);
             }
         }
     }
 
-    const bodyLevel = document.body.getAttribute('data-page-level') || document.body.getAttribute('data-schema-page-level');
-    if (bodyLevel) {
-        console.log(`[Schema v7.19] Page Level dari body attribute: ${bodyLevel}`);
-        return bodyLevel;
+    const bodyEntity = document.body.getAttribute('data-entity-type') || document.body.getAttribute('data-schema-entity-type');
+    if (bodyEntity) {
+        console.log(`[Schema v7.20] Entity Type dari body attribute: ${bodyEntity}`);
+        return bodyEntity;
     }
 
-    console.log('[Schema v7.19] PLD tidak tersedia, menggunakan fallback detection');
-    return detectPageLevelFallback();
+    console.log('[Schema v7.20] Entity Type tidak tersedia, menggunakan fallback detection');
+    return detectEntityTypeFallback();
 }
 
-function detectPageLevelFallback() {
+function detectEntityTypeFallback() {
     const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
     const title = document.title.toLowerCase();
     const url = location.href.toLowerCase();
+    const combined = h1 + " " + title + " " + url;
 
-    const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom", "metode", "teknik"];
-    for (let pattern of variantPatterns) {
-        if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) return "variant";
-    }
-
-    const locations = ["jakarta", "bekasi", "bogor", "depok", "tangerang", "karawang", "surabaya", "bandung"];
-    for (let loc of locations) {
-        if (h1.includes(loc) || title.includes(loc) || url.includes(loc)) return "money-child";
-    }
-
-    if (/\b(harga|biaya|tarif)\b/i.test(h1 + title)) return "money-page";
-    if (/\b(jasa|sewa|borongan)\b/i.test(h1 + title) && !/\b(panduan|tips|cara)\b/i.test(h1 + title)) return "money-master";
-    if (/\b(daftar|jenis|kategori)\b/i.test(h1 + title)) return "sub-pillar-tipe-2";
-    if (/\b(perbandingan|vs|versus)\b/i.test(h1 + title)) return "sub-pillar-tipe-1";
-
-    return "pillar";
-}
-
-function waitForPLD() {
-    return new Promise((resolve) => {
-        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
-            window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
-            window.pageLevelDetectorV17 || window.pageLevelDetector) {
-            resolve(true);
-            return;
+    // CEK JASA
+    const jasaKeywords = ['jasa', 'layanan', 'service', 'borongan', 'kontraktor', 'renovasi', 'pemasangan', 'instalasi', 'pengerjaan', 'perbaikan'];
+    for (let keyword of jasaKeywords) {
+        if (combined.includes(keyword)) {
+            const productExceptions = /(beton|readymix|precast|paving|panel)\s+(harga|spesifikasi|ukuran)/i.test(combined);
+            if (!productExceptions) return 'jasa';
         }
+    }
 
-        const onReady = () => { console.log('[Schema v7.19] PLD ready (event)'); resolve(true); };
-        window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
-        window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
-        window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
-        window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
+    // CEK SEWA/RENTAL
+    const sewaKeywords = ['sewa', 'rental', 'sewa alat', 'rental alat', 'excavator', 'bulldozer', 'crane'];
+    for (let keyword of sewaKeywords) {
+        if (combined.includes(keyword)) {
+            const productExceptions = /(sewa\s+beton|sewa\s+readymix)/i.test(combined);
+            if (!productExceptions) return 'sewa';
+        }
+    }
 
-        setTimeout(() => {
-            if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
-                window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
-                window.pageLevelDetectorV17 || window.pageLevelDetector) {
-                console.log('[Schema v7.19] PLD ready (timeout)');
-                resolve(true);
-            } else {
-                console.log('[Schema v7.19] PLD timeout, using fallback');
-                resolve(false);
-            }
-        }, 5000);
-    });
+    // CEK MATERIAL
+    const materialKeywords = ['material', 'bahan bangunan', 'bahan konstruksi', 'agregat', 'pasir', 'batu split', 'semen'];
+    for (let keyword of materialKeywords) {
+        if (combined.includes(keyword)) return 'material';
+    }
+
+    // DEFAULT: PRODUK
+    return 'produk';
 }
 
 // ============================================================
-// 🔥🔥🔥 FUNGSI SCHEMA LAINNYA 🔥🔥🔥
+// 🔥🔥🔥 DETEKSI FOKUS KONTEN (INFORMASI vs HARGA) 🔥🔥🔥
+// ============================================================
+function detectContentFocus() {
+    const h1 = document.querySelector('h1');
+    const h1Text = h1 ? h1.innerText.toLowerCase() : '';
+    const title = document.title?.toLowerCase() || '';
+    const content = document.querySelector('.post-body.entry-content, .post-body, article, main, section')?.innerText?.toLowerCase() || '';
+    const url = location.href.toLowerCase();
+    const combined = h1Text + ' ' + title + ' ' + content + ' ' + url;
+
+    // PRIORITAS 1: CEK H1
+    const hasYearInH1 = /\b(19|20)\d{2}\b/.test(h1Text);
+    if (hasYearInH1) {
+        console.log('[Schema v7.20] 📅 H1 mengandung tahun → FOKUS: HARGA');
+        return 'harga';
+    }
+
+    const hasRpInH1 = /Rp\s*[\d.,]+/.test(h1Text);
+    if (hasRpInH1) {
+        console.log('[Schema v7.20] 💰 H1 mengandung Rp → FOKUS: HARGA');
+        return 'harga';
+    }
+
+    const hasHargaInH1 = /harga|biaya|tarif|estimasi/.test(h1Text);
+    if (hasHargaInH1) {
+        console.log('[Schema v7.20] 💰 H1 mengandung kata harga → FOKUS: HARGA');
+        return 'harga';
+    }
+
+    const informatifKeywords = ['panduan', 'spesifikasi', 'keunggulan', 'cara memilih', 'tips', 'perbedaan', 'jenis', 'apa itu'];
+    const hasInformatifInH1 = informatifKeywords.some(k => h1Text.includes(k));
+    if (hasInformatifInH1) {
+        console.log('[Schema v7.20] 📚 H1 mengandung kata informatif → FOKUS: INFORMASI');
+        return 'informasi';
+    }
+
+    // PRIORITAS 2: CEK TABEL HARGA
+    const tables = document.querySelectorAll('table');
+    let hasPriceTable = false;
+    let hasSpecTable = false;
+    
+    tables.forEach(table => {
+        const tableText = table.innerText.toLowerCase();
+        if ((tableText.includes('harga') || tableText.includes('biaya') || tableText.includes('estimasi')) && tableText.match(/[\d.,]+/)) {
+            hasPriceTable = true;
+        }
+        if (tableText.includes('spesifikasi') || tableText.includes('ukuran') || tableText.includes('mutu')) {
+            hasSpecTable = true;
+        }
+    });
+
+    if (hasPriceTable && !hasSpecTable) {
+        console.log('[Schema v7.20] 📊 Ada tabel HARGA → FOKUS: HARGA');
+        return 'harga';
+    }
+
+    // PRIORITAS 3: SKOR
+    const eduKeywords = ['panduan', 'spesifikasi', 'keunggulan', 'ukuran', 'dimensi', 'cara memilih', 'tips', 'informasi', 'pengertian', 'definisi', 'jenis', 'macam', 'tipe', 'perbedaan', 'kelebihan', 'kekurangan', 'material', 'bahan', 'standar', 'mutu'];
+    const priceKeywords = ['harga', 'biaya', 'estimasi', 'tarif', 'mulai dari', 'per meter', 'per lembar', 'per kubik', 'per unit', 'promo', 'diskon', 'penawaran', 'daftar harga', 'tabel harga', 'rincian biaya', 'simulasi biaya', 'total biaya', 'anggaran', 'budget'];
+
+    let eduScore = 0, priceScore = 0;
+    eduKeywords.forEach(k => { if (combined.includes(k)) eduScore++; });
+    priceKeywords.forEach(k => { if (combined.includes(k)) priceScore++; });
+
+    const hasPriceCTA = document.querySelector('.cta-box, .cta-button, .btn-wa, [href*="wa.me"]')?.innerText?.toLowerCase()?.includes('harga') || false;
+    if (hasPriceCTA) priceScore += 2;
+
+    console.log(`[Schema v7.20] 📊 Edu Score: ${eduScore}, Price Score: ${priceScore}`);
+
+    if (priceScore > eduScore * 1.3) {
+        console.log('[Schema v7.20] 🎯 Fokus: HARGA (price score lebih tinggi)');
+        return 'harga';
+    }
+
+    if (eduScore > priceScore * 1.3) {
+        console.log('[Schema v7.20] 🎯 Fokus: INFORMASI (edu score lebih tinggi)');
+        return 'informasi';
+    }
+
+    console.log('[Schema v7.20] 🎯 Fokus: INFORMASI (default)');
+    return 'informasi';
+}
+
+// ============================================================
+// 🔥🔥🔥 IS JASA OR SEWA — V37 COMPLIANT 🔥🔥🔥
+// ============================================================
+function isJasaOrSewa(entityType) {
+    return entityType === 'jasa' || entityType === 'sewa';
+}
+
+function isServicePage(entityType) {
+    return isJasaOrSewa(entityType);
+}
+
+// ============================================================
+// 🔥🔥🔥 SCHEMA FUNCTIONS 🔥🔥🔥
 // ============================================================
 function hasPriceOnPage() {
     const text = document.body.innerText;
@@ -899,8 +869,21 @@ function getParentFromBreadcrumb(currentUrl) {
     return { parentUrl: location.origin, parentName: 'Home' };
 }
 
-function detectKnowsAbout() {
+function detectKnowsAbout(entityType) {
     const knowsAbout = [];
+    
+    // ✅ V37: Entity Type specific knowsAbout
+    if (entityType === 'jasa') {
+        knowsAbout.push('Jasa Konstruksi', 'Jasa Bangunan', 'Kontraktor', 'Renovasi', 'Pemasangan', 'Perbaikan');
+    } else if (entityType === 'sewa') {
+        knowsAbout.push('Sewa Alat Berat', 'Rental Excavator', 'Rental Bulldozer', 'Rental Crane', 'Alat Konstruksi');
+    } else if (entityType === 'material') {
+        knowsAbout.push('Material Bangunan', 'Bahan Konstruksi', 'Beton Ready Mix', 'Precast', 'Agregat');
+    } else {
+        knowsAbout.push('Produk Konstruksi', 'Beton Precast', 'Material Bangunan');
+    }
+
+    // Tambahkan dari breadcrumb
     document.querySelectorAll('.breadcrumbs a, .breadcrumb a, .nav-trail a').forEach(link => {
         const name = link.innerText?.trim();
         if (name && name.length > 2 && name.length < 50) {
@@ -908,56 +891,32 @@ function detectKnowsAbout() {
             if (!skipLabels.includes(name.toLowerCase())) knowsAbout.push(name);
         }
     });
+
     const result = [...new Set(knowsAbout)].slice(0, 10);
-    if (result.length === 0) return ['Jasa Konstruksi', 'Beton Precast'];
     return result;
 }
 
-function extractServiceType(title) {
+function extractServiceType(title, entityType) {
     let serviceType = title
         .replace(/^(harga|biaya|tarif|estimasi)\s*/i, '')
         .replace(/\s*2026|\s*2025|\s*2024/g, '')
         .replace(/\s*terbaru|\s*update|\s*terkini/g, '')
         .replace(/[-,|:].*$/, '')
         .trim();
+
+    // ✅ V37: Entity Type specific prefix
+    if (entityType === 'jasa') {
+        if (!/^(jasa|layanan|service|borongan|kontraktor|renovasi|pemasangan|instalasi)/i.test(serviceType)) {
+            serviceType = 'Jasa ' + serviceType;
+        }
+    } else if (entityType === 'sewa') {
+        if (!/^(sewa|rental|sewa alat|rental alat)/i.test(serviceType)) {
+            serviceType = 'Sewa ' + serviceType;
+        }
+    }
+
     if (serviceType.length > 50) serviceType = serviceType.substring(0, 50);
-    if (/spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian/i.test(title)) {
-        if (!/^spesifikasi/i.test(serviceType) && !/^varian/i.test(serviceType) && !/^ukuran/i.test(serviceType)) {
-            serviceType = 'Spesifikasi ' + serviceType;
-        }
-    }
-    if (!/^(jasa|layanan|service|sewa|borongan|spesifikasi|varian|ukuran|mutu|rental)/i.test(serviceType)) {
-        serviceType = 'Jasa ' + serviceType;
-    }
     return serviceType;
-}
-
-function isServicePage(pageLevel) {
-    const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
-    const title = document.title.toLowerCase();
-    const url = location.href.toLowerCase();
-    const combined = h1 + " " + title + " " + url;
-
-    const isProductPage = /(jual|beli|order|pesan|pemesanan|pembelian|produk|material|bahan|spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian|polosan|motif|custom)\s+(beton|readymix|precast|paving|panel|box|u-ditch|kansteen|gorong|material|bahan|besi|baja|pipa|atap|genteng|keramik|marmer|granit|kayu|pintu|jendela|kusen|paving\s*block|pagar\s*panel|box\s*culvert|u\s*ditch|kanstin|gorong\s*gorong)/i.test(h1 + title);
-    if (isProductPage) return false;
-
-    const urlJasaPatterns = [/\/jasa-/i, /\/jasa\//i, /\/p\/jasa-/i, /\/layanan-/i, /\/service-/i, /\/borongan-/i, /\/kontraktor-/i, /\/sewa-/i, /\/rental-/i, /\/p\/sewa-/i];
-    for (let pattern of urlJasaPatterns) {
-        if (pattern.test(url)) {
-            const isProductUrl = /\/p\/(beton|readymix|precast|paving|panel|box|u-ditch|kansteen|gorong|material|jual|beli|order|pesan|produk|bahan|spesifikasi|ukuran|dimensi|mutu|grade|tipe|model|varian|polosan|motif|custom)/i.test(url);
-            if (!isProductUrl) return true;
-        }
-    }
-
-    const strongServiceKeywords = ['jasa', 'layanan', 'service', 'borongan', 'kontraktor', 'tukang', 'renovasi', 'bongkar', 'pemasangan', 'instalasi', 'pengerjaan', 'perbaikan', 'pembangunan', 'proyek', 'bore pile', 'pondasi', 'tiang pancang', 'sumur bor', 'coring', 'pasang', 'bangun', 'perawatan', 'sewa', 'rental', 'sewa alat', 'rental alat'];
-    for (let keyword of strongServiceKeywords) {
-        if (combined.includes(keyword)) {
-            const productExceptions = /(beton|readymix|precast|paving|panel|box culvert|u-ditch|kansteen|gorong|material|besi|baja)\s+(harga|biaya|spesifikasi|ukuran)/i.test(combined);
-            if (!productExceptions) return true;
-        }
-    }
-
-    return false;
 }
 
 function extractOffersFromTable() {
@@ -996,7 +955,7 @@ function extractOffersFromTable() {
                     }
                 }
                 if (name) {
-                    name = name.replace(/^(harga|biaya|tarif|paket|jasa|layanan)\s*/i, '').replace(/\s{2,}/g, ' ').trim();
+                    name = name.replace(/^(harga|biaya|tarif|paket|jasa|layanan|sewa)\s*/i, '').replace(/\s{2,}/g, ' ').trim();
                 }
                 if (name && price && name.length > 2 && name.length < 80) {
                     const idKey = `${name}|${price}`;
@@ -1017,7 +976,7 @@ function extractOffersFromTable() {
                 const price = parseInt(priceMatch[1].replace(/[^\d]/g, ''));
                 if (price > 10000 && price < 1000000000) {
                     let name = text.split('Rp')[0].trim();
-                    name = name.replace(/^(harga|biaya|tarif|paket|jasa|layanan)\s*/i, '').replace(/\s{2,}/g, ' ').trim();
+                    name = name.replace(/^(harga|biaya|tarif|paket|jasa|layanan|sewa)\s*/i, '').replace(/\s{2,}/g, ' ').trim();
                     if (name && name.length > 2 && name.length < 80) {
                         const idKey = `${name}|${price}`;
                         if (!seenItems.has(idKey)) {
@@ -1048,6 +1007,151 @@ function generateInternalLinks() {
 }
 
 // ============================================================
+// 🔥🔥🔥 DETEKSI HALAMAN LAYAK GAMBAR 🔥🔥🔥
+// ============================================================
+function isImageEligible(pageLevel) {
+    console.log('[Schema v7.20 📸] Checking image eligibility for page level:', pageLevel);
+
+    const mandatoryImageLevels = [
+        'money-master', 
+        'money-page', 
+        'money-child',
+        'variant',
+        'sub-variant'
+    ];
+    
+    if (mandatoryImageLevels.includes(pageLevel)) {
+        console.log(`[Schema v7.20] ✅ WAJIB GAMBAR (level: ${pageLevel})`);
+        return true;
+    }
+
+    if (pageLevel === 'pillar') {
+        const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
+        const title = document.title.toLowerCase();
+        const combined = h1 + " " + title;
+
+        const pillarEdukasi = ["panduan", "tips", "cara", "apa itu", "pengertian", "definisi", "overview", "komprehensif", "langkah", "tutorial", "pedoman", "petunjuk", "kenali", "mengenal", "memahami", "belajar"];
+        for (let keyword of pillarEdukasi) {
+            if (combined.includes(keyword)) {
+                console.log(`[Schema v7.20] ⏭️ Skip gambar: Pillar edukasi murni (keyword: "${keyword}")`);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    if (pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
+        console.log(`[Schema v7.20] ✅ LAYAK GAMBAR (level: ${pageLevel})`);
+        return true;
+    }
+
+    const content = document.querySelector(".post-body, article, main")?.innerText || "";
+    const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
+    if (wordCount < 300) {
+        console.log(`[Schema v7.20] ⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata < 300)`);
+        return false;
+    }
+
+    const hasImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
+    if (hasImage) {
+        console.log(`[Schema v7.20] ✅ Halaman sudah memiliki gambar, tetap layak`);
+        return true;
+    }
+
+    console.log(`[Schema v7.20] ⏭️ Skip gambar: Halaman tidak masuk kriteria layak`);
+    return false;
+}
+
+// ============================================================
+// 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD 🔥🔥🔥
+// ============================================================
+function getPageLevelFromPLD() {
+    const pldVersions = [
+        { obj: window.pageLevelDetectorv22, name: 'v22.x' },
+        { obj: window.pageLevelDetectorv20, name: 'v20.x' },
+        { obj: window.pageLevelDetectorv19, name: 'v19.0' },
+        { obj: window.pageLevelDetectorV18, name: 'v18.7' },
+        { obj: window.pageLevelDetectorV17, name: 'v17.0' },
+        { obj: window.pageLevelDetector, name: 'legacy' }
+    ];
+
+    for (let pld of pldVersions) {
+        if (pld.obj && typeof pld.obj.detect === 'function') {
+            try {
+                const level = pld.obj.detect();
+                if (level) {
+                    console.log(`[Schema v7.20] Page Level dari PLD ${pld.name}: ${level}`);
+                    return level;
+                }
+            } catch(e) {
+                console.warn(`[Schema v7.20] Error calling PLD ${pld.name}:`, e.message);
+            }
+        }
+    }
+
+    const bodyLevel = document.body.getAttribute('data-page-level') || document.body.getAttribute('data-schema-page-level');
+    if (bodyLevel) {
+        console.log(`[Schema v7.20] Page Level dari body attribute: ${bodyLevel}`);
+        return bodyLevel;
+    }
+
+    console.log('[Schema v7.20] PLD tidak tersedia, menggunakan fallback detection');
+    return detectPageLevelFallback();
+}
+
+function detectPageLevelFallback() {
+    const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
+    const title = document.title.toLowerCase();
+    const url = location.href.toLowerCase();
+
+    const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom", "metode", "teknik"];
+    for (let pattern of variantPatterns) {
+        if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) return "variant";
+    }
+
+    const locations = ["jakarta", "bekasi", "bogor", "depok", "tangerang", "karawang", "surabaya", "bandung"];
+    for (let loc of locations) {
+        if (h1.includes(loc) || title.includes(loc) || url.includes(loc)) return "money-child";
+    }
+
+    if (/\b(harga|biaya|tarif)\b/i.test(h1 + title)) return "money-page";
+    if (/\b(jasa|sewa|borongan)\b/i.test(h1 + title) && !/\b(panduan|tips|cara)\b/i.test(h1 + title)) return "money-master";
+    if (/\b(daftar|jenis|kategori)\b/i.test(h1 + title)) return "sub-pillar-tipe-2";
+    if (/\b(perbandingan|vs|versus)\b/i.test(h1 + title)) return "sub-pillar-tipe-1";
+
+    return "pillar";
+}
+
+function waitForPLD() {
+    return new Promise((resolve) => {
+        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
+            window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
+            window.pageLevelDetectorV17 || window.pageLevelDetector) {
+            resolve(true);
+            return;
+        }
+
+        const onReady = () => { console.log('[Schema v7.20] PLD ready (event)'); resolve(true); };
+        window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
+        window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
+        window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
+        window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
+
+        setTimeout(() => {
+            if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
+                window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
+                window.pageLevelDetectorV17 || window.pageLevelDetector) {
+                console.log('[Schema v7.20] PLD ready (timeout)');
+                resolve(true);
+            } else {
+                console.log('[Schema v7.20] PLD timeout, using fallback');
+                resolve(false);
+            }
+        }, 5000);
+    });
+}
+
+// ============================================================
 // 🚀 MAIN FUNCTION
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
@@ -1055,28 +1159,33 @@ document.addEventListener("DOMContentLoaded", () => {
         // ===== STEP 0: TUNGGU PLD =====
         await waitForPLD();
 
-        // ===== STEP 1: DAPATKAN PAGE LEVEL =====
+        // ===== STEP 1: DAPATKAN PAGE LEVEL & ENTITY TYPE =====
         const pageLevel = getPageLevelFromPLD();
-        console.log(`[Schema v7.19] Page Level terdeteksi: ${pageLevel}`);
+        const entityType = getEntityTypeFromPLD();
+        const contentFocus = detectContentFocus();
+        
+        console.log(`[Schema v7.20] Page Level: ${pageLevel}`);
+        console.log(`[Schema v7.20] Entity Type: ${entityType}`);
+        console.log(`[Schema v7.20] Content Focus: ${contentFocus}`);
 
         // ===== STEP 2: UPDATE TAHUN DI H1 =====
-        console.log('[Schema v7.19] 📅 UPDATE TAHUN DI KONTEN:');
+        console.log('[Schema v7.20] 📅 UPDATE TAHUN DI KONTEN:');
         updateH1Year(pageLevel);
 
         // ===== STEP 3: CEK & PERBAIKI GAMBAR =====
         const isEligible = isImageEligible(pageLevel);
 
         if (isEligible) {
-            console.log(`[Schema v7.19] ✅ Halaman LAYAK mendapat gambar, memproses...`);
+            console.log(`[Schema v7.20] ✅ Halaman LAYAK mendapat gambar, memproses...`);
             try {
                 fixImagesToFormat1(pageLevel);
                 updateImageYear(pageLevel);
                 regenerateImageWithNewYear(pageLevel);
             } catch(e) {
-                console.warn('[Schema v7.19 📸] Error processing images:', e);
+                console.warn('[Schema v7.20 📸] Error processing images:', e);
             }
         } else {
-            console.log(`[Schema v7.19] ⏭️ Halaman TIDAK LAYAK mendapat gambar, skip`);
+            console.log(`[Schema v7.20] ⏭️ Halaman TIDAK LAYAK mendapat gambar, skip`);
         }
 
         // ===== STEP 4: INJECT SCHEMA =====
@@ -1132,7 +1241,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
         const defaultAreaServed = Object.keys(areaProv).map(a => ({ "@type": "Place", name: a }));
 
-        const knowsAbout = detectKnowsAbout();
+        const knowsAbout = detectKnowsAbout(entityType);
         const tableOffers = [];
         const isMoneyPage = ['money-master', 'money-page', 'money-child'].includes(pageLevel);
 
@@ -1174,10 +1283,13 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         ];
 
-        const isService = isServicePage(pageLevel);
+        // ✅ V37: CEK JASA atau SEWA/RENTAL
+        const isJasa = entityType === 'jasa';
+        const isSewa = entityType === 'sewa';
+        const isService = isJasa || isSewa;
 
         if (isService) {
-            const serviceType = extractServiceType(PAGE.title);
+            const serviceType = extractServiceType(PAGE.title, entityType);
             const serviceNode = {
                 "@type": "Service",
                 "@id": cleanUrl + "#service",
@@ -1191,6 +1303,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 mainEntityOfPage: { "@id": cleanUrl + "#webpage" }
             };
 
+            // ✅ V37: JASA & SEWA bisa punya offers (harga)
             if (tableOffers.length > 0) {
                 const lowPrice = Math.min(...tableOffers.map(o => o.price));
                 const highPrice = Math.max(...tableOffers.map(o => o.price));
@@ -1203,8 +1316,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 };
             }
             graph.push(serviceNode);
-            console.log(`[Schema v7.19] ✅ Service schema (jasa/layanan/sewa/rental)`);
+            console.log(`[Schema v7.20] ✅ Service schema (${entityType})`);
 
+            // ✅ V37: Product schema untuk JASA & SEWA jika ada harga
             if (hasPrice && tableOffers.length > 0) {
                 const lowPrice = Math.min(...tableOffers.map(o => o.price));
                 const highPrice = Math.max(...tableOffers.map(o => o.price));
@@ -1216,7 +1330,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     description: PAGE.description,
                     image: [PAGE.image],
                     brand: { "@type": "Brand", name: PAGE.business.name },
-                    category: "ConstructionService",
+                    category: entityType === 'jasa' ? "ConstructionService" : "RentalService",
                     offers: {
                         "@type": "AggregateOffer",
                         lowPrice: lowPrice,
@@ -1238,12 +1352,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 };
                 graph.push(productNode);
-                console.log(`[Schema v7.19] ✅ Product schema (${tableOffers.length} offers)`);
+                console.log(`[Schema v7.20] ✅ Product schema (${tableOffers.length} offers) — ${entityType}`);
             } else {
-                console.log(`[Schema v7.19] ⏭️ Skip Product schema (tidak ada harga/offers)`);
+                console.log(`[Schema v7.20] ⏭️ Skip Product schema (tidak ada harga/offers)`);
             }
         } else {
-            console.log(`[Schema v7.19] ⏭️ Skip Service schema (bukan jasa)`);
+            // ✅ V37: PRODUK atau MATERIAL
+            console.log(`[Schema v7.20] ⏭️ Skip Service schema (entity: ${entityType})`);
         }
 
         const internalLinks = generateInternalLinks();
@@ -1256,7 +1371,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 numberOfItems: internalLinks.length,
                 itemListElement: internalLinks
             });
-            console.log(`[Schema v7.19] ✅ ${internalLinks.length} internal links added`);
+            console.log(`[Schema v7.20] ✅ ${internalLinks.length} internal links added`);
         }
 
         const schema = { "@context": "https://schema.org", "@graph": graph };
@@ -1270,11 +1385,10 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         el.textContent = JSON.stringify(schema, null, 2);
 
-        console.log(`[Schema v7.19 ✅] Injected | Page: ${pageLevel} | Offers: ${tableOffers.length} | ` +
+        console.log(`[Schema v7.20 ✅] V37 COMPLIANT | Page: ${pageLevel} | Entity: ${entityType} | Focus: ${contentFocus} | Offers: ${tableOffers.length} | ` +
             `Service: ${isService ? '✅' : '❌'} | Product: ${(isService && hasPrice && tableOffers.length > 0) ? '✅' : '❌'} | ` +
-            `Internal Links: ${internalLinks.length} | KnowsAbout: ${knowsAbout.length} | ` +
-            `Image Eligible: ${isEligible ? '✅' : '❌'} | Auto Image: ✅ | Auto Year: ✅ | Figure: ✅ SEO | Responsif: ✅ | CORB: ✅ ZERO | ` +
-            `Variant/Sub-Variant: ✅ WAJIB GAMBAR (FIX v7.19)`
+            `Internal Links: ${internalLinks.length} | KnowsAbout: ${knowsAbout.length} | Image Eligible: ${isEligible ? '✅' : '❌'}` +
+            ` | CORB: ✅ ZERO | Variant/Sub-Variant: ✅ WAJIB GAMBAR`
         );
 
     }, 700);
