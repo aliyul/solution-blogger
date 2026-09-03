@@ -1,5 +1,7 @@
 /* ============================================================
- 🔥 Hybrid Date Modified v9.3 — UNTUK betonjayareadymix.com
+ 🔥 Hybrid Date Modified v9.4 — UNTUK betonjayareadymix.com
+    ✅ FIX v9.4: Hapus getEventListeners (tidak tersedia di script normal)
+    ✅ FIX v9.4: Gunakan cara aman untuk matikan script lama
     ✅ SINKRON dengan Smart Evergreen Detector v15.2
     ✅ SINKRON dengan V37 FULL SITE AUTO ARCHITECTURE
     ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Non-Evergreen)
@@ -16,10 +18,8 @@
     ✅ FIXED v9.2: Money Child Informasi → EVERGREEN (sesuai V37)
     ✅ FIXED v9.2: Money Child Harga → NON-EVERGREEN (sesuai V37)
     ✅ FIXED v9.2: Sinkron dengan AEDMetaDates dari detectEvergreen
-    ✅ FIXED v9.2: MATIKAN SEMUA SCRIPT DATE MODIFIED VERSI LAMA
-    ✅ FIXED v9.3: SKIP LOGIC untuk halaman statis (Hubungi Kami, Portofolio, dll)
-    ✅ FIXED v9.3: SKIP LOGIC untuk homepage (tidak perlu dateModified)
-    ✅ FIXED v9.3: SKIP LOGIC untuk halaman tanpa konten utama
+    ✅ FIXED v9.3: SKIP LOGIC untuk halaman statis & homepage
+    ✅ FIXED v9.4: Hapus getEventListeners (fix error)
 ============================================================ */
 
 (async function runHybridDateModified() {
@@ -56,7 +56,7 @@
     // CEK APAKAH HALAMAN STATIS
     const isStaticPage = STATIC_PAGES.some(page => currentPath.includes(page));
     
-    // CEK APAKAH HALAMAN TANPA KONTEN UTAMA (hanya navigasi/footer)
+    // CEK APAKAH HALAMAN TANPA KONTEN UTAMA
     const hasMainContent = document.querySelector('.post-body.entry-content, .post-body, article, main, section');
     const hasH1 = document.querySelector('h1');
     const contentLength = document.body.innerText?.trim()?.length || 0;
@@ -64,52 +64,36 @@
     
     // JIKA HOMEPAGE → SKIP
     if (isHomepage) {
-      console.log(`⏸️ [HybridDateModified v9.3] HOMEPAGE terdeteksi (${currentPath}), skip script.`);
+      console.log(`⏸️ [HybridDateModified v9.4] HOMEPAGE terdeteksi (${currentPath}), skip script.`);
       console.log(`   📌 Homepage tidak memerlukan dateModified untuk SEO.`);
       return;
     }
     
     // JIKA HALAMAN STATIS → SKIP
     if (isStaticPage) {
-      console.log(`⏸️ [HybridDateModified v9.3] HALAMAN STATIS terdeteksi (${currentPath}), skip script.`);
+      console.log(`⏸️ [HybridDateModified v9.4] HALAMAN STATIS terdeteksi (${currentPath}), skip script.`);
       console.log(`   📌 Halaman statis tidak memerlukan dateModified dinamis.`);
       return;
     }
     
     // JIKA HALAMAN TANPA KONTEN UTAMA → SKIP
     if (!isContentPage) {
-      console.log(`⏸️ [HybridDateModified v9.3] HALAMAN TANPA KONTEN UTAMA (${currentPath}), skip script.`);
+      console.log(`⏸️ [HybridDateModified v9.4] HALAMAN TANPA KONTEN UTAMA (${currentPath}), skip script.`);
       console.log(`   📌 Halaman tanpa konten utama tidak memerlukan dateModified.`);
       return;
     }
     
-    console.log(`✅ [HybridDateModified v9.3] Halaman ${currentPath} LAYAK diproses.`);
+    console.log(`✅ [HybridDateModified v9.4] Halaman ${currentPath} LAYAK diproses.`);
 
     // ============================================================
     // 🔥🔥🔥 MATIKAN SEMUA SCRIPT DATE MODIFIED VERSI LAMA 🔥🔥🔥
     // ============================================================
     
-    console.log("🛑 [HybridDateModified v9.3] Mencari dan mematikan script date modified versi lama...");
+    console.log("🛑 [HybridDateModified v9.4] Mencari dan mematikan script date modified versi lama...");
     
-    // 1. HAPUS EVENT LISTENER LAMA
-    const oldEvents = [
-      'DOMContentLoaded', 'load', 'pageLevelDetectorv22Ready', 
-      'pageLevelDetectorv20Ready', 'pageLevelDetectorv19Ready',
-      'pageLevelDetectorReady', 'detectEvergreenReady'
-    ];
-    
-    oldEvents.forEach(event => {
-      const listeners = getEventListeners ? getEventListeners(window) : [];
-      if (listeners && listeners[event]) {
-        listeners[event].forEach(listener => {
-          window.removeEventListener(event, listener.listener);
-        });
-      }
-    });
-    
-    // 2. MATIKAN FUNGSI HYBRID DATE MODIFIED LAMA
+    // 1. MATIKAN FUNGSI HYBRID DATE MODIFIED LAMA
     if (window.runHybridDateModified) {
-      console.log("🛑 Mematikan window.runHybridDateModified (v8.x/v9.0/v9.1)...");
+      console.log("🛑 Mematikan window.runHybridDateModified (v8.x/v9.0/v9.1/v9.2)...");
       window.runHybridDateModified = null;
     }
     
@@ -123,40 +107,23 @@
       window.__hybridDateModifiedReady = false;
     }
     
-    // 3. HAPUS TIMEOUT/INTERVAL YANG BERJALAN
-    let highestTimeout = 0;
-    let highestInterval = 0;
-    
-    for (let i = 0; i < 10000; i++) {
-      if (i > highestTimeout) highestTimeout = i;
-      if (i > highestInterval) highestInterval = i;
-    }
-    
-    for (let i = 0; i <= highestTimeout; i++) {
-      clearTimeout(i);
-    }
-    
-    for (let i = 0; i <= highestInterval; i++) {
-      clearInterval(i);
-    }
-    
-    // 4. HAPUS SCRIPT ELEMENT DATE MODIFIED LAMA
+    // 2. HAPUS SCRIPT ELEMENT DATE MODIFIED LAMA
     const oldScripts = document.querySelectorAll('script[src*="HybridDateModified"], script[src*="hybrid-date"], script[src*="date-modified"]');
     oldScripts.forEach(script => {
       console.log(`🛑 Menghapus script lama: ${script.src || 'inline script'}`);
       script.remove();
     });
     
-    // 5. TANDAI SCRIPT INI SEBAGAI YANG AKTIF
-    window.__hybridDateModifiedActive = 'v9.3';
+    // 3. TANDAI SCRIPT INI SEBAGAI YANG AKTIF
+    window.__hybridDateModifiedActive = 'v9.4';
     window.__hybridDateModifiedReady = true;
     window.runHybridDateModified = runHybridDateModified;
     
-    console.log("✅ [HybridDateModified v9.3] Script versi lama telah dimatikan.");
-    console.log("🚀 [HybridDateModified v9.3] Memulai eksekusi...");
+    console.log("✅ [HybridDateModified v9.4] Script versi lama telah dimatikan.");
+    console.log("🚀 [HybridDateModified v9.4] Memulai eksekusi...");
 
     // ============================================================
-    // 📌 KONSTANTA PAGE LEVELS (V37 — REVISI v9.3)
+    // 📌 KONSTANTA PAGE LEVELS (V37 — REVISI v9.4)
     // ============================================================
     const EVERGREEN_LEVELS = [
       'home', 
@@ -303,7 +270,7 @@
     }
 
     // ============================================================
-    // 📌 DETEKSI FOKUS KONTEN — V9.3
+    // 📌 DETEKSI FOKUS KONTEN — V9.4
     // ============================================================
     function detectContentFocus() {
       const h1 = document.querySelector('h1');
@@ -452,7 +419,7 @@
     }
 
     // ============================================================
-    // 📌 FUNGSI MENENTUKAN CUSTOM DATE (V9.3)
+    // 📌 FUNGSI MENENTUKAN CUSTOM DATE (V9.4)
     // ============================================================
     function getCustomDateByPageLevel(pageLevel, entityType, contentFocus) {
       if (EVERGREEN_LEVELS.includes(pageLevel)) {
@@ -504,7 +471,7 @@
     }
 
     // ============================================================
-    // 📌 FUNGSI GET CATEGORY LABEL (V9.3)
+    // 📌 FUNGSI GET CATEGORY LABEL (V9.4)
     // ============================================================
     function getCategoryLabel(pageLevel, contentFocus) {
       if (pageLevel === 'home') return 'HOMEPAGE (EVERGREEN — V37)';
@@ -589,12 +556,13 @@
     // 📌 EKSEKUSI UTAMA
     // ============================================================
     
-    console.log("🔥 Hybrid Date Modified v9.3 - Starting...");
+    console.log("🔥 Hybrid Date Modified v9.4 - Starting...");
     console.log("📋 V37 COMPLIANT: SP1 → EVERGREEN, MP Informasi → EVERGREEN");
     console.log("📋 FIX v9.2: MM Informasi → EVERGREEN, MM Harga → NON-EVERGREEN");
     console.log("📋 FIX v9.2: MC Informasi → EVERGREEN, MC Harga → NON-EVERGREEN");
     console.log("📋 FIX v9.3: SKIP LOGIC untuk halaman statis & homepage");
-    console.log("📋 ATURAN V9.3: PATOKAN H1 (Informasi → Evergreen, Harga → Non-Evergreen)");
+    console.log("📋 FIX v9.4: Hapus getEventListeners (fix error)");
+    console.log("📋 ATURAN V9.4: PATOKAN H1 (Informasi → Evergreen, Harga → Non-Evergreen)");
     
     await loadAllScripts();
     
@@ -694,7 +662,7 @@
       focusPriority: focusPriority,
       mode: manualMode ? 'MANUAL' : 'AUTO',
       originalDateModified: dateModified,
-      hybridVersion: '9.3',
+      hybridVersion: '9.4',
       detectionConfidence: confidence,
       detectionStrategies: strategies,
       detectionStrategyCount: strategyCount,
@@ -712,14 +680,14 @@
       }
     };
 
-    console.log(`✅ [HybridDateModified v9.3] ${uniquePageIdentifier}`);
+    console.log(`✅ [HybridDateModified v9.4] ${uniquePageIdentifier}`);
     console.log(`   → Final Date Modified: ${isoDate}`);
     console.log(`   → Offset: ${offsetSeconds} detik (${Math.floor(offsetSeconds / 3600)} jam ${Math.floor((offsetSeconds % 3600) / 60)} menit)`);
     console.log(`   → Mode: ${manualMode ? 'MANUAL' : 'AUTO'}`);
     console.log(`   → Category: ${categoryLabel}`);
     console.log(`   → Content Focus: ${contentFocus} (${focusReason})`);
     if (confidence) console.log(`   → Detection Confidence: ${confidence}%`);
-    console.log(`📋 Hybrid Date Modified v9.3 applied successfully ✅ (V37 COMPLIANT)`);
+    console.log(`📋 Hybrid Date Modified v9.4 applied successfully ✅ (V37 COMPLIANT)`);
 
   } catch (err) {
     console.error("[HybridDateModified] Fatal error:", err);
