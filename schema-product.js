@@ -1,16 +1,17 @@
 /**
- * ⚡ AutoSchema Hybrid v4.71 — UPDATE TAHUN DENGAN LOGIKA BARU
+ * ⚡ AutoSchema Hybrid v4.72 — V37 COMPLIANT
  * 
- * UPDATE v4.71:
- * - FIX: Jika H1 mengandung tahun < 2025 → STOP, JANGAN UPDATE
- * - FIX: Jika H1 mengandung tahun 2025 → STOP, JANGAN UPDATE
- * - FIX: Jika H1 mengandung tahun > 2025 → UPDATE ke tahun sekarang
- * - FIX: Jika H1 tidak mengandung tahun → TAMBAHKAN tahun (jika perlu)
- * - FIX: Jika ada tahun di konten → SESUAIKAN dengan tahun sekarang
- * - ADD: Deteksi tahun di seluruh konten (body, meta, schema)
+ * UPDATE v4.72:
+ * - FIX: MM Informasi → TANPA tahun (EVERGREEN) — V37
+ * - FIX: MC Informasi → TANPA tahun (EVERGREEN) — V37
+ * - FIX: Warna berbeda untuk Money Informasi vs Harga
+ * - FIX: Gambar Money Informasi → Opsional (tidak wajib)
+ * - FIX: needYear() untuk semua Money Level dengan deteksi fokus konten
+ * - ADD: Deteksi fokus konten untuk MM dan MC
+ * - ADD: Color config berdasarkan level + fokus konten
  * 
- * @version 4.71
- * @date 2026-09-02
+ * @version 4.72
+ * @date 2026-09-03
  */
 
 (function() {
@@ -37,7 +38,7 @@
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯", TABLE: "📊", H1: "📝", PRIORITY: "🔴", STOP: "🛑" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.71] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.72] ${msg}`);
   }
 
   // ============================================================
@@ -152,18 +153,40 @@
   // 🔥🔥🔥 FUNGSI PENDUKUNG 🔥🔥🔥
   // ============================================================
 
-  function getColorConfig(level) {
+  // ✅ V37: Warna berbeda untuk Money Informasi vs Harga
+  function getColorConfig(level, focus) {
+    // Cek apakah ini Money Level
+    const isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(level);
+    const isMoneyInfo = isMoneyLevel && focus === 'informasi';
+    const isMoneyHarga = isMoneyLevel && focus === 'harga';
+    
     const colors = {
+      // Evergreen Levels
       'pillar': { bg: '#0a2a44', text: '#ffffff', accent: '#25d366' },
       'sub-pillar-tipe-2': { bg: '#1a237e', text: '#ffffff', accent: '#25d366' },
       'sub-pillar-tipe-1': { bg: '#004d40', text: '#ffffff', accent: '#25d366' },
-      'money-master': { bg: '#0a2a44', text: '#ffffff', accent: '#ffd700' },
-      'money-page': { bg: '#1a5a8c', text: '#ffffff', accent: '#ffd700' },
-      'money-child': { bg: '#bf360c', text: '#ffffff', accent: '#ffd700' },
+      
+      // ✅ V37: Money Informasi → Warna Biru Muda (Evergreen)
+      'money-master-informasi': { bg: '#1a5a8c', text: '#ffffff', accent: '#25d366' },
+      'money-page-informasi': { bg: '#2a6a9c', text: '#ffffff', accent: '#25d366' },
+      'money-child-informasi': { bg: '#3a7aac', text: '#ffffff', accent: '#25d366' },
+      
+      // ✅ V37: Money Harga → Warna Emas (Non-Evergreen)
+      'money-master-harga': { bg: '#0a2a44', text: '#ffffff', accent: '#ffd700' },
+      'money-page-harga': { bg: '#1a5a8c', text: '#ffffff', accent: '#ffd700' },
+      'money-child-harga': { bg: '#bf360c', text: '#ffffff', accent: '#ffd700' },
+      
+      // Variant Levels
       'variant': { bg: '#4a148c', text: '#ffffff', accent: '#25d366' },
       'sub-variant': { bg: '#4e342e', text: '#ffffff', accent: '#25d366' }
     };
-    return colors[level] || colors['pillar'];
+    
+    // Tentukan key berdasarkan level dan fokus
+    let key = level;
+    if (isMoneyInfo) key = level + '-informasi';
+    else if (isMoneyHarga) key = level + '-harga';
+    
+    return colors[key] || colors['pillar'];
   }
 
   function lightenColor(hex, percent) {
@@ -176,23 +199,26 @@
   }
 
   // ============================================================
-  // 🔥🔥🔥 ATURAN TAHUN (DENGAN DETEKSI FOKUS KONTEN) 🔥🔥🔥
+  // 🔥🔥🔥 ATURAN TAHUN (V37 — SEMUA MONEY LEVEL CEK FOKUS) 🔥🔥🔥
   // ============================================================
   function needYear(level) {
     const moneyLevels = ['money-master', 'money-page', 'money-child'];
-    if (level === 'money-page') {
+    
+    // ✅ V37: CEK FOKUS KONTEN UNTUK SEMUA MONEY LEVEL
+    if (moneyLevels.includes(level)) {
       const focus = detectContentFocus();
+      
+      // ✅ V37: MONEY LEVEL INFORMASI → TANPA tahun (EVERGREEN)
       if (focus === 'informasi') {
-        log(`⏭️ MONEY_PAGE INFORMASI/EDUKASI → SKIP tahun (H1 TANPA tahun)`, "YEAR");
+        log(`⏭️ ${level.toUpperCase()} INFORMASI/EDUKASI → SKIP tahun (H1 TANPA tahun) — V37`, "YEAR");
         return false;
       }
-      log(`✅ MONEY_PAGE HARGA → WAJIB tahun`, "YEAR");
+      
+      // ✅ V37: MONEY LEVEL HARGA → WAJIB tahun (NON-EVERGREEN)
+      log(`✅ ${level.toUpperCase()} HARGA → WAJIB tahun — V37`, "YEAR");
       return true;
     }
-    if (moneyLevels.includes(level)) {
-      log(`✅ ${level} → WAJIB tahun`, "YEAR");
-      return true;
-    }
+    
     log(`⏭️ Level ${level} → TIDAK butuh tahun`, "YEAR");
     return false;
   }
@@ -213,7 +239,7 @@
   }
 
   // ============================================================
-  // 🔥🔥🔥 UPDATE TAHUN DENGAN LOGIKA BARU (v4.71) 🔥🔥🔥
+  // 🔥🔥🔥 UPDATE TAHUN DENGAN LOGIKA BARU (v4.72) 🔥🔥🔥
   // ============================================================
   function updateH1Year(pageLevel) {
     if (!needYear(pageLevel)) {
@@ -232,7 +258,7 @@
     const detectedYear = extractYear(originalText);
 
     // ============================================================
-    // ATURAN BARU v4.71: CEK TAHUN
+    // ATURAN v4.72: CEK TAHUN
     // ============================================================
     if (detectedYear) {
       // ✅ Jika tahun < 2025 → STOP, JANGAN UPDATE
@@ -280,9 +306,8 @@
     const currentYear = getCurrentYear();
     let updated = 0;
 
-    // 1. CEK DI BODY (paragraf, heading, list)
     const bodyElements = document.querySelectorAll('p, h2, h3, h4, li, td, th, figcaption, .post-body, .entry-content');
-    const yearPattern = /\b(202[6-9]|2030)\b/g; // Hanya tahun 2026-2030
+    const yearPattern = /\b(202[6-9]|2030)\b/g;
 
     bodyElements.forEach(el => {
       const text = el.innerText;
@@ -295,7 +320,6 @@
       }
     });
 
-    // 2. CEK DI META DESCRIPTION
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
       const content = metaDesc.getAttribute('content');
@@ -308,7 +332,6 @@
       }
     }
 
-    // 3. CEK DI SCHEMA JSON-LD
     const schemaScripts = document.querySelectorAll('script[type="application/ld+json"]');
     schemaScripts.forEach(script => {
       try {
@@ -320,9 +343,7 @@
             updated++;
           }
         }
-      } catch(e) {
-        // Skip jika tidak bisa parse
-      }
+      } catch(e) {}
     });
 
     if (updated > 0) {
@@ -373,7 +394,7 @@
   }
 
   // ============================================================
-  // 🔥🔥🔥 GENERATE GAMBAR DARI CANVAS 🔥🔥🔥
+  // 🔥🔥🔥 GENERATE GAMBAR DARI CANVAS (DENGAN FOKUS KONTEN) 🔥🔥🔥
   // ============================================================
 
   if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -394,7 +415,11 @@
   }
 
   function createImageWithText(pageName, level, year) {
-    const colors = getColorConfig(level);
+    // ✅ V37: Dapatkan fokus konten untuk Money Level
+    const isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(level);
+    const focus = isMoneyLevel ? detectContentFocus() : null;
+    const colors = getColorConfig(level, focus);
+    
     const needYearFlag = needYear(level);
     const displayYear = needYearFlag ? ' ' + year : '';
     const fullText = pageName + displayYear;
@@ -579,7 +604,7 @@
     img.style.padding = '0 10px';
     img.style.boxSizing = 'border-box';
 
-    const styleId = 'responsive-image-style-v471';
+    const styleId = 'responsive-image-style-v472';
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
@@ -793,24 +818,35 @@
   }
 
   // ============================================================
-  // 🔥🔥🔥 DETEKSI HALAMAN LAYAK GAMBAR 🔥🔥🔥
+  // 🔥🔥🔥 DETEKSI HALAMAN LAYAK GAMBAR (V37 COMPLIANT) 🔥🔥🔥
   // ============================================================
   function isImageEligible(pageLevel) {
     log(`Checking image eligibility for page level: ${pageLevel}`, "IMAGE");
 
-    const mandatoryImageLevels = [
-      'money-master', 
-      'money-page', 
-      'money-child',
-      'variant',
-      'sub-variant'
-    ];
+    // ============================================================
+    // ✅ V37: MONEY LEVEL HARGA → WAJIB GAMBAR
+    // ✅ V37: MONEY LEVEL INFORMASI → OPSIONAL
+    // ============================================================
+    const moneyLevels = ['money-master', 'money-page', 'money-child'];
     
-    if (mandatoryImageLevels.includes(pageLevel)) {
-      log(`✅ WAJIB GAMBAR (level: ${pageLevel}) — TANPA SYARAT`, "SUCCESS");
+    if (moneyLevels.includes(pageLevel)) {
+      const focus = detectContentFocus();
+      if (focus === 'informasi') {
+        log(`⏭️ ${pageLevel.toUpperCase()} INFORMASI → GAMBAR OPSIONAL (tidak wajib) — V37`, "SKIP");
+        // Lanjutkan ke pengecekan lain (tidak langsung return false)
+      } else {
+        log(`✅ ${pageLevel.toUpperCase()} HARGA → WAJIB GAMBAR — TANPA SYARAT — V37`, "SUCCESS");
+        return true;
+      }
+    }
+
+    // Variant & Sub-Variant → WAJIB GAMBAR
+    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
+      log(`✅ ${pageLevel} → WAJIB GAMBAR — TANPA SYARAT`, "SUCCESS");
       return true;
     }
 
+    // Pillar → Tergantung konten
     if (pageLevel === 'pillar') {
       const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
       const title = document.title.toLowerCase();
@@ -841,6 +877,7 @@
       return false;
     }
 
+    // Sub-Pillar → Tergantung panjang konten
     if (pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
       const content = document.querySelector(".post-body.entry-content, .post-body, article, main")?.innerText || "";
       const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
@@ -854,6 +891,7 @@
       return true;
     }
 
+    // Default: cek panjang konten
     const content = document.querySelector(".post-body.entry-content, .post-body, article, main")?.innerText || "";
     const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
     
@@ -1245,13 +1283,13 @@
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.71 — UPDATE TAHUN DENGAN LOGIKA BARU", "INFO");
+    log("AutoSchema Hybrid v4.72 — V37 COMPLIANT", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     await waitForPLD();
     
     const pageLevel = getPageLevelFromPLD();
-    const focus = pageLevel === 'money-page' ? detectContentFocus() : 'N/A';
+    const focus = ['money-master', 'money-page', 'money-child'].includes(pageLevel) ? detectContentFocus() : 'N/A';
     
     log(`Page Level: ${pageLevel}`, "SUCCESS");
     log(`Content Focus: ${focus}`, "FOCUS");
@@ -1392,15 +1430,16 @@
     log(`  Image Source    : ${isEligible ? '✅ (Canvas + FIGURE)' : '⚠️ (skip)'}`, "IMAGE");
     log(`  Auto Year H1    : ${h1Updated ? '✅ UPDATE' : '⏭️ SKIP/STOP'}`, "YEAR");
     log(`  Content Year    : ${contentUpdated > 0 ? `✅ ${contentUpdated} elemen diupdate` : '⏭️ TIDAK ADA'}`, "YEAR");
-    log(`  Money Page Info : ${focus === 'informasi' ? '✅ TANPA tahun' : '❌ PAKAI tahun'}`, "FOCUS");
+    log(`  Money Level Info: ${focus === 'informasi' ? '✅ TANPA tahun (EVERGREEN)' : focus === 'harga' ? '✅ PAKAI tahun (NON-EVERGREEN)' : 'N/A'}`, "FOCUS");
     log(`  Text from URL   : ✅`, "IMAGE");
     log(`  Figure Structure: ✅ TETAP DIJAGA`, "IMAGE");
     log(`  Responsive      : ✅`, "IMAGE");
     log(`  VARIANT WAJIB   : ✅ (tanpa syarat wordCount)`, "SUCCESS");
     log(`  SUB-VARIANT WAJIB: ✅ (tanpa syarat wordCount)`, "SUCCESS");
     log(`  ATURAN TAHUN    : STOP jika < 2026, UPDATE jika > 2026`, "YEAR");
+    log(`  V37 COMPLIANT   : ✅`, "SUCCESS");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.71 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.72 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
