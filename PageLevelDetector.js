@@ -1,8 +1,11 @@
 /* ============================================================
- 🧠 Page Level Detector v22.37 — TAMBAH KATEGORI "PRODUK"
-    ✅ FIX v22.37: Tambah kategori "produk" ke SPECIFICATION_WORDS
-    ✅ FIX v22.37: "precast/pracetak/ready mix" → MC
-    ✅ FIX v22.36: Tambah kategori "harga" (murah/hemat/ekonomis)
+ 🧠 Page Level Detector v22.38 — TAMBAH SPESIFIKASI ENTITY LAIN
+    ✅ FIX v22.38: Tambah kategori "desain" (modern, minimalis, klasik, dll)
+    ✅ FIX v22.38: Tambah kategori "material" (semen, pasir, besi, dll)
+    ✅ FIX v22.38: Tambah spesifikasi JASA (rumah tinggal, gedung, pabrik, dll)
+    ✅ FIX v22.38: Tambah spesifikasi SEWA (excavator, bulldozer, crane, dll)
+    ✅ FIX v22.37: Tambah kategori "produk" (precast, pracetak, ready mix)
+    ✅ FIX v22.36: Tambah kategori "harga" (murah, hemat, ekonomis)
     ✅ FIX v22.35: Hapus kata entity & harga
     ✅ FIX v22.34: PILLAR EXACT MATCH
     ✅ FIX v22.34: SP2 (daftar/jenis/macam/kategori/tipe)
@@ -25,7 +28,7 @@
   function log(message, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌", LOCATION: "📍", VARIANT: "🔬", COMMERCIAL: "🛒", PRICE: "💰", MM: "🏛️", CORE: "🧠", DETECT: "🎯" };
-    console.log(`${icons[type] || "📘"} [PLD v22.37] ${message}`);
+    console.log(`${icons[type] || "📘"} [PLD v22.38] ${message}`);
   }
 
   // ============================================================
@@ -103,19 +106,61 @@
   ];
 
   // ============================================================
-  // 🔥 SPECIFICATION WORDS (DENGAN KATEGORI "PRODUK") — v22.37
+  // 🔥 SPECIFICATION WORDS (LENGKAP SEMUA ENTITY) — v22.38
   // ============================================================
 
   const SPECIFICATION_WORDS = {
+    // MUTU BETON
     mutu: ["k225", "k250", "k300", "k350", "k400", "k500", "fc", "m6", "m8", "m10", "m12", "m16", "m20", "b0", "b1", "b2", "b3", "sni"],
+    
+    // SATUAN / UKURAN
     satuan: ["per meter", "per lembar", "per batang", "per kubik", "per unit", "per m", "per lbr", "per kg", "per ton", "per jam", "per hari", "per minggu", "per bulan"],
+    
+    // FINISHING
     finishing: ["polos", "motif", "bermotif", "bercorak", "tekstur", "serat", "halus", "kasar", "matte", "glossy", "doff", "gloss", "satin", "anyaman", "natural", "ekspos", "custom", "polosan"],
+    
+    // DIMENSI
     dimensi: ["ukuran", "dimensi", "spesifikasi", "tipe", "model", "varian", "seri", "tinggi", "rendah", "panjang", "pendek", "lebar", "sempit", "tebal", "tipis", "dalam", "dangkal", "diameter", "radius"],
+    
+    // METODE / TEKNIK
     metode: ["hidrolik", "manual", "auger", "rotary", "percussive", "dry", "wet", "basah", "kering", "coring", "cutting", "drilling", "pengeboran", "pemancangan", "pemasangan", "bongkar", "pasang", "potong", "las", "sambung", "metode", "teknik", "cara"],
-    jasa: ["borongan", "harian", "mingguan", "bulanan", "kontrak", "proyek", "renovasi", "perbaikan", "pemasangan", "instalasi"],
-    sewa: ["mini", "besar", "kecil", "sedang", "medium", "extra", "ekstra", "standar", "premium", "ekonomis"],
+    
+    // ✅ JASA (LENGKAP — v22.38)
+    jasa: [
+      "borongan", "harian", "mingguan", "bulanan", "kontrak", 
+      "proyek", "renovasi", "perbaikan", "pemasangan", "instalasi",
+      "rumah tinggal", "gedung", "pabrik", "gudang", "ruko", 
+      "sekolah", "rumah sakit", "jalan", "jembatan", "infrastruktur"
+    ],
+    
+    // ✅ SEWA (LENGKAP — v22.38)
+    sewa: [
+      "mini", "besar", "kecil", "sedang", "medium", "extra", 
+      "standar", "premium", "ekonomis",
+      "long arm", "breaker", "diesel", "hydraulic", 
+      "crawler", "wheel", "vibro", "roller", "compactor",
+      "bulldozer", "excavator", "crane", "backhoe", "dozer"
+    ],
+    
+    // ✅ MATERIAL (LENGKAP — v22.38)
+    material: [
+      "semen", "pasir", "batu split", "kerikil", 
+      "besi", "baja", "kayu", "keramik", "granit", 
+      "marmer", "gypsum", "plafon", "paving",
+      "bata", "batako", "hebel", "genteng", "asbes"
+    ],
+    
+    // ✅ DESAIN (LENGKAP — v22.38)
+    desain: [
+      "modern", "minimalis", "klasik", "tradisional", 
+      "kontemporer", "elegan", "luxury", "industrial", 
+      "scandinavian", "jepang", "rustic", "vintage"
+    ],
+    
+    // HARGA (BUDGET)
     harga: ["murah", "hemat", "ekonomis", "terjangkau", "budget", "premium", "mahal", "mewah"],
-    // ✅ BARU: KATEGORI "PRODUK" (v22.37)
+    
+    // PRODUK
     produk: ["precast", "pracetak", "ready mix", "readymix", "siap pakai", "custom", "standar"]
   };
 
@@ -203,45 +248,33 @@
   }
 
   // ============================================================
-  // 🔥 FUNGSI GET CORE WORDS (HAPUS ENTITY & HARGA)
+  // 🔥 FUNGSI GET CORE WORDS
   // ============================================================
 
   function getCoreWords(text) {
     const words = text.toLowerCase().split(/\s+/);
-    
-    // Hapus kata entity
     let filteredWords = words.filter(w => !ENTITY_WORDS.includes(w) && w.length > 1);
-    
-    // Hapus kata harga
     filteredWords = filteredWords.filter(w => !PRICE_WORDS.includes(w));
-    
-    // Hapus stopwords
     filteredWords = filteredWords.filter(w => !STOPWORDS.has(w));
-    
     return filteredWords;
   }
 
   // ============================================================
-  // 🔥 FUNGSI GET BASE KEYWORD (TANPA DAFTAR)
+  // 🔥 FUNGSI GET BASE KEYWORD
   // ============================================================
 
   function getBaseKeyword(text) {
     const coreWords = getCoreWords(text);
-    
-    // Ambil 2 kata pertama sebagai base
     let baseWords = coreWords.slice(0, 2);
     let baseKeyword = baseWords.join(' ');
-    
-    // Jika baseKeyword terlalu pendek (<3 karakter), ambil 3 kata
     if (baseKeyword.length < 3 && coreWords.length >= 3) {
       baseKeyword = coreWords.slice(0, 3).join(' ');
     }
-    
     return baseKeyword;
   }
 
   // ============================================================
-  // 🔥 DETEKSI LEVEL UTAMA — v22.37
+  // 🔥 DETEKSI LEVEL UTAMA — v22.38
   // ============================================================
 
   function detectLevelWithoutList(text, entityType) {
@@ -264,25 +297,21 @@
     const hasLocation = isLocation(lowerText);
     const hasSpec = hasSpecification(lowerText);
     
-    // 🔥 Jika tidak ada tambahan kata → MONEY_MASTER
     if (!hasAdditional) {
       log(`🏛️ TANPA TAMBAHAN: "${text}" → MONEY_MASTER (core: ${coreWords.join(' ')})`, 'MM');
       return "money-master";
     }
     
-    // 🔥 Jika ada lokasi → MONEY_CHILD
     if (hasLocation) {
       log(`📍 LOKASI: "${text}" → MONEY_CHILD`, 'LOCATION');
       return "money-child";
     }
     
-    // 🔥 Jika ada spesifikasi → MONEY_CHILD
     if (hasSpec) {
       log(`🔧 SPESIFIKASI: "${text}" → MONEY_CHILD (spesifikasi ditemukan)`, 'VARIANT');
       return "money-child";
     }
     
-    // 🔥 Jika ada tambahan tapi tidak spesifik/lokasi → MONEY_PAGE
     log(`📄 TAMBAHAN: "${text}" → MONEY_PAGE (tambahan: ${additionalWords.join(', ')})`, 'PRICE');
     return "money-page";
   }
@@ -404,13 +433,18 @@
     TYPE_LEVEL_MAP,
     VALID_ENTITY_TYPES,
     PILLAR_NAMES,
-    version: "22.37"
+    version: "22.38"
   };
 
   window.pageLevelDetectorv22Ready = true;
   window.dispatchEvent(new Event("pageLevelDetectorv22Ready"));
 
-  console.log("✅ Page Level Detector v22.37 Ready");
+  console.log("✅ Page Level Detector v22.38 Ready");
+  console.log("🧠 FIX v22.38: TAMBAH SPESIFIKASI ENTITY LAIN");
+  console.log("   - JASA: rumah tinggal, gedung, pabrik, gudang, ruko, sekolah, rumah sakit, jalan, jembatan, infrastruktur");
+  console.log("   - SEWA: long arm, breaker, diesel, hydraulic, crawler, wheel, vibro, roller, compactor, bulldozer, excavator, crane");
+  console.log("   - MATERIAL: semen, pasir, batu split, kerikil, besi, baja, kayu, keramik, granit, marmer, gypsum, plafon, paving");
+  console.log("   - DESAIN: modern, minimalis, klasik, tradisional, kontemporer, elegan, luxury, industrial, scandinavian, jepang");
   console.log("🧠 FIX v22.37: TAMBAH KATEGORI 'PRODUK'");
   console.log("   - precast, pracetak, ready mix → MC");
   console.log("🧠 FIX v22.36: TAMBAH KATEGORI 'HARGA'");
