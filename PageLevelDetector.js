@@ -1,10 +1,12 @@
 /* ============================================================
- 🧠 Page Level Detector v22.43 — FIX "hasPrice is not a function"
+ 🧠 Page Level Detector v22.44 — FULL FIX MONEY_CHILD LOGIC
+    ✅ FIX v22.44: MONEY_CHILD = LOKASI + PRODUK (tanpa spesifikasi teknis)
+    ✅ FIX v22.44: VARIANT = SPESIFIKASI TEKNIS (tanpa lokasi, TANPA harga)
+    ✅ FIX v22.44: MONEY_PAGE = HARGA + SPESIFIKASI (tanpa lokasi)
+    ✅ FIX v22.44: MONEY_PAGE = LOKASI + SPESIFIKASI (apapun harganya)
     ✅ FIX v22.43: Rename hasPrice() → checkHasPrice()
     ✅ FIX v22.43: Rename hasSpecification() → checkHasSpecification()
-    ✅ FIX v22.42: MONEY_CHILD = LOKASI + PRODUK (tanpa spesifikasi teknis)
     ✅ FIX v22.42: Harga tidak mempengaruhi keputusan MONEY_CHILD
-    ✅ FIX v22.42: Variant hanya jika ada spesifikasi tanpa lokasi
     ✅ FIX v22.41: Perbaiki urutan deklarasi fungsi (hoisting)
     ✅ FIX v22.40: MENUNGGU DOM READY + BREADCRUMBS
 ============================================================ */
@@ -13,7 +15,7 @@
   "use strict";
 
   if (window.pageLevelDetectorv22) {
-    console.warn("⚠️ [PLD v22.43] Page Level Detector already loaded!");
+    console.warn("⚠️ [PLD v22.44] Page Level Detector already loaded!");
     return;
   }
 
@@ -40,7 +42,7 @@
       EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐", QUALITY: "📊",
       DOM: "🌐", BREAD: "🍞", TIMER: "⏱️", EXTERNAL: "📦"
     };
-    console.log((icons[type] || "📘") + " [PLD v22.43] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.44] " + message);
   }
 
   log('📦 External JS loaded', 'EXTERNAL');
@@ -156,7 +158,7 @@
   }
 
   // ============================================================
-  // 🔥 FUNGSI DETEKSI — DENGAN NAMA UNIK (FIXED)
+  // 🔥 FUNGSI DETEKSI — DENGAN NAMA UNIK
   // ============================================================
 
   function isLocation(text) {
@@ -169,7 +171,6 @@
     return false;
   }
 
-  // ✅ FIX: Rename dari hasPrice → checkHasPrice
   function checkHasPrice(text) {
     for (var i = 0; i < PRICE_WORDS.length; i++) {
       if (text.indexOf(PRICE_WORDS[i]) !== -1) return true;
@@ -177,7 +178,6 @@
     return false;
   }
 
-  // ✅ FIX: Rename dari hasSpecification → checkHasSpecification
   function checkHasSpecification(text) {
     var lower = text.toLowerCase();
     for (var i = 0; i < ALL_SPEC_WORDS.length; i++) {
@@ -248,7 +248,7 @@
   }
 
   // ============================================================
-  // 🔥 DETEKSI LEVEL UTAMA — v22.43 (FIXED FUNCTION NAMES)
+  // 🔥 DETEKSI LEVEL UTAMA — v22.44 (FULL FIX MONEY_CHILD)
   // ============================================================
 
   function detectLevelWithoutList(text, entityType) {
@@ -257,7 +257,6 @@
     var baseKeyword = getBaseKeyword(text);
     var baseWords = baseKeyword.split(' ');
     
-    // ✅ FIX: Panggil fungsi dengan nama baru
     var hasLocation = isLocation(lowerText);
     var hasSpec = checkHasSpecification(lowerText);
     var hasPrice = checkHasPrice(lowerText);
@@ -273,20 +272,26 @@
     }
     
     // ============================================================
-    // 🔥 PRIORITAS 1: VARIANT / SUB-VARIANT (spesifikasi teknis tanpa lokasi)
+    // 🔥 PRIORITAS 1: VARIANT / SUB-VARIANT 
+    //    = SPESIFIKASI TEKNIS (tanpa lokasi, TANPA harga)
+    //    Contoh: pagar-panel-beton-motif → VARIANT
+    //            pagar-panel-beton-k225 → SUB-VARIANT
     // ============================================================
-    if (hasSpec && !hasLocation) {
+    if (hasSpec && !hasLocation && !hasPrice) {
       if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|k|m3|liter)/gi.test(lowerText)) {
         log('🔬 SUB-VARIANT (SPESIFIKASI + DIMENSI): "' + text + '"', 'VARIANT');
         return "sub-variant";
       }
-      log('🔬 VARIANT (SPESIFIKASI MURNI): "' + text + '"', 'VARIANT');
+      log('🔬 VARIANT (SPESIFIKASI MURNI, tanpa harga): "' + text + '"', 'VARIANT');
       return "variant";
     }
     
     // ============================================================
-    // 🔥 PRIORITAS 2: MONEY_CHILD = LOKASI + PRODUK (tanpa spesifikasi teknis)
-    //    Harga dan kata tambahan non-spesifikasi tidak mempengaruhi
+    // 🔥 PRIORITAS 2: MONEY_CHILD 
+    //    = LOKASI + PRODUK (tanpa spesifikasi teknis)
+    //    Harga diabaikan (boleh ada atau tidak)
+    //    Contoh: pagar-panel-beton-jakarta → MONEY_CHILD
+    //            harga-pagar-panel-beton-jakarta → MONEY_CHILD
     // ============================================================
     if (hasLocation && !hasSpec) {
       log('📍 MONEY_CHILD (LOKASI + PRODUK, tanpa spesifikasi teknis): "' + text + '"', 'LOCATION');
@@ -295,12 +300,18 @@
     
     // ============================================================
     // 🔥 PRIORITAS 3: MONEY_PAGE
-    //    - Lokasi + spesifikasi teknis
-    //    - Harga tanpa lokasi
-    //    - Kata tambahan (non-core) tanpa lokasi
+    //    - Lokasi + spesifikasi teknis (apapun harganya)
+    //    - Harga + spesifikasi (tanpa lokasi)
+    //    - Harga atau tambahan tanpa lokasi (tanpa spesifikasi)
+    //    Contoh: harga-pagar-panel-beton-motif → MONEY_PAGE
+    //            pagar-panel-beton-k225-jakarta → MONEY_PAGE
     // ============================================================
     if (hasLocation && hasSpec) {
       log('📄 MONEY_PAGE (LOKASI + SPESIFIKASI TEKNIS): "' + text + '"', 'PRICE');
+      return "money-page";
+    }
+    if (!hasLocation && hasPrice && hasSpec) {
+      log('📄 MONEY_PAGE (HARGA + SPESIFIKASI, tanpa lokasi): "' + text + '"', 'PRICE');
       return "money-page";
     }
     if (!hasLocation && (hasPrice || hasAdditional)) {
@@ -309,7 +320,9 @@
     }
     
     // ============================================================
-    // 🔥 PRIORITAS 4: MONEY_MASTER (tanpa tambahan apapun)
+    // 🔥 PRIORITAS 4: MONEY_MASTER 
+    //    = Tanpa tambahan apapun
+    //    Contoh: pagar-panel-beton → MONEY_MASTER
     // ============================================================
     log('🏛️ MONEY_MASTER: "' + text + '"', 'MM');
     return "money-master";
@@ -545,10 +558,10 @@
     if (level === 'pillar') strategies.push("PILLAR: exact match \"" + text + "\"");
     else if (level === 'sub-pillar-tipe-2') strategies.push("SP2: daftar/jenis/kategori");
     else if (level === 'sub-pillar-tipe-1') strategies.push("SP1: perbandingan/vs");
-    else if (level === 'money-child') strategies.push("MC: lokasi + produk (tanpa spesifikasi)");
-    else if (level === 'variant') strategies.push("VARIANT: spesifikasi \"" + text + "\"");
-    else if (level === 'sub-variant') strategies.push("SUB-VARIANT: spesifikasi detail dengan dimensi");
-    else if (level === 'money-page') strategies.push("MP: " + coreWords.length + " core words (ada tambahan)");
+    else if (level === 'money-child') strategies.push("MC: lokasi + produk (tanpa spesifikasi teknis)");
+    else if (level === 'variant') strategies.push("VARIANT: spesifikasi teknis (tanpa harga)");
+    else if (level === 'sub-variant') strategies.push("SUB-VARIANT: spesifikasi + dimensi");
+    else if (level === 'money-page') strategies.push("MP: " + coreWords.length + " core words");
     else if (level === 'money-master') strategies.push("MM: " + coreWords.length + " core words (tanpa tambahan)");
     
     return { level: level, confidence: 100, strategies: strategies, strategyCount: strategies.length };
@@ -642,7 +655,7 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.43",
+      version: "22.44",
       CONFIG: CONFIG,
       
       detect: detectPageLevel,
@@ -744,10 +757,18 @@
       } catch (e2) {}
     }
 
-    console.log("✅ Page Level Detector v22.43 Ready — FIXED ERROR!");
-    console.log("🔧 FIX: hasPrice → checkHasPrice");
-    console.log("🔧 FIX: hasSpecification → checkHasSpecification");
+    console.log("✅ Page Level Detector v22.44 Ready — FULL FIX!");
     console.log("📍 MONEY_CHILD = LOKASI + PRODUK (tanpa spesifikasi teknis)");
+    console.log("🔬 VARIANT = SPESIFIKASI TEKNIS (tanpa lokasi, TANPA harga)");
+    console.log("📄 MONEY_PAGE = HARGA + SPESIFIKASI (tanpa lokasi)");
+    console.log("📄 MONEY_PAGE = LOKASI + SPESIFIKASI (apapun harganya)");
+    console.log("");
+    console.log("📊 CONTOH HASIL:");
+    console.log("  ✅ pagar-panel-beton-jakarta → MONEY_CHILD");
+    console.log("  ✅ harga-pagar-panel-beton-jakarta → MONEY_CHILD");
+    console.log("  ✅ pagar-panel-beton-motif → VARIANT");
+    console.log("  ✅ harga-pagar-panel-beton-motif → MONEY_PAGE");
+    console.log("  ✅ pagar-panel-beton-k225-jakarta → MONEY_PAGE");
 
     window.pageLevelDetectorv22.updateAttributes()
       .then(function(result) {
@@ -765,7 +786,7 @@
   // 📌 START — WAIT DOM READY
   // ============================================================
 
-  log('🚀 Starting Page Level Detector v22.43...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.44...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
