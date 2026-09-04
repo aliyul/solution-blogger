@@ -1,5 +1,6 @@
 /* ============================================================
- 🔥 Hybrid Date Modified v9.5 — UNTUK betonjayareadymix.com
+ 🔥 Hybrid Date Modified v9.6 — UNTUK betonjayareadymix.com
+    ✅ FIX v9.6: WAIT BREADCRUMB sebelum eksekusi
     ✅ FIX v9.5: WAIT DOMContentLoaded sebelum eksekusi
     ✅ FIX v9.5: Pastikan DOM siap sebelum querySelector
     ✅ FIX v9.4: Hapus getEventListeners (tidak tersedia di script normal)
@@ -23,6 +24,7 @@
     ✅ FIXED v9.3: SKIP LOGIC untuk halaman statis & homepage
     ✅ FIXED v9.4: Hapus getEventListeners (fix error)
     ✅ FIXED v9.5: DOMContentLoaded waiter sebelum eksekusi
+    ✅ FIXED v9.6: WAIT BREADCRUMB sebelum eksekusi
 ============================================================ */
 
 (function() {
@@ -33,13 +35,13 @@
   // ============================================================
   
   if (document.readyState === "loading") {
-    console.log("[HybridDateModified v9.5] ⏳ Menunggu DOMContentLoaded...");
+    console.log("[HybridDateModified v9.6] ⏳ Menunggu DOMContentLoaded...");
     document.addEventListener("DOMContentLoaded", function() {
-      console.log("[HybridDateModified v9.5] ✅ DOM siap, menjalankan script...");
+      console.log("[HybridDateModified v9.6] ✅ DOM siap, menjalankan script...");
       setTimeout(runHybridDateModified, 300);
     });
   } else {
-    console.log("[HybridDateModified v9.5] ✅ DOM sudah siap, menjalankan script...");
+    console.log("[HybridDateModified v9.6] ✅ DOM sudah siap, menjalankan script...");
     setTimeout(runHybridDateModified, 300);
   }
 
@@ -89,32 +91,44 @@
       
       // JIKA HOMEPAGE → SKIP
       if (isHomepage) {
-        console.log(`⏸️ [HybridDateModified v9.5] HOMEPAGE terdeteksi (${currentPath}), skip script.`);
+        console.log(`⏸️ [HybridDateModified v9.6] HOMEPAGE terdeteksi (${currentPath}), skip script.`);
         console.log(`   📌 Homepage tidak memerlukan dateModified untuk SEO.`);
         return;
       }
       
       // JIKA HALAMAN STATIS → SKIP
       if (isStaticPage) {
-        console.log(`⏸️ [HybridDateModified v9.5] HALAMAN STATIS terdeteksi (${currentPath}), skip script.`);
+        console.log(`⏸️ [HybridDateModified v9.6] HALAMAN STATIS terdeteksi (${currentPath}), skip script.`);
         console.log(`   📌 Halaman statis tidak memerlukan dateModified dinamis.`);
         return;
       }
       
       // JIKA HALAMAN TANPA KONTEN UTAMA → SKIP
       if (!isContentPage) {
-        console.log(`⏸️ [HybridDateModified v9.5] HALAMAN TANPA KONTEN UTAMA (${currentPath}), skip script.`);
+        console.log(`⏸️ [HybridDateModified v9.6] HALAMAN TANPA KONTEN UTAMA (${currentPath}), skip script.`);
         console.log(`   📌 Halaman tanpa konten utama tidak memerlukan dateModified.`);
         return;
       }
       
-      console.log(`✅ [HybridDateModified v9.5] Halaman ${currentPath} LAYAK diproses.`);
+      console.log(`✅ [HybridDateModified v9.6] Halaman ${currentPath} LAYAK diproses.`);
+
+      // ============================================================
+      // 🔥🔥🔥 WAIT FOR BREADCRUMB (FIX v9.6) 🔥🔥🔥
+      // ============================================================
+      
+      console.log("🍞 [HybridDateModified v9.6] Menunggu breadcrumb terbentuk...");
+      const breadcrumbReady = await waitForBreadcrumb(3000);
+      if (breadcrumbReady) {
+        console.log(`✅ [HybridDateModified v9.6] Breadcrumb siap`);
+      } else {
+        console.log(`⏰ [HybridDateModified v9.6] Breadcrumb timeout, lanjutkan tanpa breadcrumb`);
+      }
 
       // ============================================================
       // 🔥🔥🔥 MATIKAN SEMUA SCRIPT DATE MODIFIED VERSI LAMA 🔥🔥🔥
       // ============================================================
       
-      console.log("🛑 [HybridDateModified v9.5] Mencari dan mematikan script date modified versi lama...");
+      console.log("🛑 [HybridDateModified v9.6] Mencari dan mematikan script date modified versi lama...");
       
       // 1. MATIKAN FUNGSI HYBRID DATE MODIFIED LAMA
       if (window.runHybridDateModified) {
@@ -140,15 +154,15 @@
       });
       
       // 3. TANDAI SCRIPT INI SEBAGAI YANG AKTIF
-      window.__hybridDateModifiedActive = 'v9.5';
+      window.__hybridDateModifiedActive = 'v9.6';
       window.__hybridDateModifiedReady = true;
       window.runHybridDateModified = runHybridDateModified;
       
-      console.log("✅ [HybridDateModified v9.5] Script versi lama telah dimatikan.");
-      console.log("🚀 [HybridDateModified v9.5] Memulai eksekusi...");
+      console.log("✅ [HybridDateModified v9.6] Script versi lama telah dimatikan.");
+      console.log("🚀 [HybridDateModified v9.6] Memulai eksekusi...");
 
       // ============================================================
-      // 📌 KONSTANTA PAGE LEVELS (V37 — REVISI v9.5)
+      // 📌 KONSTANTA PAGE LEVELS (V37 — REVISI v9.6)
       // ============================================================
       const EVERGREEN_LEVELS = [
         'home', 
@@ -268,6 +282,57 @@
       }
 
       // ============================================================
+      // 📌 WAIT FOR BREADCRUMB (FIX v9.6)
+      // ============================================================
+      function waitForBreadcrumb(timeout = 3000) {
+        return new Promise((resolve) => {
+          const startTime = Date.now();
+
+          function checkBreadcrumb() {
+            const breadcrumbSelectors = [
+              '.breadcrumbs',
+              '.breadcrumb',
+              '.nav-trail',
+              '.breadcrumb-item',
+              '.crumbs',
+              '.breadcrumb-link',
+              '[aria-label="breadcrumb"]',
+              '.post-breadcrumb',
+              '.breadcrumb-nav',
+              '.nav-breadcrumb'
+            ];
+
+            for (const selector of breadcrumbSelectors) {
+              const element = document.querySelector(selector);
+              if (element) {
+                const links = element.querySelectorAll('a');
+                if (links.length > 0) {
+                  console.log(`🍞 [HybridDateModified v9.6] Breadcrumb ditemukan (${selector}) — ${links.length} link`);
+                  resolve(true);
+                  return;
+                }
+                if (element.innerText.trim().length > 0) {
+                  console.log(`🍞 [HybridDateModified v9.6] Breadcrumb ditemukan (${selector}) — ada teks`);
+                  resolve(true);
+                  return;
+                }
+              }
+            }
+
+            if (Date.now() - startTime > timeout) {
+              console.log(`⏰ [HybridDateModified v9.6] Breadcrumb timeout (${timeout}ms), lanjutkan`);
+              resolve(false);
+              return;
+            }
+
+            setTimeout(checkBreadcrumb, 100);
+          }
+
+          checkBreadcrumb();
+        });
+      }
+
+      // ============================================================
       // 📌 LOAD ALL SCRIPTS
       // ============================================================
       async function loadAllScripts() {
@@ -295,7 +360,7 @@
       }
 
       // ============================================================
-      // 📌 DETEKSI FOKUS KONTEN — V9.5
+      // 📌 DETEKSI FOKUS KONTEN — V9.6
       // ============================================================
       function detectContentFocus() {
         const h1 = document.querySelector('h1');
@@ -444,7 +509,7 @@
       }
 
       // ============================================================
-      // 📌 FUNGSI MENENTUKAN CUSTOM DATE (V9.5)
+      // 📌 FUNGSI MENENTUKAN CUSTOM DATE (V9.6)
       // ============================================================
       function getCustomDateByPageLevel(pageLevel, entityType, contentFocus) {
         if (EVERGREEN_LEVELS.includes(pageLevel)) {
@@ -496,7 +561,7 @@
       }
 
       // ============================================================
-      // 📌 FUNGSI GET CATEGORY LABEL (V9.5)
+      // 📌 FUNGSI GET CATEGORY LABEL (V9.6)
       // ============================================================
       function getCategoryLabel(pageLevel, contentFocus) {
         if (pageLevel === 'home') return 'HOMEPAGE (EVERGREEN — V37)';
@@ -581,14 +646,15 @@
       // 📌 EKSEKUSI UTAMA
       // ============================================================
       
-      console.log("🔥 Hybrid Date Modified v9.5 - Starting...");
+      console.log("🔥 Hybrid Date Modified v9.6 - Starting...");
       console.log("📋 V37 COMPLIANT: SP1 → EVERGREEN, MP Informasi → EVERGREEN");
       console.log("📋 FIX v9.2: MM Informasi → EVERGREEN, MM Harga → NON-EVERGREEN");
       console.log("📋 FIX v9.2: MC Informasi → EVERGREEN, MC Harga → NON-EVERGREEN");
       console.log("📋 FIX v9.3: SKIP LOGIC untuk halaman statis & homepage");
       console.log("📋 FIX v9.4: Hapus getEventListeners (fix error)");
       console.log("📋 FIX v9.5: DOMContentLoaded waiter sebelum eksekusi");
-      console.log("📋 ATURAN V9.5: PATOKAN H1 (Informasi → Evergreen, Harga → Non-Evergreen)");
+      console.log("📋 FIX v9.6: WAIT BREADCRUMB sebelum eksekusi");
+      console.log("📋 ATURAN V9.6: PATOKAN H1 (Informasi → Evergreen, Harga → Non-Evergreen)");
       
       await loadAllScripts();
       
@@ -688,10 +754,11 @@
         focusPriority: focusPriority,
         mode: manualMode ? 'MANUAL' : 'AUTO',
         originalDateModified: dateModified,
-        hybridVersion: '9.5',
+        hybridVersion: '9.6',
         detectionConfidence: confidence,
         detectionStrategies: strategies,
         detectionStrategyCount: strategyCount,
+        breadcrumbReady: breadcrumbReady,
         v37Rules: {
           sp1Evergreen: true,
           moneyPageInformasiEvergreen: contentFocus === 'informasi',
@@ -706,14 +773,15 @@
         }
       };
 
-      console.log(`✅ [HybridDateModified v9.5] ${uniquePageIdentifier}`);
+      console.log(`✅ [HybridDateModified v9.6] ${uniquePageIdentifier}`);
       console.log(`   → Final Date Modified: ${isoDate}`);
       console.log(`   → Offset: ${offsetSeconds} detik (${Math.floor(offsetSeconds / 3600)} jam ${Math.floor((offsetSeconds % 3600) / 60)} menit)`);
       console.log(`   → Mode: ${manualMode ? 'MANUAL' : 'AUTO'}`);
       console.log(`   → Category: ${categoryLabel}`);
       console.log(`   → Content Focus: ${contentFocus} (${focusReason})`);
       if (confidence) console.log(`   → Detection Confidence: ${confidence}%`);
-      console.log(`📋 Hybrid Date Modified v9.5 applied successfully ✅ (V37 COMPLIANT)`);
+      console.log(`   → Breadcrumb Ready: ${breadcrumbReady ? '✅' : '⏰'}`);
+      console.log(`📋 Hybrid Date Modified v9.6 applied successfully ✅ (V37 COMPLIANT)`);
 
     } catch (err) {
       console.error("[HybridDateModified] Fatal error:", err);
