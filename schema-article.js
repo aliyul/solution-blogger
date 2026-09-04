@@ -1,7 +1,9 @@
 /**
- * AUTO-SCHEMA GENERATOR v7.5 FINAL STABLE
+ * AUTO-SCHEMA GENERATOR v7.6 FINAL STABLE
  * INTEGRATED WITH Page Level Detector v22.x & Smart Evergreen Detector v15.2
  * 
+ * ✅ FIX v7.6: SP1/SP2/Pillar → WAJIB Article (prioritas tertinggi)
+ * ✅ FIX v7.6: Content Focus TIDAK mempengaruhi SP1/SP2/Pillar
  * ✅ FIX v7.5: Deteksi angka harga tanpa simbol Rp (H1 + tabel)
  * ✅ FIX v7.5: Jika ada kata "harga" di header tabel → PASTI HARGA
  * ✅ FIX v7.5: Deteksi harga dengan angka + satuan (per meter, per buah, dll)
@@ -19,7 +21,7 @@
  * ✅ FIX: Money Page Harga → PAKAI Product schema
  * ✅ FIX: Money Page Informasi → PAKAI Article schema
  *
- * @version 7.5 FINAL STABLE
+ * @version 7.6 FINAL STABLE
  * @date 2026-09-04
  */
 
@@ -35,11 +37,11 @@
     return new Promise((resolve) => {
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", function() {
-          console.log("[Schema v7.5] ✅ DOM siap");
+          console.log("[Schema v7.6] ✅ DOM siap");
           resolve();
         });
       } else {
-        console.log("[Schema v7.5] ✅ DOM sudah siap");
+        console.log("[Schema v7.6] ✅ DOM sudah siap");
         resolve();
       }
     });
@@ -72,12 +74,12 @@
           if (element) {
             const links = element.querySelectorAll('a');
             if (links.length > 0) {
-              console.log(`[Schema v7.5] ✅ Breadcrumb ditemukan (${selector}) — ${links.length} link`);
+              console.log(`[Schema v7.6] ✅ Breadcrumb ditemukan (${selector}) — ${links.length} link`);
               resolve(true);
               return;
             }
             if (element.innerText.trim().length > 0) {
-              console.log(`[Schema v7.5] ✅ Breadcrumb ditemukan (${selector}) — ada teks`);
+              console.log(`[Schema v7.6] ✅ Breadcrumb ditemukan (${selector}) — ada teks`);
               resolve(true);
               return;
             }
@@ -85,7 +87,7 @@
         }
 
         if (Date.now() - startTime > timeout) {
-          console.log(`[Schema v7.5] ⏰ Breadcrumb timeout (${timeout}ms), lanjutkan tanpa breadcrumb`);
+          console.log(`[Schema v7.6] ⏰ Breadcrumb timeout (${timeout}ms), lanjutkan tanpa breadcrumb`);
           resolve(false);
           return;
         }
@@ -104,14 +106,14 @@
   function waitForAEDMetaDates(timeout = 5000) {
     return new Promise((resolve) => {
       if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
-        console.log(`[Schema v7.5] ✅ AEDMetaDates ready: ${window.AEDMetaDates.dateModified}`);
+        console.log(`[Schema v7.6] ✅ AEDMetaDates ready: ${window.AEDMetaDates.dateModified}`);
         resolve(window.AEDMetaDates);
         return;
       }
 
       const onReady = () => {
         if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
-          console.log(`[Schema v7.5] ✅ AEDMetaDates ready (event): ${window.AEDMetaDates.dateModified}`);
+          console.log(`[Schema v7.6] ✅ AEDMetaDates ready (event): ${window.AEDMetaDates.dateModified}`);
           resolve(window.AEDMetaDates);
         } else {
           resolve(null);
@@ -124,14 +126,14 @@
       const interval = setInterval(() => {
         if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
           clearInterval(interval);
-          console.log(`[Schema v7.5] ✅ AEDMetaDates ready (interval): ${window.AEDMetaDates.dateModified}`);
+          console.log(`[Schema v7.6] ✅ AEDMetaDates ready (interval): ${window.AEDMetaDates.dateModified}`);
           resolve(window.AEDMetaDates);
           return;
         }
 
         if (Date.now() - startTime > timeout) {
           clearInterval(interval);
-          console.warn(`[Schema v7.5] ⏰ AEDMetaDates timeout (${timeout}ms), using fallback`);
+          console.warn(`[Schema v7.6] ⏰ AEDMetaDates timeout (${timeout}ms), using fallback`);
           resolve({
             datePublished: new Date().toISOString(),
             dateModified: new Date().toISOString()
@@ -192,7 +194,7 @@
       BREADCRUMB: "🍞",
       AED: "⚡"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.5] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.6] ${msg}`);
   }
 
   // =========================================================
@@ -664,49 +666,57 @@
 
   // =========================================================
   // CEK APAKAH PERLU ARTICLE SCHEMA (BERDASARKAN V37)
+  // 🔥 FIX v7.6: SP1/SP2/Pillar → PRIORITAS TERTINGGI (TANPA PEDULI FOKUS)
   // =========================================================
 
   function shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) {
     log(`📌 Evaluating: pageLevel=${pageLevel}, entityType=${entityType}, focus=${contentFocus}`, "INFO");
 
+    // =========================================================
+    // 🔥 PRIORITAS 1: LEVEL YANG WAJIB ARTICLE (TANPA PEDULI FOKUS)
+    // =========================================================
     const mandatoryArticleLevels = [
       'pillar',
       'sub-pillar-tipe-2',
       'sub-pillar-tipe-1'
     ];
 
-    const techArticleLevels = [
-      'variant',
-      'sub-variant'
-    ];
-
     if (mandatoryArticleLevels.includes(pageLevel)) {
-      log(`✅ WAJIB Article schema untuk ${pageLevel} (${entityType})`, "SUCCESS");
-      return true;
+      log(`✅ WAJIB Article schema untuk ${pageLevel} (${entityType}) — V37 (EVERGREEN)`, "SUCCESS");
+      log(`   🔥 Content Focus "${contentFocus}" TIDAK mempengaruhi ${pageLevel}`, "PRIORITY");
+      return true;  // ← LANGSUNG RETURN, TIDAK CEK FOKUS
     }
 
-    if (techArticleLevels.includes(pageLevel)) {
+    // =========================================================
+    // 🔥 PRIORITAS 2: VARIANT & SUB-VARIANT → TechArticle
+    // =========================================================
+    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
       log(`✅ WAJIB TechArticle schema untuk ${pageLevel} (${entityType})`, "SUCCESS");
       return true;
     }
 
-    // Money Master & Money Child → Tergantung fokus konten
+    // =========================================================
+    // 🔥 PRIORITAS 3: MONEY LEVEL → TERGANTUNG FOKUS
+    // =========================================================
     if (pageLevel === 'money-master' || pageLevel === 'money-child') {
       if (contentFocus === 'informasi') {
-        log(`✅ WAJIB Article schema untuk ${pageLevel.toUpperCase()} INFORMASI (EVERGREEN — V37)`, "SUCCESS");
+        log(`✅ Article schema untuk ${pageLevel.toUpperCase()} INFORMASI (EVERGREEN — V37)`, "SUCCESS");
         return true;
       } else {
-        log(`⏭️ Skip Article schema untuk ${pageLevel.toUpperCase()} HARGA - pakai Product/Service schema`, "SKIP");
+        log(`⏭️ Skip Article untuk ${pageLevel.toUpperCase()} HARGA - pakai Product/Service`, "SKIP");
         return false;
       }
     }
 
+    // =========================================================
+    // 🔥 PRIORITAS 4: MONEY PAGE → TERGANTUNG FOKUS
+    // =========================================================
     if (pageLevel === 'money-page') {
       if (contentFocus === 'informasi') {
-        log(`✅ WAJIB Article schema untuk MONEY_PAGE INFORMASI (${entityType})`, "SUCCESS");
+        log(`✅ Article schema untuk MONEY_PAGE INFORMASI`, "SUCCESS");
         return true;
       } else {
-        log(`⏭️ Skip Article schema untuk MONEY_PAGE HARGA - pakai Product/Service schema`, "SKIP");
+        log(`⏭️ Skip Article untuk MONEY_PAGE HARGA - pakai Product/Service`, "SKIP");
         return false;
       }
     }
@@ -860,7 +870,7 @@
 
   async function init() {
     log("================================");
-    log("AUTO SCHEMA GENERATOR v7.5");
+    log("AUTO SCHEMA GENERATOR v7.6");
     log("V37 COMPLIANT + WAIT BREADCRUMB + WAIT AED");
     log("================================");
 
@@ -913,7 +923,9 @@
     }
 
     const articleElem = document.getElementById("auto-schema");
-    if (articleElem && shouldGenerateArticleSchema(pageLevel, entityType, contentFocus)) {
+    const shouldGenerate = shouldGenerateArticleSchema(pageLevel, entityType, contentFocus);
+    
+    if (articleElem && shouldGenerate) {
       const dates = aedData || {
         datePublished: new Date().toISOString(),
         dateModified: new Date().toISOString()
@@ -924,6 +936,12 @@
         2
       );
       log(`ARTICLE SCHEMA GENERATED (${getArticleType(pageLevel)})`, "SUCCESS");
+      
+      // 🔥 FIX v7.6: Log khusus untuk SP1/SP2/Pillar
+      if (pageLevel === 'pillar' || pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
+        log(`   ✅ ${pageLevel.toUpperCase()} → Article schema (EVERGREEN — V37)`, "SUCCESS");
+        log(`   🔥 Content Focus "${contentFocus}" TIDAK mempengaruhi ${pageLevel}`, "PRIORITY");
+      }
       if (pageLevel === 'money-master' || pageLevel === 'money-child') {
         log(`   ✅ ${pageLevel.toUpperCase()} INFORMASI → Article schema (EVERGREEN — V37)`, "SUCCESS");
       }
@@ -939,9 +957,18 @@
     log(`   ✅ Content Focus: ${contentFocus}`);
     log(`   ✅ Breadcrumb: ${breadcrumbReady ? 'READY ✅' : 'NOT FOUND ⚠️'}`);
     log(`   ✅ AED: ${aedData ? 'READY ✅' : 'FALLBACK ⚠️'}`);
-    log(`   ✅ Article Schema: ${articleElem && shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) ? 'GENERATED' : 'SKIPPED'}`);
+    log(`   ✅ Article Schema: ${shouldGenerate ? 'GENERATED' : 'SKIPPED'}`);
+    
+    // 🔥 FIX v7.6: Detail log per level
+    if (pageLevel === 'pillar' || pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
+      log(`   ✅ ${pageLevel.toUpperCase()} → WAJIB Article (EVERGREEN) — V37`, "SUCCESS");
+      log(`   🔥 Content Focus "${contentFocus}" TIDAK mempengaruhi ${pageLevel}`, "PRIORITY");
+    }
     if (pageLevel === 'money-master' || pageLevel === 'money-child') {
       log(`   ✅ ${pageLevel.toUpperCase()} ${contentFocus.toUpperCase()}: ${contentFocus === 'informasi' ? 'Article (EVERGREEN)' : 'Product/Service (NON-EVERGREEN)'} — V37`);
+    }
+    if (pageLevel === 'money-page') {
+      log(`   ✅ MONEY_PAGE ${contentFocus.toUpperCase()}: ${contentFocus === 'informasi' ? 'Article' : 'Product/Service'}`);
     }
     log("================================");
   }
