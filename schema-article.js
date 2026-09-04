@@ -1,7 +1,11 @@
 /**
- * AUTO-SCHEMA GENERATOR v7.2 FINAL STABLE
+ * AUTO-SCHEMA GENERATOR v7.3 FINAL STABLE
  * INTEGRATED WITH Page Level Detector v22.x & Smart Evergreen Detector v15.2
  * 
+ * ✅ FIX v7.3: MM Informasi → WAJIB Article schema (EVERGREEN — V37)
+ * ✅ FIX v7.3: MC Informasi → WAJIB Article schema (EVERGREEN — V37)
+ * ✅ FIX v7.3: waitForAEDMetaDates() untuk sinkronisasi dengan AED
+ * ✅ FIX v7.3: Update shouldGenerateArticleSchema() dengan content focus
  * ✅ FIX v7.2: WAIT BREADCRUMB sebelum eksekusi schema
  * ✅ FIX v7.1: SKIP LOGIC untuk Homepage & Halaman Statis
  * ✅ FIX v7.1: DOMContentLoaded waiter sebelum eksekusi
@@ -14,7 +18,7 @@
  * ✅ FIX: Money Page Informasi → PAKAI Article schema
  * ✅ FIX: Hapus WebPage schema fallback untuk artikel
  *
- * @version 7.2 FINAL STABLE
+ * @version 7.3 FINAL STABLE
  * @date 2026-09-04
  */
 
@@ -30,11 +34,11 @@
     return new Promise((resolve) => {
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", function() {
-          console.log("[Schema v7.2] ✅ DOM siap");
+          console.log("[Schema v7.3] ✅ DOM siap");
           resolve();
         });
       } else {
-        console.log("[Schema v7.2] ✅ DOM sudah siap");
+        console.log("[Schema v7.3] ✅ DOM sudah siap");
         resolve();
       }
     });
@@ -48,7 +52,6 @@
     return new Promise((resolve) => {
       const startTime = Date.now();
 
-      // CEK APAKAH BREADCRUMB SUDAH ADA
       function checkBreadcrumb() {
         const breadcrumbSelectors = [
           '.breadcrumbs',
@@ -68,32 +71,75 @@
           if (element) {
             const links = element.querySelectorAll('a');
             if (links.length > 0) {
-              console.log(`[Schema v7.2] ✅ Breadcrumb ditemukan (${selector}) — ${links.length} link`);
+              console.log(`[Schema v7.3] ✅ Breadcrumb ditemukan (${selector}) — ${links.length} link`);
               resolve(true);
               return;
             }
-            // Jika ada element breadcrumb tapi belum ada link, tunggu lagi
             if (element.innerText.trim().length > 0) {
-              console.log(`[Schema v7.2] ✅ Breadcrumb ditemukan (${selector}) — ada teks`);
+              console.log(`[Schema v7.3] ✅ Breadcrumb ditemukan (${selector}) — ada teks`);
               resolve(true);
               return;
             }
           }
         }
 
-        // CEK APAKAH TIMEOUT
         if (Date.now() - startTime > timeout) {
-          console.log(`[Schema v7.2] ⏰ Breadcrumb timeout (${timeout}ms), lanjutkan tanpa breadcrumb`);
+          console.log(`[Schema v7.3] ⏰ Breadcrumb timeout (${timeout}ms), lanjutkan tanpa breadcrumb`);
           resolve(false);
           return;
         }
 
-        // TUNGGU LAGI 100ms
         setTimeout(checkBreadcrumb, 100);
       }
 
-      // CEK PERTAMA KALI
       checkBreadcrumb();
+    });
+  }
+
+  // =========================================================
+  // WAIT FOR AEDMetaDates — TUNGGU DATA DARI SMART EVERGREEN DETECTOR
+  // =========================================================
+
+  function waitForAEDMetaDates(timeout = 5000) {
+    return new Promise((resolve) => {
+      // CEK APAKAH SUDAH ADA
+      if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
+        console.log(`[Schema v7.3] ✅ AEDMetaDates ready: ${window.AEDMetaDates.dateModified}`);
+        resolve(window.AEDMetaDates);
+        return;
+      }
+
+      // TUNGGU EVENT DARI AED
+      const onReady = () => {
+        if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
+          console.log(`[Schema v7.3] ✅ AEDMetaDates ready (event): ${window.AEDMetaDates.dateModified}`);
+          resolve(window.AEDMetaDates);
+        } else {
+          resolve(null);
+        }
+      };
+
+      window.addEventListener("detectEvergreenReady", onReady, { once: true });
+
+      // CEK BERKALA (100ms interval) SAMPAI TIMEOUT
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
+          clearInterval(interval);
+          console.log(`[Schema v7.3] ✅ AEDMetaDates ready (interval): ${window.AEDMetaDates.dateModified}`);
+          resolve(window.AEDMetaDates);
+          return;
+        }
+
+        if (Date.now() - startTime > timeout) {
+          clearInterval(interval);
+          console.warn(`[Schema v7.3] ⏰ AEDMetaDates timeout (${timeout}ms), using fallback`);
+          resolve({
+            datePublished: new Date().toISOString(),
+            dateModified: new Date().toISOString()
+          });
+        }
+      }, 100);
     });
   }
 
@@ -145,9 +191,10 @@
       TABLE: "📊",
       H1: "📝",
       PRIORITY: "🔴",
-      BREADCRUMB: "🍞"
+      BREADCRUMB: "🍞",
+      AED: "⚡"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.2] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.3] ${msg}`);
   }
 
   // =========================================================
@@ -547,6 +594,7 @@
 
   // =========================================================
   // CEK APAKAH PERLU ARTICLE SCHEMA (BERDASARKAN V37)
+  // 🔥 FIX v7.3: MM Informasi & MC Informasi → WAJIB Article
   // =========================================================
 
   function shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) {
@@ -569,14 +617,6 @@
       'sub-variant'
     ];
 
-    // =========================================================
-    // LEVEL YANG TIDAK PAKAI ARTICLE (pakai Service/Product)
-    // =========================================================
-    const nonArticleLevels = [
-      'money-master',
-      'money-child'
-    ];
-
     // 1. CEK: Pillar, SP2, SP1 → WAJIB Article
     if (mandatoryArticleLevels.includes(pageLevel)) {
       log(`✅ WAJIB Article schema untuk ${pageLevel} (${entityType})`, "SUCCESS");
@@ -589,24 +629,31 @@
       return true;
     }
 
-    // 3. CEK: Money Master, Money Child → TIDAK PAKAI Article
-    if (nonArticleLevels.includes(pageLevel)) {
-      log(`⏭️ Skip Article schema untuk ${pageLevel} - pakai Service/Product schema`, "SKIP");
-      return false;
+    // =========================================================
+    // 🔥 FIX v7.3: Money Master & Money Child → Tergantung fokus konten
+    // =========================================================
+    if (pageLevel === 'money-master' || pageLevel === 'money-child') {
+      if (contentFocus === 'informasi') {
+        log(`✅ WAJIB Article schema untuk ${pageLevel.toUpperCase()} INFORMASI (EVERGREEN — V37)`, "SUCCESS");
+        return true;
+      } else {
+        log(`⏭️ Skip Article schema untuk ${pageLevel.toUpperCase()} HARGA - pakai Product/Service schema`, "SKIP");
+        return false;
+      }
     }
 
-    // 4. CEK: Money Page → Tergantung fokus konten
+    // 3. CEK: Money Page → Tergantung fokus konten
     if (pageLevel === 'money-page') {
       if (contentFocus === 'informasi') {
         log(`✅ WAJIB Article schema untuk MONEY_PAGE INFORMASI (${entityType})`, "SUCCESS");
         return true;
       } else {
-        log(`⏭️ Skip Article schema untuk MONEY_PAGE HARGA - pakai Product schema`, "SKIP");
+        log(`⏭️ Skip Article schema untuk MONEY_PAGE HARGA - pakai Product/Service schema`, "SKIP");
         return false;
       }
     }
 
-    // 5. FALLBACK: Jika tidak masuk kriteria di atas
+    // 4. FALLBACK: Jika tidak masuk kriteria di atas
     log(`⏭️ Skip Article schema untuk ${pageLevel} - tidak masuk kriteria`, "SKIP");
     return false;
   }
@@ -697,7 +744,9 @@
     else if (pageLevel === 'sub-pillar-tipe-2') articleSection = "Jenis & Kategori";
     else if (pageLevel === 'sub-pillar-tipe-1') articleSection = "Perbandingan & Analisis";
     else if (pageLevel === 'variant' || pageLevel === 'sub-variant') articleSection = "Spesifikasi Teknis";
-    else if (pageLevel === 'money-page' && focus === 'informasi') articleSection = "Informasi Produk";
+    else if ((pageLevel === 'money-master' || pageLevel === 'money-child' || pageLevel === 'money-page') && focus === 'informasi') {
+      articleSection = "Informasi & Edukasi";
+    }
 
     return {
       "@context": "https://schema.org",
@@ -736,27 +785,6 @@
   }
 
   // =========================================================
-  // WAIT AED META DATES
-  // =========================================================
-
-  function waitForAEDMetaDates(callback) {
-    let elapsed = 0;
-    const interval = setInterval(() => {
-      if (window.AEDMetaDates) {
-        clearInterval(interval);
-        callback(window.AEDMetaDates);
-      } else if (elapsed >= CONFIG.AED_TIMEOUT) {
-        clearInterval(interval);
-        callback({
-          datePublished: new Date().toISOString(),
-          dateModified: new Date().toISOString()
-        });
-      }
-      elapsed += 100;
-    }, 100);
-  }
-
-  // =========================================================
   // EXTRACT PAGE DATA
   // =========================================================
 
@@ -770,13 +798,13 @@
   }
 
   // =========================================================
-  // MAIN INIT (ASYNC) — DENGAN SKIP LOGIC + WAIT BREADCRUMB
+  // MAIN INIT (ASYNC) — DENGAN SKIP LOGIC + WAIT BREADCRUMB + WAIT AED
   // =========================================================
 
   async function init() {
     log("================================");
-    log("AUTO SCHEMA GENERATOR v7.2");
-    log("V37 COMPLIANT + WAIT BREADCRUMB");
+    log("AUTO SCHEMA GENERATOR v7.3");
+    log("V37 COMPLIANT + WAIT BREADCRUMB + WAIT AED");
     log("================================");
 
     // ============================================================
@@ -848,26 +876,44 @@
     }
 
     // ============================================================
-    // 🔥 STEP 8: ARTICLE SCHEMA (BERDASARKAN ATURAN V37)
+    // 🔥 STEP 8: TUNGGU AEDMetaDates (UNTUK DATE PUBLISHED & MODIFIED)
+    // ============================================================
+
+    log("⚡ Menunggu AEDMetaDates...", "AED");
+    const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
+    if (aedData) {
+      log(`✅ AED ready: ${aedData.dateModified}`, "AED");
+    } else {
+      log(`⚠️ AED tidak tersedia, gunakan fallback`, "WARN");
+    }
+
+    // ============================================================
+    // 🔥 STEP 9: ARTICLE SCHEMA (BERDASARKAN ATURAN V37)
+    // 🔥 FIX v7.3: MM Informasi & MC Informasi → WAJIB Article
     // ============================================================
 
     const articleElem = document.getElementById("auto-schema");
     if (articleElem && shouldGenerateArticleSchema(pageLevel, entityType, contentFocus)) {
-      waitForAEDMetaDates((dates) => {
-        articleElem.textContent = JSON.stringify(
-          generateArticleSchema(pageData, dates, pageLevel, entityType),
-          null,
-          2
-        );
-        log(`ARTICLE SCHEMA GENERATED (${getArticleType(pageLevel)})`, "SUCCESS");
-      });
+      const dates = aedData || {
+        datePublished: new Date().toISOString(),
+        dateModified: new Date().toISOString()
+      };
+      articleElem.textContent = JSON.stringify(
+        generateArticleSchema(pageData, dates, pageLevel, entityType),
+        null,
+        2
+      );
+      log(`ARTICLE SCHEMA GENERATED (${getArticleType(pageLevel)})`, "SUCCESS");
+      if (pageLevel === 'money-master' || pageLevel === 'money-child') {
+        log(`   ✅ ${pageLevel.toUpperCase()} INFORMASI → Article schema (EVERGREEN — V37)`, "SUCCESS");
+      }
     } else if (articleElem) {
       articleElem.textContent = "";
       log("Article schema skipped - using Service/Product schema instead", "INFO");
     }
 
     // ============================================================
-    // 🔥 STEP 9: CATATAN
+    // 🔥 STEP 10: CATATAN
     // ============================================================
 
     log("================================");
@@ -876,7 +922,11 @@
     log(`   ✅ Entity Type: ${entityType}`);
     log(`   ✅ Content Focus: ${contentFocus}`);
     log(`   ✅ Breadcrumb: ${breadcrumbReady ? 'READY ✅' : 'NOT FOUND ⚠️'}`);
+    log(`   ✅ AED: ${aedData ? 'READY ✅' : 'FALLBACK ⚠️'}`);
     log(`   ✅ Article Schema: ${articleElem && shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) ? 'GENERATED' : 'SKIPPED'}`);
+    if (pageLevel === 'money-master' || pageLevel === 'money-child') {
+      log(`   ✅ ${pageLevel.toUpperCase()} ${contentFocus.toUpperCase()}: ${contentFocus === 'informasi' ? 'Article (EVERGREEN)' : 'Product/Service (NON-EVERGREEN)'} — V37`);
+    }
     log("================================");
   }
 
