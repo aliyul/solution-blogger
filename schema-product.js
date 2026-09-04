@@ -1,7 +1,11 @@
 /**
- * ⚡ AutoSchema Hybrid v4.72 — V37 COMPLIANT
+ * ⚡ AutoSchema Hybrid v4.73 — V37 COMPLIANT + WAIT AED & BREADCRUMB
  * 
- * UPDATE v4.72:
+ * UPDATE v4.73:
+ * - ADD: waitForAEDMetaDates() — tunggu data dari Smart Evergreen Detector
+ * - ADD: waitForBreadcrumb() — tunggu breadcrumb terbentuk
+ * - FIX: priceValidUntil menggunakan AED.nextUpdate (bukan hardcoded)
+ * - FIX: Urutan eksekusi: Breadcrumb → PLD → AED → Schema
  * - FIX: MM Informasi → TANPA tahun (EVERGREEN) — V37
  * - FIX: MC Informasi → TANPA tahun (EVERGREEN) — V37
  * - FIX: Warna berbeda untuk Money Informasi vs Harga
@@ -10,8 +14,8 @@
  * - ADD: Deteksi fokus konten untuk MM dan MC
  * - ADD: Color config berdasarkan level + fokus konten
  * 
- * @version 4.72
- * @date 2026-09-03
+ * @version 4.73
+ * @date 2026-09-04
  */
 
 (function() {
@@ -26,6 +30,8 @@
     MAX_PRICE: 100000000,
     SKIP_WORD_COUNT: 300,
     PLD_TIMEOUT: 5000,
+    AED_TIMEOUT: 10000,
+    BREADCRUMB_TIMEOUT: 3000,
     // ✅ TAHUN MINIMAL UNTUK UPDATE (2025 = STOP)
     MIN_YEAR_TO_UPDATE: 2026
   };
@@ -36,9 +42,111 @@
 
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
-    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯", TABLE: "📊", H1: "📝", PRIORITY: "🔴", STOP: "🛑" };
+    const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯", TABLE: "📊", H1: "📝", PRIORITY: "🔴", STOP: "🛑", BREADCRUMB: "🍞", AED: "⚡" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.72] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.73] ${msg}`);
+  }
+
+  // ============================================================
+  // 🔥🔥🔥 WAIT FUNCTIONS 🔥🔥🔥
+  // ============================================================
+
+  // ✅ TUNGGU BREADCRUMB TERBENTUK
+  function waitForBreadcrumb(timeout = CONFIG.BREADCRUMB_TIMEOUT) {
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+
+      function checkBreadcrumb() {
+        const breadcrumbSelectors = [
+          '.breadcrumbs',
+          '.breadcrumb',
+          '.nav-trail',
+          '.breadcrumb-item',
+          '.crumbs',
+          '.breadcrumb-link',
+          '[aria-label="breadcrumb"]',
+          '.post-breadcrumb',
+          '.breadcrumb-nav',
+          '.nav-breadcrumb'
+        ];
+
+        for (const selector of breadcrumbSelectors) {
+          const element = document.querySelector(selector);
+          if (element) {
+            const links = element.querySelectorAll('a');
+            if (links.length > 0) {
+              log(`🍞 Breadcrumb ditemukan (${selector}) — ${links.length} link`, "BREADCRUMB");
+              resolve(true);
+              return;
+            }
+            if (element.innerText.trim().length > 0) {
+              log(`🍞 Breadcrumb ditemukan (${selector}) — ada teks`, "BREADCRUMB");
+              resolve(true);
+              return;
+            }
+          }
+        }
+
+        if (Date.now() - startTime > timeout) {
+          log(`⏰ Breadcrumb timeout (${timeout}ms), lanjutkan`, "WARN");
+          resolve(false);
+          return;
+        }
+
+        setTimeout(checkBreadcrumb, 100);
+      }
+
+      checkBreadcrumb();
+    });
+  }
+
+  // ✅ TUNGGU AEDMetaDates DARI SMART EVERGREEN DETECTOR
+  function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
+    return new Promise((resolve) => {
+      // CEK APAKAH SUDAH ADA
+      if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
+        log(`⚡ AEDMetaDates ready: ${window.AEDMetaDates.dateModified}`, "AED");
+        resolve(window.AEDMetaDates);
+        return;
+      }
+
+      // TUNGGU EVENT DARI AED
+      const onReady = () => {
+        if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
+          log(`⚡ AEDMetaDates ready (event): ${window.AEDMetaDates.dateModified}`, "AED");
+          resolve(window.AEDMetaDates);
+        } else {
+          resolve(null);
+        }
+      };
+
+      window.addEventListener("detectEvergreenReady", onReady, { once: true });
+
+      // CEK BERKALA (100ms interval) SAMPAI TIMEOUT
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
+          clearInterval(interval);
+          log(`⚡ AEDMetaDates ready (interval): ${window.AEDMetaDates.dateModified}`, "AED");
+          resolve(window.AEDMetaDates);
+          return;
+        }
+
+        if (Date.now() - startTime > timeout) {
+          clearInterval(interval);
+          log(`⏰ AEDMetaDates timeout (${timeout}ms), using fallback`, "WARN");
+          resolve({
+            dateModified: new Date().toISOString(),
+            nextUpdate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            validityDays: 30,
+            usePriceValidUntil: true,
+            pageLevel: 'money-page',
+            entityType: 'jasa',
+            type: 'non-evergreen'
+          });
+        }
+      }, 100);
+    });
   }
 
   // ============================================================
@@ -239,7 +347,7 @@
   }
 
   // ============================================================
-  // 🔥🔥🔥 UPDATE TAHUN DENGAN LOGIKA BARU (v4.72) 🔥🔥🔥
+  // 🔥🔥🔥 UPDATE TAHUN DENGAN LOGIKA BARU (v4.73) 🔥🔥🔥
   // ============================================================
   function updateH1Year(pageLevel) {
     if (!needYear(pageLevel)) {
@@ -258,7 +366,7 @@
     const detectedYear = extractYear(originalText);
 
     // ============================================================
-    // ATURAN v4.72: CEK TAHUN
+    // ATURAN v4.73: CEK TAHUN
     // ============================================================
     if (detectedYear) {
       // ✅ Jika tahun < 2025 → STOP, JANGAN UPDATE
@@ -604,7 +712,7 @@
     img.style.padding = '0 10px';
     img.style.boxSizing = 'border-box';
 
-    const styleId = 'responsive-image-style-v472';
+    const styleId = 'responsive-image-style-v473';
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
@@ -1118,8 +1226,20 @@
     return { "@type": "ProductVariant", ...spec };
   }
 
+  // ============================================================
+  // 🔥🔥🔥 ADD OFFER DENGAN priceValidUntil DARI AED 🔥🔥🔥
+  // ============================================================
   const seenItems = new Set();
   const offers = [];
+
+  function getAEDPriceValidUntil() {
+    const aed = window.AEDMetaDates;
+    if (aed && aed.nextUpdate) {
+      return aed.nextUpdate;
+    }
+    // Fallback: 30 hari dari sekarang
+    return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  }
 
   function addOffer(name, price) {
     if (!price || price <= 0) return;
@@ -1132,14 +1252,17 @@
     const key = cleanName + "|" + price;
     if (seenItems.has(key)) return;
     seenItems.add(key);
-    const validUntil = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    
+    // ✅ V4.73: priceValidUntil dari AED
+    const priceValidUntil = getAEDPriceValidUntil();
+    
     offers.push({
       "@type": "Offer",
       name: cleanName,
       url: location.href,
       priceCurrency: "IDR",
       price: price,
-      priceValidUntil: validUntil,
+      priceValidUntil: priceValidUntil,
       availability: "https://schema.org/InStock",
       itemCondition: "https://schema.org/NewCondition",
       seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" }
@@ -1279,33 +1402,67 @@
   }
 
   // ============================================================
-  // 🚀 MAIN FUNCTION
+  // 🚀 MAIN FUNCTION — DENGAN WAIT BREADCRUMB + AED
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.72 — V37 COMPLIANT", "INFO");
+    log("AutoSchema Hybrid v4.73 — V37 COMPLIANT + WAIT AED", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
+    // ============================================================
+    // STEP 1: TUNGGU BREADCRUMB TERBENTUK
+    // ============================================================
+    log("🍞 Menunggu breadcrumb...", "BREADCRUMB");
+    const breadcrumbReady = await waitForBreadcrumb(CONFIG.BREADCRUMB_TIMEOUT);
+    log(`🍞 Breadcrumb: ${breadcrumbReady ? '✅ READY' : '⏰ TIMEOUT'}`, "BREADCRUMB");
+    
+    // ============================================================
+    // STEP 2: TUNGGU PLD
+    // ============================================================
+    log("⏳ Menunggu PLD...", "INFO");
     await waitForPLD();
     
+    // ============================================================
+    // STEP 3: TUNGGU AEDMetaDates (DARI SMART EVERGREEN DETECTOR)
+    // ============================================================
+    log("⏳ Menunggu AEDMetaDates...", "AED");
+    const aed = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
+    
+    if (aed) {
+      log(`✅ AED ready: ${aed.dateModified}`, "AED");
+      log(`   📅 nextUpdate: ${aed.nextUpdate}`, "AED");
+      log(`   📅 validityDays: ${aed.validityDays}`, "AED");
+    } else {
+      log(`⚠️ AED tidak tersedia, gunakan fallback`, "WARN");
+    }
+    
+    // ============================================================
+    // STEP 4: DAPATKAN PAGE LEVEL
+    // ============================================================
     const pageLevel = getPageLevelFromPLD();
     const focus = ['money-master', 'money-page', 'money-child'].includes(pageLevel) ? detectContentFocus() : 'N/A';
     
-    log(`Page Level: ${pageLevel}`, "SUCCESS");
-    log(`Content Focus: ${focus}`, "FOCUS");
+    log(`📌 Page Level: ${pageLevel}`, "SUCCESS");
+    log(`📌 Content Focus: ${focus}`, "FOCUS");
 
-    // STEP 1: AUTO UPDATE TAHUN DI KONTEN (H1)
+    // ============================================================
+    // STEP 5: AUTO UPDATE TAHUN DI KONTEN (H1)
+    // ============================================================
     log("📅 UPDATE TAHUN DI KONTEN:", "YEAR");
     const h1Updated = updateH1Year(pageLevel);
     
-    // STEP 2: UPDATE TAHUN DI KONTEN LAINNYA (BODY, META, SCHEMA)
+    // ============================================================
+    // STEP 6: UPDATE TAHUN DI KONTEN LAINNYA (BODY, META, SCHEMA)
+    // ============================================================
     const contentUpdated = updateContentYears();
     
     if (!h1Updated && contentUpdated === 0) {
       log(`📅 Tidak ada perubahan tahun yang dilakukan`, "YEAR");
     }
 
-    // STEP 3: CEK GAMBAR & FIX GAMBAR (TETAP FIGURE)
+    // ============================================================
+    // STEP 7: CEK GAMBAR & FIX GAMBAR (TETAP FIGURE)
+    // ============================================================
     let imageUrl = LOGO_IMAGE;
     const isEligible = isImageEligible(pageLevel);
     
@@ -1329,7 +1486,9 @@
       }
     }
 
-    // STEP 4: PRODUCT SCHEMA
+    // ============================================================
+    // STEP 8: PRODUCT SCHEMA
+    // ============================================================
     if (shouldSkipProductSchema(pageLevel)) {
       log("Product schema SKIPPED untuk halaman ini", "SKIP");
       return;
@@ -1419,7 +1578,9 @@
       "@graph": graph
     }, null, 2);
     
+    // ============================================================
     // EXECUTION SUMMARY
+    // ============================================================
     log("═══════════════════════════════════════════════════", "INFO");
     log("EXECUTION SUMMARY:", "INFO");
     log(`  Page Level      : ${pageLevel}`, "SUCCESS");
@@ -1431,6 +1592,8 @@
     log(`  Auto Year H1    : ${h1Updated ? '✅ UPDATE' : '⏭️ SKIP/STOP'}`, "YEAR");
     log(`  Content Year    : ${contentUpdated > 0 ? `✅ ${contentUpdated} elemen diupdate` : '⏭️ TIDAK ADA'}`, "YEAR");
     log(`  Money Level Info: ${focus === 'informasi' ? '✅ TANPA tahun (EVERGREEN)' : focus === 'harga' ? '✅ PAKAI tahun (NON-EVERGREEN)' : 'N/A'}`, "FOCUS");
+    log(`  Breadcrumb      : ${breadcrumbReady ? '✅ READY' : '⏰ TIMEOUT'}`, "BREADCRUMB");
+    log(`  AED             : ${aed ? '✅ READY' : '❌ FALLBACK'}`, "AED");
     log(`  Text from URL   : ✅`, "IMAGE");
     log(`  Figure Structure: ✅ TETAP DIJAGA`, "IMAGE");
     log(`  Responsive      : ✅`, "IMAGE");
@@ -1439,7 +1602,7 @@
     log(`  ATURAN TAHUN    : STOP jika < 2026, UPDATE jika > 2026`, "YEAR");
     log(`  V37 COMPLIANT   : ✅`, "SUCCESS");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.72 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.73 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
