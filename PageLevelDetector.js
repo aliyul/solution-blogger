@@ -1,55 +1,34 @@
 /* ============================================================
- 🧠 Page Level Detector v22.42 — FIX MONEY_CHILD LOGIC
+ 🧠 Page Level Detector v22.43 — FIX "hasPrice is not a function"
+    ✅ FIX v22.43: Rename hasPrice() → checkHasPrice()
+    ✅ FIX v22.43: Rename hasSpecification() → checkHasSpecification()
     ✅ FIX v22.42: MONEY_CHILD = LOKASI + PRODUK (tanpa spesifikasi teknis)
     ✅ FIX v22.42: Harga tidak mempengaruhi keputusan MONEY_CHILD
     ✅ FIX v22.42: Variant hanya jika ada spesifikasi tanpa lokasi
-    ✅ FIX v22.42: Money Page jika ada lokasi + spesifikasi, atau harga tanpa lokasi
     ✅ FIX v22.41: Perbaiki urutan deklarasi fungsi (hoisting)
     ✅ FIX v22.40: MENUNGGU DOM READY + BREADCRUMBS
-    ✅ FIX v22.39: MONEY_CHILD = LOKASI MURNI (sebelumnya)
-    ✅ NEW v22.39: INTENT, EEAT, STRUCTURE, SNIPPET
 ============================================================ */
 
 (function () {
   "use strict";
 
-  // ============================================================
-  // 🔥 CEK APAKAH SUDAH TERLOAD
-  // ============================================================
-
   if (window.pageLevelDetectorv22) {
-    console.warn("⚠️ [PLD v22.42] Page Level Detector already loaded!");
+    console.warn("⚠️ [PLD v22.43] Page Level Detector already loaded!");
     return;
   }
-
-  // ============================================================
-  // 📌 KONFIGURASI
-  // ============================================================
 
   var CONFIG = {
     DEBUG: true,
     BREADCRUMBS_TIMEOUT: 5000,
     BREADCRUMBS_SELECTORS: [
-      '.breadcrumb',
-      '.breadcrumbs',
-      '.bread-crumb',
-      '[class*="breadcrumb"]',
-      '[class*="bread-crumb"]',
-      '.woocommerce-breadcrumb',
-      '.yoast-breadcrumbs',
-      '.rank-math-breadcrumb',
-      '.aioseo-breadcrumbs',
-      '[itemprop="breadcrumb"]',
-      '[typeof="BreadcrumbList"]',
-      'nav[aria-label="breadcrumb"]',
-      'ol.breadcrumb',
-      'ul.breadcrumb'
+      '.breadcrumb', '.breadcrumbs', '.bread-crumb',
+      '[class*="breadcrumb"]', '[class*="bread-crumb"]',
+      '.woocommerce-breadcrumb', '.yoast-breadcrumbs',
+      '.rank-math-breadcrumb', '.aioseo-breadcrumbs',
+      '[itemprop="breadcrumb"]', '[typeof="BreadcrumbList"]',
+      'nav[aria-label="breadcrumb"]', 'ol.breadcrumb', 'ul.breadcrumb'
     ]
   };
-
-  // ============================================================
-  // 📌 LOGGING
-  // ============================================================
 
   function log(message, type) {
     if (!CONFIG.DEBUG && type === "INFO") return;
@@ -61,14 +40,10 @@
       EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐", QUALITY: "📊",
       DOM: "🌐", BREAD: "🍞", TIMER: "⏱️", EXTERNAL: "📦"
     };
-    console.log((icons[type] || "📘") + " [PLD v22.42] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.43] " + message);
   }
 
   log('📦 External JS loaded', 'EXTERNAL');
-
-  // ============================================================
-  // 📌 VALID LEVELS
-  // ============================================================
 
   var VALID_LEVELS = [
     "home", "pillar", "sub-pillar-tipe-2", "sub-pillar-tipe-1",
@@ -80,15 +55,7 @@
     "money-master": 4, "money-page": 5, "money-child": 6, variant: 7, "sub-variant": 8
   };
 
-  // ============================================================
-  // 📌 VALID ENTITY TYPES
-  // ============================================================
-
   var VALID_ENTITY_TYPES = ["produk", "material", "jasa", "desain", "sewa", "artikel"];
-
-  // ============================================================
-  // 🔥 PILLAR NAMES (EXACT MATCH)
-  // ============================================================
 
   var PILLAR_NAMES = {
     jasa: ["jasa konstruksi"],
@@ -100,10 +67,6 @@
     artikel: ["artikel konstruksi", "blog konstruksi", "tips konstruksi"]
   };
 
-  // ============================================================
-  // 📌 ENTITY TRIGGERS
-  // ============================================================
-
   var ENTITY_TRIGGERS = {
     jasa: ["jasa", "kontraktor", "tukang", "borongan", "renovasi", "pasang", "bangun", "perbaikan", "instalasi", "service", "servis"],
     desain: ["desain", "interior", "arsitektur", "konsep", "rencana", "gambar", "denah"],
@@ -114,17 +77,8 @@
   };
 
   var ENTITY_PRIORITY = ["jasa", "sewa", "desain", "produk", "material", "artikel"];
-
-  // ============================================================
-  // 🔥 KATA YANG DIHAPUS SAAT DETEKSI
-  // ============================================================
-
   var ENTITY_WORDS = ['jasa', 'sewa', 'material', 'produk', 'desain', 'artikel'];
   var PRICE_WORDS = ['harga', 'biaya', 'tarif', 'estimasi'];
-
-  // ============================================================
-  // 🔥 LOCATION WORDS (LENGKAP)
-  // ============================================================
 
   var LOCATION_WORDS = [
     "jakarta", "jakarta pusat", "jakarta barat", "jakarta selatan", "jakarta timur", "jakarta utara",
@@ -137,10 +91,6 @@
     "bali", "denpasar", "gianyar", "tabanan", "bangli", "karangasem", "klungkung", "buleleng",
     "mataram", "kupang", "terdekat", "sekitar", "dekat", "near"
   ];
-
-  // ============================================================
-  // 🔥 SPECIFICATION WORDS (LENGKAP)
-  // ============================================================
 
   var SPECIFICATION_WORDS = {
     mutu: ["k225", "k250", "k300", "k350", "k400", "k500", "fc", "m6", "m8", "m10", "m12", "m16", "m20", "b0", "b1", "b2", "b3", "sni"],
@@ -163,20 +113,12 @@
     }
   }
 
-  // ============================================================
-  // 🔥 INTENT TRIGGERS
-  // ============================================================
-
   var INTENT_TRIGGERS = {
     transactional: ["beli", "order", "pesan", "booking", "sewa sekarang", "harga", "biaya", "tarif", "estimasi", "promo", "diskon", "bayar", "cicilan", "kredit", "dapatkan", "pesan sekarang"],
     informational: ["cara", "tutorial", "panduan", "tips", "langkah", "bagaimana", "apa itu", "pengertian", "definisi", "contoh", "jenis", "perbedaan", "kelebihan", "kekurangan", "manfaat", "fungsi"],
     commercial: ["review", "testimoni", "rekomendasi", "terbaik", "paling", "vs", "versus", "perbandingan", "alternatif", "pilihan", "populer", "favorit", "unggulan"],
     navigational: ["login", "daftar", "kontak", "tentang", "hubungi", "alamat", "lokasi", "maps", "direksi"]
   };
-
-  // ============================================================
-  // 🔥 SEMANTIC CLUSTERS (LSI)
-  // ============================================================
 
   var SEMANTIC_CLUSTERS = {
     "konstruksi": ["bangunan", "proyek", "infrastruktur", "pembangunan", "developer", "kontraktor"],
@@ -187,14 +129,10 @@
     "produk": ["precast", "readymix", "pracetak", "siap pakai", "custom"]
   };
 
-  // ============================================================
-  // 🔥 STOPWORDS
-  // ============================================================
-
   var STOPWORDS = new Set(["dan", "atau", "serta", "yang", "dari", "ke", "di", "untuk", "dengan", "ini", "itu", "akan", "telah", "sudah", "masih", "pada", "oleh", "karena", "sehingga", "setelah", "sebelum"]);
 
   // ============================================================
-  // 📌 FUNGSI DASAR — DIDEKLARASIKAN SEBELUM DIGUNAKAN
+  // 📌 FUNGSI DASAR
   // ============================================================
 
   function cleanText(text) {
@@ -218,7 +156,7 @@
   }
 
   // ============================================================
-  // 🔥 FUNGSI DETEKSI — DIDEKLARASIKAN SEBELUM DIGUNAKAN
+  // 🔥 FUNGSI DETEKSI — DENGAN NAMA UNIK (FIXED)
   // ============================================================
 
   function isLocation(text) {
@@ -231,14 +169,16 @@
     return false;
   }
 
-  function hasPrice(text) {
+  // ✅ FIX: Rename dari hasPrice → checkHasPrice
+  function checkHasPrice(text) {
     for (var i = 0; i < PRICE_WORDS.length; i++) {
       if (text.indexOf(PRICE_WORDS[i]) !== -1) return true;
     }
     return false;
   }
 
-  function hasSpecification(text) {
+  // ✅ FIX: Rename dari hasSpecification → checkHasSpecification
+  function checkHasSpecification(text) {
     var lower = text.toLowerCase();
     for (var i = 0; i < ALL_SPEC_WORDS.length; i++) {
       if (lower.indexOf(ALL_SPEC_WORDS[i]) !== -1) return true;
@@ -308,7 +248,7 @@
   }
 
   // ============================================================
-  // 🔥 DETEKSI LEVEL UTAMA — v22.42 (FIX MONEY_CHILD)
+  // 🔥 DETEKSI LEVEL UTAMA — v22.43 (FIXED FUNCTION NAMES)
   // ============================================================
 
   function detectLevelWithoutList(text, entityType) {
@@ -317,9 +257,10 @@
     var baseKeyword = getBaseKeyword(text);
     var baseWords = baseKeyword.split(' ');
     
+    // ✅ FIX: Panggil fungsi dengan nama baru
     var hasLocation = isLocation(lowerText);
-    var hasSpec = hasSpecification(lowerText);
-    var hasPrice = hasPrice(lowerText);
+    var hasSpec = checkHasSpecification(lowerText);
+    var hasPrice = checkHasPrice(lowerText);
     
     var hasAdditional = false;
     var additionalWords = [];
@@ -701,7 +642,7 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.42",
+      version: "22.43",
       CONFIG: CONFIG,
       
       detect: detectPageLevel,
@@ -803,10 +744,10 @@
       } catch (e2) {}
     }
 
-    console.log("✅ Page Level Detector v22.42 Ready — FIX MONEY_CHILD");
+    console.log("✅ Page Level Detector v22.43 Ready — FIXED ERROR!");
+    console.log("🔧 FIX: hasPrice → checkHasPrice");
+    console.log("🔧 FIX: hasSpecification → checkHasSpecification");
     console.log("📍 MONEY_CHILD = LOKASI + PRODUK (tanpa spesifikasi teknis)");
-    console.log("🔧 Contoh: 'harga-pagar-panel-beton-jakarta' → MONEY_CHILD");
-    console.log("🔧 Contoh: 'pagar-panel-beton-k225-jakarta' → MONEY_PAGE");
 
     window.pageLevelDetectorv22.updateAttributes()
       .then(function(result) {
@@ -824,7 +765,7 @@
   // 📌 START — WAIT DOM READY
   // ============================================================
 
-  log('🚀 Starting Page Level Detector v22.42...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.43...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
