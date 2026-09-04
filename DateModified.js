@@ -1,10 +1,9 @@
 /* ============================================================
- 🔥 Hybrid Date Modified v9.6 — UNTUK betonjayareadymix.com
+ 🔥 Hybrid Date Modified v9.6 — CLEANER + EXECUTOR
+    ✅ UNTUK betonjayareadymix.com
+    ✅ FIX v9.6: HAPUS SEMUA VERSI LAMA SEBELUM EKSEKUSI
     ✅ FIX v9.6: WAIT BREADCRUMB sebelum eksekusi
-    ✅ FIX v9.5: WAIT DOMContentLoaded sebelum eksekusi
-    ✅ FIX v9.5: Pastikan DOM siap sebelum querySelector
-    ✅ FIX v9.4: Hapus getEventListeners (tidak tersedia di script normal)
-    ✅ FIX v9.4: Gunakan cara aman untuk matikan script lama
+    ✅ FIX v9.6: WAIT DOMContentLoaded sebelum eksekusi
     ✅ SINKRON dengan Smart Evergreen Detector v15.2
     ✅ SINKRON dengan V37 FULL SITE AUTO ARCHITECTURE
     ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Non-Evergreen)
@@ -12,23 +11,134 @@
     ✅ DETEKSI Rp di H1 → HARGA
     ✅ DETEKSI TABEL HARGA → HARGA (prioritas tinggi)
     ✅ FULL COMPATIBLE: Page Level Detector v22.x, v20.x, v19.x, v18, v17
-    ✅ ENHANCED: Mendapatkan confidence score dari PLD v22.x
-    ✅ ENHANCED: Enhanced logging dengan confidence dan strategy
-    ✅ FIXED: Sub-Pillar Tipe 1 → EVERGREEN (sesuai V37)
-    ✅ FIXED: Money Page Informasi → EVERGREEN (sesuai V37)
-    ✅ FIXED v9.2: Money Master Informasi → EVERGREEN (sesuai V37)
-    ✅ FIXED v9.2: Money Master Harga → NON-EVERGREEN (sesuai V37)
-    ✅ FIXED v9.2: Money Child Informasi → EVERGREEN (sesuai V37)
-    ✅ FIXED v9.2: Money Child Harga → NON-EVERGREEN (sesuai V37)
-    ✅ FIXED v9.2: Sinkron dengan AEDMetaDates dari detectEvergreen
-    ✅ FIXED v9.3: SKIP LOGIC untuk halaman statis & homepage
-    ✅ FIXED v9.4: Hapus getEventListeners (fix error)
-    ✅ FIXED v9.5: DOMContentLoaded waiter sebelum eksekusi
-    ✅ FIXED v9.6: WAIT BREADCRUMB sebelum eksekusi
 ============================================================ */
 
 (function() {
   "use strict";
+
+  // ============================================================
+  // 🔥🔥🔥 STEP 0: CLEANER — HAPUS SEMUA VERSI LAMA 🔥🔥🔥
+  // ============================================================
+
+  (function hybridCleaner() {
+    console.log("🧹 [HybridDateModified v9.6] CLEANER: Menghapus semua versi lama...");
+
+    // ============================================================
+    // 1. HAPUS FUNGSI DARI WINDOW
+    // ============================================================
+    const functionsToKill = [
+      'runHybridDateModified',
+      'HybridDateModified',
+      '__hybridDateModifiedReady',
+      '__hybridDateModifiedActive',
+      '_hybridDateModifiedInit',
+      '__hybridDateModified',
+      'hybridDateModified',
+      '__dateModifiedReady',
+      'dateModifiedScript'
+    ];
+
+    functionsToKill.forEach(key => {
+      if (window[key] !== undefined) {
+        console.log(`🛑 [CLEANER] Menghapus window.${key}`);
+        try {
+          window[key] = null;
+          delete window[key];
+        } catch(e) {}
+      }
+    });
+
+    // ============================================================
+    // 2. HAPUS SCRIPT ELEMENT DARI DOM
+    // ============================================================
+    const scriptSelectors = [
+      'script[src*="HybridDateModified"]',
+      'script[src*="hybrid-date"]',
+      'script[src*="date-modified"]',
+      'script[id*="hybrid-date"]',
+      'script[id*="date-modified"]',
+      'script[class*="hybrid-date"]',
+      'script[src*="SmartEvergreenDetector"]' // Hati-hati dengan ini
+    ];
+
+    scriptSelectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(el => {
+        console.log(`🛑 [CLEANER] Menghapus script: ${el.src || 'inline'}`);
+        el.remove();
+      });
+    });
+
+    // ============================================================
+    // 3. HAPUS INLINE SCRIPT YANG MENGANDUNG VERSI LAMA
+    // ============================================================
+    document.querySelectorAll('script').forEach(script => {
+      const content = script.textContent || '';
+      const isOldVersion = 
+        content.includes('Hybrid Date Modified v9.') ||
+        content.includes('runHybridDateModified') ||
+        content.includes('__hybridDateModifiedReady') ||
+        (content.includes('processMetaDates') && content.includes('hybrid'));
+
+      if (isOldVersion && !content.includes('v9.6')) {
+        console.log('🛑 [CLEANER] Menghapus inline script versi lama');
+        script.remove();
+      }
+    });
+
+    // ============================================================
+    // 4. HAPUS EVENT LISTENER LAMA
+    // ============================================================
+    // Hapus event listener yang mungkin terpasang
+    const events = ['DOMContentLoaded', 'load', 'pageshow', 'pageLevelDetectorReady', 'detectEvergreenReady'];
+    events.forEach(event => {
+      try {
+        // Override dengan fungsi kosong untuk mencegah eksekusi
+        document.removeEventListener(event, window._hybridInit);
+        window.removeEventListener(event, window._hybridInit);
+      } catch(e) {}
+    });
+
+    // ============================================================
+    // 5. BLOKIR LOAD EXTERNAL JS LAMA
+    // ============================================================
+    const originalLoadExternal = window.loadExternalJS;
+    if (originalLoadExternal) {
+      window.loadExternalJS = function(src) {
+        if (src && (
+          src.includes('HybridDateModified') ||
+          src.includes('hybrid-date') ||
+          src.includes('date-modified')
+        )) {
+          console.log(`🚫 [CLEANER] Blocked loading old script: ${src}`);
+          return Promise.resolve();
+        }
+        return originalLoadExternal.apply(this, arguments);
+      };
+    }
+
+    // ============================================================
+    // 6. CEK DAN HAPUS TIMEOUT/INTERVAL LAMA
+    // ============================================================
+    // Hati-hati: ini bisa mengganggu script lain
+    // Hanya hapus jika benar-benar perlu
+    try {
+      const highestId = setTimeout(() => {}, 0);
+      for (let i = 0; i < highestId; i++) {
+        clearTimeout(i);
+        clearInterval(i);
+      }
+      console.log(`🛑 [CLEANER] Cleared ${highestId} timeouts/intervals`);
+    } catch(e) {
+      console.warn('⚠️ [CLEANER] Could not clear all timeouts');
+    }
+
+    // ============================================================
+    // 7. TANDAI BAHWA CLEANER SUDAH BERJALAN
+    // ============================================================
+    window.__hybridCleanerExecuted = true;
+    console.log("✅ [CLEANER] Semua versi lama telah dihapus.");
+    console.log("🚀 [CLEANER] Siap menjalankan Hybrid Date Modified v9.6...");
+  })();
 
   // ============================================================
   // 🔥🔥🔥 TUNGGU DOM READY SEBELUM EKSEKUSI 🔥🔥🔥
@@ -65,7 +175,6 @@
       const currentPath = window.location.pathname;
       const currentUrl = window.location.href;
       
-      // DAFTAR HALAMAN STATIS YANG TIDAK PERLU DATE MODIFIED
       const STATIC_PAGES = [
         '/p/hubungi-kami.html',
         '/p/portofolio.html',
@@ -77,33 +186,26 @@
         '/p/sitemap.html'
       ];
       
-      // CEK APAKAH HOMEPAGE
       const isHomepage = currentPath === '/' || currentPath === '/index.html' || currentPath === '';
-      
-      // CEK APAKAH HALAMAN STATIS
       const isStaticPage = STATIC_PAGES.some(page => currentPath.includes(page));
       
-      // CEK APAKAH HALAMAN TANPA KONTEN UTAMA
       const hasMainContent = document.querySelector('.post-body.entry-content, .post-body, article, main, section');
       const hasH1 = document.querySelector('h1');
       const contentLength = document.body.innerText?.trim()?.length || 0;
       const isContentPage = hasMainContent && hasH1 && contentLength > 500;
       
-      // JIKA HOMEPAGE → SKIP
       if (isHomepage) {
         console.log(`⏸️ [HybridDateModified v9.6] HOMEPAGE terdeteksi (${currentPath}), skip script.`);
         console.log(`   📌 Homepage tidak memerlukan dateModified untuk SEO.`);
         return;
       }
       
-      // JIKA HALAMAN STATIS → SKIP
       if (isStaticPage) {
         console.log(`⏸️ [HybridDateModified v9.6] HALAMAN STATIS terdeteksi (${currentPath}), skip script.`);
         console.log(`   📌 Halaman statis tidak memerlukan dateModified dinamis.`);
         return;
       }
       
-      // JIKA HALAMAN TANPA KONTEN UTAMA → SKIP
       if (!isContentPage) {
         console.log(`⏸️ [HybridDateModified v9.6] HALAMAN TANPA KONTEN UTAMA (${currentPath}), skip script.`);
         console.log(`   📌 Halaman tanpa konten utama tidak memerlukan dateModified.`);
@@ -125,40 +227,17 @@
       }
 
       // ============================================================
-      // 🔥🔥🔥 MATIKAN SEMUA SCRIPT DATE MODIFIED VERSI LAMA 🔥🔥🔥
+      // 🔥🔥🔥 TANDAI SCRIPT INI SEBAGAI YANG AKTIF 🔥🔥🔥
       // ============================================================
       
       console.log("🛑 [HybridDateModified v9.6] Mencari dan mematikan script date modified versi lama...");
       
-      // 1. MATIKAN FUNGSI HYBRID DATE MODIFIED LAMA
-      if (window.runHybridDateModified) {
-        console.log("🛑 Mematikan window.runHybridDateModified (v8.x/v9.0/v9.1/v9.2)...");
-        window.runHybridDateModified = null;
-      }
-      
-      if (window.HybridDateModified) {
-        console.log("🛑 Mematikan window.HybridDateModified (v7.x/v8.x)...");
-        window.HybridDateModified = null;
-      }
-      
-      if (window.__hybridDateModifiedReady) {
-        console.log("🛑 Mematikan window.__hybridDateModifiedReady...");
-        window.__hybridDateModifiedReady = false;
-      }
-      
-      // 2. HAPUS SCRIPT ELEMENT DATE MODIFIED LAMA
-      const oldScripts = document.querySelectorAll('script[src*="HybridDateModified"], script[src*="hybrid-date"], script[src*="date-modified"]');
-      oldScripts.forEach(script => {
-        console.log(`🛑 Menghapus script lama: ${script.src || 'inline script'}`);
-        script.remove();
-      });
-      
-      // 3. TANDAI SCRIPT INI SEBAGAI YANG AKTIF
+      // TANDAI VERSI INI SEBAGAI AKTIF
       window.__hybridDateModifiedActive = 'v9.6';
       window.__hybridDateModifiedReady = true;
       window.runHybridDateModified = runHybridDateModified;
       
-      console.log("✅ [HybridDateModified v9.6] Script versi lama telah dimatikan.");
+      console.log("✅ [HybridDateModified v9.6] Script versi ini aktif.");
       console.log("🚀 [HybridDateModified v9.6] Memulai eksekusi...");
 
       // ============================================================
@@ -181,6 +260,13 @@
       // ============================================================
       function loadExternalJS(src) {
         return new Promise((resolve) => {
+          // Cegah load versi lama
+          if (src && src.includes('HybridDateModified')) {
+            console.warn(`🚫 [v9.6] Blocked loading old HybridDateModified: ${src}`);
+            resolve();
+            return;
+          }
+          
           if (document.querySelector(`script[src="${src}"]`)) {
             resolve();
             return;
@@ -194,6 +280,57 @@
             resolve();
           };
           document.head.appendChild(s);
+        });
+      }
+
+      // ============================================================
+      // 📌 WAIT FOR BREADCRUMB (FIX v9.6)
+      // ============================================================
+      function waitForBreadcrumb(timeout = 3000) {
+        return new Promise((resolve) => {
+          const startTime = Date.now();
+
+          function checkBreadcrumb() {
+            const breadcrumbSelectors = [
+              '.breadcrumbs',
+              '.breadcrumb',
+              '.nav-trail',
+              '.breadcrumb-item',
+              '.crumbs',
+              '.breadcrumb-link',
+              '[aria-label="breadcrumb"]',
+              '.post-breadcrumb',
+              '.breadcrumb-nav',
+              '.nav-breadcrumb'
+            ];
+
+            for (const selector of breadcrumbSelectors) {
+              const element = document.querySelector(selector);
+              if (element) {
+                const links = element.querySelectorAll('a');
+                if (links.length > 0) {
+                  console.log(`🍞 [HybridDateModified v9.6] Breadcrumb ditemukan (${selector}) — ${links.length} link`);
+                  resolve(true);
+                  return;
+                }
+                if (element.innerText.trim().length > 0) {
+                  console.log(`🍞 [HybridDateModified v9.6] Breadcrumb ditemukan (${selector}) — ada teks`);
+                  resolve(true);
+                  return;
+                }
+              }
+            }
+
+            if (Date.now() - startTime > timeout) {
+              console.log(`⏰ [HybridDateModified v9.6] Breadcrumb timeout (${timeout}ms), lanjutkan`);
+              resolve(false);
+              return;
+            }
+
+            setTimeout(checkBreadcrumb, 100);
+          }
+
+          checkBreadcrumb();
         });
       }
 
@@ -278,57 +415,6 @@
               resolve(false);
             }
           }, 5000);
-        });
-      }
-
-      // ============================================================
-      // 📌 WAIT FOR BREADCRUMB (FIX v9.6)
-      // ============================================================
-      function waitForBreadcrumb(timeout = 3000) {
-        return new Promise((resolve) => {
-          const startTime = Date.now();
-
-          function checkBreadcrumb() {
-            const breadcrumbSelectors = [
-              '.breadcrumbs',
-              '.breadcrumb',
-              '.nav-trail',
-              '.breadcrumb-item',
-              '.crumbs',
-              '.breadcrumb-link',
-              '[aria-label="breadcrumb"]',
-              '.post-breadcrumb',
-              '.breadcrumb-nav',
-              '.nav-breadcrumb'
-            ];
-
-            for (const selector of breadcrumbSelectors) {
-              const element = document.querySelector(selector);
-              if (element) {
-                const links = element.querySelectorAll('a');
-                if (links.length > 0) {
-                  console.log(`🍞 [HybridDateModified v9.6] Breadcrumb ditemukan (${selector}) — ${links.length} link`);
-                  resolve(true);
-                  return;
-                }
-                if (element.innerText.trim().length > 0) {
-                  console.log(`🍞 [HybridDateModified v9.6] Breadcrumb ditemukan (${selector}) — ada teks`);
-                  resolve(true);
-                  return;
-                }
-              }
-            }
-
-            if (Date.now() - startTime > timeout) {
-              console.log(`⏰ [HybridDateModified v9.6] Breadcrumb timeout (${timeout}ms), lanjutkan`);
-              resolve(false);
-              return;
-            }
-
-            setTimeout(checkBreadcrumb, 100);
-          }
-
-          checkBreadcrumb();
         });
       }
 
@@ -654,6 +740,7 @@
       console.log("📋 FIX v9.4: Hapus getEventListeners (fix error)");
       console.log("📋 FIX v9.5: DOMContentLoaded waiter sebelum eksekusi");
       console.log("📋 FIX v9.6: WAIT BREADCRUMB sebelum eksekusi");
+      console.log("📋 FIX v9.6: CLEANER — Hapus semua versi lama sebelum eksekusi");
       console.log("📋 ATURAN V9.6: PATOKAN H1 (Informasi → Evergreen, Harga → Non-Evergreen)");
       
       await loadAllScripts();
@@ -759,6 +846,7 @@
         detectionStrategies: strategies,
         detectionStrategyCount: strategyCount,
         breadcrumbReady: breadcrumbReady,
+        cleanerExecuted: true,
         v37Rules: {
           sp1Evergreen: true,
           moneyPageInformasiEvergreen: contentFocus === 'informasi',
@@ -781,6 +869,7 @@
       console.log(`   → Content Focus: ${contentFocus} (${focusReason})`);
       if (confidence) console.log(`   → Detection Confidence: ${confidence}%`);
       console.log(`   → Breadcrumb Ready: ${breadcrumbReady ? '✅' : '⏰'}`);
+      console.log(`   → Cleaner Executed: ✅`);
       console.log(`📋 Hybrid Date Modified v9.6 applied successfully ✅ (V37 COMPLIANT)`);
 
     } catch (err) {
