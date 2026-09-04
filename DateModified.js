@@ -671,4 +671,53 @@
       }
       
       const hash = stableHash(hashSource);
-      const offsetSeconds = hash % 864
+      const offsetSeconds = hash % 86400;
+      const finalDate = new Date(new Date(dateModified).getTime() + offsetSeconds * 1000);
+      const isoDate = toISOWithTimezoneLocal(finalDate);
+
+      updateMetaDateModified(isoDate);
+
+      window.AEDMetaDates = {
+        ...window.AEDMetaDates,
+        dateModified: isoDate,
+        hashOffset: offsetSeconds,
+        detectorVersion: detectorVersion,
+        category: categoryLabel,
+        contentFocus: contentFocus,
+        focusReason: focusReason,
+        focusPriority: focusPriority,
+        mode: manualMode ? 'MANUAL' : 'AUTO',
+        originalDateModified: dateModified,
+        hybridVersion: '9.5',
+        detectionConfidence: confidence,
+        detectionStrategies: strategies,
+        detectionStrategyCount: strategyCount,
+        v37Rules: {
+          sp1Evergreen: true,
+          moneyPageInformasiEvergreen: contentFocus === 'informasi',
+          moneyPageHargaNonEvergreen: contentFocus === 'harga',
+          moneyMasterInformasiEvergreen: contentFocus === 'informasi',
+          moneyMasterHargaNonEvergreen: contentFocus === 'harga',
+          moneyChildInformasiEvergreen: contentFocus === 'informasi',
+          moneyChildHargaNonEvergreen: contentFocus === 'harga',
+          flexibleRemoved: true,
+          skipHomepage: true,
+          skipStaticPages: true
+        }
+      };
+
+      console.log(`✅ [HybridDateModified v9.5] ${uniquePageIdentifier}`);
+      console.log(`   → Final Date Modified: ${isoDate}`);
+      console.log(`   → Offset: ${offsetSeconds} detik (${Math.floor(offsetSeconds / 3600)} jam ${Math.floor((offsetSeconds % 3600) / 60)} menit)`);
+      console.log(`   → Mode: ${manualMode ? 'MANUAL' : 'AUTO'}`);
+      console.log(`   → Category: ${categoryLabel}`);
+      console.log(`   → Content Focus: ${contentFocus} (${focusReason})`);
+      if (confidence) console.log(`   → Detection Confidence: ${confidence}%`);
+      console.log(`📋 Hybrid Date Modified v9.5 applied successfully ✅ (V37 COMPLIANT)`);
+
+    } catch (err) {
+      console.error("[HybridDateModified] Fatal error:", err);
+    }
+  }
+
+})();
