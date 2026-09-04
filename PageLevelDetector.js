@@ -1,14 +1,13 @@
 /* ============================================================
- 🧠 Page Level Detector v22.41 — FIX REFERENCE ERROR
+ 🧠 Page Level Detector v22.42 — FIX MONEY_CHILD LOGIC
+    ✅ FIX v22.42: MONEY_CHILD = LOKASI + PRODUK (tanpa spesifikasi teknis)
+    ✅ FIX v22.42: Harga tidak mempengaruhi keputusan MONEY_CHILD
+    ✅ FIX v22.42: Variant hanya jika ada spesifikasi tanpa lokasi
+    ✅ FIX v22.42: Money Page jika ada lokasi + spesifikasi, atau harga tanpa lokasi
     ✅ FIX v22.41: Perbaiki urutan deklarasi fungsi (hoisting)
-    ✅ FIX v22.40: MENUNGGU DOM READY SEBELUM EKSEKUSI
-    ✅ FIX v22.40: FITUR SEO MODERN WAIT BREADCRUMBS (max 5 detik)
-    ✅ FIX v22.40: SELF-INITIALIZING — cukup panggil URL
-    ✅ FIX v22.39: MONEY_CHILD = LOKASI MURNI (tanpa spec/harga)
-    ✅ FIX v22.39: VARIANT = SPESIFIKASI (tanpa lokasi)
-    ✅ FIX v22.39: SUB-VARIANT = SPESIFIKASI DETAIL (angka/dimensi)
-    ✅ FIX v22.39: MONEY_PAGE = LOKASI + SPEC/PRICE
-    ✅ NEW v22.39: INTENT DETECTION, EEAT, STRUCTURE, SNIPPET
+    ✅ FIX v22.40: MENUNGGU DOM READY + BREADCRUMBS
+    ✅ FIX v22.39: MONEY_CHILD = LOKASI MURNI (sebelumnya)
+    ✅ NEW v22.39: INTENT, EEAT, STRUCTURE, SNIPPET
 ============================================================ */
 
 (function () {
@@ -19,7 +18,7 @@
   // ============================================================
 
   if (window.pageLevelDetectorv22) {
-    console.warn("⚠️ [PLD v22.41] Page Level Detector already loaded!");
+    console.warn("⚠️ [PLD v22.42] Page Level Detector already loaded!");
     return;
   }
 
@@ -27,7 +26,7 @@
   // 📌 KONFIGURASI
   // ============================================================
 
-  const CONFIG = {
+  var CONFIG = {
     DEBUG: true,
     BREADCRUMBS_TIMEOUT: 5000,
     BREADCRUMBS_SELECTORS: [
@@ -62,7 +61,7 @@
       EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐", QUALITY: "📊",
       DOM: "🌐", BREAD: "🍞", TIMER: "⏱️", EXTERNAL: "📦"
     };
-    console.log((icons[type] || "📘") + " [PLD v22.41] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.42] " + message);
   }
 
   log('📦 External JS loaded', 'EXTERNAL');
@@ -309,7 +308,7 @@
   }
 
   // ============================================================
-  // 🔥 DETEKSI LEVEL UTAMA — SEKARANG AMAN KARENA FUNGSI SUDAH DIDEKLARASIKAN
+  // 🔥 DETEKSI LEVEL UTAMA — v22.42 (FIX MONEY_CHILD)
   // ============================================================
 
   function detectLevelWithoutList(text, entityType) {
@@ -332,14 +331,10 @@
       }
     }
     
-    // PRIORITAS 1: MONEY_CHILD = LOKASI MURNI
-    if (hasLocation && !hasSpec && !hasPrice) {
-      log('📍 MONEY_CHILD (LOKASI MURNI): "' + text + '"', 'LOCATION');
-      return "money-child";
-    }
-    
-    // PRIORITAS 2: VARIANT / SUB-VARIANT
-    if (hasSpec && !hasLocation && !hasPrice) {
+    // ============================================================
+    // 🔥 PRIORITAS 1: VARIANT / SUB-VARIANT (spesifikasi teknis tanpa lokasi)
+    // ============================================================
+    if (hasSpec && !hasLocation) {
       if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|k|m3|liter)/gi.test(lowerText)) {
         log('🔬 SUB-VARIANT (SPESIFIKASI + DIMENSI): "' + text + '"', 'VARIANT');
         return "sub-variant";
@@ -348,19 +343,35 @@
       return "variant";
     }
     
-    // PRIORITAS 3: MONEY_PAGE
-    if (hasAdditional || hasSpec || hasPrice || (hasLocation && (hasSpec || hasPrice))) {
-      log('📄 MONEY_PAGE: "' + text + '"', 'PRICE');
+    // ============================================================
+    // 🔥 PRIORITAS 2: MONEY_CHILD = LOKASI + PRODUK (tanpa spesifikasi teknis)
+    //    Harga dan kata tambahan non-spesifikasi tidak mempengaruhi
+    // ============================================================
+    if (hasLocation && !hasSpec) {
+      log('📍 MONEY_CHILD (LOKASI + PRODUK, tanpa spesifikasi teknis): "' + text + '"', 'LOCATION');
+      return "money-child";
+    }
+    
+    // ============================================================
+    // 🔥 PRIORITAS 3: MONEY_PAGE
+    //    - Lokasi + spesifikasi teknis
+    //    - Harga tanpa lokasi
+    //    - Kata tambahan (non-core) tanpa lokasi
+    // ============================================================
+    if (hasLocation && hasSpec) {
+      log('📄 MONEY_PAGE (LOKASI + SPESIFIKASI TEKNIS): "' + text + '"', 'PRICE');
+      return "money-page";
+    }
+    if (!hasLocation && (hasPrice || hasAdditional)) {
+      log('📄 MONEY_PAGE (HARGA atau TAMBAHAN tanpa lokasi): "' + text + '"', 'PRICE');
       return "money-page";
     }
     
-    // PRIORITAS 4: MONEY_MASTER
-    if (!hasAdditional && !hasLocation && !hasSpec && !hasPrice) {
-      log('🏛️ MONEY_MASTER: "' + text + '"', 'MM');
-      return "money-master";
-    }
-    
-    return "money-page";
+    // ============================================================
+    // 🔥 PRIORITAS 4: MONEY_MASTER (tanpa tambahan apapun)
+    // ============================================================
+    log('🏛️ MONEY_MASTER: "' + text + '"', 'MM');
+    return "money-master";
   }
 
   // ============================================================
@@ -593,7 +604,7 @@
     if (level === 'pillar') strategies.push("PILLAR: exact match \"" + text + "\"");
     else if (level === 'sub-pillar-tipe-2') strategies.push("SP2: daftar/jenis/kategori");
     else if (level === 'sub-pillar-tipe-1') strategies.push("SP1: perbandingan/vs");
-    else if (level === 'money-child') strategies.push("MC: lokasi murni \"" + text + "\"");
+    else if (level === 'money-child') strategies.push("MC: lokasi + produk (tanpa spesifikasi)");
     else if (level === 'variant') strategies.push("VARIANT: spesifikasi \"" + text + "\"");
     else if (level === 'sub-variant') strategies.push("SUB-VARIANT: spesifikasi detail dengan dimensi");
     else if (level === 'money-page') strategies.push("MP: " + coreWords.length + " core words (ada tambahan)");
@@ -690,7 +701,7 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.41",
+      version: "22.42",
       CONFIG: CONFIG,
       
       detect: detectPageLevel,
@@ -792,12 +803,10 @@
       } catch (e2) {}
     }
 
-    console.log("✅ Page Level Detector v22.41 Ready");
-    console.log("📦 External JS Mode: YES");
-    console.log("🌐 DOM Ready: YES");
-    console.log("🍞 Breadcrumbs Wait: ENABLED (max " + CONFIG.BREADCRUMBS_TIMEOUT + "ms)");
-    console.log("📍 MONEY_CHILD = LOKASI MURNI");
-    console.log("📊 SEO Modern: INTENT + EEAT + STRUCTURE + SNIPPET");
+    console.log("✅ Page Level Detector v22.42 Ready — FIX MONEY_CHILD");
+    console.log("📍 MONEY_CHILD = LOKASI + PRODUK (tanpa spesifikasi teknis)");
+    console.log("🔧 Contoh: 'harga-pagar-panel-beton-jakarta' → MONEY_CHILD");
+    console.log("🔧 Contoh: 'pagar-panel-beton-k225-jakarta' → MONEY_PAGE");
 
     window.pageLevelDetectorv22.updateAttributes()
       .then(function(result) {
@@ -815,7 +824,7 @@
   // 📌 START — WAIT DOM READY
   // ============================================================
 
-  log('🚀 Starting Page Level Detector v22.41...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.42...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
