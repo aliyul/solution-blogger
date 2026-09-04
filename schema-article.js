@@ -1,7 +1,8 @@
 /**
- * AUTO-SCHEMA GENERATOR v7.1 FINAL STABLE
+ * AUTO-SCHEMA GENERATOR v7.2 FINAL STABLE
  * INTEGRATED WITH Page Level Detector v22.x & Smart Evergreen Detector v15.2
  * 
+ * ✅ FIX v7.2: WAIT BREADCRUMB sebelum eksekusi schema
  * ✅ FIX v7.1: SKIP LOGIC untuk Homepage & Halaman Statis
  * ✅ FIX v7.1: DOMContentLoaded waiter sebelum eksekusi
  * ✅ FIX: Deteksi fokus konten berdasarkan H1 (prioritas utama)
@@ -13,7 +14,7 @@
  * ✅ FIX: Money Page Informasi → PAKAI Article schema
  * ✅ FIX: Hapus WebPage schema fallback untuk artikel
  *
- * @version 7.1 FINAL STABLE
+ * @version 7.2 FINAL STABLE
  * @date 2026-09-04
  */
 
@@ -29,13 +30,70 @@
     return new Promise((resolve) => {
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", function() {
-          console.log("[Schema v7.1] ✅ DOM siap");
+          console.log("[Schema v7.2] ✅ DOM siap");
           resolve();
         });
       } else {
-        console.log("[Schema v7.1] ✅ DOM sudah siap");
+        console.log("[Schema v7.2] ✅ DOM sudah siap");
         resolve();
       }
+    });
+  }
+
+  // =========================================================
+  // WAIT FOR BREADCRUMB — TUNGGU BREADCRUMB TERBENTUK
+  // =========================================================
+
+  function waitForBreadcrumb(timeout = 3000) {
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+
+      // CEK APAKAH BREADCRUMB SUDAH ADA
+      function checkBreadcrumb() {
+        const breadcrumbSelectors = [
+          '.breadcrumbs',
+          '.breadcrumb',
+          '.nav-trail',
+          '.breadcrumb-item',
+          '.crumbs',
+          '.breadcrumb-link',
+          '[aria-label="breadcrumb"]',
+          '.post-breadcrumb',
+          '.breadcrumb-nav',
+          '.nav-breadcrumb'
+        ];
+
+        for (const selector of breadcrumbSelectors) {
+          const element = document.querySelector(selector);
+          if (element) {
+            const links = element.querySelectorAll('a');
+            if (links.length > 0) {
+              console.log(`[Schema v7.2] ✅ Breadcrumb ditemukan (${selector}) — ${links.length} link`);
+              resolve(true);
+              return;
+            }
+            // Jika ada element breadcrumb tapi belum ada link, tunggu lagi
+            if (element.innerText.trim().length > 0) {
+              console.log(`[Schema v7.2] ✅ Breadcrumb ditemukan (${selector}) — ada teks`);
+              resolve(true);
+              return;
+            }
+          }
+        }
+
+        // CEK APAKAH TIMEOUT
+        if (Date.now() - startTime > timeout) {
+          console.log(`[Schema v7.2] ⏰ Breadcrumb timeout (${timeout}ms), lanjutkan tanpa breadcrumb`);
+          resolve(false);
+          return;
+        }
+
+        // TUNGGU LAGI 100ms
+        setTimeout(checkBreadcrumb, 100);
+      }
+
+      // CEK PERTAMA KALI
+      checkBreadcrumb();
     });
   }
 
@@ -51,7 +109,8 @@
     SITE_URL: "https://www.betonjayareadymix.com",
     CURRENT_YEAR: new Date().getFullYear(),
     PLD_TIMEOUT: 10000,
-    SKIP_WORD_COUNT: 300
+    SKIP_WORD_COUNT: 300,
+    BREADCRUMB_TIMEOUT: 3000
   };
 
   // =========================================================
@@ -85,9 +144,10 @@
       SKIP: "⏭️",
       TABLE: "📊",
       H1: "📝",
-      PRIORITY: "🔴"
+      PRIORITY: "🔴",
+      BREADCRUMB: "🍞"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.1] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.2] ${msg}`);
   }
 
   // =========================================================
@@ -710,13 +770,13 @@
   }
 
   // =========================================================
-  // MAIN INIT (ASYNC) — DENGAN SKIP LOGIC
+  // MAIN INIT (ASYNC) — DENGAN SKIP LOGIC + WAIT BREADCRUMB
   // =========================================================
 
   async function init() {
     log("================================");
-    log("AUTO SCHEMA GENERATOR v7.1");
-    log("V37 COMPLIANT");
+    log("AUTO SCHEMA GENERATOR v7.2");
+    log("V37 COMPLIANT + WAIT BREADCRUMB");
     log("================================");
 
     // ============================================================
@@ -729,7 +789,19 @@
     }
 
     // ============================================================
-    // 🔥 STEP 2: DAPATKAN PAGE LEVEL & ENTITY TYPE
+    // 🔥 STEP 2: TUNGGU BREADCRUMB TERBENTUK
+    // ============================================================
+
+    log("🍞 Menunggu breadcrumb terbentuk...", "BREADCRUMB");
+    const breadcrumbReady = await waitForBreadcrumb(CONFIG.BREADCRUMB_TIMEOUT);
+    if (breadcrumbReady) {
+      log("✅ Breadcrumb siap", "BREADCRUMB");
+    } else {
+      log("⚠️ Breadcrumb tidak ditemukan, lanjutkan tanpa breadcrumb", "WARN");
+    }
+
+    // ============================================================
+    // 🔥 STEP 3: DAPATKAN PAGE LEVEL & ENTITY TYPE
     // ============================================================
 
     const { pageLevel, entityType, source, confidence, strategies, strategyCount } = await getPageLevelAndEntityType();
@@ -741,20 +813,20 @@
     }
 
     // ============================================================
-    // 🔥 STEP 3: EKSTRAK DATA PAGE
+    // 🔥 STEP 4: EKSTRAK DATA PAGE
     // ============================================================
 
     const pageData = extractPageData();
 
     // ============================================================
-    // 🔥 STEP 4: DETEKSI FOKUS KONTEN
+    // 🔥 STEP 5: DETEKSI FOKUS KONTEN
     // ============================================================
 
     const contentFocus = detectContentFocus();
     log(`📌 Content Focus: ${contentFocus.toUpperCase()}`, "FOCUS");
 
     // ============================================================
-    // 🔥 STEP 5: TAMBAHKAN ATRIBUT KE BODY
+    // 🔥 STEP 6: TAMBAHKAN ATRIBUT KE BODY
     // ============================================================
 
     document.body.setAttribute("data-schema-page-level", pageLevel);
@@ -766,7 +838,7 @@
     }
 
     // ============================================================
-    // 🔥 STEP 6: HOMEPAGE SCHEMA
+    // 🔥 STEP 7: HOMEPAGE SCHEMA
     // ============================================================
 
     const homeElem = document.getElementById("auto-schema-home");
@@ -776,7 +848,7 @@
     }
 
     // ============================================================
-    // 🔥 STEP 7: ARTICLE SCHEMA (BERDASARKAN ATURAN V37)
+    // 🔥 STEP 8: ARTICLE SCHEMA (BERDASARKAN ATURAN V37)
     // ============================================================
 
     const articleElem = document.getElementById("auto-schema");
@@ -795,7 +867,7 @@
     }
 
     // ============================================================
-    // 🔥 STEP 8: CATATAN
+    // 🔥 STEP 9: CATATAN
     // ============================================================
 
     log("================================");
@@ -803,6 +875,7 @@
     log(`   ✅ Page Level: ${pageLevel}`);
     log(`   ✅ Entity Type: ${entityType}`);
     log(`   ✅ Content Focus: ${contentFocus}`);
+    log(`   ✅ Breadcrumb: ${breadcrumbReady ? 'READY ✅' : 'NOT FOUND ⚠️'}`);
     log(`   ✅ Article Schema: ${articleElem && shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) ? 'GENERATED' : 'SKIPPED'}`);
     log("================================");
   }
