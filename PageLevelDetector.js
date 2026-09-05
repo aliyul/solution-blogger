@@ -1,21 +1,18 @@
 /* ============================================================
- 🧠 Page Level Detector v22.45 — TAMBAH COMMERCIAL INTENT
+ 🧠 Page Level Detector v22.46 — FIX BUDGET WORDS
+    ✅ FIX v22.46: Tambah "murah", "hemat", "ekonomis" ke PRICE_WORDS
+    ✅ FIX v22.46: "pagar panel beton murah" → MONEY_PAGE (bukan VARIANT)
     ✅ FIX v22.45: Tambah commercial intent detection
-    ✅ FIX v22.45: "jual", "beli", "order" → MONEY_PAGE (bukan VARIANT)
     ✅ FIX v22.44: MONEY_CHILD = LOKASI + PRODUK (tanpa spesifikasi teknis)
     ✅ FIX v22.44: VARIANT = SPESIFIKASI TEKNIS (tanpa lokasi, TANPA harga, TANPA commercial)
     ✅ FIX v22.44: MONEY_PAGE = HARGA + SPESIFIKASI (tanpa lokasi)
-    ✅ FIX v22.44: MONEY_PAGE = LOKASI + SPESIFIKASI (apapun harganya)
-    ✅ FIX v22.44: MONEY_PAGE = COMMERCIAL INTENT + SPESIFIKASI
-    ✅ FIX v22.43: Rename hasPrice() → checkHasPrice()
-    ✅ FIX v22.43: Rename hasSpecification() → checkHasSpecification()
 ============================================================ */
 
 (function () {
   "use strict";
 
   if (window.pageLevelDetectorv22) {
-    console.warn("⚠️ [PLD v22.45] Page Level Detector already loaded!");
+    console.warn("⚠️ [PLD v22.46] Page Level Detector already loaded!");
     return;
   }
 
@@ -43,7 +40,7 @@
       DOM: "🌐", BREAD: "🍞", TIMER: "⏱️", EXTERNAL: "📦",
       COMMERCIAL: "🛒"
     };
-    console.log((icons[type] || "📘") + " [PLD v22.45] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.46] " + message);
   }
 
   log('📦 External JS loaded', 'EXTERNAL');
@@ -81,9 +78,14 @@
 
   var ENTITY_PRIORITY = ["jasa", "sewa", "desain", "produk", "material", "artikel"];
   var ENTITY_WORDS = ['jasa', 'sewa', 'material', 'produk', 'desain', 'artikel'];
-  var PRICE_WORDS = ['harga', 'biaya', 'tarif', 'estimasi'];
 
-  // ✅ NEW: Commercial intent words
+  // ✅ FIX: PRICE_WORDS sekarang termasuk BUDGET WORDS
+  var PRICE_WORDS = [
+    'harga', 'biaya', 'tarif', 'estimasi',  // Explicit price
+    'murah', 'hemat', 'ekonomis', 'terjangkau', // Budget words
+    'budget', 'mahal', 'mewah', 'premium'        // Price tier words
+  ];
+
   var COMMERCIAL_WORDS = ['jual', 'beli', 'order', 'pesan', 'booking', 'sewa', 'rental', 'supplier', 'distributor', 'toko', 'shop'];
 
   var LOCATION_WORDS = [
@@ -108,7 +110,6 @@
     sewa: ["mini", "besar", "kecil", "sedang", "medium", "extra", "standar", "premium", "ekonomis", "long arm", "breaker", "diesel", "hydraulic", "crawler", "wheel", "vibro", "roller", "compactor", "bulldozer", "excavator", "crane", "backhoe", "dozer"],
     material: ["semen", "pasir", "batu split", "kerikil", "besi", "baja", "kayu", "keramik", "granit", "marmer", "gypsum", "plafon", "paving", "bata", "batako", "hebel", "genteng", "asbes"],
     desain: ["modern", "minimalis", "klasik", "tradisional", "kontemporer", "elegan", "luxury", "industrial", "scandinavian", "jepang", "rustic", "vintage"],
-    harga: ["murah", "hemat", "ekonomis", "terjangkau", "budget", "premium", "mahal", "mewah"],
     produk: ["precast", "pracetak", "ready mix", "readymix", "siap pakai", "custom", "standar"]
   };
 
@@ -120,7 +121,7 @@
   }
 
   var INTENT_TRIGGERS = {
-    transactional: ["beli", "order", "pesan", "booking", "sewa sekarang", "harga", "biaya", "tarif", "estimasi", "promo", "diskon", "bayar", "cicilan", "kredit", "dapatkan", "pesan sekarang"],
+    transactional: ["beli", "order", "pesan", "booking", "sewa sekarang", "harga", "biaya", "tarif", "estimasi", "promo", "diskon", "bayar", "cicilan", "kredit", "dapatkan", "pesan sekarang", "murah", "hemat", "ekonomis"],
     informational: ["cara", "tutorial", "panduan", "tips", "langkah", "bagaimana", "apa itu", "pengertian", "definisi", "contoh", "jenis", "perbedaan", "kelebihan", "kekurangan", "manfaat", "fungsi"],
     commercial: ["review", "testimoni", "rekomendasi", "terbaik", "paling", "vs", "versus", "perbandingan", "alternatif", "pilihan", "populer", "favorit", "unggulan"],
     navigational: ["login", "daftar", "kontak", "tentang", "hubungi", "alamat", "lokasi", "maps", "direksi"]
@@ -162,7 +163,7 @@
   }
 
   // ============================================================
-  // 🔥 FUNGSI DETEKSI
+  // 🔥 FUNGSI DETEKSI — v22.46 (UPDATED PRICE_WORDS)
   // ============================================================
 
   function isLocation(text) {
@@ -190,7 +191,6 @@
     return false;
   }
 
-  // ✅ NEW: Commercial intent detection
   function checkHasCommercial(text) {
     var lower = text.toLowerCase();
     for (var i = 0; i < COMMERCIAL_WORDS.length; i++) {
@@ -261,7 +261,7 @@
   }
 
   // ============================================================
-  // 🔥 DETEKSI LEVEL UTAMA — v22.45 (TAMBAH COMMERCIAL INTENT)
+  // 🔥 DETEKSI LEVEL UTAMA — v22.46 (FIX BUDGET WORDS)
   // ============================================================
 
   function detectLevelWithoutList(text, entityType) {
@@ -272,8 +272,8 @@
     
     var hasLocation = isLocation(lowerText);
     var hasSpec = checkHasSpecification(lowerText);
-    var hasPrice = checkHasPrice(lowerText);
-    var hasCommercial = checkHasCommercial(lowerText); // ✅ NEW
+    var hasPrice = checkHasPrice(lowerText); // ✅ Sekarang termasuk 'murah'
+    var hasCommercial = checkHasCommercial(lowerText);
     
     var hasAdditional = false;
     var additionalWords = [];
@@ -287,8 +287,6 @@
     
     // ============================================================
     // 🔥 PRIORITAS 1: COMMERCIAL INTENT + SPESIFIKASI → MONEY_PAGE
-    //    Contoh: jual-pagar-panel-beton-precast → MONEY_PAGE
-    //            beli-pagar-panel-beton-precast → MONEY_PAGE
     // ============================================================
     if (hasCommercial && hasSpec && !hasLocation) {
       log('🛒 MONEY_PAGE (COMMERCIAL INTENT + SPESIFIKASI): "' + text + '"', 'COMMERCIAL');
@@ -298,8 +296,6 @@
     // ============================================================
     // 🔥 PRIORITAS 2: VARIANT / SUB-VARIANT 
     //    = SPESIFIKASI TEKNIS (tanpa lokasi, TANPA harga, TANPA commercial)
-    //    Contoh: pagar-panel-beton-motif → VARIANT
-    //            pagar-panel-beton-k225 → SUB-VARIANT
     // ============================================================
     if (hasSpec && !hasLocation && !hasPrice && !hasCommercial) {
       if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|k|m3|liter)/gi.test(lowerText)) {
@@ -313,10 +309,6 @@
     // ============================================================
     // 🔥 PRIORITAS 3: MONEY_CHILD 
     //    = LOKASI + PRODUK (tanpa spesifikasi teknis)
-    //    Harga dan commercial diabaikan (boleh ada atau tidak)
-    //    Contoh: pagar-panel-beton-jakarta → MONEY_CHILD
-    //            harga-pagar-panel-beton-jakarta → MONEY_CHILD
-    //            jual-pagar-panel-beton-jakarta → MONEY_CHILD
     // ============================================================
     if (hasLocation && !hasSpec) {
       log('📍 MONEY_CHILD (LOKASI + PRODUK, tanpa spesifikasi teknis): "' + text + '"', 'LOCATION');
@@ -325,11 +317,8 @@
     
     // ============================================================
     // 🔥 PRIORITAS 4: MONEY_PAGE
-    //    - Lokasi + spesifikasi teknis (apapun harganya)
-    //    - Harga + spesifikasi (tanpa lokasi)
-    //    - Harga atau tambahan tanpa lokasi (tanpa spesifikasi)
-    //    Contoh: harga-pagar-panel-beton-motif → MONEY_PAGE
-    //            pagar-panel-beton-k225-jakarta → MONEY_PAGE
+    //    - Lokasi + spesifikasi teknis
+    //    - Harga + spesifikasi (tanpa lokasi) ← 'murah' sekarang terdeteksi!
     // ============================================================
     if (hasLocation && hasSpec) {
       log('📄 MONEY_PAGE (LOKASI + SPESIFIKASI TEKNIS): "' + text + '"', 'PRICE');
@@ -346,8 +335,6 @@
     
     // ============================================================
     // 🔥 PRIORITAS 5: MONEY_MASTER 
-    //    = Tanpa tambahan apapun
-    //    Contoh: pagar-panel-beton → MONEY_MASTER
     // ============================================================
     log('🏛️ MONEY_MASTER: "' + text + '"', 'MM');
     return "money-master";
@@ -680,7 +667,7 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.45",
+      version: "22.46",
       CONFIG: CONFIG,
       
       detect: detectPageLevel,
@@ -782,21 +769,15 @@
       } catch (e2) {}
     }
 
-    console.log("✅ Page Level Detector v22.45 Ready — TAMBAH COMMERCIAL INTENT!");
-    console.log("🛒 COMMERCIAL INTENT: 'jual', 'beli', 'order', 'pesan', 'booking'");
-    console.log("📍 MONEY_CHILD = LOKASI + PRODUK (tanpa spesifikasi teknis)");
-    console.log("🔬 VARIANT = SPESIFIKASI TEKNIS (tanpa lokasi, TANPA harga, TANPA commercial)");
-    console.log("📄 MONEY_PAGE = COMMERCIAL INTENT + SPESIFIKASI");
-    console.log("📄 MONEY_PAGE = HARGA + SPESIFIKASI (tanpa lokasi)");
-    console.log("📄 MONEY_PAGE = LOKASI + SPESIFIKASI (apapun harganya)");
+    console.log("✅ Page Level Detector v22.46 Ready — FIX BUDGET WORDS!");
+    console.log("💰 PRICE_WORDS: 'harga', 'biaya', 'tarif', 'estimasi', 'murah', 'hemat', 'ekonomis', 'terjangkau', 'budget', 'mahal', 'mewah', 'premium'");
+    console.log("🛒 COMMERCIAL WORDS: 'jual', 'beli', 'order', 'pesan', 'booking', 'sewa', 'rental'");
     console.log("");
-    console.log("📊 CONTOH HASIL:");
-    console.log("  ✅ pagar-panel-beton-jakarta → MONEY_CHILD");
-    console.log("  ✅ harga-pagar-panel-beton-jakarta → MONEY_CHILD");
+    console.log("📊 CONTOH HASIL YANG DIPERBAIKI:");
+    console.log("  ✅ pagar-panel-beton-murah → MONEY_PAGE (bukan VARIANT) 🎯");
+    console.log("  ✅ harga-pagar-panel-beton-k225 → MONEY_PAGE");
+    console.log("  ✅ jual-pagar-panel-beton-precast → MONEY_PAGE");
     console.log("  ✅ pagar-panel-beton-motif → VARIANT");
-    console.log("  ✅ jual-pagar-panel-beton-precast → MONEY_PAGE (NEW!)");
-    console.log("  ✅ harga-pagar-panel-beton-motif → MONEY_PAGE");
-    console.log("  ✅ pagar-panel-beton-k225-jakarta → MONEY_PAGE");
 
     window.pageLevelDetectorv22.updateAttributes()
       .then(function(result) {
@@ -814,7 +795,7 @@
   // 📌 START — WAIT DOM READY
   // ============================================================
 
-  log('🚀 Starting Page Level Detector v22.45...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.46...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
