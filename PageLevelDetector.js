@@ -63,41 +63,46 @@
   var VALID_ENTITY_TYPES = ["produk", "material", "jasa", "desain", "sewa", "artikel"];
 
   // ============================================================
-  // 🔥 ENTITY PILLAR NAMES — MANUAL (LENGKAP SEMUA ENTITY)
-  // ============================================================
+// 🔥 ENTITY PILLAR NAMES — HANYA PILLAR UTAMA (v22.51)
+// ============================================================
 
-  var ENTITY_PILLAR_NAMES = {
+var ENTITY_PILLAR_NAMES = {
     jasa: [
-      "jasa konstruksi", "jasa bangunan", "jasa renovasi", "jasa perbaikan",
-      "jasa coring beton", "jasa pemancangan", "jasa pengeboran", "jasa konstruksi rumah",
-      "jasa bangun rumah", "jasa renovasi rumah", "jasa interior", "jasa desain interior"
+        "jasa konstruksi"
+        // "jasa bangunan",
+      // "jasa renovasi",
+       //  "jasa perbaikan",
+       //  "jasa desain interior"
     ],
     desain: [
-      "jasa desain interior", "desain interior", "jasa arsitektur",
-      "desain rumah", "desain bangunan", "jasa desain"
+        "jasa desain interior"
+      //   "desain interior",
+       //  "jasa arsitektur"
     ],
     sewa: [
-      "sewa alat konstruksi", "rental alat konstruksi", "sewa alat berat",
-      "sewa excavator", "sewa bulldozer", "sewa crane", "rental excavator",
-      "sewa alat", "rental alat", "sewa mesin konstruksi"
+        "sewa alat konstruksi"
+        // "rental alat konstruksi"
+       //  "sewa alat berat"
     ],
     produk: [
-      "produk konstruksi", "produk bangunan", "pagar panel beton",
-      "pagar panel", "panel beton", "pagar beton"
+        "produk konstruksi"
+        // "produk bangunan"
     ],
     "produk interior": [
-      "produk interior", "interior produk"
+        "produk interior"
+        // "interior produk"
     ],
     material: [
-      "material konstruksi", "bahan konstruksi", "material bangunan",
-      "bata ringan", "atap baja ringan", "besi beton", "semen",
-      "pasir", "batu split", "keramik", "granit", "marmer", "hebel"
+        "material konstruksi"
+       //  "bahan konstruksi",
+        // "material bangunan"
     ],
     artikel: [
-      "artikel konstruksi", "blog konstruksi", "tips konstruksi"
+        "artikel konstruksi"
+        // "blog konstruksi",
+        // "tips konstruksi"
     ]
-  };
-
+};
   var ENTITY_TRIGGERS = {
     jasa: ["jasa", "kontraktor", "tukang", "borongan", "renovasi", "pasang", "bangun", "perbaikan", "instalasi", "service", "servis", "layanan"],
     desain: ["desain", "interior", "arsitektur", "konsep", "rencana", "gambar", "denah"],
