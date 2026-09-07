@@ -1,4 +1,4 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.21 — V37 COMPLIANT + WAIT AED & BREADCRUMB */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.22 — V37 COMPLIANT + WAIT AED & BREADCRUMB + PLD v22.55 + FAQ + BREADCRUMB SCHEMA */
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -6,7 +6,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.21] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.22] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -15,7 +15,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.21] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.22] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -27,6 +27,51 @@ XMLHttpRequest.prototype.open = function(method, url, ...rest) {
 const IMAGE_CONFIG = {
   FALLBACK_IMAGE: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiWWAP6ezcmzgbGtHmmJqBjYkbsdQBrwCeC9pl9ocjL-VSQYftirdvXAF1T-eg_QMSqu1WiFidDc9fnChi0yaOqi0Dd6EVMy4ZX3P7vccY4XJMu-7k2TGVd5TS1wIG5jgIm_6beYVb2zuNQGS7eBuODJqd20c4ckvd0-HaEqGf4W-B_750I91wi9IhqqnI/s320/No_Image_Available.jpg",
   LOGO_IMAGE: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png"
+};
+
+// ============================================================
+// 🔥🔥🔥 SPESIFIKASI PER ENTITY (PLD v22.55 COMPLIANT)
+// ============================================================
+
+// PRODUK SPECIFICATIONS
+var PRODUK_SPECS = {
+    mutu: ["k225", "k250", "k300", "k350", "k400", "k500", "fc", "sni"],
+    finishing: ["polos", "motif", "bermotif", "bercorak", "tekstur", "serat", "halus", "kasar", "matte", "glossy", "doff", "gloss", "satin", "anyaman", "natural", "ekspos", "custom", "polosan"],
+    dimensi: ["ukuran", "dimensi", "tinggi", "rendah", "panjang", "pendek", "lebar", "sempit", "tebal", "tipis", "dalam", "dangkal", "diameter", "radius"],
+    material: ["beton", "baja", "besi", "kayu", "keramik", "granit", "marmer", "plafon", "gypsum", "kanopi", "paving", "readymix", "precast", "pracetak"]
+};
+
+// MATERIAL SPECIFICATIONS
+var MATERIAL_SPECS = {
+    grade: ["grade a", "grade b", "sni", "standar", "premium", "ekonomis"],
+    finishing: ["ulir", "polos", "galvanis", "berlapis", "cat", "coating", "anyaman"],
+    dimensi: ["tebal", "panjang", "lebar", "diameter", "radius", "ukuran"],
+    berat: ["kg", "ton", "m3", "liter", "gram"]
+};
+
+// SEWA SPECIFICATIONS
+var SEWA_SPECS = {
+    tipe: ["mini", "besar", "kecil", "sedang", "medium", "heavy", "standar", "extra", "ekstra"],
+    merek: ["pc75", "pc200", "pc300", "komatsu", "hitachi", "caterpillar", "volvo", "hyundai", "doosan", "kobelco", "sumitomo"],
+    kapasitas: ["ton", "m3", "kg", "liter"],
+    kondisi: ["baru", "bekas", "servis", "recondition", "rebuilt"]
+};
+
+// JASA SPECIFICATIONS
+var JASA_SPECS = {
+    metode: ["manual", "hidrolik", "auger", "rotary", "percussive", "dry", "wet", "basah", "kering"],
+    teknik: ["coring", "cutting", "drilling", "pengeboran", "pemancangan", "pemasangan", "bongkar", "potong", "las", "sambung", "grinding", "welding", "bending", "forming", "gali", "urug", "angkut", "cor", "pasang", "bangun"],
+    skala: ["rumahan", "komersial", "industri", "residential", "commercial", "industrial"],
+    kedalaman: ["m", "meter", "cm", "centimeter"]
+};
+
+// DESAIN SPECIFICATIONS
+var DESAIN_SPECS = {
+    gaya: ["modern", "minimalis", "klasik", "tradisional", "kontemporer", "elegan", "luxury", "industrial", "scandinavian", "jepang", "rustic", "vintage", "bohemian", "art deco", "mid century"],
+    warna: ["putih", "hitam", "abu-abu", "merah", "biru", "kuning", "hijau", "coklat", "netral", "warm", "cool", "pastel", "dark", "light"],
+    material: ["kayu", "besi", "kaca", "marmer", "granit", "keramik", "plafon", "gypsum", "pvc", "acp", "vinyl", "wpc", "grc", "hpl"],
+    fungsi: ["ruang tamu", "kamar tidur", "dapur", "kamar mandi", "ruang kerja", "ruang keluarga", "teras", "taman", "ruang makan", "ruang tv"],
+    konsep: ["open space", "split level", "loft", "studio", "apartment", "villa"]
 };
 
 // ============================================================
@@ -57,12 +102,12 @@ function waitForBreadcrumb(timeout = 3000) {
         if (element) {
           const links = element.querySelectorAll('a');
           if (links.length > 0) {
-            console.log(`[Schema v7.21] 🍞 Breadcrumb ditemukan (${selector}) — ${links.length} link`);
+            console.log(`[Schema v7.22] 🍞 Breadcrumb ditemukan (${selector}) — ${links.length} link`);
             resolve(true);
             return;
           }
           if (element.innerText.trim().length > 0) {
-            console.log(`[Schema v7.21] 🍞 Breadcrumb ditemukan (${selector}) — ada teks`);
+            console.log(`[Schema v7.22] 🍞 Breadcrumb ditemukan (${selector}) — ada teks`);
             resolve(true);
             return;
           }
@@ -70,7 +115,7 @@ function waitForBreadcrumb(timeout = 3000) {
       }
 
       if (Date.now() - startTime > timeout) {
-        console.log(`[Schema v7.21] ⏰ Breadcrumb timeout (${timeout}ms), lanjutkan`);
+        console.log(`[Schema v7.22] ⏰ Breadcrumb timeout (${timeout}ms), lanjutkan`);
         resolve(false);
         return;
       }
@@ -87,7 +132,7 @@ function waitForAEDMetaDates(timeout = 10000) {
   return new Promise((resolve) => {
     // CEK APAKAH SUDAH ADA
     if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
-      console.log('[Schema v7.21] ✅ AEDMetaDates ready:', window.AEDMetaDates.dateModified);
+      console.log('[Schema v7.22] ✅ AEDMetaDates ready:', window.AEDMetaDates.dateModified);
       resolve(window.AEDMetaDates);
       return;
     }
@@ -95,7 +140,7 @@ function waitForAEDMetaDates(timeout = 10000) {
     // TUNGGU EVENT DARI AED
     const onReady = () => {
       if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
-        console.log('[Schema v7.21] ✅ AEDMetaDates ready (event)');
+        console.log('[Schema v7.22] ✅ AEDMetaDates ready (event)');
         resolve(window.AEDMetaDates);
       } else {
         resolve(null);
@@ -109,14 +154,14 @@ function waitForAEDMetaDates(timeout = 10000) {
     const interval = setInterval(() => {
       if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
         clearInterval(interval);
-        console.log('[Schema v7.21] ✅ AEDMetaDates ready (interval)');
+        console.log('[Schema v7.22] ✅ AEDMetaDates ready (interval)');
         resolve(window.AEDMetaDates);
         return;
       }
 
       if (Date.now() - startTime > timeout) {
         clearInterval(interval);
-        console.warn('[Schema v7.21] ⏰ AEDMetaDates timeout, using fallback');
+        console.warn('[Schema v7.22] ⏰ AEDMetaDates timeout, using fallback');
         resolve({
           dateModified: new Date().toISOString(),
           nextUpdate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -215,8 +260,290 @@ function getCleanPageName(level) {
     if (cleanName.length < 3) cleanName = 'Halaman Utama';
     if (cleanName.length > 55) cleanName = cleanName.substring(0, 52) + '...';
     
-    console.log('[Schema v7.21] 📝 Clean page name from URL:', cleanName);
+    console.log('[Schema v7.22] 📝 Clean page name from URL:', cleanName);
     return cleanName;
+}
+
+// ============================================================
+// 🔥🔥🔥 CHECK ENTITY SPECIFICATION (PLD v22.55 COMPLIANT)
+// ============================================================
+function checkEntitySpecification(text, entityType) {
+    if (!text) return { isSpec: false, specType: null, specDetails: [], confidence: 0 };
+    
+    var lower = text.toLowerCase();
+    var result = {
+        isSpec: false,
+        specType: null,
+        specDetails: [],
+        confidence: 0
+    };
+
+    // ============================================================
+    // 1. PRODUK
+    // ============================================================
+    if (entityType === "produk") {
+        var mutuList = PRODUK_SPECS.mutu || [];
+        for (var i = 0; i < mutuList.length; i++) {
+            if (new RegExp("\\b" + mutuList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "mutu";
+                result.specDetails.push(mutuList[i]);
+                result.confidence = 5;
+                return result;
+            }
+        }
+
+        var finishingList = PRODUK_SPECS.finishing || [];
+        for (var i = 0; i < finishingList.length; i++) {
+            if (new RegExp("\\b" + finishingList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "finishing";
+                result.specDetails.push(finishingList[i]);
+                result.confidence = 4;
+                return result;
+            }
+        }
+
+        if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lower)) {
+            result.isSpec = true;
+            result.specType = "dimensi";
+            result.specDetails.push("dimensi");
+            result.confidence = 3;
+            return result;
+        }
+
+        if (/\d+\s*[x×]\s*\d+\s*(cm|m|meter|mm)/gi.test(lower)) {
+            result.isSpec = true;
+            result.specType = "ukuran";
+            result.specDetails.push("ukuran");
+            result.confidence = 4;
+            return result;
+        }
+    }
+
+    // ============================================================
+    // 2. MATERIAL
+    // ============================================================
+    if (entityType === "material") {
+        var gradeList = MATERIAL_SPECS.grade || [];
+        for (var i = 0; i < gradeList.length; i++) {
+            if (new RegExp("\\b" + gradeList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "grade";
+                result.specDetails.push(gradeList[i]);
+                result.confidence = 5;
+                return result;
+            }
+        }
+
+        var finishingList = MATERIAL_SPECS.finishing || [];
+        for (var i = 0; i < finishingList.length; i++) {
+            if (new RegExp("\\b" + finishingList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "finishing";
+                result.specDetails.push(finishingList[i]);
+                result.confidence = 4;
+                return result;
+            }
+        }
+
+        if (/\d+\s*(mm|cm|m|meter|kg|ton|m3|liter)/gi.test(lower)) {
+            result.isSpec = true;
+            result.specType = "dimensi";
+            result.specDetails.push("dimensi");
+            result.confidence = 3;
+            return result;
+        }
+    }
+
+    // ============================================================
+    // 3. SEWA
+    // ============================================================
+    if (entityType === "sewa") {
+        var merekList = SEWA_SPECS.merek || [];
+        for (var i = 0; i < merekList.length; i++) {
+            if (new RegExp("\\b" + merekList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "merek";
+                result.specDetails.push(merekList[i]);
+                result.confidence = 5;
+                return result;
+            }
+        }
+
+        var tipeList = SEWA_SPECS.tipe || [];
+        for (var i = 0; i < tipeList.length; i++) {
+            if (new RegExp("\\b" + tipeList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "tipe";
+                result.specDetails.push(tipeList[i]);
+                result.confidence = 4;
+                return result;
+            }
+        }
+
+        if (/\d+\s*(ton|m3|kg|liter)/gi.test(lower)) {
+            result.isSpec = true;
+            result.specType = "kapasitas";
+            result.specDetails.push("kapasitas");
+            result.confidence = 3;
+            return result;
+        }
+    }
+
+    // ============================================================
+    // 4. JASA
+    // ============================================================
+    if (entityType === "jasa") {
+        var metodeList = JASA_SPECS.metode || [];
+        for (var i = 0; i < metodeList.length; i++) {
+            if (new RegExp("\\b" + metodeList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "metode";
+                result.specDetails.push(metodeList[i]);
+                result.confidence = 5;
+                return result;
+            }
+        }
+
+        var teknikList = JASA_SPECS.teknik || [];
+        for (var i = 0; i < teknikList.length; i++) {
+            if (new RegExp("\\b" + teknikList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "teknik";
+                result.specDetails.push(teknikList[i]);
+                result.confidence = 4;
+                return result;
+            }
+        }
+
+        var skalaList = JASA_SPECS.skala || [];
+        for (var i = 0; i < skalaList.length; i++) {
+            if (new RegExp("\\b" + skalaList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "skala";
+                result.specDetails.push(skalaList[i]);
+                result.confidence = 3;
+                return result;
+            }
+        }
+
+        if (/\d+\s*(m|meter|cm)/gi.test(lower)) {
+            result.isSpec = true;
+            result.specType = "kedalaman";
+            result.specDetails.push("kedalaman");
+            result.confidence = 3;
+            return result;
+        }
+    }
+
+    // ============================================================
+    // 5. DESAIN
+    // ============================================================
+    if (entityType === "desain") {
+        var gayaList = DESAIN_SPECS.gaya || [];
+        for (var i = 0; i < gayaList.length; i++) {
+            if (new RegExp("\\b" + gayaList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "gaya";
+                result.specDetails.push(gayaList[i]);
+                result.confidence = 5;
+                return result;
+            }
+        }
+
+        var fungsiList = DESAIN_SPECS.fungsi || [];
+        for (var i = 0; i < fungsiList.length; i++) {
+            if (new RegExp("\\b" + fungsiList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "fungsi";
+                result.specDetails.push(fungsiList[i]);
+                result.confidence = 4;
+                return result;
+            }
+        }
+
+        var konsepList = DESAIN_SPECS.konsep || [];
+        for (var i = 0; i < konsepList.length; i++) {
+            if (new RegExp("\\b" + konsepList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "konsep";
+                result.specDetails.push(konsepList[i]);
+                result.confidence = 4;
+                return result;
+            }
+        }
+
+        var warnaList = DESAIN_SPECS.warna || [];
+        for (var i = 0; i < warnaList.length; i++) {
+            if (new RegExp("\\b" + warnaList[i] + "\\b", "i").test(lower)) {
+                result.isSpec = true;
+                result.specType = "warna";
+                result.specDetails.push(warnaList[i]);
+                result.confidence = 3;
+                return result;
+            }
+        }
+    }
+
+    return result;
+}
+
+// ============================================================
+// 🔥🔥🔥 GET CORE WORDS (PLD v22.55 COMPLIANT)
+// ============================================================
+function getCoreWords(text, entityType) {
+    if (!text) return [];
+
+    var coreText = text.toLowerCase();
+
+    // 1. Hapus price words
+    var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos'];
+    for (var i = 0; i < moneyWords.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + moneyWords[i] + "\\b", 'g'), '');
+    }
+
+    // 2. HAPUS HANYA 1 KATA AWAL ENTITY
+    var entityFirstWords = {
+      'jasa': 'jasa',
+      'sewa': 'sewa',
+      'produk': 'produk',
+      'material': 'material',
+      'desain': 'desain',
+      'artikel': 'artikel'
+    };
+
+    var firstWord = entityFirstWords[entityType] || '';
+    if (firstWord) {
+      coreText = coreText.replace(new RegExp("\\b" + firstWord + "\\b", 'g'), '');
+    }
+
+    // 3. Hapus stopwords
+    var stopwords = ["dan", "atau", "serta", "yang", "dari", "ke", "di", "untuk", "dengan", "ini", "itu", "akan", "telah", "sudah", "masih", "pada", "oleh", "karena", "sehingga", "setelah", "sebelum"];
+    for (var i = 0; i < stopwords.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + stopwords[i] + "\\b", 'g'), ' ');
+    }
+
+    // 4. Hapus lokasi
+    var LOCATION_WORDS = ["jakarta", "jakarta pusat", "jakarta barat", "jakarta selatan", "jakarta timur", "jakarta utara", "bogor", "depok", "tangerang", "bekasi", "bandung", "karawang", "purwakarta", "cikarang", "subang", "cirebon", "semarang", "solo", "surakarta", "pekalongan", "tegal", "magelang", "sukoharjo", "boyolali", "klaten", "jogja", "yogyakarta", "surabaya", "malang", "kediri", "gresik", "sidoarjo", "mojokerto", "pasuruan", "probolinggo", "jember", "banyuwangi", "madiun", "medan", "palembang", "pekanbaru", "padang", "lampung", "batam", "aceh", "jambi", "bengkulu", "pontianak", "balikpapan", "samarinda", "banjarmasin", "makassar", "manado", "palu", "kendari", "bali", "denpasar", "gianyar", "tabanan", "bangli", "karangasem", "klungkung", "buleleng", "mataram", "kupang", "terdekat", "sekitar", "dekat", "near"];
+    for (var i = 0; i < LOCATION_WORDS.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + LOCATION_WORDS[i] + "\\b", 'g'), ' ');
+    }
+
+    // 5. Hapus sub-pillar keywords
+    var subPillarWords = ['daftar', 'jenis', 'macam', 'kategori', 'tipe', 'list', 'katalog', 'rekomendasi', 'pilihan', 'variasi', 'model', 'gaya', 'varian', 'perbandingan', 'vs', 'versus', 'kelebihan', 'kekurangan', 'perbedaan', 'lebih baik', 'unggul', 'terbaik'];
+    for (var i = 0; i < subPillarWords.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + subPillarWords[i] + "\\b", 'g'), ' ');
+    }
+
+    // 6. Hapus commercial words
+    var COMMERCIAL_WORDS = ['jual', 'beli', 'order', 'pesan', 'booking', 'sewa', 'rental', 'rent', 'supplier', 'distributor', 'toko', 'shop', 'butuh', 'cari', 'mau', 'ingin', 'dapatkan', 'pesan sekarang', 'order sekarang'];
+    for (var i = 0; i < COMMERCIAL_WORDS.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + COMMERCIAL_WORDS[i] + "\\b", 'g'), ' ');
+    }
+
+    var coreWords = coreText.split(/\s+/).filter(function(w) { return w.length > 2; });
+    return coreWords;
 }
 
 // ============================================================
@@ -404,7 +731,7 @@ function createImageWithText(pageName, level, year) {
 // 🔥🔥🔥 CEK & PERBAIKI GAMBAR 🔥🔥🔥
 // ============================================================
 function fixImagesToFormat1(pageLevel) {
-    console.log('[Schema v7.21 📸] Checking images in content...');
+    console.log('[Schema v7.22 📸] Checking images in content...');
 
     const currentYear = getCurrentYear();
     const needYearFlag = needYear(pageLevel);
@@ -461,7 +788,7 @@ function fixImagesToFormat1(pageLevel) {
         img.style.padding = '0 10px';
         img.style.boxSizing = 'border-box';
 
-        const styleId = 'responsive-image-style-v721';
+        const styleId = 'responsive-image-style-v722';
         if (!document.getElementById(styleId)) {
             const style = document.createElement('style');
             style.id = styleId;
@@ -533,7 +860,7 @@ function fixImagesToFormat1(pageLevel) {
     const captionText = '📊 ' + displayName;
 
     if (targetImage) {
-        console.log('[Schema v7.21 📸] Image found in content, fixing for SEO...');
+        console.log('[Schema v7.22 📸] Image found in content, fixing for SEO...');
 
         const img = targetImage;
         const figure = targetFigure || img.closest('figure');
@@ -542,7 +869,7 @@ function fixImagesToFormat1(pageLevel) {
         if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
             img.src = autoImageDataUrl;
         } else {
-            console.log('[Schema v7.21 📸] Existing image preserved, only updating attributes');
+            console.log('[Schema v7.22 📸] Existing image preserved, only updating attributes');
         }
 
         img.alt = displayName;
@@ -575,7 +902,7 @@ function fixImagesToFormat1(pageLevel) {
                 figcaption.style.textAlign = 'center';
             }
         } else {
-            console.log('[Schema v7.21 📸] Wrapping image with FIGURE...');
+            console.log('[Schema v7.22 📸] Wrapping image with FIGURE...');
             const newFigure = document.createElement('figure');
             const parent = img.parentElement;
             parent.insertBefore(newFigure, img);
@@ -593,11 +920,11 @@ function fixImagesToFormat1(pageLevel) {
             applyResponsiveStyles(newFigure, img);
         }
 
-        console.log('[Schema v7.21 📸] ✅ Image fixed with SEO FIGURE');
+        console.log('[Schema v7.22 📸] ✅ Image fixed with SEO FIGURE');
         return figure;
     }
 
-    console.log('[Schema v7.21 📸] No image found, creating new responsive FIGURE...');
+    console.log('[Schema v7.22 📸] No image found, creating new responsive FIGURE...');
 
     const insertPoint = getImageInsertionPoint();
     const figure = document.createElement('figure');
@@ -630,23 +957,42 @@ function fixImagesToFormat1(pageLevel) {
         insertPoint.container.insertBefore(figure, insertPoint.container.firstChild);
     }
 
-    console.log('[Schema v7.21 📸] ✅ New responsive FIGURE created');
+    console.log('[Schema v7.22 📸] ✅ New responsive FIGURE created');
     return figure;
 }
 
 // ============================================================
-// 🔥🔥🔥 AUTO UPDATE TAHUN 🔥🔥🔥
+// 🔥🔥🔥 UPDATE H1 BERDASARKAN FOKUS KONTEN 🔥🔥🔥
 // ============================================================
-function updateH1Year(pageLevel) {
+function updateH1ByFocus(pageLevel, contentFocus) {
+    // 🔥 FOKUS INFORMASI → HAPUS TAHUN
+    if (contentFocus === 'informasi') {
+        const h1 = document.querySelector('h1');
+        if (h1) {
+            const originalText = h1.innerText;
+            const cleanedText = originalText
+                .replace(/\b(19|20)\d{2}\b/g, '')
+                .replace(/\s{2,}/g, ' ')
+                .trim();
+            if (cleanedText !== originalText) {
+                h1.innerText = cleanedText;
+                console.log('[Schema v7.22] ✅ H1: Tahun dihapus (INFORMASI) → "' + cleanedText + '"');
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 🔥 FOKUS HARGA/COMMERCIAL/GABUNG → WAJIB TAHUN
     if (!needYear(pageLevel)) {
-        console.log('[Schema v7.21] ⏭️ Level ini TIDAK butuh tahun di H1');
+        console.log('[Schema v7.22] ⏭️ Level ini TIDAK butuh tahun di H1');
         return false;
     }
 
     const currentYear = getCurrentYear();
     const h1 = document.querySelector('h1');
     if (!h1) {
-        console.log('[Schema v7.21] ⚠️ Tidak ada H1 ditemukan');
+        console.log('[Schema v7.22] ⚠️ Tidak ada H1 ditemukan');
         return false;
     }
 
@@ -656,101 +1002,19 @@ function updateH1Year(pageLevel) {
     if (!detectedYear) {
         const newText = originalText + ' ' + currentYear;
         h1.innerText = newText;
-        console.log('[Schema v7.21] ✅ H1: Tahun ditambahkan → "' + newText + '"');
+        console.log('[Schema v7.22] ✅ H1: Tahun ditambahkan → "' + newText + '"');
         return true;
     }
 
     if (detectedYear < currentYear) {
-        const newText = originalText.replace(/\b(20[2-9][0-9])\b/, currentYear);
+        const newText = originalText.replace(/\b(19|20)\d{2}\b/, currentYear);
         h1.innerText = newText;
-        console.log('[Schema v7.21] ✅ H1: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
+        console.log('[Schema v7.22] ✅ H1: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
         return true;
     }
 
-    console.log('[Schema v7.21] ✅ H1: Tahun sudah sesuai (' + detectedYear + ')');
+    console.log('[Schema v7.22] ✅ H1: Tahun sudah sesuai (' + detectedYear + ')');
     return true;
-}
-
-function updateImageYear(pageLevel) {
-    if (!needYear(pageLevel)) {
-        console.log('[Schema v7.21] ⏭️ Level ini TIDAK butuh tahun di gambar');
-        return false;
-    }
-
-    const currentYear = getCurrentYear();
-    const images = document.querySelectorAll('img[data-auto-generated="true"]');
-    let updatedCount = 0;
-
-    images.forEach(function(img) {
-        const alt = img.getAttribute('alt') || '';
-        const title = img.getAttribute('title') || '';
-        const detectedYear = extractYear(alt) || extractYear(title);
-
-        if (!detectedYear) {
-            const newAlt = alt + ' ' + currentYear;
-            const newTitle = title + ' ' + currentYear;
-            img.setAttribute('alt', newAlt);
-            img.setAttribute('title', newTitle);
-            console.log('[Schema v7.21] ✅ Gambar: Tahun ditambahkan → "' + newAlt + '"');
-            updatedCount++;
-            return;
-        }
-
-        if (detectedYear < currentYear) {
-            const newAlt = alt.replace(/\b(20[2-9][0-9])\b/, currentYear);
-            const newTitle = title.replace(/\b(20[2-9][0-9])\b/, currentYear);
-            img.setAttribute('alt', newAlt);
-            img.setAttribute('title', newTitle);
-            console.log('[Schema v7.21] ✅ Gambar: Tahun diupdate ' + detectedYear + ' → ' + currentYear);
-            updatedCount++;
-        }
-    });
-
-    if (updatedCount === 0) {
-        console.log('[Schema v7.21] ✅ Gambar: Tidak ada yang perlu diupdate');
-    }
-    return updatedCount > 0;
-}
-
-function regenerateImageWithNewYear(pageLevel) {
-    if (!needYear(pageLevel)) {
-        console.log('[Schema v7.21] ⏭️ Level ini TIDAK butuh re-generate gambar');
-        return false;
-    }
-
-    const currentYear = getCurrentYear();
-    const pageName = getCleanPageName(pageLevel);
-    const images = document.querySelectorAll('img[data-auto-generated="true"]');
-    let regenCount = 0;
-
-    images.forEach(function(img) {
-        const alt = img.getAttribute('alt') || '';
-        const detectedYear = extractYear(alt);
-
-        if (!detectedYear || detectedYear < currentYear) {
-            const newImageData = createImageWithText(pageName, pageLevel, currentYear);
-            img.setAttribute('src', newImageData);
-            img.setAttribute('alt', pageName + ' ' + currentYear);
-            img.setAttribute('title', pageName + ' ' + currentYear);
-            img.setAttribute('data-year', currentYear);
-
-            const figure = img.closest('figure');
-            if (figure) {
-                const figcaption = figure.querySelector('figcaption');
-                if (figcaption) {
-                    figcaption.textContent = '📊 ' + pageName + ' ' + currentYear;
-                }
-            }
-
-            console.log('[Schema v7.21] ✅ Gambar: Re-generate dengan tahun ' + currentYear);
-            regenCount++;
-        }
-    });
-
-    if (regenCount === 0) {
-        console.log('[Schema v7.21] ✅ Gambar: Tidak ada yang perlu di-regen');
-    }
-    return regenCount > 0;
 }
 
 // ============================================================
@@ -771,22 +1035,22 @@ function getEntityTypeFromPLD() {
             try {
                 const entityType = pld.obj.detectEntityType();
                 if (entityType) {
-                    console.log(`[Schema v7.21] Entity Type dari PLD ${pld.name}: ${entityType}`);
+                    console.log(`[Schema v7.22] Entity Type dari PLD ${pld.name}: ${entityType}`);
                     return entityType;
                 }
             } catch(e) {
-                console.warn(`[Schema v7.21] Error calling PLD ${pld.name}:`, e.message);
+                console.warn(`[Schema v7.22] Error calling PLD ${pld.name}:`, e.message);
             }
         }
     }
 
     const bodyEntity = document.body.getAttribute('data-entity-type') || document.body.getAttribute('data-schema-entity-type');
     if (bodyEntity) {
-        console.log(`[Schema v7.21] Entity Type dari body attribute: ${bodyEntity}`);
+        console.log(`[Schema v7.22] Entity Type dari body attribute: ${bodyEntity}`);
         return bodyEntity;
     }
 
-    console.log('[Schema v7.21] Entity Type tidak tersedia, menggunakan fallback detection');
+    console.log('[Schema v7.22] Entity Type tidak tersedia, menggunakan fallback detection');
     return detectEntityTypeFallback();
 }
 
@@ -796,32 +1060,161 @@ function detectEntityTypeFallback() {
     const url = location.href.toLowerCase();
     const combined = h1 + " " + title + " " + url;
 
-    const jasaKeywords = ['jasa', 'layanan', 'service', 'borongan', 'kontraktor', 'renovasi', 'pemasangan', 'instalasi', 'pengerjaan', 'perbaikan'];
+    // CEK DENGAN PLD v22.55
+    if (window.pageLevelDetectorv22) {
+        try {
+            const slug = getCleanPageName();
+            const result = window.pageLevelDetectorv22.detectForPrompt(slug);
+            if (result && result.entityType) {
+                return result.entityType;
+            }
+        } catch(e) {}
+    }
+
+    // CEK JASA
+    const jasaKeywords = ['jasa', 'layanan', 'service', 'borongan', 'kontraktor', 'renovasi', 'pemasangan', 'instalasi', 'pengerjaan', 'perbaikan', 'pasang', 'bangun', 'coring', 'drilling', 'pengeboran'];
     for (let keyword of jasaKeywords) {
         if (combined.includes(keyword)) {
-            const productExceptions = /(beton|readymix|precast|paving|panel)\s+(harga|spesifikasi|ukuran)/i.test(combined);
+            const productExceptions = /(beton|readymix|precast|paving|panel|baja|besi|kayu)\s+(harga|spesifikasi|ukuran)/i.test(combined);
             if (!productExceptions) return 'jasa';
         }
     }
 
-    const sewaKeywords = ['sewa', 'rental', 'sewa alat', 'rental alat', 'excavator', 'bulldozer', 'crane'];
+    // CEK SEWA
+    const sewaKeywords = ['sewa', 'rental', 'sewa alat', 'rental alat', 'excavator', 'bulldozer', 'crane', 'alat berat', 'dozer', 'vibro', 'roller'];
     for (let keyword of sewaKeywords) {
         if (combined.includes(keyword)) {
-            const productExceptions = /(sewa\s+beton|sewa\s+readymix)/i.test(combined);
+            const productExceptions = /(sewa\s+beton|sewa\s+readymix|sewa\s+panel)/i.test(combined);
             if (!productExceptions) return 'sewa';
         }
     }
 
-    const materialKeywords = ['material', 'bahan bangunan', 'bahan konstruksi', 'agregat', 'pasir', 'batu split', 'semen'];
+    // CEK DESAIN
+    const desainKeywords = ['desain', 'interior', 'eksterior', 'arsitektur', 'layout', 'denah', 'gambar', 'konsep', 'rencana', 'modern', 'minimalis', 'klasik', 'tradisional', 'kontemporer'];
+    for (let keyword of desainKeywords) {
+        if (combined.includes(keyword)) {
+            return 'desain';
+        }
+    }
+
+    // CEK MATERIAL
+    const materialKeywords = ['material', 'bahan bangunan', 'bahan konstruksi', 'agregat', 'pasir', 'batu split', 'semen', 'besi', 'baja', 'kayu', 'keramik', 'granit', 'marmer', 'gypsum', 'plafon', 'paving', 'bata', 'batako', 'hebel'];
     for (let keyword of materialKeywords) {
-        if (combined.includes(keyword)) return 'material';
+        if (combined.includes(keyword)) {
+            return 'material';
+        }
     }
 
     return 'produk';
 }
 
 // ============================================================
-// 🔥🔥🔥 DETEKSI FOKUS KONTEN (INFORMASI vs HARGA) 🔥🔥🔥
+// 🔥🔥🔥 DETEKSI PAGE LEVEL — PLD v22.55 COMPLIANT 🔥🔥🔥
+// ============================================================
+function getPageLevelFromPLD() {
+    const pldVersions = [
+        { obj: window.pageLevelDetectorv22, name: 'v22.x' },
+        { obj: window.pageLevelDetectorv20, name: 'v20.x' },
+        { obj: window.pageLevelDetectorv19, name: 'v19.0' },
+        { obj: window.pageLevelDetectorV18, name: 'v18.7' },
+        { obj: window.pageLevelDetectorV17, name: 'v17.0' },
+        { obj: window.pageLevelDetector, name: 'legacy' }
+    ];
+
+    for (let pld of pldVersions) {
+        if (pld.obj && typeof pld.obj.detect === 'function') {
+            try {
+                const level = pld.obj.detect();
+                if (level) {
+                    console.log(`[Schema v7.22] Page Level dari PLD ${pld.name}: ${level}`);
+                    return level;
+                }
+            } catch(e) {
+                console.warn(`[Schema v7.22] Error calling PLD ${pld.name}:`, e.message);
+            }
+        }
+    }
+
+    const bodyLevel = document.body.getAttribute('data-page-level') || document.body.getAttribute('data-schema-page-level');
+    if (bodyLevel) {
+        console.log(`[Schema v7.22] Page Level dari body attribute: ${bodyLevel}`);
+        return bodyLevel;
+    }
+
+    console.log('[Schema v7.22] PLD tidak tersedia, menggunakan fallback detection');
+    return detectPageLevelFallback();
+}
+
+function detectPageLevelFallback() {
+    const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
+    const title = document.title.toLowerCase();
+    const url = location.href.toLowerCase();
+    const combined = h1 + " " + title + " " + url;
+    
+    // 🔥 CEK DENGAN PLD v22.55 detectForPrompt
+    if (window.pageLevelDetectorv22) {
+        try {
+            const slug = getCleanPageName();
+            const entityType = getEntityTypeFromPLD();
+            const result = window.pageLevelDetectorv22.detectForPrompt(slug, entityType);
+            if (result && result.isValid) {
+                console.log(`[Schema v7.22] 🔥 Page Level from PLD v22.55: ${result.pageLevel}`);
+                return result.pageLevel;
+            }
+        } catch(e) {
+            console.warn('[Schema v7.22] Error calling PLD v22.55:', e);
+        }
+    }
+
+    // 🔥 CEK SPESIFIKASI PER ENTITY (VARIANT)
+    const entityType = getEntityTypeFromPLD();
+    const specResult = checkEntitySpecification(combined, entityType);
+    if (specResult.isSpec) {
+        if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|k|m3|liter)/gi.test(combined)) {
+            console.log('[Schema v7.22] 🔬 SUB-VARIANT terdeteksi');
+            return "sub-variant";
+        }
+        console.log('[Schema v7.22] 🔬 VARIANT terdeteksi');
+        return "variant";
+    }
+
+    // 🔥 CEK LOCATION → MONEY_CHILD
+    const locations = ["jakarta", "bekasi", "bogor", "depok", "tangerang", "karawang", "surabaya", "bandung"];
+    for (let loc of locations) {
+        if (combined.includes(loc)) {
+            console.log('[Schema v7.22] 📍 MONEY_CHILD terdeteksi');
+            return "money-child";
+        }
+    }
+
+    // 🔥 CEK PRICE + SPEC → MONEY_PAGE
+    const hasPrice = /\b(harga|biaya|tarif|estimasi)\b/i.test(combined);
+    const hasSpec = specResult.isSpec;
+    if (hasPrice && hasSpec) {
+        console.log('[Schema v7.22] 💰 MONEY_PAGE (price+spec) terdeteksi');
+        return "money-page";
+    }
+
+    // 🔥 CEK PRICE → MONEY_MASTER atau MONEY_PAGE (CORE LOGIC)
+    if (hasPrice) {
+        const coreWords = getCoreWords(combined, entityType);
+        if (coreWords.length <= 2) {
+            console.log('[Schema v7.22] 🏛️ MONEY_MASTER terdeteksi (core: ' + coreWords.length + ' kata)');
+            return "money-master";
+        }
+        console.log('[Schema v7.22] 💰 MONEY_PAGE terdeteksi (core: ' + coreWords.length + ' kata)');
+        return "money-page";
+    }
+
+    // 🔥 CEK SUB-PILLAR
+    if (/\b(daftar|jenis|kategori)\b/i.test(combined)) return "sub-pillar-tipe-2";
+    if (/\b(perbandingan|vs|versus)\b/i.test(combined)) return "sub-pillar-tipe-1";
+
+    return "pillar";
+}
+
+// ============================================================
+// 🔥🔥🔥 DETEKSI FOKUS KONTEN 🔥🔥🔥
 // ============================================================
 function detectContentFocus() {
     const h1 = document.querySelector('h1');
@@ -831,73 +1224,82 @@ function detectContentFocus() {
     const url = location.href.toLowerCase();
     const combined = h1Text + ' ' + title + ' ' + content + ' ' + url;
 
+    // 🔥 CEK COMMERCIAL (jual/beli/order)
+    const commercialKeywords = ['jual', 'beli', 'order', 'pesan', 'booking', 'dapatkan', 'pesan sekarang', 'order sekarang', 'beli sekarang'];
+    for (let keyword of commercialKeywords) {
+        if (combined.includes(keyword)) {
+            console.log('[Schema v7.22] 🛒 FOKUS: COMMERCIAL');
+            return 'commercial';
+        }
+    }
+
+    // 🔥 CEK HARGA
     const hasYearInH1 = /\b(19|20)\d{2}\b/.test(h1Text);
     if (hasYearInH1) {
-        console.log('[Schema v7.21] 📅 H1 mengandung tahun → FOKUS: HARGA');
+        console.log('[Schema v7.22] 📅 H1 mengandung tahun → FOKUS: HARGA');
         return 'harga';
     }
 
     const hasRpInH1 = /Rp\s*[\d.,]+/.test(h1Text);
     if (hasRpInH1) {
-        console.log('[Schema v7.21] 💰 H1 mengandung Rp → FOKUS: HARGA');
+        console.log('[Schema v7.22] 💰 H1 mengandung Rp → FOKUS: HARGA');
         return 'harga';
     }
 
     const hasHargaInH1 = /harga|biaya|tarif|estimasi/.test(h1Text);
     if (hasHargaInH1) {
-        console.log('[Schema v7.21] 💰 H1 mengandung kata harga → FOKUS: HARGA');
+        console.log('[Schema v7.22] 💰 H1 mengandung kata harga → FOKUS: HARGA');
         return 'harga';
     }
 
-    const informatifKeywords = ['panduan', 'spesifikasi', 'keunggulan', 'cara memilih', 'tips', 'perbedaan', 'jenis', 'apa itu'];
-    const hasInformatifInH1 = informatifKeywords.some(k => h1Text.includes(k));
-    if (hasInformatifInH1) {
-        console.log('[Schema v7.21] 📚 H1 mengandung kata informatif → FOKUS: INFORMASI');
-        return 'informasi';
+    // 🔥 CEK GABUNG (ada harga + informasi + commercial)
+    const hasHargaInContent = /harga|biaya|tarif|estimasi|Rp/.test(content);
+    const hasCommercialInContent = commercialKeywords.some(k => content.includes(k));
+    const hasInformasiInContent = /panduan|spesifikasi|keunggulan|cara memilih|tips|perbedaan|jenis|apa itu/.test(content);
+
+    if (hasHargaInContent && hasCommercialInContent && hasInformasiInContent) {
+        console.log('[Schema v7.22] 📚 GABUNG: Informasi + Harga + Commercial');
+        return 'gabung';
     }
 
-    const tables = document.querySelectorAll('table');
-    let hasPriceTable = false;
-    let hasSpecTable = false;
-    
-    tables.forEach(table => {
-        const tableText = table.innerText.toLowerCase();
-        if ((tableText.includes('harga') || tableText.includes('biaya') || tableText.includes('estimasi')) && tableText.match(/[\d.,]+/)) {
-            hasPriceTable = true;
+    // 🔥 CEK INFORMASI
+    const informatifKeywords = ['panduan', 'spesifikasi', 'keunggulan', 'cara memilih', 'tips', 'perbedaan', 'jenis', 'apa itu', 'pengertian', 'definisi'];
+    for (let keyword of informatifKeywords) {
+        if (h1Text.includes(keyword) || title.includes(keyword)) {
+            console.log('[Schema v7.22] 📚 FOKUS: INFORMASI');
+            return 'informasi';
         }
-        if (tableText.includes('spesifikasi') || tableText.includes('ukuran') || tableText.includes('mutu')) {
-            hasSpecTable = true;
-        }
-    });
-
-    if (hasPriceTable && !hasSpecTable) {
-        console.log('[Schema v7.21] 📊 Ada tabel HARGA → FOKUS: HARGA');
-        return 'harga';
     }
 
+    // 🔥 SCORING SYSTEM
     const eduKeywords = ['panduan', 'spesifikasi', 'keunggulan', 'ukuran', 'dimensi', 'cara memilih', 'tips', 'informasi', 'pengertian', 'definisi', 'jenis', 'macam', 'tipe', 'perbedaan', 'kelebihan', 'kekurangan', 'material', 'bahan', 'standar', 'mutu'];
     const priceKeywords = ['harga', 'biaya', 'estimasi', 'tarif', 'mulai dari', 'per meter', 'per lembar', 'per kubik', 'per unit', 'promo', 'diskon', 'penawaran', 'daftar harga', 'tabel harga', 'rincian biaya', 'simulasi biaya', 'total biaya', 'anggaran', 'budget'];
+    const commercialScore = commercialKeywords.filter(k => combined.includes(k)).length;
 
     let eduScore = 0, priceScore = 0;
     eduKeywords.forEach(k => { if (combined.includes(k)) eduScore++; });
     priceKeywords.forEach(k => { if (combined.includes(k)) priceScore++; });
 
-    const hasPriceCTA = document.querySelector('.cta-box, .cta-button, .btn-wa, [href*="wa.me"]')?.innerText?.toLowerCase()?.includes('harga') || false;
-    if (hasPriceCTA) priceScore += 2;
+    priceScore += commercialScore * 2;
 
-    console.log(`[Schema v7.21] 📊 Edu Score: ${eduScore}, Price Score: ${priceScore}`);
+    console.log(`[Schema v7.22] 📊 Edu: ${eduScore}, Price: ${priceScore}, Commercial: ${commercialScore}`);
+
+    if (priceScore > eduScore * 1.5 && commercialScore > 0) {
+        console.log('[Schema v7.22] 🎯 FOKUS: COMMERCIAL');
+        return 'commercial';
+    }
 
     if (priceScore > eduScore * 1.3) {
-        console.log('[Schema v7.21] 🎯 Fokus: HARGA (price score lebih tinggi)');
+        console.log('[Schema v7.22] 🎯 FOKUS: HARGA');
         return 'harga';
     }
 
     if (eduScore > priceScore * 1.3) {
-        console.log('[Schema v7.21] 🎯 Fokus: INFORMASI (edu score lebih tinggi)');
+        console.log('[Schema v7.22] 🎯 FOKUS: INFORMASI');
         return 'informasi';
     }
 
-    console.log('[Schema v7.21] 🎯 Fokus: INFORMASI (default)');
+    console.log('[Schema v7.22] 🎯 FOKUS: INFORMASI (default)');
     return 'informasi';
 }
 
@@ -1099,10 +1501,73 @@ function generateInternalLinks() {
 }
 
 // ============================================================
+// 🔥🔥🔥 GENERATE FAQ SCHEMA (NEW!) 🔥🔥🔥
+// ============================================================
+function generateFAQSchema(cleanUrl) {
+    const faqItems = [];
+    const faqElements = document.querySelectorAll('.faq-item, .faq-question, .faq-answer, [class*="faq"]');
+    
+    faqElements.forEach(el => {
+        const question = el.querySelector('.faq-question, .question, [class*="question"]')?.innerText?.trim();
+        const answer = el.querySelector('.faq-answer, .answer, [class*="answer"]')?.innerText?.trim();
+        if (question && answer && question.length > 5 && answer.length > 10) {
+            faqItems.push({
+                "@type": "Question",
+                "name": question,
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": answer
+                }
+            });
+        }
+    });
+
+    if (faqItems.length >= 3) {
+        console.log(`[Schema v7.22] ✅ FAQ Schema: ${faqItems.length} questions`);
+        return {
+            "@type": "FAQPage",
+            "@id": cleanUrl + "#faq",
+            "mainEntity": faqItems
+        };
+    }
+    return null;
+}
+
+// ============================================================
+// 🔥🔥🔥 GENERATE BREADCRUMB SCHEMA (NEW!) 🔥🔥🔥
+// ============================================================
+function generateBreadcrumbSchema(cleanUrl) {
+    const breadcrumbLinks = document.querySelectorAll('.breadcrumbs a, .breadcrumb a, .nav-trail a, .breadcrumb-item a, .crumbs a, [aria-label="breadcrumb"] a');
+    if (breadcrumbLinks.length > 1) {
+        const itemListElement = [];
+        breadcrumbLinks.forEach((link) => {
+            const name = link.innerText?.trim() || '';
+            if (name && name.toLowerCase() !== 'home' && name.toLowerCase() !== 'beranda' && name.length > 1) {
+                itemListElement.push({
+                    "@type": "ListItem",
+                    "position": itemListElement.length + 1,
+                    "name": name,
+                    "item": link.href
+                });
+            }
+        });
+        if (itemListElement.length > 0) {
+            console.log(`[Schema v7.22] 🍞 Breadcrumb Schema: ${itemListElement.length} items`);
+            return {
+                "@type": "BreadcrumbList",
+                "@id": cleanUrl + "#breadcrumb",
+                "itemListElement": itemListElement
+            };
+        }
+    }
+    return null;
+}
+
+// ============================================================
 // 🔥🔥🔥 DETEKSI HALAMAN LAYAK GAMBAR 🔥🔥🔥
 // ============================================================
 function isImageEligible(pageLevel) {
-    console.log('[Schema v7.21 📸] Checking image eligibility for page level:', pageLevel);
+    console.log('[Schema v7.22 📸] Checking image eligibility for page level:', pageLevel);
 
     const mandatoryImageLevels = [
         'money-master', 
@@ -1113,7 +1578,7 @@ function isImageEligible(pageLevel) {
     ];
     
     if (mandatoryImageLevels.includes(pageLevel)) {
-        console.log(`[Schema v7.21] ✅ WAJIB GAMBAR (level: ${pageLevel})`);
+        console.log(`[Schema v7.22] ✅ WAJIB GAMBAR (level: ${pageLevel})`);
         return true;
     }
 
@@ -1125,7 +1590,7 @@ function isImageEligible(pageLevel) {
         const pillarEdukasi = ["panduan", "tips", "cara", "apa itu", "pengertian", "definisi", "overview", "komprehensif", "langkah", "tutorial", "pedoman", "petunjuk", "kenali", "mengenal", "memahami", "belajar"];
         for (let keyword of pillarEdukasi) {
             if (combined.includes(keyword)) {
-                console.log(`[Schema v7.21] ⏭️ Skip gambar: Pillar edukasi murni (keyword: "${keyword}")`);
+                console.log(`[Schema v7.22] ⏭️ Skip gambar: Pillar edukasi murni (keyword: "${keyword}")`);
                 return false;
             }
         }
@@ -1133,87 +1598,30 @@ function isImageEligible(pageLevel) {
     }
 
     if (pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
-        console.log(`[Schema v7.21] ✅ LAYAK GAMBAR (level: ${pageLevel})`);
+        console.log(`[Schema v7.22] ✅ LAYAK GAMBAR (level: ${pageLevel})`);
         return true;
     }
 
     const content = document.querySelector(".post-body, article, main")?.innerText || "";
     const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
     if (wordCount < 300) {
-        console.log(`[Schema v7.21] ⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata < 300)`);
+        console.log(`[Schema v7.22] ⏭️ Skip gambar: Konten terlalu pendek (${wordCount} kata < 300)`);
         return false;
     }
 
     const hasImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
     if (hasImage) {
-        console.log(`[Schema v7.21] ✅ Halaman sudah memiliki gambar, tetap layak`);
+        console.log(`[Schema v7.22] ✅ Halaman sudah memiliki gambar, tetap layak`);
         return true;
     }
 
-    console.log(`[Schema v7.21] ⏭️ Skip gambar: Halaman tidak masuk kriteria layak`);
+    console.log(`[Schema v7.22] ⏭️ Skip gambar: Halaman tidak masuk kriteria layak`);
     return false;
 }
 
 // ============================================================
-// 🔥🔥🔥 AMBIL PAGE LEVEL DARI PLD 🔥🔥🔥
+// 🔥🔥🔥 WAIT PLD 🔥🔥🔥
 // ============================================================
-function getPageLevelFromPLD() {
-    const pldVersions = [
-        { obj: window.pageLevelDetectorv22, name: 'v22.x' },
-        { obj: window.pageLevelDetectorv20, name: 'v20.x' },
-        { obj: window.pageLevelDetectorv19, name: 'v19.0' },
-        { obj: window.pageLevelDetectorV18, name: 'v18.7' },
-        { obj: window.pageLevelDetectorV17, name: 'v17.0' },
-        { obj: window.pageLevelDetector, name: 'legacy' }
-    ];
-
-    for (let pld of pldVersions) {
-        if (pld.obj && typeof pld.obj.detect === 'function') {
-            try {
-                const level = pld.obj.detect();
-                if (level) {
-                    console.log(`[Schema v7.21] Page Level dari PLD ${pld.name}: ${level}`);
-                    return level;
-                }
-            } catch(e) {
-                console.warn(`[Schema v7.21] Error calling PLD ${pld.name}:`, e.message);
-            }
-        }
-    }
-
-    const bodyLevel = document.body.getAttribute('data-page-level') || document.body.getAttribute('data-schema-page-level');
-    if (bodyLevel) {
-        console.log(`[Schema v7.21] Page Level dari body attribute: ${bodyLevel}`);
-        return bodyLevel;
-    }
-
-    console.log('[Schema v7.21] PLD tidak tersedia, menggunakan fallback detection');
-    return detectPageLevelFallback();
-}
-
-function detectPageLevelFallback() {
-    const h1 = document.querySelector("h1")?.innerText?.toLowerCase() || "";
-    const title = document.title.toLowerCase();
-    const url = location.href.toLowerCase();
-
-    const variantPatterns = ["spesifikasi", "ukuran", "dimensi", "varian", "polosan", "motif", "custom", "metode", "teknik"];
-    for (let pattern of variantPatterns) {
-        if (h1.includes(pattern) || title.includes(pattern) || url.includes(pattern)) return "variant";
-    }
-
-    const locations = ["jakarta", "bekasi", "bogor", "depok", "tangerang", "karawang", "surabaya", "bandung"];
-    for (let loc of locations) {
-        if (h1.includes(loc) || title.includes(loc) || url.includes(loc)) return "money-child";
-    }
-
-    if (/\b(harga|biaya|tarif)\b/i.test(h1 + title)) return "money-page";
-    if (/\b(jasa|sewa|borongan)\b/i.test(h1 + title) && !/\b(panduan|tips|cara)\b/i.test(h1 + title)) return "money-master";
-    if (/\b(daftar|jenis|kategori)\b/i.test(h1 + title)) return "sub-pillar-tipe-2";
-    if (/\b(perbandingan|vs|versus)\b/i.test(h1 + title)) return "sub-pillar-tipe-1";
-
-    return "pillar";
-}
-
 function waitForPLD() {
     return new Promise((resolve) => {
         if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
@@ -1223,7 +1631,7 @@ function waitForPLD() {
             return;
         }
 
-        const onReady = () => { console.log('[Schema v7.21] PLD ready (event)'); resolve(true); };
+        const onReady = () => { console.log('[Schema v7.22] PLD ready (event)'); resolve(true); };
         window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
         window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
         window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
@@ -1233,10 +1641,10 @@ function waitForPLD() {
             if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
                 window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
                 window.pageLevelDetectorV17 || window.pageLevelDetector) {
-                console.log('[Schema v7.21] PLD ready (timeout)');
+                console.log('[Schema v7.22] PLD ready (timeout)');
                 resolve(true);
             } else {
-                console.log('[Schema v7.21] PLD timeout, using fallback');
+                console.log('[Schema v7.22] PLD timeout, using fallback');
                 resolve(false);
             }
         }, 5000);
@@ -1244,27 +1652,27 @@ function waitForPLD() {
 }
 
 // ============================================================
-// 🚀 MAIN FUNCTION — DENGAN WAIT BREADCRUMB + AED
+// 🚀 MAIN FUNCTION — DENGAN WAIT BREADCRUMB + AED + PLD v22.55
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
-        console.log('[Schema v7.21] 🔥 Starting...');
+        console.log('[Schema v7.22] 🔥 Starting...');
         
         // ===== STEP 1: TUNGGU BREADCRUMB TERBENTUK =====
-        console.log('[Schema v7.21] 🍞 Menunggu breadcrumb...');
+        console.log('[Schema v7.22] 🍞 Menunggu breadcrumb...');
         const breadcrumbReady = await waitForBreadcrumb(3000);
-        console.log(`[Schema v7.21] 🍞 Breadcrumb: ${breadcrumbReady ? '✅ READY' : '⏰ TIMEOUT'}`);
+        console.log(`[Schema v7.22] 🍞 Breadcrumb: ${breadcrumbReady ? '✅ READY' : '⏰ TIMEOUT'}`);
         
         // ===== STEP 2: TUNGGU PLD =====
-        console.log('[Schema v7.21] ⏳ Menunggu PLD...');
+        console.log('[Schema v7.22] ⏳ Menunggu PLD...');
         await waitForPLD();
         
         // ===== STEP 3: TUNGGU AEDMetaDates =====
-        console.log('[Schema v7.21] ⏳ Menunggu AEDMetaDates...');
+        console.log('[Schema v7.22] ⏳ Menunggu AEDMetaDates...');
         const aed = await waitForAEDMetaDates(10000);
         
         if (aed) {
-            console.log('[Schema v7.21] ✅ AED data:', {
+            console.log('[Schema v7.22] ✅ AED data:', {
                 dateModified: aed.dateModified,
                 nextUpdate: aed.nextUpdate,
                 validityDays: aed.validityDays,
@@ -1273,7 +1681,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 entityType: aed.entityType
             });
         } else {
-            console.warn('[Schema v7.21] ⚠️ AED tidak tersedia, gunakan fallback');
+            console.warn('[Schema v7.22] ⚠️ AED tidak tersedia, gunakan fallback');
         }
 
         // ===== STEP 4: DAPATKAN PAGE LEVEL & ENTITY TYPE =====
@@ -1281,28 +1689,26 @@ document.addEventListener("DOMContentLoaded", () => {
         const entityType = getEntityTypeFromPLD();
         const contentFocus = detectContentFocus();
         
-        console.log(`[Schema v7.21] 📌 Page Level: ${pageLevel}`);
-        console.log(`[Schema v7.21] 📌 Entity Type: ${entityType}`);
-        console.log(`[Schema v7.21] 📌 Content Focus: ${contentFocus}`);
+        console.log(`[Schema v7.22] 📌 Page Level: ${pageLevel}`);
+        console.log(`[Schema v7.22] 📌 Entity Type: ${entityType}`);
+        console.log(`[Schema v7.22] 📌 Content Focus: ${contentFocus}`);
 
-        // ===== STEP 5: UPDATE TAHUN DI H1 =====
-        console.log('[Schema v7.21] 📅 UPDATE TAHUN DI KONTEN:');
-        updateH1Year(pageLevel);
+        // ===== STEP 5: UPDATE H1 BERDASARKAN FOKUS KONTEN =====
+        console.log('[Schema v7.22] 📅 UPDATE H1 BERDASARKAN FOKUS KONTEN:');
+        updateH1ByFocus(pageLevel, contentFocus);
 
         // ===== STEP 6: CEK & PERBAIKI GAMBAR =====
         const isEligible = isImageEligible(pageLevel);
 
         if (isEligible) {
-            console.log(`[Schema v7.21] ✅ Halaman LAYAK mendapat gambar, memproses...`);
+            console.log(`[Schema v7.22] ✅ Halaman LAYAK mendapat gambar, memproses...`);
             try {
                 fixImagesToFormat1(pageLevel);
-                updateImageYear(pageLevel);
-                regenerateImageWithNewYear(pageLevel);
             } catch(e) {
-                console.warn('[Schema v7.21 📸] Error processing images:', e);
+                console.warn('[Schema v7.22 📸] Error processing images:', e);
             }
         } else {
-            console.log(`[Schema v7.21] ⏭️ Halaman TIDAK LAYAK mendapat gambar, skip`);
+            console.log(`[Schema v7.22] ⏭️ Halaman TIDAK LAYAK mendapat gambar, skip`);
         }
 
         // ===== STEP 7: INJECT SCHEMA =====
@@ -1372,13 +1778,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const hasPrice = hasPriceOnPage() || tableOffers.length > 0;
 
         // ============================================================
-        // 🔥🔥🔥 priceValidUntil DARI AED — V7.21 🔥🔥🔥
+        // 🔥🔥🔥 priceValidUntil DARI AED — V7.22 🔥🔥🔥
         // ============================================================
         const priceValidUntil = (aed && aed.nextUpdate) 
             ? aed.nextUpdate 
             : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
-        console.log(`[Schema v7.21] 📅 priceValidUntil: ${priceValidUntil}`);
+        console.log(`[Schema v7.22] 📅 priceValidUntil: ${priceValidUntil}`);
 
         const graph = [
             {
@@ -1438,11 +1844,11 @@ document.addEventListener("DOMContentLoaded", () => {
                     highPrice: highPrice,
                     offerCount: tableOffers.length,
                     priceCurrency: "IDR",
-                    priceValidUntil: priceValidUntil  // ← DARI AED
+                    priceValidUntil: priceValidUntil
                 };
             }
             graph.push(serviceNode);
-            console.log(`[Schema v7.21] ✅ Service schema (${entityType})`);
+            console.log(`[Schema v7.22] ✅ Service schema (${entityType})`);
 
             // ✅ V37: Product schema untuk JASA & SEWA jika ada harga
             if (hasPrice && tableOffers.length > 0) {
@@ -1463,7 +1869,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         highPrice: highPrice,
                         offerCount: tableOffers.length,
                         priceCurrency: "IDR",
-                        priceValidUntil: priceValidUntil,  // ← DARI AED
+                        priceValidUntil: priceValidUntil,
                         offers: tableOffers.map(offer => ({
                             "@type": "Offer",
                             "name": offer.name,
@@ -1472,21 +1878,22 @@ document.addEventListener("DOMContentLoaded", () => {
                             "price": offer.price,
                             "itemCondition": "https://schema.org/NewCondition",
                             "availability": "https://schema.org/InStock",
-                            "priceValidUntil": priceValidUntil,  // ← DARI AED
+                            "priceValidUntil": priceValidUntil,
                             "seller": { "@id": PAGE.business.url + "#localbusiness" },
                             "description": offer.description || offer.name
                         }))
                     }
                 };
                 graph.push(productNode);
-                console.log(`[Schema v7.21] ✅ Product schema (${tableOffers.length} offers) — ${entityType}`);
+                console.log(`[Schema v7.22] ✅ Product schema (${tableOffers.length} offers) — ${entityType}`);
             } else {
-                console.log(`[Schema v7.21] ⏭️ Skip Product schema (tidak ada harga/offers)`);
+                console.log(`[Schema v7.22] ⏭️ Skip Product schema (tidak ada harga/offers)`);
             }
         } else {
-            console.log(`[Schema v7.21] ⏭️ Skip Service schema (entity: ${entityType})`);
+            console.log(`[Schema v7.22] ⏭️ Skip Service schema (entity: ${entityType})`);
         }
 
+        // ===== INTERNAL LINKS =====
         const internalLinks = generateInternalLinks();
         if (internalLinks.length > 0) {
             graph.push({
@@ -1497,7 +1904,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 numberOfItems: internalLinks.length,
                 itemListElement: internalLinks
             });
-            console.log(`[Schema v7.21] ✅ ${internalLinks.length} internal links added`);
+            console.log(`[Schema v7.22] ✅ ${internalLinks.length} internal links added`);
+        }
+
+        // ===== FAQ SCHEMA (NEW!) =====
+        const faqSchema = generateFAQSchema(cleanUrl);
+        if (faqSchema) {
+            graph.push(faqSchema);
+        }
+
+        // ===== BREADCRUMB SCHEMA (NEW!) =====
+        const breadcrumbSchema = generateBreadcrumbSchema(cleanUrl);
+        if (breadcrumbSchema) {
+            graph.push(breadcrumbSchema);
         }
 
         const schema = { "@context": "https://schema.org", "@graph": graph };
@@ -1512,7 +1931,7 @@ document.addEventListener("DOMContentLoaded", () => {
         el.textContent = JSON.stringify(schema, null, 2);
 
         // ===== EXECUTION SUMMARY =====
-        console.log(`[Schema v7.21 ✅] V37 COMPLIANT + WAIT AED & BREADCRUMB`);
+        console.log(`[Schema v7.22 ✅] V37 COMPLIANT + WAIT AED & BREADCRUMB + PLD v22.55 + FAQ + BREADCRUMB SCHEMA`);
         console.log(`   - Page Level     : ${pageLevel}`);
         console.log(`   - Entity Type    : ${entityType}`);
         console.log(`   - Content Focus  : ${contentFocus}`);
@@ -1523,8 +1942,10 @@ document.addEventListener("DOMContentLoaded", () => {
         console.log(`   - Service Schema : ${isService ? '✅' : '❌'}`);
         console.log(`   - Product Schema : ${(isService && hasPrice && tableOffers.length > 0) ? '✅' : '❌'}`);
         console.log(`   - Internal Links : ${internalLinks.length}`);
+        console.log(`   - FAQ Schema     : ${faqSchema ? '✅' : '❌'}`);
+        console.log(`   - Breadcrumb Sch : ${breadcrumbSchema ? '✅' : '❌'}`);
         console.log(`   - Image Eligible : ${isEligible ? '✅' : '❌'}`);
-        console.log(`[Schema v7.21 ✅] FINISHED`);
+        console.log(`[Schema v7.22 ✅] FINISHED`);
 
     }, 700);
 });
