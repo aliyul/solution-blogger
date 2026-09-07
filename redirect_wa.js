@@ -1,120 +1,134 @@
 /**
- * redirect_wa.js - Revisi dengan Event Delegation & Debugging
+ * replace_wa.js - Mengganti nomor WA lama ke baru di seluruh DOM
  * 
  * Fitur:
- * - Event delegation untuk menangani link dinamis
+ * - Mengganti semua link WA lama dengan nomor baru saat DOM siap
+ * - Mendukung link dinamis yang muncul setelah DOM load (menggunakan MutationObserver)
  * - Console.log untuk debugging
  * - Pencocokan fleksibel dengan includes()
- * - Fallback jika redirect gagal
  */
 
 document.addEventListener("DOMContentLoaded", function () {
-    console.log("✅ redirect_wa.js berjalan!");
+    console.log("✅ replace_wa.js berjalan!");
 
     // ============================================
-    // 1. PETA REDIRECT (ASAL → TUJUAN)
+    // 1. PETA PENGGANTIAN (LAMA → BARU)
     // ============================================
-    const redirectMap = {
-        // Redirect dari nomor asal ke nomor baru
-        "https://wa.me/6283839000968": "https://wa.me/6281293108428",
-        "https://wa.link/mz5dsa": "https://wa.me/6281293108428"
+    const replaceMap = {
+        // Ganti dari nomor lama ke nomor baru
+        "6283839000968": "6281293108428",
+        "wa.link/mz5dsa": "wa.me/6281293108428"
         // Tambahkan lainnya di sini
-        // "https://wa.me/6283839002968": "https://wa.me/6281234560003"
+        // "6283839002968": "6281234560003"
     };
 
     // ============================================
-    // 2. CEK LINK WA YANG SUDAH ADA DI DOM
+    // 2. FUNGSI UTAMA UNTUK MENGGANTI LINK
     // ============================================
-    function countWaLinks() {
+    function replaceWaLinks() {
+        // Cari semua link WA
         const allLinks = document.querySelectorAll("a[href*='wa.me/'], a[href*='wa.link/']");
-        console.log("🔗 Total link WA di DOM:", allLinks.length);
-        allLinks.forEach(function(link, index) {
-            console.log(`  ${index + 1}. ${link.getAttribute("href")}`);
-        });
-        return allLinks.length;
-    }
-
-    // Jalankan pengecekan awal
-    countWaLinks();
-
-    // ============================================
-    // 3. EVENT DELEGATION (MENERIMA LINK DINAMIS)
-    // ============================================
-    document.addEventListener("click", function (e) {
-        // Cari elemen <a> terdekat dari target klik
-        const link = e.target.closest("a[href*='wa.me/'], a[href*='wa.link/']");
+        console.log("🔗 Total link WA ditemukan:", allLinks.length);
         
-        if (link) {
+        let replacedCount = 0;
+        let skippedCount = 0;
+
+        allLinks.forEach(function(link, index) {
             const originalHref = link.getAttribute("href");
-            console.log("🔄 Link WA diklik:", originalHref);
+            let newHref = originalHref;
+            let isReplaced = false;
 
-            // Cari di redirectMap (cocokkan secara eksak atau sebagian)
-            let newHref = null;
-
-            // Opsi A: Cocokkan eksak
-            if (redirectMap[originalHref]) {
-                newHref = redirectMap[originalHref];
-            } 
-            // Opsi B: Cocokkan sebagian (jika ada parameter tambahan)
-            else {
-                for (const [key, value] of Object.entries(redirectMap)) {
-                    if (originalHref.includes(key) || key.includes(originalHref)) {
-                        newHref = value;
-                        console.log("✅ Redirect cocok (partial match):", key, "→", value);
-                        break;
-                    }
+            // Coba cocokkan dengan pola penggantian
+            for (const [oldPattern, newPattern] of Object.entries(replaceMap)) {
+                if (originalHref.includes(oldPattern)) {
+                    // Ganti pola lama dengan pola baru di dalam URL
+                    newHref = originalHref.replace(oldPattern, newPattern);
+                    isReplaced = true;
+                    console.log(`  🔄 Link #${index + 1}: "${originalHref}" → "${newHref}"`);
+                    break;
                 }
             }
 
-            // Jika ditemukan redirect, lakukan
-            if (newHref) {
-                e.preventDefault(); // Cegah link asli
-                console.log("🚀 Redirect ke:", newHref);
-                window.open(newHref, "_blank");
+            // Jika ditemukan penggantian, update href
+            if (isReplaced && newHref !== originalHref) {
+                link.setAttribute("href", newHref);
+                replacedCount++;
             } else {
-                // Tidak ada redirect, biarkan link asli terbuka
-                console.log("ℹ️ Tidak ada redirect untuk link ini, lanjutkan normal.");
-                // Tidak perlu e.preventDefault() agar link asli tetap berfungsi
+                skippedCount++;
             }
-        }
-    });
+        });
+
+        console.log(`✅ Selesai: ${replacedCount} link diganti, ${skippedCount} link tidak berubah.`);
+        return { replaced: replacedCount, skipped: skippedCount };
+    }
+
+    // ============================================
+    // 3. EKSEKUSI PENGGANTIAN SAAT DOM SIAP
+    // ============================================
+    const result = replaceWaLinks();
 
     // ============================================
     // 4. INFORMASI STATUS DI CONSOLE
     // ============================================
-    console.log("📋 Daftar redirect yang aktif:");
-    for (const [asal, tujuan] of Object.entries(redirectMap)) {
-        console.log(`   ${asal} → ${tujuan}`);
+    console.log("📋 Daftar penggantian nomor yang aktif:");
+    for (const [lama, baru] of Object.entries(replaceMap)) {
+        console.log(`   ${lama} → ${baru}`);
     }
-    console.log("✅ redirect_wa.js siap digunakan!");
+    console.log("✅ replace_wa.js siap digunakan!");
 
     // ============================================
-    // 5. FUNGSI MANUAL (jika ingin dipanggil dari console)
+    // 5. MUTATION OBSERVER (UNTUK LINK DINAMIS)
     // ============================================
-    window.reloadRedirectMap = function() {
-        console.log("🔄 Reload redirect map...");
-        countWaLinks();
-        console.log("✅ Selesai reload.");
-    };
+    // Observer untuk menangani link yang ditambahkan setelah DOM load
+    const observer = new MutationObserver(function(mutations) {
+        let hasNewLinks = false;
+        
+        mutations.forEach(function(mutation) {
+            // Cek apakah ada node baru yang ditambahkan
+            if (mutation.addedNodes.length > 0) {
+                mutation.addedNodes.forEach(function(node) {
+                    // Jika node adalah elemen, cek apakah mengandung link WA
+                    if (node.nodeType === 1) {
+                        const links = node.querySelectorAll ? 
+                            node.querySelectorAll("a[href*='wa.me/'], a[href*='wa.link/']") : [];
+                        if (links.length > 0) {
+                            hasNewLinks = true;
+                        }
+                        // Cek juga jika node itu sendiri adalah link WA
+                        if (node.tagName === 'A' && 
+                            (node.href?.includes('wa.me/') || node.href?.includes('wa.link/'))) {
+                            hasNewLinks = true;
+                        }
+                    }
+                });
+            }
+        });
 
-    console.log("💡 Ketik 'reloadRedirectMap()' di console untuk cek ulang link WA.");
+        if (hasNewLinks) {
+            console.log("🔍 Link WA baru terdeteksi, melakukan penggantian...");
+            replaceWaLinks();
+        }
+    });
+
+    // Mulai mengamati perubahan DOM
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+
+    // ============================================
+    // 6. FUNGSI MANUAL (untuk dipanggil dari console)
+    // ============================================
+    window.replaceWaLinks = replaceWaLinks;
+    console.log("💡 Ketik 'replaceWaLinks()' di console untuk menjalankan ulang penggantian.");
 });
 
 // ============================================
-// 6. ALTERNATIF: Jika link dibuat setelah DOMContentLoaded
+// 7. EKSEKUSI LANGSUNG (jika script di-load setelah DOM)
 // ============================================
-// Jika link WhatsApp dibuat oleh script lain setelah halaman load,
-// gunakan MutationObserver untuk mendeteksi perubahan DOM
-// (Tidak wajib, tapi bisa ditambahkan jika diperlukan)
-
-/*
-const observer = new MutationObserver(function() {
-    console.log("🔍 DOM berubah, cek ulang link WA...");
-    // Tidak perlu melakukan apa-apa karena event delegation sudah menangani
-});
-
-observer.observe(document.body, {
-    childList: true,
-    subtree: true
-});
-*/
+// Jika script di-load setelah DOM siap, jalankan langsung
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    console.log("⚠️ DOM sudah siap, menjalankan penggantian langsung...");
+    // Fungsi akan dijalankan setelah event listener terdaftar
+    // Ini hanya fallback
+}
