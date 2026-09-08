@@ -1,4 +1,4 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.23 — V37 COMPLIANT + PLD v22.55 + OPTIMIZED + AUTO UPDATE BULAN */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.24 — V37 COMPLIANT + PLD v22.55 + OPTIMIZED + AUTO UPDATE BULAN & TAHUN */
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -6,7 +6,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.23] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.24] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -15,7 +15,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.23] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.24] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -188,7 +188,7 @@ function log(msg, type = "INFO") {
     PERF: "⏱️", CACHE: "💾", CORB: "🚫", COMMERCIAL: "🛒"
   };
   const prefix = icons[type] || "📘";
-  console.log(`${prefix} [Schema v7.23] ${msg}`);
+  console.log(`${prefix} [Schema v7.24] ${msg}`);
 }
 
 // ============================================================
@@ -1008,7 +1008,7 @@ function fixImagesToFormat1(pageLevel) {
         img.style.padding = '0 10px';
         img.style.boxSizing = 'border-box';
 
-        const styleId = 'responsive-image-style-v723';
+        const styleId = 'responsive-image-style-v724';
         if (!document.getElementById(styleId)) {
             const style = document.createElement('style');
             style.id = styleId;
@@ -1275,22 +1275,22 @@ function updateH1ByFocus(pageLevel, contentFocus) {
 }
 
 // ============================================================
-// 🔥🔥🔥 UPDATE BULAN DI KONTEN (AUTO UPDATE) 🔥🔥🔥
+// 🔥🔥🔥 UPDATE BULAN & TAHUN DI KONTEN (AED BASED) 🔥🔥🔥
 // ============================================================
 function updateContentDateReferences(aed, pageLevel) {
     perf.start('updateContentDateReferences');
     
-    // 🔥 CEK APAKAH LEVEL BUTUH UPDATE BULAN
+    // 🔥 CEK APAKAH LEVEL BUTUH UPDATE
     const moneyLevels = ['money-master', 'money-page', 'money-child'];
     if (!moneyLevels.includes(pageLevel)) {
-        log(`⏭️ Skip update bulan: Level ${pageLevel} tidak butuh update`, "YEAR");
+        log(`⏭️ Skip update konten: Level ${pageLevel} tidak butuh update`, "YEAR");
         perf.end('updateContentDateReferences');
         return false;
     }
 
     // 🔥 CEK AED TERSEDIA
     if (!aed || !aed.nextUpdate) {
-        log(`⚠️ AED tidak tersedia, skip update bulan`, "WARN");
+        log(`⚠️ AED tidak tersedia, skip update konten`, "WARN");
         perf.end('updateContentDateReferences');
         return false;
     }
@@ -1302,7 +1302,7 @@ function updateContentDateReferences(aed, pageLevel) {
     
     // 🔥 CEK APAKAH SUDAH LEWAT NEXT UPDATE
     if (currentDate < nextUpdateDate) {
-        log(`⏭️ Skip update bulan: Belum lewat nextUpdate (${aed.nextUpdate})`, "YEAR");
+        log(`⏭️ Skip update konten: Belum lewat nextUpdate (${aed.nextUpdate})`, "YEAR");
         perf.end('updateContentDateReferences');
         return false;
     }
@@ -1311,7 +1311,14 @@ function updateContentDateReferences(aed, pageLevel) {
     const currentYear = currentDate.getFullYear();
     const newDateText = `${currentMonth} ${currentYear}`;
 
-    log(`📅 Update bulan: ${newDateText} (nextUpdate lewat: ${aed.nextUpdate})`, "YEAR");
+    // 🔥 CEK APAKAH TAHUN >= 2026 (WAJIB)
+    if (currentYear < 2026) {
+        log(`🛑 STOP: Tahun ${currentYear} < 2026, tidak update`, "STOP");
+        perf.end('updateContentDateReferences');
+        return false;
+    }
+
+    log(`📅 Update konten: ${newDateText} (nextUpdate lewat: ${aed.nextUpdate})`, "YEAR");
 
     // 🔥 CEK & UPDATE DI BERBAGAI SELECTOR
     let updated = false;
@@ -1351,7 +1358,20 @@ function updateContentDateReferences(aed, pageLevel) {
             const hasMonth = /(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)/i.test(originalText);
 
             if (hasDate || hasMonth) {
-                // 🔥 POLA 1: "Bulan Tahun" → "Bulan Tahun Baru"
+                // 🔥 CEK TAHUN DI KONTEN
+                const yearMatch = originalText.match(/\b(19|20)(\d{2})\b/);
+                let contentYear = null;
+                if (yearMatch) {
+                    contentYear = parseInt(yearMatch[1] + yearMatch[2]);
+                }
+
+                // 🔥 JIKA TAHUN KONTEN < 2026 → SKIP (tidak update)
+                if (contentYear && contentYear < 2026) {
+                    log(`⏭️ Skip update: Tahun konten ${contentYear} < 2026`, "STOP");
+                    continue;
+                }
+
+                // 🔥 UPDATE TEKS
                 let newText = originalText
                     .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, newDateText)
                     .replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
@@ -1364,46 +1384,65 @@ function updateContentDateReferences(aed, pageLevel) {
                     });
 
                 if (newText !== originalText) {
-                    // 🔥 SIMPAN ELEMEN CHILD SEBELUM DIUBAH
-                    const children = Array.from(el.childNodes);
-                    const hasTextNode = children.some(node => node.nodeType === Node.TEXT_NODE);
-                    
-                    if (hasTextNode) {
-                        // 🔥 UPDATE TEKS NODE SAJA
-                        const textNodes = [];
-                        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
-                        let node;
-                        while (node = walker.nextNode()) {
-                            textNodes.push(node);
-                        }
-                        for (const textNode of textNodes) {
-                            const oldText = textNode.textContent || '';
-                            if (oldText.match(/\b(19|20)\d{2}\b/)) {
-                                const newTextNode = oldText
-                                    .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, newDateText)
-                                    .replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
-                                        const month = monthNames[parseInt(m) - 1] || m;
-                                        return `${d} ${month} ${y}`;
-                                    })
-                                    .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
-                                        const month = monthNames[parseInt(m) - 1] || m;
-                                        return `${d} ${month} ${y}`;
-                                    });
-                                if (newTextNode !== oldText) {
-                                    textNode.textContent = newTextNode;
-                                    updated = true;
-                                    log(`✅ Update teks: "${oldText}" → "${newTextNode}"`, "YEAR");
-                                }
+                    // 🔥 UPDATE TEKS NODE
+                    const textNodes = [];
+                    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+                    let node;
+                    while (node = walker.nextNode()) {
+                        textNodes.push(node);
+                    }
+                    for (const textNode of textNodes) {
+                        const oldText = textNode.textContent || '';
+                        if (oldText.match(/\b(19|20)\d{2}\b/)) {
+                            // 🔥 CEK TAHUN DI TEXT NODE
+                            const yearMatchNode = oldText.match(/\b(19|20)(\d{2})\b/);
+                            let contentYearNode = null;
+                            if (yearMatchNode) {
+                                contentYearNode = parseInt(yearMatchNode[1] + yearMatchNode[2]);
+                            }
+                            if (contentYearNode && contentYearNode < 2026) {
+                                continue;
+                            }
+
+                            const newTextNode = oldText
+                                .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, newDateText)
+                                .replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
+                                    const month = monthNames[parseInt(m) - 1] || m;
+                                    return `${d} ${month} ${y}`;
+                                })
+                                .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
+                                    const month = monthNames[parseInt(m) - 1] || m;
+                                    return `${d} ${month} ${y}`;
+                                });
+                            if (newTextNode !== oldText) {
+                                textNode.textContent = newTextNode;
+                                updated = true;
+                                log(`✅ Update teks: "${oldText}" → "${newTextNode}"`, "YEAR");
                             }
                         }
-                    } else {
-                        // 🔥 UPDATE INNERHTML (HATI-HATI)
-                        el.innerHTML = newText;
-                        updated = true;
-                        log(`✅ Update HTML: "${originalText}" → "${newText}"`, "YEAR");
                     }
+                }
+            }
+        }
+    }
 
-                    if (domCache) domCache.invalidate(selector);
+    // 🔥 UPDATE H1 TAHUN (CEK < 2026)
+    const h1 = domCache ? domCache.get('h1') : document.querySelector('h1');
+    if (h1) {
+        const h1Text = h1.innerText;
+        const yearPattern = /\b(19|20)\d{2}\b/;
+        const yearMatch = h1Text.match(yearPattern);
+        if (yearMatch) {
+            const yearInH1 = parseInt(yearMatch[0]);
+            if (yearInH1 < 2026) {
+                log(`🛑 STOP: H1 tahun ${yearInH1} < 2026, tidak update`, "STOP");
+            } else if (yearInH1 < currentYear) {
+                const newH1 = h1Text.replace(yearPattern, currentYear);
+                if (newH1 !== h1Text) {
+                    h1.innerText = newH1;
+                    if (domCache) domCache.invalidate('h1');
+                    updated = true;
+                    log(`✅ H1 tahun diupdate: "${h1Text}" → "${newH1}"`, "YEAR");
                 }
             }
         }
@@ -2068,7 +2107,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
         perf.start('init');
         log("═══════════════════════════════════════════════════", "INFO");
-        log("AUTO SCHEMA UNIVERSAL v7.23 — V37 COMPLIANT + PLD v22.55 + OPTIMIZED + AUTO UPDATE BULAN", "INFO");
+        log("AUTO SCHEMA UNIVERSAL v7.24 — V37 COMPLIANT + PLD v22.55 + OPTIMIZED + AUTO UPDATE BULAN & TAHUN", "INFO");
         log("═══════════════════════════════════════════════════", "INFO");
         
         try {
@@ -2106,9 +2145,9 @@ document.addEventListener("DOMContentLoaded", () => {
             log('📅 UPDATE H1 BERDASARKAN FOKUS KONTEN:', "YEAR");
             const h1Updated = updateH1ByFocus(pageLevel, contentFocus);
 
-            // ===== STEP 5.5: UPDATE BULAN DI KONTEN (AUTO UPDATE) =====
-            log('📅 UPDATE BULAN DI KONTEN (AUTO UPDATE):', "YEAR");
-            const dateUpdated = updateContentDateReferences(aed, pageLevel);
+            // ===== STEP 5.5: UPDATE BULAN & TAHUN DI KONTEN (AED BASED) =====
+            log('📅 UPDATE BULAN & TAHUN DI KONTEN (AED BASED):', "YEAR");
+            const contentDateUpdated = updateContentDateReferences(aed, pageLevel);
 
             // ===== STEP 6: CEK & PERBAIKI GAMBAR =====
             const isEligible = isImageEligible(pageLevel);
@@ -2352,13 +2391,13 @@ document.addEventListener("DOMContentLoaded", () => {
             log(`  Internal Links : ${internalLinks.length}`, "SUCCESS");
             log(`  Image Eligible : ${isEligible ? '✅' : '❌'}`, "IMAGE");
             log(`  Auto Year H1   : ${h1Updated ? '✅ UPDATE' : '⏭️ SKIP/STOP'}`, "YEAR");
-            log(`  Auto Update Bulan: ${dateUpdated ? '✅ UPDATE' : '⏭️ SKIP'}`, "YEAR");
+            log(`  Auto Update Konten: ${contentDateUpdated ? '✅ UPDATE' : '⏭️ SKIP'}`, "YEAR");
             log(`  DOM CACHE      : ${CONFIG.CACHE_DOM_ELEMENTS ? '✅ ACTIVE' : '❌ INACTIVE'}`, "CACHE");
             log(`  CORB PREVENTION: ✅ ACTIVE`, "CORB");
             log(`  V37 COMPLIANT  : ✅`, "SUCCESS");
             log(`  PLD v22.55     : ✅`, "SUCCESS");
             log("═══════════════════════════════════════════════════", "INFO");
-            log("AUTO SCHEMA UNIVERSAL v7.23 SELESAI", "SUCCESS");
+            log("AUTO SCHEMA UNIVERSAL v7.24 SELESAI", "SUCCESS");
             
             perf.end('init');
 
