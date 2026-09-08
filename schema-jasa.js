@@ -1,4 +1,4 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.23 — V37 COMPLIANT + PLD v22.55 + OPTIMIZED */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.23 — V37 COMPLIANT + PLD v22.55 + OPTIMIZED + AUTO UPDATE BULAN */
 // ============================================================
 // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST 🔥🔥🔥
 // ============================================================
@@ -1275,6 +1275,149 @@ function updateH1ByFocus(pageLevel, contentFocus) {
 }
 
 // ============================================================
+// 🔥🔥🔥 UPDATE BULAN DI KONTEN (AUTO UPDATE) 🔥🔥🔥
+// ============================================================
+function updateContentDateReferences(aed, pageLevel) {
+    perf.start('updateContentDateReferences');
+    
+    // 🔥 CEK APAKAH LEVEL BUTUH UPDATE BULAN
+    const moneyLevels = ['money-master', 'money-page', 'money-child'];
+    if (!moneyLevels.includes(pageLevel)) {
+        log(`⏭️ Skip update bulan: Level ${pageLevel} tidak butuh update`, "YEAR");
+        perf.end('updateContentDateReferences');
+        return false;
+    }
+
+    // 🔥 CEK AED TERSEDIA
+    if (!aed || !aed.nextUpdate) {
+        log(`⚠️ AED tidak tersedia, skip update bulan`, "WARN");
+        perf.end('updateContentDateReferences');
+        return false;
+    }
+
+    const currentDate = new Date();
+    const nextUpdateDate = new Date(aed.nextUpdate);
+    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    
+    // 🔥 CEK APAKAH SUDAH LEWAT NEXT UPDATE
+    if (currentDate < nextUpdateDate) {
+        log(`⏭️ Skip update bulan: Belum lewat nextUpdate (${aed.nextUpdate})`, "YEAR");
+        perf.end('updateContentDateReferences');
+        return false;
+    }
+
+    const currentMonth = monthNames[currentDate.getMonth()];
+    const currentYear = currentDate.getFullYear();
+    const newDateText = `${currentMonth} ${currentYear}`;
+
+    log(`📅 Update bulan: ${newDateText} (nextUpdate lewat: ${aed.nextUpdate})`, "YEAR");
+
+    // 🔥 CEK & UPDATE DI BERBAGAI SELECTOR
+    let updated = false;
+    const selectors = [
+        '.update-badge', '.update-badge-class', '[class*="update-badge"]',
+        '.last-updated', '.updated-date', '.date-modified',
+        '.post-date', '.article-date', '.publish-date',
+        'time[datetime]', 'time',
+        '.post-meta', '.entry-meta', '.article-meta',
+        '.breadcrumb + p', '.toc + p', 'h1 + p',
+        'p:contains("diperbarui")', 'p:contains("update")',
+        'p:contains("Terakhir")', 'p:contains("Last updated")',
+        'p:contains("Updated")', 'p:contains("Perbarui")'
+    ];
+
+    // 🔥 CEK SEMUA ELEMEN
+    for (const selector of selectors) {
+        let elements = [];
+        try {
+            if (selector.includes(':contains')) {
+                const keyword = selector.match(/:contains\("([^"]+)"\)/)?.[1];
+                if (keyword) {
+                    elements = Array.from(document.querySelectorAll('p, span, div, time'))
+                        .filter(el => {
+                            const text = el.innerText?.toLowerCase() || '';
+                            return text.includes(keyword.toLowerCase()) && text.match(/\b(19|20)\d{2}\b/);
+                        });
+                }
+            } else {
+                elements = domCache ? domCache.getAll(selector) : document.querySelectorAll(selector);
+            }
+        } catch(e) { continue; }
+
+        for (const el of elements) {
+            const originalText = el.innerText || '';
+            const hasDate = /\b(19|20)\d{2}\b/.test(originalText);
+            const hasMonth = /(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)/i.test(originalText);
+
+            if (hasDate || hasMonth) {
+                // 🔥 POLA 1: "Bulan Tahun" → "Bulan Tahun Baru"
+                let newText = originalText
+                    .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, newDateText)
+                    .replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
+                        const month = monthNames[parseInt(m) - 1] || m;
+                        return `${d} ${month} ${y}`;
+                    })
+                    .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
+                        const month = monthNames[parseInt(m) - 1] || m;
+                        return `${d} ${month} ${y}`;
+                    });
+
+                if (newText !== originalText) {
+                    // 🔥 SIMPAN ELEMEN CHILD SEBELUM DIUBAH
+                    const children = Array.from(el.childNodes);
+                    const hasTextNode = children.some(node => node.nodeType === Node.TEXT_NODE);
+                    
+                    if (hasTextNode) {
+                        // 🔥 UPDATE TEKS NODE SAJA
+                        const textNodes = [];
+                        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+                        let node;
+                        while (node = walker.nextNode()) {
+                            textNodes.push(node);
+                        }
+                        for (const textNode of textNodes) {
+                            const oldText = textNode.textContent || '';
+                            if (oldText.match(/\b(19|20)\d{2}\b/)) {
+                                const newTextNode = oldText
+                                    .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, newDateText)
+                                    .replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
+                                        const month = monthNames[parseInt(m) - 1] || m;
+                                        return `${d} ${month} ${y}`;
+                                    })
+                                    .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
+                                        const month = monthNames[parseInt(m) - 1] || m;
+                                        return `${d} ${month} ${y}`;
+                                    });
+                                if (newTextNode !== oldText) {
+                                    textNode.textContent = newTextNode;
+                                    updated = true;
+                                    log(`✅ Update teks: "${oldText}" → "${newTextNode}"`, "YEAR");
+                                }
+                            }
+                        }
+                    } else {
+                        // 🔥 UPDATE INNERHTML (HATI-HATI)
+                        el.innerHTML = newText;
+                        updated = true;
+                        log(`✅ Update HTML: "${originalText}" → "${newText}"`, "YEAR");
+                    }
+
+                    if (domCache) domCache.invalidate(selector);
+                }
+            }
+        }
+    }
+
+    if (!updated) {
+        log(`⚠️ Tidak ditemukan teks tanggal untuk diupdate`, "WARN");
+    }
+
+    perf.end('updateContentDateReferences');
+    return updated;
+}
+
+// ============================================================
 // 🔥🔥🔥 DETEKSI ENTITY TYPE — V37 COMPLIANT 🔥🔥🔥
 // ============================================================
 function getEntityTypeFromPLD() {
@@ -1925,7 +2068,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
         perf.start('init');
         log("═══════════════════════════════════════════════════", "INFO");
-        log("AUTO SCHEMA UNIVERSAL v7.23 — V37 COMPLIANT + PLD v22.55 + OPTIMIZED", "INFO");
+        log("AUTO SCHEMA UNIVERSAL v7.23 — V37 COMPLIANT + PLD v22.55 + OPTIMIZED + AUTO UPDATE BULAN", "INFO");
         log("═══════════════════════════════════════════════════", "INFO");
         
         try {
@@ -1962,6 +2105,10 @@ document.addEventListener("DOMContentLoaded", () => {
             // ===== STEP 5: UPDATE H1 BERDASARKAN FOKUS KONTEN =====
             log('📅 UPDATE H1 BERDASARKAN FOKUS KONTEN:', "YEAR");
             const h1Updated = updateH1ByFocus(pageLevel, contentFocus);
+
+            // ===== STEP 5.5: UPDATE BULAN DI KONTEN (AUTO UPDATE) =====
+            log('📅 UPDATE BULAN DI KONTEN (AUTO UPDATE):', "YEAR");
+            const dateUpdated = updateContentDateReferences(aed, pageLevel);
 
             // ===== STEP 6: CEK & PERBAIKI GAMBAR =====
             const isEligible = isImageEligible(pageLevel);
@@ -2205,6 +2352,7 @@ document.addEventListener("DOMContentLoaded", () => {
             log(`  Internal Links : ${internalLinks.length}`, "SUCCESS");
             log(`  Image Eligible : ${isEligible ? '✅' : '❌'}`, "IMAGE");
             log(`  Auto Year H1   : ${h1Updated ? '✅ UPDATE' : '⏭️ SKIP/STOP'}`, "YEAR");
+            log(`  Auto Update Bulan: ${dateUpdated ? '✅ UPDATE' : '⏭️ SKIP'}`, "YEAR");
             log(`  DOM CACHE      : ${CONFIG.CACHE_DOM_ELEMENTS ? '✅ ACTIVE' : '❌ INACTIVE'}`, "CACHE");
             log(`  CORB PREVENTION: ✅ ACTIVE`, "CORB");
             log(`  V37 COMPLIANT  : ✅`, "SUCCESS");
