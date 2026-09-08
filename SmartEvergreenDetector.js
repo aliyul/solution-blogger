@@ -1,10 +1,12 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v15.2 — UNTUK betonjayareadymix.com
+ 🧠 Smart Evergreen Detector v16.0 — AUTO-UPDATE BERKELANJUTAN
     ✅ SINKRON dengan V37 FULL SITE AUTO ARCHITECTURE
     ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Cek Tabel)
     ✅ ATURAN TAHUN: H1 mengandung tahun → NON-EVERGREEN
     ✅ ATURAN HARGA: H1 harga + tabel harga → NON-EVERGREEN
     ✅ ATURAN INFORMASI: H1 informatif tanpa harga → EVERGREEN
+    ✅ AUTO-UPDATE TANPA BATAS: nextUpdate → dateModified → nextUpdate
+    ✅ UPDATE META, KONTEN, H1, SCHEMA OTOMATIS
     ✅ SUPPORT PLD v22.x, v20.x, v19.0, v18, v17, legacy
     ✅ FIXED: JASA rules (money-master=30, money-page=30, money-child=30)
     ✅ FIXED: PRODUK rules (variant 730 hari, sub-variant 730 hari)
@@ -72,6 +74,258 @@
   const DEFAULT_RULE = { type: 'evergreen', validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft' };
 
   // ============================================================
+  // 📌 FUNGSI TO ISO WITH TIMEZONE LOCAL
+  // ============================================================
+  function toISOWithTimezoneLocal(date, offset = "+07:00") {
+    if (!date) return null;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return null;
+    const pad = (n) => n.toString().padStart(2, "0");
+    const yyyy = d.getFullYear();
+    const mm = pad(d.getMonth() + 1);
+    const dd = pad(d.getDate());
+    const hh = pad(d.getHours());
+    const min = pad(d.getMinutes());
+    const ss = pad(d.getSeconds());
+    return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}${offset}`;
+  }
+
+  // ============================================================
+  // 📌 AUTO-UPDATE DATE BERKELANJUTAN (TANPA BATAS)
+  // ============================================================
+  function autoUpdateDates() {
+    console.log("🔄 AUTO-UPDATE: Memeriksa tanggal...");
+    
+    let metaModified = document.querySelector('meta[itemprop="dateModified"]');
+    let metaNext = document.querySelector('meta[name="nextUpdate"]');
+    let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
+    
+    // ============================================================
+    // STEP 1: AMBIL NILAI SAAT INI
+    // ============================================================
+    let currentModified = metaModified ? metaModified.getAttribute('content') : null;
+    let currentNext = metaNext ? metaNext.getAttribute('content') : null;
+    
+    if (!currentNext) {
+      console.log("⚠️ Tidak ada nextUpdate, skip auto-update");
+      return false;
+    }
+    
+    const now = new Date();
+    const nextDate = new Date(currentNext);
+    const currentModifiedDate = currentModified ? new Date(currentModified) : now;
+    
+    // ============================================================
+    // STEP 2: CEK APAKAH SUDAH LEWAT NEXT UPDATE
+    // ============================================================
+    if (now < nextDate) {
+      console.log(`⏭️ Belum lewat nextUpdate (${currentNext}), tidak perlu update`);
+      return false;
+    }
+    
+    console.log(`🔄 NEXTUPDATE LEWAT! ${currentNext} → Sekarang ${now.toISOString()}`);
+    
+    // ============================================================
+    // STEP 3: HITUNG VALIDITY DAYS DARI SELISIH DATE MODIFIED KE NEXT UPDATE
+    // ============================================================
+    let validityDays = 30; // default
+    
+    if (currentModified && currentNext) {
+      const diffMs = nextDate.getTime() - currentModifiedDate.getTime();
+      const diffDays = Math.round(diffMs / 86400000);
+      if (diffDays > 0) {
+        validityDays = diffDays;
+        console.log(`📅 Validity days dari meta: ${validityDays} hari`);
+      }
+    }
+    
+    // ============================================================
+    // STEP 4: BUAT TANGGAL BARU
+    // ============================================================
+    const newModified = now;
+    const newNext = new Date(now.getTime() + (validityDays * 86400000));
+    
+    const newModifiedStr = toISOWithTimezoneLocal(newModified);
+    const newNextStr = toISOWithTimezoneLocal(newNext);
+    
+    console.log(`📅 New dateModified: ${newModifiedStr}`);
+    console.log(`📅 New nextUpdate: ${newNextStr}`);
+    
+    // ============================================================
+    // STEP 5: UPDATE META TAGS
+    // ============================================================
+    
+    // Update dateModified
+    if (metaModified) {
+      metaModified.setAttribute('content', newModifiedStr);
+      console.log(`✅ meta[itemprop="dateModified"] diupdate`);
+    } else {
+      metaModified = document.createElement("meta");
+      metaModified.setAttribute("itemprop", "dateModified");
+      metaModified.setAttribute("content", newModifiedStr);
+      document.head.appendChild(metaModified);
+      console.log(`✅ meta[itemprop="dateModified"] dibuat`);
+    }
+    
+    // Update nextUpdate
+    if (metaNext) {
+      metaNext.setAttribute('content', newNextStr);
+      console.log(`✅ meta[name="nextUpdate"] diupdate`);
+    } else {
+      metaNext = document.createElement("meta");
+      metaNext.setAttribute("name", "nextUpdate");
+      metaNext.setAttribute("content", newNextStr);
+      document.head.appendChild(metaNext);
+      console.log(`✅ meta[name="nextUpdate"] dibuat`);
+    }
+    
+    // Update datePublished jika belum ada
+    if (!metaPublished) {
+      metaPublished = document.createElement("meta");
+      metaPublished.setAttribute("itemprop", "datePublished");
+      metaPublished.setAttribute("content", newModifiedStr);
+      document.head.appendChild(metaPublished);
+      console.log(`✅ meta[itemprop="datePublished"] dibuat`);
+    }
+    
+    // ============================================================
+    // STEP 6: UPDATE SCHEMA OFFER priceValidUntil
+    // ============================================================
+    document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
+      el.setAttribute('priceValidUntil', newNextStr);
+    });
+    console.log(`✅ Schema Offer priceValidUntil diupdate`);
+    
+    // ============================================================
+    // STEP 7: UPDATE WINDOW AEDMetaDates
+    // ============================================================
+    if (window.AEDMetaDates) {
+      window.AEDMetaDates.dateModified = newModifiedStr;
+      window.AEDMetaDates.nextUpdate = newNextStr;
+      window.AEDMetaDates.lastAutoUpdate = now.toISOString();
+      window.AEDMetaDates.updateCount = (window.AEDMetaDates.updateCount || 0) + 1;
+      console.log(`✅ AEDMetaDates diupdate (update ke-${window.AEDMetaDates.updateCount})`);
+    }
+    
+    // ============================================================
+    // STEP 8: UPDATE BODY CLASS
+    // ============================================================
+    document.body.classList.add('auto-updated');
+    document.body.setAttribute('data-last-auto-update', now.toISOString());
+    document.body.setAttribute('data-update-count', (parseInt(document.body.getAttribute('data-update-count') || '0') + 1).toString());
+    
+    // ============================================================
+    // STEP 9: UPDATE KONTEN "Terakhir diperbarui" di H1 atau TOC
+    // ============================================================
+    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const newMonth = monthNames[now.getMonth()];
+    const newYear = now.getFullYear();
+    const newDateText = `${newMonth} ${newYear}`;
+    
+    // Cari elemen yang mengandung kata "diperbarui", "update", "last updated"
+    const updateSelectors = [
+      '.update-badge', '.last-updated', '.updated-date', '.date-modified',
+      '.post-date', '.article-date', '.publish-date',
+      '.post-meta', '.entry-meta', '.article-meta',
+      'p:contains("diperbarui")', 'p:contains("update")',
+      'p:contains("Terakhir")', 'p:contains("Last updated")',
+      'p:contains("Updated")', 'p:contains("Perbarui")'
+    ];
+    
+    let contentUpdated = false;
+    for (const selector of updateSelectors) {
+      let elements = [];
+      try {
+        if (selector.includes(':contains')) {
+          const keyword = selector.match(/:contains\("([^"]+)"\)/)?.[1];
+          if (keyword) {
+            elements = Array.from(document.querySelectorAll('p, span, div, time'))
+              .filter(el => {
+                const text = el.innerText?.toLowerCase() || '';
+                return text.includes(keyword.toLowerCase()) && text.match(/\b(19|20)\d{2}\b/);
+              });
+          }
+        } else {
+          elements = document.querySelectorAll(selector);
+        }
+      } catch(e) { continue; }
+      
+      for (const el of elements) {
+        const originalText = el.innerText || '';
+        if (originalText.match(/\b(19|20)\d{2}\b/)) {
+          // Update teks bulan dan tahun
+          let newText = originalText
+            .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, newDateText)
+            .replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
+              const month = monthNames[parseInt(m) - 1] || m;
+              return `${d} ${month} ${y}`;
+            })
+            .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
+              const month = monthNames[parseInt(m) - 1] || m;
+              return `${d} ${month} ${y}`;
+            });
+          
+          if (newText !== originalText) {
+            // Update text node
+            const textNodes = [];
+            const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+            let node;
+            while (node = walker.nextNode()) {
+              textNodes.push(node);
+            }
+            for (const textNode of textNodes) {
+              const oldText = textNode.textContent || '';
+              if (oldText.match(/\b(19|20)\d{2}\b/)) {
+                const newTextNode = oldText
+                  .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, newDateText)
+                  .replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
+                    const month = monthNames[parseInt(m) - 1] || m;
+                    return `${d} ${month} ${y}`;
+                  })
+                  .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
+                    const month = monthNames[parseInt(m) - 1] || m;
+                    return `${d} ${month} ${y}`;
+                  });
+                if (newTextNode !== oldText) {
+                  textNode.textContent = newTextNode;
+                  contentUpdated = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    if (contentUpdated) {
+      console.log(`✅ Konten "Terakhir diperbarui" diupdate ke: ${newDateText}`);
+    }
+    
+    // ============================================================
+    // STEP 10: UPDATE H1 JIKA ADA TAHUN
+    // ============================================================
+    const h1 = document.querySelector('h1');
+    if (h1) {
+      const h1Text = h1.innerText;
+      const yearPattern = /\b(19|20)\d{2}\b/;
+      if (yearPattern.test(h1Text) && !h1Text.includes(newYear.toString())) {
+        const newH1 = h1Text.replace(/\b(19|20)\d{2}\b/, newYear);
+        if (newH1 !== h1Text) {
+          h1.innerText = newH1;
+          console.log(`✅ H1 tahun diupdate: "${h1Text}" → "${newH1}"`);
+        }
+      }
+    }
+    
+    console.log(`✅ AUTO-UPDATE SELESAI! nextUpdate baru: ${newNextStr}`);
+    console.log(`   📅 dateModified: ${newModifiedStr}`);
+    console.log(`   📅 update ke-${document.body.getAttribute('data-update-count')}`);
+    
+    return true;
+  }
+
+  // ============================================================
   // 📌 FUNGSI DETEKSI KONTEN BERDASARKAN H1 (PATOKAN UTAMA)
   // ============================================================
   function detectContentTypeByH1() {
@@ -100,7 +354,7 @@
       console.log(`📅 H1 mengandung tahun → NON-EVERGREEN (wajib)`);
       return {
         isInformational: false,
-        isPrice: true, // Dianggap price karena ada tahun
+        isPrice: true,
         hasYear: true,
         h1Text: h1Text,
         infoScore: 0,
@@ -266,23 +520,6 @@
     }
     
     return { found: priceTableFound, details: tableDetails };
-  }
-
-  // ============================================================
-  // 📌 FUNGSI TO ISO WITH TIMEZONE LOCAL
-  // ============================================================
-  function toISOWithTimezoneLocal(date, offset = "+07:00") {
-    if (!date) return null;
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return null;
-    const pad = (n) => n.toString().padStart(2, "0");
-    const yyyy = d.getFullYear();
-    const mm = pad(d.getMonth() + 1);
-    const dd = pad(d.getDate());
-    const hh = pad(d.getHours());
-    const min = pad(d.getMinutes());
-    const ss = pad(d.getSeconds());
-    return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}${offset}`;
   }
 
   // ============================================================
@@ -452,7 +689,6 @@
       console.warn(`⚠️ H1 mengandung TAHUN → WAJIB NON-EVERGREEN`);
       console.warn(`   → H1: "${h1Detection.h1Text}"`);
       console.warn(`   → Tahun terdeteksi, halaman ini harus non-evergreen`);
-      // Gunakan aturan normal (non-evergreen)
     }
     
     // ============================================================
@@ -482,14 +718,12 @@
     // ATURAN 3: H1 mengandung HARGA → CEK TABEL HARGA
     // ============================================================
     if (isMoneyLevel && h1Detection.isPrice) {
-      // Cek tabel harga
       const priceTableResult = hasPriceTable();
       
       if (priceTableResult.found) {
         console.log(`✅ H1 mengandung harga DAN ada tabel harga → NON-EVERGREEN`);
         console.log(`   → H1: "${h1Detection.h1Text}"`);
         console.log(`   → Alasan: ${h1Detection.reason} + tabel harga ditemukan`);
-        // Gunakan aturan normal (non-evergreen)
       } else {
         console.warn(`⚠️ H1 mengandung harga TAPI TIDAK ADA TABEL HARGA!`);
         console.warn(`   → H1: "${h1Detection.h1Text}"`);
@@ -514,7 +748,6 @@
     // ATURAN 4: Default berdasarkan entity
     // ============================================================
     
-    // JASA
     if (entityType === 'jasa') {
       const rule = JASA_RULES[pageLevel];
       if (rule) {
@@ -525,7 +758,6 @@
       return DEFAULT_RULE;
     }
     
-    // SEWA
     if (entityType === 'sewa') {
       const rule = SEWA_RULES[pageLevel];
       if (rule) {
@@ -537,7 +769,6 @@
       return baseRule || DEFAULT_RULE;
     }
     
-    // PRODUK
     if (entityType === 'produk') {
       const rule = PRODUK_MATERIAL_RULES[pageLevel];
       if (rule) {
@@ -549,7 +780,6 @@
       return baseRule || DEFAULT_RULE;
     }
     
-    // MATERIAL
     if (entityType === 'material') {
       const rule = PRODUK_MATERIAL_RULES[pageLevel];
       if (rule) {
@@ -565,47 +795,6 @@
     return BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
   }
 
-  // ============================================================
-  // 📌 FUNGSI UTAMA DETECT EVERGREEN
-  // ============================================================
-  async function detectEvergreen({ customDateModified = null } = {}) {
-    console.log("🧩 detectEvergreen() v15.2 — Loading...");
-    
-    await waitForPageLevelDetector();
-    
-    const { pageLevel: rawPageLevel, entityType, detectorVersion, confidence, strategies, strategyCount } = getPageLevelAndEntityType();
-    let pageLevel = rawPageLevel;
-    
-    console.log(`📌 Raw detection: pageLevel=${pageLevel}, entityType=${entityType}, detector=${detectorVersion}`);
-    if (confidence) {
-      console.log(`   🎯 Detection Confidence: ${confidence}% (${strategyCount} strategies)`);
-    }
-    
-    // DETEKSI JENIS KONTEN BERDASARKAN H1 (PATOKAN UTAMA)
-    const h1Detection = detectContentTypeByH1();
-    console.log(`📊 H1 Detection Result: informational=${h1Detection.isInformational}, price=${h1Detection.isPrice}, hasYear=${h1Detection.hasYear}`);
-    console.log(`   📝 H1: "${h1Detection.h1Text}"`);
-    console.log(`   📌 Reason: ${h1Detection.reason}`);
-    
-    // Get appropriate rules with H1 detection
-    const rule = getRulesByEntityType(entityType, pageLevel, h1Detection);
-    const finalType = rule.type;
-    const validityDays = rule.validityDays;
-    const validityMs = validityDays * 86400000;
-    const usePriceValidUntil = rule.usePriceValidUntil;
-    const allowPriceRange = rule.allowPriceRange;
-    const ctaIntensity = rule.ctaIntensity;
-    const isOverridden = rule.overridden || false;
-    const overrideReason = rule.overrideReason || null;
-    
-    console.log(`📌 Final Rule: pageLevel=${pageLevel}, type=${finalType}, validityDays=${validityDays}, ctaIntensity=${ctaIntensity}`);
-    if (isOverridden) {
-      console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
-    }
-    
-    await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection);
-  }
-  
   // ============================================================
   // 📌 FUNGSI PROSES META DATES
   // ============================================================
@@ -649,7 +838,6 @@
     }
     metaNext.setAttribute("content", nextUpdate);
 
-    // Schema Offer - priceValidUntil (hanya jika usePriceValidUntil = true DAN ada harga)
     if (usePriceValidUntil && h1Detection && h1Detection.isPrice) {
       document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
         el.setAttribute("priceValidUntil", nextUpdate);
@@ -662,7 +850,6 @@
       console.log(`✅ priceValidUntil removed (${finalType} content - no price in H1)`);
     }
     
-    // Tambahkan class ke body
     document.body.classList.add(`page-level-${pageLevel}`);
     document.body.classList.add(`entity-type-${entityType}`);
     document.body.classList.add(`content-type-${finalType}`);
@@ -672,7 +859,6 @@
       document.body.classList.add(`allow-price-range`);
     }
     
-    // Tambahkan class untuk H1 detection
     if (h1Detection) {
       if (h1Detection.isInformational) {
         document.body.classList.add('h1-informational');
@@ -689,7 +875,6 @@
       document.body.classList.add('overridden-evergreen');
     }
 
-    // Dapatkan label validity (V37)
     let validityLabel = '';
     const validityDays = validityMs / 86400000;
 
@@ -743,7 +928,6 @@
             validityLabel = `NON-EVERGREEN (${validityDays} hari) — V37 — ${entityType}/${pageLevel}`;
         }
         
-        // Tambahan untuk tahun
         if (h1Detection && h1Detection.hasYear) {
           validityLabel += ' — ⚠️ H1 mengandung TAHUN (wajib non-evergreen)';
         } else {
@@ -754,7 +938,6 @@
         validityLabel = `${finalType.toUpperCase()} (${validityDays} hari) — ${entityType} / ${pageLevel}`;
     }
     
-    // Global exposure
     window.AEDMetaDates = {
       type: finalType,
       entityType: entityType,
@@ -766,13 +949,15 @@
       usePriceValidUntil,
       ctaIntensity,
       allowPriceRange,
-      detectorVersion: detectorVersion || 'v15.2',
+      detectorVersion: detectorVersion || 'v16.0',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
       isOverridden: isOverridden || false,
       overrideReason: overrideReason || null,
-      h1Detection: h1Detection || null
+      h1Detection: h1Detection || null,
+      lastAutoUpdate: null,
+      updateCount: 0
     };
 
     window.EvergreenDetectorResults = window.AEDMetaDates;
@@ -795,13 +980,70 @@
     if (confidence) {
       console.log(`   - Detection Confidence: ${confidence}%`);
     }
-    console.log(`🧩 detectEvergreen() v15.2 — FINISHED ✅`);
+    console.log(`🧩 processMetaDates() v16.0 — FINISHED ✅`);
+  }
+
+  // ============================================================
+  // 📌 FUNGSI UTAMA DETECT EVERGREEN
+  // ============================================================
+  async function detectEvergreen({ customDateModified = null } = {}) {
+    console.log("🧩 detectEvergreen() v16.0 — AUTO-UPDATE BERKELANJUTAN — Loading...");
+    
+    await waitForPageLevelDetector();
+    
+    const { pageLevel: rawPageLevel, entityType, detectorVersion, confidence, strategies, strategyCount } = getPageLevelAndEntityType();
+    let pageLevel = rawPageLevel;
+    
+    console.log(`📌 Raw detection: pageLevel=${pageLevel}, entityType=${entityType}, detector=${detectorVersion}`);
+    if (confidence) {
+      console.log(`   🎯 Detection Confidence: ${confidence}% (${strategyCount} strategies)`);
+    }
+    
+    const h1Detection = detectContentTypeByH1();
+    console.log(`📊 H1 Detection Result: informational=${h1Detection.isInformational}, price=${h1Detection.isPrice}, hasYear=${h1Detection.hasYear}`);
+    console.log(`   📝 H1: "${h1Detection.h1Text}"`);
+    console.log(`   📌 Reason: ${h1Detection.reason}`);
+    
+    const rule = getRulesByEntityType(entityType, pageLevel, h1Detection);
+    const finalType = rule.type;
+    const validityDays = rule.validityDays;
+    const validityMs = validityDays * 86400000;
+    const usePriceValidUntil = rule.usePriceValidUntil;
+    const allowPriceRange = rule.allowPriceRange;
+    const ctaIntensity = rule.ctaIntensity;
+    const isOverridden = rule.overridden || false;
+    const overrideReason = rule.overrideReason || null;
+    
+    console.log(`📌 Final Rule: pageLevel=${pageLevel}, type=${finalType}, validityDays=${validityDays}, ctaIntensity=${ctaIntensity}`);
+    if (isOverridden) {
+      console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
+    }
+    
+    // ============================================================
+    // 🔥🔥🔥 STEP 1: PROSES META DATES
+    // ============================================================
+    await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection);
+    
+    // ============================================================
+    // 🔥🔥🔥 STEP 2: AUTO-UPDATE BERKELANJUTAN (TANPA BATAS)
+    // ============================================================
+    console.log("🔄 MEMERIKSA AUTO-UPDATE...");
+    const autoUpdated = autoUpdateDates();
+    if (autoUpdated) {
+      console.log("✅ AUTO-UPDATE BERHASIL! Halaman diperbarui otomatis.");
+      // Re-process meta dates setelah update
+      await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection);
+    } else {
+      console.log("⏭️ Tidak perlu auto-update (masih dalam periode valid)");
+    }
+    
+    console.log(`🧩 detectEvergreen() v16.0 — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
   
-  console.log("✅ Smart Evergreen Detector v15.2 ready (V37 rules + H1-based with year & table validation)");
+  console.log("✅ Smart Evergreen Detector v16.0 ready (V37 rules + H1-based + AUTO-UPDATE BERKELANJUTAN TANPA BATAS)");
   
 })();
