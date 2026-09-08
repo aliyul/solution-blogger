@@ -1,17 +1,16 @@
 /**
- * ⚡ AutoSchema Hybrid v4.73.1 — V37 COMPLIANT + WAIT AED & BREADCRUMB
+ * ⚡ AutoSchema Hybrid v4.73.2 — V37 COMPLIANT + WAIT AED & BREADCRUMB + AUTO UPDATE BULAN & TAHUN
  * 
- * UPDATE v4.73.1:
- * - ADD: COMMERCIAL & GABUNG focus detection (tanpa mengubah struktur lain)
- * - FIX: needYear() — handle COMMERCIAL & GABUNG
- * - FIX: getColorConfig() — handle COMMERCIAL & GABUNG
- * - FIX: isImageEligible() — handle COMMERCIAL & GABUNG
- * - FIX: detectContentFocus() — tambah COMMERCIAL & GABUNG
- * - NOTE: Format schema TIDAK DIUBAH (tetap sama seperti v4.73 yang valid)
- * - NOTE: Semua fungsi lain TIDAK DIUBAH
+ * UPDATE v4.73.2:
+ * - ADD: Auto update bulan & tahun di konten (AED based)
+ * - ADD: updateContentDateReferences() — update teks "diperbarui" otomatis
+ * - ADD: Update H1 tahun jika >= 2026 dan < currentYear
+ * - ADD: SKIP jika tahun < 2026 (sesuai aturan)
+ * - NOTE: Semua fungsi lain TIDAK DIUBAH (tetap sama seperti v4.73.1 yang valid)
+ * - NOTE: Format schema TETAP SAMA (tidak diubah)
  * 
- * @version 4.73.1
- * @date 2026-09-08
+ * @version 4.73.2
+ * @date 2026-09-09
  */
 
 (function() {
@@ -40,7 +39,7 @@
     if (!CONFIG.DEBUG && type === "INFO") return;
     const icons = { INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️", PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯", TABLE: "📊", H1: "📝", PRIORITY: "🔴", STOP: "🛑", BREADCRUMB: "🍞", AED: "⚡", COMMERCIAL: "🛒", GABUNG: "📚" };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.73.1] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.73.2] ${msg}`);
   }
 
   // ============================================================
@@ -531,6 +530,184 @@
   }
 
   // ============================================================
+  // 🔥🔥🔥 UPDATE BULAN & TAHUN DI KONTEN (AED BASED) 🔥🔥🔥
+  // ============================================================
+  function updateContentDateReferences(aed, pageLevel) {
+    log(`📅 UPDATE BULAN & TAHUN DI KONTEN (AED BASED)`, "YEAR");
+    
+    // 🔥 CEK APAKAH LEVEL BUTUH UPDATE
+    const moneyLevels = ['money-master', 'money-page', 'money-child'];
+    if (!moneyLevels.includes(pageLevel)) {
+        log(`⏭️ Skip update konten: Level ${pageLevel} tidak butuh update`, "YEAR");
+        return false;
+    }
+
+    // 🔥 CEK AED TERSEDIA
+    if (!aed || !aed.nextUpdate) {
+        log(`⚠️ AED tidak tersedia, skip update konten`, "WARN");
+        return false;
+    }
+
+    const currentDate = new Date();
+    const nextUpdateDate = new Date(aed.nextUpdate);
+    const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    
+    // 🔥 CEK APAKAH SUDAH LEWAT NEXT UPDATE
+    if (currentDate < nextUpdateDate) {
+        log(`⏭️ Skip update konten: Belum lewat nextUpdate (${aed.nextUpdate})`, "YEAR");
+        return false;
+    }
+
+    const currentMonth = monthNames[currentDate.getMonth()];
+    const currentYear = currentDate.getFullYear();
+    const newDateText = `${currentMonth} ${currentYear}`;
+
+    // 🔥 CEK APAKAH TAHUN >= 2026 (WAJIB)
+    if (currentYear < 2026) {
+        log(`🛑 STOP: Tahun ${currentYear} < 2026, tidak update`, "STOP");
+        return false;
+    }
+
+    log(`📅 Update konten: ${newDateText} (nextUpdate lewat: ${aed.nextUpdate})`, "YEAR");
+
+    // 🔥 CEK & UPDATE DI BERBAGAI SELECTOR
+    let updated = 0;
+    const selectors = [
+        '.update-badge', '.update-badge-class', '[class*="update-badge"]',
+        '.last-updated', '.updated-date', '.date-modified',
+        '.post-date', '.article-date', '.publish-date',
+        'time[datetime]', 'time',
+        '.post-meta', '.entry-meta', '.article-meta',
+        '.breadcrumb + p', '.toc + p', 'h1 + p',
+        'p:contains("diperbarui")', 'p:contains("update")',
+        'p:contains("Terakhir")', 'p:contains("Last updated")',
+        'p:contains("Updated")', 'p:contains("Perbarui")'
+    ];
+
+    // 🔥 CEK SEMUA ELEMEN
+    for (const selector of selectors) {
+        let elements = [];
+        try {
+            if (selector.includes(':contains')) {
+                const keyword = selector.match(/:contains\("([^"]+)"\)/)?.[1];
+                if (keyword) {
+                    elements = Array.from(document.querySelectorAll('p, span, div, time'))
+                        .filter(el => {
+                            const text = el.innerText?.toLowerCase() || '';
+                            return text.includes(keyword.toLowerCase()) && text.match(/\b(19|20)\d{2}\b/);
+                        });
+                }
+            } else {
+                elements = document.querySelectorAll(selector);
+            }
+        } catch(e) { continue; }
+
+        for (const el of elements) {
+            const originalText = el.innerText || '';
+            const hasDate = /\b(19|20)\d{2}\b/.test(originalText);
+            const hasMonth = /(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)/i.test(originalText);
+
+            if (hasDate || hasMonth) {
+                // 🔥 CEK TAHUN DI KONTEN
+                const yearMatch = originalText.match(/\b(19|20)(\d{2})\b/);
+                let contentYear = null;
+                if (yearMatch) {
+                    contentYear = parseInt(yearMatch[1] + yearMatch[2]);
+                }
+
+                // 🔥 JIKA TAHUN KONTEN < 2026 → SKIP (tidak update)
+                if (contentYear && contentYear < 2026) {
+                    log(`⏭️ Skip update: Tahun konten ${contentYear} < 2026`, "STOP");
+                    continue;
+                }
+
+                // 🔥 UPDATE TEKS
+                let newText = originalText
+                    .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, newDateText)
+                    .replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
+                        const month = monthNames[parseInt(m) - 1] || m;
+                        return `${d} ${month} ${y}`;
+                    })
+                    .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
+                        const month = monthNames[parseInt(m) - 1] || m;
+                        return `${d} ${month} ${y}`;
+                    });
+
+                if (newText !== originalText) {
+                    // 🔥 UPDATE TEKS NODE
+                    const textNodes = [];
+                    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
+                    let node;
+                    while (node = walker.nextNode()) {
+                        textNodes.push(node);
+                    }
+                    for (const textNode of textNodes) {
+                        const oldText = textNode.textContent || '';
+                        if (oldText.match(/\b(19|20)\d{2}\b/)) {
+                            // 🔥 CEK TAHUN DI TEXT NODE
+                            const yearMatchNode = oldText.match(/\b(19|20)(\d{2})\b/);
+                            let contentYearNode = null;
+                            if (yearMatchNode) {
+                                contentYearNode = parseInt(yearMatchNode[1] + yearMatchNode[2]);
+                            }
+                            if (contentYearNode && contentYearNode < 2026) {
+                                continue;
+                            }
+
+                            const newTextNode = oldText
+                                .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, newDateText)
+                                .replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
+                                    const month = monthNames[parseInt(m) - 1] || m;
+                                    return `${d} ${month} ${y}`;
+                                })
+                                .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
+                                    const month = monthNames[parseInt(m) - 1] || m;
+                                    return `${d} ${month} ${y}`;
+                                });
+                            if (newTextNode !== oldText) {
+                                textNode.textContent = newTextNode;
+                                updated++;
+                                log(`✅ Update teks: "${oldText}" → "${newTextNode}"`, "YEAR");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 🔥 UPDATE H1 TAHUN (CEK < 2026)
+    const h1 = document.querySelector('h1');
+    if (h1) {
+        const h1Text = h1.innerText;
+        const yearPattern = /\b(19|20)\d{2}\b/;
+        const yearMatch = h1Text.match(yearPattern);
+        if (yearMatch) {
+            const yearInH1 = parseInt(yearMatch[0]);
+            if (yearInH1 < 2026) {
+                log(`🛑 STOP: H1 tahun ${yearInH1} < 2026, tidak update`, "STOP");
+            } else if (yearInH1 < currentYear) {
+                const newH1 = h1Text.replace(yearPattern, currentYear);
+                if (newH1 !== h1Text) {
+                    h1.innerText = newH1;
+                    updated++;
+                    log(`✅ H1 tahun diupdate: "${h1Text}" → "${newH1}"`, "YEAR");
+                }
+            }
+        }
+    }
+
+    if (updated === 0) {
+        log(`⚠️ Tidak ditemukan teks tanggal untuk diupdate`, "WARN");
+    } else {
+        log(`✅ ${updated} elemen konten diupdate ke: ${newDateText}`, "YEAR");
+    }
+
+    return updated > 0;
+  }
+
+  // ============================================================
   // 🔥🔥🔥 AMBIL NAMA DARI URL BERSIH 🔥🔥🔥
   // ============================================================
   function getCleanPageName(level) {
@@ -781,7 +958,7 @@
     img.style.padding = '0 10px';
     img.style.boxSizing = 'border-box';
 
-    const styleId = 'responsive-image-style-v4731';
+    const styleId = 'responsive-image-style-v4732';
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
@@ -1324,7 +1501,7 @@
     if (seenItems.has(key)) return;
     seenItems.add(key);
     
-    // ✅ V4.73.1: priceValidUntil dari AED
+    // ✅ V4.73.2: priceValidUntil dari AED
     const priceValidUntil = getAEDPriceValidUntil();
     
     offers.push({
@@ -1477,7 +1654,7 @@
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.73.1 — V37 COMPLIANT + WAIT AED + COMMERCIAL & GABUNG", "INFO");
+    log("AutoSchema Hybrid v4.73.2 — V37 COMPLIANT + WAIT AED + AUTO UPDATE BULAN & TAHUN", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     // ============================================================
@@ -1527,7 +1704,12 @@
     // ============================================================
     const contentUpdated = updateContentYears();
     
-    if (!h1Updated && contentUpdated === 0) {
+    // ============================================================
+    // STEP 6.5: UPDATE BULAN & TAHUN DI KONTEN (AED BASED) 
+    // ============================================================
+    const dateUpdated = updateContentDateReferences(aed, pageLevel);
+    
+    if (!h1Updated && contentUpdated === 0 && !dateUpdated) {
       log(`📅 Tidak ada perubahan tahun yang dilakukan`, "YEAR");
     }
 
@@ -1665,6 +1847,7 @@
     log(`  Image Source    : ${isEligible ? '✅ (Canvas + FIGURE)' : '⚠️ (skip)'}`, "IMAGE");
     log(`  Auto Year H1    : ${h1Updated ? '✅ UPDATE' : '⏭️ SKIP/STOP'}`, "YEAR");
     log(`  Content Year    : ${contentUpdated > 0 ? `✅ ${contentUpdated} elemen diupdate` : '⏭️ TIDAK ADA'}`, "YEAR");
+    log(`  Auto Update Bulan: ${dateUpdated ? '✅ UPDATE' : '⏭️ SKIP'}`, "YEAR");
     log(`  Money Level Info: ${focus === 'informasi' ? '✅ TANPA tahun (EVERGREEN)' : focus === 'commercial' ? '🛒 COMMERCIAL (WAJIB TAHUN)' : focus === 'gabung' ? '📚 GABUNG (WAJIB TAHUN)' : '✅ PAKAI tahun (NON-EVERGREEN)'}`, "FOCUS");
     log(`  Breadcrumb      : ${breadcrumbReady ? '✅ READY' : '⏰ TIMEOUT'}`, "BREADCRUMB");
     log(`  AED             : ${aed ? '✅ READY' : '❌ FALLBACK'}`, "AED");
@@ -1674,11 +1857,12 @@
     log(`  VARIANT WAJIB   : ✅ (tanpa syarat wordCount)`, "SUCCESS");
     log(`  SUB-VARIANT WAJIB: ✅ (tanpa syarat wordCount)`, "SUCCESS");
     log(`  ATURAN TAHUN    : STOP jika < 2026, UPDATE jika > 2026`, "YEAR");
+    log(`  ATURAN BULAN    : Update jika nextUpdate lewat & tahun >= 2026`, "YEAR");
     log(`  V37 COMPLIANT   : ✅`, "SUCCESS");
     log(`  SCHEMA FORMAT   : ✅ TETAP SAMA (VALID)`, "SCHEMA");
     log(`  OFFER STRUCTURE : ✅ TETAP SAMA (VALID)`, "PRODUCT");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.73.1 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.73.2 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
