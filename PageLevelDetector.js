@@ -1,20 +1,20 @@
 /* ============================================================
- 🧠 Page Level Detector v22.58 — FULL DENGAN MODE INPUT
+ 🧠 Page Level Detector v22.59 — FIX extractSlugFromInput()
+    ✅ FIX: extractSlugFromInput() SAMA dengan getPageText()
+    ✅ FIX: Cleaning slug (hapus tahun, tanggal, angka di awal)
+    ✅ FIX: "2024/09/jasa-pasang-pagar" → "jasa pasang pagar" → MONEY_MASTER
+    ✅ FIX: "2026-jasa-pasang-pagar" → "jasa pasang pagar" → MONEY_MASTER
     ✅ FIX: detectForPrompt() menggunakan logika SAMA dengan browser
     ✅ FIX: getFactors() menggunakan checkHasSpecification() yang SAMA
-    ✅ FIX: "jasa pasang pagar" → MONEY_MASTER (sama dengan browser)
-    ✅ FIX: "pagar panel beton k300" → VARIANT (sama dengan browser)
     ✅ NEW: detectForPromptFull() dengan upward/breadcrumbs otomatis
     ✅ NEW: detectUpwardFromSlug() untuk deteksi parent dari slug
-    ✅ NEW: detectBreadcrumbsFromSlug() untuk breadcrumbs otomatis
-    ✅ NEW: detectParentLevelFromSlug() dengan PLD level
 ============================================================ */
 
 (function () {
   "use strict";
 
   if (window.pageLevelDetectorv22) {
-    console.warn("⚠️ [PLD v22.58] Page Level Detector already loaded!");
+    console.warn("⚠️ [PLD v22.59] Page Level Detector already loaded!");
     return;
   }
 
@@ -42,7 +42,7 @@
       DOM: "🌐", BREAD: "🍞", TIMER: "⏱️", EXTERNAL: "📦",
       COMMERCIAL: "🛒"
     };
-    console.log((icons[type] || "📘") + " [PLD v22.58] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.59] " + message);
   }
 
   log('📦 External JS loaded', 'EXTERNAL');
@@ -202,7 +202,7 @@
   }
 
   // ============================================================
-  // 🔥 SPESIFIKASI PER ENTITY UNTUK VARIANT DETECTION (PLD v22.58)
+  // 🔥 SPESIFIKASI PER ENTITY UNTUK VARIANT DETECTION (PLD v22.59)
   // ============================================================
 
   // PRODUK SPECIFICATIONS
@@ -335,7 +335,7 @@
   }
 
   // ============================================================
-  // 🔥 checkHasSpecification — PER ENTITY LENGKAP (PLD v22.58)
+  // 🔥 checkHasSpecification — PER ENTITY LENGKAP (PLD v22.59)
   // ============================================================
 
   function checkHasSpecification(text, entityType) {
@@ -1245,20 +1245,45 @@
   }
 
   // ============================================================
-  // 🔥 DETEKSI DARI TEXT INPUT — SAMA PERSIS DENGAN BROWSER
+  // 🔥 DETEKSI DARI TEXT INPUT — ⭐ FIX v22.59 ⭐
   // ============================================================
 
   function extractSlugFromInput(input) {
     if (!input) return "";
+    
+    var slug = "";
+    
     try {
+      // Coba parse sebagai URL
       var url = new URL(input);
-      var pathname = url.pathname.replace(/\.html$/, "").replace(/\/$/, "");
+      var pathname = url.pathname
+        .replace(/\.html$/, "")
+        .replace(/\.htm$/, "")
+        .replace(/\/$/, "");
+      
       var segments = pathname.split("/").filter(Boolean);
-      var slug = segments[segments.length - 1] || "";
-      return slug.replace(/-/g, " ");
+      slug = segments[segments.length - 1] || "";
     } catch (e) {
-      return input.replace(/-/g, " ").trim();
+      // Fallback: anggap input sebagai slug langsung
+      slug = input;
     }
+    
+    // ⭐ CLEANING — SAMA PERSIS DENGAN getPageText()!
+    slug = slug.replace(/^\d{4}-\d{2}-/, "");   // Hapus 2026-09-
+    slug = slug.replace(/^\d{4}-/, "");         // Hapus 2026-
+    slug = slug.replace(/^\d{2}-/, "");         // Hapus 09-
+    slug = slug.replace(/^\d{4}/, "");          // Hapus 2026
+    slug = slug.replace(/^\d+-/, "");           // Hapus 123-
+    slug = slug.replace(/^\d+/, "");            // Hapus 123
+    
+    // Ubah - ke spasi
+    slug = slug.replace(/-/g, " ");
+    slug = slug.trim();
+    
+    // Hapus spasi berlebih
+    slug = slug.replace(/\s+/g, " ");
+    
+    return slug;
   }
 
   function detectEntityTypeFromText(text) {
@@ -1295,7 +1320,7 @@
   }
 
   // ============================================================
-  // 🔥 FUNGSI DETEKSI UPAWARD DARI SLUG — UNTUK MODE INPUT (TAMBAHAN BARU)
+  // 🔥 FUNGSI DETEKSI UPAWARD DARI SLUG — UNTUK MODE INPUT
   // ============================================================
 
   function detectUpwardFromSlug(slug, domain) {
@@ -1379,7 +1404,7 @@
   }
 
   // ============================================================
-  // 🔥 FUNGSI DETEKSI PARENT DENGAN PLD LEVEL — TAMBAHAN BARU
+  // 🔥 FUNGSI DETEKSI PARENT DENGAN PLD LEVEL
   // ============================================================
 
   function detectParentLevelFromSlug(slug, entityType, domain) {
@@ -1434,7 +1459,7 @@
   }
 
   // ============================================================
-  // 🔥 FUNGSI DETEKSI LENGKAP UNTUK MODE INPUT — DENGAN UPAWARD (TAMBAHAN BARU)
+  // 🔥 FUNGSI DETEKSI LENGKAP UNTUK MODE INPUT
   // ============================================================
 
   function detectForPromptFull(input, entityType, domain) {
@@ -1529,7 +1554,7 @@
   }
 
   // ============================================================
-  // 📌 FUNGSI LAINNYA (EEAT, STRUCTURE, dll) — TETAP SAMA
+  // 📌 FUNGSI LAINNYA — TETAP SAMA
   // ============================================================
 
   function detectEEATSignals() {
@@ -1803,14 +1828,14 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.58",
+      version: "22.59",
       CONFIG: CONFIG,
 
       // ⭐ FUNGSI LAMA — TETAP ADA (SAMA DENGAN BROWSER)
       detect: detectPageLevel,
       detectForPrompt: detectForPrompt,
       
-      // ⭐ FUNGSI BARU — DENGAN UPAWARD/BREADCRUMBS (TAMBAHAN MODE INPUT)
+      // ⭐ FUNGSI BARU — DENGAN UPAWARD/BREADCRUMBS
       detectForPromptFull: detectForPromptFull,
       detectForPromptWithUpward: detectForPromptWithUpward,
       
@@ -1913,7 +1938,7 @@
       DESAIN_WORDS: DESAIN_WORDS,
       ALL_ENTITY_WORDS: ALL_ENTITY_WORDS,
 
-      // ENTITY SPECS (PLD v22.58) — LENGKAP
+      // ENTITY SPECS (PLD v22.59) — LENGKAP
       PRODUK_SPECS: PRODUK_SPECS,
       MATERIAL_SPECS: MATERIAL_SPECS,
       SEWA_SPECS: SEWA_SPECS,
@@ -1943,15 +1968,14 @@
       } catch (e2) {}
     }
 
-    console.log("✅ Page Level Detector v22.58 Ready — FULL DENGAN MODE INPUT!");
-    console.log("🔧 FIX: detectForPrompt() menggunakan logika SAMA dengan browser");
-    console.log("🔧 FIX: getFactors() menggunakan checkHasSpecification() yang SAMA");
+    console.log("✅ Page Level Detector v22.59 Ready — FIX extractSlugFromInput()!");
+    console.log("🔧 FIX: extractSlugFromInput() SAMA dengan getPageText()");
+    console.log("🔧 FIX: Cleaning slug (hapus tahun, tanggal, angka di awal)");
+    console.log("📌 '2024/09/jasa-pasang-pagar' → 'jasa pasang pagar' → MONEY_MASTER");
+    console.log("📌 '2026-jasa-pasang-pagar' → 'jasa pasang pagar' → MONEY_MASTER");
     console.log("📌 'jasa pasang pagar' → MONEY_MASTER (sama dengan browser)");
     console.log("📌 'pagar panel beton k300' → VARIANT (sama dengan browser)");
     console.log("⭐ NEW: detectForPromptFull() dengan upward/breadcrumbs otomatis");
-    console.log("⭐ NEW: detectUpwardFromSlug() untuk deteksi parent dari slug");
-    console.log("⭐ NEW: detectBreadcrumbsFromSlug() untuk breadcrumbs otomatis");
-    console.log("⭐ NEW: detectParentLevelFromSlug() dengan PLD level");
 
     try {
       window.pageLevelDetectorv22.updateAttributes()
@@ -1973,7 +1997,7 @@
   // 📌 START — WAIT DOM READY
   // ============================================================
 
-  log('🚀 Starting Page Level Detector v22.58...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.59...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
