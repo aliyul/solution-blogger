@@ -1,32 +1,19 @@
 /* ============================================================
- 🧠 Page Level Detector v22.56 — FIX VARIANT PER ENTITY LENGKAP
-    ✅ FIX: getCoreWords() HANYA hapus 1 kata awal entity
-    ✅ FIX: "harga pagar panel beton k250" → MONEY_PAGE (bukan MM)
-    ✅ FIX: "harga pagar panel beton" → MONEY_PAGE (bukan MM)
-    ✅ FIX: "jasa coring beton k225" → MONEY_PAGE (bukan MM)
-    ✅ FIX: "sewa excavator pc 75" → MONEY_PAGE (bukan MM)
-    ✅ FIX: JANGAN hapus seluruh kata entity words!
-    ✅ CORE v22.31: LOGIKA CORE (hapus harga & 1 kata entity)
-    ✅ NEW v22.46: COMMERCIAL + BUDGET WORDS
-    ✅ NEW v22.55: VARIANT DETECTION PER ENTITY (PRODUK, MATERIAL, SEWA, JASA, DESAIN)
-    ✅ NEW v22.55: "pagar panel beton k300" → VARIANT (bukan MONEY_PAGE)
-    ✅ NEW v22.55: "jasa coring manual" → VARIANT (bukan MONEY_PAGE)
-    ✅ NEW v22.55: "sewa excavator pc75" → VARIANT (bukan MONEY_PAGE)
-    ✅ NEW v22.55: "besi beton ulir" → VARIANT (bukan MONEY_PAGE)
-    ✅ NEW v22.55: "desain interior modern" → VARIANT (bukan MONEY_PAGE)
-    ✅ NEW v22.56: "jasa pasang pagar panel beton motif" → VARIANT (bukan MONEY_PAGE)
-    ✅ NEW v22.56: TAMBAH finishing, warna, fungsi, konsep, furniture untuk DESAIN
-    ✅ NEW v22.56: TAMBAH jenis, berat, grade untuk MATERIAL
-    ✅ NEW v22.56: TAMBAH fungsi, kondisi, durasi untuk SEWA
-    ✅ NEW v22.56: TAMBAH finishing untuk JASA
-    ✅ NEW v22.56: TAMBAH warna untuk PRODUK
+ 🧠 Page Level Detector v22.57 — FIX DETEKSI INPUT SAMA DENGAN BROWSER
+    ✅ FIX: detectForPrompt() menggunakan logika SAMA dengan detectPageLevel()
+    ✅ FIX: getFactors() menggunakan checkHasSpecification() yang SAMA
+    ✅ FIX: "jasa pasang pagar" → MONEY_MASTER (sama dengan browser)
+    ✅ FIX: "pagar panel beton k300" → VARIANT (sama dengan browser)
+    ✅ FIX: "jasa pasang pagar panel beton motif" → VARIANT
+    ✅ FIX: "jasa coring manual" → VARIANT
+    ✅ FIX: "sewa excavator pc75" → VARIANT
 ============================================================ */
 
 (function () {
   "use strict";
 
   if (window.pageLevelDetectorv22) {
-    console.warn("⚠️ [PLD v22.56] Page Level Detector already loaded!");
+    console.warn("⚠️ [PLD v22.57] Page Level Detector already loaded!");
     return;
   }
 
@@ -54,7 +41,7 @@
       DOM: "🌐", BREAD: "🍞", TIMER: "⏱️", EXTERNAL: "📦",
       COMMERCIAL: "🛒"
     };
-    console.log((icons[type] || "📘") + " [PLD v22.56] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.57] " + message);
   }
 
   log('📦 External JS loaded', 'EXTERNAL');
@@ -214,7 +201,7 @@
   }
 
   // ============================================================
-  // 🔥 SPESIFIKASI PER ENTITY UNTUK VARIANT DETECTION (PLD v22.56)
+  // 🔥 SPESIFIKASI PER ENTITY UNTUK VARIANT DETECTION (PLD v22.57)
   // ============================================================
 
   // PRODUK SPECIFICATIONS — DIPERBAIKI LENGKAP
@@ -331,8 +318,9 @@
   }
 
   function checkHasPrice(text) {
+    var lower = text.toLowerCase();
     for (var i = 0; i < PRICE_WORDS.length; i++) {
-      if (text.indexOf(PRICE_WORDS[i]) !== -1) return true;
+      if (lower.indexOf(PRICE_WORDS[i]) !== -1) return true;
     }
     return false;
   }
@@ -346,7 +334,7 @@
   }
 
   // ============================================================
-  // 🔥 checkHasSpecification — PER ENTITY LENGKAP (PLD v22.56)
+  // 🔥 checkHasSpecification — PER ENTITY LENGKAP (PLD v22.57)
   // ============================================================
 
   function checkHasSpecification(text, entityType) {
@@ -858,9 +846,6 @@
     }
 
     // 2. ✅ HAPUS HANYA 1 KATA AWAL ENTITY (bukan semua kata entity!)
-    //    Contoh: "jasa coring beton" → hapus "jasa" → "coring beton"
-    //            "sewa excavator" → hapus "sewa" → "excavator"
-    //            "produk konstruksi" → hapus "produk" → "konstruksi"
     var entityFirstWords = {
       'jasa': 'jasa',
       'sewa': 'sewa',
@@ -902,7 +887,7 @@
   }
 
   // ============================================================
-  // 🔥 VARIANT DETECTION — DENGAN SPESIFIKASI PER ENTITY (PLD v22.56)
+  // 🔥 VARIANT DETECTION — DENGAN SPESIFIKASI PER ENTITY (PLD v22.57)
   // ============================================================
 
   function detectVariantByPattern(text, entityType) {
@@ -1198,15 +1183,25 @@
   }
 
   // ============================================================
-  // 🔥 MONEY LEVEL DETECTION — URUTAN PRIORITAS YANG BENAR (PLD v22.56)
+  // 🔥 MONEY LEVEL DETECTION — SAMA UNTUK BROWSER DAN INPUT
   // ============================================================
 
-  function detectMoneyLevel(text, entityType) {
+  function getFactors(text, entityType) {
+    return {
+      hasLocation: isLocation(text),
+      hasSpec: checkHasSpecification(text, entityType),
+      hasPrice: checkHasPrice(text),
+      hasCommercial: checkHasCommercial(text)
+    };
+  }
+
+  function detectMoneyLevelInternal(text, entityType) {
     var lowerText = text.toLowerCase();
-    var hasPriceWord = checkHasPrice(text);
-    var hasLocationWord = isLocation(text);
-    var hasCommercialWord = checkHasCommercial(text);
-    var hasSpecWord = checkHasSpecification(text, entityType);
+    var factors = getFactors(text, entityType);
+    var hasPriceWord = factors.hasPrice;
+    var hasLocationWord = factors.hasLocation;
+    var hasCommercialWord = factors.hasCommercial;
+    var hasSpecWord = factors.hasSpec;
     var subPillar = detectSubPillar(text);
 
     // PRIORITAS 1: SUB-PILLAR
@@ -1221,7 +1216,7 @@
       }
     }
 
-    // 🔥 PRIORITAS 3: VARIANT / SUB-VARIANT (PLD v22.56)
+    // 🔥 PRIORITAS 3: VARIANT / SUB-VARIANT (PLD v22.57)
     // ✅ "pagar panel beton k300" → hasSpec = true → VARIANT!
     // ✅ "jasa pasang pagar panel beton motif" → hasSpec = true → VARIANT!
     // ✅ "sewa excavator pc75" → hasSpec = true → VARIANT!
@@ -1286,7 +1281,7 @@
   }
 
   // ============================================================
-  // 📌 MAIN DETECTOR
+  // 📌 MAIN DETECTOR — UNTUK BROWSER
   // ============================================================
 
   function detectPageLevel(userOptions) {
@@ -1301,13 +1296,13 @@
       return "pillar";
     }
 
-    var level = detectMoneyLevel(text, entityType);
+    var level = detectMoneyLevelInternal(text, entityType);
     log('🎯 FINAL: "' + text + '" → ' + level, 'SUCCESS');
     return level;
   }
 
   // ============================================================
-  // 🔥 FUNGSI DETEKSI DARI TEXT INPUT (UNTUK PROMPT V37.7)
+  // 🔥 DETEKSI DARI TEXT INPUT — SAMA PERSIS DENGAN BROWSER
   // ============================================================
 
   function extractSlugFromInput(input) {
@@ -1335,9 +1330,11 @@
     return "produk";
   }
 
-  function detectPageLevelFromText(text, entityType) {
+  // ⭐ FUNGSI INI YANG DI-FIX — SAMA PERSIS DENGAN detectMoneyLevelInternal
+  function detectPageLevelForPrompt(text, entityType) {
     var cleanLower = text.toLowerCase().trim();
 
+    // CEK PILLAR
     for (var entity in ENTITY_PILLAR_NAMES) {
       if (!ENTITY_PILLAR_NAMES.hasOwnProperty(entity)) continue;
       var patterns = ENTITY_PILLAR_NAMES[entity];
@@ -1350,19 +1347,12 @@
       }
     }
 
-    var level = detectMoneyLevel(text, entityType);
+    // ⭐ GUNAKAN LOGIKA YANG SAMA DENGAN BROWSER
+    var level = detectMoneyLevelInternal(text, entityType);
     return level || "money-master";
   }
 
-  function getFactors(text, entityType) {
-    return {
-      hasLocation: isLocation(text),
-      hasSpec: checkHasSpecification(text, entityType),
-      hasPrice: checkHasPrice(text),
-      hasCommercial: checkHasCommercial(text)
-    };
-  }
-
+  // ⭐ FUNGSI UTAMA UNTUK PROMPT — SEKARANG SAMA DENGAN BROWSER
   function detectForPrompt(input, entityType) {
     if (!input) {
       return { pageLevel: 'unknown', isValid: false, error: 'Input kosong' };
@@ -1374,7 +1364,9 @@
     }
 
     var entity = entityType || detectEntityTypeFromText(slug);
-    var level = detectPageLevelFromText(slug, entity);
+    
+    // ⭐ PAKAI detectPageLevelForPrompt yang SAMA dengan detectMoneyLevelInternal
+    var level = detectPageLevelForPrompt(slug, entity);
     var factors = getFactors(slug, entity);
 
     return {
@@ -1662,7 +1654,7 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.56",
+      version: "22.57",
       CONFIG: CONFIG,
 
       detect: detectPageLevel,
@@ -1759,7 +1751,7 @@
       DESAIN_WORDS: DESAIN_WORDS,
       ALL_ENTITY_WORDS: ALL_ENTITY_WORDS,
 
-      // ENTITY SPECS (PLD v22.56) — LENGKAP
+      // ENTITY SPECS (PLD v22.57) — LENGKAP
       PRODUK_SPECS: PRODUK_SPECS,
       MATERIAL_SPECS: MATERIAL_SPECS,
       SEWA_SPECS: SEWA_SPECS,
@@ -1773,7 +1765,8 @@
       LOCATION_WORDS: LOCATION_WORDS,
       isLocation: isLocation,
       checkHasSpecification: checkHasSpecification,
-      getCoreWords: getCoreWords
+      getCoreWords: getCoreWords,
+      getFactors: getFactors
     };
 
     window.pageLevelDetectorv22Ready = true;
@@ -1788,25 +1781,14 @@
       } catch (e2) {}
     }
 
-    console.log("✅ Page Level Detector v22.56 Ready — FIX VARIANT PER ENTITY LENGKAP!");
-    console.log("🔧 FIX: getCoreWords() HANYA hapus 1 kata awal entity");
-    console.log("📌 'harga pagar panel beton k250' → MONEY_PAGE (core: 4 kata)");
-    console.log("📌 'harga pagar panel beton' → MONEY_PAGE (core: 3 kata)");
-    console.log("📌 'harga pagar panel' → MONEY_MASTER (core: 2 kata)");
-    console.log("📌 'jasa coring beton k225' → MONEY_PAGE (core: 3 kata)");
-    console.log("📌 'sewa excavator pc 75' → MONEY_PAGE (core: 3 kata)");
-    console.log("🔬 VARIANT PER ENTITY (PLD v22.56):");
-    console.log("   - PRODUK: mutu (k300), finishing (polos, motif), dimensi, warna → VARIANT");
-    console.log("   - MATERIAL: grade (SNI), finishing (ulir), dimensi, jenis → VARIANT");
-    console.log("   - SEWA: merek (pc75), tipe (mini), kapasitas, fungsi, kondisi → VARIANT");
-    console.log("   - JASA: metode (manual), teknik (coring, pasang), skala, finishing → VARIANT");
-    console.log("   - DESAIN: gaya (modern), fungsi, konsep, warna, material → VARIANT");
-    console.log("✅ 'pagar panel beton k300' → VARIANT (bukan MONEY_PAGE)");
-    console.log("✅ 'jasa coring manual' → VARIANT (bukan MONEY_PAGE)");
-    console.log("✅ 'sewa excavator pc75' → VARIANT (bukan MONEY_PAGE)");
-    console.log("✅ 'jasa pasang pagar panel beton motif' → VARIANT (bukan MONEY_PAGE)");
-    console.log("✅ 'desain interior modern minimalis' → VARIANT (bukan MONEY_PAGE)");
-    console.log("✅ 'besi beton ulir 10mm' → VARIANT (bukan MONEY_PAGE)");
+    console.log("✅ Page Level Detector v22.57 Ready — FIX DETEKSI INPUT SAMA DENGAN BROWSER!");
+    console.log("🔧 FIX: detectForPrompt() menggunakan logika SAMA dengan detectPageLevel()");
+    console.log("🔧 FIX: getFactors() menggunakan checkHasSpecification() yang SAMA");
+    console.log("📌 'jasa pasang pagar' → MONEY_MASTER (sama dengan browser)");
+    console.log("📌 'pagar panel beton k300' → VARIANT (sama dengan browser)");
+    console.log("📌 'jasa pasang pagar panel beton motif' → VARIANT (sama dengan browser)");
+    console.log("📌 'jasa coring manual' → VARIANT (sama dengan browser)");
+    console.log("📌 'sewa excavator pc75' → VARIANT (sama dengan browser)");
 
     try {
       window.pageLevelDetectorv22.updateAttributes()
@@ -1828,7 +1810,7 @@
   // 📌 START — WAIT DOM READY
   // ============================================================
 
-  log('🚀 Starting Page Level Detector v22.56...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.57...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
