@@ -1,19 +1,20 @@
 /* ============================================================
- 🧠 Page Level Detector v22.57 — FIX DETEKSI INPUT SAMA DENGAN BROWSER
-    ✅ FIX: detectForPrompt() menggunakan logika SAMA dengan detectPageLevel()
+ 🧠 Page Level Detector v22.58 — FIX MODE INPUT DENGAN UPAWARD
+    ✅ FIX: detectForPrompt() menggunakan logika SAMA dengan browser
     ✅ FIX: getFactors() menggunakan checkHasSpecification() yang SAMA
     ✅ FIX: "jasa pasang pagar" → MONEY_MASTER (sama dengan browser)
     ✅ FIX: "pagar panel beton k300" → VARIANT (sama dengan browser)
-    ✅ FIX: "jasa pasang pagar panel beton motif" → VARIANT
-    ✅ FIX: "jasa coring manual" → VARIANT
-    ✅ FIX: "sewa excavator pc75" → VARIANT
+    ✅ NEW: detectForPromptFull() dengan upward/breadcrumbs otomatis
+    ✅ NEW: detectUpwardFromSlug() untuk deteksi parent dari slug
+    ✅ NEW: detectBreadcrumbsFromSlug() untuk breadcrumbs otomatis
+    ✅ NEW: detectParentLevelFromSlug() dengan PLD level
 ============================================================ */
 
 (function () {
   "use strict";
 
   if (window.pageLevelDetectorv22) {
-    console.warn("⚠️ [PLD v22.57] Page Level Detector already loaded!");
+    console.warn("⚠️ [PLD v22.58] Page Level Detector already loaded!");
     return;
   }
 
@@ -41,7 +42,7 @@
       DOM: "🌐", BREAD: "🍞", TIMER: "⏱️", EXTERNAL: "📦",
       COMMERCIAL: "🛒"
     };
-    console.log((icons[type] || "📘") + " [PLD v22.57] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.58] " + message);
   }
 
   log('📦 External JS loaded', 'EXTERNAL');
@@ -201,7 +202,7 @@
   }
 
   // ============================================================
-  // 🔥 SPESIFIKASI PER ENTITY UNTUK VARIANT DETECTION (PLD v22.57)
+  // 🔥 SPESIFIKASI PER ENTITY UNTUK VARIANT DETECTION (PLD v22.58)
   // ============================================================
 
   // PRODUK SPECIFICATIONS — DIPERBAIKI LENGKAP
@@ -334,7 +335,7 @@
   }
 
   // ============================================================
-  // 🔥 checkHasSpecification — PER ENTITY LENGKAP (PLD v22.57)
+  // 🔥 checkHasSpecification — PER ENTITY LENGKAP (PLD v22.58)
   // ============================================================
 
   function checkHasSpecification(text, entityType) {
@@ -467,8 +468,7 @@
         }
       }
 
-      // CEK KAPASITAS
-      if (/\d+\s*(ton|m3|kg|liter)/gi.test(lower)) {
+      // CEK KAPASITAS      if (/\d+\s*(ton|m3|kg|liter)/gi.test(lower)) {
         log('🔬 SEWA SPEC: kapasitas ditemukan', 'VARIANT');
         return true;
       }
@@ -887,7 +887,7 @@
   }
 
   // ============================================================
-  // 🔥 VARIANT DETECTION — DENGAN SPESIFIKASI PER ENTITY (PLD v22.57)
+  // 🔥 VARIANT DETECTION — DENGAN SPESIFIKASI PER ENTITY (PLD v22.58)
   // ============================================================
 
   function detectVariantByPattern(text, entityType) {
@@ -1216,11 +1216,7 @@
       }
     }
 
-    // 🔥 PRIORITAS 3: VARIANT / SUB-VARIANT (PLD v22.57)
-    // ✅ "pagar panel beton k300" → hasSpec = true → VARIANT!
-    // ✅ "jasa pasang pagar panel beton motif" → hasSpec = true → VARIANT!
-    // ✅ "sewa excavator pc75" → hasSpec = true → VARIANT!
-    // ✅ "desain interior modern" → hasSpec = true → VARIANT!
+    // 🔥 PRIORITAS 3: VARIANT / SUB-VARIANT (PLD v22.58)
     if (hasSpecWord && !hasPriceWord && !hasCommercialWord && !hasLocationWord) {
       if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|k|m3|liter)/gi.test(lowerText)) {
         log('🔬 SUB-VARIANT: "' + text + '" → SUB-VARIANT (spec + dimension)', 'VARIANT');
@@ -1330,7 +1326,6 @@
     return "produk";
   }
 
-  // ⭐ FUNGSI INI YANG DI-FIX — SAMA PERSIS DENGAN detectMoneyLevelInternal
   function detectPageLevelForPrompt(text, entityType) {
     var cleanLower = text.toLowerCase().trim();
 
@@ -1352,7 +1347,206 @@
     return level || "money-master";
   }
 
-  // ⭐ FUNGSI UTAMA UNTUK PROMPT — SEKARANG SAMA DENGAN BROWSER
+  // ============================================================
+  // 🔥 FUNGSI DETEKSI UPAWARD DARI SLUG — UNTUK MODE INPUT (NEW v22.58)
+  // ============================================================
+
+  function detectUpwardFromSlug(slug, domain) {
+    if (!slug) return { upward: [], breadcrumbs: [] };
+    
+    var words = slug.split(" ");
+    var upward = [];
+    var breadcrumbs = [];
+    var currentSlug = slug.replace(/ /g, "-");
+    var baseDomain = domain || "https://" + window.location.hostname;
+    
+    // Bersihkan domain (hapus trailing slash)
+    if (baseDomain.endsWith("/")) {
+      baseDomain = baseDomain.slice(0, -1);
+    }
+    
+    // 1. Parent 1 (terdekat) — hapus 1 kata terakhir
+    if (words.length >= 2) {
+      var parent1Words = words.slice(0, -1);
+      var parent1Label = parent1Words.join(" ");
+      var parent1Slug = parent1Words.join("-");
+      
+      breadcrumbs.push({
+        position: 1,
+        label: parent1Label,
+        slug: parent1Slug,
+        url: baseDomain + "/" + parent1Slug + ".html",
+        isParent: true,
+        isCurrent: false
+      });
+      
+      upward.push({
+        position: 1,
+        label: parent1Label,
+        slug: parent1Slug,
+        url: baseDomain + "/" + parent1Slug + ".html",
+        isParent: true,
+        isCurrent: false
+      });
+    }
+    
+    // 2. Parent 2 — hapus 2 kata terakhir
+    if (words.length >= 3) {
+      var parent2Words = words.slice(0, -2);
+      var parent2Label = parent2Words.join(" ");
+      var parent2Slug = parent2Words.join("-");
+      
+      breadcrumbs.push({
+        position: 2,
+        label: parent2Label,
+        slug: parent2Slug,
+        url: baseDomain + "/" + parent2Slug + ".html",
+        isParent: true,
+        isCurrent: false
+      });
+      
+      upward.push({
+        position: 2,
+        label: parent2Label,
+        slug: parent2Slug,
+        url: baseDomain + "/" + parent2Slug + ".html",
+        isParent: true,
+        isCurrent: false
+      });
+    }
+    
+    // 3. Current page (terakhir)
+    breadcrumbs.push({
+      position: breadcrumbs.length + 1,
+      label: slug,
+      slug: currentSlug,
+      url: baseDomain + "/" + currentSlug + ".html",
+      isParent: false,
+      isCurrent: true
+    });
+    
+    return {
+      upward: upward,
+      breadcrumbs: breadcrumbs
+    };
+  }
+
+  function detectBreadcrumbsFromSlug(slug, domain) {
+    var result = detectUpwardFromSlug(slug, domain);
+    return result.breadcrumbs;
+  }
+
+  function detectParentFromSlug(slug, domain) {
+    var result = detectUpwardFromSlug(slug, domain);
+    return result.upward;
+  }
+
+  function detectParentLevelFromSlug(slug, entityType, domain) {
+    if (!slug) return [];
+    
+    var words = slug.split(" ");
+    var parents = [];
+    var entity = entityType || detectEntityTypeFromText(slug);
+    var baseDomain = domain || "https://" + window.location.hostname;
+    
+    if (baseDomain.endsWith("/")) {
+      baseDomain = baseDomain.slice(0, -1);
+    }
+    
+    // Parent 1 (terdekat)
+    if (words.length >= 2) {
+      var parent1Words = words.slice(0, -1);
+      var parent1Label = parent1Words.join(" ");
+      var parent1Slug = parent1Words.join("-");
+      var parent1Level = detectPageLevelForPrompt(parent1Label, entity);
+      
+      parents.push({
+        position: 1,
+        label: parent1Label,
+        slug: parent1Slug,
+        url: baseDomain + "/" + parent1Slug + ".html",
+        level: parent1Level,
+        levelNum: TYPE_LEVEL_MAP[parent1Level] || -1,
+        isParent: true
+      });
+    }
+    
+    // Parent 2
+    if (words.length >= 3) {
+      var parent2Words = words.slice(0, -2);
+      var parent2Label = parent2Words.join(" ");
+      var parent2Slug = parent2Words.join("-");
+      var parent2Level = detectPageLevelForPrompt(parent2Label, entity);
+      
+      parents.push({
+        position: 2,
+        label: parent2Label,
+        slug: parent2Slug,
+        url: baseDomain + "/" + parent2Slug + ".html",
+        level: parent2Level,
+        levelNum: TYPE_LEVEL_MAP[parent2Level] || -1,
+        isParent: true
+      });
+    }
+    
+    return parents;
+  }
+
+  // ============================================================
+  // 🔥 FUNGSI DETEKSI LENGKAP UNTUK MODE INPUT — DENGAN UPAWARD (NEW v22.58)
+  // ============================================================
+
+  function detectForPromptWithUpward(input, entityType, domain) {
+    if (!input) {
+      return { 
+        pageLevel: 'unknown', 
+        isValid: false, 
+        error: 'Input kosong',
+        upward: [],
+        breadcrumbs: []
+      };
+    }
+
+    var slug = extractSlugFromInput(input);
+    if (!slug) {
+      return { 
+        pageLevel: 'unknown', 
+        isValid: false, 
+        error: 'Slug kosong',
+        upward: [],
+        breadcrumbs: []
+      };
+    }
+
+    var entity = entityType || detectEntityTypeFromText(slug);
+    var level = detectPageLevelForPrompt(slug, entity);
+    var factors = getFactors(slug, entity);
+    
+    // ⭐ TAMBAHAN: DETEKSI UPAWARD DARI SLUG
+    var upwardData = detectUpwardFromSlug(slug, domain);
+
+    return {
+      // Hasil deteksi utama
+      pageLevel: level,
+      entityType: entity,
+      factors: factors,
+      text: slug,
+      levelNum: TYPE_LEVEL_MAP[level] || -1,
+      isValid: VALID_LEVELS.indexOf(level) !== -1,
+      
+      // ⭐ TAMBAHAN: UPAWARD (Parent)
+      upward: upwardData.upward,
+      breadcrumbs: upwardData.breadcrumbs,
+      
+      // ⭐ TAMBAHAN: Parent dengan PLD Level
+      parents: detectParentLevelFromSlug(slug, entity, domain)
+    };
+  }
+
+  // ============================================================
+  // ⭐ FUNGSI LAMA TETAP ADA — TIDAK DIUBAH
+  // ============================================================
+
   function detectForPrompt(input, entityType) {
     if (!input) {
       return { pageLevel: 'unknown', isValid: false, error: 'Input kosong' };
@@ -1364,8 +1558,6 @@
     }
 
     var entity = entityType || detectEntityTypeFromText(slug);
-    
-    // ⭐ PAKAI detectPageLevelForPrompt yang SAMA dengan detectMoneyLevelInternal
     var level = detectPageLevelForPrompt(slug, entity);
     var factors = getFactors(slug, entity);
 
@@ -1379,8 +1571,13 @@
     };
   }
 
+  // ⭐ FUNGSI BARU — DENGAN UPAWARD/BREADCRUMBS
+  function detectForPromptFull(input, entityType, domain) {
+    return detectForPromptWithUpward(input, entityType, domain);
+  }
+
   // ============================================================
-  // 📌 FUNGSI LAINNYA (EEAT, STRUCTURE, dll)
+  // 📌 FUNGSI LAINNYA (EEAT, STRUCTURE, dll) — TETAP SAMA
   // ============================================================
 
   function detectEEATSignals() {
@@ -1573,7 +1770,7 @@
   }
 
   // ============================================================
-  // 🔥 BREADCRUMBS DETECTION
+  // 🔥 BREADCRUMBS DETECTION — MODE BROWSER
   // ============================================================
 
   function findBreadcrumbs() {
@@ -1654,11 +1851,24 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.57",
+      version: "22.58",
       CONFIG: CONFIG,
 
+      // FUNGSI LAMA — TETAP ADA
       detect: detectPageLevel,
       detectForPrompt: detectForPrompt,
+      
+      // ⭐ FUNGSI BARU — DENGAN UPAWARD/BREADCRUMBS
+      detectForPromptFull: detectForPromptFull,
+      detectForPromptWithUpward: detectForPromptWithUpward,
+      
+      // ⭐ FUNGSI BARU — DETEKSI UPAWARD
+      detectUpwardFromSlug: detectUpwardFromSlug,
+      detectBreadcrumbsFromSlug: detectBreadcrumbsFromSlug,
+      detectParentFromSlug: detectParentFromSlug,
+      detectParentLevelFromSlug: detectParentLevelFromSlug,
+      
+      // FUNGSI LAINNYA — TETAP ADA
       getConfidenceScore: getConfidenceScore,
       detectEntityType: detectEntityType,
       VALID_LEVELS: VALID_LEVELS,
@@ -1751,7 +1961,7 @@
       DESAIN_WORDS: DESAIN_WORDS,
       ALL_ENTITY_WORDS: ALL_ENTITY_WORDS,
 
-      // ENTITY SPECS (PLD v22.57) — LENGKAP
+      // ENTITY SPECS (PLD v22.58) — LENGKAP
       PRODUK_SPECS: PRODUK_SPECS,
       MATERIAL_SPECS: MATERIAL_SPECS,
       SEWA_SPECS: SEWA_SPECS,
@@ -1781,14 +1991,15 @@
       } catch (e2) {}
     }
 
-    console.log("✅ Page Level Detector v22.57 Ready — FIX DETEKSI INPUT SAMA DENGAN BROWSER!");
-    console.log("🔧 FIX: detectForPrompt() menggunakan logika SAMA dengan detectPageLevel()");
+    console.log("✅ Page Level Detector v22.58 Ready — FIX MODE INPUT DENGAN UPAWARD!");
+    console.log("🔧 FIX: detectForPrompt() menggunakan logika SAMA dengan browser");
     console.log("🔧 FIX: getFactors() menggunakan checkHasSpecification() yang SAMA");
     console.log("📌 'jasa pasang pagar' → MONEY_MASTER (sama dengan browser)");
     console.log("📌 'pagar panel beton k300' → VARIANT (sama dengan browser)");
-    console.log("📌 'jasa pasang pagar panel beton motif' → VARIANT (sama dengan browser)");
-    console.log("📌 'jasa coring manual' → VARIANT (sama dengan browser)");
-    console.log("📌 'sewa excavator pc75' → VARIANT (sama dengan browser)");
+    console.log("⭐ NEW: detectForPromptFull() dengan upward/breadcrumbs otomatis");
+    console.log("⭐ NEW: detectUpwardFromSlug() untuk deteksi parent dari slug");
+    console.log("⭐ NEW: detectBreadcrumbsFromSlug() untuk breadcrumbs otomatis");
+    console.log("⭐ NEW: detectParentLevelFromSlug() dengan PLD level");
 
     try {
       window.pageLevelDetectorv22.updateAttributes()
@@ -1810,7 +2021,7 @@
   // 📌 START — WAIT DOM READY
   // ============================================================
 
-  log('🚀 Starting Page Level Detector v22.57...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.58...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
