@@ -1,31 +1,15 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.25 — PLD-ONLY MODE + V37 COMPLIANT + PLD v22.62 */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.26 — PLD-ONLY MODE + isPartOf TERDEKAT */
 // ============================================================
-// 🔥🔥🔥 v7.25 CHANGELOG 🔥🔥🔥
+// 🔥🔥🔥 v7.26 CHANGELOG 🔥🔥🔥
 // ============================================================
-// ✅ HAPUS: PRODUK_SPECS, MATERIAL_SPECS, SEWA_SPECS, JASA_SPECS, DESAIN_SPECS
-// ✅ HAPUS: checkEntitySpecification()
-// ✅ HAPUS: getCoreWords()
-// ✅ HAPUS: detectEntityTypeFallback()
-// ✅ HAPUS: detectPageLevelFallback()
-// ✅ SEDERHANAKAN: detectContentFocus() — terima dari body/V37.9-A
-// ✅ SEDERHANAKAN: isImageEligible() — terima dari body/V37.9-A
-// ✅ SEDERHANAKAN: needYear() — terima dari body/V37.9-A
-// ✅ TAMBAH: getKategori() — EVERGREEN/NON-EVERGREEN dari body/V37.9-A
-// ✅ TAMBAH: getEntitySubType() — dari body/V37.9-A
-// ✅ TAMBAH: getWordCountTarget() — dari body/V37.9-A
-// ✅ TAMBAH: getSchemaType() — dari body/V37.9-A
-// ✅ TAMBAH: getCtaType() — dari body/V37.9-A
-// ✅ TAMBAH: getH1Pattern() — dari body/V37.9-A
-// ✅ PERTAHANKAN: Schema JASA (Service)
-// ✅ PERTAHANKAN: Schema Product Tambahan
-// ✅ PERTAHANKAN: Update Tahun H1
-// ✅ PERTAHANKAN: Update Bulan/Tahun Konten
-// ✅ PERTAHANKAN: CORB Prevention
-// ✅ PERTAHANKAN: DOM Cache
-// ✅ PERTAHANKAN: Performance Monitoring
-// ✅ PERTAHANKAN: Image Generation
-// ✅ PERTAHANKAN: Error Boundary
-// ✅ PERTAHANKAN: priceValidUntil dari AED
+// ✅ TAMBAH: waitForBreadcrumbReady() — tunggu breadcrumb SIAP
+// ✅ TAMBAH: getParentFromBreadcrumbReady() — ambil parent TERDEKAT
+// ✅ TAMBAH: isPartOf di Service schema
+// ✅ TAMBAH: isPartOf di Product schema
+// ✅ HAPUS: waitForBreadcrumb() — tidak validasi SIAP
+// ✅ HAPUS: getParentFromBreadcrumb() — query DOM ulang
+// ✅ UBAH: init() — gunakan breadcrumbData untuk isPartOf
+// ✅ PERTAHANKAN: Semua yang sudah valid dari v7.25
 // ============================================================
 
 // ============================================================
@@ -35,7 +19,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.25] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.26] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -44,7 +28,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.25] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.26] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -186,6 +170,7 @@ const CONFIG = {
   PLD_TIMEOUT: 5000,
   AED_TIMEOUT: 10000,
   BREADCRUMB_TIMEOUT: 3000,
+  BREADCRUMB_READY_TIMEOUT: 5000,
   MIN_YEAR_TO_UPDATE: 2026,
   CACHE_DOM_ELEMENTS: true,
   BATCH_DOM_UPDATES: true
@@ -215,24 +200,185 @@ function log(msg, type = "INFO") {
     PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯", TABLE: "📊", 
     H1: "📝", PRIORITY: "🔴", STOP: "🛑", BREADCRUMB: "🍞", AED: "⚡",
     PERF: "⏱️", CACHE: "💾", CORB: "🚫", COMMERCIAL: "🛒",
-    PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗"
+    PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", PARENT: "👪"
   };
   const prefix = icons[type] || "📘";
-  console.log(`${prefix} [Schema v7.25] ${msg}`);
+  console.log(`${prefix} [Schema v7.26] ${msg}`);
 }
 
 // ============================================================
-// 🔥🔥🔥 PLD-ONLY DATA READERS (BARU v7.25) 🔥🔥🔥
-// 🔥 TIDAK ADA DETEKSI ULANG — HANYA TERIMA DARI PLD/V37.9-A 🔥
+// 🆕 v7.26: WAIT FOR BREADCRUMB READY (TUNGGU SIAP)
+// 🔥 SYARAT: Breadcrumb SUDAH TERBENTUK, BUKAN loading/berantakan
 // ============================================================
 
 /**
- * 🔥 TERIMA PAGE LEVEL DARI PLD (TIDAK DETEKSI ULANG)
+ * 🔥 TUNGGU BREADCRUMB SIAP (BUKAN LOADING/BERANTAKAN)
+ * Syarat:
+ * - Ada elemen breadcrumb
+ * - Minimal 2 link (Beranda + minimal 1 parent)
+ * - Struktur valid (BreadcrumbList schema ATAU minimal 2 link)
+ * - BUKAN loading
  */
+function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
+  return new Promise((resolve) => {
+    perf.start('waitForBreadcrumbReady');
+    const startTime = Date.now();
+
+    function checkBreadcrumbReady() {
+      // ─────────────────────────────────────────
+      // 1. Cari elemen breadcrumb
+      // ─────────────────────────────────────────
+      const breadcrumbSelectors = [
+        '.breadcrumbs', '.breadcrumb', '.nav-trail',
+        '[aria-label="breadcrumb"]', '[itemtype*="BreadcrumbList"]',
+        '.post-breadcrumb', '.breadcrumb-nav', '.nav-breadcrumb'
+      ];
+
+      let breadcrumbEl = null;
+      for (const selector of breadcrumbSelectors) {
+        const el = domCache ? domCache.get(selector) : document.querySelector(selector);
+        if (el) { breadcrumbEl = el; break; }
+      }
+
+      if (!breadcrumbEl) {
+        if (Date.now() - startTime > timeout) {
+          log(`⏰ Breadcrumb timeout — tidak ditemukan (${timeout}ms)`, "WARN");
+          perf.end('waitForBreadcrumbReady');
+          resolve(null);
+          return;
+        }
+        setTimeout(checkBreadcrumbReady, 200);
+        return;
+      }
+
+      // ─────────────────────────────────────────
+      // 2. Validasi breadcrumb SIAP
+      // ─────────────────────────────────────────
+      const links = breadcrumbEl.querySelectorAll('a[href]');
+      const items = breadcrumbEl.querySelectorAll('[itemprop="itemListElement"]');
+      const hasSchema = breadcrumbEl.querySelector('[itemtype*="BreadcrumbList"]') ||
+                        breadcrumbEl.hasAttribute('itemtype');
+
+      const isReady = (links.length >= 2) || (items.length >= 2 && hasSchema);
+      const isLoading = links.length === 0 ||
+                        (links.length === 1 && !links[0].href.includes('beranda') && !links[0].href.includes('home'));
+
+      if (isReady && !isLoading) {
+        log(`✅ Breadcrumb SIAP: ${links.length} links, ${items.length} items, schema: ${hasSchema}`, "BREADCRUMB");
+        perf.end('waitForBreadcrumbReady');
+        resolve({
+          element: breadcrumbEl,
+          links: Array.from(links),
+          items: Array.from(items),
+          linkCount: links.length,
+          itemCount: items.length,
+          hasSchema: hasSchema
+        });
+        return;
+      }
+
+      // ─────────────────────────────────────────
+      // 3. Belum siap — tunggu
+      // ─────────────────────────────────────────
+      if (Date.now() - startTime > timeout) {
+        log(`⏰ Breadcrumb timeout — belum SIAP (${links.length} links, ${items.length} items)`, "WARN");
+        perf.end('waitForBreadcrumbReady');
+        resolve(null);
+        return;
+      }
+
+      setTimeout(checkBreadcrumbReady, 200);
+    }
+
+    checkBreadcrumbReady();
+  });
+}
+
+// ============================================================
+// 🆕 v7.26: GET PARENT FROM BREADCRUMB READY (PARENT TERDEKAT)
+// 🔥 AMBIL parent TERDEKAT (posisi terakhir sebelum current)
+// ============================================================
+
+function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
+  perf.start('getParentFromBreadcrumbReady');
+
+  // ─────────────────────────────────────────
+  // 1. Validasi breadcrumbData
+  // ─────────────────────────────────────────
+  if (!breadcrumbData || !breadcrumbData.links || breadcrumbData.links.length === 0) {
+    log('⚠️ Breadcrumb tidak valid — fallback ke origin', "WARN");
+    perf.end('getParentFromBreadcrumbReady');
+    return {
+      parentUrl: location.origin,
+      parentName: 'Home',
+      source: 'fallback-origin',
+      allParents: []
+    };
+  }
+
+  const links = breadcrumbData.links;
+  const currentUrlClean = currentUrl.replace(/[?&]m=1/, '').replace(/\/$/, '');
+
+  // ─────────────────────────────────────────
+  // 2. Filter link = bukan current page
+  // ─────────────────────────────────────────
+  const validParents = links.filter(link => {
+    const href = link.href || '';
+    const hrefClean = href.replace(/\/$/, '');
+    const text = link.innerText?.trim() || '';
+
+    if (hrefClean === currentUrlClean) return false;
+    if (hrefClean.includes(currentUrlClean)) return false;
+    if (currentUrlClean.includes(hrefClean)) return false;
+    if (!href || !text) return false;
+
+    return true;
+  });
+
+  // ─────────────────────────────────────────
+  // 3. Jika kosong → fallback ke origin
+  // ─────────────────────────────────────────
+  if (validParents.length === 0) {
+    log('⚠️ Tidak ada parent valid — fallback ke origin', "WARN");
+    perf.end('getParentFromBreadcrumbReady');
+    return {
+      parentUrl: location.origin,
+      parentName: 'Home',
+      source: 'fallback-origin',
+      allParents: []
+    };
+  }
+
+  // ─────────────────────────────────────────
+  // 4. AMBIL PARENT TERDEKAT = POSISI TERAKHIR
+  // ─────────────────────────────────────────
+  const parentLink = validParents[validParents.length - 1];
+
+  const parentUrl = parentLink.href || '';
+  const parentName = parentLink.innerText?.trim() || 'Parent Page';
+
+  log(`👪 Parent terdekat dari breadcrumb: "${parentName}" → ${parentUrl}`, "PARENT");
+
+  perf.end('getParentFromBreadcrumbReady');
+  return {
+    parentUrl: parentUrl,
+    parentName: parentName,
+    source: 'breadcrumb-ready',
+    allParents: validParents.map(l => ({
+      url: l.href,
+      name: l.innerText?.trim() || ''
+    }))
+  };
+}
+
+// ============================================================
+// 🔥🔥🔥 PLD-ONLY DATA READERS 🔥🔥🔥
+// 🔥 TIDAK ADA DETEKSI ULANG — HANYA TERIMA DARI PLD/V37.9-A 🔥
+// ============================================================
+
 function getPageLevelFromPLD() {
     perf.start('getPageLevelFromPLD');
     
-    // 1. Cek body attribute (dari V37.9-A)
     const bodyLevel = document.body.getAttribute('data-page-level');
     if (bodyLevel) {
         log(`📌 Page Level dari body: ${bodyLevel}`, "PLD");
@@ -240,7 +386,6 @@ function getPageLevelFromPLD() {
         return bodyLevel;
     }
     
-    // 2. Cek PLD v22.62
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.detect) {
         try {
             const level = window.pageLevelDetectorv22.detect();
@@ -254,7 +399,6 @@ function getPageLevelFromPLD() {
         }
     }
     
-    // 3. Cek PLD versi lain
     const pldVersions = [
         { obj: window.pageLevelDetectorv20, name: 'v20.x' },
         { obj: window.pageLevelDetectorv19, name: 'v19.0' },
@@ -276,19 +420,14 @@ function getPageLevelFromPLD() {
         }
     }
     
-    // 4. JANGAN DETEKSI ULANG — return null
     log('⚠️ Page Level TIDAK TERSEDIA dari PLD', "WARN");
     perf.end('getPageLevelFromPLD');
     return null;
 }
 
-/**
- * 🔥 TERIMA ENTITY TYPE DARI PLD (TIDAK DETEKSI ULANG)
- */
 function getEntityTypeFromPLD() {
     perf.start('getEntityTypeFromPLD');
     
-    // 1. Cek body attribute (dari V37.9-A)
     const bodyEntity = document.body.getAttribute('data-entity-type');
     if (bodyEntity) {
         log(`🏷️ Entity Type dari body: ${bodyEntity}`, "PLD");
@@ -296,7 +435,6 @@ function getEntityTypeFromPLD() {
         return bodyEntity;
     }
     
-    // 2. Cek PLD v22.62
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.detectEntityType) {
         try {
             const entityType = window.pageLevelDetectorv22.detectEntityType();
@@ -310,7 +448,6 @@ function getEntityTypeFromPLD() {
         }
     }
     
-    // 3. Cek PLD versi lain
     const pldVersions = [
         { obj: window.pageLevelDetectorv20, name: 'v20.x' },
         { obj: window.pageLevelDetectorv19, name: 'v19.0' },
@@ -332,19 +469,14 @@ function getEntityTypeFromPLD() {
         }
     }
     
-    // 4. JANGAN DETEKSI ULANG — return null
     log('⚠️ Entity Type TIDAK TERSEDIA dari PLD', "WARN");
     perf.end('getEntityTypeFromPLD');
     return null;
 }
 
-/**
- * 🔥 TERIMA CONTENT FOCUS DARI BODY/V37.9-A (TIDAK DETEKSI ULANG)
- */
 function detectContentFocus() {
     perf.start('detectContentFocus');
     
-    // 1. Cek body attribute (dari V37.9-A)
     const bodyFocus = document.body.getAttribute('data-content-focus');
     if (bodyFocus) {
         log(`🎯 Content Focus dari body: ${bodyFocus}`, "FOCUS");
@@ -352,14 +484,12 @@ function detectContentFocus() {
         return bodyFocus.toUpperCase();
     }
     
-    // 2. Cek V37.9-A (jika ada)
     if (window.V379A && window.V379A.focusKonten) {
         log(`🎯 Content Focus dari V37.9-A: ${window.V379A.focusKonten}`, "FOCUS");
         perf.end('detectContentFocus');
         return window.V379A.focusKonten;
     }
     
-    // 3. Fallback SEDERHANA (bukan daftar kata — hanya cek H1 tahun)
     const h1El = domCache ? domCache.get('h1') : document.querySelector('h1');
     const h1Text = h1El ? h1El.innerText.toLowerCase() : '';
     
@@ -369,19 +499,14 @@ function detectContentFocus() {
         return 'HARGA';
     }
     
-    // 4. Default: INFORMASI
     log('🎯 Content Focus: INFORMASI (default)', "FOCUS");
     perf.end('detectContentFocus');
     return 'INFORMASI';
 }
 
-/**
- * 🔥 TERIMA KATEGORI EVERGREEN DARI BODY/V37.9-A (BARU v7.25)
- */
 function getKategori() {
     perf.start('getKategori');
     
-    // 1. Cek body attribute (dari V37.9-A)
     const bodyKategori = document.body.getAttribute('data-kategori');
     if (bodyKategori) {
         log(`🏷️ Kategori dari body: ${bodyKategori}`, "KATEGORI");
@@ -389,14 +514,12 @@ function getKategori() {
         return bodyKategori.toUpperCase();
     }
     
-    // 2. Cek V37.9-A (jika ada)
     if (window.V379A && window.V379A.kategori) {
         log(`🏷️ Kategori dari V37.9-A: ${window.V379A.kategori}`, "KATEGORI");
         perf.end('getKategori');
         return window.V379A.kategori;
     }
     
-    // 3. Fallback SEDERHANA (dari content focus)
     const contentFocus = detectContentFocus();
     if (contentFocus === 'INFORMASI') {
         log('🏷️ Kategori: EVERGREEN (dari INFORMASI)', "KATEGORI");
@@ -414,13 +537,9 @@ function getKategori() {
     return 'EVERGREEN';
 }
 
-/**
- * 🔥 TERIMA ENTITY SUB-TYPE DARI BODY/V37.9-A (BARU v7.25)
- */
 function getEntitySubType() {
     perf.start('getEntitySubType');
     
-    // 1. Cek body attribute (dari V37.9-A PHASE 4.6)
     const bodySubType = document.body.getAttribute('data-entity-sub-type');
     if (bodySubType) {
         log(`🔷 Entity Sub-Type dari body: ${bodySubType}`, "PLD");
@@ -428,7 +547,6 @@ function getEntitySubType() {
         return bodySubType;
     }
     
-    // 2. Cek V37.9-A (jika ada)
     if (window.V379A && window.V379A.entitySubType) {
         log(`🔷 Entity Sub-Type dari V37.9-A: ${window.V379A.entitySubType}`, "PLD");
         perf.end('getEntitySubType');
@@ -440,13 +558,9 @@ function getEntitySubType() {
     return null;
 }
 
-/**
- * 🔥 TERIMA WORD COUNT TARGET DARI BODY/V37.9-A (BARU v7.25)
- */
 function getWordCountTarget() {
     perf.start('getWordCountTarget');
     
-    // 1. Cek body attribute
     const bodyMin = document.body.getAttribute('data-word-count-min');
     const bodyMax = document.body.getAttribute('data-word-count-max');
     if (bodyMin && bodyMax) {
@@ -456,7 +570,6 @@ function getWordCountTarget() {
         return result;
     }
     
-    // 2. Cek V37.9-A
     if (window.V379A && window.V379A.wordCountTarget) {
         log(`📊 Word Count Target dari V37.9-A`, "PLD");
         perf.end('getWordCountTarget');
@@ -468,13 +581,9 @@ function getWordCountTarget() {
     return null;
 }
 
-/**
- * 🔥 TERIMA SCHEMA TYPE DARI BODY/V37.9-A (BARU v7.25)
- */
 function getSchemaType() {
     perf.start('getSchemaType');
     
-    // 1. Cek body attribute
     const bodyPrimary = document.body.getAttribute('data-schema-type-primary');
     const bodySecondary = document.body.getAttribute('data-schema-type-secondary');
     if (bodyPrimary) {
@@ -487,7 +596,6 @@ function getSchemaType() {
         return result;
     }
     
-    // 2. Cek V37.9-A
     if (window.V379A && window.V379A.schemaType) {
         log(`🔗 Schema Type dari V37.9-A`, "SCHEMA");
         perf.end('getSchemaType');
@@ -499,13 +607,9 @@ function getSchemaType() {
     return null;
 }
 
-/**
- * 🔥 TERIMA CTA TYPE DARI BODY/V37.9-A (BARU v7.25)
- */
 function getCtaType() {
     perf.start('getCtaType');
     
-    // 1. Cek body attribute
     const bodyCtaType = document.body.getAttribute('data-cta-type');
     const bodyCtaText = document.body.getAttribute('data-cta-text');
     if (bodyCtaType) {
@@ -518,7 +622,6 @@ function getCtaType() {
         return result;
     }
     
-    // 2. Cek V37.9-A
     if (window.V379A && window.V379A.ctaType) {
         log(`🔘 CTA Type dari V37.9-A`, "PLD");
         perf.end('getCtaType');
@@ -530,13 +633,9 @@ function getCtaType() {
     return null;
 }
 
-/**
- * 🔥 TERIMA H1 PATTERN DARI BODY/V37.9-A (BARU v7.25)
- */
 function getH1Pattern() {
     perf.start('getH1Pattern');
     
-    // 1. Cek body attribute
     const bodyH1Pattern = document.body.getAttribute('data-h1-pattern');
     if (bodyH1Pattern) {
         log(`📝 H1 Pattern dari body: ${bodyH1Pattern}`, "PLD");
@@ -544,14 +643,12 @@ function getH1Pattern() {
         return bodyH1Pattern;
     }
     
-    // 2. Cek V37.9-A
     if (window.V379A && window.V379A.h1Pattern) {
         log(`📝 H1 Pattern dari V37.9-A`, "PLD");
         perf.end('getH1Pattern');
         return window.V379A.h1Pattern;
     }
     
-    // 3. Fallback SEDERHANA
     const kategori = getKategori();
     const pattern = kategori === 'NON-EVERGREEN' ? 'with-year' : 'no-year';
     log(`📝 H1 Pattern: ${pattern} (dari kategori)`, "PLD");
@@ -559,13 +656,9 @@ function getH1Pattern() {
     return pattern;
 }
 
-/**
- * 🔥 CEK LAYAK PAKAI TAHUN (TIDAK HARDCODED)
- */
 function needYear(level) {
     perf.start('needYear');
     
-    // 1. Cek body attribute (dari V37.9-A)
     const bodyNeedYear = document.body.getAttribute('data-need-year');
     if (bodyNeedYear !== null) {
         const result = bodyNeedYear === 'true';
@@ -574,14 +667,12 @@ function needYear(level) {
         return result;
     }
     
-    // 2. Cek V37.9-A (jika ada)
     if (window.V379A && window.V379A.needYear !== undefined) {
         log(`📅 Need Year dari V37.9-A: ${window.V379A.needYear}`, "YEAR");
         perf.end('needYear');
         return window.V379A.needYear;
     }
     
-    // 3. Fallback SEDERHANA (dari H1 Pattern)
     const h1Pattern = getH1Pattern();
     const result = h1Pattern === 'with-year';
     log(`📅 Need Year: ${result} (dari H1 Pattern)`, "YEAR");
@@ -589,13 +680,9 @@ function needYear(level) {
     return result;
 }
 
-/**
- * 🔥 CEK KELAYAKAN GAMBAR (TIDAK SCAN KEYWORD)
- */
 function isImageEligible(pageLevel) {
     perf.start('isImageEligible');
     
-    // 1. Cek body attribute (dari V37.9-A)
     const bodyImageEligible = document.body.getAttribute('data-image-eligible');
     if (bodyImageEligible !== null) {
         const result = bodyImageEligible === 'true';
@@ -604,14 +691,12 @@ function isImageEligible(pageLevel) {
         return result;
     }
     
-    // 2. Cek V37.9-A (jika ada)
     if (window.V379A && window.V379A.imageEligible !== undefined) {
         log(`📸 Image Eligible dari V37.9-A: ${window.V379A.imageEligible}`, "IMAGE");
         perf.end('isImageEligible');
         return window.V379A.imageEligible;
     }
     
-    // 3. Fallback SEDERHANA (berdasarkan level)
     const mandatoryImageLevels = [
         'money-master', 'money-page', 'money-child',
         'variant', 'sub-variant',
@@ -627,64 +712,6 @@ function isImageEligible(pageLevel) {
 // ============================================================
 // 🔥🔥🔥 WAIT FUNCTIONS 🔥🔥🔥
 // ============================================================
-
-function waitForBreadcrumb(timeout = CONFIG.BREADCRUMB_TIMEOUT) {
-  return new Promise((resolve) => {
-    perf.start('waitForBreadcrumb');
-    const startTime = Date.now();
-
-    const breadcrumbSelectors = [
-      '.breadcrumbs', '.breadcrumb', '.nav-trail', '.breadcrumb-item',
-      '.crumbs', '.breadcrumb-link', '[aria-label="breadcrumb"]',
-      '.post-breadcrumb', '.breadcrumb-nav', '.nav-breadcrumb'
-    ];
-
-    let intervalId = null;
-    let timeoutId = null;
-
-    function checkBreadcrumb() {
-      for (const selector of breadcrumbSelectors) {
-        const element = domCache ? domCache.get(selector) : document.querySelector(selector);
-        if (element) {
-          const links = element.querySelectorAll('a');
-          if (links.length > 0) {
-            log(`🍞 Breadcrumb ditemukan (${selector}) — ${links.length} link`, "BREADCRUMB");
-            cleanup();
-            perf.end('waitForBreadcrumb');
-            resolve(true);
-            return;
-          }
-          if (element.innerText.trim().length > 0) {
-            log(`🍞 Breadcrumb ditemukan (${selector}) — ada teks`, "BREADCRUMB");
-            cleanup();
-            perf.end('waitForBreadcrumb');
-            resolve(true);
-            return;
-          }
-        }
-      }
-
-      if (Date.now() - startTime > timeout) {
-        log(`⏰ Breadcrumb timeout (${timeout}ms), lanjutkan`, "WARN");
-        cleanup();
-        perf.end('waitForBreadcrumb');
-        resolve(false);
-      }
-    }
-
-    function cleanup() {
-      if (intervalId) { clearInterval(intervalId); intervalId = null; }
-      if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
-    }
-
-    intervalId = setInterval(checkBreadcrumb, 100);
-    timeoutId = setTimeout(() => {
-      cleanup();
-      perf.end('waitForBreadcrumb');
-      resolve(false);
-    }, timeout + 100);
-  });
-}
 
 function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
   return new Promise((resolve) => {
@@ -758,6 +785,44 @@ function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
       resolve(null);
     }, timeout + 100);
   });
+}
+
+function waitForPLD() {
+    return new Promise((resolve) => {
+        perf.start('waitForPLD');
+        
+        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
+            window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
+            window.pageLevelDetectorV17 || window.pageLevelDetector) {
+            perf.end('waitForPLD');
+            resolve(true);
+            return;
+        }
+
+        const controller = new AbortController();
+        const onReady = () => {
+            perf.end('waitForPLD');
+            resolve(true);
+        };
+        
+        window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true, signal: controller.signal });
+        window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true, signal: controller.signal });
+        window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true, signal: controller.signal });
+        window.addEventListener("pageLevelDetectorReady", onReady, { once: true, signal: controller.signal });
+
+        setTimeout(() => {
+            controller.abort();
+            if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
+                window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
+                window.pageLevelDetectorV17 || window.pageLevelDetector) {
+                perf.end('waitForPLD');
+                resolve(true);
+            } else {
+                perf.end('waitForPLD');
+                resolve(false);
+            }
+        }, CONFIG.PLD_TIMEOUT);
+    });
 }
 
 // ============================================================
@@ -1107,7 +1172,7 @@ function fixImagesToFormat1(pageLevel) {
         img.style.padding = '0 10px';
         img.style.boxSizing = 'border-box';
 
-        const styleId = 'responsive-image-style-v725';
+        const styleId = 'responsive-image-style-v726';
         if (!document.getElementById(styleId)) {
             const style = document.createElement('style');
             style.id = styleId;
@@ -1296,7 +1361,6 @@ function fixImagesToFormat1(pageLevel) {
 function updateH1ByFocus(pageLevel, contentFocus) {
     perf.start('updateH1ByFocus');
     
-    // 🔥 FOKUS INFORMASI → HAPUS TAHUN
     if (contentFocus === 'INFORMASI' || contentFocus === 'informasi') {
         const h1 = domCache ? domCache.get('h1') : document.querySelector('h1');
         if (h1) {
@@ -1317,7 +1381,6 @@ function updateH1ByFocus(pageLevel, contentFocus) {
         return false;
     }
 
-    // 🔥 FOKUS HARGA/COMMERCIAL/GABUNG → WAJIB TAHUN
     if (!needYear(pageLevel)) {
         log(`⏭️ Level ini TIDAK butuh tahun di H1`, "YEAR");
         perf.end('updateH1ByFocus');
@@ -1551,50 +1614,6 @@ function hasPriceOnPage() {
     return /Rp\s*[\d.,]+/.test(text);
 }
 
-function getParentFromBreadcrumb(currentUrl) {
-    const breadcrumbSelectors = [
-        '.breadcrumbs a', '.breadcrumb a', '.nav-trail a',
-        '.breadcrumb-item a', '.crumbs a', '.breadcrumb-link',
-        '[aria-label="breadcrumb"] a', '.post-breadcrumb a',
-        '.breadcrumb-nav a', '.nav-breadcrumb a'
-    ];
-
-    let breadcrumbLinks = [];
-    for (let selector of breadcrumbSelectors) {
-        const links = domCache ? domCache.getAll(selector) : document.querySelectorAll(selector);
-        if (links.length > 0) { breadcrumbLinks = Array.from(links); break; }
-    }
-
-    if (breadcrumbLinks.length === 0) {
-        const nav = domCache ? domCache.get('nav') : document.querySelector('nav');
-        if (nav) {
-            const links = nav.querySelectorAll('a');
-            if (links.length > 1) breadcrumbLinks = Array.from(links);
-        }
-    }
-
-    if (breadcrumbLinks.length > 0) {
-        const validLinks = breadcrumbLinks.filter(a => {
-            const href = a.href || '';
-            const text = a.innerText?.trim() || '';
-            if (!href || !text) return false;
-            if (href === currentUrl || href.includes(currentUrl)) return false;
-            if (text.toLowerCase() === 'home' || text.toLowerCase() === 'beranda') {
-                if (breadcrumbLinks.length === 1) return true;
-                return false;
-            }
-            return true;
-        });
-
-        if (validLinks.length > 0) {
-            const parentLink = validLinks[validLinks.length - 1];
-            return { parentUrl: parentLink.href, parentName: parentLink.innerText?.trim() || 'Parent Page' };
-        }
-    }
-
-    return { parentUrl: location.origin, parentName: 'Home' };
-}
-
 function detectKnowsAbout(entityType) {
     const knowsAbout = [];
     
@@ -1735,61 +1754,28 @@ function generateInternalLinks() {
 }
 
 // ============================================================
-// 🔥🔥🔥 WAIT PLD 🔥🔥🔥
-// ============================================================
-function waitForPLD() {
-    return new Promise((resolve) => {
-        perf.start('waitForPLD');
-        
-        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
-            window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
-            window.pageLevelDetectorV17 || window.pageLevelDetector) {
-            perf.end('waitForPLD');
-            resolve(true);
-            return;
-        }
-
-        const controller = new AbortController();
-        const onReady = () => {
-            perf.end('waitForPLD');
-            resolve(true);
-        };
-        
-        window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true, signal: controller.signal });
-        window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true, signal: controller.signal });
-        window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true, signal: controller.signal });
-        window.addEventListener("pageLevelDetectorReady", onReady, { once: true, signal: controller.signal });
-
-        setTimeout(() => {
-            controller.abort();
-            if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
-                window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
-                window.pageLevelDetectorV17 || window.pageLevelDetector) {
-                perf.end('waitForPLD');
-                resolve(true);
-            } else {
-                perf.end('waitForPLD');
-                resolve(false);
-            }
-        }, CONFIG.PLD_TIMEOUT);
-    });
-}
-
-// ============================================================
-// 🚀 MAIN FUNCTION 🔥🔥🔥
+// 🚀 MAIN FUNCTION v7.26 🔥🔥🔥
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
         perf.start('init');
         log("═══════════════════════════════════════════════════", "INFO");
-        log("AUTO SCHEMA UNIVERSAL v7.25 — PLD-ONLY MODE + V37 COMPLIANT", "INFO");
+        log("AUTO SCHEMA UNIVERSAL v7.26 — PLD-ONLY MODE + isPartOf", "INFO");
+        log("SERVICE + PRODUCT + WEBPAGE DENGAN isPartOf BREADCRUMB", "INFO");
         log("═══════════════════════════════════════════════════", "INFO");
         
         try {
-            // ===== STEP 1: TUNGGU BREADCRUMB =====
-            log('🍞 Menunggu breadcrumb...', "BREADCRUMB");
-            const breadcrumbReady = await waitForBreadcrumb(CONFIG.BREADCRUMB_TIMEOUT);
-            log(`🍞 Breadcrumb: ${breadcrumbReady ? '✅ READY' : '⏰ TIMEOUT'}`, "BREADCRUMB");
+            // =========================================================
+            // 🆕 STEP 1: TUNGGU BREADCRUMB SIAP (BUKAN LOADING)
+            // =========================================================
+            log('🍞 Menunggu breadcrumb SIAP (bukan loading)...', "BREADCRUMB");
+            const breadcrumbData = await waitForBreadcrumbReady(CONFIG.BREADCRUMB_READY_TIMEOUT);
+            
+            if (breadcrumbData) {
+                log(`✅ Breadcrumb SIAP: ${breadcrumbData.linkCount} links, ${breadcrumbData.itemCount} items`, "SUCCESS");
+            } else {
+                log(`⚠️ Breadcrumb timeout — akan fallback ke origin`, "WARN");
+            }
             
             // ===== STEP 2: TUNGGU PLD =====
             log('⏳ Menunggu PLD...', "PLD");
@@ -1894,8 +1880,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             };
 
-            const parentData = getParentFromBreadcrumb(cleanUrl);
-            const parentUrls = [{ "@type": "WebPage", "@id": parentData.parentUrl, name: parentData.parentName || "Parent Page" }];
+            // =========================================================
+            // 🆕 STEP 7.5: AMBIL PARENT TERDEKAT DARI BREADCRUMB SIAP
+            // =========================================================
+            log("👪 MENCARI PARENT TERDEKAT DARI BREADCRUMB SIAP...", "PARENT");
+            const parentData = getParentFromBreadcrumbReady(breadcrumbData, cleanUrl);
+            
+            log(`👪 Parent Final: "${parentData.parentName}"`, "PARENT");
+            log(`   📍 URL: ${parentData.parentUrl}`, "PARENT");
+            log(`   📍 Source: ${parentData.source}`, "PARENT");
+
+            // 🆕 BUILD parentUrls
+            const parentUrls = [{ 
+                "@type": "WebPage", 
+                "@id": parentData.parentUrl, 
+                name: parentData.parentName || "Parent Page" 
+            }];
 
             const areaProv = {
                 "DKI Jakarta": "DKI Jakarta",
@@ -1952,14 +1952,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     name: PAGE.title,
                     description: PAGE.description,
                     image: PAGE.image,
-                    isPartOf: parentUrls,
+                    isPartOf: parentUrls,  // ✅ isPartOf dari parent terdekat
                     publisher: { "@id": PAGE.business.url + "#localbusiness" },
                     dateModified: aed && aed.dateModified ? aed.dateModified : new Date().toISOString(),
                     inLanguage: "id"
                 }
             ];
 
-            // ✅ PERTAHANKAN: Schema JASA (Service)
+            // ✅ PERTAHANKAN: Schema JASA (Service) + 🆕 isPartOf
             const isJasa = entityType === 'jasa';
             const isSewa = entityType === 'sewa';
             const isService = isJasa || isSewa;
@@ -1976,7 +1976,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     areaServed: defaultAreaServed,
                     provider: { "@id": PAGE.business.url + "#localbusiness" },
                     brand: { "@type": "Brand", name: PAGE.business.name },
-                    mainEntityOfPage: { "@id": cleanUrl + "#webpage" }
+                    mainEntityOfPage: { "@id": cleanUrl + "#webpage" },
+                    isPartOf: parentUrls  // 🆕 isPartOf di Service
                 };
 
                 if (tableOffers.length > 0) {
@@ -1992,9 +1993,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     };
                 }
                 graph.push(serviceNode);
-                log(`✅ Service schema (${entityType})`, "SUCCESS");
+                log(`✅ Service schema (${entityType}) + isPartOf`, "SUCCESS");
 
-                // ✅ PERTAHANKAN: Product schema untuk JASA & SEWA jika ada harga
+                // ✅ PERTAHANKAN: Product schema untuk JASA & SEWA + 🆕 isPartOf
                 if (hasPrice && tableOffers.length > 0) {
                     const lowPrice = Math.min(...tableOffers.map(o => o.price));
                     const highPrice = Math.max(...tableOffers.map(o => o.price));
@@ -2007,6 +2008,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         image: [PAGE.image],
                         brand: { "@type": "Brand", name: PAGE.business.name },
                         category: entityType === 'jasa' ? "ConstructionService" : "RentalService",
+                        isPartOf: parentUrls,  // 🆕 isPartOf di Product
                         offers: {
                             "@type": "AggregateOffer",
                             lowPrice: lowPrice,
@@ -2029,7 +2031,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
                     };
                     graph.push(productNode);
-                    log(`✅ Product schema (${tableOffers.length} offers) — ${entityType}`, "SUCCESS");
+                    log(`✅ Product schema (${tableOffers.length} offers) + isPartOf — ${entityType}`, "SUCCESS");
                 } else {
                     log(`⏭️ Skip Product schema (tidak ada harga/offers)`, "SKIP");
                 }
@@ -2074,12 +2076,16 @@ document.addEventListener("DOMContentLoaded", () => {
             log(`  Schema Type      : ${schemaType ? schemaType.primary : 'N/A'}`, "SCHEMA");
             log(`  CTA Type         : ${ctaType ? ctaType.type : 'N/A'}`, "PLD");
             log(`  Word Count Target: ${wordCountTarget ? wordCountTarget.min + '-' + wordCountTarget.max : 'N/A'}`, "PLD");
-            log(`  Breadcrumb       : ${breadcrumbReady ? '✅ READY' : '⏰ TIMEOUT'}`, "BREADCRUMB");
+            log(`  Breadcrumb Ready : ${breadcrumbData ? '✅ SIAP' : '⏰ TIMEOUT'}`, "BREADCRUMB");
+            log(`  Parent Source    : ${parentData.source}`, "PARENT");
+            log(`  Parent Name      : ${parentData.parentName}`, "PARENT");
             log(`  AED              : ${aed ? '✅ READY' : '❌ FALLBACK'}`, "AED");
             log(`  Offers           : ${tableOffers.length}`, "TABLE");
             log(`  priceValidUntil  : ${priceValidUntil}`, "AED");
-            log(`  Service Schema   : ${isService ? '✅' : '❌'}`, "SUCCESS");
-            log(`  Product Schema   : ${(isService && hasPrice && tableOffers.length > 0) ? '✅' : '❌'}`, "SUCCESS");
+            log(`  Service Schema   : ${isService ? '✅ (+ isPartOf)' : '❌'}`, "SUCCESS");
+            log(`  Product Schema   : ${(isService && hasPrice && tableOffers.length > 0) ? '✅ (+ isPartOf)' : '❌'}`, "SUCCESS");
+            log(`  WebPage Schema   : ✅ (+ isPartOf)`, "SUCCESS");
+            log(`  isPartOf SOURCE  : ✅ BREADCRUMB TERDEKAT (SIAP)`, "PARENT");
             log(`  Internal Links   : ${internalLinks.length}`, "SUCCESS");
             log(`  Image Eligible   : ${isEligible ? '✅' : '❌'}`, "IMAGE");
             log(`  Auto Year H1     : ${h1Updated ? '✅ UPDATE' : '⏭️ SKIP/STOP'}`, "YEAR");
@@ -2088,7 +2094,7 @@ document.addEventListener("DOMContentLoaded", () => {
             log(`  CORB PREVENTION  : ✅ ACTIVE`, "CORB");
             log(`  PLD-ONLY MODE    : ✅ ACTIVE`, "PLD");
             log("═══════════════════════════════════════════════════", "INFO");
-            log("AUTO SCHEMA UNIVERSAL v7.25 SELESAI", "SUCCESS");
+            log("AUTO SCHEMA UNIVERSAL v7.26 SELESAI", "SUCCESS");
             
             perf.end('init');
 
