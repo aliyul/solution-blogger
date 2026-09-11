@@ -1,15 +1,13 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.26 — PLD-ONLY MODE + isPartOf TERDEKAT */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.27 — PLD-ONLY MODE + isPartOf WebPage Only */
 // ============================================================
-// 🔥🔥🔥 v7.26 CHANGELOG 🔥🔥🔥
+// 🔥🔥🔥 v7.27 CHANGELOG 🔥🔥🔥
 // ============================================================
-// ✅ TAMBAH: waitForBreadcrumbReady() — tunggu breadcrumb SIAP
-// ✅ TAMBAH: getParentFromBreadcrumbReady() — ambil parent TERDEKAT
-// ✅ TAMBAH: isPartOf di Service schema
-// ✅ TAMBAH: isPartOf di Product schema
-// ✅ HAPUS: waitForBreadcrumb() — tidak validasi SIAP
-// ✅ HAPUS: getParentFromBreadcrumb() — query DOM ulang
-// ✅ UBAH: init() — gunakan breadcrumbData untuk isPartOf
-// ✅ PERTAHANKAN: Semua yang sudah valid dari v7.25
+// ✅ PERBAIKI: isPartOf HANYA di WebPage (sesuai best practice SEO)
+// ✅ HAPUS: isPartOf di Service schema (duplikat, tidak perlu)
+// ✅ HAPUS: isPartOf di Product schema (duplikat, tidak perlu)
+// ✅ PERTAHANKAN: waitForBreadcrumbReady() — tunggu breadcrumb SIAP
+// ✅ PERTAHANKAN: getParentFromBreadcrumbReady() — ambil parent TERDEKAT
+// ✅ PERTAHANKAN: Semua kode lain yang sudah valid dari v7.26
 // ============================================================
 
 // ============================================================
@@ -19,7 +17,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.26] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.27] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -28,7 +26,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.26] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.27] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -203,31 +201,20 @@ function log(msg, type = "INFO") {
     PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", PARENT: "👪"
   };
   const prefix = icons[type] || "📘";
-  console.log(`${prefix} [Schema v7.26] ${msg}`);
+  console.log(`${prefix} [Schema v7.27] ${msg}`);
 }
 
 // ============================================================
-// 🆕 v7.26: WAIT FOR BREADCRUMB READY (TUNGGU SIAP)
+// 🆕 WAIT FOR BREADCRUMB READY (TUNGGU SIAP)
 // 🔥 SYARAT: Breadcrumb SUDAH TERBENTUK, BUKAN loading/berantakan
 // ============================================================
 
-/**
- * 🔥 TUNGGU BREADCRUMB SIAP (BUKAN LOADING/BERANTAKAN)
- * Syarat:
- * - Ada elemen breadcrumb
- * - Minimal 2 link (Beranda + minimal 1 parent)
- * - Struktur valid (BreadcrumbList schema ATAU minimal 2 link)
- * - BUKAN loading
- */
 function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
   return new Promise((resolve) => {
     perf.start('waitForBreadcrumbReady');
     const startTime = Date.now();
 
     function checkBreadcrumbReady() {
-      // ─────────────────────────────────────────
-      // 1. Cari elemen breadcrumb
-      // ─────────────────────────────────────────
       const breadcrumbSelectors = [
         '.breadcrumbs', '.breadcrumb', '.nav-trail',
         '[aria-label="breadcrumb"]', '[itemtype*="BreadcrumbList"]',
@@ -251,9 +238,6 @@ function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
         return;
       }
 
-      // ─────────────────────────────────────────
-      // 2. Validasi breadcrumb SIAP
-      // ─────────────────────────────────────────
       const links = breadcrumbEl.querySelectorAll('a[href]');
       const items = breadcrumbEl.querySelectorAll('[itemprop="itemListElement"]');
       const hasSchema = breadcrumbEl.querySelector('[itemtype*="BreadcrumbList"]') ||
@@ -277,9 +261,6 @@ function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
         return;
       }
 
-      // ─────────────────────────────────────────
-      // 3. Belum siap — tunggu
-      // ─────────────────────────────────────────
       if (Date.now() - startTime > timeout) {
         log(`⏰ Breadcrumb timeout — belum SIAP (${links.length} links, ${items.length} items)`, "WARN");
         perf.end('waitForBreadcrumbReady');
@@ -295,16 +276,13 @@ function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
 }
 
 // ============================================================
-// 🆕 v7.26: GET PARENT FROM BREADCRUMB READY (PARENT TERDEKAT)
+// 🆕 GET PARENT FROM BREADCRUMB READY (PARENT TERDEKAT)
 // 🔥 AMBIL parent TERDEKAT (posisi terakhir sebelum current)
 // ============================================================
 
 function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
   perf.start('getParentFromBreadcrumbReady');
 
-  // ─────────────────────────────────────────
-  // 1. Validasi breadcrumbData
-  // ─────────────────────────────────────────
   if (!breadcrumbData || !breadcrumbData.links || breadcrumbData.links.length === 0) {
     log('⚠️ Breadcrumb tidak valid — fallback ke origin', "WARN");
     perf.end('getParentFromBreadcrumbReady');
@@ -319,9 +297,6 @@ function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
   const links = breadcrumbData.links;
   const currentUrlClean = currentUrl.replace(/[?&]m=1/, '').replace(/\/$/, '');
 
-  // ─────────────────────────────────────────
-  // 2. Filter link = bukan current page
-  // ─────────────────────────────────────────
   const validParents = links.filter(link => {
     const href = link.href || '';
     const hrefClean = href.replace(/\/$/, '');
@@ -335,9 +310,6 @@ function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
     return true;
   });
 
-  // ─────────────────────────────────────────
-  // 3. Jika kosong → fallback ke origin
-  // ─────────────────────────────────────────
   if (validParents.length === 0) {
     log('⚠️ Tidak ada parent valid — fallback ke origin', "WARN");
     perf.end('getParentFromBreadcrumbReady');
@@ -349,9 +321,6 @@ function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
     };
   }
 
-  // ─────────────────────────────────────────
-  // 4. AMBIL PARENT TERDEKAT = POSISI TERAKHIR
-  // ─────────────────────────────────────────
   const parentLink = validParents[validParents.length - 1];
 
   const parentUrl = parentLink.href || '';
@@ -1172,7 +1141,7 @@ function fixImagesToFormat1(pageLevel) {
         img.style.padding = '0 10px';
         img.style.boxSizing = 'border-box';
 
-        const styleId = 'responsive-image-style-v726';
+        const styleId = 'responsive-image-style-v727';
         if (!document.getElementById(styleId)) {
             const style = document.createElement('style');
             style.id = styleId;
@@ -1754,19 +1723,19 @@ function generateInternalLinks() {
 }
 
 // ============================================================
-// 🚀 MAIN FUNCTION v7.26 🔥🔥🔥
+// 🚀 MAIN FUNCTION v7.27 🔥🔥🔥
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
         perf.start('init');
         log("═══════════════════════════════════════════════════", "INFO");
-        log("AUTO SCHEMA UNIVERSAL v7.26 — PLD-ONLY MODE + isPartOf", "INFO");
-        log("SERVICE + PRODUCT + WEBPAGE DENGAN isPartOf BREADCRUMB", "INFO");
+        log("AUTO SCHEMA UNIVERSAL v7.27 — PLD-ONLY MODE", "INFO");
+        log("isPartOf HANYA DI WEBPAGE (BEST PRACTICE SEO)", "INFO");
         log("═══════════════════════════════════════════════════", "INFO");
         
         try {
             // =========================================================
-            // 🆕 STEP 1: TUNGGU BREADCRUMB SIAP (BUKAN LOADING)
+            // STEP 1: TUNGGU BREADCRUMB SIAP (BUKAN LOADING)
             // =========================================================
             log('🍞 Menunggu breadcrumb SIAP (bukan loading)...', "BREADCRUMB");
             const breadcrumbData = await waitForBreadcrumbReady(CONFIG.BREADCRUMB_READY_TIMEOUT);
@@ -1881,7 +1850,7 @@ document.addEventListener("DOMContentLoaded", () => {
             };
 
             // =========================================================
-            // 🆕 STEP 7.5: AMBIL PARENT TERDEKAT DARI BREADCRUMB SIAP
+            // STEP 7.5: AMBIL PARENT TERDEKAT DARI BREADCRUMB SIAP
             // =========================================================
             log("👪 MENCARI PARENT TERDEKAT DARI BREADCRUMB SIAP...", "PARENT");
             const parentData = getParentFromBreadcrumbReady(breadcrumbData, cleanUrl);
@@ -1890,7 +1859,7 @@ document.addEventListener("DOMContentLoaded", () => {
             log(`   📍 URL: ${parentData.parentUrl}`, "PARENT");
             log(`   📍 Source: ${parentData.source}`, "PARENT");
 
-            // 🆕 BUILD parentUrls
+            // BUILD parentUrls
             const parentUrls = [{ 
                 "@type": "WebPage", 
                 "@id": parentData.parentUrl, 
@@ -1952,14 +1921,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     name: PAGE.title,
                     description: PAGE.description,
                     image: PAGE.image,
-                    isPartOf: parentUrls,  // ✅ isPartOf dari parent terdekat
+                    isPartOf: parentUrls,  // ✅ isPartOf HANYA di WebPage (BEST PRACTICE)
                     publisher: { "@id": PAGE.business.url + "#localbusiness" },
                     dateModified: aed && aed.dateModified ? aed.dateModified : new Date().toISOString(),
                     inLanguage: "id"
                 }
             ];
 
-            // ✅ PERTAHANKAN: Schema JASA (Service) + 🆕 isPartOf
+            // ✅ PERTAHANKAN: Schema JASA (Service) — TANPA isPartOf
             const isJasa = entityType === 'jasa';
             const isSewa = entityType === 'sewa';
             const isService = isJasa || isSewa;
@@ -1976,8 +1945,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     areaServed: defaultAreaServed,
                     provider: { "@id": PAGE.business.url + "#localbusiness" },
                     brand: { "@type": "Brand", name: PAGE.business.name },
-                    mainEntityOfPage: { "@id": cleanUrl + "#webpage" },
-                    isPartOf: parentUrls  // 🆕 isPartOf di Service
+                    mainEntityOfPage: { "@id": cleanUrl + "#webpage" }
+                    // ❌ TIDAK ADA isPartOf — cukup di WebPage
                 };
 
                 if (tableOffers.length > 0) {
@@ -1993,9 +1962,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     };
                 }
                 graph.push(serviceNode);
-                log(`✅ Service schema (${entityType}) + isPartOf`, "SUCCESS");
+                log(`✅ Service schema (${entityType}) — isPartOf di WebPage`, "SUCCESS");
 
-                // ✅ PERTAHANKAN: Product schema untuk JASA & SEWA + 🆕 isPartOf
+                // ✅ PERTAHANKAN: Product schema untuk JASA & SEWA — TANPA isPartOf
                 if (hasPrice && tableOffers.length > 0) {
                     const lowPrice = Math.min(...tableOffers.map(o => o.price));
                     const highPrice = Math.max(...tableOffers.map(o => o.price));
@@ -2008,7 +1977,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         image: [PAGE.image],
                         brand: { "@type": "Brand", name: PAGE.business.name },
                         category: entityType === 'jasa' ? "ConstructionService" : "RentalService",
-                        isPartOf: parentUrls,  // 🆕 isPartOf di Product
+                        // ❌ TIDAK ADA isPartOf — cukup di WebPage
                         offers: {
                             "@type": "AggregateOffer",
                             lowPrice: lowPrice,
@@ -2031,7 +2000,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
                     };
                     graph.push(productNode);
-                    log(`✅ Product schema (${tableOffers.length} offers) + isPartOf — ${entityType}`, "SUCCESS");
+                    log(`✅ Product schema (${tableOffers.length} offers) — isPartOf di WebPage`, "SUCCESS");
                 } else {
                     log(`⏭️ Skip Product schema (tidak ada harga/offers)`, "SKIP");
                 }
@@ -2082,9 +2051,9 @@ document.addEventListener("DOMContentLoaded", () => {
             log(`  AED              : ${aed ? '✅ READY' : '❌ FALLBACK'}`, "AED");
             log(`  Offers           : ${tableOffers.length}`, "TABLE");
             log(`  priceValidUntil  : ${priceValidUntil}`, "AED");
-            log(`  Service Schema   : ${isService ? '✅ (+ isPartOf)' : '❌'}`, "SUCCESS");
-            log(`  Product Schema   : ${(isService && hasPrice && tableOffers.length > 0) ? '✅ (+ isPartOf)' : '❌'}`, "SUCCESS");
-            log(`  WebPage Schema   : ✅ (+ isPartOf)`, "SUCCESS");
+            log(`  WebPage Schema   : ✅ (+ isPartOf) ← BEST PRACTICE SEO`, "SUCCESS");
+            log(`  Service Schema   : ${isService ? '✅ (tanpa isPartOf — cukup di WebPage)' : '❌'}`, "SUCCESS");
+            log(`  Product Schema   : ${(isService && hasPrice && tableOffers.length > 0) ? '✅ (tanpa isPartOf — cukup di WebPage)' : '❌'}`, "SUCCESS");
             log(`  isPartOf SOURCE  : ✅ BREADCRUMB TERDEKAT (SIAP)`, "PARENT");
             log(`  Internal Links   : ${internalLinks.length}`, "SUCCESS");
             log(`  Image Eligible   : ${isEligible ? '✅' : '❌'}`, "IMAGE");
@@ -2094,7 +2063,7 @@ document.addEventListener("DOMContentLoaded", () => {
             log(`  CORB PREVENTION  : ✅ ACTIVE`, "CORB");
             log(`  PLD-ONLY MODE    : ✅ ACTIVE`, "PLD");
             log("═══════════════════════════════════════════════════", "INFO");
-            log("AUTO SCHEMA UNIVERSAL v7.26 SELESAI", "SUCCESS");
+            log("AUTO SCHEMA UNIVERSAL v7.27 SELESAI", "SUCCESS");
             
             perf.end('init');
 
