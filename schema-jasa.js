@@ -1,16 +1,11 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.28 — PLD-ONLY MODE + isPartOf WebPage Only + Cloudinary Image */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.28.3 — PLD-ONLY MODE + isPartOf WebPage Only + Cloudinary Image (Responsive Text: Auto-Scale + Auto-Wrap + Split Long Words) */
 // ============================================================
-// 🔥🔥🔥 v7.28 CHANGELOG 🔥🔥🔥
+// 🔥🔥🔥 v7.28.3 CHANGELOG 🔥🔥🔥
 // ============================================================
-// ✅ TAMBAH: CLOUDINARY_CONFIG — generate image per level
-// ✅ GANTI: createImageWithText() — Canvas → Cloudinary URL
-// ✅ UBAH: Ukuran image 820×360 → 1200×630 (SEO-optimal)
-// ✅ TAMBAH: Text dinamis dari pageName (detect script)
-// ✅ TAMBAH: Warna text per level (kuning emas / putih)
-// ✅ TAMBAH: Validasi URL absolut di fixImagesToFormat1()
-// ✅ UBAH: Responsive styling disesuaikan (1200×630)
-// ✅ PERTAHANKAN: isPartOf HANYA di WebPage (best practice SEO)
-// ✅ PERTAHANKAN: Semua kode lain yang sudah valid dari v7.27
+// ✅ PATCH: wrapText() — handle kata panjang (>22 karakter tanpa spasi)
+// ✅ PATCH: Split kata panjang otomatis → text 100% tidak keluar image
+// ✅ PERTAHANKAN: fig dan img responsive tetap 1200×630
+// ✅ PERTAHANKAN: Semua kode lain yang sudah valid dari v7.28.2
 // ============================================================
 
 // ============================================================
@@ -20,7 +15,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.28] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.28.3] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -29,7 +24,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.28] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.28.3] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -184,7 +179,7 @@ const domCache = CONFIG.CACHE_DOM_ELEMENTS ? new DOMCache() : null;
 const errorBoundary = new ErrorBoundary();
 
 // ============================================================
-// 🆕 v7.28: KONFIGURASI CLOUDINARY 🔥
+// 🆕 v7.28.3: KONFIGURASI CLOUDINARY (AUTO-SCALE + AUTO-WRAP + SPLIT LONG WORDS) 🔥
 // ============================================================
 const CLOUDINARY_CONFIG = {
   ENABLED: true,
@@ -201,6 +196,11 @@ const CLOUDINARY_CONFIG = {
   FONT_SIZE: 60,
   BOLD: true,
   GRAVITY: 'g_center',
+
+  // 🎯 Batas text
+  MAX_TEXT_LENGTH: 70,     // ← potong text kalau > 70 karakter
+  MAX_CHARS_PER_LINE: 22,  // ← max karakter per baris (untuk auto-wrap)
+  MAX_LINES: 2,            // ← max 2 baris
 
   // 🎨 File per level (sesuai upload Cloudinary)
   LEVEL_FILES: {
@@ -230,15 +230,87 @@ const CLOUDINARY_CONFIG = {
     return `https://res.cloudinary.com/${this.CLOUD_NAME}/image/upload/`;
   },
 
+  // 🔥 v7.28.3: AUTO-SCALE FONT SIZE berdasarkan panjang text
+  calculateFontSize(textLength) {
+    if (textLength <= 15) return 60;
+    if (textLength <= 25) return 55;
+    if (textLength <= 35) return 48;
+    if (textLength <= 45) return 40;
+    if (textLength <= 55) return 34;
+    if (textLength <= 65) return 28;
+    return 24;
+  },
+
+  // 🔥 v7.28.3: AUTO-WRAP TEXT + SPLIT LONG WORDS
+  wrapText(text, maxCharsPerLine = this.MAX_CHARS_PER_LINE) {
+    // Kalau text pendek, tidak perlu wrap
+    if (text.length <= maxCharsPerLine) return text;
+
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+
+    for (const word of words) {
+      // 🆕 v7.28.3: Handle kata panjang (> maxCharsPerLine)
+      if (word.length > maxCharsPerLine) {
+        // Simpan current line dulu
+        if (currentLine) {
+          lines.push(currentLine);
+          currentLine = '';
+        }
+        // Split kata panjang jadi beberapa baris
+        let remaining = word;
+        while (remaining.length > maxCharsPerLine) {
+          lines.push(remaining.substring(0, maxCharsPerLine));
+          remaining = remaining.substring(maxCharsPerLine);
+        }
+        if (remaining) currentLine = remaining;
+      }
+      // Kata normal
+      else if ((currentLine + ' ' + word).trim().length <= maxCharsPerLine) {
+        currentLine = (currentLine + ' ' + word).trim();
+      } else {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+
+    // Batasi max MAX_LINES baris
+    if (lines.length > this.MAX_LINES) {
+      const merged = lines.slice(0, this.MAX_LINES - 1);
+      merged.push(lines.slice(this.MAX_LINES - 1).join(' '));
+      return merged.join('\n');
+    }
+
+    return lines.join('\n');
+  },
+
+  // 🔥 v7.28.3: BUILD URL dengan AUTO-SCALE + AUTO-WRAP
   buildUrl(level, text) {
     const fileName = this.LEVEL_FILES[level] || 'pillar';
     const textColor = this.LEVEL_COLORS[level] || 'FFD700';
-    const encodedText = encodeURIComponent(text);
     const weight = this.BOLD ? '_bold' : '';
+
+    // Step 1: Potong text kalau terlalu panjang
+    let displayText = text;
+    if (displayText.length > this.MAX_TEXT_LENGTH) {
+      displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
+    }
+
+    // Step 2: Auto-wrap text jadi 2 baris (+ split kata panjang)
+    displayText = this.wrapText(displayText);
+
+    // Step 3: Hitung font size berdasarkan baris terpanjang
+    const longestLine = displayText.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
+    const fontSize = this.calculateFontSize(longestLine.length);
+
+    // Step 4: Encode text (encodeURIComponent otomatis %0A untuk \n)
+    const encodedText = encodeURIComponent(displayText);
 
     return `${this.baseUrl}` +
            `e_colorize:100,co_rgb:${textColor},` +
-           `l_text:${this.FONT}_${this.FONT_SIZE}${weight}:${encodedText},` +
+           `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},` +
            `${this.GRAVITY},` +
            `c_pad,w_${this.WIDTH},h_${this.HEIGHT}/` +
            `${this.VERSION}/${fileName}.${this.FORMAT}`;
@@ -266,7 +338,7 @@ function log(msg, type = "INFO") {
     PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", PARENT: "👪"
   };
   const prefix = icons[type] || "📘";
-  console.log(`${prefix} [Schema v7.28] ${msg}`);
+  console.log(`${prefix} [Schema v7.28.3] ${msg}`);
 }
 
 // ============================================================
@@ -941,13 +1013,11 @@ function getCleanPageName(level) {
 }
 
 // ============================================================
-// 🆕 v7.28: CREATE IMAGE — CLOUDINARY DYNAMIC 🔥
-// 🔥 Generate URL Cloudinary dengan text dinamis per level
+// 🆕 v7.28.3: CREATE IMAGE — CLOUDINARY DYNAMIC 🔥
 // ============================================================
 function createImageWithText(pageName, level, year) {
     perf.start('createImageWithText');
     
-    // 🔥 OPSI 1: Cloudinary (jika enabled)
     if (CLOUDINARY_CONFIG.ENABLED && CLOUDINARY_CONFIG.CLOUD_NAME) {
         try {
             const needYearFlag = needYear(level);
@@ -965,7 +1035,6 @@ function createImageWithText(pageName, level, year) {
         }
     }
     
-    // 🔥 OPSI 2: Fallback ke LOGO_IMAGE statis
     log('📸 Image: fallback ke LOGO', "IMAGE");
     perf.end('createImageWithText');
     return IMAGE_CONFIG.LOGO_IMAGE;
@@ -1042,7 +1111,7 @@ function fixImagesToFormat1(pageLevel) {
         img.style.padding = '0 10px';
         img.style.boxSizing = 'border-box';
 
-        const styleId = 'responsive-image-style-v728';
+        const styleId = 'responsive-image-style-v7283';
         if (!document.getElementById(styleId)) {
             const style = document.createElement('style');
             style.id = styleId;
@@ -1113,7 +1182,7 @@ function fixImagesToFormat1(pageLevel) {
         }
     }
 
-    // 🔥 v7.28: Gunakan Cloudinary URL (bukan base64)
+    // 🔥 v7.28.3: Gunakan Cloudinary URL (bukan base64) dengan text responsive
     const autoImageUrl = createImageWithText(pageName, pageLevel, currentYear);
     const captionText = '📊 ' + displayName;
 
@@ -1127,7 +1196,6 @@ function fixImagesToFormat1(pageLevel) {
 
         const currentSrc = img.src || '';
         if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
-            // 🔥 Validasi URL absolut (bukan base64)
             if (/^https?:\/\//i.test(autoImageUrl)) {
                 img.src = autoImageUrl;
                 log('Image src replaced with Cloudinary URL', "IMAGE");
@@ -1631,14 +1699,15 @@ function generateInternalLinks() {
 }
 
 // ============================================================
-// 🚀 MAIN FUNCTION v7.28 🔥🔥🔥
+// 🚀 MAIN FUNCTION v7.28.3 🔥🔥🔥
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
         perf.start('init');
         log("═══════════════════════════════════════════════════", "INFO");
-        log("AUTO SCHEMA UNIVERSAL v7.28 — PLD-ONLY MODE", "INFO");
+        log("AUTO SCHEMA UNIVERSAL v7.28.3 — PLD-ONLY MODE", "INFO");
         log("isPartOf HANYA DI WEBPAGE + CLOUDINARY IMAGE", "INFO");
+        log("RESPONSIVE TEXT: AUTO-SCALE + AUTO-WRAP + SPLIT LONG WORDS", "INFO");
         log("═══════════════════════════════════════════════════", "INFO");
         
         try {
@@ -1713,7 +1782,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         const img = fixedFigure.querySelector('img');
                         if (img) {
                             const candidateSrc = img.src || '';
-                            // 🔥 v7.28: Validasi URL absolut (bukan base64)
                             if (/^https?:\/\//i.test(candidateSrc)) {
                                 pageImage = candidateSrc;
                                 log(`📸 Schema image: ${candidateSrc}`, "IMAGE");
@@ -1732,7 +1800,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const existingImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
                 if (existingImage) {
                     const candidateSrc = existingImage.src || '';
-                    // 🔥 v7.28: Validasi URL absolut
                     if (/^https?:\/\//i.test(candidateSrc)) {
                         pageImage = candidateSrc;
                     } else {
@@ -1783,7 +1850,6 @@ document.addEventListener("DOMContentLoaded", () => {
             log(`   📍 URL: ${parentData.parentUrl}`, "PARENT");
             log(`   📍 Source: ${parentData.source}`, "PARENT");
 
-            // BUILD parentUrls
             const parentUrls = [{ 
                 "@type": "WebPage", 
                 "@id": parentData.parentUrl, 
@@ -1845,14 +1911,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     name: PAGE.title,
                     description: PAGE.description,
                     image: PAGE.image,
-                    isPartOf: parentUrls,  // ✅ isPartOf HANYA di WebPage (BEST PRACTICE)
+                    isPartOf: parentUrls,
                     publisher: { "@id": PAGE.business.url + "#localbusiness" },
                     dateModified: aed && aed.dateModified ? aed.dateModified : new Date().toISOString(),
                     inLanguage: "id"
                 }
             ];
 
-            // ✅ PERTAHANKAN: Schema JASA (Service) — TANPA isPartOf
             const isJasa = entityType === 'jasa';
             const isSewa = entityType === 'sewa';
             const isService = isJasa || isSewa;
@@ -1870,7 +1935,6 @@ document.addEventListener("DOMContentLoaded", () => {
                     provider: { "@id": PAGE.business.url + "#localbusiness" },
                     brand: { "@type": "Brand", name: PAGE.business.name },
                     mainEntityOfPage: { "@id": cleanUrl + "#webpage" }
-                    // ❌ TIDAK ADA isPartOf — cukup di WebPage
                 };
 
                 if (tableOffers.length > 0) {
@@ -1888,7 +1952,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 graph.push(serviceNode);
                 log(`✅ Service schema (${entityType}) — isPartOf di WebPage`, "SUCCESS");
 
-                // ✅ PERTAHANKAN: Product schema untuk JASA & SEWA — TANPA isPartOf
                 if (hasPrice && tableOffers.length > 0) {
                     const lowPrice = Math.min(...tableOffers.map(o => o.price));
                     const highPrice = Math.max(...tableOffers.map(o => o.price));
@@ -1901,7 +1964,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         image: [PAGE.image],
                         brand: { "@type": "Brand", name: PAGE.business.name },
                         category: entityType === 'jasa' ? "ConstructionService" : "RentalService",
-                        // ❌ TIDAK ADA isPartOf — cukup di WebPage
                         offers: {
                             "@type": "AggregateOffer",
                             lowPrice: lowPrice,
@@ -1932,7 +1994,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 log(`⏭️ Skip Service schema (entity: ${entityType})`, "SKIP");
             }
 
-            // ===== INTERNAL LINKS =====
             const internalLinks = generateInternalLinks();
             if (internalLinks.length > 0) {
                 graph.push({
@@ -1983,6 +2044,9 @@ document.addEventListener("DOMContentLoaded", () => {
             log(`  Image Eligible   : ${isEligible ? '✅' : '❌'}`, "IMAGE");
             log(`  Image Source     : ${/^https?:\/\//i.test(pageImage) ? '✅ URL ABSOLUT' : '⚠️ ' + pageImage.substring(0, 40)}`, "IMAGE");
             log(`  Image Size       : 1200×630 (SEO-optimal)`, "IMAGE");
+            log(`  Text Auto-Scale  : ✅ ACTIVE (font responsive)`, "IMAGE");
+            log(`  Text Auto-Wrap   : ✅ ACTIVE (2 baris responsive)`, "IMAGE");
+            log(`  Text Split Long  : ✅ ACTIVE (kata panjang dipotong)`, "IMAGE");
             log(`  Cloudinary       : ${CLOUDINARY_CONFIG.ENABLED ? '✅ ENABLED' : '❌ DISABLED'}`, "IMAGE");
             log(`  Auto Year H1     : ${h1Updated ? '✅ UPDATE' : '⏭️ SKIP/STOP'}`, "YEAR");
             log(`  Auto Update Konten: ${contentDateUpdated ? '✅ UPDATE' : '⏭️ SKIP'}`, "YEAR");
@@ -1990,7 +2054,7 @@ document.addEventListener("DOMContentLoaded", () => {
             log(`  CORB PREVENTION  : ✅ ACTIVE`, "CORB");
             log(`  PLD-ONLY MODE    : ✅ ACTIVE`, "PLD");
             log("═══════════════════════════════════════════════════", "INFO");
-            log("AUTO SCHEMA UNIVERSAL v7.28 SELESAI", "SUCCESS");
+            log("AUTO SCHEMA UNIVERSAL v7.28.3 SELESAI", "SUCCESS");
             
             perf.end('init');
 
