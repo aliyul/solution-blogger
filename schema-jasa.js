@@ -1,13 +1,16 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.27 — PLD-ONLY MODE + isPartOf WebPage Only */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.28 — PLD-ONLY MODE + isPartOf WebPage Only + Cloudinary Image */
 // ============================================================
-// 🔥🔥🔥 v7.27 CHANGELOG 🔥🔥🔥
+// 🔥🔥🔥 v7.28 CHANGELOG 🔥🔥🔥
 // ============================================================
-// ✅ PERBAIKI: isPartOf HANYA di WebPage (sesuai best practice SEO)
-// ✅ HAPUS: isPartOf di Service schema (duplikat, tidak perlu)
-// ✅ HAPUS: isPartOf di Product schema (duplikat, tidak perlu)
-// ✅ PERTAHANKAN: waitForBreadcrumbReady() — tunggu breadcrumb SIAP
-// ✅ PERTAHANKAN: getParentFromBreadcrumbReady() — ambil parent TERDEKAT
-// ✅ PERTAHANKAN: Semua kode lain yang sudah valid dari v7.26
+// ✅ TAMBAH: CLOUDINARY_CONFIG — generate image per level
+// ✅ GANTI: createImageWithText() — Canvas → Cloudinary URL
+// ✅ UBAH: Ukuran image 820×360 → 1200×630 (SEO-optimal)
+// ✅ TAMBAH: Text dinamis dari pageName (detect script)
+// ✅ TAMBAH: Warna text per level (kuning emas / putih)
+// ✅ TAMBAH: Validasi URL absolut di fixImagesToFormat1()
+// ✅ UBAH: Responsive styling disesuaikan (1200×630)
+// ✅ PERTAHANKAN: isPartOf HANYA di WebPage (best practice SEO)
+// ✅ PERTAHANKAN: Semua kode lain yang sudah valid dari v7.27
 // ============================================================
 
 // ============================================================
@@ -17,7 +20,7 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
   const url = args[0];
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.27] 🚫 Blocked external fetch (CORB prevention):', url);
+    console.warn('[Schema v7.28] 🚫 Blocked external fetch (CORB prevention):', url);
     return Promise.reject(new Error('Blocked by CORB prevention'));
   }
   return originalFetch.apply(this, args);
@@ -26,7 +29,7 @@ window.fetch = function(...args) {
 const originalXHROpen = XMLHttpRequest.prototype.open;
 XMLHttpRequest.prototype.open = function(method, url, ...rest) {
   if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-    console.warn('[Schema v7.27] 🚫 Blocked external XHR (CORB prevention):', url);
+    console.warn('[Schema v7.28] 🚫 Blocked external XHR (CORB prevention):', url);
     throw new Error('Blocked by CORB prevention');
   }
   return originalXHROpen.call(this, method, url, ...rest);
@@ -181,6 +184,68 @@ const domCache = CONFIG.CACHE_DOM_ELEMENTS ? new DOMCache() : null;
 const errorBoundary = new ErrorBoundary();
 
 // ============================================================
+// 🆕 v7.28: KONFIGURASI CLOUDINARY 🔥
+// ============================================================
+const CLOUDINARY_CONFIG = {
+  ENABLED: true,
+  CLOUD_NAME: 'vagzz5sa',
+  VERSION: 'v1789109159',
+  FORMAT: 'png',
+
+  // 🎨 Ukuran SEO-optimal
+  WIDTH: 1200,
+  HEIGHT: 630,
+
+  // 🎨 Text overlay config
+  FONT: 'Arial',
+  FONT_SIZE: 60,
+  BOLD: true,
+  GRAVITY: 'g_center',
+
+  // 🎨 File per level (sesuai upload Cloudinary)
+  LEVEL_FILES: {
+    'pillar': 'pillar',
+    'sub-pillar-tipe-2': 'sp2',
+    'sub-pillar-tipe-1': 'sp1',
+    'money-master': 'mm',
+    'money-page': 'mp',
+    'money-child': 'mc',
+    'variant': 'variant',
+    'sub-variant': 'sub-variant'
+  },
+
+  // 🎨 Warna text per level (sesuai SEO & kontras)
+  LEVEL_COLORS: {
+    'pillar': 'FFD700',            // Kuning emas (bg navy)
+    'sub-pillar-tipe-2': 'FFD700', // Kuning emas (bg indigo)
+    'sub-pillar-tipe-1': 'FFD700', // Kuning emas (bg teal)
+    'money-master': 'FFFFFF',      // Putih (bg biru langit)
+    'money-page': 'FFFFFF',        // Putih (bg biru muda)
+    'money-child': 'FFFFFF',       // Putih (bg oranye)
+    'variant': 'FFD700',           // Kuning emas (bg ungu)
+    'sub-variant': 'FFD700'        // Kuning emas (bg coklat)
+  },
+
+  get baseUrl() {
+    return `https://res.cloudinary.com/${this.CLOUD_NAME}/image/upload/`;
+  },
+
+  buildUrl(level, text) {
+    const fileName = this.LEVEL_FILES[level] || 'pillar';
+    const textColor = this.LEVEL_COLORS[level] || 'FFD700';
+    const encodedText = encodeURIComponent(text);
+    const weight = this.BOLD ? '_bold' : '';
+
+    return `${this.baseUrl}` +
+           `e_colorize:100,co_rgb:${textColor},` +
+           `l_text:${this.FONT}_${this.FONT_SIZE}${weight}:${encodedText},` +
+           `${this.GRAVITY},` +
+           `c_pad,w_${this.WIDTH},h_${this.HEIGHT}/` +
+           `${this.VERSION}/${fileName}.${this.FORMAT}`;
+  }
+};
+
+// ============================================================
 // 🔥🔥🔥 KONFIGURASI IMAGE 🔥🔥🔥
 // ============================================================
 const IMAGE_CONFIG = {
@@ -201,14 +266,12 @@ function log(msg, type = "INFO") {
     PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", PARENT: "👪"
   };
   const prefix = icons[type] || "📘";
-  console.log(`${prefix} [Schema v7.27] ${msg}`);
+  console.log(`${prefix} [Schema v7.28] ${msg}`);
 }
 
 // ============================================================
-// 🆕 WAIT FOR BREADCRUMB READY (TUNGGU SIAP)
-// 🔥 SYARAT: Breadcrumb SUDAH TERBENTUK, BUKAN loading/berantakan
+// 🍞 WAIT FOR BREADCRUMB READY (TUNGGU SIAP)
 // ============================================================
-
 function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
   return new Promise((resolve) => {
     perf.start('waitForBreadcrumbReady');
@@ -276,10 +339,8 @@ function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
 }
 
 // ============================================================
-// 🆕 GET PARENT FROM BREADCRUMB READY (PARENT TERDEKAT)
-// 🔥 AMBIL parent TERDEKAT (posisi terakhir sebelum current)
+// 👪 GET PARENT FROM BREADCRUMB READY (PARENT TERDEKAT)
 // ============================================================
-
 function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
   perf.start('getParentFromBreadcrumbReady');
 
@@ -342,7 +403,6 @@ function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
 
 // ============================================================
 // 🔥🔥🔥 PLD-ONLY DATA READERS 🔥🔥🔥
-// 🔥 TIDAK ADA DETEKSI ULANG — HANYA TERIMA DARI PLD/V37.9-A 🔥
 // ============================================================
 
 function getPageLevelFromPLD() {
@@ -881,193 +941,34 @@ function getCleanPageName(level) {
 }
 
 // ============================================================
-// 🔥🔥🔥 AUTO GENERATE GAMBAR DARI CANVAS 🔥🔥🔥
+// 🆕 v7.28: CREATE IMAGE — CLOUDINARY DYNAMIC 🔥
+// 🔥 Generate URL Cloudinary dengan text dinamis per level
 // ============================================================
-if (!CanvasRenderingContext2D.prototype.roundRect) {
-    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
-        if (r > w/2) r = w/2;
-        if (r > h/2) r = h/2;
-        this.moveTo(x + r, y);
-        this.lineTo(x + w - r, y);
-        this.quadraticCurveTo(x + w, y, x + w, y + r);
-        this.lineTo(x + w, y + h - r);
-        this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        this.lineTo(x + r, y + h);
-        this.quadraticCurveTo(x, y + h, x, y + h - r);
-        this.lineTo(x, y + r);
-        this.quadraticCurveTo(x, y, x + r, y);
-        return this;
-    };
-}
-
-let canvasCache = null;
-
 function createImageWithText(pageName, level, year) {
     perf.start('createImageWithText');
-    const colors = getColorConfig(level);
-    const needYearFlag = needYear(level);
-    const displayYear = needYearFlag ? ' ' + year : '';
-    const fullText = pageName + displayYear;
-
-    const width = 820;
-    const height = 360;
-    const padding = 40;
-
-    let canvas = canvasCache;
-    if (!canvas) {
-      canvas = document.createElement('canvas');
-      canvasCache = canvas;
-    }
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, colors.bg);
-    gradient.addColorStop(0.5, colors.bg);
-    gradient.addColorStop(1, lightenColor(colors.bg, 25));
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = colors.accent;
-    ctx.lineWidth = 3;
-    const bPad = 15;
-    ctx.strokeRect(bPad, bPad, width - (bPad * 2), height - (bPad * 2));
-
-    const logoText = '🏗️ Beton Jaya Readymix';
-    ctx.font = 'bold 18px Arial, sans-serif';
-    const logoMetrics = ctx.measureText(logoText);
-    const logoWidth = logoMetrics.width + 40;
-    const logoHeight = 36;
-    const logoX = (width - logoWidth) / 2;
-    const logoY = padding - 10;
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.beginPath();
-    ctx.roundRect(logoX, logoY, logoWidth, logoHeight, 18);
-    ctx.fill();
-
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetX = 1;
-    ctx.shadowOffsetY = 2;
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 18px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(logoText, width / 2, padding + 8);
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(padding, 72);
-    ctx.lineTo(width - padding, 72);
-    ctx.stroke();
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    let fontSize = 42;
-    const textLength = fullText.length;
-    if (textLength > 30) fontSize = 36;
-    if (textLength > 40) fontSize = 32;
-    if (textLength > 50) fontSize = 28;
-    if (textLength > 60) fontSize = 24;
-
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = 14;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 3;
-
-    const maxCharsPerLine = 24;
-    const words = fullText.split(' ');
-    let lines = [];
-    let currentLine = '';
-
-    for (let word of words) {
-        if (currentLine.length + word.length + 1 <= maxCharsPerLine) {
-            currentLine += (currentLine ? ' ' : '') + word;
-        } else {
-            if (currentLine) lines.push(currentLine);
-            currentLine = word;
-        }
-    }
-    if (currentLine) lines.push(currentLine);
-
-    if (lines.length > 3) {
-        const combined = fullText;
-        lines = [];
-        let idx = 0;
-        while (idx < combined.length) {
-            let end = Math.min(idx + maxCharsPerLine, combined.length);
-            let lastSpace = combined.lastIndexOf(' ', end);
-            if (lastSpace > idx && end < combined.length) end = lastSpace;
-            lines.push(combined.substring(idx, end).trim());
-            idx = end + 1;
-            if (lines.length >= 3) {
-                if (idx < combined.length) {
-                    lines[2] = lines[2] + '...';
-                }
-                break;
+    
+    // 🔥 OPSI 1: Cloudinary (jika enabled)
+    if (CLOUDINARY_CONFIG.ENABLED && CLOUDINARY_CONFIG.CLOUD_NAME) {
+        try {
+            const needYearFlag = needYear(level);
+            const displayText = needYearFlag ? `${pageName} ${year}` : pageName;
+            
+            const imageUrl = CLOUDINARY_CONFIG.buildUrl(level, displayText);
+            
+            if (/^https?:\/\//i.test(imageUrl)) {
+                log(`📸 Cloudinary [${level}]: ${imageUrl}`, "IMAGE");
+                perf.end('createImageWithText');
+                return imageUrl;
             }
+        } catch(e) {
+            log(`⚠️ Cloudinary error: ${e.message} — fallback ke LOGO`, "WARN");
         }
     }
-
-    const centerY = height / 2 + 8;
-
-    if (lines.length === 1) {
-        ctx.font = `bold ${fontSize + 8}px Arial, sans-serif`;
-        ctx.fillStyle = colors.text;
-        ctx.fillText(lines[0], width / 2, centerY);
-    } else if (lines.length === 2) {
-        const lineHeight = fontSize + 14;
-        ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-        ctx.fillStyle = colors.text;
-        ctx.fillText(lines[0], width / 2, centerY - (lineHeight / 2));
-        ctx.fillText(lines[1], width / 2, centerY + (lineHeight / 2));
-    } else {
-        const lineHeight = fontSize + 12;
-        const startY = centerY - ((lines.length - 1) * lineHeight / 2);
-        ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-        ctx.fillStyle = colors.text;
-        lines.forEach((line, i) => {
-            ctx.fillText(line, width / 2, startY + (i * lineHeight));
-        });
-    }
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    const watermarkText = '© Beton Jaya Readymix';
-    ctx.font = '13px Arial, sans-serif';
-    const wmMetrics = ctx.measureText(watermarkText);
-    const wmWidth = wmMetrics.width + 30;
-    const wmHeight = 28;
-    const wmX = (width - wmWidth) / 2;
-    const wmY = height - padding + 2;
-
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.beginPath();
-    ctx.roundRect(wmX, wmY, wmWidth, wmHeight, 14);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.font = '13px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(watermarkText, width / 2, height - padding + 16);
-
-    const result = canvas.toDataURL('image/png');
+    
+    // 🔥 OPSI 2: Fallback ke LOGO_IMAGE statis
+    log('📸 Image: fallback ke LOGO', "IMAGE");
     perf.end('createImageWithText');
-    return result;
+    return IMAGE_CONFIG.LOGO_IMAGE;
 }
 
 // ============================================================
@@ -1131,9 +1032,9 @@ function fixImagesToFormat1(pageLevel) {
         figure.style.overflow = 'hidden';
 
         img.style.width = '100%';
-        img.style.maxWidth = '820px';
+        img.style.maxWidth = '1200px';
         img.style.height = 'auto';
-        img.style.aspectRatio = '820/360';
+        img.style.aspectRatio = '1200/630';
         img.style.objectFit = 'contain';
         img.style.borderRadius = '8px';
         img.style.display = 'block';
@@ -1141,12 +1042,12 @@ function fixImagesToFormat1(pageLevel) {
         img.style.padding = '0 10px';
         img.style.boxSizing = 'border-box';
 
-        const styleId = 'responsive-image-style-v727';
+        const styleId = 'responsive-image-style-v728';
         if (!document.getElementById(styleId)) {
             const style = document.createElement('style');
             style.id = styleId;
             style.textContent = `
-                @media (max-width: 820px) {
+                @media (max-width: 1200px) {
                     figure[data-auto-figure="true"] img {
                         max-width: 100% !important;
                         height: auto !important;
@@ -1212,7 +1113,8 @@ function fixImagesToFormat1(pageLevel) {
         }
     }
 
-    const autoImageDataUrl = createImageWithText(pageName, pageLevel, currentYear);
+    // 🔥 v7.28: Gunakan Cloudinary URL (bukan base64)
+    const autoImageUrl = createImageWithText(pageName, pageLevel, currentYear);
     const captionText = '📊 ' + displayName;
 
     let result = null;
@@ -1225,8 +1127,14 @@ function fixImagesToFormat1(pageLevel) {
 
         const currentSrc = img.src || '';
         if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
-            img.src = autoImageDataUrl;
-            log('Image src replaced with auto-generated', "IMAGE");
+            // 🔥 Validasi URL absolut (bukan base64)
+            if (/^https?:\/\//i.test(autoImageUrl)) {
+                img.src = autoImageUrl;
+                log('Image src replaced with Cloudinary URL', "IMAGE");
+            } else {
+                img.src = IMAGE_CONFIG.LOGO_IMAGE;
+                log('Image src fallback to LOGO', "IMAGE");
+            }
         } else {
             log('Existing image preserved, only updating attributes', "IMAGE");
         }
@@ -1292,7 +1200,7 @@ function fixImagesToFormat1(pageLevel) {
     const figure = document.createElement('figure');
     const img = document.createElement('img');
 
-    img.src = autoImageDataUrl;
+    img.src = autoImageUrl;
     img.alt = displayName;
     img.title = displayName;
     img.setAttribute('loading', 'lazy');
@@ -1723,14 +1631,14 @@ function generateInternalLinks() {
 }
 
 // ============================================================
-// 🚀 MAIN FUNCTION v7.27 🔥🔥🔥
+// 🚀 MAIN FUNCTION v7.28 🔥🔥🔥
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
         perf.start('init');
         log("═══════════════════════════════════════════════════", "INFO");
-        log("AUTO SCHEMA UNIVERSAL v7.27 — PLD-ONLY MODE", "INFO");
-        log("isPartOf HANYA DI WEBPAGE (BEST PRACTICE SEO)", "INFO");
+        log("AUTO SCHEMA UNIVERSAL v7.28 — PLD-ONLY MODE", "INFO");
+        log("isPartOf HANYA DI WEBPAGE + CLOUDINARY IMAGE", "INFO");
         log("═══════════════════════════════════════════════════", "INFO");
         
         try {
@@ -1803,7 +1711,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     const fixedFigure = fixImagesToFormat1(pageLevel);
                     if (fixedFigure) {
                         const img = fixedFigure.querySelector('img');
-                        if (img) pageImage = img.src || IMAGE_CONFIG.LOGO_IMAGE;
+                        if (img) {
+                            const candidateSrc = img.src || '';
+                            // 🔥 v7.28: Validasi URL absolut (bukan base64)
+                            if (/^https?:\/\//i.test(candidateSrc)) {
+                                pageImage = candidateSrc;
+                                log(`📸 Schema image: ${candidateSrc}`, "IMAGE");
+                            } else {
+                                pageImage = IMAGE_CONFIG.LOGO_IMAGE;
+                                log(`⚠️ Image src bukan URL absolut — fallback ke LOGO_IMAGE`, "WARN");
+                            }
+                        }
                     }
                 } catch(e) {
                     log(`Error processing images: ${e.message}`, "ERROR");
@@ -1813,7 +1731,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 log(`⏭️ Halaman TIDAK LAYAK mendapat gambar, skip`, "SKIP");
                 const existingImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
                 if (existingImage) {
-                    pageImage = existingImage.src || IMAGE_CONFIG.LOGO_IMAGE;
+                    const candidateSrc = existingImage.src || '';
+                    // 🔥 v7.28: Validasi URL absolut
+                    if (/^https?:\/\//i.test(candidateSrc)) {
+                        pageImage = candidateSrc;
+                    } else {
+                        pageImage = IMAGE_CONFIG.LOGO_IMAGE;
+                    }
                 }
             }
 
@@ -2052,18 +1976,21 @@ document.addEventListener("DOMContentLoaded", () => {
             log(`  Offers           : ${tableOffers.length}`, "TABLE");
             log(`  priceValidUntil  : ${priceValidUntil}`, "AED");
             log(`  WebPage Schema   : ✅ (+ isPartOf) ← BEST PRACTICE SEO`, "SUCCESS");
-            log(`  Service Schema   : ${isService ? '✅ (tanpa isPartOf — cukup di WebPage)' : '❌'}`, "SUCCESS");
-            log(`  Product Schema   : ${(isService && hasPrice && tableOffers.length > 0) ? '✅ (tanpa isPartOf — cukup di WebPage)' : '❌'}`, "SUCCESS");
+            log(`  Service Schema   : ${isService ? '✅ (tanpa isPartOf)' : '❌'}`, "SUCCESS");
+            log(`  Product Schema   : ${(isService && hasPrice && tableOffers.length > 0) ? '✅ (tanpa isPartOf)' : '❌'}`, "SUCCESS");
             log(`  isPartOf SOURCE  : ✅ BREADCRUMB TERDEKAT (SIAP)`, "PARENT");
             log(`  Internal Links   : ${internalLinks.length}`, "SUCCESS");
             log(`  Image Eligible   : ${isEligible ? '✅' : '❌'}`, "IMAGE");
+            log(`  Image Source     : ${/^https?:\/\//i.test(pageImage) ? '✅ URL ABSOLUT' : '⚠️ ' + pageImage.substring(0, 40)}`, "IMAGE");
+            log(`  Image Size       : 1200×630 (SEO-optimal)`, "IMAGE");
+            log(`  Cloudinary       : ${CLOUDINARY_CONFIG.ENABLED ? '✅ ENABLED' : '❌ DISABLED'}`, "IMAGE");
             log(`  Auto Year H1     : ${h1Updated ? '✅ UPDATE' : '⏭️ SKIP/STOP'}`, "YEAR");
             log(`  Auto Update Konten: ${contentDateUpdated ? '✅ UPDATE' : '⏭️ SKIP'}`, "YEAR");
             log(`  DOM CACHE        : ${CONFIG.CACHE_DOM_ELEMENTS ? '✅ ACTIVE' : '❌ INACTIVE'}`, "CACHE");
             log(`  CORB PREVENTION  : ✅ ACTIVE`, "CORB");
             log(`  PLD-ONLY MODE    : ✅ ACTIVE`, "PLD");
             log("═══════════════════════════════════════════════════", "INFO");
-            log("AUTO SCHEMA UNIVERSAL v7.27 SELESAI", "SUCCESS");
+            log("AUTO SCHEMA UNIVERSAL v7.28 SELESAI", "SUCCESS");
             
             perf.end('init');
 
@@ -2083,10 +2010,6 @@ function cleanup() {
     if (domCache) {
         domCache.clear();
         log("✅ DOM Cache cleared", "CACHE");
-    }
-    if (canvasCache) {
-        canvasCache = null;
-        log("✅ Canvas cache cleared", "CACHE");
     }
     log("✅ Resources cleaned up", "SUCCESS");
 }
