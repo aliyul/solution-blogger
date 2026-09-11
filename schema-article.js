@@ -1,26 +1,28 @@
 /**
- * AUTO-SCHEMA GENERATOR v7.8 FINAL — ARTICLE ONLY + isPartOf
+ * AUTO-SCHEMA GENERATOR v7.9 FINAL — ARTICLE ONLY + isPartOf
  * INTEGRATED WITH Page Level Detector v22.62 & Smart Evergreen Detector v15.2
  * 
- * ✅ v7.8 CHANGELOG:
- * ✅ TAMBAH: waitForBreadcrumbReady() — tunggu breadcrumb SIAP (bukan loading)
- * ✅ TAMBAH: getParentFromBreadcrumbReady() — ambil parent TERDEKAT
- * ✅ TAMBAH: isPartOf di generateArticleSchema() — dari parent terdekat
- * ✅ HAPUS: waitForBreadcrumb() — tidak valid (bisa loading/berantakan)
- * ✅ UBAH: init() — gunakan fungsi baru untuk isPartOf
+ * ✅ v7.9 CHANGELOG:
+ * ✅ FIX: waitForBreadcrumbGenerated() — tunggu event dari generateBreadcrumb
+ * ✅ FIX: Cek flag data-breadcrumb-ready di body
+ * ✅ FIX: Fallback tunggu breadcrumb FINAL (link terakhir = current)
+ * ✅ FIX: Prioritaskan breadcrumb mengandung "Beranda"/"Home"
+ * ✅ FIX: Strip separator dari parent name (›, », >, dll)
+ * ✅ FIX: Publisher logo pakai LOGO_IMAGE (bukan firstImg)
+ * ✅ FIX: escapeJSON() escape <, >, &
+ * ✅ FIX: Tambah @id di Article schema
+ * ✅ PERTAHANKAN: waitForBreadcrumbReady() — sebagai fallback
+ * ✅ PERTAHANKAN: getParentFromBreadcrumbReady() — dengan prioritas flag
+ * ✅ PERTAHANKAN: isPartOf di generateArticleSchema()
  * ✅ PERTAHANKAN: Format Article schema (valid)
- * ✅ PERTAHANKAN: Prioritas SP1/SP2/Pillar (v7.6)
- * ✅ PERTAHANKAN: Deteksi tabel harga (v7.5)
- * ✅ PERTAHANKAN: PLD-ONLY MODE (v7.7)
- * ✅ PERTAHANKAN: 6 Parameter (v7.7)
- * ✅ PERTAHANKAN: Wait functions (AED, PLD)
- * ✅ PERTAHANKAN: Skip logic
- * ✅ PERTAHANKAN: Article type detection
- * ✅ PERTAHANKAN: Article body cleanup
- * ✅ PERTAHANKAN: Homepage schema
+ * ✅ PERTAHANKAN: Prioritas SP1/SP2/Pillar
+ * ✅ PERTAHANKAN: Deteksi tabel harga
+ * ✅ PERTAHANKAN: PLD-ONLY MODE
+ * ✅ PERTAHANKAN: 6 Parameter
+ * ✅ PERTAHANKAN: Semua fitur v7.8
  * 
- * @version 7.8 FINAL
- * @date 2026-09-10
+ * @version 7.9 FINAL
+ * @date 2026-09-11
  */
 
 (function() {
@@ -40,8 +42,15 @@
     PLD_TIMEOUT: 10000,
     SKIP_WORD_COUNT: 300,
     BREADCRUMB_TIMEOUT: 3000,
-    BREADCRUMB_READY_TIMEOUT: 5000
+    BREADCRUMB_READY_TIMEOUT: 5000,
+    BREADCRUMB_GENERATED_TIMEOUT: 10000
   };
+
+  // =========================================================
+  // LOGO IMAGE (untuk Publisher Logo)
+  // =========================================================
+
+  const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
   // =========================================================
   // DAFTAR HALAMAN STATIS
@@ -69,13 +78,13 @@
       CONFIDENCE: "🎯", FOCUS: "🎯", SKIP: "⏭️", TABLE: "📊",
       H1: "📝", PRIORITY: "🔴", BREADCRUMB: "🍞", AED: "⚡",
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
-      PARENT: "👪"
+      PARENT: "👪", FIX: "🔧"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.8] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.9] ${msg}`);
   }
 
   // =========================================================
-  // DOMContentLoaded WAITER (DIPERTAHANKAN)
+  // DOMContentLoaded WAITER
   // =========================================================
 
   function waitForDOM() {
@@ -93,40 +102,139 @@
   }
 
   // =========================================================
-  // 🆕 v7.8: WAIT FOR BREADCRUMB READY (TUNGGU SIAP)
-  // 🔥 SYARAT: Breadcrumb SUDAH TERBENTUK, BUKAN loading/berantakan
+  // 🆕 v7.9: CLEAN BREADCRUMB TEXT (STRIP SEPARATOR)
   // =========================================================
 
-  /**
-   * 🔥 TUNGGU BREADCRUMB SIAP (BUKAN LOADING/BERANTAKAN)
-   * Syarat:
-   * - Ada elemen breadcrumb
-   * - Minimal 2 link (Beranda + minimal 1 parent)
-   * - Struktur valid (BreadcrumbList schema ATAU minimal 2 link)
-   * - BUKAN loading (bukan hanya 1 link tanpa href beranda)
-   */
+  function cleanBreadcrumbText(text) {
+    if (!text) return '';
+    return String(text)
+      .replace(/[›»>→←«‹|/]/g, '')  // strip separator
+      .replace(/\s+/g, ' ')          // normalize whitespace
+      .trim();
+  }
+
+  // =========================================================
+  // 🆕 v7.9: FIND MAIN BREADCRUMB (PRIORITAS "BERANDA")
+  // =========================================================
+
+  function findMainBreadcrumb() {
+    const breadcrumbSelectors = [
+      '.breadcrumbs', '.breadcrumb', '.nav-trail',
+      '[aria-label="breadcrumb"]', '[itemtype*="BreadcrumbList"]',
+      '.post-breadcrumb', '.breadcrumb-nav', '.nav-breadcrumb'
+    ];
+
+    const candidates = [];
+    for (const selector of breadcrumbSelectors) {
+      try {
+        document.querySelectorAll(selector).forEach(el => {
+          if (!candidates.includes(el)) candidates.push(el);
+        });
+      } catch(e) {}
+    }
+
+    if (candidates.length === 0) return null;
+
+    // ✅ Prioritas 1: breadcrumb mengandung "beranda"/"home"
+    for (const el of candidates) {
+      const text = (el.innerText || '').toLowerCase();
+      if (text.includes('beranda') || text.includes('home')) {
+        return el;
+      }
+    }
+
+    // ✅ Prioritas 2: breadcrumb dengan link terbanyak
+    let best = candidates[0];
+    let maxLinks = 0;
+    for (const el of candidates) {
+      const links = el.querySelectorAll('a[href]').length;
+      if (links > maxLinks) {
+        maxLinks = links;
+        best = el;
+      }
+    }
+    return best;
+  }
+
+  // =========================================================
+  // 🆕 v7.9: WAIT FOR BREADCRUMB GENERATED (EVENT + FLAG)
+  // 🔥 Prioritas: event dari generateBreadcrumbJasaKonstruksi
+  // =========================================================
+
+  function waitForBreadcrumbGenerated(timeout = CONFIG.BREADCRUMB_GENERATED_TIMEOUT) {
+    return new Promise((resolve) => {
+      // ✅ CEK FLAG DULU: sudah ready?
+      const flagReady = document.body.getAttribute('data-breadcrumb-ready');
+      if (flagReady === 'true') {
+        const parentName = document.body.getAttribute('data-breadcrumb-parent');
+        const parentUrl = document.body.getAttribute('data-breadcrumb-parent-url');
+        log(`✅ Breadcrumb READY (flag): parent="${parentName}"`, "SUCCESS");
+        resolve({
+          parentName: cleanBreadcrumbText(parentName) || 'Parent Page',
+          parentUrl: parentUrl || location.origin,
+          source: 'generateBreadcrumb-flag',
+          allParents: []
+        });
+        return;
+      }
+
+      // ✅ TUNGGU EVENT
+      let resolved = false;
+      const onReady = (e) => {
+        if (resolved) return;
+        resolved = true;
+        
+        const parentName = document.body.getAttribute('data-breadcrumb-parent');
+        const parentUrl = document.body.getAttribute('data-breadcrumb-parent-url');
+        
+        log(`✅ Breadcrumb GENERATED (event): parent="${parentName}"`, "SUCCESS");
+        resolve({
+          parentName: cleanBreadcrumbText(parentName) || 'Parent Page',
+          parentUrl: parentUrl || location.origin,
+          source: 'generateBreadcrumb-event',
+          allParents: [],
+          detail: e?.detail
+        });
+      };
+
+      window.addEventListener('breadcrumbGenerated', onReady, { once: true });
+
+      // ✅ POLLING FLAG (jika event tidak fire)
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        const flag = document.body.getAttribute('data-breadcrumb-ready');
+        if (flag === 'true') {
+          clearInterval(interval);
+          onReady({ detail: null });
+          return;
+        }
+        if (Date.now() - startTime > timeout) {
+          clearInterval(interval);
+          window.removeEventListener('breadcrumbGenerated', onReady);
+          if (!resolved) {
+            resolved = true;
+            log(`⏰ Breadcrumb GENERATED timeout (${timeout}ms)`, "WARN");
+            resolve(null);
+          }
+        }
+      }, 200);
+    });
+  }
+
+  // =========================================================
+  // 🆕 v7.9: WAIT FOR BREADCRUMB READY (FALLBACK)
+  // 🔥 Cek FINAL: link terakhir = current page, ada "Beranda"
+  // =========================================================
+
   function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
     return new Promise((resolve) => {
       const startTime = Date.now();
+      const currentUrlClean = location.href.replace(/[?&]m=1/, '').replace(/\/$/, '');
 
       function checkBreadcrumbReady() {
-        // ─────────────────────────────────────────
-        // 1. Cari elemen breadcrumb
-        // ─────────────────────────────────────────
-        const breadcrumbSelectors = [
-          '.breadcrumbs', '.breadcrumb', '.nav-trail',
-          '[aria-label="breadcrumb"]', '[itemtype*="BreadcrumbList"]',
-          '.post-breadcrumb', '.breadcrumb-nav', '.nav-breadcrumb'
-        ];
-
-        let breadcrumbEl = null;
-        for (const selector of breadcrumbSelectors) {
-          const el = document.querySelector(selector);
-          if (el) { breadcrumbEl = el; break; }
-        }
+        const breadcrumbEl = findMainBreadcrumb();
 
         if (!breadcrumbEl) {
-          // Belum ada breadcrumb — tunggu
           if (Date.now() - startTime > timeout) {
             log(`⏰ Breadcrumb timeout — tidak ditemukan (${timeout}ms)`, "WARN");
             resolve(null);
@@ -136,36 +244,65 @@
           return;
         }
 
-        // ─────────────────────────────────────────
-        // 2. Validasi breadcrumb SIAP
-        // ─────────────────────────────────────────
         const links = breadcrumbEl.querySelectorAll('a[href]');
         const items = breadcrumbEl.querySelectorAll('[itemprop="itemListElement"]');
         const hasSchema = breadcrumbEl.querySelector('[itemtype*="BreadcrumbList"]') ||
                           breadcrumbEl.hasAttribute('itemtype');
+        const fullText = (breadcrumbEl.innerText || '').toLowerCase();
 
-        const isReady = (links.length >= 2) || (items.length >= 2 && hasSchema);
-        const isLoading = links.length === 0 ||
-                          (links.length === 1 && !links[0].href.includes('beranda') && !links[0].href.includes('home'));
+        // ✅ Cek: breadcrumb mengandung "beranda"/"home"
+        const hasHome = /(beranda|home)/i.test(fullText);
+        if (!hasHome) {
+          if (Date.now() - startTime > timeout) {
+            log(`⏰ Breadcrumb timeout — tidak ada "Beranda"`, "WARN");
+            resolve(null);
+            return;
+          }
+          setTimeout(checkBreadcrumbReady, 200);
+          return;
+        }
 
-        if (isReady && !isLoading) {
-          log(`✅ Breadcrumb SIAP: ${links.length} links, ${items.length} items, schema: ${hasSchema}`, "BREADCRUMB");
+        // ✅ Cek: link terakhir = current page?
+        let isFinal = false;
+        if (links.length > 0) {
+          const lastLink = links[links.length - 1];
+          const lastHref = (lastLink.href || '').replace(/[?&]m=1/, '').replace(/\/$/, '');
+          if (lastHref === currentUrlClean) {
+            isFinal = true;
+          }
+        }
+
+        // ✅ Alternatif: cek text terakhir = current title
+        if (!isFinal) {
+          const h1Text = (document.querySelector('h1')?.innerText || '').toLowerCase().trim();
+          const parts = fullText.split(/[›»>]/).map(p => p.trim()).filter(Boolean);
+          const lastPart = parts[parts.length - 1] || '';
+          if (h1Text && lastPart && (
+            h1Text.includes(lastPart.substring(0, 20)) ||
+            lastPart.includes(h1Text.substring(0, 20))
+          )) {
+            isFinal = true;
+          }
+        }
+
+        const isReady = ((links.length >= 2) || (items.length >= 2 && hasSchema)) && isFinal;
+
+        if (isReady) {
+          log(`✅ Breadcrumb SIAP & FINAL: ${links.length} links`, "BREADCRUMB");
           resolve({
             element: breadcrumbEl,
             links: Array.from(links),
             items: Array.from(items),
             linkCount: links.length,
             itemCount: items.length,
-            hasSchema: hasSchema
+            hasSchema: hasSchema,
+            isFinal: true
           });
           return;
         }
 
-        // ─────────────────────────────────────────
-        // 3. Belum siap — tunggu
-        // ─────────────────────────────────────────
         if (Date.now() - startTime > timeout) {
-          log(`⏰ Breadcrumb timeout — belum SIAP (${links.length} links, ${items.length} items)`, "WARN");
+          log(`⏰ Breadcrumb timeout — belum FINAL (${links.length} links)`, "WARN");
           resolve(null);
           return;
         }
@@ -178,20 +315,26 @@
   }
 
   // =========================================================
-  // 🆕 v7.8: GET PARENT FROM BREADCRUMB READY (PARENT TERDEKAT)
-  // 🔥 AMBIL parent TERDEKAT (posisi terakhir sebelum current)
+  // 🆕 v7.9: GET PARENT FROM BREADCRUMB
+  // 🔥 Prioritas: flag → event → DOM (fallback)
   // =========================================================
 
-  /**
-   * 🔥 AMBIL PARENT TERDEKAT DARI BREADCRUMB YANG SUDAH SIAP
-   * Syarat:
-   * - Breadcrumb sudah SIAP (bukan loading)
-   * - Ambil parent TERDEKAT (posisi terakhir sebelum current)
-   */
   function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
-    // ─────────────────────────────────────────
-    // 1. Validasi breadcrumbData
-    // ─────────────────────────────────────────
+    // ✅ PRIORITAS 1: Cek flag dari generateBreadcrumb
+    const parentFromFlag = document.body.getAttribute('data-breadcrumb-parent');
+    const parentUrlFromFlag = document.body.getAttribute('data-breadcrumb-parent-url');
+
+    if (parentFromFlag && parentUrlFromFlag) {
+      log(`👪 Parent dari generateBreadcrumb flag: "${parentFromFlag}"`, "PARENT");
+      return {
+        parentUrl: parentUrlFromFlag,
+        parentName: cleanBreadcrumbText(parentFromFlag),
+        source: 'generateBreadcrumb-flag',
+        allParents: []
+      };
+    }
+
+    // ✅ PRIORITAS 2: Baca dari DOM (fallback)
     if (!breadcrumbData || !breadcrumbData.links || breadcrumbData.links.length === 0) {
       log('⚠️ Breadcrumb tidak valid — fallback ke origin', "WARN");
       return {
@@ -205,25 +348,21 @@
     const links = breadcrumbData.links;
     const currentUrlClean = currentUrl.replace(/[?&]m=1/, '').replace(/\/$/, '');
 
-    // ─────────────────────────────────────────
-    // 2. Filter link = bukan current page
-    // ─────────────────────────────────────────
+    // ✅ Filter link = bukan current page, bukan "beranda"/"home", bukan separator-only
     const validParents = links.filter(link => {
-      const href = link.href || '';
-      const hrefClean = href.replace(/\/$/, '');
-      const text = link.innerText?.trim() || '';
+      const href = (link.href || '').replace(/\/$/, '');
+      const text = cleanBreadcrumbText(link.innerText || '');
 
-      if (hrefClean === currentUrlClean) return false;
-      if (hrefClean.includes(currentUrlClean)) return false;
-      if (currentUrlClean.includes(hrefClean)) return false;
+      if (href === currentUrlClean) return false;
+      if (href.includes(currentUrlClean)) return false;
+      if (currentUrlClean.includes(href)) return false;
       if (!href || !text) return false;
+      if (text.length < 2) return false;
+      if (/^(beranda|home)$/i.test(text)) return false;  // skip beranda
 
       return true;
     });
 
-    // ─────────────────────────────────────────
-    // 3. Jika kosong → fallback ke origin
-    // ─────────────────────────────────────────
     if (validParents.length === 0) {
       log('⚠️ Tidak ada parent valid — fallback ke origin', "WARN");
       return {
@@ -234,13 +373,10 @@
       };
     }
 
-    // ─────────────────────────────────────────
-    // 4. AMBIL PARENT TERDEKAT = POSISI TERAKHIR
-    // ─────────────────────────────────────────
+    // ✅ AMBIL PARENT TERDEKAT = POSISI TERAKHIR
     const parentLink = validParents[validParents.length - 1];
-
     const parentUrl = parentLink.href || '';
-    const parentName = parentLink.innerText?.trim() || 'Parent Page';
+    const parentName = cleanBreadcrumbText(parentLink.innerText || '') || 'Parent Page';
 
     log(`👪 Parent terdekat dari breadcrumb: "${parentName}" → ${parentUrl}`, "PARENT");
 
@@ -250,7 +386,7 @@
       source: 'breadcrumb-ready',
       allParents: validParents.map(l => ({
         url: l.href,
-        name: l.innerText?.trim() || ''
+        name: cleanBreadcrumbText(l.innerText || '')
       }))
     };
   }
@@ -300,8 +436,7 @@
   }
 
   // =========================================================
-  // PLD-ONLY DATA READERS (DARI v7.7)
-  // 🔥 TIDAK ADA DETEKSI ULANG — HANYA TERIMA DARI PLD/V37.9-A 🔥
+  // PLD-ONLY DATA READERS
   // =========================================================
 
   function detectContentFocus() {
@@ -440,7 +575,7 @@
   }
 
   // =========================================================
-  // SKIP LOGIC (DIPERTAHANKAN)
+  // SKIP LOGIC
   // =========================================================
 
   function shouldSkipPage() {
@@ -473,7 +608,7 @@
   }
 
   // =========================================================
-  // GET PAGE LEVEL & ENTITY TYPE — PLD-ONLY (DARI v7.7)
+  // GET PAGE LEVEL & ENTITY TYPE
   // =========================================================
 
   async function getPageLevelAndEntityType() {
@@ -556,7 +691,6 @@
     }
 
     log(`❌ Page Level & Entity Type TIDAK TERSEDIA`, "ERROR");
-    log(`   ⚠️ Pastikan PLD v22.62 sudah loaded ATAU body attribute tersedia`, "WARN");
     return {
       pageLevel: null,
       entityType: null,
@@ -565,7 +699,7 @@
   }
 
   // =========================================================
-  // WAIT PAGE LEVEL DETECTOR (DIPERTAHANKAN)
+  // WAIT PAGE LEVEL DETECTOR
   // =========================================================
 
   function waitForPageLevelDetector() {
@@ -626,8 +760,7 @@
   }
 
   // =========================================================
-  // CEK APAKAH PERLU ARTICLE SCHEMA (DIPERTAHANKAN v7.6)
-  // 🔥 PRIORITAS TERTINGGI: SP1/SP2/Pillar
+  // CEK APAKAH PERLU ARTICLE SCHEMA
   // =========================================================
 
   function shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) {
@@ -675,7 +808,7 @@
   }
 
   // =========================================================
-  // GET ARTICLE TYPE (DIPERTAHANKAN)
+  // GET ARTICLE TYPE
   // =========================================================
 
   function getArticleType(pageLevel) {
@@ -689,7 +822,7 @@
   }
 
   // =========================================================
-  // CLEAN ARTICLE BODY (DIPERTAHANKAN)
+  // CLEAN ARTICLE BODY
   // =========================================================
 
   function cleanTextStandalone(str) {
@@ -726,13 +859,25 @@
     return Array.from(keywords).slice(0, 12).join(", ");
   }
 
+  // =========================================================
+  // 🆕 v7.9: ESCAPE JSON (LENGKAP: <, >, &)
+  // =========================================================
+
   function escapeJSON(str) {
     if (!str) return "";
-    return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, " ").replace(/\r/g, " ").trim();
+    return String(str)
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e")
+      .replace(/&/g, "\\u0026")
+      .replace(/\n/g, " ")
+      .replace(/\r/g, " ")
+      .trim();
   }
 
   // =========================================================
-  // HOMEPAGE SCHEMA (DIPERTAHANKAN)
+  // HOMEPAGE SCHEMA
   // =========================================================
 
   function generateHomePageSchema(data) {
@@ -747,7 +892,7 @@
   }
 
   // =========================================================
-  // 🆕 ARTICLE SCHEMA v7.8 — DENGAN isPartOf
+  // 🆕 v7.9: ARTICLE SCHEMA DENGAN @id, LOGO, isPartOf
   // =========================================================
 
   function generateArticleSchema(data, dates, pageLevel, entityType, parentData) {
@@ -774,33 +919,39 @@
       articleSection = "Informasi & Edukasi";
     }
 
-    // 🆕 BUILD isPartOf (dari parent terdekat)
+    // ✅ BUILD isPartOf (dari parent terdekat)
     let isPartOf = null;
     if (parentData && parentData.parentUrl) {
       isPartOf = {
         "@type": "WebPage",
         "@id": parentData.parentUrl,
-        "name": parentData.parentName
+        "name": cleanBreadcrumbText(parentData.parentName)
       };
       log(`📌 isPartOf: "${parentData.parentName}" → ${parentData.parentUrl} (source: ${parentData.source})`, "SCHEMA");
     }
 
+    // ✅ v7.9: Tambah @id di Article schema
     const schema = {
       "@context": "https://schema.org",
       "@type": articleType,
+      "@id": data.url + "#article",
       "headline": escapeJSON(data.title),
       "description": escapeJSON(data.descMeta),
       "image": [data.firstImg],
       "author": {
         "@type": "Organization",
-        "name": CONFIG.SITE_NAME
+        "name": CONFIG.SITE_NAME,
+        "url": CONFIG.SITE_URL
       },
       "publisher": {
         "@type": "Organization",
         "name": CONFIG.SITE_NAME,
+        "url": CONFIG.SITE_URL,
         "logo": {
           "@type": "ImageObject",
-          "url": data.firstImg
+          "url": LOGO_IMAGE,          // ✅ v7.9: pakai LOGO_IMAGE
+          "width": 300,
+          "height": 300
         }
       },
       "datePublished": dates.datePublished,
@@ -820,7 +971,7 @@
       }
     };
 
-    // 🆕 TAMBAH isPartOf (jika ada)
+    // ✅ TAMBAH isPartOf (jika ada)
     if (isPartOf) {
       schema.isPartOf = isPartOf;
     }
@@ -829,26 +980,26 @@
   }
 
   // =========================================================
-  // EXTRACT PAGE DATA (DIPERTAHANKAN)
+  // EXTRACT PAGE DATA
   // =========================================================
 
   function extractPageData() {
     const url = location.href.split("?")[0];
     const title = document.title || "";
     const descMeta = document.querySelector("meta[name='description']")?.content || "";
-    const firstImg = document.querySelector(".post-body img, article img, main img")?.src || `${CONFIG.SITE_URL}/favicon.ico`;
+    const firstImg = document.querySelector(".post-body img, article img, main img")?.src || LOGO_IMAGE;
     const content = document.querySelector(".post-body.entry-content") || document.querySelector("article") || document.querySelector("main");
     return { url, title, descMeta, firstImg, content };
   }
 
   // =========================================================
-  // 🚀 MAIN INIT v7.8 — DENGAN isPartOf
+  // 🚀 MAIN INIT v7.9
   // =========================================================
 
   async function init() {
     log("════════════════════════════════════");
-    log("AUTO SCHEMA GENERATOR v7.8 — ARTICLE ONLY");
-    log("PLD-ONLY MODE + BREADCRUMB READY + isPartOf");
+    log("AUTO SCHEMA GENERATOR v7.9 — ARTICLE ONLY");
+    log("PLD-ONLY + BREADCRUMB GENERATED + isPartOf");
     log("════════════════════════════════════");
 
     if (shouldSkipPage()) {
@@ -857,41 +1008,52 @@
     }
 
     // =========================================================
-    // 🆕 STEP 1: TUNGGU BREADCRUMB SIAP (BUKAN LOADING)
+    // 🆕 v7.9 STEP 1: TUNGGU BREADCRUMB GENERATED (EVENT + FLAG)
     // =========================================================
-    log("🍞 Menunggu breadcrumb SIAP (bukan loading)...", "BREADCRUMB");
-    const breadcrumbData = await waitForBreadcrumbReady(CONFIG.BREADCRUMB_READY_TIMEOUT);
+    log("🍞 Menunggu breadcrumb GENERATED dari generateBreadcrumb...", "BREADCRUMB");
+    let parentData = await waitForBreadcrumbGenerated(CONFIG.BREADCRUMB_GENERATED_TIMEOUT);
 
-    if (breadcrumbData) {
-      log(`✅ Breadcrumb SIAP: ${breadcrumbData.linkCount} links, ${breadcrumbData.itemCount} items`, "SUCCESS");
+    if (parentData && parentData.parentName && parentData.parentName !== 'Parent Page') {
+      log(`✅ Breadcrumb GENERATED: parent="${parentData.parentName}" (source: ${parentData.source})`, "SUCCESS");
     } else {
-      log(`⚠️ Breadcrumb timeout — akan fallback ke origin`, "WARN");
+      log(`⚠️ Breadcrumb GENERATED timeout — fallback ke DOM`, "WARN");
+      
+      // ✅ FALLBACK: tunggu breadcrumb FINAL dari DOM
+      const breadcrumbData = await waitForBreadcrumbReady(CONFIG.BREADCRUMB_READY_TIMEOUT);
+      
+      if (breadcrumbData) {
+        log(`✅ Breadcrumb FALLBACK SIAP: ${breadcrumbData.linkCount} links`, "SUCCESS");
+      } else {
+        log(`⚠️ Breadcrumb FALLBACK timeout`, "WARN");
+      }
+      
+      // ✅ Ambil parent dari DOM (dengan prioritas flag)
+      const currentUrl = location.href.replace(/[?&]m=1/, "");
+      parentData = getParentFromBreadcrumbReady(breadcrumbData, currentUrl);
     }
 
-    // Wait untuk PLD (tidak deteksi ulang)
+    // Wait untuk PLD
     await waitForPageLevelDetector();
 
-    // Terima Page Level & Entity Type dari PLD/Body
+    // Terima Page Level & Entity Type
     const { pageLevel, entityType, source, confidence, strategies, strategyCount } = await getPageLevelAndEntityType();
 
-    // Jika PLD tidak tersedia → STOP
     if (!pageLevel || !entityType) {
       log("❌ Page Level & Entity Type TIDAK TERSEDIA", "ERROR");
-      log("   Pastikan PLD v22.62 sudah loaded ATAU body attribute tersedia", "ERROR");
       return;
     }
 
     log(`ENTITY TYPE: ${entityType} (source: ${source})`, "SUCCESS");
     log(`PAGE LEVEL: ${pageLevel}`, "SUCCESS");
     if (confidence) {
-      log(`   🎯 Confidence: ${confidence}% (${strategyCount} strategies: ${strategies?.join(", ")})`, "CONFIDENCE");
+      log(`   🎯 Confidence: ${confidence}% (${strategyCount} strategies)`, "CONFIDENCE");
     }
 
-    // Terima Content Focus dari Body/V37.9-A
+    // Content Focus
     const contentFocus = detectContentFocus();
     log(`📌 Content Focus: ${contentFocus.toUpperCase()}`, "FOCUS");
 
-    // Terima 6 Parameter dari V37.9-A PHASE 4.6
+    // 6 Parameter
     const kategori = getKategori();
     const entitySubType = getEntitySubType();
     const schemaType = getSchemaType();
@@ -904,7 +1066,7 @@
     log(`📌 CTA Type: ${ctaType ? ctaType.type : 'N/A'}`, "PLD");
     log(`📌 H1 Pattern: ${h1Pattern}`, "PLD");
 
-    // Set body attribute (untuk interop)
+    // Set body attribute
     document.body.setAttribute("data-schema-page-level", pageLevel);
     document.body.setAttribute("data-schema-entity-type", entityType);
     document.body.setAttribute("data-schema-source", source);
@@ -932,14 +1094,6 @@
       log(`⚠️ AED tidak tersedia, gunakan fallback`, "WARN");
     }
 
-    // =========================================================
-    // 🆕 STEP: AMBIL PARENT TERDEKAT DARI BREADCRUMB SIAP
-    // =========================================================
-    const currentUrl = location.href.replace(/[?&]m=1/, "");
-
-    log("👪 MENCARI PARENT TERDEKAT DARI BREADCRUMB SIAP...", "PARENT");
-    const parentData = getParentFromBreadcrumbReady(breadcrumbData, currentUrl);
-
     log(`👪 Parent Final: "${parentData.parentName}"`, "PARENT");
     log(`   📍 URL: ${parentData.parentUrl}`, "PARENT");
     log(`   📍 Source: ${parentData.source}`, "PARENT");
@@ -954,7 +1108,6 @@
         dateModified: new Date().toISOString()
       };
 
-      // 🆕 PASS parentData ke generateArticleSchema()
       articleElem.textContent = JSON.stringify(
         generateArticleSchema(pageData, dates, pageLevel, entityType, parentData),
         null,
@@ -962,14 +1115,11 @@
       );
       log(`📄 ARTICLE SCHEMA GENERATED (${getArticleType(pageLevel)})`, "ARTICLE");
       log(`   📌 isPartOf: ${parentData.parentName} ✅`, "SCHEMA");
+      log(`   📌 @id: ${pageData.url}#article ✅`, "SCHEMA");
+      log(`   📌 Publisher logo: LOGO_IMAGE ✅`, "SCHEMA");
 
-      // Log khusus untuk SP1/SP2/Pillar
       if (pageLevel === 'pillar' || pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
         log(`   ✅ ${pageLevel.toUpperCase()} → Article schema (EVERGREEN — V37)`, "SUCCESS");
-        log(`   🔥 Content Focus "${contentFocus}" TIDAK mempengaruhi ${pageLevel}`, "PRIORITY");
-      }
-      if (pageLevel === 'money-master' || pageLevel === 'money-child') {
-        log(`   ✅ ${pageLevel.toUpperCase()} INFORMASI → Article schema (EVERGREEN — V37)`, "SUCCESS");
       }
     } else if (articleElem) {
       articleElem.textContent = "";
@@ -989,25 +1139,12 @@
     log(`   ✅ H1 Pattern: ${h1Pattern}`);
     log(`   ✅ Schema Type: ${schemaType ? schemaType.primary : 'N/A'}`);
     log(`   ✅ CTA Type: ${ctaType ? ctaType.type : 'N/A'}`);
-    log(`   ✅ Breadcrumb Ready: ${breadcrumbData ? 'SIAP ✅' : 'TIMEOUT ⚠️'}`);
     log(`   ✅ Parent Source: ${parentData.source}`);
     log(`   ✅ Parent Name: ${parentData.parentName}`);
     log(`   ✅ AED: ${aedData ? 'READY ✅' : 'FALLBACK ⚠️'}`);
     log(`   ✅ Article Schema: ${shouldGenerate ? 'GENERATED ✅' : 'SKIPPED ⏭️'}`);
     log(`   ✅ isPartOf: ${parentData.parentName} ✅`);
     log(`   ✅ PLD-ONLY MODE: ✅ ACTIVE`);
-
-    // Detail log per level
-    if (pageLevel === 'pillar' || pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
-      log(`   ✅ ${pageLevel.toUpperCase()} → WAJIB Article (EVERGREEN) — V37`, "SUCCESS");
-      log(`   🔥 Content Focus "${contentFocus}" TIDAK mempengaruhi ${pageLevel}`, "PRIORITY");
-    }
-    if (pageLevel === 'money-master' || pageLevel === 'money-child') {
-      log(`   ✅ ${pageLevel.toUpperCase()} ${contentFocus.toUpperCase()}: ${contentFocus === 'informasi' ? 'Article (EVERGREEN)' : 'Product/Service (NON-EVERGREEN)'} — V37`);
-    }
-    if (pageLevel === 'money-page') {
-      log(`   ✅ MONEY_PAGE ${contentFocus.toUpperCase()}: ${contentFocus === 'informasi' ? 'Article' : 'Product/Service'}`);
-    }
     log("════════════════════════════════════");
   }
 
