@@ -1,28 +1,15 @@
 /**
- * ⚡ AutoSchema Hybrid v4.75 — PLD-ONLY MODE + isPartOf BREADCRUMB TERDEKAT
+ * ⚡ AutoSchema Hybrid v4.76 — PLD-ONLY MODE + isPartOf HANYA WEBPAGE
  * 
- * UPDATE v4.75:
- * - TAMBAH: waitForBreadcrumbReady() — tunggu breadcrumb SIAP (bukan loading)
- * - TAMBAH: getParentFromBreadcrumbReady() — ambil parent TERDEKAT
- * - HAPUS: getParentFromBreadcrumbs() — tidak valid (bisa loading/berantakan)
- * - UBAH: init() — gunakan fungsi baru untuk isPartOf
+ * UPDATE v4.76:
+ * - HAPUS: isPartOf dari Product schema (DUPLIKAT — cukup di WebPage)
+ * - PERTAHANKAN: isPartOf HANYA di WebPage (best practice SEO)
+ * - PERTAHANKAN: waitForBreadcrumbReady() — tunggu breadcrumb SIAP
+ * - PERTAHANKAN: getParentFromBreadcrumbReady() — ambil parent TERDEKAT
+ * - PERTAHANKAN: Semua kode valid dari v4.75
  * 
- * PERTAHANKAN SEMUA YANG SUDAH BAIK:
- * - PLD-ONLY MODE
- * - SCHEMA PRODUK/MATERIAL
- * - Update H1 Tahun
- * - Update Bulan & Tahun Konten (AED Based)
- * - Image Generation (Canvas)
- * - Image Fix (FIGURE)
- * - Schema Product
- * - Offer Schema
- * - priceValidUntil dari AED
- * - Wait Functions (Breadcrumb, PLD, AED)
- * - Color Config
- * - Semua fungsi valid lainnya
- * 
- * @version 4.75
- * @date 2026-09-10
+ * @version 4.76
+ * @date 2026-09-11
  */
 
 (function() {
@@ -57,33 +44,19 @@
       PARENT: "👪"
     };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.75] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.76] ${msg}`);
   }
 
   // ============================================================
-  // 🆕 v4.75: WAIT FOR BREADCRUMB READY (TUNGGU SIAP)
+  // 🆕 WAIT FOR BREADCRUMB READY (TUNGGU SIAP)
   // 🔥 SYARAT: Breadcrumb SUDAH TERBENTUK, BUKAN loading/berantakan
   // ============================================================
 
-  /**
-   * 🔥 TUNGGU BREADCRUMB SIAP (BUKAN LOADING/BERANTAKAN)
-   * Syarat:
-   * - Ada elemen breadcrumb
-   * - Minimal 2 link (Beranda + minimal 1 parent)
-   * - Struktur valid (BreadcrumbList schema ATAU minimal 2 link)
-   * - BUKAN loading (bukan hanya 1 link tanpa href beranda)
-   * 
-   * @param {number} timeout - Timeout dalam ms (default 5000)
-   * @returns {Promise<Object|null>} - Breadcrumb data ATAU null jika timeout
-   */
   function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
     return new Promise((resolve) => {
       const startTime = Date.now();
       
       function checkBreadcrumbReady() {
-        // ─────────────────────────────────────────
-        // 1. Cari elemen breadcrumb
-        // ─────────────────────────────────────────
         const breadcrumbSelectors = [
           '.breadcrumbs', '.breadcrumb', '.nav-trail',
           '[aria-label="breadcrumb"]', '[itemtype*="BreadcrumbList"]',
@@ -97,7 +70,6 @@
         }
         
         if (!breadcrumbEl) {
-          // Belum ada breadcrumb — tunggu
           if (Date.now() - startTime > timeout) {
             log(`⏰ Breadcrumb timeout — tidak ditemukan (${timeout}ms)`, "WARN");
             resolve(null);
@@ -107,23 +79,12 @@
           return;
         }
         
-        // ─────────────────────────────────────────
-        // 2. Validasi breadcrumb SIAP
-        // ─────────────────────────────────────────
         const links = breadcrumbEl.querySelectorAll('a[href]');
         const items = breadcrumbEl.querySelectorAll('[itemprop="itemListElement"]');
         const hasSchema = breadcrumbEl.querySelector('[itemtype*="BreadcrumbList"]') || 
                           breadcrumbEl.hasAttribute('itemtype');
         
-        // Syarat SIAP:
-        // - Minimal 2 link (Beranda + parent)
-        // - Ada struktur itemListElement ATAU minimal 2 link
         const isReady = (links.length >= 2) || (items.length >= 2 && hasSchema);
-        
-        // ─────────────────────────────────────────
-        // 3. Cek apakah masih "loading"
-        // Deteksi: breadcrumb kosong ATAU hanya 1 item
-        // ─────────────────────────────────────────
         const isLoading = links.length === 0 || 
                           (links.length === 1 && !links[0].href.includes('beranda') && !links[0].href.includes('home'));
         
@@ -140,9 +101,6 @@
           return;
         }
         
-        // ─────────────────────────────────────────
-        // 4. Belum siap — tunggu
-        // ─────────────────────────────────────────
         if (Date.now() - startTime > timeout) {
           log(`⏰ Breadcrumb timeout — belum SIAP (${links.length} links, ${items.length} items)`, "WARN");
           resolve(null);
@@ -157,24 +115,10 @@
   }
 
   // ============================================================
-  // 🆕 v4.75: GET PARENT FROM BREADCRUMB READY (PARENT TERDEKAT)
-  // 🔥 AMBIL parent TERDEKAT (posisi terakhir sebelum current)
+  // 🆕 GET PARENT FROM BREADCRUMB READY (PARENT TERDEKAT)
   // ============================================================
 
-  /**
-   * 🔥 AMBIL PARENT TERDEKAT DARI BREADCRUMB YANG SUDAH SIAP
-   * Syarat:
-   * - Breadcrumb sudah SIAP (bukan loading)
-   * - Ambil parent TERDEKAT (posisi terakhir sebelum current)
-   * 
-   * @param {Object} breadcrumbData - Data breadcrumb dari waitForBreadcrumbReady()
-   * @param {string} currentUrl - URL halaman saat ini
-   * @returns {Object} - { parentUrl, parentName, source, allParents }
-   */
   function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
-    // ─────────────────────────────────────────
-    // 1. Validasi breadcrumbData
-    // ─────────────────────────────────────────
     if (!breadcrumbData || !breadcrumbData.links || breadcrumbData.links.length === 0) {
       log('⚠️ Breadcrumb tidak valid — fallback ke origin', "WARN");
       return { 
@@ -188,28 +132,19 @@
     const links = breadcrumbData.links;
     const currentUrlClean = currentUrl.replace(/[?&]m=1/, '').replace(/\/$/, '');
     
-    // ─────────────────────────────────────────
-    // 2. Filter link = bukan current page
-    // ─────────────────────────────────────────
     const validParents = links.filter(link => {
       const href = link.href || '';
       const hrefClean = href.replace(/\/$/, '');
       const text = link.innerText?.trim() || '';
       
-      // Buang jika sama dengan current URL
       if (hrefClean === currentUrlClean) return false;
       if (hrefClean.includes(currentUrlClean)) return false;
       if (currentUrlClean.includes(hrefClean)) return false;
-      
-      // Buang jika kosong
       if (!href || !text) return false;
       
       return true;
     });
     
-    // ─────────────────────────────────────────
-    // 3. Jika kosong → fallback ke origin
-    // ─────────────────────────────────────────
     if (validParents.length === 0) {
       log('⚠️ Tidak ada parent valid — fallback ke origin', "WARN");
       return { 
@@ -220,11 +155,6 @@
       };
     }
     
-    // ─────────────────────────────────────────
-    // 4. AMBIL PARENT TERDEKAT = POSISI TERAKHIR
-    // Karena current biasanya di akhir (sebagai <span> bukan <a>),
-    // Maka parent terdekat = link TERAKHIR dari validParents
-    // ─────────────────────────────────────────
     const parentLink = validParents[validParents.length - 1];
     
     const parentUrl = parentLink.href || '';
@@ -244,7 +174,7 @@
   }
 
   // ============================================================
-  // 🔥 PLD-ONLY DATA READERS (DARI v4.74)
+  // 🔥 PLD-ONLY DATA READERS
   // 🔥 TIDAK ADA DETEKSI ULANG — HANYA TERIMA DARI PLD/V37.9-A 🔥
   // ============================================================
 
@@ -553,7 +483,7 @@
   }
 
   // ============================================================
-  // 🔥 WAIT FUNCTIONS (DARI v4.74)
+  // 🔥 WAIT FUNCTIONS
   // ============================================================
 
   function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
@@ -629,7 +559,7 @@
   }
 
   // ============================================================
-  // 🔥 FUNGSI PENDUKUNG (DARI v4.74)
+  // 🔥 FUNGSI PENDUKUNG
   // ============================================================
 
   function getColorConfig(level, focus) {
@@ -698,7 +628,7 @@
   }
 
   // ============================================================
-  // 🔥 UPDATE TAHUN H1 (DARI v4.74)
+  // 🔥 UPDATE TAHUN H1
   // ============================================================
   function updateH1Year(pageLevel) {
     if (!needYear(pageLevel)) {
@@ -750,7 +680,7 @@
   }
 
   // ============================================================
-  // 🔥 UPDATE TAHUN DI KONTEN (DARI v4.74)
+  // 🔥 UPDATE TAHUN DI KONTEN
   // ============================================================
   function updateContentYears() {
     const currentYear = getCurrentYear();
@@ -804,7 +734,7 @@
   }
 
   // ============================================================
-  // 🔥 UPDATE BULAN & TAHUN KONTEN (AED BASED) — DARI v4.74
+  // 🔥 UPDATE BULAN & TAHUN KONTEN (AED BASED)
   // ============================================================
   function updateContentDateReferences(aed, pageLevel) {
     log(`📅 UPDATE BULAN & TAHUN DI KONTEN (AED BASED)`, "YEAR");
@@ -956,7 +886,7 @@
   }
 
   // ============================================================
-  // 🔥 AMBIL NAMA DARI URL BERSIH (DARI v4.74)
+  // 🔥 AMBIL NAMA DARI URL BERSIH
   // ============================================================
   function getCleanPageName(level) {
     let cleanName = '';
@@ -996,7 +926,7 @@
   }
 
   // ============================================================
-  // 🔥 GENERATE GAMBAR DARI CANVAS (DARI v4.74)
+  // 🔥 GENERATE GAMBAR DARI CANVAS
   // ============================================================
 
   if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -1181,7 +1111,7 @@
   }
 
   // ============================================================
-  // 🔥 STYLE RESPONSIF (DARI v4.74)
+  // 🔥 STYLE RESPONSIF
   // ============================================================
   function applyResponsiveStyles(figure, img) {
     figure.style.padding = '1em 0px';
@@ -1205,7 +1135,7 @@
     img.style.padding = '0 10px';
     img.style.boxSizing = 'border-box';
 
-    const styleId = 'responsive-image-style-v475';
+    const styleId = 'responsive-image-style-v476';
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
@@ -1234,7 +1164,7 @@
   }
 
   // ============================================================
-  // 🔥 CEK GAMBAR & PERBAIKI (DARI v4.74)
+  // 🔥 CEK GAMBAR & PERBAIKI
   // ============================================================
   function fixImagesToFormat1() {
     log('Checking images in content...', "IMAGE");
@@ -1419,7 +1349,7 @@
   }
 
   // ============================================================
-  // 🔥 PRODUK SCHEMA FUNCTIONS (DARI v4.74)
+  // 🔥 PRODUK SCHEMA FUNCTIONS
   // ============================================================
   function sanitizeText(text) {
     if (!text) return "";
@@ -1523,7 +1453,7 @@
   }
 
   // ============================================================
-  // 🔥 OFFER PARSING (DARI v4.74)
+  // 🔥 OFFER PARSING
   // ============================================================
   const seenItems = new Set();
   const offers = [];
@@ -1651,16 +1581,16 @@
   }
 
   // ============================================================
-  // 🚀 MAIN FUNCTION — DENGAN BREADCRUMB READY + PARENT TERDEKAT
+  // 🚀 MAIN FUNCTION v4.76 — isPartOf HANYA DI WEBPAGE
   // ============================================================
   async function init() {
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.75 — SCHEMA PRODUK/MATERIAL + PLD-ONLY", "INFO");
-    log("isPartOf dari BREADCRUMB TERDEKAT (SIAP, BUKAN LOADING)", "INFO");
+    log("AutoSchema Hybrid v4.76 — SCHEMA PRODUK/MATERIAL + PLD-ONLY", "INFO");
+    log("isPartOf HANYA DI WEBPAGE (Best Practice SEO)", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     // =========================================================
-    // STEP 1: 🆕 TUNGGU BREADCRUMB SIAP (BUKAN LOADING)
+    // STEP 1: TUNGGU BREADCRUMB SIAP (BUKAN LOADING)
     // =========================================================
     log("🍞 Menunggu breadcrumb SIAP (bukan loading)...", "BREADCRUMB");
     const breadcrumbData = await waitForBreadcrumbReady(CONFIG.BREADCRUMB_READY_TIMEOUT);
@@ -1771,7 +1701,7 @@
     }
     
     // =========================================================
-    // STEP 10: 🆕 AMBIL PARENT TERDEKAT DARI BREADCRUMB SIAP
+    // STEP 10: AMBIL PARENT TERDEKAT DARI BREADCRUMB SIAP
     // =========================================================
     const currentUrl = location.href.replace(/[?&]m=1/, "");
     
@@ -1783,7 +1713,7 @@
     log(`   📍 Source: ${parentData.source}`, "PARENT");
     
     // =========================================================
-    // STEP 11: BUILD isPartOf DARI PARENT TERDEKAT
+    // STEP 11: BUILD isPartOf DARI PARENT TERDEKAT (HANYA UNTUK WEBPAGE)
     // =========================================================
     const parentUrls = [{
         "@type": "WebPage",
@@ -1821,6 +1751,7 @@
       logo: LOGO_IMAGE
     };
     
+    // ✅ PRODUCT SCHEMA — TANPA isPartOf (HANYA DI WEBPAGE)
     const product = {
       "@type": "Product",
       "@id": currentUrl + "#product",
@@ -1829,8 +1760,8 @@
       description: desc,
       brand: { "@type": "Brand", name: "Beton Jaya Readymix" },
       category: productCategory,
-      areaServed: areaServed,
-      isPartOf: parentUrls  // ← 🆕 isPartOf dari parent terdekat
+      areaServed: areaServed
+      // ❌ TIDAK ADA isPartOf — cukup di WebPage (best practice SEO)
     };
     
     if (offers.length > 0) {
@@ -1845,6 +1776,7 @@
       if (variantSpec) product.variant = variantSpec;
     }
     
+    // ✅ WEBPAGE SCHEMA — DENGAN isPartOf (SATU-SATUNYA)
     const webpage = {
       "@type": "WebPage",
       "@id": currentUrl + "#webpage",
@@ -1852,7 +1784,7 @@
       name: productName,
       description: desc,
       mainEntity: { "@id": product["@id"] },
-      isPartOf: parentUrls  // ← 🆕 isPartOf dari parent terdekat
+      isPartOf: parentUrls  // ✅ isPartOf HANYA DI SINI (best practice SEO)
     };
     
     // ═══════════════════════════════════════════════════════════
@@ -1900,10 +1832,11 @@
     log(`  AED              : ${aed ? '✅ READY' : '❌ FALLBACK'}`, "AED");
     log(`  PLD-ONLY MODE    : ✅ ACTIVE`, "PLD");
     log(`  isPartOf SOURCE  : ✅ BREADCRUMB TERDEKAT (SIAP)`, "PARENT");
+    log(`  isPartOf Lokasi  : ✅ HANYA DI WEBPAGE (Best Practice)`, "SCHEMA");
     log(`  SCHEMA FORMAT    : ✅ TETAP SAMA (VALID)`, "SCHEMA");
     log(`  OFFER STRUCTURE  : ✅ TETAP SAMA (VALID)`, "PRODUCT");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.75 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.76 SELESAI", "SUCCESS");
   }
   
   if (document.readyState === "loading") {
