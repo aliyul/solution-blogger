@@ -1,19 +1,56 @@
 /**
- * ⚡ AutoSchema Hybrid v4.76 — PLD-ONLY MODE + isPartOf HANYA WEBPAGE
+ * ⚡ AutoSchema Hybrid v4.78 — PLD-ONLY MODE + isPartOf HANYA WEBPAGE
  * 
- * UPDATE v4.76:
- * - HAPUS: isPartOf dari Product schema (DUPLIKAT — cukup di WebPage)
- * - PERTAHANKAN: isPartOf HANYA di WebPage (best practice SEO)
- * - PERTAHANKAN: waitForBreadcrumbReady() — tunggu breadcrumb SIAP
- * - PERTAHANKAN: getParentFromBreadcrumbReady() — ambil parent TERDEKAT
- * - PERTAHANKAN: Semua kode valid dari v4.75
+ * UPDATE v4.78 (dari v4.77):
+ * ❌ HAPUS: Canvas Fallback (tidak SEO-friendly)
+ * ❌ HAPUS: createImageWithTextCanvas() + roundRect polyfill
+ * ✅ PERTAHANKAN: Cloudinary Image per LEVEL (URL sesuai PLD)
+ * ✅ PERTAHANKAN: Auto-Scale Font Size (tabel dari v7.28.4)
+ * ✅ PERTAHANKAN: Auto-Wrap + Split Long Words (dari v7.28.4)
+ * ✅ PERTAHANKAN: DOM Cache (dari v7.28.4)
+ * ✅ PERTAHANKAN: Error Boundary (dari v7.28.4)
+ * ✅ PERTAHANKAN: Performance Monitoring (dari v7.28.4)
+ * ✅ PERTAHANKAN: CORB Prevention (block external fetch/XHR)
+ * ✅ PERTAHANKAN: isPartOf HANYA di WebPage
+ * ✅ PERTAHANKAN: waitForBreadcrumbReady() + getParentFromBreadcrumbReady()
+ * ✅ PERTAHANKAN: Semua kode valid dari v4.76
  * 
- * @version 4.76
+ * @version 4.78
  * @date 2026-09-11
  */
 
 (function() {
   "use strict";
+
+  // ============================================================
+  // 🔥🔥🔥 BLOKIR SEMUA EXTERNAL REQUEST (CORB PREVENTION) 🔥🔥🔥
+  // ============================================================
+  const originalFetch = window.fetch;
+  window.fetch = function(...args) {
+    const url = args[0];
+    if (typeof url === 'string' && (
+      url.includes('raw.githack.com') || 
+      url.includes('github.com') || 
+      url.includes('gist.github.com')
+    )) {
+      console.warn('[Schema v4.78] 🚫 Blocked external fetch (CORB prevention):', url);
+      return Promise.reject(new Error('Blocked by CORB prevention'));
+    }
+    return originalFetch.apply(this, args);
+  };
+
+  const originalXHROpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+    if (typeof url === 'string' && (
+      url.includes('raw.githack.com') || 
+      url.includes('github.com') || 
+      url.includes('gist.github.com')
+    )) {
+      console.warn('[Schema v4.78] 🚫 Blocked external XHR (CORB prevention):', url);
+      throw new Error('Blocked by CORB prevention');
+    }
+    return originalXHROpen.call(this, method, url, ...rest);
+  };
 
   // ===================== KONFIGURASI =====================
   const CONFIG = {
@@ -27,12 +64,237 @@
     AED_TIMEOUT: 10000,
     BREADCRUMB_TIMEOUT: 3000,
     BREADCRUMB_READY_TIMEOUT: 5000,
-    MIN_YEAR_TO_UPDATE: 2026
+    MIN_YEAR_TO_UPDATE: 2026,
+    CACHE_DOM_ELEMENTS: true,
+    BATCH_DOM_UPDATES: true
+  };
+
+  // ============================================================
+  // 🆕 v4.78: CLOUDINARY CONFIG — URL PER LEVEL (dari PLD)
+  // ============================================================
+  const CLOUDINARY_CONFIG = {
+    ENABLED: true,
+    CLOUD_NAME: 'vagzz5sa',
+    VERSION: 'v1789109159',
+    FORMAT: 'png',
+
+    // 🎨 Ukuran SEO-optimal
+    WIDTH: 1200,
+    HEIGHT: 630,
+
+    // 🎨 Text overlay config
+    FONT: 'Arial',
+    FONT_SIZE: 55,
+    BOLD: true,
+    GRAVITY: 'g_center',
+
+    // 🎯 Batas text
+    MAX_TEXT_LENGTH: 70,
+    MAX_CHARS_PER_LINE: 18,
+    MAX_LINES: 2,
+
+    // 🎨 File per level (sesuai upload Cloudinary)
+    LEVEL_FILES: {
+      'pillar': 'pillar',
+      'sub-pillar-tipe-2': 'sp2',
+      'sub-pillar-tipe-1': 'sp1',
+      'money-master': 'mm',
+      'money-page': 'mp',
+      'money-child': 'mc',
+      'variant': 'variant',
+      'sub-variant': 'subvariant'
+    },
+
+    // 🎨 Warna text per level (sesuai SEO & kontras)
+    LEVEL_COLORS: {
+      'pillar': 'FFD700',
+      'sub-pillar-tipe-2': 'FFD700',
+      'sub-pillar-tipe-1': 'FFD700',
+      'money-master': 'FFFFFF',
+      'money-page': 'FFFFFF',
+      'money-child': 'FFFFFF',
+      'variant': 'FFD700',
+      'sub-variant': 'FFD700'
+    },
+
+    get baseUrl() {
+      return `https://res.cloudinary.com/${this.CLOUD_NAME}/image/upload/`;
+    },
+
+    // 🔥 Auto-scale font size (tabel dari v7.28.4)
+    calculateFontSize(textLength) {
+      if (textLength <= 10) return 55;
+      if (textLength <= 12) return 50;
+      if (textLength <= 15) return 45;
+      if (textLength <= 18) return 40;
+      if (textLength <= 22) return 35;
+      if (textLength <= 26) return 30;
+      if (textLength <= 30) return 28;
+      if (textLength <= 35) return 26;
+      if (textLength <= 40) return 24;
+      if (textLength <= 50) return 22;
+      return 20;
+    },
+
+    // 🔥 Auto-wrap text + split long words (dari v7.28.4)
+    wrapText(text, maxCharsPerLine = this.MAX_CHARS_PER_LINE) {
+      if (text.length <= maxCharsPerLine) return text;
+
+      const words = text.split(' ');
+      const lines = [];
+      let currentLine = '';
+
+      for (const word of words) {
+        if (word.length > maxCharsPerLine) {
+          if (currentLine) {
+            lines.push(currentLine);
+            currentLine = '';
+          }
+          let remaining = word;
+          while (remaining.length > maxCharsPerLine) {
+            lines.push(remaining.substring(0, maxCharsPerLine));
+            remaining = remaining.substring(maxCharsPerLine);
+          }
+          if (remaining) currentLine = remaining;
+        } else if ((currentLine + ' ' + word).trim().length <= maxCharsPerLine) {
+          currentLine = (currentLine + ' ' + word).trim();
+        } else {
+          if (currentLine) lines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+
+      if (lines.length > this.MAX_LINES) {
+        const merged = lines.slice(0, this.MAX_LINES - 1);
+        merged.push(lines.slice(this.MAX_LINES - 1).join(' '));
+        return merged.join('\n');
+      }
+
+      return lines.join('\n');
+    },
+
+    // 🔥 Build URL dengan auto-scale + auto-wrap + c_fit
+    buildUrl(level, text) {
+      const fileName = this.LEVEL_FILES[level] || 'pillar';
+      const textColor = this.LEVEL_COLORS[level] || 'FFD700';
+      const weight = this.BOLD ? '_bold' : '';
+
+      let displayText = text;
+      if (displayText.length > this.MAX_TEXT_LENGTH) {
+        displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
+      }
+
+      displayText = this.wrapText(displayText);
+
+      const longestLine = displayText.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
+      const fontSize = this.calculateFontSize(longestLine.length);
+
+      const encodedText = encodeURIComponent(displayText);
+
+      return `${this.baseUrl}` +
+             `e_colorize:100,co_rgb:${textColor},` +
+             `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},` +
+             `${this.GRAVITY},` +
+             `c_fit,w_${this.WIDTH},h_${this.HEIGHT}/` +
+             `${this.VERSION}/${fileName}.${this.FORMAT}`;
+    }
   };
 
   // ✅ FALLBACK IMAGE (logo)
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
   const FALLBACK_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiWWAP6ezcmzgbGtHmmJqBjYkbsdQBrwCeC9pl9ocjL-VSQYftirdvXAF1T-eg_QMSqu1WiFidDc9fnChi0yaOqi0Dd6EVMy4ZX3P7vccY4XJMu-7k2TGVd5TS1wIG5jgIm_6beYVb2zuNQGS7eBuODJqd20c4ckvd0-HaEqGf4W-B_750I91wi9IhqqnI/s320/No_Image_Available.jpg";
+
+  // ============================================================
+  // 🔥🔥🔥 PERFORMANCE MONITORING (dari v7.28.4) 🔥🔥🔥
+  // ============================================================
+  const perf = {
+    marks: {},
+    start(label) {
+      this.marks[label] = performance.now();
+      if (CONFIG.DEBUG) console.log(`⏱️ [PERF] Start: ${label}`);
+    },
+    end(label) {
+      if (!this.marks[label]) return 0;
+      const duration = performance.now() - this.marks[label];
+      if (CONFIG.DEBUG) console.log(`⏱️ [PERF] ${label}: ${duration.toFixed(2)}ms`);
+      delete this.marks[label];
+      return duration;
+    }
+  };
+
+  // ============================================================
+  // 🔥🔥🔥 DOM CACHE (dari v7.28.4) 🔥🔥🔥
+  // ============================================================
+  class DOMCache {
+    constructor() {
+      this.cache = new Map();
+      this.observers = new Map();
+    }
+    get(selector, context = document) {
+      const key = `${context === document ? 'document' : context.id || 'context'}:${selector}`;
+      if (!this.cache.has(key)) {
+        const element = context.querySelector(selector);
+        this.cache.set(key, element);
+        if (!this.observers.has(key)) {
+          const observer = new MutationObserver(() => this.invalidate(selector, context));
+          observer.observe(context, { childList: true, subtree: true, characterData: true });
+          this.observers.set(key, observer);
+        }
+      }
+      return this.cache.get(key);
+    }
+    getAll(selector, context = document) {
+      const key = `${context === document ? 'document' : context.id || 'context'}:${selector}:all`;
+      if (!this.cache.has(key)) {
+        this.cache.set(key, Array.from(context.querySelectorAll(selector)));
+      }
+      return this.cache.get(key) || [];
+    }
+    invalidate(selector, context = document) {
+      const key = `${context === document ? 'document' : context.id || 'context'}:${selector}`;
+      this.cache.delete(key);
+      this.cache.delete(`${key}:all`);
+    }
+    clear() {
+      this.cache.clear();
+      this.observers.forEach(o => o.disconnect());
+      this.observers.clear();
+    }
+  }
+
+  // ============================================================
+  // 🔥🔥🔥 ERROR BOUNDARY (dari v7.28.4) 🔥🔥🔥
+  // ============================================================
+  class ErrorBoundary {
+    constructor() {
+      this.errors = [];
+      this.fallbacks = new Map();
+    }
+    register(fnName, fallback) {
+      this.fallbacks.set(fnName, fallback);
+    }
+    async execute(fnName, fn, ...args) {
+      try {
+        return await fn(...args);
+      } catch (error) {
+        const fallback = this.fallbacks.get(fnName);
+        console.error(`❌ Error in ${fnName}:`, error);
+        log(`Error in ${fnName}: ${error.message}`, "ERROR");
+        if (fallback) return typeof fallback === 'function' ? fallback(...args) : fallback;
+        return null;
+      }
+    }
+    safeWrap(fn, fnName) {
+      return (...args) => this.execute(fnName, fn, ...args);
+    }
+  }
+
+  // ============================================================
+  // 🔥🔥🔥 INSTANCES 🔥🔥🔥
+  // ============================================================
+  const domCache = CONFIG.CACHE_DOM_ELEMENTS ? new DOMCache() : null;
+  const errorBoundary = new ErrorBoundary();
 
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG && type === "INFO") return;
@@ -41,19 +303,18 @@
       PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯", TABLE: "📊", 
       H1: "📝", PRIORITY: "🔴", STOP: "🛑", BREADCRUMB: "🍞", AED: "⚡", 
       COMMERCIAL: "🛒", GABUNG: "📚", PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗",
-      PARENT: "👪"
+      PARENT: "👪", PERF: "⏱️", CACHE: "💾", CORB: "🚫"
     };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.76] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.78] ${msg}`);
   }
 
   // ============================================================
   // 🆕 WAIT FOR BREADCRUMB READY (TUNGGU SIAP)
-  // 🔥 SYARAT: Breadcrumb SUDAH TERBENTUK, BUKAN loading/berantakan
   // ============================================================
-
   function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
     return new Promise((resolve) => {
+      perf.start('waitForBreadcrumbReady');
       const startTime = Date.now();
       
       function checkBreadcrumbReady() {
@@ -65,13 +326,14 @@
         
         let breadcrumbEl = null;
         for (const selector of breadcrumbSelectors) {
-          const el = document.querySelector(selector);
+          const el = domCache ? domCache.get(selector) : document.querySelector(selector);
           if (el) { breadcrumbEl = el; break; }
         }
         
         if (!breadcrumbEl) {
           if (Date.now() - startTime > timeout) {
             log(`⏰ Breadcrumb timeout — tidak ditemukan (${timeout}ms)`, "WARN");
+            perf.end('waitForBreadcrumbReady');
             resolve(null);
             return;
           }
@@ -90,6 +352,7 @@
         
         if (isReady && !isLoading) {
           log(`✅ Breadcrumb SIAP: ${links.length} links, ${items.length} items`, "BREADCRUMB");
+          perf.end('waitForBreadcrumbReady');
           resolve({
             element: breadcrumbEl,
             links: Array.from(links),
@@ -103,6 +366,7 @@
         
         if (Date.now() - startTime > timeout) {
           log(`⏰ Breadcrumb timeout — belum SIAP (${links.length} links, ${items.length} items)`, "WARN");
+          perf.end('waitForBreadcrumbReady');
           resolve(null);
           return;
         }
@@ -117,10 +381,12 @@
   // ============================================================
   // 🆕 GET PARENT FROM BREADCRUMB READY (PARENT TERDEKAT)
   // ============================================================
-
   function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
+    perf.start('getParentFromBreadcrumbReady');
+
     if (!breadcrumbData || !breadcrumbData.links || breadcrumbData.links.length === 0) {
       log('⚠️ Breadcrumb tidak valid — fallback ke origin', "WARN");
+      perf.end('getParentFromBreadcrumbReady');
       return { 
         parentUrl: location.origin, 
         parentName: 'Home',
@@ -147,6 +413,7 @@
     
     if (validParents.length === 0) {
       log('⚠️ Tidak ada parent valid — fallback ke origin', "WARN");
+      perf.end('getParentFromBreadcrumbReady');
       return { 
         parentUrl: location.origin, 
         parentName: 'Home',
@@ -156,11 +423,11 @@
     }
     
     const parentLink = validParents[validParents.length - 1];
-    
     const parentUrl = parentLink.href || '';
     const parentName = parentLink.innerText?.trim() || 'Parent Page';
     
     log(`👪 Parent terdekat dari breadcrumb: "${parentName}" → ${parentUrl}`, "PARENT");
+    perf.end('getParentFromBreadcrumbReady');
     
     return {
       parentUrl: parentUrl,
@@ -175,7 +442,6 @@
 
   // ============================================================
   // 🔥 PLD-ONLY DATA READERS
-  // 🔥 TIDAK ADA DETEKSI ULANG — HANYA TERIMA DARI PLD/V37.9-A 🔥
   // ============================================================
 
   function getPageLevelFromPLD() {
@@ -272,7 +538,7 @@
       return window.V379A.focusKonten.toUpperCase();
     }
     
-    const h1El = document.querySelector('h1');
+    const h1El = domCache ? domCache.get('h1') : document.querySelector('h1');
     const h1Text = h1El ? h1El.innerText.toLowerCase() : '';
     
     if (/\b(20[2-9][0-9])\b/.test(h1Text)) {
@@ -573,23 +839,18 @@
       'pillar': { bg: '#0a2a44', text: '#ffffff', accent: '#25d366' },
       'sub-pillar-tipe-2': { bg: '#1a237e', text: '#ffffff', accent: '#25d366' },
       'sub-pillar-tipe-1': { bg: '#004d40', text: '#ffffff', accent: '#25d366' },
-      
       'money-master-informasi': { bg: '#1a5a8c', text: '#ffffff', accent: '#25d366' },
       'money-page-informasi': { bg: '#2a6a9c', text: '#ffffff', accent: '#25d366' },
       'money-child-informasi': { bg: '#3a7aac', text: '#ffffff', accent: '#25d366' },
-      
       'money-master-harga': { bg: '#0a2a44', text: '#ffffff', accent: '#ffd700' },
       'money-page-harga': { bg: '#1a5a8c', text: '#ffffff', accent: '#ffd700' },
       'money-child-harga': { bg: '#bf360c', text: '#ffffff', accent: '#ffd700' },
-      
       'money-master-commercial': { bg: '#8b0000', text: '#ffffff', accent: '#ffd700' },
       'money-page-commercial': { bg: '#8b0000', text: '#ffffff', accent: '#ffd700' },
       'money-child-commercial': { bg: '#8b0000', text: '#ffffff', accent: '#ffd700' },
-      
       'money-master-gabung': { bg: '#4a148c', text: '#ffffff', accent: '#ffd700' },
       'money-page-gabung': { bg: '#4a148c', text: '#ffffff', accent: '#ffd700' },
       'money-child-gabung': { bg: '#4a148c', text: '#ffffff', accent: '#ffd700' },
-      
       'variant': { bg: '#4a148c', text: '#ffffff', accent: '#25d366' },
       'sub-variant': { bg: '#4e342e', text: '#ffffff', accent: '#25d366' }
     };
@@ -601,15 +862,6 @@
     else if (isMoneyGabung) key = level + '-gabung';
     
     return colors[key] || colors['pillar'];
-  }
-
-  function lightenColor(hex, percent) {
-    const num = parseInt(hex.replace('#', ''), 16);
-    const amt = Math.round(2.55 * percent);
-    const R = Math.min(255, (num >> 16) + amt);
-    const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
-    const B = Math.min(255, (num & 0x0000FF) + amt);
-    return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
   }
 
   function getCurrentYear() {
@@ -637,7 +889,7 @@
     }
 
     const currentYear = getCurrentYear();
-    const h1 = document.querySelector('h1');
+    const h1 = domCache ? domCache.get('h1') : document.querySelector('h1');
     if (!h1) {
       log(`⚠️ Tidak ada H1 ditemukan`, "WARN");
       return false;
@@ -662,6 +914,7 @@
       if (detectedYear > 2025) {
         const newText = originalText.replace(/\b(19|20)\d{2}\b/, currentYear);
         h1.innerText = newText;
+        if (domCache) domCache.invalidate('h1');
         log(`✅ H1: Tahun diupdate ${detectedYear} → ${currentYear}`, "YEAR");
         log(`   📝 H1 baru: "${newText}"`, "H1");
         return true;
@@ -671,6 +924,7 @@
     if (!detectedYear) {
       const newText = originalText + ' ' + currentYear;
       h1.innerText = newText;
+      if (domCache) domCache.invalidate('h1');
       log(`✅ H1: Tahun ditambahkan → "${newText}"`, "YEAR");
       return true;
     }
@@ -686,7 +940,9 @@
     const currentYear = getCurrentYear();
     let updated = 0;
 
-    const bodyElements = document.querySelectorAll('p, h2, h3, h4, li, td, th, figcaption, .post-body, .entry-content');
+    const bodyElements = domCache 
+      ? domCache.getAll('p, h2, h3, h4, li, td, th, figcaption, .post-body, .entry-content')
+      : document.querySelectorAll('p, h2, h3, h4, li, td, th, figcaption, .post-body, .entry-content');
     const yearPattern = /\b(202[6-9]|2030)\b/g;
 
     bodyElements.forEach(el => {
@@ -784,7 +1040,7 @@
     for (const selector of selectors) {
         let elements = [];
         try {
-            elements = document.querySelectorAll(selector);
+            elements = domCache ? domCache.getAll(selector) : document.querySelectorAll(selector);
         } catch(e) { continue; }
 
         for (const el of elements) {
@@ -856,7 +1112,7 @@
         }
     }
 
-    const h1 = document.querySelector('h1');
+    const h1 = domCache ? domCache.get('h1') : document.querySelector('h1');
     if (h1) {
         const h1Text = h1.innerText;
         const yearPattern = /\b(19|20)\d{2}\b/;
@@ -869,6 +1125,7 @@
                 const newH1 = h1Text.replace(yearPattern, currentYear);
                 if (newH1 !== h1Text) {
                     h1.innerText = newH1;
+                    if (domCache) domCache.invalidate('h1');
                     updated++;
                     log(`✅ H1 tahun diupdate: "${h1Text}" → "${newH1}"`, "YEAR");
                 }
@@ -903,7 +1160,8 @@
       cleanName = cleanName.replace(/^(Harga|Jasa|Biaya|Tarif)\s*/i, '').trim();
     }
     if (cleanName.length < 3) {
-      let h1Text = document.querySelector('h1')?.innerText?.trim();
+      const h1El = domCache ? domCache.get('h1') : document.querySelector('h1');
+      let h1Text = h1El?.innerText?.trim();
       if (h1Text && h1Text.length > 3) {
         cleanName = h1Text
           .replace(/\b(20[2-9][0-9])\b/g, '')
@@ -926,188 +1184,32 @@
   }
 
   // ============================================================
-  // 🔥 GENERATE GAMBAR DARI CANVAS
+  // 🆕 v4.78: GENERATE GAMBAR DARI CLOUDINARY (PER LEVEL)
+  // 🔥 TANPA CANVAS FALLBACK — LANGSUNG LOGO JIKA GAGAL
   // ============================================================
-
-  if (!CanvasRenderingContext2D.prototype.roundRect) {
-    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
-      if (r > w/2) r = w/2;
-      if (r > h/2) r = h/2;
-      this.moveTo(x + r, y);
-      this.lineTo(x + w - r, y);
-      this.quadraticCurveTo(x + w, y, x + w, y + r);
-      this.lineTo(x + w, y + h - r);
-      this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      this.lineTo(x + r, y + h);
-      this.quadraticCurveTo(x, y + h, x, y + h - r);
-      this.lineTo(x, y + r);
-      this.quadraticCurveTo(x, y, x + r, y);
-      return this;
-    };
-  }
-
   function createImageWithText(pageName, level, year) {
-    const isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(level);
-    const focus = isMoneyLevel ? detectContentFocus() : null;
-    const colors = getColorConfig(level, focus);
+    perf.start('createImageWithText');
     
-    const needYearFlag = needYear(level);
-    const displayYear = needYearFlag ? ' ' + year : '';
-    const fullText = pageName + displayYear;
-
-    const width = 820;
-    const height = 360;
-    const padding = 40;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-
-    const gradient = ctx.createLinearGradient(0, 0, width, height);
-    gradient.addColorStop(0, colors.bg);
-    gradient.addColorStop(0.5, colors.bg);
-    gradient.addColorStop(1, lightenColor(colors.bg, 25));
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = colors.accent;
-    ctx.lineWidth = 3;
-    const bPad = 15;
-    ctx.strokeRect(bPad, bPad, width - (bPad * 2), height - (bPad * 2));
-
-    const logoText = '🏗️ Beton Jaya Readymix';
-    ctx.font = 'bold 18px Arial, sans-serif';
-    const logoMetrics = ctx.measureText(logoText);
-    const logoWidth = logoMetrics.width + 40;
-    const logoHeight = 36;
-    const logoX = (width - logoWidth) / 2;
-    const logoY = padding - 10;
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.beginPath();
-    ctx.roundRect(logoX, logoY, logoWidth, logoHeight, 18);
-    ctx.fill();
-
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetX = 1;
-    ctx.shadowOffsetY = 2;
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 18px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(logoText, width / 2, padding + 8);
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(padding, 72);
-    ctx.lineTo(width - padding, 72);
-    ctx.stroke();
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    let fontSize = 42;
-    const textLength = fullText.length;
-    if (textLength > 30) fontSize = 36;
-    if (textLength > 40) fontSize = 32;
-    if (textLength > 50) fontSize = 28;
-    if (textLength > 60) fontSize = 24;
-
-    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-    ctx.shadowBlur = 14;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 3;
-
-    const maxCharsPerLine = 24;
-    const words = fullText.split(' ');
-    let lines = [];
-    let currentLine = '';
-
-    for (let word of words) {
-      if (currentLine.length + word.length + 1 <= maxCharsPerLine) {
-        currentLine += (currentLine ? ' ' : '') + word;
-      } else {
-        if (currentLine) lines.push(currentLine);
-        currentLine = word;
-      }
-    }
-    if (currentLine) lines.push(currentLine);
-
-    if (lines.length > 3) {
-      const combined = fullText;
-      lines = [];
-      let idx = 0;
-      while (idx < combined.length) {
-        let end = Math.min(idx + maxCharsPerLine, combined.length);
-        let lastSpace = combined.lastIndexOf(' ', end);
-        if (lastSpace > idx && end < combined.length) end = lastSpace;
-        lines.push(combined.substring(idx, end).trim());
-        idx = end + 1;
-        if (lines.length >= 3) {
-          if (idx < combined.length) {
-            lines[2] = lines[2] + '...';
-          }
-          break;
+    if (CLOUDINARY_CONFIG.ENABLED && CLOUDINARY_CONFIG.CLOUD_NAME) {
+      try {
+        const needYearFlag = needYear(level);
+        const displayText = needYearFlag ? `${pageName} ${year}` : pageName;
+        
+        const imageUrl = CLOUDINARY_CONFIG.buildUrl(level, displayText);
+        
+        if (/^https?:\/\//i.test(imageUrl)) {
+          log(`📸 Cloudinary [${level}]: ${imageUrl}`, "IMAGE");
+          perf.end('createImageWithText');
+          return imageUrl;
         }
+      } catch(e) {
+        log(`⚠️ Cloudinary error: ${e.message} — fallback ke LOGO`, "WARN");
       }
     }
-
-    const centerY = height / 2 + 8;
-
-    if (lines.length === 1) {
-      ctx.font = `bold ${fontSize + 8}px Arial, sans-serif`;
-      ctx.fillStyle = colors.text;
-      ctx.fillText(lines[0], width / 2, centerY);
-    } else if (lines.length === 2) {
-      const lineHeight = fontSize + 14;
-      ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-      ctx.fillStyle = colors.text;
-      ctx.fillText(lines[0], width / 2, centerY - (lineHeight / 2));
-      ctx.fillText(lines[1], width / 2, centerY + (lineHeight / 2));
-    } else {
-      const lineHeight = fontSize + 12;
-      const startY = centerY - ((lines.length - 1) * lineHeight / 2);
-      ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-      ctx.fillStyle = colors.text;
-      lines.forEach((line, i) => {
-        ctx.fillText(line, width / 2, startY + (i * lineHeight));
-      });
-    }
-
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-
-    const watermarkText = '© Beton Jaya Readymix';
-    ctx.font = '13px Arial, sans-serif';
-    const wmMetrics = ctx.measureText(watermarkText);
-    const wmWidth = wmMetrics.width + 30;
-    const wmHeight = 28;
-    const wmX = (width - wmWidth) / 2;
-    const wmY = height - padding + 2;
-
-    ctx.fillStyle = 'rgba(0,0,0,0.2)';
-    ctx.beginPath();
-    ctx.roundRect(wmX, wmY, wmWidth, wmHeight, 14);
-    ctx.fill();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.font = '13px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(watermarkText, width / 2, height - padding + 16);
-
-    return canvas.toDataURL('image/png');
+    
+    log('📸 Cloudinary gagal/tidak aktif, fallback ke LOGO_IMAGE', "IMAGE");
+    perf.end('createImageWithText');
+    return LOGO_IMAGE;
   }
 
   // ============================================================
@@ -1125,9 +1227,9 @@
     figure.style.overflow = 'hidden';
 
     img.style.width = '100%';
-    img.style.maxWidth = '820px';
+    img.style.maxWidth = '1200px';
     img.style.height = 'auto';
-    img.style.aspectRatio = '820/360';
+    img.style.aspectRatio = '1200/630';
     img.style.objectFit = 'contain';
     img.style.borderRadius = '8px';
     img.style.display = 'block';
@@ -1135,12 +1237,12 @@
     img.style.padding = '0 10px';
     img.style.boxSizing = 'border-box';
 
-    const styleId = 'responsive-image-style-v476';
+    const styleId = 'responsive-image-style-v478';
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
       style.textContent = `
-        @media (max-width: 820px) {
+        @media (max-width: 1200px) {
           figure[data-auto-figure="true"] img {
             max-width: 100% !important;
             height: auto !important;
@@ -1167,6 +1269,7 @@
   // 🔥 CEK GAMBAR & PERBAIKI
   // ============================================================
   function fixImagesToFormat1() {
+    perf.start('fixImagesToFormat1');
     log('Checking images in content...', "IMAGE");
     
     const pageLevel = getPageLevelFromPLD();
@@ -1176,16 +1279,16 @@
     const displayName = needYearFlag ? pageName + ' ' + currentYear : pageName;
 
     function getImageInsertionPoint() {
-      let article = document.querySelector('article');
+      let article = domCache ? domCache.get('article') : document.querySelector('article');
       if (!article) {
         const candidates = ['.post-body', 'main', '.content', '.entry-content', '.post-content', '.article-content', '.blog-post'];
         for (let selector of candidates) {
-          const el = document.querySelector(selector);
+          const el = domCache ? domCache.get(selector) : document.querySelector(selector);
           if (el) { article = el; break; }
         }
       }
       if (!article) {
-        const h1 = document.querySelector('h1');
+        const h1 = domCache ? domCache.get('h1') : document.querySelector('h1');
         if (h1) article = h1.closest('section, div, main');
       }
       if (!article) article = document.body;
@@ -1206,7 +1309,7 @@
     let targetImage = null;
     let targetFigure = null;
 
-    const h1Element = document.querySelector('h1');
+    const h1Element = domCache ? domCache.get('h1') : document.querySelector('h1');
     if (h1Element) {
       const article = h1Element.closest('article, .post-body, main, section, div');
       if (article) {
@@ -1232,7 +1335,9 @@
     }
 
     if (!targetImage) {
-      const contentAreas = document.querySelectorAll('article, section, .post-body, main, .content, .entry-content');
+      const contentAreas = domCache 
+        ? ['article', 'section', '.post-body', 'main', '.content', '.entry-content'].map(s => domCache.get(s)).filter(Boolean)
+        : document.querySelectorAll('article, section, .post-body, main, .content, .entry-content');
       for (const area of contentAreas) {
         const img = area.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
         if (img) {
@@ -1243,7 +1348,8 @@
       }
     }
 
-    const autoImageDataUrl = createImageWithText(pageName, pageLevel, currentYear);
+    // 🔥 v4.78: Gunakan Cloudinary URL (tanpa Canvas fallback)
+    const autoImageUrl = createImageWithText(pageName, pageLevel, currentYear);
     const captionText = '📊 ' + displayName;
 
     if (targetImage) {
@@ -1254,8 +1360,8 @@
 
       const currentSrc = img.src || '';
       if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
-        img.src = autoImageDataUrl;
-        log('Image src replaced with auto-generated', "IMAGE");
+        img.src = autoImageUrl;
+        log('Image src replaced with Cloudinary URL', "IMAGE");
       } else {
         log('Existing image preserved, only updating attributes', "IMAGE");
       }
@@ -1267,6 +1373,7 @@
       img.setAttribute('data-auto-generated', 'true');
       img.setAttribute('data-page-level', pageLevel);
       img.setAttribute('data-year', currentYear);
+      img.setAttribute('data-image-source', /^https?:\/\//i.test(autoImageUrl) && autoImageUrl.includes('cloudinary') ? 'cloudinary' : 'logo-fallback');
 
       if (figure && figure.tagName === 'FIGURE') {
         applyResponsiveStyles(figure, img);
@@ -1308,6 +1415,7 @@
       }
 
       log('✅ Image fixed with SEO FIGURE', "SUCCESS");
+      perf.end('fixImagesToFormat1');
       return figure;
     }
 
@@ -1317,7 +1425,7 @@
     const figure = document.createElement('figure');
     const img = document.createElement('img');
 
-    img.src = autoImageDataUrl;
+    img.src = autoImageUrl;
     img.alt = displayName;
     img.title = displayName;
     img.setAttribute('loading', 'lazy');
@@ -1325,6 +1433,7 @@
     img.setAttribute('data-auto-generated', 'true');
     img.setAttribute('data-page-level', pageLevel);
     img.setAttribute('data-year', currentYear);
+    img.setAttribute('data-image-source', /^https?:\/\//i.test(autoImageUrl) && autoImageUrl.includes('cloudinary') ? 'cloudinary' : 'logo-fallback');
 
     const figcaption = document.createElement('figcaption');
     figcaption.style.color = '#555';
@@ -1345,6 +1454,7 @@
     }
 
     log('✅ New responsive FIGURE created', "SUCCESS");
+    perf.end('fixImagesToFormat1');
     return figure;
   }
 
@@ -1383,7 +1493,7 @@
   }
 
   function detectProductName() {
-    const h1 = document.querySelector('h1')?.innerText?.trim();
+    const h1 = domCache ? domCache.get('h1')?.innerText?.trim() : document.querySelector('h1')?.innerText?.trim();
     if (h1 && h1.length < 120 && h1.length > 3) {
       return h1.replace(/\b(20[2-9][0-9])\b/g, '').replace(/\s{2,}/g, ' ').trim();
     }
@@ -1438,7 +1548,9 @@
   }
 
   function extractVariantSpec() {
-    const content = document.querySelector(".post-body.entry-content, .post-body, article, main");
+    const content = domCache 
+      ? domCache.get(".post-body.entry-content") || domCache.get(".post-body") || domCache.get("article") || domCache.get("main")
+      : document.querySelector(".post-body.entry-content, .post-body, article, main");
     if (!content) return null;
     const text = content.innerText;
     const spec = {};
@@ -1497,7 +1609,7 @@
     const tableSelectors = ['section table', '.product-table', '.price-table', '.harga-table', 'table'];
     let found = false;
     for (const selector of tableSelectors) {
-      const tables = document.querySelectorAll(selector);
+      const tables = domCache ? domCache.getAll(selector) : document.querySelectorAll(selector);
       if (tables.length === 0) continue;
       for (const table of tables) {
         const rows = table.querySelectorAll('tr');
@@ -1521,7 +1633,9 @@
   }
 
   function parseVariantOffers() {
-    const content = document.querySelector(".post-body.entry-content, .post-body, article, main");
+    const content = domCache 
+      ? domCache.get(".post-body.entry-content") || domCache.get(".post-body") || domCache.get("article") || domCache.get("main")
+      : document.querySelector(".post-body.entry-content, .post-body, article, main");
     if (!content) return false;
     const text = content.innerText;
     
@@ -1563,7 +1677,7 @@
   }
 
   function parseListOffers() {
-    const elements = document.querySelectorAll("li, p, .price-item, .product-item");
+    const elements = domCache ? domCache.getAll("li, p, .price-item, .product-item") : document.querySelectorAll("li, p, .price-item, .product-item");
     const tempOffers = [];
     for (const el of elements) {
       const text = el.innerText;
@@ -1581,17 +1695,17 @@
   }
 
   // ============================================================
-  // 🚀 MAIN FUNCTION v4.76 — isPartOf HANYA DI WEBPAGE
+  // 🚀 MAIN FUNCTION v4.78
   // ============================================================
   async function init() {
+    perf.start('init');
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.76 — SCHEMA PRODUK/MATERIAL + PLD-ONLY", "INFO");
+    log("AutoSchema Hybrid v4.78 — SCHEMA PRODUK/MATERIAL + PLD-ONLY", "INFO");
+    log("Cloudinary Image (per Level) — TANPA Canvas Fallback", "INFO");
     log("isPartOf HANYA DI WEBPAGE (Best Practice SEO)", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
-    // =========================================================
-    // STEP 1: TUNGGU BREADCRUMB SIAP (BUKAN LOADING)
-    // =========================================================
+    // STEP 1: TUNGGU BREADCRUMB SIAP
     log("🍞 Menunggu breadcrumb SIAP (bukan loading)...", "BREADCRUMB");
     const breadcrumbData = await waitForBreadcrumbReady(CONFIG.BREADCRUMB_READY_TIMEOUT);
     
@@ -1601,15 +1715,11 @@
       log(`⚠️ Breadcrumb timeout — akan fallback ke origin`, "WARN");
     }
     
-    // =========================================================
     // STEP 2: TUNGGU PLD
-    // =========================================================
     log("⏳ Menunggu PLD...", "PLD");
     await waitForPLD();
     
-    // =========================================================
     // STEP 3: TUNGGU AEDMetaDates
-    // =========================================================
     log("⏳ Menunggu AEDMetaDates...", "AED");
     const aed = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     
@@ -1621,9 +1731,7 @@
       log(`⚠️ AED tidak tersedia, gunakan fallback`, "WARN");
     }
     
-    // =========================================================
     // STEP 4: TERIMA SEMUA DATA DARI PLD/V37.9-A
-    // =========================================================
     log("🔷 TERIMA DATA DARI PLD/V37.9-A:", "PLD");
     
     const pageLevel = getPageLevelFromPLD();
@@ -1646,30 +1754,23 @@
     log(`📌 CTA Type: ${ctaType ? ctaType.type : 'N/A'}`, "PLD");
     log(`📌 H1 Pattern: ${h1Pattern}`, "PLD");
 
-    // =========================================================
     // STEP 5: UPDATE TAHUN DI H1
-    // =========================================================
     log("📅 UPDATE TAHUN DI H1:", "YEAR");
     const h1Updated = updateH1Year(pageLevel);
     
-    // =========================================================
     // STEP 6: UPDATE TAHUN DI KONTEN LAINNYA
-    // =========================================================
     const contentUpdated = updateContentYears();
     
-    // =========================================================
     // STEP 7: UPDATE BULAN & TAHUN DI KONTEN (AED BASED)
-    // =========================================================
     const dateUpdated = updateContentDateReferences(aed, pageLevel);
     
     if (!h1Updated && contentUpdated === 0 && !dateUpdated) {
       log(`📅 Tidak ada perubahan tahun yang dilakukan`, "YEAR");
     }
 
-    // =========================================================
     // STEP 8: CEK GAMBAR & FIX GAMBAR
-    // =========================================================
     let imageUrl = LOGO_IMAGE;
+    let imageSource = 'logo-fallback';
     const isEligible = isImageEligible(pageLevel);
     
     if (isEligible) {
@@ -1678,7 +1779,13 @@
         const fixedFigure = fixImagesToFormat1();
         if (fixedFigure) {
           const img = fixedFigure.querySelector('img');
-          if (img) imageUrl = img.src || LOGO_IMAGE;
+          if (img) {
+            const candidateSrc = img.src || '';
+            if (/^https?:\/\//i.test(candidateSrc)) {
+              imageUrl = candidateSrc;
+              imageSource = img.getAttribute('data-image-source') || 'unknown';
+            }
+          }
         }
       } catch(e) {
         log(`Error processing images: ${e.message}`, "ERROR");
@@ -1688,21 +1795,21 @@
       log(`⏭️ Halaman TIDAK LAYAK mendapat gambar`, "SKIP");
       const existingImage = document.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
       if (existingImage) {
-        imageUrl = existingImage.src || LOGO_IMAGE;
+        const candidateSrc = existingImage.src || '';
+        if (/^https?:\/\//i.test(candidateSrc)) {
+          imageUrl = candidateSrc;
+        }
       }
     }
 
-    // =========================================================
     // STEP 9: CEK SKIP PRODUCT SCHEMA
-    // =========================================================
     if (shouldSkipProductSchema(pageLevel)) {
       log("Product schema SKIPPED untuk halaman ini", "SKIP");
+      perf.end('init');
       return;
     }
     
-    // =========================================================
     // STEP 10: AMBIL PARENT TERDEKAT DARI BREADCRUMB SIAP
-    // =========================================================
     const currentUrl = location.href.replace(/[?&]m=1/, "");
     
     log("👪 MENCARI PARENT TERDEKAT DARI BREADCRUMB SIAP...", "PARENT");
@@ -1712,18 +1819,14 @@
     log(`   📍 URL: ${parentData.parentUrl}`, "PARENT");
     log(`   📍 Source: ${parentData.source}`, "PARENT");
     
-    // =========================================================
     // STEP 11: BUILD isPartOf DARI PARENT TERDEKAT (HANYA UNTUK WEBPAGE)
-    // =========================================================
     const parentUrls = [{
         "@type": "WebPage",
         "@id": parentData.parentUrl,
         name: parentData.parentName
     }];
     
-    // =========================================================
     // STEP 12: PRODUCT SCHEMA
-    // =========================================================
     const productName = detectProductName();
     const desc = document.querySelector('meta[name="description"]')?.content?.trim() || 
                  document.querySelector("article p, main p, section p")?.innerText?.trim()?.substring(0, 300) ||
@@ -1761,7 +1864,6 @@
       brand: { "@type": "Brand", name: "Beton Jaya Readymix" },
       category: productCategory,
       areaServed: areaServed
-      // ❌ TIDAK ADA isPartOf — cukup di WebPage (best practice SEO)
     };
     
     if (offers.length > 0) {
@@ -1783,13 +1885,11 @@
       url: currentUrl,
       name: productName,
       description: desc,
+      image: imageUrl,
       mainEntity: { "@id": product["@id"] },
-      isPartOf: parentUrls  // ✅ isPartOf HANYA DI SINI (best practice SEO)
+      isPartOf: parentUrls
     };
     
-    // ═══════════════════════════════════════════════════════════
-    // ✅ FORMAT SCHEMA TETAP SAMA — TIDAK DIUBAH
-    // ═══════════════════════════════════════════════════════════
     const graph = [webpage, business, product];
     
     let existingScript = document.querySelector("#auto-schema-product");
@@ -1805,9 +1905,7 @@
       "@graph": graph
     }, null, 2);
     
-    // ============================================================
     // EXECUTION SUMMARY
-    // ============================================================
     log("═══════════════════════════════════════════════════", "INFO");
     log("EXECUTION SUMMARY:", "INFO");
     log(`  Page Level       : ${pageLevel}`, "SUCCESS");
@@ -1823,6 +1921,13 @@
     log(`  Product Category : ${productCategory}`, "SUCCESS");
     log(`  Offers Count     : ${offers.length}`, "SUCCESS");
     log(`  Image Eligible   : ${isEligible ? '✅' : '❌'}`, "IMAGE");
+    log(`  Image Source     : ${imageSource}`, "IMAGE");
+    log(`  Image Size       : 1200×630 (SEO-optimal)`, "IMAGE");
+    log(`  Cloudinary       : ${CLOUDINARY_CONFIG.ENABLED ? '✅ ENABLED (per level)' : '❌ DISABLED'}`, "IMAGE");
+    log(`  Text Auto-Scale  : ✅ ACTIVE (font responsive)`, "IMAGE");
+    log(`  Text Auto-Wrap   : ✅ ACTIVE (2 baris responsive)`, "IMAGE");
+    log(`  Text Split Long  : ✅ ACTIVE (kata panjang dipotong)`, "IMAGE");
+    log(`  Canvas Fallback  : ❌ REMOVED (tidak SEO)`, "IMAGE");
     log(`  Auto Year H1     : ${h1Updated ? '✅ UPDATE' : '⏭️ SKIP/STOP'}`, "YEAR");
     log(`  Content Year     : ${contentUpdated > 0 ? `✅ ${contentUpdated} elemen diupdate` : '⏭️ TIDAK ADA'}`, "YEAR");
     log(`  Auto Update Bulan: ${dateUpdated ? '✅ UPDATE' : '⏭️ SKIP'}`, "YEAR");
@@ -1830,13 +1935,17 @@
     log(`  Parent Source    : ${parentData.source}`, "PARENT");
     log(`  Parent Name      : ${parentData.parentName}`, "PARENT");
     log(`  AED              : ${aed ? '✅ READY' : '❌ FALLBACK'}`, "AED");
+    log(`  DOM CACHE        : ${CONFIG.CACHE_DOM_ELEMENTS ? '✅ ACTIVE' : '❌ INACTIVE'}`, "CACHE");
+    log(`  CORB PREVENTION  : ✅ ACTIVE`, "CORB");
     log(`  PLD-ONLY MODE    : ✅ ACTIVE`, "PLD");
     log(`  isPartOf SOURCE  : ✅ BREADCRUMB TERDEKAT (SIAP)`, "PARENT");
     log(`  isPartOf Lokasi  : ✅ HANYA DI WEBPAGE (Best Practice)`, "SCHEMA");
     log(`  SCHEMA FORMAT    : ✅ TETAP SAMA (VALID)`, "SCHEMA");
     log(`  OFFER STRUCTURE  : ✅ TETAP SAMA (VALID)`, "PRODUCT");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.76 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.78 SELESAI", "SUCCESS");
+    
+    perf.end('init');
   }
   
   if (document.readyState === "loading") {
@@ -1846,5 +1955,19 @@
   } else {
     setTimeout(init, CONFIG.DELAY_MS);
   }
+
+  // ============================================================
+  // 🔥🔥🔥 CLEANUP 🔥🔥🔥
+  // ============================================================
+  function cleanup() {
+    log("🧹 Cleaning up resources...", "INFO");
+    if (domCache) {
+      domCache.clear();
+      log("✅ DOM Cache cleared", "CACHE");
+    }
+    log("✅ Resources cleaned up", "SUCCESS");
+  }
+
+  window.addEventListener('beforeunload', cleanup);
   
 })();
