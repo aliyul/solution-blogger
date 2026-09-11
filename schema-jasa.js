@@ -211,7 +211,7 @@ const CLOUDINARY_CONFIG = {
     'money-page': 'mp',
     'money-child': 'mc',
     'variant': 'variant',
-    'sub-variant': 'sub-variant'
+    'sub-variant': 'subvariant'
   },
 
   // 🎨 Warna text per level (sesuai SEO & kontras)
