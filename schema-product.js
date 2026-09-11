@@ -1,33 +1,15 @@
 /**
- * ⚡ AutoSchema Hybrid v4.80 — PLD-ONLY MODE + isPartOf HANYA WEBPAGE
+ * ⚡ AutoSchema Hybrid v4.82 — PLD-ONLY MODE + isPartOf HANYA WEBPAGE
  * 
- * UPDATE v4.80 (dari v4.79):
- * ✅ FIX: Logika update tahun berbasis AEDMetaDates.dateModified
- * ✅ PERTAHANKAN: updateContentYears() — update tahun di konten
- * ✅ PERTAHANKAN: updateContentDateReferences() — update bulan & tahun (AED based)
- * ✅ PERTAHANKAN: Semua fitur v4.76 yang sudah baik
- * ✅ PERTAHANKAN: Cloudinary Image per LEVEL
- * ✅ PERTAHANKAN: Auto-Scale Font + Auto-Wrap + Split Long Words
- * ✅ PERTAHANKAN: DOM Cache, Error Boundary, Performance Monitoring
- * ✅ PERTAHANKAN: CORB Prevention, isPartOf HANYA di WebPage
+ * UPDATE v4.82 (dari v4.81) — CLEANUP FINAL:
+ * ✅ FIX: needYear() — paksa boolean murni (Boolean())
+ * ✅ HAPUS: getColorConfig() — dead code (Canvas sudah dihapus)
+ * ✅ HAPUS: FALLBACK_IMAGE — dead code
+ * ✅ HAPUS: SKIP_WORD_COUNT — dead code di CONFIG
+ * ✅ HAPUS: BATCH_DOM_UPDATES — dead code di CONFIG
+ * ✅ PERTAHANKAN: Semua fitur v4.81 yang sudah baik
  * 
- * ATURAN UPDATE TAHUN v4.80:
- * ─────────────────────────────────────────────────────────
- * SUMBER: AEDMetaDates.dateModified (tahun & bulan)
- * 
- * SYARAT: 
- *   yearTerdeteksi < yearDateModified 
- *   AND 
- *   yearTerdeteksi > 2025
- * 
- * DETEKSI PER LEVEL:
- *   • money-* & variant/sub-variant → HANYA di H1
- *   • pillar, sub-pillar-* → HANYA di konten
- * 
- * JIKA TIDAK ADA TAHUN: JANGAN TAMBAH
- * JIKA TAHUN ≤ 2025: STOP TOTAL
- * 
- * @version 4.80
+ * @version 4.82
  * @date 2026-09-11
  */
 
@@ -45,7 +27,7 @@
       url.includes('github.com') || 
       url.includes('gist.github.com')
     )) {
-      console.warn('[Schema v4.80] 🚫 Blocked external fetch (CORB prevention):', url);
+      console.warn('[Schema v4.82] 🚫 Blocked external fetch (CORB prevention):', url);
       return Promise.reject(new Error('Blocked by CORB prevention'));
     }
     return originalFetch.apply(this, args);
@@ -58,7 +40,7 @@
       url.includes('github.com') || 
       url.includes('gist.github.com')
     )) {
-      console.warn('[Schema v4.80] 🚫 Blocked external XHR (CORB prevention):', url);
+      console.warn('[Schema v4.82] 🚫 Blocked external XHR (CORB prevention):', url);
       throw new Error('Blocked by CORB prevention');
     }
     return originalXHROpen.call(this, method, url, ...rest);
@@ -71,14 +53,12 @@
     MAX_OFFERS: 8,
     MIN_PRICE: 10000,
     MAX_PRICE: 100000000,
-    SKIP_WORD_COUNT: 300,
     PLD_TIMEOUT: 5000,
     AED_TIMEOUT: 10000,
     BREADCRUMB_TIMEOUT: 3000,
     BREADCRUMB_READY_TIMEOUT: 5000,
     MIN_YEAR_TO_UPDATE: 2026,
-    CACHE_DOM_ELEMENTS: true,
-    BATCH_DOM_UPDATES: true
+    CACHE_DOM_ELEMENTS: true
   };
 
   // ============================================================
@@ -141,17 +121,12 @@
 
     wrapText(text, maxCharsPerLine = this.MAX_CHARS_PER_LINE) {
       if (text.length <= maxCharsPerLine) return text;
-
       const words = text.split(' ');
       const lines = [];
       let currentLine = '';
-
       for (const word of words) {
         if (word.length > maxCharsPerLine) {
-          if (currentLine) {
-            lines.push(currentLine);
-            currentLine = '';
-          }
+          if (currentLine) { lines.push(currentLine); currentLine = ''; }
           let remaining = word;
           while (remaining.length > maxCharsPerLine) {
             lines.push(remaining.substring(0, maxCharsPerLine));
@@ -166,13 +141,11 @@
         }
       }
       if (currentLine) lines.push(currentLine);
-
       if (lines.length > this.MAX_LINES) {
         const merged = lines.slice(0, this.MAX_LINES - 1);
         merged.push(lines.slice(this.MAX_LINES - 1).join(' '));
         return merged.join('\n');
       }
-
       return lines.join('\n');
     },
 
@@ -180,19 +153,14 @@
       const fileName = this.LEVEL_FILES[level] || 'pillar';
       const textColor = this.LEVEL_COLORS[level] || 'FFD700';
       const weight = this.BOLD ? '_bold' : '';
-
       let displayText = text;
       if (displayText.length > this.MAX_TEXT_LENGTH) {
         displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
       }
-
       displayText = this.wrapText(displayText);
-
       const longestLine = displayText.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
       const fontSize = this.calculateFontSize(longestLine.length);
-
       const encodedText = encodeURIComponent(displayText);
-
       return `${this.baseUrl}` +
              `e_colorize:100,co_rgb:${textColor},` +
              `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},` +
@@ -202,8 +170,8 @@
     }
   };
 
+  // ✅ v4.82: LOGO_IMAGE saja (FALLBACK_IMAGE dihapus — dead code)
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
-  const FALLBACK_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiWWAP6ezcmzgbGtHmmJqBjYkbsdQBrwCeC9pl9ocjL-VSQYftirdvXAF1T-eg_QMSqu1WiFidDc9fnChi0yaOqi0Dd6EVMy4ZX3P7vccY4XJMu-7k2TGVd5TS1wIG5jgIm_6beYVb2zuNQGS7eBuODJqd20c4ckvd0-HaEqGf4W-B_750I91wi9IhqqnI/s320/No_Image_Available.jpg";
 
   // ============================================================
   // PERFORMANCE MONITORING
@@ -300,10 +268,10 @@
       PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯", TABLE: "📊", 
       H1: "📝", PRIORITY: "🔴", STOP: "🛑", BREADCRUMB: "🍞", AED: "⚡", 
       COMMERCIAL: "🛒", GABUNG: "📚", PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗",
-      PARENT: "👪", PERF: "⏱️", CACHE: "💾", CORB: "🚫"
+      PARENT: "👪", PERF: "⏱️", CACHE: "💾", CORB: "🚫", PRICE: "💰"
     };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.80] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.82] ${msg}`);
   }
 
   // ============================================================
@@ -667,6 +635,9 @@
     return pattern;
   }
 
+  // ============================================================
+  // ✅ v4.82: needYear() — PAKSA BOOLEAN MURNI
+  // ============================================================
   function needYear(level) {
     const bodyNeedYear = document.body.getAttribute('data-need-year');
     if (bodyNeedYear !== null) {
@@ -676,8 +647,9 @@
     }
     
     if (window.V379A && window.V379A.needYear !== undefined) {
-      log(`📅 Need Year dari V37.9-A: ${window.V379A.needYear}`, "YEAR");
-      return window.V379A.needYear;
+      const result = Boolean(window.V379A.needYear);  // ✅ v4.82: paksa boolean
+      log(`📅 Need Year dari V37.9-A: ${result}`, "YEAR");
+      return result;
     }
     
     const h1Pattern = getH1Pattern();
@@ -710,39 +682,43 @@
     return result;
   }
 
-  function shouldSkipProductSchema(pageLevel) {
-    const entityType = document.body.getAttribute('data-entity-type') || getEntityTypeFromPLD();
+  // ============================================================
+  // shouldSkipProductSchema() — PLD-ONLY
+  // ============================================================
+  function shouldSkipProductSchema(pageLevel, entityType) {
+    // Prioritas 1: PLD body attribute
+    const bodySkip = document.body.getAttribute('data-product-schema-skip');
+    if (bodySkip !== null) {
+      const result = bodySkip === 'true';
+      log(`🏗️ Product Schema skip dari PLD: ${result}`, "PRODUCT");
+      return result;
+    }
+    
+    // Prioritas 2: V379A
+    if (window.V379A && window.V379A.productSchemaSkip !== undefined) {
+      const result = Boolean(window.V379A.productSchemaSkip);
+      log(`🏗️ Product Schema skip dari V37.9-A: ${result}`, "PRODUCT");
+      return result;
+    }
+    
+    // Prioritas 3: PLD data-product-schema-type
+    const bodySchemaType = document.body.getAttribute('data-product-schema-type');
+    if (bodySchemaType !== null) {
+      const result = bodySchemaType === 'skip' || bodySchemaType === 'none';
+      log(`🏗️ Product Schema type dari PLD: ${bodySchemaType} → skip=${result}`, "PRODUCT");
+      return result;
+    }
+    
+    // Fallback minimal: berdasarkan entityType saja
     if (entityType) {
-      if (['produk', 'material'].includes(entityType)) {
-        log(`✅ Product Schema: entity "${entityType}" → LANJUT`, "PRODUCT");
-        return false;
-      }
-      if (['jasa', 'sewa'].includes(entityType)) {
-        log(`⏭️ Product Schema SKIP: entity "${entityType}" → bukan produk/material`, "SKIP");
-        return true;
-      }
-      if (['desain', 'artikel'].includes(entityType)) {
-        log(`⏭️ Product Schema SKIP: entity "${entityType}"`, "SKIP");
-        return true;
-      }
+      const skipEntities = ['jasa', 'sewa', 'desain', 'artikel'];
+      const result = skipEntities.includes(entityType.toLowerCase());
+      log(`🏗️ Product Schema skip (fallback entity): ${result} (entity=${entityType})`, "PRODUCT");
+      return result;
     }
     
-    if (['variant', 'sub-variant'].includes(pageLevel)) {
-      log(`✅ Product Schema: level "${pageLevel}" → LANJUT`, "PRODUCT");
-      return false;
-    }
-    if (['money-master', 'money-page', 'money-child'].includes(pageLevel)) {
-      log(`✅ Product Schema: level "${pageLevel}" → LANJUT`, "PRODUCT");
-      return false;
-    }
-    
-    if (['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].includes(pageLevel)) {
-      log(`⏭️ Product Schema SKIP: level "${pageLevel}" → halaman informasi`, "SKIP");
-      return true;
-    }
-    
-    log(`⏭️ Product Schema SKIP: tidak memenuhi kriteria`, "SKIP");
-    return true;
+    log(`🏗️ Product Schema skip: false (default)`, "PRODUCT");
+    return false;
   }
 
   // ============================================================
@@ -822,432 +798,343 @@
   }
 
   // ============================================================
-  // 🔥 FUNGSI PENDUKUNG
+  // FUNGSI PENDUKUNG
   // ============================================================
-
-  function getColorConfig(level, focus) {
-    const isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(level);
-    const isMoneyInfo = isMoneyLevel && focus === 'INFORMASI';
-    const isMoneyHarga = isMoneyLevel && focus === 'HARGA';
-    const isMoneyCommercial = isMoneyLevel && focus === 'COMMERCIAL';
-    const isMoneyGabung = isMoneyLevel && focus === 'GABUNG';
-    
-    const colors = {
-      'pillar': { bg: '#0a2a44', text: '#ffffff', accent: '#25d366' },
-      'sub-pillar-tipe-2': { bg: '#1a237e', text: '#ffffff', accent: '#25d366' },
-      'sub-pillar-tipe-1': { bg: '#004d40', text: '#ffffff', accent: '#25d366' },
-      'money-master-informasi': { bg: '#1a5a8c', text: '#ffffff', accent: '#25d366' },
-      'money-page-informasi': { bg: '#2a6a9c', text: '#ffffff', accent: '#25d366' },
-      'money-child-informasi': { bg: '#3a7aac', text: '#ffffff', accent: '#25d366' },
-      'money-master-harga': { bg: '#0a2a44', text: '#ffffff', accent: '#ffd700' },
-      'money-page-harga': { bg: '#1a5a8c', text: '#ffffff', accent: '#ffd700' },
-      'money-child-harga': { bg: '#bf360c', text: '#ffffff', accent: '#ffd700' },
-      'money-master-commercial': { bg: '#8b0000', text: '#ffffff', accent: '#ffd700' },
-      'money-page-commercial': { bg: '#8b0000', text: '#ffffff', accent: '#ffd700' },
-      'money-child-commercial': { bg: '#8b0000', text: '#ffffff', accent: '#ffd700' },
-      'money-master-gabung': { bg: '#4a148c', text: '#ffffff', accent: '#ffd700' },
-      'money-page-gabung': { bg: '#4a148c', text: '#ffffff', accent: '#ffd700' },
-      'money-child-gabung': { bg: '#4a148c', text: '#ffffff', accent: '#ffd700' },
-      'variant': { bg: '#4a148c', text: '#ffffff', accent: '#25d366' },
-      'sub-variant': { bg: '#4e342e', text: '#ffffff', accent: '#25d366' }
-    };
-    
-    let key = level;
-    if (isMoneyInfo) key = level + '-informasi';
-    else if (isMoneyHarga) key = level + '-harga';
-    else if (isMoneyCommercial) key = level + '-commercial';
-    else if (isMoneyGabung) key = level + '-gabung';
-    
-    return colors[key] || colors['pillar'];
-  }
 
   function getCurrentYear() {
     return new Date().getFullYear();
   }
 
-  function extractAllYears(text) {
-    const matches = text.match(/\b(19|20)\d{2}\b/g);
-    if (!matches) return [];
-    return matches.map(Number).filter(y => y >= 1900 && y <= 2099);
-  }
-
-  function extractYear(text) {
-    const years = extractAllYears(text);
-    return years.length > 0 ? years[0] : null;
-  }
-
   // ============================================================
-  // 🆕 v4.80: HELPER — AMBIL TAHUN & BULAN DARI AEDMetaDates
+  // parsePriceFromText() — cover 150.000, 150rb, 1.5jt, 150000
   // ============================================================
-  function getYearMonthFromAED(aed) {
-    if (!aed || !aed.dateModified) {
-      log(`⚠️ AED tidak tersedia untuk ekstrak tahun/bulan`, "WARN");
-      return null;
+  function parsePriceFromText(text) {
+    if (!text) return null;
+    
+    let clean = String(text).trim();
+    
+    // Handle format singkatan
+    let multiplier = 1;
+    if (/\d\s*(rb|ribu|k)\b/i.test(clean)) {
+      multiplier = 1000;
+      clean = clean.replace(/\s*(rb|ribu|k)\b/gi, '');
+    }
+    if (/\d\s*(jt|juta|m)\b/i.test(clean)) {
+      multiplier = 1000000;
+      clean = clean.replace(/\s*(jt|juta|m)\b/gi, '');
     }
     
-    try {
-      const date = new Date(aed.dateModified);
-      if (isNaN(date.getTime())) {
-        log(`⚠️ AED dateModified tidak valid: ${aed.dateModified}`, "WARN");
-        return null;
+    // Hapus "Rp", "IDR", simbol mata uang, spasi
+    clean = clean.replace(/(Rp\.?|IDR|\$|€|¥|£)/gi, '').trim();
+    clean = clean.replace(/\s+/g, '');
+    
+    // Handle format Indonesia
+    if (clean.includes('.') && clean.includes(',')) {
+      clean = clean.replace(/\./g, '').replace(',', '.');
+    } else if (clean.includes('.')) {
+      const parts = clean.split('.');
+      if (parts[parts.length - 1].length === 3) {
+        clean = clean.replace(/\./g, '');
       }
-      
-      const monthNames = [
-        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-      ];
-      
-      const result = {
-        year: date.getFullYear(),
-        month: date.getMonth(),
-        monthName: monthNames[date.getMonth()],
-        dateText: `${monthNames[date.getMonth()]} ${date.getFullYear()}`,
-        isoDate: aed.dateModified
-      };
-      
-      log(`📅 AED Date Parsed: ${result.dateText} (year: ${result.year})`, "AED");
-      return result;
-    } catch(e) {
-      log(`❌ Error parsing AED date: ${e.message}`, "ERROR");
-      return null;
-    }
-  }
-
-  // ============================================================
-  // 🆕 v4.80: UPDATE TAHUN H1 (LEVEL YANG BUTUH TAHUN DI H1)
-  // 🔥 SYARAT: yearTerdeteksi < yearDateModified AND yearTerdeteksi > 2025
-  // 🔥 JIKA TIDAK ADA TAHUN: JANGAN TAMBAH
-  // ============================================================
-  function updateH1YearByAED(pageLevel, aed) {
-    perf.start('updateH1YearByAED');
-    
-    if (!needYear(pageLevel)) {
-      log(`⏭️ Level "${pageLevel}" TIDAK butuh tahun di H1`, "YEAR");
-      perf.end('updateH1YearByAED');
-      return { updated: false, reason: 'level-no-year' };
-    }
-    
-    const h1 = domCache ? domCache.get('h1') : document.querySelector('h1');
-    if (!h1) {
-      log(`⚠️ Tidak ada H1 ditemukan`, "WARN");
-      perf.end('updateH1YearByAED');
-      return { updated: false, reason: 'no-h1' };
-    }
-    
-    const aedData = getYearMonthFromAED(aed);
-    if (!aedData) {
-      log(`⚠️ AED date tidak valid, skip update H1`, "WARN");
-      perf.end('updateH1YearByAED');
-      return { updated: false, reason: 'no-aed' };
-    }
-    
-    const originalText = h1.innerText;
-    const detectedYear = extractYear(originalText);
-    
-    // RULE 1: Tidak ada tahun → JANGAN TAMBAH
-    if (!detectedYear) {
-      log(`⏭️ H1 tidak ada tahun — JANGAN TAMBAH`, "YEAR");
-      perf.end('updateH1YearByAED');
-      return { updated: false, reason: 'no-year-in-h1' };
-    }
-    
-    // RULE 2: Tahun ≤ 2025 → STOP
-    if (detectedYear <= 2025) {
-      log(`🛑 STOP: H1 tahun ${detectedYear} ≤ 2025`, "STOP");
-      perf.end('updateH1YearByAED');
-      return { updated: false, reason: 'year-too-old' };
-    }
-    
-    // RULE 3: Tahun >= yearAED → tidak perlu update
-    if (detectedYear >= aedData.year) {
-      log(`✅ H1 tahun ${detectedYear} >= AED year ${aedData.year}`, "YEAR");
-      perf.end('updateH1YearByAED');
-      return { updated: false, reason: 'year-already-current' };
-    }
-    
-    // RULE 4: Update tahun
-    const newText = originalText.replace(/\b(19|20)\d{2}\b/, aedData.year);
-    
-    if (newText !== originalText) {
-      h1.innerText = newText;
-      if (domCache) domCache.invalidate('h1');
-      log(`✅ H1: Tahun diupdate ${detectedYear} → ${aedData.year}`, "YEAR");
-      log(`   📝 "${originalText}" → "${newText}"`, "H1");
-      perf.end('updateH1YearByAED');
-      return { updated: true, from: detectedYear, to: aedData.year };
-    }
-    
-    perf.end('updateH1YearByAED');
-    return { updated: false, reason: 'no-change' };
-  }
-
-  // ============================================================
-  // 🔥 v4.80: UPDATE TAHUN DI KONTEN (DIPERTAHANKAN + DIPERBAIKI)
-  // 🔥 SYARAT: yearTerdeteksi < yearDateModified AND yearTerdeteksi > 2025
-  // ============================================================
-  function updateContentYears(aed) {
-    perf.start('updateContentYears');
-    log(`📅 UPDATE TAHUN DI KONTEN (AED BASED)`, "YEAR");
-    
-    const aedData = getYearMonthFromAED(aed);
-    if (!aedData) {
-      log(`⚠️ AED date tidak valid, skip update konten`, "WARN");
-      perf.end('updateContentYears');
-      return { updated: false, count: 0 };
-    }
-    
-    const currentYear = aedData.year;
-    let updatedCount = 0;
-
-    const bodyElements = domCache 
-      ? domCache.getAll('p, h2, h3, h4, li, td, th, figcaption, .post-body, .entry-content')
-      : document.querySelectorAll('p, h2, h3, h4, li, td, th, figcaption, .post-body, .entry-content');
-
-    bodyElements.forEach(el => {
-      // Skip H1 (H1 ditangani terpisah)
-      if (el.tagName === 'H1') return;
-      
-      const text = el.innerText;
-      if (!text) return;
-      
-      // Cari semua tahun di text
-      const yearMatches = text.match(/\b(19|20)\d{2}\b/g);
-      if (!yearMatches) return;
-      
-      // Cek apakah ada tahun yang perlu diupdate
-      let shouldUpdate = false;
-      let newText = text;
-      
-      for (const yStr of yearMatches) {
-        const y = parseInt(yStr);
-        
-        // RULE: Skip jika ≤ 2025
-        if (y <= 2025) continue;
-        
-        // RULE: Update hanya jika y < yearAED
-        if (y < currentYear) {
-          shouldUpdate = true;
-          // Ganti tahun ini ke currentYear
-          newText = newText.replace(new RegExp(`\\b${yStr}\\b`, 'g'), String(currentYear));
-        }
-      }
-      
-      if (shouldUpdate && newText !== text) {
-        el.innerText = newText;
-        updatedCount++;
-        log(`✅ Konten diupdate: "${text.substring(0, 50)}..." → "${newText.substring(0, 50)}..."`, "YEAR");
-      }
-    });
-
-    // Update meta description
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) {
-      const content = metaDesc.getAttribute('content');
-      if (content) {
-        const yearMatches = content.match(/\b(19|20)\d{2}\b/g);
-        if (yearMatches) {
-          let newContent = content;
-          let shouldUpdate = false;
-          for (const yStr of yearMatches) {
-            const y = parseInt(yStr);
-            if (y <= 2025) continue;
-            if (y < currentYear) {
-              shouldUpdate = true;
-              newContent = newContent.replace(new RegExp(`\\b${yStr}\\b`, 'g'), String(currentYear));
-            }
-          }
-          if (shouldUpdate && newContent !== content) {
-            metaDesc.setAttribute('content', newContent);
-            updatedCount++;
-            log(`✅ Meta description diupdate`, "YEAR");
-          }
-        }
+    } else if (clean.includes(',')) {
+      const parts = clean.split(',');
+      if (parts[parts.length - 1].length === 3) {
+        clean = clean.replace(/,/g, '');
+      } else {
+        clean = clean.replace(',', '.');
       }
     }
-
-    // Update schema scripts (selain script auto-schema-product kita)
-    const schemaScripts = document.querySelectorAll('script[type="application/ld+json"]');
-    schemaScripts.forEach(script => {
-      try {
-        let content = script.textContent;
-        if (!content) return;
-        
-        const yearMatches = content.match(/\b(19|20)\d{2}\b/g);
-        if (!yearMatches) return;
-        
-        let newContent = content;
-        let shouldUpdate = false;
-        for (const yStr of yearMatches) {
-          const y = parseInt(yStr);
-          if (y <= 2025) continue;
-          if (y < currentYear) {
-            shouldUpdate = true;
-            newContent = newContent.replace(new RegExp(`\\b${yStr}\\b`, 'g'), String(currentYear));
-          }
-        }
-        
-        if (shouldUpdate && newContent !== content) {
-          script.textContent = newContent;
-          updatedCount++;
-        }
-      } catch(e) {}
-    });
-
-    if (updatedCount > 0) {
-      log(`✅ ${updatedCount} elemen konten diupdate ke tahun ${currentYear}`, "YEAR");
-    } else {
-      log(`⏭️ Tidak ada elemen konten yang perlu diupdate`, "YEAR");
-    }
-
-    perf.end('updateContentYears');
-    return { updated: updatedCount > 0, count: updatedCount };
+    
+    const match = clean.match(/[\d.]+/);
+    if (!match) return null;
+    
+    let value = parseFloat(match[0]);
+    if (isNaN(value)) return null;
+    
+    value *= multiplier;
+    if (value < CONFIG.MIN_PRICE || value > CONFIG.MAX_PRICE) return null;
+    
+    return Math.round(value);
   }
 
   // ============================================================
-  // 🔥 v4.80: UPDATE BULAN & TAHUN KONTEN (AED BASED) — DIPERTAHANKAN
-  // 🔥 SYARAT: yearTerdeteksi < yearDateModified AND yearTerdeteksi > 2025
+  // isNotPrice() — filter ketat 12 aturan
   // ============================================================
-  function updateContentDateReferences(aed, pageLevel) {
-    perf.start('updateContentDateReferences');
-    log(`📅 UPDATE BULAN & TAHUN DI KONTEN (AED BASED)`, "YEAR");
+  function isNotPrice(text, value) {
+    if (value < CONFIG.MIN_PRICE || value > CONFIG.MAX_PRICE) return true;
     
-    const moneyLevels = ['money-master', 'money-page', 'money-child'];
-    if (!moneyLevels.includes(pageLevel)) {
-      log(`⏭️ Skip update konten: Level ${pageLevel} tidak butuh update`, "YEAR");
-      perf.end('updateContentDateReferences');
-      return { updated: false, count: 0 };
+    if (value >= 1900 && value <= 2099) {
+      if (!/(harga|biaya|tarif|price|cost)/i.test(text)) return true;
     }
-
-    const aedData = getYearMonthFromAED(aed);
-    if (!aedData) {
-      log(`⚠️ AED tidak valid, skip update konten`, "WARN");
-      perf.end('updateContentDateReferences');
-      return { updated: false, count: 0 };
-    }
-
-    const currentYear = aedData.year;
-    const newDateText = aedData.dateText; // "September 2026"
-    const monthNames = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-    ];
     
-    // STOP jika currentYear < 2026
-    if (currentYear < 2026) {
-      log(`🛑 STOP: Tahun AED ${currentYear} < 2026`, "STOP");
-      perf.end('updateContentDateReferences');
-      return { updated: false, count: 0 };
+    const cleanText = text.replace(/[\s\-\.]/g, '');
+    if (/^(\+?62|0)\d{8,12}$/.test(cleanText)) return true;
+    if (/^\d{5}$/.test(text.trim())) return true;
+    if (/^\d{16}$/.test(text.trim())) return true;
+    if (/^\d{10,16}$/.test(text.trim()) && !/(harga|biaya|tarif|price)/i.test(text)) return true;
+    
+    if (/\d+\s*(cm|mm|m|kg|ton|gr|gram|liter|ml|%|unit|buah|lembar|pcs|box|dus|rim)\b/i.test(text)) {
+      if (!/(harga|biaya|tarif|price|cost|rp)/i.test(text)) return true;
     }
+    
+    if (/\d+\s*[x×]\s*\d+/.test(text)) {
+      if (!/(harga|biaya|tarif|price)/i.test(text)) return true;
+    }
+    
+    if (/\d[\d.,]*\s*(proyek|klien|pelanggan|orang|karyawan|tahun|bulan|hari)\b/i.test(text)) {
+      if (!/(harga|biaya|tarif|price|cost|rp)/i.test(text)) return true;
+    }
+    
+    if (/\d[\d.,]*\s*%/i.test(text)) return true;
+    if (/20\d{2}\s*[-–]\s*20\d{2}/.test(text)) return true;
+    if (/\d{1,4}[\/\-]\d{1,2}[\/\-]\d{1,4}/.test(text)) return true;
+    
+    return false;
+  }
 
-    let updated = 0;
+  // ============================================================
+  // DETEKSI HARGA BERLAPIS (4 LAYER)
+  // ============================================================
+  const MONEY_LEVELS = ['money-master', 'money-page', 'money-child'];
+
+  function detectPriceLayered(pageLevel) {
+    perf.start('detectPriceLayered');
+    
+    if (!MONEY_LEVELS.includes(pageLevel)) {
+      log(`⏭️ Deteksi harga SKIP: level "${pageLevel}" bukan money level`, "PRICE");
+      perf.end('detectPriceLayered');
+      return { hasPrice: false, source: null, value: null, offers: [], reason: 'not-money-level' };
+    }
+    
+    log(`💰 DETEKSI HARGA BERLAPIS untuk level: ${pageLevel}`, "PRICE");
+    
+    const container = document.querySelector('article, main, .post-body, .entry-content') || document.body;
+    
+    // LAYER 1: Tabel dengan Header "Harga"
+    log(`  🔍 Layer 1: Tabel header "Harga"...`, "PRICE");
+    const layer1Result = detectPriceFromTableHeader(container);
+    if (layer1Result.hasPrice) {
+      log(`  ✅ Layer 1 BERHASIL: ${layer1Result.offers.length} offers`, "PRICE");
+      perf.end('detectPriceLayered');
+      return { ...layer1Result, layer: 1 };
+    }
+    log(`  ⏭️ Layer 1: tidak ketemu`, "PRICE");
+    
+    // LAYER 2: Elemen .price / [itemprop="price"]
+    log(`  🔍 Layer 2: Elemen .price / [itemprop="price"]...`, "PRICE");
+    const layer2Result = detectPriceFromElements(container);
+    if (layer2Result.hasPrice) {
+      log(`  ✅ Layer 2 BERHASIL`, "PRICE");
+      perf.end('detectPriceLayered');
+      return { ...layer2Result, layer: 2 };
+    }
+    log(`  ⏭️ Layer 2: tidak ketemu`, "PRICE");
+    
+    // LAYER 3: Elemen dengan kata kunci "harga"
+    log(`  🔍 Layer 3: Elemen dengan kata kunci harga...`, "PRICE");
+    const layer3Result = detectPriceFromKeywordElements(container);
+    if (layer3Result.hasPrice) {
+      log(`  ✅ Layer 3 BERHASIL`, "PRICE");
+      perf.end('detectPriceLayered');
+      return { ...layer3Result, layer: 3 };
+    }
+    log(`  ⏭️ Layer 3: tidak ketemu`, "PRICE");
+    
+    // LAYER 4: Regex longgar HANYA dengan konteks
+    log(`  🔍 Layer 4: Regex longgar dengan konteks...`, "PRICE");
+    const layer4Result = detectPriceFromLooseRegex(container);
+    if (layer4Result.hasPrice) {
+      log(`  ✅ Layer 4 BERHASIL`, "PRICE");
+      perf.end('detectPriceLayered');
+      return { ...layer4Result, layer: 4 };
+    }
+    log(`  ⏭️ Layer 4: tidak ketemu`, "PRICE");
+    
+    log(`  ❌ Semua layer gagal — tidak ada harga`, "PRICE");
+    perf.end('detectPriceLayered');
+    return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-price-found' };
+  }
+
+  // ── Layer 1: Tabel Header "Harga" ─────────────────────────
+  function detectPriceFromTableHeader(container) {
+    const offers = [];
+    const tables = container.querySelectorAll('table');
+    
+    for (const table of tables) {
+      const headers = Array.from(table.querySelectorAll('th')).map(th => th.innerText.toLowerCase().trim());
+      const priceColIndex = headers.findIndex(h => /harga|biaya|tarif|price|cost|rate/i.test(h));
+      const productColIndex = headers.findIndex(h => /produk|item|jenis|nama|layanan|jasa|barang|material|tipe|varian/i.test(h));
+      
+      if (priceColIndex === -1) continue;
+      
+      const rows = table.querySelectorAll('tbody tr, tr');
+      for (const row of rows) {
+        const cells = row.querySelectorAll('td');
+        if (cells.length <= priceColIndex) continue;
+        
+        const priceText = cells[priceColIndex].innerText.trim();
+        const productText = productColIndex !== -1 && cells[productColIndex] 
+          ? cells[productColIndex].innerText.trim() 
+          : cells[0].innerText.trim();
+        
+        const price = parsePriceFromText(priceText);
+        if (!price) continue;
+        if (isNotPrice(priceText, price)) continue;
+        if (!productText || productText.length < 3 || productText.length > 100) continue;
+        
+        offers.push({ name: productText, price: price, description: productText });
+        if (offers.length >= CONFIG.MAX_OFFERS) break;
+      }
+      
+      if (offers.length > 0) break;
+    }
+    
+    if (offers.length > 0) {
+      return { hasPrice: true, source: 'table-header', value: offers[0].price, offers: offers };
+    }
+    return { hasPrice: false, source: null, value: null, offers: [] };
+  }
+
+  // ── Layer 2: Elemen .price / [itemprop="price"] ───────────
+  function detectPriceFromElements(container) {
     const selectors = [
-      '.update-badge', '.update-badge-class', '[class*="update-badge"]',
-      '.last-updated', '.updated-date', '.date-modified',
-      '.post-date', '.article-date', '.publish-date',
-      'time[datetime]', 'time',
-      '.post-meta', '.entry-meta', '.article-meta',
-      '.breadcrumb + p', '.toc + p', 'h1 + p'
+      '[itemprop="price"]', '.price', '.harga', '.biaya', '.tarif',
+      '[data-price]', '.price-item', '.price-value', '.amount', '.cost'
     ];
+    
+    const priceEls = container.querySelectorAll(selectors.join(', '));
+    for (const el of priceEls) {
+      const text = el.innerText.trim();
+      const price = parsePriceFromText(text);
+      if (!price) continue;
+      if (isNotPrice(text, price)) continue;
+      
+      let productName = '';
+      const parent = el.closest('li, tr, .product, .item, article, section');
+      if (parent) {
+        const h = parent.querySelector('h2, h3, h4, .title, .name, .product-name');
+        if (h) productName = h.innerText.trim();
+      }
+      if (!productName) {
+        const prev = el.previousElementSibling;
+        if (prev) productName = prev.innerText.trim().substring(0, 100);
+      }
+      if (!productName) productName = 'Produk';
+      
+      return {
+        hasPrice: true,
+        source: 'element',
+        value: price,
+        offers: [{ name: productName, price: price, description: productName }]
+      };
+    }
+    return { hasPrice: false, source: null, value: null, offers: [] };
+  }
 
-    for (const selector of selectors) {
-      let elements = [];
-      try {
-        elements = domCache ? domCache.getAll(selector) : document.querySelectorAll(selector);
-      } catch(e) { continue; }
+  // ── Layer 3: Elemen dengan kata kunci "harga" ─────────────
+  function detectPriceFromKeywordElements(container) {
+    const keywordRegex = /(harga|biaya|tarif|price|cost|rate|mulai dari|per\s+(m|m²|m2|unit|buah|lembar|meter))/i;
+    const candidates = container.querySelectorAll('p, div, span, li, td, strong, b, em');
+    
+    for (const el of candidates) {
+      const text = el.innerText || '';
+      if (!text || text.length > 500) continue;
+      if (!keywordRegex.test(text)) continue;
+      
+      const price = parsePriceFromText(text);
+      if (!price) continue;
+      if (isNotPrice(text, price)) continue;
+      
+      let productName = text.replace(/Rp\.?\s*[\d.,]+\s*(rb|ribu|k|jt|juta)?/gi, '').trim();
+      productName = productName.replace(/^(harga|biaya|tarif)\s*:?\s*/i, '').trim();
+      if (productName.length > 100) productName = productName.substring(0, 100);
+      if (productName.length < 3) productName = 'Produk';
+      
+      return {
+        hasPrice: true,
+        source: 'keyword',
+        value: price,
+        offers: [{ name: productName, price: price, description: productName }]
+      };
+    }
+    return { hasPrice: false, source: null, value: null, offers: [] };
+  }
 
-      for (const el of elements) {
-        // Skip H1
-        if (el.tagName === 'H1') continue;
-        
-        const textNodes = [];
-        const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
-        let node;
-        while (node = walker.nextNode()) {
-          textNodes.push(node);
+  // ── Layer 4: Regex Longgar HANYA dengan Konteks ───────────
+  function detectPriceFromLooseRegex(container) {
+    const keywordRegex = /(harga|biaya|tarif|price|cost|rate|mulai dari|per\s+(m|m²|m2|unit|buah|lembar|meter))/i;
+    
+    const contextEls = [];
+    const allEls = container.querySelectorAll('p, div, span, li, td, th, strong, b, em');
+    for (const el of allEls) {
+      const text = el.innerText || '';
+      if (!text || text.length > 500) continue;
+      if (keywordRegex.test(text)) contextEls.push(el);
+    }
+    
+    if (contextEls.length === 0) {
+      return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-context' };
+    }
+    
+    for (const el of contextEls) {
+      const text = el.innerText;
+      
+      const rpMatches = text.match(/Rp\.?\s*([\d.,]+)/gi);
+      if (rpMatches) {
+        for (const m of rpMatches) {
+          const price = parsePriceFromText(m);
+          if (price && !isNotPrice(text, price)) {
+            let name = text.replace(/Rp\.?\s*[\d.,]+\s*(rb|ribu|k|jt|juta)?/gi, '').replace(/^(harga|biaya|tarif)\s*:?\s*/i, '').trim();
+            if (name.length > 100) name = name.substring(0, 100);
+            if (name.length < 3) name = 'Produk';
+            return { hasPrice: true, source: 'regex-rp', value: price, offers: [{ name, price, description: name }] };
+          }
         }
-        
-        for (const textNode of textNodes) {
-          const oldText = textNode.textContent || '';
-          
-          const yearMatches = oldText.match(/\b(19|20)\d{2}\b/g);
-          if (!yearMatches || yearMatches.length === 0) continue;
-          
-          // Cek apakah ada tahun yang perlu diupdate
-          let shouldUpdate = false;
-          for (const yStr of yearMatches) {
-            const y = parseInt(yStr);
-            if (y <= 2025) continue;
-            if (y < currentYear) {
-              shouldUpdate = true;
-              break;
-            }
+      }
+      
+      const unitMatches = text.match(/([\d.,]+)\s*(rb|ribu|k|jt|juta)\b/gi);
+      if (unitMatches) {
+        for (const m of unitMatches) {
+          const price = parsePriceFromText(m);
+          if (price && !isNotPrice(text, price)) {
+            let name = text.replace(/([\d.,]+)\s*(rb|ribu|k|jt|juta)/gi, '').replace(/^(harga|biaya|tarif)\s*:?\s*/i, '').trim();
+            if (name.length > 100) name = name.substring(0, 100);
+            if (name.length < 3) name = 'Produk';
+            return { hasPrice: true, source: 'regex-unit', value: price, offers: [{ name, price, description: name }] };
           }
-          
-          if (!shouldUpdate) continue;
-          
-          // Build new text
-          let newText = oldText;
-          
-          // Pattern 1: "Bulan Tahun" → "September 2026"
-          newText = newText.replace(
-            /(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi,
-            (match, month, year) => {
-              const y = parseInt(year);
-              if (y > 2025 && y < currentYear) {
-                return newDateText;
-              }
-              return match;
-            }
-          );
-          
-          // Pattern 2: ISO "2025-01-15"
-          newText = newText.replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
-            const yearNum = parseInt(y);
-            if (yearNum > 2025 && yearNum < currentYear) {
-              const monthName = monthNames[parseInt(m) - 1] || m;
-              return `${parseInt(d)} ${monthName} ${currentYear}`;
-            }
-            return match;
-          });
-          
-          // Pattern 3: DD/MM/YYYY
-          newText = newText.replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
-            const yearNum = parseInt(y);
-            if (yearNum > 2025 && yearNum < currentYear) {
-              const monthName = monthNames[parseInt(m) - 1] || m;
-              return `${parseInt(d)} ${monthName} ${currentYear}`;
-            }
-            return match;
-          });
-          
-          // Pattern 4: Tahun saja (jika tidak ada bulan)
-          if (newText === oldText) {
-            newText = oldText.replace(/\b(19|20)\d{2}\b/g, (match) => {
-              const y = parseInt(match);
-              if (y > 2025 && y < currentYear) {
-                return String(currentYear);
-              }
-              return match;
-            });
+        }
+      }
+      
+      const thousandMatches = text.match(/\b\d{1,3}(?:[.,]\d{3})+\b/g);
+      if (thousandMatches) {
+        for (const m of thousandMatches) {
+          const price = parsePriceFromText(m);
+          if (price && !isNotPrice(text, price)) {
+            let name = text.replace(/\b\d{1,3}(?:[.,]\d{3})+\b/g, '').replace(/^(harga|biaya|tarif)\s*:?\s*/i, '').trim();
+            if (name.length > 100) name = name.substring(0, 100);
+            if (name.length < 3) name = 'Produk';
+            return { hasPrice: true, source: 'regex-thousand', value: price, offers: [{ name, price, description: name }] };
           }
-          
-          if (newText !== oldText) {
-            textNode.textContent = newText;
-            updated++;
-            log(`✅ Update teks: "${oldText.substring(0, 50)}..." → "${newText.substring(0, 50)}..."`, "YEAR");
+        }
+      }
+      
+      if (/per\s+(m|m²|m2|unit|buah|lembar|meter)/i.test(text)) {
+        const plainMatches = text.match(/\b(\d{4,8})\b/g);
+        if (plainMatches) {
+          for (const m of plainMatches) {
+            const price = parsePriceFromText(m);
+            if (price && !isNotPrice(text, price)) {
+              let name = text.replace(/\b\d{4,8}\b/g, '').replace(/^(harga|biaya|tarif)\s*:?\s*/i, '').trim();
+              if (name.length > 100) name = name.substring(0, 100);
+              if (name.length < 3) name = 'Produk';
+              return { hasPrice: true, source: 'regex-plain', value: price, offers: [{ name, price, description: name }] };
+            }
           }
         }
       }
     }
-
-    if (updated === 0) {
-      log(`⏭️ Tidak ada teks tanggal yang perlu diupdate`, "YEAR");
-    } else {
-      log(`✅ ${updated} text node diupdate ke: ${newDateText}`, "SUCCESS");
-    }
-
-    perf.end('updateContentDateReferences');
-    return { updated: updated > 0, count: updated };
+    
+    return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-valid-price' };
   }
 
   // ============================================================
@@ -1344,7 +1231,7 @@
     img.style.padding = '0 10px';
     img.style.boxSizing = 'border-box';
 
-    const styleId = 'responsive-image-style-v480';
+    const styleId = 'responsive-image-style-v482';
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
@@ -1572,15 +1459,6 @@
     return text.replace(/[\t\n\r]+/g, ' ').replace(/\s{2,}/g, ' ').trim().substring(0, 100);
   }
 
-  function extractPrice(text) {
-    if (!text) return null;
-    const match = text.match(/Rp\s*([\d.,]+)/);
-    if (!match) return null;
-    const price = parseInt(match[1].replace(/[^\d]/g, ''));
-    if (isNaN(price)) return null;
-    return price;
-  }
-
   function getAreaServed() {
     const areaProv = {
       "DKI Jakarta": "DKI Jakarta",
@@ -1617,35 +1495,16 @@
   }
 
   function detectProductCategory() {
+    // Prioritas 1: PLD
     const bodyCategory = document.body.getAttribute('data-product-category');
     if (bodyCategory) return bodyCategory;
     
-    const subType = document.body.getAttribute('data-entity-sub-type') || getEntitySubType();
-    if (subType) {
-      const mapping = {
-        'pagar-panel-beton': 'PrecastProduct',
-        'besi-beton': 'SteelProduct',
-        'baja-ringan': 'SteelProduct',
-        'paving': 'PavingProduct',
-        'paving-block': 'PavingProduct',
-        'kanopi': 'PrecastProduct',
-        'batako': 'BuildingMaterial',
-        'genteng': 'BuildingMaterial',
-        'semen': 'BuildingMaterial',
-        'pasir': 'BuildingMaterial',
-        'kayu': 'BuildingMaterial',
-        'wpc': 'BuildingMaterial',
-        'grc': 'BuildingMaterial',
-        'hpl': 'BuildingMaterial',
-        'pvc': 'BuildingMaterial',
-        'acp': 'BuildingMaterial'
-      };
-      if (mapping[subType]) {
-        log(`📂 Product Category dari sub-type "${subType}": ${mapping[subType]}`, "PRODUCT");
-        return mapping[subType];
-      }
+    // Prioritas 2: V379A
+    if (window.V379A && window.V379A.productCategory) {
+      return window.V379A.productCategory;
     }
     
+    // Prioritas 3: Default berdasarkan entity type
     const entityType = document.body.getAttribute('data-entity-type') || getEntityTypeFromPLD();
     if (entityType === 'material') return 'BuildingMaterial';
     if (entityType === 'produk') return 'PrecastProduct';
@@ -1670,12 +1529,6 @@
     return { "@type": "ProductVariant", ...spec };
   }
 
-  // ============================================================
-  // OFFER PARSING
-  // ============================================================
-  const seenItems = new Set();
-  const offers = [];
-
   function getAEDPriceValidUntil() {
     const aed = window.AEDMetaDates;
     if (aed && aed.nextUpdate) {
@@ -1684,131 +1537,16 @@
     return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
   }
 
-  function addOffer(name, price) {
-    if (!price || price <= 0) return;
-    if (price < CONFIG.MIN_PRICE || price > CONFIG.MAX_PRICE) return;
-    if (offers.length >= CONFIG.MAX_OFFERS) return;
-    let cleanName = sanitizeText(name);
-    if (!cleanName || cleanName.length < 3) return;
-    const skipKeywords = ["estimasi", "per meter", "hubungi", "call", "whatsapp", "konsultasi", "mulai dari"];
-    if (skipKeywords.some(kw => cleanName.toLowerCase().includes(kw))) return;
-    const key = cleanName + "|" + price;
-    if (seenItems.has(key)) return;
-    seenItems.add(key);
-    
-    const priceValidUntil = getAEDPriceValidUntil();
-    
-    offers.push({
-      "@type": "Offer",
-      name: cleanName,
-      url: location.href,
-      priceCurrency: "IDR",
-      price: price,
-      priceValidUntil: priceValidUntil,
-      availability: "https://schema.org/InStock",
-      itemCondition: "https://schema.org/NewCondition",
-      seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" }
-    });
-  }
-
-  function parseTableOffers() {
-    const tableSelectors = ['section table', '.product-table', '.price-table', '.harga-table', 'table'];
-    let found = false;
-    for (const selector of tableSelectors) {
-      const tables = domCache ? domCache.getAll(selector) : document.querySelectorAll(selector);
-      if (tables.length === 0) continue;
-      for (const table of tables) {
-        const rows = table.querySelectorAll('tr');
-        for (const row of rows) {
-          const cells = row.querySelectorAll('td');
-          if (cells.length >= 2) {
-            const productCell = cells[0].innerText.trim();
-            const priceCell = cells[1].innerText;
-            if (productCell.toLowerCase().includes('produk') || productCell.toLowerCase().includes('jenis') || priceCell.toLowerCase().includes('harga')) continue;
-            const price = extractPrice(priceCell);
-            if (price && productCell && productCell.length > 0 && productCell.length < 150) {
-              const isEstimasi = productCell.toLowerCase().includes('estimasi') || priceCell.toLowerCase().includes('estimasi');
-              if (!isEstimasi) { addOffer(productCell, price); found = true; }
-            }
-          }
-        }
-      }
-      if (found) break;
-    }
-    return found;
-  }
-
-  function parseVariantOffers() {
-    const content = domCache 
-      ? domCache.get(".post-body.entry-content") || domCache.get(".post-body") || domCache.get("article") || domCache.get("main")
-      : document.querySelector(".post-body.entry-content, .post-body, article, main");
-    if (!content) return false;
-    const text = content.innerText;
-    
-    const variantPatterns = [
-      /(tinggi|ukuran|dimensi)\s*([\d.]+)\s*(meter|m|cm)\s*(?:Rp\s*([\d.,]+))/gi,
-      /(panel|pagar)\s*(polosan|motif|custom)\s*(?:Rp\s*([\d.,]+))/gi,
-      /(tipe|varian)\s*([a-zA-Z0-9\s]+?)\s*(?:Rp\s*([\d.,]+))/gi,
-      /(harga|biaya)\s*([a-zA-Z0-9\s]+?)\s*(?:Rp\s*([\d.,]+))/gi,
-      /Rp\s*([\d.,]+)\s*(?:per\s*(meter|lembar|buah|unit))/gi
-    ];
-    
-    let found = false;
-    for (const pattern of variantPatterns) {
-      try {
-        const matches = text.matchAll(pattern);
-        for (const match of matches) {
-          const name = match[0].split("Rp")[0]?.trim() || match[0].substring(0, 50);
-          const price = extractPrice(match[0]);
-          if (price && price > CONFIG.MIN_PRICE && price < CONFIG.MAX_PRICE) {
-            addOffer(name, price);
-            found = true;
-          }
-        }
-      } catch(e) {
-        const matches = text.match(pattern);
-        if (matches) {
-          for (const match of matches) {
-            const name = match.split("Rp")[0]?.trim() || match.substring(0, 50);
-            const price = extractPrice(match);
-            if (price && price > CONFIG.MIN_PRICE && price < CONFIG.MAX_PRICE) {
-              addOffer(name, price);
-              found = true;
-            }
-          }
-        }
-      }
-    }
-    return found;
-  }
-
-  function parseListOffers() {
-    const elements = domCache ? domCache.getAll("li, p, .price-item, .product-item") : document.querySelectorAll("li, p, .price-item, .product-item");
-    const tempOffers = [];
-    for (const el of elements) {
-      const text = el.innerText;
-      const price = extractPrice(text);
-      if (price && price > CONFIG.MIN_PRICE && price < CONFIG.MAX_PRICE) {
-        let productText = text.replace(/Rp\s*[\d.,]+/g, '').trim();
-        if (productText.length > 0 && productText.length < 150) tempOffers.push({ name: productText, price: price });
-      }
-    }
-    const seen = new Set();
-    for (const offer of tempOffers) {
-      const key = offer.name + "|" + offer.price;
-      if (!seen.has(key) && offers.length < 5) { seen.add(key); addOffer(offer.name, offer.price); }
-    }
-  }
-
   // ============================================================
-  // 🚀 MAIN FUNCTION v4.80
+  // 🚀 MAIN FUNCTION v4.82
   // ============================================================
   async function init() {
     perf.start('init');
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.80 — FINAL", "INFO");
-    log("Update Tahun: HANYA jika yearTerdeteksi < yearAED AND yearTerdeteksi > 2025", "INFO");
-    log("Deteksi per Level: H1 vs Konten", "INFO");
+    log("AutoSchema Hybrid v4.82 — CLEANUP FINAL", "INFO");
+    log("Tanpa Duplikasi Update H1 & Konten (di-handle Smart Evergreen)", "INFO");
+    log("Deteksi Harga Berlapis (4 Layer) untuk Money Level", "INFO");
+    log("Dead Code Cleanup + needYear() Boolean Fix", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
     // STEP 1: TUNGGU BREADCRUMB SIAP
@@ -1825,13 +1563,14 @@
     log("⏳ Menunggu PLD...", "PLD");
     await waitForPLD();
     
-    // STEP 3: TUNGGU AEDMetaDates
+    // STEP 3: TUNGGU AEDMetaDates (dari Smart Evergreen)
     log("⏳ Menunggu AEDMetaDates...", "AED");
     const aed = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     
     if (aed) {
       log(`✅ AED ready: ${aed.dateModified}`, "AED");
       log(`   📅 nextUpdate: ${aed.nextUpdate}`, "AED");
+      log(`   📅 type: ${aed.type}`, "AED");
     } else {
       log(`⚠️ AED tidak tersedia, gunakan fallback`, "WARN");
     }
@@ -1857,33 +1596,30 @@
     log(`📌 Schema Type: ${schemaType ? schemaType.primary + ' + ' + schemaType.secondary : 'N/A'}`, "SCHEMA");
     log(`📌 H1 Pattern: ${h1Pattern}`, "PLD");
 
-    // =========================================================
-    // STEP 5: UPDATE TAHUN — BERDASARKAN PAGE LEVEL
-    // =========================================================
-    log("═══════════════════════════════════════════════════", "INFO");
-    log("📅 UPDATE TAHUN BERDASARKAN AEDMetaDates.dateModified", "YEAR");
-    log("═══════════════════════════════════════════════════", "INFO");
-    
-    let h1UpdateResult = { updated: false, reason: 'not-attempted' };
-    let contentUpdateResult = { updated: false, count: 0 };
-    let contentDateResult = { updated: false, count: 0 };
-    
-    const levelNeedsH1Year = needYear(pageLevel);
-    
-    if (levelNeedsH1Year) {
-      // Level money-* & variant/sub-variant → update H1 saja
-      log(`📝 Level "${pageLevel}" BUTUH tahun di H1 → update H1`, "YEAR");
-      h1UpdateResult = updateH1YearByAED(pageLevel, aed);
-    } else {
-      // Level evergreen (pillar, sub-pillar) → update konten
-      log(`📝 Level "${pageLevel}" EVERGREEN → update KONTEN`, "YEAR");
-      contentUpdateResult = updateContentYears(aed);
-    }
-    
-    // 🔥 Update bulan & tahun konten (AED based) — DIPERTAHANKAN untuk money level
-    contentDateResult = updateContentDateReferences(aed, pageLevel);
+    // ═══════════════════════════════════════════════════════════
+    // ✅ STEP 5: UPDATE H1 & KONTEN — DIHAPUS (DUPLIKASI)
+    // Sudah di-handle oleh Smart Evergreen v16.1
+    // ═══════════════════════════════════════════════════════════
+    log("📅 Update H1 & Konten: DIHANDLE Smart Evergreen (skip)", "YEAR");
 
-    // STEP 6: CEK GAMBAR & FIX GAMBAR
+    // =========================================================
+    // STEP 6: DETEKSI HARGA BERLAPIS (4 LAYER)
+    // =========================================================
+    log("💰 DETEKSI HARGA BERLAPIS (Money Level Only):", "PRICE");
+    const priceResult = detectPriceLayered(pageLevel);
+    const detectedOffers = priceResult.offers || [];
+    const hasPrice = priceResult.hasPrice;
+    
+    if (hasPrice) {
+      log(`✅ Harga TERDETEKSI via Layer ${priceResult.layer}`, "PRICE");
+      log(`   📍 Source: ${priceResult.source}`, "PRICE");
+      log(`   💰 Value: ${priceResult.value}`, "PRICE");
+      log(`   📊 Offers: ${detectedOffers.length}`, "PRICE");
+    } else {
+      log(`⏭️ Tidak ada harga terdeteksi (${priceResult.reason})`, "PRICE");
+    }
+
+    // STEP 7: CEK GAMBAR & FIX GAMBAR
     let imageUrl = LOGO_IMAGE;
     let imageSource = 'logo-fallback';
     const isEligible = isImageEligible(pageLevel);
@@ -1917,14 +1653,14 @@
       }
     }
 
-    // STEP 7: CEK SKIP PRODUCT SCHEMA
-    if (shouldSkipProductSchema(pageLevel)) {
+    // STEP 8: CEK SKIP PRODUCT SCHEMA (PLD-ONLY)
+    if (shouldSkipProductSchema(pageLevel, entityType)) {
       log("Product schema SKIPPED untuk halaman ini", "SKIP");
       perf.end('init');
       return;
     }
     
-    // STEP 8: AMBIL PARENT TERDEKAT DARI BREADCRUMB SIAP
+    // STEP 9: AMBIL PARENT TERDEKAT DARI BREADCRUMB SIAP
     const currentUrl = location.href.replace(/[?&]m=1/, "");
     
     log("👪 MENCARI PARENT TERDEKAT DARI BREADCRUMB SIAP...", "PARENT");
@@ -1934,14 +1670,14 @@
     log(`   📍 URL: ${parentData.parentUrl}`, "PARENT");
     log(`   📍 Source: ${parentData.source}`, "PARENT");
     
-    // STEP 9: BUILD isPartOf
+    // STEP 10: BUILD isPartOf
     const parentUrls = [{
         "@type": "WebPage",
         "@id": parentData.parentUrl,
         name: parentData.parentName
     }];
     
-    // STEP 10: PRODUCT SCHEMA
+    // STEP 11: PRODUCT SCHEMA
     const productName = detectProductName();
     const desc = document.querySelector('meta[name="description"]')?.content?.trim() || 
                  document.querySelector("article p, main p, section p")?.innerText?.trim()?.substring(0, 300) ||
@@ -1950,12 +1686,18 @@
     const areaServed = getAreaServed();
     const productCategory = detectProductCategory();
     
-    log("Parsing offers...", "INFO");
-    let hasTableOffers = parseTableOffers();
-    if (!hasTableOffers || offers.length === 0) {
-      const hasVariantOffers = parseVariantOffers();
-      if (!hasVariantOffers || offers.length === 0) parseListOffers();
-    }
+    // Gunakan detectedOffers dari deteksi berlapis
+    const offers = detectedOffers.map(o => ({
+      "@type": "Offer",
+      name: sanitizeText(o.name),
+      url: currentUrl,
+      priceCurrency: "IDR",
+      price: o.price,
+      priceValidUntil: getAEDPriceValidUntil(),
+      availability: "https://schema.org/InStock",
+      itemCondition: "https://schema.org/NewCondition",
+      seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" }
+    }));
     
     if (offers.length === 0) {
       log("Tidak ada harga ditemukan", "WARN");
@@ -2025,20 +1767,31 @@
     log(`  Entity Type      : ${entityType}`, "SUCCESS");
     log(`  Content Focus    : ${contentFocus}`, "FOCUS");
     log(`  Kategori         : ${kategori}`, "KATEGORI");
-    log(`  Offers Count     : ${offers.length}`, "SUCCESS");
+    log(`  Product Category : ${productCategory}`, "SUCCESS");
+    log(`  ─── DETEKSI HARGA ──────────────────────────────`, "PRICE");
+    log(`  Is Money Level   : ${MONEY_LEVELS.includes(pageLevel) ? '✅ Ya' : '❌ Tidak'}`, "PRICE");
+    log(`  Has Price        : ${hasPrice ? '✅ Ya' : '❌ Tidak'}`, "PRICE");
+    log(`  Price Layer      : ${priceResult.layer || 'N/A'}`, "PRICE");
+    log(`  Price Source     : ${priceResult.source || 'N/A'}`, "PRICE");
+    log(`  Offers Count     : ${offers.length}`, "PRICE");
+    log(`  ─── SCHEMA ─────────────────────────────────────`, "SUCCESS");
+    log(`  WebPage Schema   : ✅ (+ isPartOf)`, "SUCCESS");
+    log(`  Product Schema   : ✅ (dengan ${offers.length} offers)`, "SUCCESS");
+    log(`  isPartOf Lokasi  : ✅ HANYA DI WEBPAGE`, "SCHEMA");
+    log(`  ─── UPDATE (DIHANDLE SMART EVERGREEN) ──────────`, "YEAR");
+    log(`  Update H1        : ⏭️ SKIP (Smart Evergreen)`, "YEAR");
+    log(`  Update Konten    : ⏭️ SKIP (Smart Evergreen)`, "YEAR");
+    log(`  Update Meta      : ⏭️ SKIP (Smart Evergreen)`, "YEAR");
+    log(`  ─── SYSTEM ─────────────────────────────────────`, "INFO");
     log(`  Image Source     : ${imageSource}`, "IMAGE");
-    log(`  ─── YEAR UPDATE ──────────────────────────────`, "INFO");
-    log(`  Level Butuh H1   : ${levelNeedsH1Year ? '✅ Ya' : '❌ Tidak (evergreen)'}`, "YEAR");
-    log(`  H1 Update        : ${h1UpdateResult.updated ? `✅ ${h1UpdateResult.from} → ${h1UpdateResult.to}` : `⏭️ ${h1UpdateResult.reason}`}`, "YEAR");
-    log(`  Konten Year      : ${contentUpdateResult.updated ? `✅ ${contentUpdateResult.count} elemen` : `⏭️ skip`}`, "YEAR");
-    log(`  Konten Date      : ${contentDateResult.updated ? `✅ ${contentDateResult.count} node` : `⏭️ skip`}`, "YEAR");
-    log(`  ──────────────────────────────────────────────`, "INFO");
     log(`  Breadcrumb Ready : ${breadcrumbData ? '✅ SIAP' : '⏰ TIMEOUT'}`, "BREADCRUMB");
     log(`  Parent Name      : ${parentData.parentName}`, "PARENT");
     log(`  AED              : ${aed ? '✅ READY' : '❌ FALLBACK'}`, "AED");
-    log(`  isPartOf Lokasi  : ✅ HANYA DI WEBPAGE`, "SCHEMA");
+    log(`  DOM CACHE        : ${CONFIG.CACHE_DOM_ELEMENTS ? '✅ ACTIVE' : '❌ INACTIVE'}`, "CACHE");
+    log(`  CORB PREVENTION  : ✅ ACTIVE`, "CORB");
+    log(`  PLD-ONLY MODE    : ✅ ACTIVE`, "PLD");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.80 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.82 SELESAI", "SUCCESS");
     
     perf.end('init');
   }
