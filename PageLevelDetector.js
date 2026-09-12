@@ -1,5 +1,5 @@
 /* ============================================================
- 🧠 Page Level Detector v22.62 — FULL SYNC + PHASE 4 RE-VALIDASI
+ 🧠 Page Level Detector v22.63 — FULL SYNC + PHASE 4 RE-VALIDASI
     ✅ FIX 1: extractSlugFromInput() — Gunakan cleanText() (SAMA browser)
     ✅ FIX 2: detectEntityTypeFromText() — Identik dengan detectEntityType()
     ✅ FIX 3: detectPageLevelForPrompt() — Default SAMA dengan browser
@@ -8,13 +8,14 @@
     ✅ FIX 6: checkHasSpecification() — Exclude HANYA kata entity murni
     ✅ FIX 7: detectPageLevelFromDOM() — Deteksi dari DOM untuk validasi silang
     ✅ FIX 8: validateForPrompt() — Re-validasi PHASE 4 (Input vs Browser)
+    🔥 FIX 9 (v22.63): Mode Browser — Set 3 attribute + fallback H1
 ============================================================ */
 
 (function () {
   "use strict";
 
-  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "22.62") {
-    console.warn("⚠️ [PLD v22.62] Page Level Detector already loaded!");
+  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "22.63") {
+    console.warn("⚠️ [PLD v22.63] Page Level Detector already loaded!");
     return;
   }
 
@@ -40,12 +41,13 @@
       MM: "🏛️", CORE: "🧠", DETECT: "🎯", INTENT: "🎯",
       EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐", QUALITY: "📊",
       DOM: "🌐", BREAD: "🍞", TIMER: "⏱️", EXTERNAL: "📦",
-      COMMERCIAL: "🛒", HARGA: "💵", VALIDATE: "🔍", CROSS: "🔀"
+      COMMERCIAL: "🛒", HARGA: "💵", VALIDATE: "🔍", CROSS: "🔀",
+      ATTR: "🏷️", H1: "📝"
     };
-    console.log((icons[type] || "📘") + " [PLD v22.62] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.63] " + message);
   }
 
-  log('📦 External JS v22.62 loaded — FULL SYNC + PHASE 4 RE-VALIDASI', 'EXTERNAL');
+  log('📦 External JS v22.63 loaded — FULL SYNC + PHASE 4 + FIX 9 (Mode Browser)', 'EXTERNAL');
 
   var VALID_LEVELS = [
     "home", "pillar", "sub-pillar-tipe-2", "sub-pillar-tipe-1",
@@ -282,6 +284,23 @@
     return text;
   }
 
+  // 🔥 FIX 9 (v22.63): Fungsi baru — ambil H1 dari DOM
+  function getH1Text() {
+    try {
+      var h1 = document.querySelector('h1');
+      if (!h1) return '';
+      var text = h1.innerText || h1.textContent || '';
+      // Hapus tahun (20xx)
+      text = text.replace(/\b(20[2-9][0-9])\b/g, '');
+      // Bersihkan
+      text = cleanText(text);
+      if (text.length > 150) text = text.substring(0, 150);
+      return text;
+    } catch (e) {
+      return '';
+    }
+  }
+
   function isHomePage() {
     var path = window.location.pathname.toLowerCase();
     return path === "/" || path === "/index.html" || path === "/home";
@@ -317,16 +336,11 @@
     return false;
   }
 
-  // ============================================================
-  // ⭐ checkHasSpecification — PER ENTITY (v22.62)
-  // ============================================================
-
   function checkHasSpecification(text, entityType) {
     if (!text) return false;
     var lower = text.toLowerCase();
     var entityOnly = ENTITY_ONLY_WORDS[entityType] || [];
 
-    // ---------- PRODUK ----------
     if (entityType === "produk") {
       var mutuList = PRODUK_SPECS.mutu || [];
       for (var i = 0; i < mutuList.length; i++) {
@@ -372,7 +386,6 @@
       }
     }
 
-    // ---------- MATERIAL ----------
     if (entityType === "material") {
       var gradeList = MATERIAL_SPECS.grade || [];
       for (var i = 0; i < gradeList.length; i++) {
@@ -421,7 +434,6 @@
       }
     }
 
-    // ---------- SEWA ----------
     if (entityType === "sewa") {
       var merekList = SEWA_SPECS.merek || [];
       for (var i = 0; i < merekList.length; i++) {
@@ -481,7 +493,6 @@
       }
     }
 
-    // ---------- JASA ----------
     if (entityType === "jasa") {
       var teknikList = JASA_SPECS.teknik || [];
       for (var i = 0; i < teknikList.length; i++) {
@@ -536,7 +547,6 @@
       }
     }
 
-    // ---------- DESAIN ----------
     if (entityType === "desain") {
       var gayaList = DESAIN_SPECS.gaya || [];
       for (var i = 0; i < gayaList.length; i++) {
@@ -608,10 +618,6 @@
     return false;
   }
 
-  // ============================================================
-  // ⭐ checkPureTechnicalSpec — TEKNIK MURNI (v22.62)
-  // ============================================================
-
   function checkPureTechnicalSpec(text, entityType) {
     if (!text) return false;
     var lower = text.toLowerCase();
@@ -646,10 +652,6 @@
 
     return false;
   }
-
-  // ============================================================
-  // 🔥 FIX 2: detectEntityTypeFromText — IDENTIK dengan detectEntityType()
-  // ============================================================
 
   function detectEntityTypeFromText(text) {
     if (!text) return "produk";
@@ -745,22 +747,16 @@
     return score >= 2;
   }
 
-  // ============================================================
-  // 🔥 FIX 5: getCoreWords — Hapus COMMON_JASA_WORDS (v22.62)
-  // ============================================================
-
   function getCoreWords(text, entityType) {
     if (!text) return [];
 
     var coreText = text.toLowerCase();
 
-    // Hapus moneyWords
     var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos'];
     for (var i = 0; i < moneyWords.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + moneyWords[i] + "\\b", 'g'), '');
     }
 
-    // Hapus entityFirstWords
     var entityFirstWords = {
       'jasa': 'jasa',
       'sewa': 'sewa',
@@ -775,31 +771,26 @@
       coreText = coreText.replace(new RegExp("\\b" + firstWord + "\\b", 'g'), '');
     }
 
-    // 🔥 FIX 5: Hapus COMMON_JASA_WORDS
     if (entityType === "jasa") {
       for (var i = 0; i < COMMON_JASA_WORDS.length; i++) {
         coreText = coreText.replace(new RegExp("\\b" + COMMON_JASA_WORDS[i] + "\\b", 'g'), ' ');
       }
     }
 
-    // Hapus stopwords
     var stopwords = ["dan", "atau", "serta", "yang", "dari", "ke", "di", "untuk", "dengan", "ini", "itu", "akan", "telah", "sudah", "masih", "pada", "oleh", "karena", "sehingga", "setelah", "sebelum"];
     for (var i = 0; i < stopwords.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + stopwords[i] + "\\b", 'g'), ' ');
     }
 
-    // Hapus LOCATION_WORDS
     for (var i = 0; i < LOCATION_WORDS.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + LOCATION_WORDS[i] + "\\b", 'g'), ' ');
     }
 
-    // Hapus subPillarWords
     var subPillarWords = ['daftar', 'jenis', 'macam', 'kategori', 'tipe', 'list', 'katalog', 'rekomendasi', 'pilihan', 'variasi', 'model', 'gaya', 'varian', 'perbandingan', 'vs', 'versus', 'kelebihan', 'kekurangan', 'perbedaan', 'lebih baik', 'unggul', 'terbaik'];
     for (var i = 0; i < subPillarWords.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + subPillarWords[i] + "\\b", 'g'), ' ');
     }
 
-    // Hapus COMMERCIAL_WORDS
     for (var i = 0; i < COMMERCIAL_WORDS.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + COMMERCIAL_WORDS[i] + "\\b", 'g'), ' ');
     }
@@ -807,10 +798,6 @@
     var coreWords = coreText.split(/\s+/).filter(function(w) { return w.length > 2; });
     return coreWords;
   }
-
-  // ============================================================
-  // 🔥 VARIANT DETECTION
-  // ============================================================
 
   function detectVariantByPattern(text, entityType) {
     if (!text) return { isVariant: false, score: 0, reasons: [] };
@@ -874,10 +861,6 @@
     return null;
   }
 
-  // ============================================================
-  // 🔥 MONEY LEVEL DETECTION
-  // ============================================================
-
   function getFactors(text, entityType) {
     return {
       hasLocation: isLocation(text),
@@ -901,10 +884,8 @@
         ', hasPrice=' + hasPriceWord + 
         ', hasCommercial=' + hasCommercialWord, 'INFO');
 
-    // PRIORITAS 1: SUB-PILLAR
     if (subPillar) return subPillar;
 
-    // PRIORITAS 2: LOCATION → MONEY_CHILD
     if (hasLocationWord) {
       var hasService = /\b(jasa|layanan|sewa|produk|material|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur|mini|pile|bore|strauss)\b/i.test(lowerText);
       if (hasService) {
@@ -913,7 +894,6 @@
       }
     }
 
-    // PRIORITAS 3: VARIANT / SUB-VARIANT
     if (hasSpecWord && !hasPriceWord && !hasCommercialWord && !hasLocationWord) {
       var isPureTech = checkPureTechnicalSpec(text, entityType);
 
@@ -929,13 +909,11 @@
       }
     }
 
-    // PRIORITAS 4: COMMERCIAL + SPEC → MONEY_PAGE
     if (hasCommercialWord && hasSpecWord && !hasLocationWord) {
       log('💰 MONEY_PAGE: "' + text + '" → MONEY_PAGE (commercial + spec)', 'PRICE');
       return "money-page";
     }
 
-    // PRIORITAS 5: HARGA + SPESIFIKASI TEKNIS → MONEY_PAGE
     if (hasPriceWord && hasSpecWord && !hasLocationWord && !hasCommercialWord) {
       var isPureTechForPrice = checkPureTechnicalSpec(text, entityType);
 
@@ -948,13 +926,11 @@
       }
     }
 
-    // PRIORITAS 6: COMMERCIAL → MONEY_PAGE
     if (hasCommercialWord && !hasLocationWord) {
       log('💰 MONEY_PAGE: "' + text + '" → MONEY_PAGE (commercial)', 'PRICE');
       return "money-page";
     }
 
-    // PRIORITAS 7: HIGH VOLUME
     var highVolumeWords = ['murah', 'hemat', 'ekonomis', 'terjangkau', 'budget', 'promo', 'diskon'];
     var hasHighVolume = false;
     for (var i = 0; i < highVolumeWords.length; i++) {
@@ -971,7 +947,6 @@
       }
     }
 
-    // PRIORITAS 8: CORE LOGIC
     var coreWords = getCoreWords(text, entityType);
     log('🧠 CORE WORDS: "' + text + '" → [' + coreWords.join(', ') + ']', 'CORE');
 
@@ -987,10 +962,6 @@
       return "money-page";
     }
   }
-
-  // ============================================================
-  // 🔥 FIX 4: detectPageLevel — Default SAMA dengan mode input
-  // ============================================================
 
   function detectPageLevel(userOptions) {
     if (isHomePage()) return "home";
@@ -1014,10 +985,6 @@
     log('🎯 FINAL: "' + text + '" → ' + level, 'SUCCESS');
     return level;
   }
-
-  // ============================================================
-  // 🔥 FIX 1: extractSlugFromInput — Gunakan cleanText() (v22.62)
-  // ============================================================
 
   function extractSlugFromInput(input) {
     if (!input) return "";
@@ -1044,16 +1011,11 @@
     slug = slug.replace(/^\d+-/, "");
     slug = slug.replace(/^\d+/, "");
 
-    // 🔥 FIX 1: Gunakan cleanText() SAMA dengan browser
     slug = slug.replace(/-/g, " ");
     slug = cleanText(slug);
 
     return slug;
   }
-
-  // ============================================================
-  // 🔥 FIX 3: detectPageLevelForPrompt — Default SAMA dengan browser
-  // ============================================================
 
   function detectPageLevelForPrompt(text, entityType) {
     var cleanLower = text.toLowerCase().trim();
@@ -1080,10 +1042,7 @@
     return level;
   }
 
-  // ============================================================
-  // 🔥 FIX 7 BARU: detectPageLevelFromDOM — Deteksi dari DOM Browser
-  // ============================================================
-
+  // 🔥 FIX 9 (v22.63): detectPageLevelFromDOM — Tambah fallback H1
   function detectPageLevelFromDOM(entityType) {
     if (typeof window === 'undefined' || !window.location) {
       log('⚠️ Tidak ada window.location — bukan browser', 'WARN');
@@ -1095,11 +1054,25 @@
       return "home";
     }
     
-    // Ambil text dari DOM (SAMA dengan getPageText)
-    var text = getPageText();
-    var entity = entityType || detectEntityType();
+    // Ambil text dari URL
+    var urlText = getPageText();
     
-    log('🌐 DOM DETECT: text="' + text + '", entity=' + entity, 'DOM');
+    // 🔥 FIX 9: Ambil H1 text sebagai fallback
+    var h1Text = getH1Text();
+    
+    // 🔥 FIX 9: Gabungkan URL + H1 (prioritas URL, H1 fallback)
+    var text = urlText;
+    if (!text || text.length < 3) {
+      text = h1Text;
+      log('🌐 DOM DETECT: URL kosong, pakai H1="' + h1Text + '"', 'DOM');
+    } else if (h1Text && h1Text.length > 3) {
+      // Gabungkan untuk validasi (tapi text utama = URL)
+      log('🌐 DOM DETECT: URL="' + urlText + '", H1="' + h1Text + '"', 'DOM');
+    } else {
+      log('🌐 DOM DETECT: URL="' + urlText + '" (no H1)', 'DOM');
+    }
+    
+    var entity = entityType || detectEntityType();
     
     // Cek PILLAR
     if (detectPillar(text, entity)) {
@@ -1118,21 +1091,14 @@
     return level;
   }
 
-  // ============================================================
-  // 🔥 FIX 8 BARU: validateForPrompt — RE-VALIDASI PHASE 4
-  // ============================================================
-
   function validateForPrompt(input, entityType, options) {
     options = options || {};
-    var strictMode = options.strict !== false;  // default strict
+    var strictMode = options.strict !== false;
     
     log('════════════════════════════════════════', 'VALIDATE');
     log('🔍 PHASE 4 — VALIDASI SILANG ULANG', 'VALIDATE');
     log('════════════════════════════════════════', 'VALIDATE');
     
-    // ─────────────────────────────────────────
-    // STEP 1: DETEKSI MODE INPUT
-    // ─────────────────────────────────────────
     var inputSlug = extractSlugFromInput(input);
     if (!inputSlug) {
       return {
@@ -1154,9 +1120,6 @@
         ', hasPrice=' + inputFactors.hasPrice + 
         ', hasCommercial=' + inputFactors.hasCommercial, 'VALIDATE');
     
-    // ─────────────────────────────────────────
-    // STEP 2: DETEKSI MODE BROWSER (DOM)
-    // ─────────────────────────────────────────
     var browserLevel = null;
     var browserEntity = null;
     var browserFactors = null;
@@ -1182,9 +1145,6 @@
       log('⚠️ Browser tidak tersedia: ' + e.message, 'WARN');
     }
     
-    // ─────────────────────────────────────────
-    // STEP 3: VALIDASI SILANG
-    // ─────────────────────────────────────────
     var crossValidation = {
       pageLevel: {
         input: inputLevel,
@@ -1215,16 +1175,12 @@
     log('   Entity Type: ' + crossValidation.entityType.status, 'CROSS');
     log('   Factors: ' + crossValidation.factors.status, 'CROSS');
     
-    // ─────────────────────────────────────────
-    // STEP 4: TENTUKAN STATUS AKHIR
-    // ─────────────────────────────────────────
     var finalStatus = "LOLOS";
     var errors = [];
     var warnings = [];
     var finalLevel = inputLevel;
     var finalEntity = inputEntity;
     
-    // Cek Page Level
     if (crossValidation.pageLevel.status === "BERBEDA") {
       if (strictMode) {
         finalStatus = "PERBAIKI";
@@ -1232,12 +1188,10 @@
       } else {
         warnings.push("Page Level berbeda: Input=" + inputLevel + ", Browser=" + browserLevel);
       }
-      // GUNAKAN HASIL BROWSER
       finalLevel = browserLevel;
       log('⚠️ GUNAKAN HASIL BROWSER: ' + browserLevel, 'WARN');
     }
     
-    // Cek Entity Type
     if (crossValidation.entityType.status === "BERBEDA") {
       if (strictMode) {
         finalStatus = "PERBAIKI";
@@ -1248,14 +1202,10 @@
       finalEntity = browserEntity;
     }
     
-    // Cek Factors
     if (crossValidation.factors.status === "BERBEDA") {
       warnings.push("Factors berbeda — cek manual");
     }
     
-    // ─────────────────────────────────────────
-    // STEP 5: HITUNG SEO SCORE (jika browser)
-    // ─────────────────────────────────────────
     var seoScore = null;
     var intent = null;
     var eeat = null;
@@ -1274,9 +1224,6 @@
       log('⚠️ SEO Score error: ' + e.message, 'WARN');
     }
     
-    // ─────────────────────────────────────────
-    // STEP 6: OUTPUT RINGKASAN
-    // ─────────────────────────────────────────
     var result = {
       phase: 4,
       status: finalStatus,
@@ -1333,10 +1280,6 @@
     
     return result;
   }
-
-  // ============================================================
-  // 🔥 FUNGSI DETEKSI UPAWARD DARI SLUG
-  // ============================================================
 
   function detectUpwardFromSlug(slug, domain) {
     if (!slug) return { upward: [], breadcrumbs: [] };
@@ -1463,10 +1406,6 @@
     return parents;
   }
 
-  // ============================================================
-  // 🔥 FUNGSI detectForPromptFull
-  // ============================================================
-
   function detectForPromptFull(input, entityType, domain) {
     if (!input) {
       return {
@@ -1547,10 +1486,6 @@
     var result = detectUpwardFromSlug(slug, domain);
     return result.upward;
   }
-
-  // ============================================================
-  // 📌 FUNGSI LAINNYA
-  // ============================================================
 
   function detectEEATSignals() {
     var signals = { author: false, date: false, source: false, expertise: false, experience: false, trust: false };
@@ -1744,10 +1679,6 @@
     return { level: level, confidence: 100, strategies: strategies, strategyCount: strategies.length };
   }
 
-  // ============================================================
-  // 🔥 BREADCRUMBS DETECTION
-  // ============================================================
-
   function findBreadcrumbs() {
     if (typeof document === 'undefined') return null;
     for (var s = 0; s < CONFIG.BREADCRUMBS_SELECTORS.length; s++) {
@@ -1824,6 +1755,95 @@
   }
 
   // ============================================================
+  // 🔥 FIX 9 (v22.63): SET 3 ATTRIBUTE (content-focus, kategori, h1-pattern)
+  // ============================================================
+
+  function setSchemaAttributes(level) {
+    try {
+      // ✅ 1. data-page-level (sudah ada, tetap dipertahankan)
+      document.body.setAttribute("data-page-level", level);
+      document.body.setAttribute("data-page-level-num", String(TYPE_LEVEL_MAP[level] || '0'));
+
+      // ✅ 2. data-entity-type
+      var entityType = detectEntityType();
+      document.body.setAttribute("data-entity-type", entityType);
+      log('🏷️ ATTR SET: data-entity-type="' + entityType + '"', 'ATTR');
+
+      // ✅ 3. data-content-focus (INFORMASI / HARGA / COMMERCIAL / GABUNG)
+      var contentFocus = detectContentFocus(level, entityType);
+      document.body.setAttribute("data-content-focus", contentFocus);
+      log('🎯 ATTR SET: data-content-focus="' + contentFocus + '"', 'ATTR');
+
+      // ✅ 4. data-kategori (EVERGREEN / NON-EVERGREEN)
+      var kategori = detectKategori(contentFocus);
+      document.body.setAttribute("data-kategori", kategori);
+      log('🏷️ ATTR SET: data-kategori="' + kategori + '"', 'ATTR');
+
+      // ✅ 5. data-h1-pattern (with-year / no-year)
+      var h1Pattern = detectH1Pattern(kategori);
+      document.body.setAttribute("data-h1-pattern", h1Pattern);
+      log('📝 ATTR SET: data-h1-pattern="' + h1Pattern + '"', 'ATTR');
+
+      // ✅ 6. data-entity-sub-type (jika ada)
+      // Bisa di-set nanti oleh script lain
+
+      log('✅ Semua attribute schema ter-set!', 'ATTR');
+
+    } catch (e) {
+      log('❌ Error set schema attributes: ' + e.message, 'ERROR');
+    }
+  }
+
+  // 🔥 FIX 9: Deteksi content focus
+  function detectContentFocus(level, entityType) {
+    // Baca H1 untuk cek tahun
+    var h1Text = getH1Text();
+    
+    // Baca URL slug
+    var urlText = getPageText();
+    
+    // Cek ada tahun?
+    var hasYearInH1 = /\b(20[2-9][0-9])\b/.test(h1Text);
+    var hasYearInUrl = /\b(20[2-9][0-9])\b/.test(urlText);
+    
+    // Cek ada harga?
+    var hasPrice = checkHasPrice(h1Text) || checkHasPrice(urlText);
+    
+    // Cek ada commercial?
+    var hasCommercial = checkHasCommercial(h1Text) || checkHasCommercial(urlText);
+    
+    // Level money + harga → HARGA
+    var isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(level);
+    
+    if (isMoneyLevel) {
+      if (hasPrice || hasYearInH1 || hasYearInUrl) {
+        return 'HARGA';
+      }
+      if (hasCommercial) {
+        return 'COMMERCIAL';
+      }
+      // Money level tanpa harga/commercial → cek apakah informasi
+      // Fallback: INFORMASI
+      return 'INFORMASI';
+    }
+    
+    // Level evergreen → INFORMASI
+    return 'INFORMASI';
+  }
+
+  // 🔥 FIX 9: Deteksi kategori
+  function detectKategori(contentFocus) {
+    if (contentFocus === 'INFORMASI') return 'EVERGREEN';
+    if (['HARGA', 'COMMERCIAL', 'GABUNG'].includes(contentFocus)) return 'NON-EVERGREEN';
+    return 'EVERGREEN';
+  }
+
+  // 🔥 FIX 9: Deteksi H1 pattern
+  function detectH1Pattern(kategori) {
+    return kategori === 'NON-EVERGREEN' ? 'with-year' : 'no-year';
+  }
+
+  // ============================================================
   // 📌 INITIALIZATION
   // ============================================================
 
@@ -1831,7 +1851,7 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.62",
+      version: "22.63",
       CONFIG: CONFIG,
 
       // ─── DETEKSI ───
@@ -1858,30 +1878,46 @@
       VALID_ENTITY_TYPES: VALID_ENTITY_TYPES,
       ENTITY_PILLAR_NAMES: ENTITY_PILLAR_NAMES,
 
+      // 🔥 FIX 9: Expose fungsi baru
+      getH1Text: getH1Text,
+      setSchemaAttributes: setSchemaAttributes,
+      detectContentFocus: detectContentFocus,
+      detectKategori: detectKategori,
+      detectH1Pattern: detectH1Pattern,
+
       updateAttributes: function(options) {
         options = options || {};
         var waitForBreadcrumb = options.waitForBreadcrumb !== false;
         var levelResult = detectPageLevel();
         var level = typeof levelResult === 'string' ? levelResult : (levelResult.level || 'unknown');
         var seoScore = calculateSEOScore();
+        
         try {
+          // ✅ Set attribute dasar (v22.62)
           document.body.setAttribute("data-page-level", level);
           document.body.setAttribute("data-page-level-num", String(TYPE_LEVEL_MAP[level] || '0'));
           document.body.setAttribute("data-seo-score", String(seoScore.score || '0'));
           document.body.setAttribute("data-seo-quality", String(seoScore.quality || 'low'));
           document.body.setAttribute("data-intent", String(seoScore.intent || 'informational'));
+          
           var className = 'page-level-' + level.replace(/\s+/g, '-');
           document.body.classList.remove('page-level-unknown', className);
           document.body.classList.add(className);
+          
+          // 🔥 FIX 9: Set 3 attribute schema (content-focus, kategori, h1-pattern)
+          setSchemaAttributes(level);
+          
         } catch (e) {
           log("Error setting attributes: " + e.message, "ERROR");
         }
+        
         var result = {
           pageLevel: level,
           pageLevelNum: TYPE_LEVEL_MAP[level] || 0,
           seoScore: seoScore,
           breadcrumb: null
         };
+        
         if (waitForBreadcrumb) {
           log('🍞 Menunggu breadcrumbs...', 'BREAD');
           return new Promise(function(resolve) {
@@ -1985,7 +2021,7 @@
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v22.62 Ready");
+    console.log("✅ Page Level Detector v22.63 Ready");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🔧 FIX 1: extractSlugFromInput() → cleanText()");
     console.log("🔧 FIX 2: detectEntityTypeFromText() → identik detectEntityType()");
@@ -1995,6 +2031,7 @@
     console.log("🔧 FIX 6: checkHasSpecification() → exclude entity murni");
     console.log("🔥 FIX 7: detectPageLevelFromDOM() → deteksi dari DOM browser");
     console.log("🔥 FIX 8: validateForPrompt() → RE-VALIDASI PHASE 4");
+    console.log("🔥 FIX 9: Mode Browser → Set 3 attribute + fallback H1");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("📌 Contoh pemakaian PHASE 4:");
     console.log("   PLD.validateForPrompt('jasa pasang pagar', 'jasa')");
@@ -2016,11 +2053,7 @@
     }
   }
 
-  // ============================================================
-  // 📌 START
-  // ============================================================
-
-  log('🚀 Starting Page Level Detector v22.62...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.63...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
