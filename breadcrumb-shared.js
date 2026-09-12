@@ -1,13 +1,13 @@
 
 /**
  * ============================================================
- * generateBreadcrumbJasaKonstruksi v12.3.3 — SHARED FUNCTION
+ * generateBreadcrumbShared v12.3.3 — SHARED FUNCTION
  * Digunakan oleh banyak file JS external per topik
  * 
  * CARA PAKAI:
  * 1. Load file ini PERTAMA (sebelum file per topik)
  * 2. Di file per topik, panggil:
- *    window.generateBreadcrumbJasaKonstruksiFinishing(...)
+ *    window.generateBreadcrumbShared(...)
  * 
  * v12.3.3 CHANGELOG:
  * - TAMBAH: Set flag data-breadcrumb-ready untuk schema-article.js
@@ -26,7 +26,7 @@
      * FUNCTION UTAMA
      * ============================================================
      */
-    function generateBreadcrumbJasaKonstruksiFinishing(
+    function generateBreadcrumbShared(
         mappingObj,
         currentUrl,
         breadcrumbItems = [],
@@ -1471,7 +1471,7 @@
     // ============================================================
     // ✅ EXPOSE KE WINDOW — BIAR BISA DIPAKAI FILE LAIN
     // ============================================================
-    window.generateBreadcrumbJasaKonstruksiFinishing = generateBreadcrumbJasaKonstruksiFinishing;
+    window.generateBreadcrumbShared = generateBreadcrumbShared;
     
     console.log('✅ [Breadcrumb Shared v12.3.3] Function siap dipakai oleh file JS external lain');
     
