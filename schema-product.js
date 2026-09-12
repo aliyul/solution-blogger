@@ -1,16 +1,14 @@
 /**
- * ⚡ AutoSchema Hybrid v4.82 — PLD-ONLY MODE + isPartOf HANYA WEBPAGE
+ * ⚡ AutoSchema Hybrid v4.84 — PLD-ONLY MODE + isPartOf HANYA WEBPAGE
  * 
- * UPDATE v4.82 (dari v4.81) — CLEANUP FINAL:
- * ✅ FIX: needYear() — paksa boolean murni (Boolean())
- * ✅ HAPUS: getColorConfig() — dead code (Canvas sudah dihapus)
- * ✅ HAPUS: FALLBACK_IMAGE — dead code
- * ✅ HAPUS: SKIP_WORD_COUNT — dead code di CONFIG
- * ✅ HAPUS: BATCH_DOM_UPDATES — dead code di CONFIG
- * ✅ PERTAHANKAN: Semua fitur v4.81 yang sudah baik
+ * UPDATE v4.84 (dari v4.83) — FIX HARDCODE MATERIAL:
+ * ✅ FIX: product.material — dari PLD/category (bukan hardcode "Beton Precast")
+ * ✅ TAMBAH: detectProductMaterial() — prioritas PLD → V379A → mapping category
+ * ✅ PERTAHANKAN: Semua kode valid dari v4.83 (TIDAK DIUBAH)
+ * ✅ PERTAHANKAN: Deteksi breadcrumb parent (flag/event/DOM)
  * 
- * @version 4.82
- * @date 2026-09-11
+ * @version 4.84
+ * @date 2026-09-12
  */
 
 (function() {
@@ -27,7 +25,7 @@
       url.includes('github.com') || 
       url.includes('gist.github.com')
     )) {
-      console.warn('[Schema v4.82] 🚫 Blocked external fetch (CORB prevention):', url);
+      console.warn('[Schema v4.84] 🚫 Blocked external fetch (CORB prevention):', url);
       return Promise.reject(new Error('Blocked by CORB prevention'));
     }
     return originalFetch.apply(this, args);
@@ -40,7 +38,7 @@
       url.includes('github.com') || 
       url.includes('gist.github.com')
     )) {
-      console.warn('[Schema v4.82] 🚫 Blocked external XHR (CORB prevention):', url);
+      console.warn('[Schema v4.84] 🚫 Blocked external XHR (CORB prevention):', url);
       throw new Error('Blocked by CORB prevention');
     }
     return originalXHROpen.call(this, method, url, ...rest);
@@ -57,6 +55,7 @@
     AED_TIMEOUT: 10000,
     BREADCRUMB_TIMEOUT: 3000,
     BREADCRUMB_READY_TIMEOUT: 5000,
+    BREADCRUMB_GENERATED_TIMEOUT: 10000,
     MIN_YEAR_TO_UPDATE: 2026,
     CACHE_DOM_ELEMENTS: true
   };
@@ -170,7 +169,6 @@
     }
   };
 
-  // ✅ v4.82: LOGO_IMAGE saja (FALLBACK_IMAGE dihapus — dead code)
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
   // ============================================================
@@ -268,33 +266,136 @@
       PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯", TABLE: "📊", 
       H1: "📝", PRIORITY: "🔴", STOP: "🛑", BREADCRUMB: "🍞", AED: "⚡", 
       COMMERCIAL: "🛒", GABUNG: "📚", PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗",
-      PARENT: "👪", PERF: "⏱️", CACHE: "💾", CORB: "🚫", PRICE: "💰"
+      PARENT: "👪", PERF: "⏱️", CACHE: "💾", CORB: "🚫", PRICE: "💰",
+      FLAG: "🚩", EVENT: "📡", FIX: "🔧", MATERIAL: "🧱"
     };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [AutoSchema v4.82] ${msg}`);
+    console.log(`${prefix} [AutoSchema v4.84] ${msg}`);
   }
 
   // ============================================================
-  // WAIT FOR BREADCRUMB READY
+  // CLEAN BREADCRUMB TEXT (STRIP SEPARATOR)
+  // ============================================================
+  function cleanBreadcrumbText(text) {
+    if (!text) return '';
+    return String(text)
+      .replace(/[›»>→←«‹|/]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // ============================================================
+  // FIND MAIN BREADCRUMB (PRIORITAS "BERANDA")
+  // ============================================================
+  function findMainBreadcrumb() {
+    const breadcrumbSelectors = [
+      '.breadcrumbs', '.breadcrumb', '.nav-trail',
+      '[aria-label="breadcrumb"]', '[itemtype*="BreadcrumbList"]',
+      '.post-breadcrumb', '.breadcrumb-nav', '.nav-breadcrumb'
+    ];
+
+    const candidates = [];
+    for (const selector of breadcrumbSelectors) {
+      try {
+        document.querySelectorAll(selector).forEach(el => {
+          if (!candidates.includes(el)) candidates.push(el);
+        });
+      } catch(e) {}
+    }
+
+    if (candidates.length === 0) return null;
+
+    for (const el of candidates) {
+      const text = (el.innerText || '').toLowerCase();
+      if (text.includes('beranda') || text.includes('home')) {
+        return el;
+      }
+    }
+
+    let best = candidates[0];
+    let maxLinks = 0;
+    for (const el of candidates) {
+      const links = el.querySelectorAll('a[href]').length;
+      if (links > maxLinks) {
+        maxLinks = links;
+        best = el;
+      }
+    }
+    return best;
+  }
+
+  // ============================================================
+  // WAIT FOR BREADCRUMB GENERATED (EVENT + FLAG)
+  // ============================================================
+  function waitForBreadcrumbGenerated(timeout = CONFIG.BREADCRUMB_GENERATED_TIMEOUT) {
+    return new Promise((resolve) => {
+      const flagReady = document.body.getAttribute('data-breadcrumb-ready');
+      if (flagReady === 'true') {
+        const parentName = document.body.getAttribute('data-breadcrumb-parent');
+        const parentUrl = document.body.getAttribute('data-breadcrumb-parent-url');
+        log(`🚩 Breadcrumb READY (flag): parent="${parentName}"`, "FLAG");
+        resolve({
+          parentName: cleanBreadcrumbText(parentName) || 'Home',
+          parentUrl: parentUrl || location.origin,
+          source: 'breadcrumb-shared-flag',
+          allParents: []
+        });
+        return;
+      }
+
+      let resolved = false;
+      const onReady = (e) => {
+        if (resolved) return;
+        resolved = true;
+        
+        const parentName = document.body.getAttribute('data-breadcrumb-parent');
+        const parentUrl = document.body.getAttribute('data-breadcrumb-parent-url');
+        
+        log(`📡 Breadcrumb GENERATED (event): parent="${parentName}"`, "EVENT");
+        resolve({
+          parentName: cleanBreadcrumbText(parentName) || 'Home',
+          parentUrl: parentUrl || location.origin,
+          source: 'breadcrumb-shared-event',
+          allParents: [],
+          detail: e?.detail
+        });
+      };
+
+      window.addEventListener('breadcrumbGenerated', onReady, { once: true });
+
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        const flag = document.body.getAttribute('data-breadcrumb-ready');
+        if (flag === 'true') {
+          clearInterval(interval);
+          onReady({ detail: null });
+          return;
+        }
+        if (Date.now() - startTime > timeout) {
+          clearInterval(interval);
+          window.removeEventListener('breadcrumbGenerated', onReady);
+          if (!resolved) {
+            resolved = true;
+            log(`⏰ Breadcrumb GENERATED timeout (${timeout}ms)`, "WARN");
+            resolve(null);
+          }
+        }
+      }, 200);
+    });
+  }
+
+  // ============================================================
+  // WAIT FOR BREADCRUMB READY (FALLBACK — SINKRON v7.9)
   // ============================================================
   function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
     return new Promise((resolve) => {
       perf.start('waitForBreadcrumbReady');
       const startTime = Date.now();
-      
+      const currentUrlClean = location.href.replace(/[?&]m=1/, '').replace(/\/$/, '');
+
       function checkBreadcrumbReady() {
-        const breadcrumbSelectors = [
-          '.breadcrumbs', '.breadcrumb', '.nav-trail',
-          '[aria-label="breadcrumb"]', '[itemtype*="BreadcrumbList"]',
-          '.post-breadcrumb', '.breadcrumb-nav', '.nav-breadcrumb'
-        ];
-        
-        let breadcrumbEl = null;
-        for (const selector of breadcrumbSelectors) {
-          const el = domCache ? domCache.get(selector) : document.querySelector(selector);
-          if (el) { breadcrumbEl = el; break; }
-        }
-        
+        const breadcrumbEl = findMainBreadcrumb();
+
         if (!breadcrumbEl) {
           if (Date.now() - startTime > timeout) {
             log(`⏰ Breadcrumb timeout — tidak ditemukan (${timeout}ms)`, "WARN");
@@ -305,18 +406,50 @@
           setTimeout(checkBreadcrumbReady, 200);
           return;
         }
-        
+
         const links = breadcrumbEl.querySelectorAll('a[href]');
         const items = breadcrumbEl.querySelectorAll('[itemprop="itemListElement"]');
-        const hasSchema = breadcrumbEl.querySelector('[itemtype*="BreadcrumbList"]') || 
+        const hasSchema = breadcrumbEl.querySelector('[itemtype*="BreadcrumbList"]') ||
                           breadcrumbEl.hasAttribute('itemtype');
-        
-        const isReady = (links.length >= 2) || (items.length >= 2 && hasSchema);
-        const isLoading = links.length === 0 || 
-                          (links.length === 1 && !links[0].href.includes('beranda') && !links[0].href.includes('home'));
-        
-        if (isReady && !isLoading) {
-          log(`✅ Breadcrumb SIAP: ${links.length} links, ${items.length} items`, "BREADCRUMB");
+        const fullText = (breadcrumbEl.innerText || '').toLowerCase();
+
+        const hasHome = /(beranda|home)/i.test(fullText);
+        if (!hasHome) {
+          if (Date.now() - startTime > timeout) {
+            log(`⏰ Breadcrumb timeout — tidak ada "Beranda"`, "WARN");
+            perf.end('waitForBreadcrumbReady');
+            resolve(null);
+            return;
+          }
+          setTimeout(checkBreadcrumbReady, 200);
+          return;
+        }
+
+        let isFinal = false;
+        if (links.length > 0) {
+          const lastLink = links[links.length - 1];
+          const lastHref = (lastLink.href || '').replace(/[?&]m=1/, '').replace(/\/$/, '');
+          if (lastHref === currentUrlClean) {
+            isFinal = true;
+          }
+        }
+
+        if (!isFinal) {
+          const h1Text = (document.querySelector('h1')?.innerText || '').toLowerCase().trim();
+          const parts = fullText.split(/[›»>]/).map(p => p.trim()).filter(Boolean);
+          const lastPart = parts[parts.length - 1] || '';
+          if (h1Text && lastPart && (
+            h1Text.includes(lastPart.substring(0, 20)) ||
+            lastPart.includes(h1Text.substring(0, 20))
+          )) {
+            isFinal = true;
+          }
+        }
+
+        const isReady = ((links.length >= 2) || (items.length >= 2 && hasSchema)) && isFinal;
+
+        if (isReady) {
+          log(`✅ Breadcrumb SIAP & FINAL: ${links.length} links`, "BREADCRUMB");
           perf.end('waitForBreadcrumbReady');
           resolve({
             element: breadcrumbEl,
@@ -324,30 +457,46 @@
             items: Array.from(items),
             linkCount: links.length,
             itemCount: items.length,
-            hasSchema: hasSchema
+            hasSchema: hasSchema,
+            isFinal: true
           });
           return;
         }
-        
+
         if (Date.now() - startTime > timeout) {
-          log(`⏰ Breadcrumb timeout — belum SIAP (${links.length} links, ${items.length} items)`, "WARN");
+          log(`⏰ Breadcrumb timeout — belum FINAL (${links.length} links)`, "WARN");
           perf.end('waitForBreadcrumbReady');
           resolve(null);
           return;
         }
-        
+
         setTimeout(checkBreadcrumbReady, 200);
       }
-      
+
       checkBreadcrumbReady();
     });
   }
 
   // ============================================================
-  // GET PARENT FROM BREADCRUMB READY
+  // GET PARENT FROM BREADCRUMB READY (SINKRON v7.9)
   // ============================================================
   function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
     perf.start('getParentFromBreadcrumbReady');
+
+    const parentFromFlag = document.body.getAttribute('data-breadcrumb-parent');
+    const parentUrlFromFlag = document.body.getAttribute('data-breadcrumb-parent-url');
+
+    if (parentFromFlag && parentUrlFromFlag) {
+      const cleanParent = cleanBreadcrumbText(parentFromFlag);
+      log(`👪 Parent dari FLAG: "${cleanParent}"`, "PARENT");
+      perf.end('getParentFromBreadcrumbReady');
+      return {
+        parentUrl: parentUrlFromFlag,
+        parentName: cleanParent || 'Home',
+        source: 'breadcrumb-shared-flag',
+        allParents: []
+      };
+    }
 
     if (!breadcrumbData || !breadcrumbData.links || breadcrumbData.links.length === 0) {
       log('⚠️ Breadcrumb tidak valid — fallback ke origin', "WARN");
@@ -359,23 +508,24 @@
         allParents: []
       };
     }
-    
+
     const links = breadcrumbData.links;
     const currentUrlClean = currentUrl.replace(/[?&]m=1/, '').replace(/\/$/, '');
-    
+
     const validParents = links.filter(link => {
-      const href = link.href || '';
-      const hrefClean = href.replace(/\/$/, '');
-      const text = link.innerText?.trim() || '';
-      
-      if (hrefClean === currentUrlClean) return false;
-      if (hrefClean.includes(currentUrlClean)) return false;
-      if (currentUrlClean.includes(hrefClean)) return false;
+      const href = (link.href || '').replace(/\/$/, '');
+      const text = cleanBreadcrumbText(link.innerText || '');
+
+      if (href === currentUrlClean) return false;
+      if (href.includes(currentUrlClean)) return false;
+      if (currentUrlClean.includes(href)) return false;
       if (!href || !text) return false;
-      
+      if (text.length < 2) return false;
+      if (/^(beranda|home)$/i.test(text)) return false;
+
       return true;
     });
-    
+
     if (validParents.length === 0) {
       log('⚠️ Tidak ada parent valid — fallback ke origin', "WARN");
       perf.end('getParentFromBreadcrumbReady');
@@ -386,21 +536,21 @@
         allParents: []
       };
     }
-    
+
     const parentLink = validParents[validParents.length - 1];
     const parentUrl = parentLink.href || '';
-    const parentName = parentLink.innerText?.trim() || 'Parent Page';
-    
-    log(`👪 Parent terdekat dari breadcrumb: "${parentName}" → ${parentUrl}`, "PARENT");
+    const parentName = cleanBreadcrumbText(parentLink.innerText || '') || 'Parent Page';
+
+    log(`👪 Parent terdekat dari DOM: "${parentName}" → ${parentUrl}`, "PARENT");
     perf.end('getParentFromBreadcrumbReady');
-    
+
     return {
       parentUrl: parentUrl,
       parentName: parentName,
-      source: 'breadcrumb-ready',
+      source: 'breadcrumb-dom',
       allParents: validParents.map(l => ({
         url: l.href,
-        name: l.innerText?.trim() || ''
+        name: cleanBreadcrumbText(l.innerText || '')
       }))
     };
   }
@@ -635,9 +785,6 @@
     return pattern;
   }
 
-  // ============================================================
-  // ✅ v4.82: needYear() — PAKSA BOOLEAN MURNI
-  // ============================================================
   function needYear(level) {
     const bodyNeedYear = document.body.getAttribute('data-need-year');
     if (bodyNeedYear !== null) {
@@ -647,7 +794,7 @@
     }
     
     if (window.V379A && window.V379A.needYear !== undefined) {
-      const result = Boolean(window.V379A.needYear);  // ✅ v4.82: paksa boolean
+      const result = Boolean(window.V379A.needYear);
       log(`📅 Need Year dari V37.9-A: ${result}`, "YEAR");
       return result;
     }
@@ -682,11 +829,7 @@
     return result;
   }
 
-  // ============================================================
-  // shouldSkipProductSchema() — PLD-ONLY
-  // ============================================================
   function shouldSkipProductSchema(pageLevel, entityType) {
-    // Prioritas 1: PLD body attribute
     const bodySkip = document.body.getAttribute('data-product-schema-skip');
     if (bodySkip !== null) {
       const result = bodySkip === 'true';
@@ -694,14 +837,12 @@
       return result;
     }
     
-    // Prioritas 2: V379A
     if (window.V379A && window.V379A.productSchemaSkip !== undefined) {
       const result = Boolean(window.V379A.productSchemaSkip);
       log(`🏗️ Product Schema skip dari V37.9-A: ${result}`, "PRODUCT");
       return result;
     }
     
-    // Prioritas 3: PLD data-product-schema-type
     const bodySchemaType = document.body.getAttribute('data-product-schema-type');
     if (bodySchemaType !== null) {
       const result = bodySchemaType === 'skip' || bodySchemaType === 'none';
@@ -709,7 +850,6 @@
       return result;
     }
     
-    // Fallback minimal: berdasarkan entityType saja
     if (entityType) {
       const skipEntities = ['jasa', 'sewa', 'desain', 'artikel'];
       const result = skipEntities.includes(entityType.toLowerCase());
@@ -720,10 +860,6 @@
     log(`🏗️ Product Schema skip: false (default)`, "PRODUCT");
     return false;
   }
-
-  // ============================================================
-  // WAIT FUNCTIONS
-  // ============================================================
 
   function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
     return new Promise((resolve) => {
@@ -797,23 +933,15 @@
     });
   }
 
-  // ============================================================
-  // FUNGSI PENDUKUNG
-  // ============================================================
-
   function getCurrentYear() {
     return new Date().getFullYear();
   }
 
-  // ============================================================
-  // parsePriceFromText() — cover 150.000, 150rb, 1.5jt, 150000
-  // ============================================================
   function parsePriceFromText(text) {
     if (!text) return null;
     
     let clean = String(text).trim();
     
-    // Handle format singkatan
     let multiplier = 1;
     if (/\d\s*(rb|ribu|k)\b/i.test(clean)) {
       multiplier = 1000;
@@ -824,11 +952,9 @@
       clean = clean.replace(/\s*(jt|juta|m)\b/gi, '');
     }
     
-    // Hapus "Rp", "IDR", simbol mata uang, spasi
     clean = clean.replace(/(Rp\.?|IDR|\$|€|¥|£)/gi, '').trim();
     clean = clean.replace(/\s+/g, '');
     
-    // Handle format Indonesia
     if (clean.includes('.') && clean.includes(',')) {
       clean = clean.replace(/\./g, '').replace(',', '.');
     } else if (clean.includes('.')) {
@@ -857,9 +983,6 @@
     return Math.round(value);
   }
 
-  // ============================================================
-  // isNotPrice() — filter ketat 12 aturan
-  // ============================================================
   function isNotPrice(text, value) {
     if (value < CONFIG.MIN_PRICE || value > CONFIG.MAX_PRICE) return true;
     
@@ -892,9 +1015,6 @@
     return false;
   }
 
-  // ============================================================
-  // DETEKSI HARGA BERLAPIS (4 LAYER)
-  // ============================================================
   const MONEY_LEVELS = ['money-master', 'money-page', 'money-child'];
 
   function detectPriceLayered(pageLevel) {
@@ -910,7 +1030,6 @@
     
     const container = document.querySelector('article, main, .post-body, .entry-content') || document.body;
     
-    // LAYER 1: Tabel dengan Header "Harga"
     log(`  🔍 Layer 1: Tabel header "Harga"...`, "PRICE");
     const layer1Result = detectPriceFromTableHeader(container);
     if (layer1Result.hasPrice) {
@@ -920,7 +1039,6 @@
     }
     log(`  ⏭️ Layer 1: tidak ketemu`, "PRICE");
     
-    // LAYER 2: Elemen .price / [itemprop="price"]
     log(`  🔍 Layer 2: Elemen .price / [itemprop="price"]...`, "PRICE");
     const layer2Result = detectPriceFromElements(container);
     if (layer2Result.hasPrice) {
@@ -930,7 +1048,6 @@
     }
     log(`  ⏭️ Layer 2: tidak ketemu`, "PRICE");
     
-    // LAYER 3: Elemen dengan kata kunci "harga"
     log(`  🔍 Layer 3: Elemen dengan kata kunci harga...`, "PRICE");
     const layer3Result = detectPriceFromKeywordElements(container);
     if (layer3Result.hasPrice) {
@@ -940,7 +1057,6 @@
     }
     log(`  ⏭️ Layer 3: tidak ketemu`, "PRICE");
     
-    // LAYER 4: Regex longgar HANYA dengan konteks
     log(`  🔍 Layer 4: Regex longgar dengan konteks...`, "PRICE");
     const layer4Result = detectPriceFromLooseRegex(container);
     if (layer4Result.hasPrice) {
@@ -955,7 +1071,6 @@
     return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-price-found' };
   }
 
-  // ── Layer 1: Tabel Header "Harga" ─────────────────────────
   function detectPriceFromTableHeader(container) {
     const offers = [];
     const tables = container.querySelectorAll('table');
@@ -995,7 +1110,6 @@
     return { hasPrice: false, source: null, value: null, offers: [] };
   }
 
-  // ── Layer 2: Elemen .price / [itemprop="price"] ───────────
   function detectPriceFromElements(container) {
     const selectors = [
       '[itemprop="price"]', '.price', '.harga', '.biaya', '.tarif',
@@ -1031,7 +1145,6 @@
     return { hasPrice: false, source: null, value: null, offers: [] };
   }
 
-  // ── Layer 3: Elemen dengan kata kunci "harga" ─────────────
   function detectPriceFromKeywordElements(container) {
     const keywordRegex = /(harga|biaya|tarif|price|cost|rate|mulai dari|per\s+(m|m²|m2|unit|buah|lembar|meter))/i;
     const candidates = container.querySelectorAll('p, div, span, li, td, strong, b, em');
@@ -1060,7 +1173,6 @@
     return { hasPrice: false, source: null, value: null, offers: [] };
   }
 
-  // ── Layer 4: Regex Longgar HANYA dengan Konteks ───────────
   function detectPriceFromLooseRegex(container) {
     const keywordRegex = /(harga|biaya|tarif|price|cost|rate|mulai dari|per\s+(m|m²|m2|unit|buah|lembar|meter))/i;
     
@@ -1137,9 +1249,6 @@
     return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-valid-price' };
   }
 
-  // ============================================================
-  // AMBIL NAMA DARI URL BERSIH
-  // ============================================================
   function getCleanPageName(level) {
     let cleanName = '';
     let path = window.location.pathname;
@@ -1178,9 +1287,6 @@
     return cleanName;
   }
 
-  // ============================================================
-  // CREATE IMAGE — CLOUDINARY
-  // ============================================================
   function createImageWithText(pageName, level, year) {
     perf.start('createImageWithText');
     
@@ -1206,9 +1312,6 @@
     return LOGO_IMAGE;
   }
 
-  // ============================================================
-  // STYLE RESPONSIF
-  // ============================================================
   function applyResponsiveStyles(figure, img) {
     figure.style.padding = '1em 0px';
     figure.style.margin = '20px 0';
@@ -1231,7 +1334,7 @@
     img.style.padding = '0 10px';
     img.style.boxSizing = 'border-box';
 
-    const styleId = 'responsive-image-style-v482';
+    const styleId = 'responsive-image-style-v484';
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style');
       style.id = styleId;
@@ -1259,9 +1362,6 @@
     figure.setAttribute('data-auto-figure', 'true');
   }
 
-  // ============================================================
-  // CEK GAMBAR & PERBAIKI
-  // ============================================================
   function fixImagesToFormat1() {
     perf.start('fixImagesToFormat1');
     log('Checking images in content...', "IMAGE");
@@ -1451,9 +1551,6 @@
     return figure;
   }
 
-  // ============================================================
-  // PRODUK SCHEMA FUNCTIONS
-  // ============================================================
   function sanitizeText(text) {
     if (!text) return "";
     return text.replace(/[\t\n\r]+/g, ' ').replace(/\s{2,}/g, ' ').trim().substring(0, 100);
@@ -1495,21 +1592,49 @@
   }
 
   function detectProductCategory() {
-    // Prioritas 1: PLD
     const bodyCategory = document.body.getAttribute('data-product-category');
     if (bodyCategory) return bodyCategory;
     
-    // Prioritas 2: V379A
     if (window.V379A && window.V379A.productCategory) {
       return window.V379A.productCategory;
     }
     
-    // Prioritas 3: Default berdasarkan entity type
     const entityType = document.body.getAttribute('data-entity-type') || getEntityTypeFromPLD();
     if (entityType === 'material') return 'BuildingMaterial';
     if (entityType === 'produk') return 'PrecastProduct';
     
     return 'BuildingMaterial';
+  }
+
+  // ============================================================
+  // 🆕 v4.84: DETECT PRODUCT MATERIAL — DINAMIS (BUKAN HARDCODE)
+  // 🔥 Prioritas: PLD → V379A → Mapping dari category
+  // ============================================================
+  function detectProductMaterial() {
+    // Prioritas 1: PLD body attribute
+    const bodyMaterial = document.body.getAttribute('data-product-material');
+    if (bodyMaterial) {
+      log(`🧱 Material dari PLD (data-product-material): ${bodyMaterial}`, "MATERIAL");
+      return bodyMaterial;
+    }
+    
+    // Prioritas 2: V379A
+    if (window.V379A && window.V379A.productMaterial) {
+      log(`🧱 Material dari V37.9-A: ${window.V379A.productMaterial}`, "MATERIAL");
+      return window.V379A.productMaterial;
+    }
+    
+    // Prioritas 3: Mapping dari product category
+    const category = detectProductCategory();
+    const categoryToMaterial = {
+      'PrecastProduct': 'Beton Precast',
+      'SteelProduct': 'Besi Beton',
+      'PavingProduct': 'Paving Beton',
+      'BuildingMaterial': 'Material Bangunan'
+    };
+    const material = categoryToMaterial[category] || 'Material Bangunan';
+    log(`🧱 Material dari category "${category}": ${material}`, "MATERIAL");
+    return material;
   }
 
   function extractVariantSpec() {
@@ -1538,25 +1663,36 @@
   }
 
   // ============================================================
-  // 🚀 MAIN FUNCTION v4.82
+  // 🚀 MAIN FUNCTION v4.84
   // ============================================================
   async function init() {
     perf.start('init');
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.82 — CLEANUP FINAL", "INFO");
-    log("Tanpa Duplikasi Update H1 & Konten (di-handle Smart Evergreen)", "INFO");
-    log("Deteksi Harga Berlapis (4 Layer) untuk Money Level", "INFO");
-    log("Dead Code Cleanup + needYear() Boolean Fix", "INFO");
+    log("AutoSchema Hybrid v4.84 — FIX HARDCODE MATERIAL", "INFO");
+    log("Product Material: dari PLD/category (bukan hardcode)", "INFO");
     log("═══════════════════════════════════════════════════", "INFO");
     
-    // STEP 1: TUNGGU BREADCRUMB SIAP
-    log("🍞 Menunggu breadcrumb SIAP (bukan loading)...", "BREADCRUMB");
-    const breadcrumbData = await waitForBreadcrumbReady(CONFIG.BREADCRUMB_READY_TIMEOUT);
+    // STEP 1: TUNGGU BREADCRUMB GENERATED (FLAG/EVENT)
+    log("🍞 Menunggu breadcrumb GENERATED (flag/event)...", "BREADCRUMB");
+    let parentData = await waitForBreadcrumbGenerated(CONFIG.BREADCRUMB_GENERATED_TIMEOUT);
     
-    if (breadcrumbData) {
-      log(`✅ Breadcrumb SIAP: ${breadcrumbData.linkCount} links, ${breadcrumbData.itemCount} items, schema: ${breadcrumbData.hasSchema}`, "SUCCESS");
+    let breadcrumbData = null;
+    
+    if (parentData && parentData.parentName && parentData.parentName !== 'Home') {
+      log(`✅ Breadcrumb dari ${parentData.source}: parent="${parentData.parentName}"`, "SUCCESS");
     } else {
-      log(`⚠️ Breadcrumb timeout — akan fallback ke origin`, "WARN");
+      log(`⚠️ Breadcrumb flag/event timeout — fallback ke DOM`, "WARN");
+      
+      breadcrumbData = await waitForBreadcrumbReady(CONFIG.BREADCRUMB_READY_TIMEOUT);
+      
+      if (breadcrumbData) {
+        log(`✅ Breadcrumb FALLBACK SIAP: ${breadcrumbData.linkCount} links`, "SUCCESS");
+      } else {
+        log(`⚠️ Breadcrumb FALLBACK timeout`, "WARN");
+      }
+      
+      const currentUrl = location.href.replace(/[?&]m=1/, "");
+      parentData = getParentFromBreadcrumbReady(breadcrumbData, currentUrl);
     }
     
     // STEP 2: TUNGGU PLD
@@ -1596,15 +1732,10 @@
     log(`📌 Schema Type: ${schemaType ? schemaType.primary + ' + ' + schemaType.secondary : 'N/A'}`, "SCHEMA");
     log(`📌 H1 Pattern: ${h1Pattern}`, "PLD");
 
-    // ═══════════════════════════════════════════════════════════
-    // ✅ STEP 5: UPDATE H1 & KONTEN — DIHAPUS (DUPLIKASI)
-    // Sudah di-handle oleh Smart Evergreen v16.1
-    // ═══════════════════════════════════════════════════════════
+    // STEP 5: SKIP (di-handle Smart Evergreen)
     log("📅 Update H1 & Konten: DIHANDLE Smart Evergreen (skip)", "YEAR");
 
-    // =========================================================
     // STEP 6: DETEKSI HARGA BERLAPIS (4 LAYER)
-    // =========================================================
     log("💰 DETEKSI HARGA BERLAPIS (Money Level Only):", "PRICE");
     const priceResult = detectPriceLayered(pageLevel);
     const detectedOffers = priceResult.offers || [];
@@ -1653,18 +1784,15 @@
       }
     }
 
-    // STEP 8: CEK SKIP PRODUCT SCHEMA (PLD-ONLY)
+    // STEP 8: CEK SKIP PRODUCT SCHEMA
     if (shouldSkipProductSchema(pageLevel, entityType)) {
       log("Product schema SKIPPED untuk halaman ini", "SKIP");
       perf.end('init');
       return;
     }
     
-    // STEP 9: AMBIL PARENT TERDEKAT DARI BREADCRUMB SIAP
+    // STEP 9: AMBIL PARENT TERDEKAT
     const currentUrl = location.href.replace(/[?&]m=1/, "");
-    
-    log("👪 MENCARI PARENT TERDEKAT DARI BREADCRUMB SIAP...", "PARENT");
-    const parentData = getParentFromBreadcrumbReady(breadcrumbData, currentUrl);
     
     log(`👪 Parent Final: "${parentData.parentName}"`, "PARENT");
     log(`   📍 URL: ${parentData.parentUrl}`, "PARENT");
@@ -1686,7 +1814,6 @@
     const areaServed = getAreaServed();
     const productCategory = detectProductCategory();
     
-    // Gunakan detectedOffers dari deteksi berlapis
     const offers = detectedOffers.map(o => ({
       "@type": "Offer",
       name: sanitizeText(o.name),
@@ -1726,9 +1853,10 @@
       product.offers = offers;
     }
     
+    // ✅ v4.84: Material dari PLD/category (bukan hardcode)
     if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
       product.productType = pageLevel === 'variant' ? "Variant" : "Sub-Variant";
-      product.material = "Beton Precast";
+      product.material = detectProductMaterial();  // ✅ DINAMIS
       product.manufacturer = { "@type": "Organization", name: "Beton Jaya Readymix" };
       const variantSpec = extractVariantSpec();
       if (variantSpec) product.variant = variantSpec;
@@ -1768,30 +1896,30 @@
     log(`  Content Focus    : ${contentFocus}`, "FOCUS");
     log(`  Kategori         : ${kategori}`, "KATEGORI");
     log(`  Product Category : ${productCategory}`, "SUCCESS");
+    log(`  Product Material : ${product.material || '(N/A)'}`, "MATERIAL");
     log(`  ─── DETEKSI HARGA ──────────────────────────────`, "PRICE");
     log(`  Is Money Level   : ${MONEY_LEVELS.includes(pageLevel) ? '✅ Ya' : '❌ Tidak'}`, "PRICE");
     log(`  Has Price        : ${hasPrice ? '✅ Ya' : '❌ Tidak'}`, "PRICE");
     log(`  Price Layer      : ${priceResult.layer || 'N/A'}`, "PRICE");
     log(`  Price Source     : ${priceResult.source || 'N/A'}`, "PRICE");
     log(`  Offers Count     : ${offers.length}`, "PRICE");
+    log(`  ─── BREADCRUMB ─────────────────────────────────`, "PARENT");
+    log(`  Parent Source    : ${parentData.source}`, "PARENT");
+    log(`  Parent Name      : ${parentData.parentName}`, "PARENT");
     log(`  ─── SCHEMA ─────────────────────────────────────`, "SUCCESS");
     log(`  WebPage Schema   : ✅ (+ isPartOf)`, "SUCCESS");
     log(`  Product Schema   : ✅ (dengan ${offers.length} offers)`, "SUCCESS");
     log(`  isPartOf Lokasi  : ✅ HANYA DI WEBPAGE`, "SCHEMA");
-    log(`  ─── UPDATE (DIHANDLE SMART EVERGREEN) ──────────`, "YEAR");
-    log(`  Update H1        : ⏭️ SKIP (Smart Evergreen)`, "YEAR");
-    log(`  Update Konten    : ⏭️ SKIP (Smart Evergreen)`, "YEAR");
-    log(`  Update Meta      : ⏭️ SKIP (Smart Evergreen)`, "YEAR");
     log(`  ─── SYSTEM ─────────────────────────────────────`, "INFO");
     log(`  Image Source     : ${imageSource}`, "IMAGE");
-    log(`  Breadcrumb Ready : ${breadcrumbData ? '✅ SIAP' : '⏰ TIMEOUT'}`, "BREADCRUMB");
-    log(`  Parent Name      : ${parentData.parentName}`, "PARENT");
     log(`  AED              : ${aed ? '✅ READY' : '❌ FALLBACK'}`, "AED");
     log(`  DOM CACHE        : ${CONFIG.CACHE_DOM_ELEMENTS ? '✅ ACTIVE' : '❌ INACTIVE'}`, "CACHE");
     log(`  CORB PREVENTION  : ✅ ACTIVE`, "CORB");
     log(`  PLD-ONLY MODE    : ✅ ACTIVE`, "PLD");
+    log(`  BREADCRUMB SYNC  : ✅ SINKRON v12.3.3`, "FIX");
+    log(`  MATERIAL FIX     : ✅ DINAMIS (bukan hardcode)`, "FIX");
     log("═══════════════════════════════════════════════════", "INFO");
-    log("AutoSchema Hybrid v4.82 SELESAI", "SUCCESS");
+    log("AutoSchema Hybrid v4.84 SELESAI", "SUCCESS");
     
     perf.end('init');
   }
