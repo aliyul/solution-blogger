@@ -1,5 +1,5 @@
 /* ============================================================
- 🧠 Page Level Detector v22.63 — FULL SYNC + PHASE 4 RE-VALIDASI
+ 🧠 Page Level Detector v22.64 — FULL SYNC + PHASE 4 RE-VALIDASI
     ✅ FIX 1: extractSlugFromInput() — Gunakan cleanText() (SAMA browser)
     ✅ FIX 2: detectEntityTypeFromText() — Identik dengan detectEntityType()
     ✅ FIX 3: detectPageLevelForPrompt() — Default SAMA dengan browser
@@ -9,13 +9,14 @@
     ✅ FIX 7: detectPageLevelFromDOM() — Deteksi dari DOM untuk validasi silang
     ✅ FIX 8: validateForPrompt() — Re-validasi PHASE 4 (Input vs Browser)
     🔥 FIX 9 (v22.63): Mode Browser — Set 3 attribute + fallback H1
+    🔥 FIX 10 (v22.64): Mode Browser — checkPriceTable() + 5 attribute tambahan
 ============================================================ */
 
 (function () {
   "use strict";
 
-  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "22.63") {
-    console.warn("⚠️ [PLD v22.63] Page Level Detector already loaded!");
+  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "22.64") {
+    console.warn("⚠️ [PLD v22.64] Page Level Detector already loaded!");
     return;
   }
 
@@ -42,12 +43,12 @@
       EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐", QUALITY: "📊",
       DOM: "🌐", BREAD: "🍞", TIMER: "⏱️", EXTERNAL: "📦",
       COMMERCIAL: "🛒", HARGA: "💵", VALIDATE: "🔍", CROSS: "🔀",
-      ATTR: "🏷️", H1: "📝"
+      ATTR: "🏷️", H1: "📝", TABLE: "📊"
     };
-    console.log((icons[type] || "📘") + " [PLD v22.63] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.64] " + message);
   }
 
-  log('📦 External JS v22.63 loaded — FULL SYNC + PHASE 4 + FIX 9 (Mode Browser)', 'EXTERNAL');
+  log('📦 External JS v22.64 loaded — FULL SYNC + PHASE 4 + FIX 10 (Mode Browser)', 'EXTERNAL');
 
   var VALID_LEVELS = [
     "home", "pillar", "sub-pillar-tipe-2", "sub-pillar-tipe-1",
@@ -284,15 +285,12 @@
     return text;
   }
 
-  // 🔥 FIX 9 (v22.63): Fungsi baru — ambil H1 dari DOM
   function getH1Text() {
     try {
       var h1 = document.querySelector('h1');
       if (!h1) return '';
       var text = h1.innerText || h1.textContent || '';
-      // Hapus tahun (20xx)
       text = text.replace(/\b(20[2-9][0-9])\b/g, '');
-      // Bersihkan
       text = cleanText(text);
       if (text.length > 150) text = text.substring(0, 150);
       return text;
@@ -304,6 +302,49 @@
   function isHomePage() {
     var path = window.location.pathname.toLowerCase();
     return path === "/" || path === "/index.html" || path === "/home";
+  }
+
+  // ============================================================
+  // 🔥 FIX 10 (v22.64): CEK TABEL HARGA DI DOM
+  // ============================================================
+
+  function checkPriceTable() {
+    if (typeof document === 'undefined') return false;
+    
+    try {
+      var tables = document.querySelectorAll('table');
+      if (!tables || tables.length === 0) return false;
+      
+      for (var i = 0; i < tables.length; i++) {
+        var table = tables[i];
+        
+        // Cek header (<th>) mengandung kata harga
+        var headers = table.querySelectorAll('th');
+        for (var j = 0; j < headers.length; j++) {
+          var headerText = (headers[j].innerText || headers[j].textContent || '').toLowerCase();
+          if (/harga|biaya|tarif|price|cost|rate/i.test(headerText)) {
+            log('📊 TABEL HARGA ditemukan (header)', 'TABLE');
+            return true;
+          }
+        }
+        
+        // Fallback: cek semua text tabel (jika tidak ada <th>)
+        if (headers.length === 0) {
+          var tableText = (table.innerText || table.textContent || '').toLowerCase();
+          if (/harga|biaya|tarif|price|cost|rate/i.test(tableText)) {
+            // Cek ada angka juga
+            if (/\d+/.test(tableText)) {
+              log('📊 TABEL HARGA ditemukan (fallback text)', 'TABLE');
+              return true;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      log('⚠️ Error checkPriceTable: ' + e.message, 'WARN');
+    }
+    
+    return false;
   }
 
   // ============================================================
@@ -1042,7 +1083,6 @@
     return level;
   }
 
-  // 🔥 FIX 9 (v22.63): detectPageLevelFromDOM — Tambah fallback H1
   function detectPageLevelFromDOM(entityType) {
     if (typeof window === 'undefined' || !window.location) {
       log('⚠️ Tidak ada window.location — bukan browser', 'WARN');
@@ -1054,19 +1094,14 @@
       return "home";
     }
     
-    // Ambil text dari URL
     var urlText = getPageText();
-    
-    // 🔥 FIX 9: Ambil H1 text sebagai fallback
     var h1Text = getH1Text();
     
-    // 🔥 FIX 9: Gabungkan URL + H1 (prioritas URL, H1 fallback)
     var text = urlText;
     if (!text || text.length < 3) {
       text = h1Text;
       log('🌐 DOM DETECT: URL kosong, pakai H1="' + h1Text + '"', 'DOM');
     } else if (h1Text && h1Text.length > 3) {
-      // Gabungkan untuk validasi (tapi text utama = URL)
       log('🌐 DOM DETECT: URL="' + urlText + '", H1="' + h1Text + '"', 'DOM');
     } else {
       log('🌐 DOM DETECT: URL="' + urlText + '" (no H1)', 'DOM');
@@ -1074,13 +1109,11 @@
     
     var entity = entityType || detectEntityType();
     
-    // Cek PILLAR
     if (detectPillar(text, entity)) {
       log('🏛️ PILLAR terdeteksi dari DOM', 'DOM');
       return "pillar";
     }
     
-    // Deteksi level
     var level = detectMoneyLevelInternal(text, entity);
     
     if (!level) {
@@ -1755,12 +1788,12 @@
   }
 
   // ============================================================
-  // 🔥 FIX 9 (v22.63): SET 3 ATTRIBUTE (content-focus, kategori, h1-pattern)
+  // 🔥 FIX 9 + FIX 10 (v22.64): SET 8 ATTRIBUTE
   // ============================================================
 
   function setSchemaAttributes(level) {
     try {
-      // ✅ 1. data-page-level (sudah ada, tetap dipertahankan)
+      // ✅ 1. data-page-level
       document.body.setAttribute("data-page-level", level);
       document.body.setAttribute("data-page-level-num", String(TYPE_LEVEL_MAP[level] || '0'));
 
@@ -1769,76 +1802,150 @@
       document.body.setAttribute("data-entity-type", entityType);
       log('🏷️ ATTR SET: data-entity-type="' + entityType + '"', 'ATTR');
 
-      // ✅ 3. data-content-focus (INFORMASI / HARGA / COMMERCIAL / GABUNG)
+      // ✅ 3. data-content-focus (FIX 10: pakai tabel harga juga)
       var contentFocus = detectContentFocus(level, entityType);
       document.body.setAttribute("data-content-focus", contentFocus);
       log('🎯 ATTR SET: data-content-focus="' + contentFocus + '"', 'ATTR');
 
-      // ✅ 4. data-kategori (EVERGREEN / NON-EVERGREEN)
+      // ✅ 4. data-kategori
       var kategori = detectKategori(contentFocus);
       document.body.setAttribute("data-kategori", kategori);
       log('🏷️ ATTR SET: data-kategori="' + kategori + '"', 'ATTR');
 
-      // ✅ 5. data-h1-pattern (with-year / no-year)
+      // ✅ 5. data-h1-pattern
       var h1Pattern = detectH1Pattern(kategori);
       document.body.setAttribute("data-h1-pattern", h1Pattern);
       log('📝 ATTR SET: data-h1-pattern="' + h1Pattern + '"', 'ATTR');
 
-      // ✅ 6. data-entity-sub-type (jika ada)
-      // Bisa di-set nanti oleh script lain
+      // 🔥 FIX 10: 3 attribute tambahan
+      
+      // ✅ 6. data-entity-sub-type (opsional)
+      var entitySubType = detectEntitySubType(level, entityType);
+      document.body.setAttribute("data-entity-sub-type", entitySubType || '');
+      log('🔷 ATTR SET: data-entity-sub-type="' + (entitySubType || '(none)') + '"', 'ATTR');
 
-      log('✅ Semua attribute schema ter-set!', 'ATTR');
+      // ✅ 7. data-schema-type-primary + secondary
+      var schemaType = detectSchemaType(level, entityType, contentFocus);
+      document.body.setAttribute("data-schema-type-primary", schemaType.primary);
+      document.body.setAttribute("data-schema-type-secondary", schemaType.secondary);
+      log('🔗 ATTR SET: data-schema-type-primary="' + schemaType.primary + '"', 'ATTR');
+      log('🔗 ATTR SET: data-schema-type-secondary="' + schemaType.secondary + '"', 'ATTR');
+
+      // ✅ 8. data-cta-type + data-cta-text
+      var ctaType = detectCtaType(level, contentFocus);
+      document.body.setAttribute("data-cta-type", ctaType.type);
+      document.body.setAttribute("data-cta-text", ctaType.text);
+      log('🔘 ATTR SET: data-cta-type="' + ctaType.type + '"', 'ATTR');
+      log('🔘 ATTR SET: data-cta-text="' + ctaType.text + '"', 'ATTR');
+
+      log('✅ Semua 8 attribute schema ter-set!', 'ATTR');
 
     } catch (e) {
       log('❌ Error set schema attributes: ' + e.message, 'ERROR');
     }
   }
 
-  // 🔥 FIX 9: Deteksi content focus
+  // 🔥 FIX 10: Deteksi content focus — PAKAI TABEL HARGA
   function detectContentFocus(level, entityType) {
-    // Baca H1 untuk cek tahun
     var h1Text = getH1Text();
-    
-    // Baca URL slug
     var urlText = getPageText();
     
-    // Cek ada tahun?
     var hasYearInH1 = /\b(20[2-9][0-9])\b/.test(h1Text);
     var hasYearInUrl = /\b(20[2-9][0-9])\b/.test(urlText);
     
-    // Cek ada harga?
-    var hasPrice = checkHasPrice(h1Text) || checkHasPrice(urlText);
-    
-    // Cek ada commercial?
+    var hasPriceInText = checkHasPrice(h1Text) || checkHasPrice(urlText);
     var hasCommercial = checkHasCommercial(h1Text) || checkHasCommercial(urlText);
     
-    // Level money + harga → HARGA
-    var isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(level);
+    // 🔥 FIX 10: Cek tabel harga di DOM
+    var hasPriceTableInDOM = checkPriceTable();
     
-    if (isMoneyLevel) {
-      if (hasPrice || hasYearInH1 || hasYearInUrl) {
+    var isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(level);
+    var isVariantLevel = ['variant', 'sub-variant'].includes(level);
+    
+    if (isMoneyLevel || isVariantLevel) {
+      // 🔥 FIX 10: Cek tabel harga DULU — paling kuat
+      if (hasPriceTableInDOM) {
+        log('🎯 CONTENT FOCUS: HARGA (tabel harga di DOM)', 'FOCUS');
         return 'HARGA';
       }
+      
+      if (hasPriceInText || hasYearInH1 || hasYearInUrl) {
+        return 'HARGA';
+      }
+      
       if (hasCommercial) {
         return 'COMMERCIAL';
       }
-      // Money level tanpa harga/commercial → cek apakah informasi
-      // Fallback: INFORMASI
+      
       return 'INFORMASI';
     }
     
-    // Level evergreen → INFORMASI
     return 'INFORMASI';
   }
 
-  // 🔥 FIX 9: Deteksi kategori
+  // 🔥 FIX 10: Deteksi entity sub-type (opsional)
+  function detectEntitySubType(level, entityType) {
+    // Placeholder — bisa dikembangkan nanti
+    // Untuk saat ini, ambil dari body attribute atau return null
+    var bodySubType = document.body.getAttribute('data-entity-sub-type');
+    if (bodySubType) return bodySubType;
+    
+    // Bisa deteksi dari URL slug atau H1
+    return null;
+  }
+
+  // 🔥 FIX 10: Deteksi schema type primary + secondary
+  function detectSchemaType(level, entityType, contentFocus) {
+    var primary = 'WebPage';
+    var secondary = '';
+    
+    var isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(level);
+    var isEvergreen = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].includes(level);
+    var isVariant = ['variant', 'sub-variant'].includes(level);
+    
+    // Tentukan primary schema
+    if (isEvergreen) {
+      primary = 'Article';
+      secondary = 'FAQPage';
+    } else if (isVariant) {
+      primary = 'Product';
+      secondary = 'TechArticle';
+    } else if (isMoneyLevel) {
+      if (contentFocus === 'HARGA' || contentFocus === 'COMMERCIAL') {
+        primary = 'Product';
+        secondary = 'Service';
+      } else if (contentFocus === 'INFORMASI') {
+        primary = 'Article';
+        secondary = 'FAQPage';
+      }
+    }
+    
+    return { primary: primary, secondary: secondary };
+  }
+
+  // 🔥 FIX 10: Deteksi CTA type + text
+  function detectCtaType(level, contentFocus) {
+    var isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(level);
+    
+    if (!isMoneyLevel) {
+      return { type: 'soft', text: 'Baca Selengkapnya' };
+    }
+    
+    if (contentFocus === 'HARGA' || contentFocus === 'COMMERCIAL') {
+      return { type: 'hard', text: 'Pesan Sekarang' };
+    }
+    
+    return { type: 'medium', text: 'Hubungi Kami' };
+  }
+
+  // 🔥 Deteksi kategori
   function detectKategori(contentFocus) {
     if (contentFocus === 'INFORMASI') return 'EVERGREEN';
     if (['HARGA', 'COMMERCIAL', 'GABUNG'].includes(contentFocus)) return 'NON-EVERGREEN';
     return 'EVERGREEN';
   }
 
-  // 🔥 FIX 9: Deteksi H1 pattern
+  // 🔥 Deteksi H1 pattern
   function detectH1Pattern(kategori) {
     return kategori === 'NON-EVERGREEN' ? 'with-year' : 'no-year';
   }
@@ -1851,7 +1958,7 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.63",
+      version: "22.64",
       CONFIG: CONFIG,
 
       // ─── DETEKSI ───
@@ -1878,12 +1985,16 @@
       VALID_ENTITY_TYPES: VALID_ENTITY_TYPES,
       ENTITY_PILLAR_NAMES: ENTITY_PILLAR_NAMES,
 
-      // 🔥 FIX 9: Expose fungsi baru
+      // 🔥 FIX 9 + FIX 10: Expose fungsi baru
       getH1Text: getH1Text,
+      checkPriceTable: checkPriceTable,
       setSchemaAttributes: setSchemaAttributes,
       detectContentFocus: detectContentFocus,
       detectKategori: detectKategori,
       detectH1Pattern: detectH1Pattern,
+      detectEntitySubType: detectEntitySubType,
+      detectSchemaType: detectSchemaType,
+      detectCtaType: detectCtaType,
 
       updateAttributes: function(options) {
         options = options || {};
@@ -1893,7 +2004,6 @@
         var seoScore = calculateSEOScore();
         
         try {
-          // ✅ Set attribute dasar (v22.62)
           document.body.setAttribute("data-page-level", level);
           document.body.setAttribute("data-page-level-num", String(TYPE_LEVEL_MAP[level] || '0'));
           document.body.setAttribute("data-seo-score", String(seoScore.score || '0'));
@@ -1904,7 +2014,7 @@
           document.body.classList.remove('page-level-unknown', className);
           document.body.classList.add(className);
           
-          // 🔥 FIX 9: Set 3 attribute schema (content-focus, kategori, h1-pattern)
+          // 🔥 FIX 9 + FIX 10: Set 8 attribute schema
           setSchemaAttributes(level);
           
         } catch (e) {
@@ -2021,7 +2131,7 @@
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v22.63 Ready");
+    console.log("✅ Page Level Detector v22.64 Ready");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🔧 FIX 1: extractSlugFromInput() → cleanText()");
     console.log("🔧 FIX 2: detectEntityTypeFromText() → identik detectEntityType()");
@@ -2032,9 +2142,18 @@
     console.log("🔥 FIX 7: detectPageLevelFromDOM() → deteksi dari DOM browser");
     console.log("🔥 FIX 8: validateForPrompt() → RE-VALIDASI PHASE 4");
     console.log("🔥 FIX 9: Mode Browser → Set 3 attribute + fallback H1");
+    console.log("🔥 FIX 10: Mode Browser → checkPriceTable() + 5 attribute tambahan");
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("📌 Contoh pemakaian PHASE 4:");
-    console.log("   PLD.validateForPrompt('jasa pasang pagar', 'jasa')");
+    console.log("📌 8 attribute yang di-set:");
+    console.log("   1. data-page-level");
+    console.log("   2. data-page-level-num");
+    console.log("   3. data-entity-type");
+    console.log("   4. data-content-focus (pakai tabel harga!)");
+    console.log("   5. data-kategori");
+    console.log("   6. data-h1-pattern");
+    console.log("   7. data-entity-sub-type");
+    console.log("   8. data-schema-type-primary + secondary");
+    console.log("   9. data-cta-type + data-cta-text");
     console.log("═══════════════════════════════════════════════════════════");
 
     try {
@@ -2053,7 +2172,7 @@
     }
   }
 
-  log('🚀 Starting Page Level Detector v22.63...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.64...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
