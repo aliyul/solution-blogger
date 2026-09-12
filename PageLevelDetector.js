@@ -1,5 +1,5 @@
 /* ============================================================
- 🧠 Page Level Detector v22.64 — FULL SYNC + PHASE 4 RE-VALIDASI
+ 🧠 Page Level Detector v22.65 — FULL SYNC + PHASE 4 RE-VALIDASI
     ✅ FIX 1: extractSlugFromInput() — Gunakan cleanText() (SAMA browser)
     ✅ FIX 2: detectEntityTypeFromText() — Identik dengan detectEntityType()
     ✅ FIX 3: detectPageLevelForPrompt() — Default SAMA dengan browser
@@ -10,13 +10,14 @@
     ✅ FIX 8: validateForPrompt() — Re-validasi PHASE 4 (Input vs Browser)
     🔥 FIX 9 (v22.63): Mode Browser — Set 3 attribute + fallback H1
     🔥 FIX 10 (v22.64): Mode Browser — checkPriceTable() + 5 attribute tambahan
+    🔥 FIX 11 (v22.65): Mode Browser — Set data-product-category + data-product-material
 ============================================================ */
 
 (function () {
   "use strict";
 
-  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "22.64") {
-    console.warn("⚠️ [PLD v22.64] Page Level Detector already loaded!");
+  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "22.65") {
+    console.warn("⚠️ [PLD v22.65] Page Level Detector already loaded!");
     return;
   }
 
@@ -43,12 +44,12 @@
       EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐", QUALITY: "📊",
       DOM: "🌐", BREAD: "🍞", TIMER: "⏱️", EXTERNAL: "📦",
       COMMERCIAL: "🛒", HARGA: "💵", VALIDATE: "🔍", CROSS: "🔀",
-      ATTR: "🏷️", H1: "📝", TABLE: "📊"
+      ATTR: "🏷️", H1: "📝", TABLE: "📊", PRODUCT: "📂", MATERIAL: "🧱"
     };
-    console.log((icons[type] || "📘") + " [PLD v22.64] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.65] " + message);
   }
 
-  log('📦 External JS v22.64 loaded — FULL SYNC + PHASE 4 + FIX 10 (Mode Browser)', 'EXTERNAL');
+  log('📦 External JS v22.65 loaded — FULL SYNC + PHASE 4 + FIX 11 (Mode Browser)', 'EXTERNAL');
 
   var VALID_LEVELS = [
     "home", "pillar", "sub-pillar-tipe-2", "sub-pillar-tipe-1",
@@ -318,7 +319,6 @@
       for (var i = 0; i < tables.length; i++) {
         var table = tables[i];
         
-        // Cek header (<th>) mengandung kata harga
         var headers = table.querySelectorAll('th');
         for (var j = 0; j < headers.length; j++) {
           var headerText = (headers[j].innerText || headers[j].textContent || '').toLowerCase();
@@ -328,11 +328,9 @@
           }
         }
         
-        // Fallback: cek semua text tabel (jika tidak ada <th>)
         if (headers.length === 0) {
           var tableText = (table.innerText || table.textContent || '').toLowerCase();
           if (/harga|biaya|tarif|price|cost|rate/i.test(tableText)) {
-            // Cek ada angka juga
             if (/\d+/.test(tableText)) {
               log('📊 TABEL HARGA ditemukan (fallback text)', 'TABLE');
               return true;
@@ -1788,7 +1786,81 @@
   }
 
   // ============================================================
-  // 🔥 FIX 9 + FIX 10 (v22.64): SET 8 ATTRIBUTE
+  // 🔥 FIX 11 (v22.65): DETEKSI PRODUCT CATEGORY & MATERIAL
+  // ============================================================
+
+  function detectProductCategoryFromPLD(entityType, entitySubType) {
+    var isProduct = ['produk', 'material'].includes(entityType);
+    if (!isProduct) return '';
+    
+    // Mapping sub-type → category
+    var categoryMap = {
+      'pagar-panel-beton': 'PrecastProduct',
+      'besi-beton': 'SteelProduct',
+      'baja-ringan': 'SteelProduct',
+      'paving': 'PavingProduct',
+      'paving-block': 'PavingProduct',
+      'kanopi': 'PrecastProduct',
+      'batako': 'BuildingMaterial',
+      'genteng': 'BuildingMaterial',
+      'semen': 'BuildingMaterial',
+      'pasir': 'BuildingMaterial',
+      'kayu': 'BuildingMaterial',
+      'wpc': 'BuildingMaterial',
+      'grc': 'BuildingMaterial',
+      'hpl': 'BuildingMaterial',
+      'pvc': 'BuildingMaterial',
+      'acp': 'BuildingMaterial'
+    };
+    
+    if (entitySubType && categoryMap[entitySubType]) {
+      return categoryMap[entitySubType];
+    }
+    
+    // Default berdasarkan entity type
+    if (entityType === 'material') return 'BuildingMaterial';
+    if (entityType === 'produk') return 'PrecastProduct';
+    
+    return '';
+  }
+
+  function detectProductMaterialFromPLD(entityType, entitySubType) {
+    var isProduct = ['produk', 'material'].includes(entityType);
+    if (!isProduct) return '';
+    
+    // Mapping sub-type → material
+    var materialMap = {
+      'pagar-panel-beton': 'Beton Precast',
+      'besi-beton': 'Besi Beton',
+      'baja-ringan': 'Baja Ringan',
+      'paving': 'Paving Block',
+      'paving-block': 'Paving Block',
+      'kanopi': 'Baja Ringan',
+      'batako': 'Batako',
+      'genteng': 'Genteng',
+      'semen': 'Semen',
+      'pasir': 'Pasir',
+      'kayu': 'Kayu',
+      'wpc': 'WPC',
+      'grc': 'GRC',
+      'hpl': 'HPL',
+      'pvc': 'PVC',
+      'acp': 'ACP'
+    };
+    
+    if (entitySubType && materialMap[entitySubType]) {
+      return materialMap[entitySubType];
+    }
+    
+    // Default
+    if (entityType === 'material') return 'Material Konstruksi';
+    if (entityType === 'produk') return 'Beton Precast';
+    
+    return '';
+  }
+
+  // ============================================================
+  // 🔥 FIX 9 + FIX 10 + FIX 11 (v22.65): SET 10 ATTRIBUTE
   // ============================================================
 
   function setSchemaAttributes(level) {
@@ -1817,8 +1889,6 @@
       document.body.setAttribute("data-h1-pattern", h1Pattern);
       log('📝 ATTR SET: data-h1-pattern="' + h1Pattern + '"', 'ATTR');
 
-      // 🔥 FIX 10: 3 attribute tambahan
-      
       // ✅ 6. data-entity-sub-type (opsional)
       var entitySubType = detectEntitySubType(level, entityType);
       document.body.setAttribute("data-entity-sub-type", entitySubType || '');
@@ -1838,7 +1908,20 @@
       log('🔘 ATTR SET: data-cta-type="' + ctaType.type + '"', 'ATTR');
       log('🔘 ATTR SET: data-cta-text="' + ctaType.text + '"', 'ATTR');
 
-      log('✅ Semua 8 attribute schema ter-set!', 'ATTR');
+      // 🔥 FIX 11 (v22.65): Set data-product-category + data-product-material
+      var productCategory = detectProductCategoryFromPLD(entityType, entitySubType);
+      if (productCategory) {
+        document.body.setAttribute("data-product-category", productCategory);
+        log('📂 ATTR SET: data-product-category="' + productCategory + '"', 'PRODUCT');
+      }
+
+      var productMaterial = detectProductMaterialFromPLD(entityType, entitySubType);
+      if (productMaterial) {
+        document.body.setAttribute("data-product-material", productMaterial);
+        log('🧱 ATTR SET: data-product-material="' + productMaterial + '"', 'MATERIAL');
+      }
+
+      log('✅ Semua 10 attribute schema ter-set!', 'ATTR');
 
     } catch (e) {
       log('❌ Error set schema attributes: ' + e.message, 'ERROR');
@@ -1856,14 +1939,12 @@
     var hasPriceInText = checkHasPrice(h1Text) || checkHasPrice(urlText);
     var hasCommercial = checkHasCommercial(h1Text) || checkHasCommercial(urlText);
     
-    // 🔥 FIX 10: Cek tabel harga di DOM
     var hasPriceTableInDOM = checkPriceTable();
     
     var isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(level);
     var isVariantLevel = ['variant', 'sub-variant'].includes(level);
     
     if (isMoneyLevel || isVariantLevel) {
-      // 🔥 FIX 10: Cek tabel harga DULU — paling kuat
       if (hasPriceTableInDOM) {
         log('🎯 CONTENT FOCUS: HARGA (tabel harga di DOM)', 'FOCUS');
         return 'HARGA';
@@ -1883,18 +1964,12 @@
     return 'INFORMASI';
   }
 
-  // 🔥 FIX 10: Deteksi entity sub-type (opsional)
   function detectEntitySubType(level, entityType) {
-    // Placeholder — bisa dikembangkan nanti
-    // Untuk saat ini, ambil dari body attribute atau return null
     var bodySubType = document.body.getAttribute('data-entity-sub-type');
     if (bodySubType) return bodySubType;
-    
-    // Bisa deteksi dari URL slug atau H1
     return null;
   }
 
-  // 🔥 FIX 10: Deteksi schema type primary + secondary
   function detectSchemaType(level, entityType, contentFocus) {
     var primary = 'WebPage';
     var secondary = '';
@@ -1903,7 +1978,6 @@
     var isEvergreen = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].includes(level);
     var isVariant = ['variant', 'sub-variant'].includes(level);
     
-    // Tentukan primary schema
     if (isEvergreen) {
       primary = 'Article';
       secondary = 'FAQPage';
@@ -1923,7 +1997,6 @@
     return { primary: primary, secondary: secondary };
   }
 
-  // 🔥 FIX 10: Deteksi CTA type + text
   function detectCtaType(level, contentFocus) {
     var isMoneyLevel = ['money-master', 'money-page', 'money-child'].includes(level);
     
@@ -1938,14 +2011,12 @@
     return { type: 'medium', text: 'Hubungi Kami' };
   }
 
-  // 🔥 Deteksi kategori
   function detectKategori(contentFocus) {
     if (contentFocus === 'INFORMASI') return 'EVERGREEN';
     if (['HARGA', 'COMMERCIAL', 'GABUNG'].includes(contentFocus)) return 'NON-EVERGREEN';
     return 'EVERGREEN';
   }
 
-  // 🔥 Deteksi H1 pattern
   function detectH1Pattern(kategori) {
     return kategori === 'NON-EVERGREEN' ? 'with-year' : 'no-year';
   }
@@ -1958,7 +2029,7 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.64",
+      version: "22.65",
       CONFIG: CONFIG,
 
       // ─── DETEKSI ───
@@ -1985,7 +2056,7 @@
       VALID_ENTITY_TYPES: VALID_ENTITY_TYPES,
       ENTITY_PILLAR_NAMES: ENTITY_PILLAR_NAMES,
 
-      // 🔥 FIX 9 + FIX 10: Expose fungsi baru
+      // 🔥 FIX 9 + FIX 10 + FIX 11: Expose fungsi baru
       getH1Text: getH1Text,
       checkPriceTable: checkPriceTable,
       setSchemaAttributes: setSchemaAttributes,
@@ -1995,6 +2066,8 @@
       detectEntitySubType: detectEntitySubType,
       detectSchemaType: detectSchemaType,
       detectCtaType: detectCtaType,
+      detectProductCategoryFromPLD: detectProductCategoryFromPLD,
+      detectProductMaterialFromPLD: detectProductMaterialFromPLD,
 
       updateAttributes: function(options) {
         options = options || {};
@@ -2014,7 +2087,6 @@
           document.body.classList.remove('page-level-unknown', className);
           document.body.classList.add(className);
           
-          // 🔥 FIX 9 + FIX 10: Set 8 attribute schema
           setSchemaAttributes(level);
           
         } catch (e) {
@@ -2131,7 +2203,7 @@
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v22.64 Ready");
+    console.log("✅ Page Level Detector v22.65 Ready");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🔧 FIX 1: extractSlugFromInput() → cleanText()");
     console.log("🔧 FIX 2: detectEntityTypeFromText() → identik detectEntityType()");
@@ -2143,8 +2215,9 @@
     console.log("🔥 FIX 8: validateForPrompt() → RE-VALIDASI PHASE 4");
     console.log("🔥 FIX 9: Mode Browser → Set 3 attribute + fallback H1");
     console.log("🔥 FIX 10: Mode Browser → checkPriceTable() + 5 attribute tambahan");
+    console.log("🔥 FIX 11: Mode Browser → data-product-category + data-product-material");
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("📌 8 attribute yang di-set:");
+    console.log("📌 10 attribute yang di-set:");
     console.log("   1. data-page-level");
     console.log("   2. data-page-level-num");
     console.log("   3. data-entity-type");
@@ -2154,6 +2227,7 @@
     console.log("   7. data-entity-sub-type");
     console.log("   8. data-schema-type-primary + secondary");
     console.log("   9. data-cta-type + data-cta-text");
+    console.log("  10. data-product-category + data-product-material (FIX 11)");
     console.log("═══════════════════════════════════════════════════════════");
 
     try {
@@ -2172,7 +2246,7 @@
     }
   }
 
-  log('🚀 Starting Page Level Detector v22.64...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.65...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
