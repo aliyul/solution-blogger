@@ -324,6 +324,14 @@
     'mandor',       // ✅ BARU
     'vendor',       // ✅ BARU
     'supplier',     // ✅ BARU
+    'layanan',       // 🔥 FIX A
+    'penyedia',      // 🔥 FIX D
+    'pengrajin',     // 🔥 FIX D
+    'spesialis',     // 🔥 FIX D
+    'biro',          // 🔥 FIX D
+    'firma',         // 🔥 FIX D
+    'perusahaan',    // 🔥 FIX D
+    'penjual jasa',  // 🔥 FIX D
     'pasang',
     'pemasangan',
     'bangun',
@@ -1413,23 +1421,28 @@
   // ═══════════════════════════════════════════════════════════
   // PRICE WORDS
   // ═══════════════════════════════════════════════════════════
-  var PRICE_WORDS = [
-    'harga',
-    'biaya',
-    'tarif',
-    'estimasi',
-    'ongkos',
-    'murah',
-    'hemat',
-    'ekonomis',
-    'terjangkau',
-    'budget',
-    'mahal',
-    'mewah',
-    'premium',
-    'promo',
-    'diskon'
-  ];
+var PRICE_WORDS = [
+  // ═══ HARGA MURNI ═══
+  'harga',
+  'biaya',
+  'tarif',
+  'estimasi',
+  'ongkos',
+  'budget',
+  
+  // ═══ MODIFIER HARGA (bukan spec) ═══
+  'murah',
+  'hemat',
+  'terjangkau',
+  'promo',
+  'diskon'
+  
+  // 🔥 FIX 36 (v22.67.1): HAPUS berikut karena ini SPEC, bukan price:
+  // 'ekonomis',  ← spec mutu (PRODUK_SPECS.mutu)
+  // 'mewah',     ← spec mutu/kualitas
+  // 'premium',   ← spec mutu (PRODUK_SPECS.mutu)
+  // 'mahal'      ← spec/deskriptif
+];
 
   // ═══════════════════════════════════════════════════════════
   // END OF BAGIAN 1
@@ -2281,14 +2294,22 @@
       );
     }
 
-    // Hapus commercial words
-    for (var i = 0; i < COMMERCIAL_WORDS.length; i++) {
-      coreText = coreText.replace(
-        new RegExp("\\b" + COMMERCIAL_WORDS[i] + "\\b", 'g'),
-        ' '
-      );
-    }
+  // 🔥 FIX 35 (v22.67.1): Hapus INFORMATIONAL_WORDS
+ for (var i = 0; i < INFORMATIONAL_WORDS.length; i++) {
+   coreText = coreText.replace(
+     new RegExp("\\b" + INFORMATIONAL_WORDS[i] + "\\b", 'g'),
+     ' '
+   );
+ }
 
+// Hapus commercial words
+for (var i = 0; i < COMMERCIAL_WORDS.length; i++) {
+  coreText = coreText.replace(
+    new RegExp("\\b" + COMMERCIAL_WORDS[i] + "\\b", 'g'),
+    ' '
+  );
+}
+   
     var coreWords = coreText.split(/\s+/).filter(function(w) {
       return w.length > 2;
     });
@@ -3674,13 +3695,21 @@
 
   // ═══════════════════════════════════════════════════════════
   // 🔥 FIX 23: DETECT CONTENT FOCUS + NULL-SAFETY
-  // ═══════════════════════════════════════════════════════════
-
-  function detectContentFocus(level, entityType) {
+  // ═══════════════════════════════════════════════════════════  
+ function detectContentFocus(level, entityType) {
     var h1Text = getH1Text();
     var urlText = getPageText();
 
-    var hasYearInH1 = /\b(20[2-9][0-9])\b/.test(h1Text);
+    // 🔥 FIX 37 (v22.67.1): Ambil H1 RAW untuk cek tahun
+    // Karena getH1Text() sudah menghapus tahun dari H1
+    var h1Raw = '';
+    try {
+      var h1El = document.querySelector('h1');
+      h1Raw = h1El ? (h1El.innerText || h1El.textContent || '') : '';
+    } catch (e) {}
+
+    // Cek tahun di H1 RAW (belum di-clean) & di URL
+    var hasYearInH1 = /\b(20[2-9][0-9])\b/.test(h1Raw);
     var hasYearInUrl = /\b(20[2-9][0-9])\b/.test(urlText);
 
     var hasPriceInText = checkHasPrice(h1Text) || checkHasPrice(urlText);
@@ -3712,7 +3741,7 @@
 
     return 'INFORMASI';
   }
-
+ 
   // ═══════════════════════════════════════════════════════════
   // 🔥 FIX 24: DETECT ENTITY SUB-TYPE + NULL-SAFETY
   // ═══════════════════════════════════════════════════════════
@@ -3841,12 +3870,23 @@
       { slug: "pagar panel beton k300", entity: "produk", expect: "variant", note: "k300 = mutu" },
       { slug: "harga pagar panel beton k300", entity: "produk", expect: "money-page", note: "price + spec" },
       { slug: "pagar panel beton putih", entity: "produk", expect: "variant", note: "putih = warna" },
-
+     
       // ═══ EDGE CASE ═══
       { slug: "cari jasa pasang pagar", entity: "jasa", expect: "money-master", note: "cari = informational" },
       { slug: "mau pasang pagar", entity: "jasa", expect: "money-master", note: "mau = informational" },
       { slug: "butuh kontraktor", entity: "jasa", expect: "money-master", note: "butuh = informational" },
-      { slug: "jual sewa excavator", entity: "sewa", expect: "money-page", note: "jual = TRUE commercial" }
+      { slug: "jual sewa excavator", entity: "sewa", expect: "money-page", note: "jual = TRUE commercial" },
+
+      // ═══ FIX 35-37 (v22.67.1) — TAMBAHAN ═══
+      { slug: "layanan bor sumur", entity: "jasa", expect: "money-master", note: "layanan = provider label" },
+      { slug: "penyedia bor sumur", entity: "jasa", expect: "money-master", note: "penyedia = provider label" },
+      { slug: "pengrajin pagar besi", entity: "jasa", expect: "money-master", note: "pengrajin = provider label" },
+      { slug: "spesialis bor sumur", entity: "jasa", expect: "money-master", note: "spesialis = provider label" },
+      { slug: "cari tukang bor sumur", entity: "jasa", expect: "money-master", note: "cari + tukang" },
+      { slug: "cari jasa coring beton", entity: "jasa", expect: "money-master", note: "cari + base" },
+      { slug: "pagar panel beton premium", entity: "produk", expect: "variant", note: "premium = spec mutu" },
+      { slug: "pagar panel beton ekonomis", entity: "produk", expect: "variant", note: "ekonomis = spec mutu" },
+      { slug: "besi beton premium", entity: "material", expect: "money-master", note: "premium tidak ada di PURE_MATERIAL" }
     ];
 
     console.log("═══════════════════════════════════════════════════════════");
