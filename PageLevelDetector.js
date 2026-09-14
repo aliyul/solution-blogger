@@ -1,13 +1,13 @@
 /* ============================================================
- 🧠 Page Level Detector v22.67.1 FINAL — FULL SYNC + BROWSER MODE FIX
+ 🧠 Page Level Detector v22.67.2 FINAL — FULL SYNC + BROWSER MODE FIX
     ============================================================
-    VERSI: FINAL (Verbose + All Fix 1-53 + Cleanup + Test Suite 48)
+    VERSI: FINAL (Verbose + All Fix 1-56 + Cleanup + Test Suite)
     - Gaya penulisan: VERBOSE (sama seperti v22.65)
     - Log detail: LENGKAP
     - Komentar: DETAIL
-    - Fix: SEMUA (FIX 1-53)
+    - Fix: SEMUA (FIX 1-56)
     - Cleanup: Service names dari SPECS
-    - Test Suite: 48 test case
+    - Test Suite: 55 test case
     ============================================================
     
     ✅ FIX 1-8 (v22.62): Core detection
@@ -33,6 +33,9 @@
     🔥 FIX 51 (v22.67.1): getPageText/getH1Text trim lebih panjang
     🔥 FIX 52 (v22.67.1): Test suite tambahan 15 case
     🔥 FIX 53 (v22.67.1): Update versi 22.67 → 22.67.1
+    🔥 FIX 54 (v22.67.2): Hapus FISIK_WORDS + dekat/sekitar dari getCoreWords
+    🔥 FIX 55 (v22.67.2): PURE_SEWA_SPECS include SEMUA kategori
+    🔥 FIX 56 (v22.67.2): PURE_DESAIN_SPECS include SEMUA kategori
     ============================================================ */
 
 (function () {
@@ -41,8 +44,8 @@
   // ═══════════════════════════════════════════════════════════
   // CEK VERSI — JIKA SUDAH LOADED, SKIP
   // ═══════════════════════════════════════════════════════════
-  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "22.67.1") {
-    console.warn("⚠️ [PLD v22.67.1] Page Level Detector already loaded!");
+  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "22.67.2") {
+    console.warn("⚠️ [PLD v22.67.2] Page Level Detector already loaded!");
     return;
   }
 
@@ -80,10 +83,10 @@
       BROWSER: "🌐", FIX: "🔥", TEST: "🧪"
     };
 
-    console.log((icons[type] || "📘") + " [PLD v22.67.1] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.67.2] " + message);
   }
 
-  log('📦 External JS v22.67.1 FINAL loaded — FULL VERBOSE + ALL FIX + BROWSER FIX', 'EXTERNAL');
+  log('📦 External JS v22.67.2 FINAL loaded — FULL VERBOSE + ALL FIX + BROWSER FIX', 'EXTERNAL');
 
   // ═══════════════════════════════════════════════════════════
   // VALID LEVELS + MAPPING
@@ -248,17 +251,16 @@
   var PURE_FINISHING = ["polos", "motif", "bermotif", "bercorak", "tekstur", "serat", "halus", "kasar", "matte", "glossy", "doff", "gloss", "satin", "anyaman", "natural", "ekspos", "custom", "polosan"];
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 43 (v22.67.1): PRODUK_SPECS — TANPA `material`
+  // PRODUK_SPECS — TANPA `material`
   // ═══════════════════════════════════════════════════════════
   var PRODUK_SPECS = {
     mutu: ["k225", "k250", "k300", "k350", "k400", "k500", "fc", "sni", "standar", "premium", "ekonomis"],
     finishing: ["polos", "motif", "bermotif", "bercorak", "tekstur", "serat", "halus", "kasar", "matte", "glossy", "doff", "gloss", "satin", "anyaman", "natural", "ekspos", "custom", "polosan", "cat", "coating", "lapisan", "vernis", "anti gores", "anti air", "anti jamur"],
     dimensi: ["ukuran", "dimensi", "spesifikasi", "tipe", "model", "varian", "seri", "tinggi", "rendah", "panjang", "pendek", "lebar", "sempit", "tebal", "tipis", "dalam", "dangkal", "diameter", "radius", "besar", "kecil", "sedang", "mini", "jumbo"],
     warna: ["putih", "hitam", "abu-abu", "merah", "biru", "kuning", "hijau", "coklat", "netral", "warm", "cool", "pastel", "dark", "light", "krem", "maroon", "navy", "forest", "gold", "silver", "bronze", "copper", "rose gold", "teal", "turquoise", "lavender", "magenta", "coral", "salmon", "peach", "mint"]
-    // 🔥 FIX 43: `material` DIHAPUS (dead code)
   };
 
-  // 🔥 FIX 41 (v22.67.1): PURE_PRODUK_SPECS include mutu + warna + finishing
+  // FIX 41: PURE_PRODUK_SPECS include mutu + warna + finishing
   var PURE_PRODUK_SPECS = PRODUK_SPECS.mutu
     .concat(PRODUK_SPECS.warna)
     .concat(PRODUK_SPECS.finishing);
@@ -273,7 +275,7 @@
     berat: ["kg", "ton", "m3", "liter", "gram", "ons"]
   };
 
-  // 🔥 FIX 40 (v22.67.1): PURE_MATERIAL_SPECS derive
+  // FIX 40: PURE_MATERIAL_SPECS derive
   var PURE_MATERIAL_SPECS = MATERIAL_SPECS.grade.concat(MATERIAL_SPECS.finishing);
 
   // ═══════════════════════════════════════════════════════════
@@ -287,11 +289,14 @@
     durasi: ["harian", "mingguan", "bulanan", "tahunan", "per jam", "per hari", "per minggu", "per bulan", "short term", "long term"]
   };
 
-  // 🔥 FIX 39 (v22.67.1): PURE_SEWA_SPECS derive
-  var PURE_SEWA_SPECS = SEWA_SPECS.merek.slice();
+  // 🔥 FIX 55 (v22.67.2): PURE_SEWA_SPECS — INCLUDE SEMUA KATEGORI
+  var PURE_SEWA_SPECS = SEWA_SPECS.merek
+    .concat(SEWA_SPECS.tipe)
+    .concat(SEWA_SPECS.kondisi)
+    .concat(SEWA_SPECS.durasi);
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 42 (v22.67.1): JASA SPECS — tanpa modern/tradisional/konvensional
+  // JASA SPECS — tanpa modern/tradisional/konvensional
   // ═══════════════════════════════════════════════════════════
   var JASA_SPECS = {
     metode: ["manual", "hidrolik", "auger", "rotary", "percussive", "dry", "wet", "basah", "kering"],
@@ -311,8 +316,12 @@
     furniture: ["minimalis", "skandinavia", "jepang", "klasik", "modern", "retro", "vintage", "industrial", "rustic", "bohemian", "mid century", "art deco", "contemporary"]
   };
 
-  // 🔥 FIX 38 (v22.67.1): PURE_DESAIN_SPECS derive
-  var PURE_DESAIN_SPECS = DESAIN_SPECS.gaya.slice();
+  // 🔥 FIX 56 (v22.67.2): PURE_DESAIN_SPECS — INCLUDE SEMUA KATEGORI
+  var PURE_DESAIN_SPECS = DESAIN_SPECS.gaya
+    .concat(DESAIN_SPECS.warna)
+    .concat(DESAIN_SPECS.material)
+    .concat(DESAIN_SPECS.konsep)
+    .concat(DESAIN_SPECS.furniture);
 
   // ═══════════════════════════════════════════════════════════
   // SUB PILLAR KEYWORDS
@@ -409,8 +418,7 @@
   // END OF BAGIAN 1
   // ═══════════════════════════════════════════════════════════
 
-
-   // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════
   // 📌 FUNGSI DASAR — PEMBERSIHAN & PENGAMBILAN TEKS
   // ═══════════════════════════════════════════════════════════
 
@@ -423,7 +431,7 @@
       .trim();
   }
 
-  // 🔥 FIX 51 (v22.67.1): Trim lebih panjang (200 char)
+  // FIX 51: Trim lebih panjang (200 char)
   function getPageText() {
     var slug = window.location.pathname
       .replace(/\.html$/, "")
@@ -445,7 +453,7 @@
     return text;
   }
 
-  // 🔥 FIX 51 (v22.67.1): Trim lebih panjang (250 char)
+  // FIX 51: Trim lebih panjang (250 char)
   function getH1Text() {
     try {
       var h1 = document.querySelector('h1');
@@ -471,7 +479,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 48 (v22.67.1): CEK TABEL HARGA DI DOM (STRICT)
+  // FIX 48: CEK TABEL HARGA DI DOM (STRICT)
   // ═══════════════════════════════════════════════════════════
 
   function checkPriceTable() {
@@ -517,7 +525,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 18 (v22.66): isLocation() 3-TIER CONTEXT-AWARE
+  // FIX 18: isLocation() 3-TIER CONTEXT-AWARE
   // ═══════════════════════════════════════════════════════════
 
   function isLocation(text) {
@@ -604,7 +612,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 13 + FIX 25: checkHasCommercial
+  // FIX 13 + FIX 25: checkHasCommercial
   // ═══════════════════════════════════════════════════════════
 
   function checkHasCommercial(text, entityType) {
@@ -928,7 +936,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 19 (v22.66): DETEKSI ENTITY TYPE — DEFAULT NULL
+  // FIX 19: DETEKSI ENTITY TYPE — DEFAULT NULL
   // ═══════════════════════════════════════════════════════════
 
   function detectEntityTypeFromText(text) {
@@ -956,7 +964,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 47 (v22.67.1): detectEntityType COMBINE URL + H1
+  // FIX 47: detectEntityType COMBINE URL + H1
   // ═══════════════════════════════════════════════════════════
 
   function detectEntityType(userEntityType) {
@@ -964,7 +972,7 @@
       return userEntityType;
     }
 
-    // 🔥 FIX 47: Gabung URL + H1 untuk deteksi entity
+    // FIX 47: Gabung URL + H1 untuk deteksi entity
     var urlText = getPageText();
     var h1Text = getH1Text();
     var text = urlText + " " + h1Text;
@@ -1073,7 +1081,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 5 + FIX 44 (v22.67.1): GET CORE WORDS
+  // FIX 5 + FIX 44 + FIX 54: GET CORE WORDS
   // ═══════════════════════════════════════════════════════════
 
   function getCoreWords(text, entityType) {
@@ -1122,7 +1130,7 @@
       coreText = coreText.replace(new RegExp("\\b" + subPillarWords[i] + "\\b", 'g'), ' ');
     }
 
-    // 🔥 FIX 35: Hapus INFORMATIONAL_WORDS
+    // FIX 35: Hapus INFORMATIONAL_WORDS
     for (var i = 0; i < INFORMATIONAL_WORDS.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + INFORMATIONAL_WORDS[i] + "\\b", 'g'), ' ');
     }
@@ -1132,7 +1140,7 @@
       coreText = coreText.replace(new RegExp("\\b" + COMMERCIAL_WORDS[i] + "\\b", 'g'), ' ');
     }
 
-    // 🔥 FIX 44 (v22.67.1): Hapus base entity names multi-kata
+    // FIX 44: Hapus base entity names multi-kata
     var baseNames = ENTITY_BASE_NAMES[entityType] || [];
     for (var i = 0; i < baseNames.length; i++) {
       coreText = coreText.replace(
@@ -1140,6 +1148,17 @@
         ' '
       );
     }
+
+    // 🔥 FIX 54 (v22.67.2): Hapus FISIK_WORDS (bukan keyword inti)
+    for (var i = 0; i < FISIK_WORDS.length; i++) {
+      coreText = coreText.replace(
+        new RegExp("\\b" + FISIK_WORDS[i] + "\\b", 'g'),
+        ' '
+      );
+    }
+
+    // 🔥 FIX 54: Hapus context words "dekat/sekitar/berdekatan/terdekat/near"
+    coreText = coreText.replace(/\b(dekat|sekitar|berdekatan|terdekat|near|around|disekitar|didekat)\b/g, ' ');
 
     var coreWords = coreText.split(/\s+/).filter(function(w) {
       return w.length > 2;
@@ -1301,7 +1320,7 @@
       }
     }
 
-    // 🔥 FIX 15: PRIORITAS 6 — COMMERCIAL
+    // FIX 15: PRIORITAS 6 — COMMERCIAL
     if (hasCommercialWord && !hasLocationWord) {
       if (hasPriceWord && !hasSpecWord) {
         log('🏛️ MONEY_MASTER (commercial + harga tanpa spec)', 'HARGA');
@@ -1311,7 +1330,7 @@
       return "money-page";
     }
 
-    // 🔥 FIX 16: PRIORITAS 7 — HIGH VOLUME
+    // FIX 16: PRIORITAS 7 — HIGH VOLUME
     var hasHighVolume = false;
     for (var i = 0; i < HIGH_VOLUME_WORDS.length; i++) {
       if (lowerText.indexOf(HIGH_VOLUME_WORDS[i]) !== -1) { hasHighVolume = true; break; }
@@ -1433,7 +1452,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 46 (v22.67.1): DETEKSI LEVEL DARI DOM — COMBINE URL + H1
+  // FIX 46: DETEKSI LEVEL DARI DOM — COMBINE URL + H1
   // ═══════════════════════════════════════════════════════════
 
   function detectPageLevelFromDOM(entityType) {
@@ -1450,8 +1469,7 @@
     var urlText = getPageText();
     var h1Text = getH1Text();
 
-    // 🔥 FIX 46: Combine URL + H1 untuk deteksi lebih akurat
-    // URL dianggap "generic" kalau hanya berisi kata blogspot generik
+    // FIX 46: Combine URL + H1 untuk deteksi lebih akurat
     var urlIsGeneric = /^(blog|post|artikel|produk|layanan|service|item|page|p|home|index|\d+)\s*$/i.test(urlText.trim());
 
     var text;
@@ -1462,7 +1480,6 @@
       text = h1Text;
       log('🌐 DOM DETECT: URL kosong, pakai H1="' + h1Text + '"', 'DOM');
     } else if (h1Text && h1Text.length > 3) {
-      // Combine: URL + H1
       text = urlText + " " + h1Text;
       log('🌐 DOM DETECT: Combine URL="' + urlText + '" + H1="' + h1Text + '"', 'DOM');
     } else {
@@ -1494,7 +1511,7 @@
   // ═══════════════════════════════════════════════════════════
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 8 + FIX 25 + FIX 49: VALIDATE FOR PROMPT (PHASE 4)
+  // FIX 8 + FIX 25 + FIX 49: VALIDATE FOR PROMPT (PHASE 4)
   // ═══════════════════════════════════════════════════════════
 
   function validateForPrompt(input, entityType, options) {
@@ -1532,7 +1549,7 @@
         browserLevel = detectPageLevelFromDOM(inputEntity);
         browserEntity = detectEntityType();
 
-        // 🔥 FIX 49 (v22.67.1): browserAvailable hanya true kalau level valid
+        // FIX 49: browserAvailable hanya true kalau level valid
         if (browserLevel !== null && browserLevel !== undefined) {
           var browserText = getPageText();
           browserFactors = getFactors(browserText, browserEntity);
@@ -1885,7 +1902,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 50 (v22.67.1): CONTENT STRUCTURE — FOKUS MAIN CONTENT
+  // FIX 50: CONTENT STRUCTURE — FOKUS MAIN CONTENT
   // ═══════════════════════════════════════════════════════════
 
   function detectContentStructure() {
@@ -1908,7 +1925,7 @@
       structure.hasImages = document.querySelectorAll('img').length > 0;
       structure.hasVideo = document.querySelectorAll('iframe[src*="youtube"], iframe[src*="vimeo"], video').length > 0;
 
-      // 🔥 FIX 50 (v22.67.1): Fokus ke main content, exclude nav/sidebar/footer
+      // FIX 50: Fokus ke main content, exclude nav/sidebar/footer
       var mainEl = null;
       try {
         mainEl = document.querySelector('main, article, .post-content, .entry-content, .article-content, .post-body, #content, #main');
@@ -2329,7 +2346,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 37 + FIX 45: DETECT CONTENT FOCUS
+  // FIX 37 + FIX 45: DETECT CONTENT FOCUS
   // ═══════════════════════════════════════════════════════════
 
   function detectContentFocus(level, entityType) {
@@ -2343,7 +2360,7 @@
       h1Raw = h1El ? (h1El.innerText || h1El.textContent || '') : '';
     } catch (e) {}
 
-    // 🔥 FIX 45 (v22.67.1): pathname RAW untuk cek tahun (blogspot)
+    // FIX 45: pathname RAW untuk cek tahun (blogspot)
     var pathnameRaw = '';
     try {
       pathnameRaw = window.location.pathname;
@@ -2432,7 +2449,7 @@
   // ═══════════════════════════════════════════════════════════
 
    // ═══════════════════════════════════════════════════════════
-  // 🧪 FIX 34 + FIX 52: TEST SUITE — 48 TEST CASES
+  // 🧪 FIX 34 + FIX 52 + FIX 55/56: TEST SUITE — 55 TEST CASES
   // ═══════════════════════════════════════════════════════════
 
   function runTestSuite() {
@@ -2449,7 +2466,7 @@
       { slug: "jasa coring 30cm", entity: "jasa", expect: "sub-variant", note: "30cm = dimension" },
       { slug: "jasa pasang pagar jakarta", entity: "jasa", expect: "money-child", note: "location" },
       { slug: "jasa pasang pagar terdekat", entity: "jasa", expect: "money-child", note: "terdekat standalone" },
-      { slug: "panduan pasang pagar dekat pantai", entity: "jasa", expect: "money-master", note: "dekat [FISIK] bukan lokasi" },
+      { slug: "panduan pasang pagar dekat pantai", entity: "jasa", expect: "money-master", note: "FIX 54: dekat+pantai dihapus dari core" },
 
       // ═══ MATERIAL (6 test) ═══
       { slug: "semen portland", entity: "material", expect: "money-master", note: "portland bukan spec" },
@@ -2461,7 +2478,7 @@
 
       // ═══ SEWA (6 test) ═══
       { slug: "sewa excavator", entity: "sewa", expect: "money-master", note: "excavator = base entity" },
-      { slug: "sewa excavator mini", entity: "sewa", expect: "money-master", note: "mini = tidak pure" },
+      { slug: "sewa excavator mini", entity: "sewa", expect: "variant", note: "FIX 55: mini = spec tipe" },
       { slug: "sewa excavator pc75", entity: "sewa", expect: "variant", note: "pc75 = spec (merek)" },
       { slug: "sewa crane 25 ton", entity: "sewa", expect: "sub-variant", note: "25 ton = dimension" },
       { slug: "harga sewa excavator", entity: "sewa", expect: "money-master", note: "price + base entity" },
@@ -2470,7 +2487,7 @@
       // ═══ DESAIN (3 test) ═══
       { slug: "desain interior minimalis", entity: "desain", expect: "variant", note: "minimalis = spec gaya" },
       { slug: "desain interior modern", entity: "desain", expect: "variant", note: "modern = spec gaya" },
-      { slug: "desain interior kayu", entity: "desain", expect: "money-master", note: "kayu = base material" },
+      { slug: "desain interior kayu", entity: "desain", expect: "variant", note: "FIX 56: kayu = spec material" },
 
       // ═══ PRODUK (3 test) ═══
       { slug: "pagar panel beton k300", entity: "produk", expect: "variant", note: "k300 = mutu" },
@@ -2494,7 +2511,7 @@
       { slug: "pagar panel beton ekonomis", entity: "produk", expect: "variant", note: "ekonomis = spec mutu" },
       { slug: "besi beton premium", entity: "material", expect: "money-master", note: "premium tidak ada di PURE_MATERIAL" },
 
-      // ═══ FIX 38-44 (v22.67.1) — 15 test BARU ═══
+      // ═══ FIX 38-44 (v22.67.1) — 15 test ═══
       { slug: "desain interior victorian", entity: "desain", expect: "variant", note: "victorian = spec gaya" },
       { slug: "desain interior balinese", entity: "desain", expect: "variant", note: "balinese = spec gaya" },
       { slug: "desain interior tropis", entity: "desain", expect: "variant", note: "tropis = spec gaya" },
@@ -2509,11 +2526,20 @@
       { slug: "besi beton", entity: "material", expect: "money-master", note: "multi-word base entity" },
       { slug: "baja ringan", entity: "produk", expect: "money-master", note: "multi-word base entity" },
       { slug: "sewa alat berat", entity: "sewa", expect: "money-master", note: "multi-word base entity" },
-      { slug: "jasa sumur bor", entity: "jasa", expect: "money-master", note: "multi-word base entity jasa" }
+      { slug: "jasa sumur bor", entity: "jasa", expect: "money-master", note: "multi-word base entity jasa" },
+
+      // ═══ FIX 55-56 (v22.67.2) — 7 test BARU ═══
+      { slug: "sewa excavator baru", entity: "sewa", expect: "variant", note: "FIX 55: baru = kondisi spec" },
+      { slug: "sewa excavator bekas", entity: "sewa", expect: "variant", note: "FIX 55: bekas = kondisi spec" },
+      { slug: "sewa excavator harian", entity: "sewa", expect: "variant", note: "FIX 55: harian = durasi spec" },
+      { slug: "sewa excavator bulanan", entity: "sewa", expect: "variant", note: "FIX 55: bulanan = durasi spec" },
+      { slug: "desain interior warna putih", entity: "desain", expect: "variant", note: "FIX 56: putih = warna spec" },
+      { slug: "desain interior konsep open space", entity: "desain", expect: "variant", note: "FIX 56: open space = konsep spec" },
+      { slug: "desain interior furniture minimalis", entity: "desain", expect: "variant", note: "FIX 56: minimalis = furniture spec" }
     ];
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("🧪 PLD v22.67.1 — TEST SUITE (48 TEST CASES)");
+    console.log("🧪 PLD v22.67.2 — TEST SUITE (55 TEST CASES)");
     console.log("═══════════════════════════════════════════════════════════");
 
     var passed = 0;
@@ -2575,7 +2601,7 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.67.1",
+      version: "22.67.2",
       CONFIG: CONFIG,
 
       // ─── DETEKSI ───
@@ -2764,7 +2790,7 @@
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v22.67.1 FINAL Ready");
+    console.log("✅ Page Level Detector v22.67.2 FINAL Ready");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🔧 FIX 1-8: Core detection (v22.62)");
     console.log("🔥 FIX 9-11: Browser mode attribute (v22.63-22.65)");
@@ -2777,9 +2803,12 @@
     console.log("🔥 FIX 45-51: Mode browser fixes (v22.67.1)");
     console.log("🔥 FIX 52: Test Suite 48 cases (v22.67.1)");
     console.log("🔥 FIX 53: Update versi (v22.67.1)");
+    console.log("🔥 FIX 54: Hapus FISIK_WORDS + dekat/sekitar (v22.67.2)");
+    console.log("🔥 FIX 55: PURE_SEWA_SPECS include SEMUA kategori (v22.67.2)");
+    console.log("🔥 FIX 56: PURE_DESAIN_SPECS include SEMUA kategori (v22.67.2)");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 Cara test: runPLDTestSuite()");
-    console.log("📊 Target: 48 PASSED / 0 FAILED");
+    console.log("📊 Target: 55 PASSED / 0 FAILED");
     console.log("═══════════════════════════════════════════════════════════");
 
     try {
@@ -2802,7 +2831,7 @@
   // BOOTSTRAP
   // ═══════════════════════════════════════════════════════════
 
-  log('🚀 Starting Page Level Detector v22.67.1 FINAL...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.67.2 FINAL...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
@@ -2831,4 +2860,6 @@
   }
 
 })();
+
+
  
