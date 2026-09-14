@@ -648,6 +648,64 @@
   // 🔥 FIX 17: PURE_PRODUK_SPECS derive dari PRODUK_SPECS (single source of truth)
   var PURE_PRODUK_SPECS = PRODUK_SPECS.mutu.concat(PRODUK_SPECS.warna);
 
+   // ═══════════════════════════════════════════════════════════
+  // 🔥 PATCH: PURE_MATERIAL_SPECS
+  // ═══════════════════════════════════════════════════════════
+  var PURE_MATERIAL_SPECS = [
+    "grade a",
+    "grade b",
+    "grade c",
+    "sni",
+    "ulir",
+    "galvanis",
+    "berlapis",
+    "anti karat",
+    "anti korosi",
+    "anti air"
+  ];
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 PATCH: PURE_SEWA_SPECS
+  // ═══════════════════════════════════════════════════════════
+  var PURE_SEWA_SPECS = [
+    "pc75",
+    "pc200",
+    "pc300",
+    "pc350",
+    "pc400",
+    "komatsu",
+    "hitachi",
+    "caterpillar",
+    "cat",
+    "volvo",
+    "hyundai",
+    "doosan",
+    "kobelco",
+    "sumitomo",
+    "case",
+    "jcb"
+  ];
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 PATCH: PURE_DESAIN_SPECS
+  // ═══════════════════════════════════════════════════════════
+  var PURE_DESAIN_SPECS = [
+    "modern",
+    "minimalis",
+    "klasik",
+    "tradisional",
+    "kontemporer",
+    "elegan",
+    "luxury",
+    "industrial",
+    "scandinavian",
+    "jepang",
+    "rustic",
+    "vintage",
+    "bohemian",
+    "art deco",
+    "mid century"
+  ];
   // ═══════════════════════════════════════════════════════════
   // MATERIAL SPECS
   // ═══════════════════════════════════════════════════════════
