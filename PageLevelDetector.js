@@ -329,6 +329,945 @@
   // ═══════════════════════════════════════════════════════════
 
    // ═══════════════════════════════════════════════════════════
+  // 📌 FUNGSI DASAR — PEMBERSIHAN & PENGAMBILAN TEKS
+  // ═══════════════════════════════════════════════════════════
+
+  function cleanText(text) {
+    if (!text) return "";
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function getPageText() {
+    var slug = window.location.pathname
+      .replace(/\.html$/, "")
+      .replace(/-/g, " ")
+      .split("/")
+      .pop() || "";
+
+    if (!slug || slug.length < 2) {
+      slug = window.location.pathname
+        .replace(/\.html$/, "")
+        .replace(/-/g, " ")
+        .split("/")
+        .filter(Boolean)
+        .pop() || "";
+    }
+
+    var text = cleanText(slug);
+    if (text.length > 200) text = text.substring(0, 200);
+    return text;
+  }
+
+  function getH1Text() {
+    try {
+      var h1 = document.querySelector('h1');
+      if (!h1) return '';
+
+      var text = h1.innerText || h1.textContent || '';
+      text = text.replace(/\b(20[2-9][0-9])\b/g, '');
+      text = cleanText(text);
+      if (text.length > 250) text = text.substring(0, 250);
+
+      return text;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function isHomePage() {
+    var path = window.location.pathname.toLowerCase();
+    return path === "/" || path === "/index.html" || path === "/home";
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FIX 48: CEK TABEL HARGA DI DOM (STRICT)
+  // ═══════════════════════════════════════════════════════════
+
+  function checkPriceTable() {
+    if (typeof document === 'undefined') return false;
+
+    try {
+      var tables = document.querySelectorAll('table');
+      if (!tables || tables.length === 0) return false;
+
+      for (var i = 0; i < tables.length; i++) {
+        var table = tables[i];
+
+        var isInFooterNav = false;
+        try {
+          isInFooterNav = !!(table.closest('footer, nav, aside, .footer, .nav, .sidebar, .widget, #footer, #nav, #sidebar'));
+        } catch (e) {}
+        if (isInFooterNav) continue;
+
+        var rows = table.querySelectorAll('tbody tr');
+        if (rows.length < 2) continue;
+
+        var headers = table.querySelectorAll('th');
+        var priceHeaderCount = 0;
+        for (var j = 0; j < headers.length; j++) {
+          var headerText = (headers[j].innerText || headers[j].textContent || '').toLowerCase();
+          if (/harga|biaya|tarif|price|cost|rate/i.test(headerText)) {
+            priceHeaderCount++;
+          }
+        }
+        if (priceHeaderCount >= 1) {
+          log('📊 TABEL HARGA ditemukan (header, ' + rows.length + ' rows)', 'TABLE');
+          return true;
+        }
+      }
+    } catch (e) {
+      log('⚠️ Error checkPriceTable: ' + e.message, 'WARN');
+    }
+
+    return false;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FIX 18: isLocation() 3-TIER CONTEXT-AWARE
+  // ═══════════════════════════════════════════════════════════
+
+  function isLocation(text) {
+    if (!text) return false;
+    var lower = cleanText(text);
+
+    for (var i = 0; i < TIER_1_LOCATION.length; i++) {
+      var city = TIER_1_LOCATION[i];
+      var cityRegex = new RegExp("\\b" + city.replace(/\s+/g, '\\s+') + "\\b", "i");
+      if (cityRegex.test(lower)) {
+        log('📍 LOCATION TIER 1: kota "' + city + '"', 'LOCATION');
+        return true;
+      }
+    }
+
+    if (/\bterdekat\b/i.test(lower)) {
+      var fisikSetelah = new RegExp("\\bterdekat\\s+(" + FISIK_WORDS.join("|") + ")\\b", "i");
+      if (!fisikSetelah.test(lower)) {
+        log('📍 LOCATION TIER 2A: "terdekat" standalone', 'LOCATION');
+        return true;
+      }
+    }
+
+    if (/\b(sekitar|area|wilayah|daerah|kawasan)\s+saya\b/i.test(lower)) {
+      log('📍 LOCATION TIER 2B: "sekitar/area saya"', 'LOCATION');
+      return true;
+    }
+
+    if (/\bdi\s+(sekitar|area|wilayah|daerah|kawasan)\b/i.test(lower)) {
+      log('📍 LOCATION TIER 2C: "di sekitar/area"', 'LOCATION');
+      return true;
+    }
+
+    for (var i = 0; i < TIER_1_LOCATION.length; i++) {
+      var city = TIER_1_LOCATION[i];
+      var cityNearRegex = new RegExp(
+        "\\b(dekat|sekitar|di|area|wilayah|daerah)\\s+" +
+        city.replace(/\s+/g, '\\s+') + "\\b", "i"
+      );
+      if (cityNearRegex.test(lower)) {
+        log('📍 LOCATION TIER 3A: "dekat [kota]" → ' + city, 'LOCATION');
+        return true;
+      }
+    }
+
+    var fisikRegex = new RegExp(
+      "\\b(dekat|sekitar|berdekatan|di dekat|di sekitar)\\s+(" +
+      FISIK_WORDS.join("|") + ")\\b", "i"
+    );
+    if (fisikRegex.test(lower)) {
+      log('📍 LOCATION TIER 3B: "dekat [fisik]" — BUKAN', 'LOCATION');
+      return false;
+    }
+
+    if (/\b(dekat|sekitar|berdekatan)\s+\d+/i.test(lower)) {
+      log('📍 LOCATION TIER 3C: "dekat [angka]" — BUKAN', 'LOCATION');
+      return false;
+    }
+
+    return false;
+  }
+
+  function checkHasPrice(text) {
+    if (!text) return false;
+    var lower = text.toLowerCase();
+
+    for (var i = 0; i < PRICE_WORDS.length; i++) {
+      if (lower.indexOf(PRICE_WORDS[i]) !== -1) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FIX 13 + FIX 25: checkHasCommercial
+  // ═══════════════════════════════════════════════════════════
+
+  function checkHasCommercial(text, entityType) {
+    if (!text) return false;
+    var lower = text.toLowerCase();
+
+    if (entityType && ENTITY_ONLY_WORDS[entityType]) {
+      var entityWords = ENTITY_ONLY_WORDS[entityType] || [];
+      for (var i = 0; i < entityWords.length; i++) {
+        lower = lower.replace(new RegExp("\\b" + entityWords[i] + "\\b", "gi"), " ");
+      }
+
+      var entityTriggers = ENTITY_TRIGGERS[entityType] || [];
+      for (var i = 0; i < entityTriggers.length; i++) {
+        if (COMMERCIAL_WORDS.indexOf(entityTriggers[i]) === -1) {
+          lower = lower.replace(new RegExp("\\b" + entityTriggers[i] + "\\b", "gi"), " ");
+        }
+      }
+    }
+
+    for (var i = 0; i < COMMERCIAL_WORDS.length; i++) {
+      if (lower.indexOf(COMMERCIAL_WORDS[i]) !== -1) {
+        log('🛒 COMMERCIAL: "' + COMMERCIAL_WORDS[i] + '"', 'COMMERCIAL');
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // CHECK SPECIFICATION — PER ENTITY TYPE
+  // ═══════════════════════════════════════════════════════════
+
+  function checkHasSpecification(text, entityType) {
+    if (!text) return false;
+    var lower = text.toLowerCase();
+    var entityOnly = ENTITY_ONLY_WORDS[entityType] || [];
+
+    // ═══ ENTITY: PRODUK ═══
+    if (entityType === "produk") {
+      var mutuList = PRODUK_SPECS.mutu || [];
+      for (var i = 0; i < mutuList.length; i++) {
+        if (new RegExp("\\b" + mutuList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return mutuList[i] === w; });
+          if (!isEntityOnly) { log('🔬 PRODUK SPEC: mutu ' + mutuList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      var finishingList = PRODUK_SPECS.finishing || [];
+      for (var i = 0; i < finishingList.length; i++) {
+        if (new RegExp("\\b" + finishingList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return finishingList[i] === w; });
+          if (!isEntityOnly) { log('🔬 PRODUK SPEC: finishing ' + finishingList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lower)) {
+        log('🔬 PRODUK SPEC: dimensi', 'VARIANT'); return true;
+      }
+
+      if (/\d+\s*[x×]\s*\d+\s*(cm|m|meter|mm)/gi.test(lower)) {
+        log('🔬 PRODUK SPEC: ukuran', 'VARIANT'); return true;
+      }
+
+      var warnaList = PRODUK_SPECS.warna || [];
+      for (var i = 0; i < warnaList.length; i++) {
+        if (new RegExp("\\b" + warnaList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return warnaList[i] === w; });
+          if (!isEntityOnly) { log('🔬 PRODUK SPEC: warna ' + warnaList[i], 'VARIANT'); return true; }
+        }
+      }
+    }
+
+    // ═══ ENTITY: MATERIAL ═══
+    if (entityType === "material") {
+      var gradeList = MATERIAL_SPECS.grade || [];
+      for (var i = 0; i < gradeList.length; i++) {
+        if (new RegExp("\\b" + gradeList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return gradeList[i] === w; });
+          if (!isEntityOnly) { log('🔬 MATERIAL SPEC: grade ' + gradeList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      var finishingList = MATERIAL_SPECS.finishing || [];
+      for (var i = 0; i < finishingList.length; i++) {
+        if (new RegExp("\\b" + finishingList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return finishingList[i] === w; });
+          if (!isEntityOnly) { log('🔬 MATERIAL SPEC: finishing ' + finishingList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      if (/\d+\s*(mm|cm|m|meter|kg|ton|m3|liter)/gi.test(lower)) {
+        log('🔬 MATERIAL SPEC: dimensi', 'VARIANT'); return true;
+      }
+
+      var beratList = MATERIAL_SPECS.berat || [];
+      for (var i = 0; i < beratList.length; i++) {
+        if (new RegExp("\\b" + beratList[i] + "\\b", "i").test(lower)) {
+          log('🔬 MATERIAL SPEC: berat ' + beratList[i], 'VARIANT'); return true;
+        }
+      }
+    }
+
+    // ═══ ENTITY: SEWA ═══
+    if (entityType === "sewa") {
+      var merekList = SEWA_SPECS.merek || [];
+      for (var i = 0; i < merekList.length; i++) {
+        if (new RegExp("\\b" + merekList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return merekList[i] === w; });
+          if (!isEntityOnly) { log('🔬 SEWA SPEC: merek ' + merekList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      var tipeList = SEWA_SPECS.tipe || [];
+      for (var i = 0; i < tipeList.length; i++) {
+        if (new RegExp("\\b" + tipeList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return tipeList[i] === w; });
+          if (!isEntityOnly) { log('🔬 SEWA SPEC: tipe ' + tipeList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      if (/\d+\s*(ton|m3|kg|liter)/gi.test(lower)) {
+        log('🔬 SEWA SPEC: kapasitas', 'VARIANT'); return true;
+      }
+
+      var kondisiList = SEWA_SPECS.kondisi || [];
+      for (var i = 0; i < kondisiList.length; i++) {
+        if (new RegExp("\\b" + kondisiList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return kondisiList[i] === w; });
+          if (!isEntityOnly) { log('🔬 SEWA SPEC: kondisi ' + kondisiList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      var durasiList = SEWA_SPECS.durasi || [];
+      for (var i = 0; i < durasiList.length; i++) {
+        if (new RegExp("\\b" + durasiList[i] + "\\b", "i").test(lower)) {
+          log('🔬 SEWA SPEC: durasi ' + durasiList[i], 'VARIANT'); return true;
+        }
+      }
+    }
+
+    // ═══ ENTITY: JASA ═══
+    if (entityType === "jasa") {
+      var metodeList = JASA_SPECS.metode || [];
+      for (var i = 0; i < metodeList.length; i++) {
+        if (new RegExp("\\b" + metodeList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return metodeList[i] === w; });
+          if (!isEntityOnly) { log('🔬 JASA SPEC: metode ' + metodeList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      var skalaList = JASA_SPECS.skala || [];
+      for (var i = 0; i < skalaList.length; i++) {
+        if (new RegExp("\\b" + skalaList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return skalaList[i] === w; });
+          if (!isEntityOnly) { log('🔬 JASA SPEC: skala ' + skalaList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      var finishingList = JASA_SPECS.finishing || [];
+      for (var i = 0; i < finishingList.length; i++) {
+        if (new RegExp("\\b" + finishingList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return finishingList[i] === w; });
+          if (!isEntityOnly) { log('🔬 JASA SPEC: finishing ' + finishingList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      if (/\d+\s*(m|meter|cm|centimeter|feet|ft)/gi.test(lower)) {
+        var hasEntityWord = JASA_WORDS.some(function(w) { return lower.indexOf(w) !== -1; });
+        if (hasEntityWord) { log('🔬 JASA SPEC: kedalaman', 'VARIANT'); return true; }
+      }
+    }
+
+    // ═══ ENTITY: DESAIN ═══
+    if (entityType === "desain") {
+      var gayaList = DESAIN_SPECS.gaya || [];
+      for (var i = 0; i < gayaList.length; i++) {
+        if (new RegExp("\\b" + gayaList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return gayaList[i] === w; });
+          if (!isEntityOnly) { log('🔬 DESAIN SPEC: gaya ' + gayaList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      var warnaList = DESAIN_SPECS.warna || [];
+      for (var i = 0; i < warnaList.length; i++) {
+        if (new RegExp("\\b" + warnaList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return warnaList[i] === w; });
+          if (!isEntityOnly) { log('🔬 DESAIN SPEC: warna ' + warnaList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      var konsepList = DESAIN_SPECS.konsep || [];
+      for (var i = 0; i < konsepList.length; i++) {
+        if (new RegExp("\\b" + konsepList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return konsepList[i] === w; });
+          if (!isEntityOnly) { log('🔬 DESAIN SPEC: konsep ' + konsepList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      var materialList = DESAIN_SPECS.material || [];
+      for (var i = 0; i < materialList.length; i++) {
+        if (new RegExp("\\b" + materialList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return materialList[i] === w; });
+          if (!isEntityOnly) { log('🔬 DESAIN SPEC: material ' + materialList[i], 'VARIANT'); return true; }
+        }
+      }
+
+      var furnitureList = DESAIN_SPECS.furniture || [];
+      for (var i = 0; i < furnitureList.length; i++) {
+        if (new RegExp("\\b" + furnitureList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return furnitureList[i] === w; });
+          if (!isEntityOnly) { log('🔬 DESAIN SPEC: furniture ' + furnitureList[i], 'VARIANT'); return true; }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  function checkPureTechnicalSpec(text, entityType) {
+    if (!text) return false;
+    var lower = text.toLowerCase();
+    var pureSpecs = [];
+
+    if (entityType === "jasa") pureSpecs = PURE_JASA_TECHNIQUES.concat(PURE_METHODS, PURE_SCALES, PURE_FINISHING);
+    else if (entityType === "produk") pureSpecs = PURE_PRODUK_SPECS.concat(PURE_FINISHING);
+    else if (entityType === "material") pureSpecs = PURE_MATERIAL_SPECS.concat(PURE_FINISHING);
+    else if (entityType === "sewa") pureSpecs = PURE_SEWA_SPECS;
+    else if (entityType === "desain") pureSpecs = PURE_DESAIN_SPECS;
+
+    for (var i = 0; i < pureSpecs.length; i++) {
+      if (new RegExp("\\b" + pureSpecs[i].replace(/\s+/g, '\\s+') + "\\b", "i").test(lower)) {
+        return true;
+      }
+    }
+
+    if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lower)) return true;
+    if (/\d+\s*[x×]\s*\d+\s*(cm|m|meter|mm)/gi.test(lower)) return true;
+
+    return false;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FIX 19 + FIX 60 (v22.67.3): DETEKSI ENTITY TYPE
+  // ═══════════════════════════════════════════════════════════
+
+  function detectEntityTypeFromText(text) {
+    if (!text) return null;
+    var lower = text.toLowerCase();
+
+    for (var i = 0; i < ENTITY_PRIORITY.length; i++) {
+      var entity = ENTITY_PRIORITY[i];
+      var triggers = ENTITY_TRIGGERS[entity] || [];
+      for (var j = 0; j < triggers.length; j++) {
+        if (lower.indexOf(triggers[j]) !== -1) return entity;
+      }
+    }
+
+    if (lower.indexOf("jasa") !== -1 || lower.indexOf("kontraktor") !== -1 || lower.indexOf("tukang") !== -1) return "jasa";
+    if (lower.indexOf("sewa") !== -1 || lower.indexOf("rental") !== -1) return "sewa";
+    if (lower.indexOf("desain") !== -1 || lower.indexOf("interior") !== -1) return "desain";
+    if (lower.indexOf("material") !== -1 || lower.indexOf("bahan") !== -1) return "material";
+    if (lower.indexOf("produk") !== -1 || lower.indexOf("jual") !== -1) return "produk";
+
+    // 🔥 FIX 60 (v22.67.3): Detect entity dari ENTITY_BASE_NAMES
+    for (var ent in ENTITY_BASE_NAMES) {
+      if (!ENTITY_BASE_NAMES.hasOwnProperty(ent)) continue;
+      var names = ENTITY_BASE_NAMES[ent];
+      for (var n = 0; n < names.length; n++) {
+        if (lower.indexOf(names[n]) !== -1) return ent;
+      }
+    }
+
+    return null;
+  }
+
+  function detectEntityType(userEntityType) {
+    if (userEntityType && VALID_ENTITY_TYPES.indexOf(userEntityType) !== -1) {
+      return userEntityType;
+    }
+
+    var urlText = getPageText();
+    var h1Text = getH1Text();
+    var text = urlText + " " + h1Text;
+    var lower = text.toLowerCase();
+
+    for (var i = 0; i < ENTITY_PRIORITY.length; i++) {
+      var entity = ENTITY_PRIORITY[i];
+      var triggers = ENTITY_TRIGGERS[entity] || [];
+      for (var j = 0; j < triggers.length; j++) {
+        if (lower.indexOf(triggers[j]) !== -1) return entity;
+      }
+    }
+
+    if (lower.indexOf("jasa") !== -1 || lower.indexOf("kontraktor") !== -1 || lower.indexOf("tukang") !== -1) return "jasa";
+    if (lower.indexOf("sewa") !== -1 || lower.indexOf("rental") !== -1) return "sewa";
+    if (lower.indexOf("desain") !== -1 || lower.indexOf("interior") !== -1) return "desain";
+    if (lower.indexOf("material") !== -1 || lower.indexOf("bahan") !== -1) return "material";
+    if (lower.indexOf("produk") !== -1 || lower.indexOf("jual") !== -1) return "produk";
+
+    // 🔥 FIX 60 (v22.67.3): Detect entity dari ENTITY_BASE_NAMES
+    for (var ent in ENTITY_BASE_NAMES) {
+      if (!ENTITY_BASE_NAMES.hasOwnProperty(ent)) continue;
+      var names = ENTITY_BASE_NAMES[ent];
+      for (var n = 0; n < names.length; n++) {
+        if (lower.indexOf(names[n]) !== -1) return ent;
+      }
+    }
+
+    return null;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // DETEKSI SUB PILLAR
+  // ═══════════════════════════════════════════════════════════
+
+  function detectSubPillar(text) {
+    var lower = text.toLowerCase();
+
+    for (var i = 0; i < SUB_PILLAR_2_KEYWORDS.length; i++) {
+      if (lower.indexOf(SUB_PILLAR_2_KEYWORDS[i]) !== -1) return "sub-pillar-tipe-2";
+    }
+
+    for (var i = 0; i < SUB_PILLAR_1_KEYWORDS.length; i++) {
+      if (lower.indexOf(SUB_PILLAR_1_KEYWORDS[i]) !== -1) return "sub-pillar-tipe-1";
+    }
+
+    return null;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX 58 (v22.67.3): DETEKSI PILLAR — SUPPORT COMBINED TEXT
+  // ═══════════════════════════════════════════════════════════
+
+  function detectPillar(text, entityType) {
+    var cleanLower = text.toLowerCase().trim();
+
+    for (var entity in ENTITY_PILLAR_NAMES) {
+      if (!ENTITY_PILLAR_NAMES.hasOwnProperty(entity)) continue;
+
+      var patterns = ENTITY_PILLAR_NAMES[entity];
+      for (var i = 0; i < patterns.length; i++) {
+        var pattern = patterns[i];
+
+        // 🔥 FIX 58: Support 3 skenario match:
+        // 1. Exact match
+        // 2. StartsWith (H1 dimulai pattern)
+        // 3. Contains (dalam URL+H1 combined)
+        var isExactMatch = cleanLower === pattern;
+        var isStartsWith = cleanLower.indexOf(pattern + " ") === 0;
+        var isContains = false;
+
+        // Cek contains dengan batasan kata
+        var idx = cleanLower.indexOf(" " + pattern + " ");
+        var idxEnd = cleanLower.indexOf(" " + pattern);
+        var isAtEnd = (idxEnd !== -1 && idxEnd + pattern.length + 1 === cleanLower.length);
+        if (idx !== -1 || isAtEnd) isContains = true;
+
+        if (isExactMatch || isStartsWith || isContains) {
+          var isEntityMatch = entity === entityType ||
+                              (entity === "produk interior" && entityType === "produk");
+          if (isEntityMatch) {
+            log('🏛️ PILLAR MATCH: "' + pattern + '" di "' + cleanLower + '"', 'SUCCESS');
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // DETEKSI TECHNICAL SPEC & SUB-VARIANT
+  // ═══════════════════════════════════════════════════════════
+
+  function hasTechnicalSpec(text) {
+    if (!text) return false;
+    var lower = text.toLowerCase();
+
+    var TECHNICAL_SPECS = [
+      "k225", "k250", "k300", "k350", "k400", "k500",
+      "fc", "m6", "m8", "m10", "m12", "m16", "m20",
+      "b0", "b1", "b2", "b3", "sni"
+    ];
+
+    for (var i = 0; i < TECHNICAL_SPECS.length; i++) {
+      if (new RegExp("\\b" + TECHNICAL_SPECS[i] + "\\b", "i").test(lower)) return true;
+    }
+    return false;
+  }
+
+  function isSubVariant(text) {
+    if (!text) return false;
+    var score = 0;
+    var lower = text.toLowerCase();
+
+    if ((lower.match(/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci)/gi) || []).length >= 1) score += 2;
+    if ((lower.match(/\d+x\d+/gi) || []).length >= 1) score += 2;
+    if ((lower.match(/\d+(?:\.\d+)?\s*(?:cm|mm|m|meter)\s*(?:x|×)\s*\d+(?:\.\d+)?\s*(?:cm|mm|m|meter)/gi) || []).length >= 1) score += 3;
+
+    var uniqueNumbers = (text.match(/\d+/g) || []).filter(function(v, i, a) { return a.indexOf(v) === i; });
+    if (uniqueNumbers.length >= 2) score += 1;
+
+    if (/\bukuran\s+\d+/.test(lower)) score += 2;
+    if (/\bdimensi\s+\d+/.test(lower)) score += 2;
+    if (/\b(tebal|panjang|lebar|tinggi|dalam|diameter)\s+\d+/.test(lower)) score += 2;
+
+    return score >= 2;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX 57 + FIX 59 (v22.67.3): GET CORE WORDS
+  // ═══════════════════════════════════════════════════════════
+
+  function getCoreWords(text, entityType) {
+    if (!text) return [];
+    var coreText = text.toLowerCase();
+
+    // Hapus money words
+    var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos'];
+    for (var i = 0; i < moneyWords.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + moneyWords[i] + "\\b", 'g'), '');
+    }
+
+    // Hapus entity first word
+    var entityFirstWords = {
+      'jasa': 'jasa', 'sewa': 'sewa', 'produk': 'produk',
+      'material': 'material', 'desain': 'desain', 'artikel': 'artikel'
+    };
+    var firstWord = entityFirstWords[entityType] || '';
+    if (firstWord) {
+      coreText = coreText.replace(new RegExp("\\b" + firstWord + "\\b", 'g'), '');
+    }
+
+    // Hapus COMMON_JASA_WORDS untuk entity jasa
+    if (entityType === "jasa") {
+      for (var i = 0; i < COMMON_JASA_WORDS.length; i++) {
+        coreText = coreText.replace(new RegExp("\\b" + COMMON_JASA_WORDS[i] + "\\b", 'g'), ' ');
+      }
+    }
+
+    // Hapus stopwords
+    var stopwords = ["dan", "atau", "serta", "yang", "dari", "ke", "di", "untuk", "dengan", "ini", "itu", "akan", "telah", "sudah", "masih", "pada", "oleh", "karena", "sehingga", "setelah", "sebelum"];
+    for (var i = 0; i < stopwords.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + stopwords[i] + "\\b", 'g'), ' ');
+    }
+
+    // Hapus TIER_1_LOCATION
+    for (var i = 0; i < TIER_1_LOCATION.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + TIER_1_LOCATION[i] + "\\b", 'g'), ' ');
+    }
+
+    // Hapus sub-pillar words
+    var subPillarWords = ['daftar', 'jenis', 'macam', 'kategori', 'tipe', 'list', 'katalog', 'rekomendasi', 'pilihan', 'variasi', 'model', 'gaya', 'varian', 'perbandingan', 'vs', 'versus', 'kelebihan', 'kekurangan', 'perbedaan', 'lebih baik', 'unggul', 'terbaik'];
+    for (var i = 0; i < subPillarWords.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + subPillarWords[i] + "\\b", 'g'), ' ');
+    }
+
+    // Hapus INFORMATIONAL_WORDS
+    for (var i = 0; i < INFORMATIONAL_WORDS.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + INFORMATIONAL_WORDS[i] + "\\b", 'g'), ' ');
+    }
+
+    // Hapus commercial words
+    for (var i = 0; i < COMMERCIAL_WORDS.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + COMMERCIAL_WORDS[i] + "\\b", 'g'), ' ');
+    }
+
+    // 🔥 FIX 57 (v22.67.3): Hapus base entity names SEMUA ENTITY (cross-entity)
+    for (var ent in ENTITY_BASE_NAMES) {
+      if (!ENTITY_BASE_NAMES.hasOwnProperty(ent)) continue;
+      var baseNames = ENTITY_BASE_NAMES[ent] || [];
+      for (var i = 0; i < baseNames.length; i++) {
+        coreText = coreText.replace(
+          new RegExp("\\b" + baseNames[i].replace(/\s+/g, '\\s+') + "\\b", 'g'),
+          ' '
+        );
+      }
+    }
+
+    // Hapus FISIK_WORDS
+    for (var i = 0; i < FISIK_WORDS.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + FISIK_WORDS[i] + "\\b", 'g'), ' ');
+    }
+
+    // Hapus context words dekat/sekitar/berdekatan/terdekat
+    coreText = coreText.replace(/\b(dekat|sekitar|berdekatan|terdekat|near|around|disekitar|didekat)\b/g, ' ');
+
+    var coreWords = coreText.split(/\s+/).filter(function(w) { return w.length > 2; });
+
+    // 🔥 FIX 59 (v22.67.3): DEDUPE core words (hindari URL+H1 doubled)
+    var uniqueWords = [];
+    var seen = {};
+    for (var i = 0; i < coreWords.length; i++) {
+      var w = coreWords[i];
+      if (!seen[w]) {
+        seen[w] = true;
+        uniqueWords.push(w);
+      }
+    }
+
+    return uniqueWords;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // DETEKSI VARIANT BY PATTERN
+  // ═══════════════════════════════════════════════════════════
+
+  function detectVariantByPattern(text, entityType) {
+    if (!text) return { isVariant: false, score: 0, reasons: [] };
+    var score = 0;
+    var reasons = [];
+    var lower = text.toLowerCase();
+
+    var specResult = checkHasSpecification(text, entityType);
+
+    if (specResult) {
+      var isPureTech = checkPureTechnicalSpec(text, entityType);
+      if (isPureTech) {
+        score += 5;
+        reasons.push("Pure technical specification found");
+
+        if (isSubVariant(text)) {
+          return { isVariant: true, score: score + 3, reasons: reasons.concat(["Has dimension → SUB-VARIANT"]) };
+        }
+        return { isVariant: true, score: score, reasons: reasons };
+      } else {
+        return { isVariant: false, score: 0, reasons: ["Spec found but not pure technical"] };
+      }
+    }
+
+    var specFirstPatterns = [
+      { pattern: /^(tinggi|rendah|panjang|pendek|lebar|sempit|tebal|tipis|dalam|dangkal|diameter|radius|ukuran|dimensi)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|produk|material)/i, score: 4, reason: "Dimension + noun" },
+      { pattern: /^(polos|motif|bermotif|bercorak|tekstur|serat|halus|kasar|matte|glossy|doff|gloss|satin|anyaman|natural|ekspos|custom|standar|premium|ekonomis|modern|klasik|minimalis|tradisional|elegan|mewah|polosan)\s+(pagar|panel|tiang|pondasi|beton|dinding|atap|lantai|baja|besi|kayu|batu|keramik|plafon|partisi|kusen|pintu|jendela|kanopi|decking|paving|wpc|grc|hpl|pvc|acp|vinyl|granit|marmer|jasa|layanan|produk|material)/i, score: 4, reason: "Finishing + noun" },
+      { pattern: /^(hidrolik|manual|auger|rotary|percussive|dry|wet|basah|kering)\s+(jasa|layanan|produk|material|sewa|tiang|pancang|bore|pile|pondasi|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor)/i, score: 4, reason: "Method + noun" }
+    ];
+
+    for (var i = 0; i < specFirstPatterns.length; i++) {
+      var pattern = specFirstPatterns[i];
+      if (pattern.pattern.test(lower)) {
+        if (!PRICE_WORDS.some(function(w) { return lower.indexOf(w) !== -1; }) &&
+            !TIER_1_LOCATION.some(function(w) { return lower.indexOf(w) !== -1; })) {
+          if (!HIGH_VOLUME_WORDS.some(function(w) { return lower.indexOf(w) !== -1; }) &&
+              !SIZE_WORDS.some(function(w) { return lower.indexOf(w) !== -1; })) {
+            score += pattern.score;
+            reasons.push(pattern.reason);
+          }
+        }
+      }
+    }
+
+    return { isVariant: score >= 3, score: score, reasons: reasons };
+  }
+
+  function detectVariantLevel(text, entityType) {
+    if (isSubVariant(text)) return "sub-variant";
+    if (hasTechnicalSpec(text)) return "variant";
+    var result = detectVariantByPattern(text, entityType);
+    if (result.isVariant) return "variant";
+    return null;
+  }
+
+  function getFactors(text, entityType) {
+    return {
+      hasLocation: isLocation(text),
+      hasSpec: checkHasSpecification(text, entityType),
+      hasPrice: checkHasPrice(text),
+      hasCommercial: checkHasCommercial(text, entityType)
+    };
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // DETEKSI MONEY LEVEL — INTI LOGIKA
+  // ═══════════════════════════════════════════════════════════
+
+  function detectMoneyLevelInternal(text, entityType) {
+    var lowerText = text.toLowerCase();
+    var factors = getFactors(text, entityType);
+
+    var hasPriceWord = factors.hasPrice;
+    var hasLocationWord = factors.hasLocation;
+    var hasCommercialWord = factors.hasCommercial;
+    var hasSpecWord = factors.hasSpec;
+
+    var subPillar = detectSubPillar(text);
+
+    log('🔍 FACTORS: hasLocation=' + hasLocationWord +
+        ', hasSpec=' + hasSpecWord +
+        ', hasPrice=' + hasPriceWord +
+        ', hasCommercial=' + hasCommercialWord, 'INFO');
+
+    // PRIORITAS 1
+    if (subPillar) return subPillar;
+
+    // PRIORITAS 2: LOCATION → MONEY_CHILD
+    if (hasLocationWord) {
+      var hasService = /\b(jasa|layanan|sewa|produk|material|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur|mini|pile|bore|strauss)\b/i.test(lowerText);
+      if (hasService) { log('📍 MONEY_CHILD', 'LOCATION'); return "money-child"; }
+    }
+
+    // PRIORITAS 3: VARIANT / SUB-VARIANT
+    if (hasSpecWord && !hasPriceWord && !hasCommercialWord && !hasLocationWord) {
+      var isPureTech = checkPureTechnicalSpec(text, entityType);
+      if (isPureTech) {
+        if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|k|m3|liter)/gi.test(lowerText)) {
+          log('🔬 SUB-VARIANT: "' + text + '"', 'VARIANT'); return "sub-variant";
+        }
+        log('🔬 VARIANT: "' + text + '"', 'VARIANT'); return "variant";
+      } else {
+        log('⚠️ Spec found but NOT pure technical → skip to Priority 8', 'VARIANT');
+      }
+    }
+
+    // PRIORITAS 4
+    if (hasCommercialWord && hasSpecWord && !hasLocationWord) {
+      log('💰 MONEY_PAGE (commercial + spec)', 'PRICE'); return "money-page";
+    }
+
+    // PRIORITAS 5
+    if (hasPriceWord && hasSpecWord && !hasLocationWord && !hasCommercialWord) {
+      var isPureTechForPrice = checkPureTechnicalSpec(text, entityType);
+      if (isPureTechForPrice) { log('💵 MONEY_PAGE (harga + spec)', 'HARGA'); return "money-page"; }
+      else { log('🏛️ MONEY_MASTER (harga + umum)', 'HARGA'); return "money-master"; }
+    }
+
+    // PRIORITAS 6
+    if (hasCommercialWord && !hasLocationWord) {
+      if (hasPriceWord && !hasSpecWord) {
+        log('🏛️ MONEY_MASTER (commercial + harga tanpa spec)', 'HARGA'); return "money-master";
+      }
+      log('💰 MONEY_PAGE (commercial)', 'PRICE'); return "money-page";
+    }
+
+    // PRIORITAS 7
+    var hasHighVolume = false;
+    for (var i = 0; i < HIGH_VOLUME_WORDS.length; i++) {
+      if (lowerText.indexOf(HIGH_VOLUME_WORDS[i]) !== -1) { hasHighVolume = true; break; }
+    }
+    if (hasHighVolume && !hasLocationWord && !hasSpecWord) {
+      var hasNoun = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|bangunan|konstruksi)\b/i.test(lowerText);
+      if (hasNoun) { log('💰 MONEY_PAGE (high volume)', 'PRICE'); return "money-page"; }
+    }
+
+    // PRIORITAS 8
+    var coreWords = getCoreWords(text, entityType);
+    log('🧠 CORE WORDS: "' + text + '" → [' + coreWords.join(', ') + ']', 'CORE');
+
+    if (coreWords.length <= 2) {
+      if (hasPriceWord) log('💵 MONEY_MASTER (fokus HARGA)', 'HARGA');
+      else log('🏛️ MONEY_MASTER', 'MM');
+      return "money-master";
+    } else {
+      log('💰 MONEY_PAGE (core: ' + coreWords.length + ' kata)', 'PRICE');
+      return "money-page";
+    }
+  }
+
+  function detectPageLevel(userOptions) {
+    if (isHomePage()) return "home";
+    var text = getPageText();
+    var entityType = detectEntityType(userOptions && userOptions.userEntityType);
+
+    log('📝 TEXT: "' + text + '"', "INFO");
+    log('🏷️ ENTITY: ' + (entityType || '(null)'), "INFO");
+
+    if (detectPillar(text, entityType)) {
+      log('🏛️ PILLAR', "SUCCESS");
+      return "pillar";
+    }
+
+    var level = detectMoneyLevelInternal(text, entityType);
+    if (!level) { log('⚠️ Level null, fallback', 'WARN'); level = "money-page"; }
+    log('🎯 FINAL: "' + text + '" → ' + level, 'SUCCESS');
+    return level;
+  }
+
+  function extractSlugFromInput(input) {
+    if (!input) return "";
+    var slug = "";
+    try {
+      var url = new URL(input);
+      var pathname = url.pathname.replace(/\.html$/, "").replace(/\.htm$/, "").replace(/\/$/, "");
+      var segments = pathname.split("/").filter(Boolean);
+      slug = segments[segments.length - 1] || "";
+    } catch (e) { slug = input; }
+
+    slug = slug.replace(/^\d{4}-\d{2}-/, "").replace(/^\d{4}-/, "").replace(/^\d{2}-/, "").replace(/^\d{4}/, "").replace(/^\d+-/, "").replace(/^\d+/, "");
+    slug = slug.replace(/-/g, " ");
+    slug = cleanText(slug);
+    return slug;
+  }
+
+  function detectPageLevelForPrompt(text, entityType) {
+    var cleanLower = text.toLowerCase().trim();
+
+    for (var entity in ENTITY_PILLAR_NAMES) {
+      if (!ENTITY_PILLAR_NAMES.hasOwnProperty(entity)) continue;
+      var patterns = ENTITY_PILLAR_NAMES[entity];
+      for (var i = 0; i < patterns.length; i++) {
+        if (cleanLower === patterns[i]) {
+          var isEntityMatch = entity === entityType || (entity === "produk interior" && entityType === "produk");
+          if (isEntityMatch) return "pillar";
+        }
+      }
+    }
+
+    var level = detectMoneyLevelInternal(text, entityType);
+    if (!level) { log('⚠️ Level null', 'WARN'); level = "money-page"; }
+    return level;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FIX 46 + FIX 63 (v22.67.3): DETEKSI LEVEL DARI DOM
+  // ═══════════════════════════════════════════════════════════
+
+  function detectPageLevelFromDOM(entityType) {
+    if (typeof window === 'undefined' || !window.location) {
+      log('⚠️ Tidak ada window.location', 'WARN'); return null;
+    }
+
+    if (isHomePage()) { log('🏠 HOME', 'DOM'); return "home"; }
+
+    var urlText = getPageText();
+    var h1Text = getH1Text();
+
+    // 🔥 FIX 63 (v22.67.3): Support /p/12345 dan format serupa
+    var urlIsGeneric = /^(blog|post|artikel|produk|layanan|service|item|page|p|home|index|\d+)(\s+\d+)?\s*$/i.test(urlText.trim());
+
+    var text;
+    if (urlIsGeneric && h1Text && h1Text.length > 3) {
+      text = h1Text;
+      log('🌐 DOM: URL generic, PAKAI H1="' + h1Text + '"', 'DOM');
+    } else if (!urlText || urlText.length < 3) {
+      text = h1Text;
+      log('🌐 DOM: URL kosong, pakai H1', 'DOM');
+    } else if (h1Text && h1Text.length > 3) {
+      text = urlText + " " + h1Text;
+      log('🌐 DOM: Combine URL+H1', 'DOM');
+    } else {
+      text = urlText;
+      log('🌐 DOM: URL only', 'DOM');
+    }
+
+    var entity = entityType;
+    if (!entity) {
+      entity = detectEntityType();
+      log('🌐 DOM: entity = ' + (entity || '(null)'), 'BROWSER');
+    }
+
+    if (detectPillar(text, entity)) { log('🏛️ PILLAR dari DOM', 'DOM'); return "pillar"; }
+
+    var level = detectMoneyLevelInternal(text, entity);
+    if (!level) level = "money-page";
+
+    log('🌐 DOM LEVEL: "' + text + '" → ' + level, 'DOM');
+    return level;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // END OF BAGIAN 2
+  // ═══════════════════════════════════════════════════════════
+ 
+   // ═══════════════════════════════════════════════════════════
   // FIX 8 + FIX 25 + FIX 49: VALIDATE FOR PROMPT (PHASE 4)
   // ═══════════════════════════════════════════════════════════
 
