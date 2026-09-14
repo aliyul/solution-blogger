@@ -887,6 +887,8 @@
   // JASA SPECS
   // ═══════════════════════════════════════════════════════════
   var JASA_SPECS = {
+   /*
+   ini money ga perlu di jadikan SPECS
     teknik: [
       "coring",
       "cutting",
@@ -917,6 +919,7 @@
       "pembangunan",
       "proyek"
     ],
+    */
     metode: [
       "manual",
       "hidrolik",
