@@ -318,6 +318,12 @@
   // COMMON JASA WORDS — DIHAPUS DARI CORE WORDS (FIX 5)
   // ═══════════════════════════════════════════════════════════
   var COMMON_JASA_WORDS = [
+    'tukang',       // ✅ BARU
+    'kontraktor',   // ✅ BARU
+    'borongan',     // ✅ BARU
+    'mandor',       // ✅ BARU
+    'vendor',       // ✅ BARU
+    'supplier',     // ✅ BARU
     'pasang',
     'pemasangan',
     'bangun',
