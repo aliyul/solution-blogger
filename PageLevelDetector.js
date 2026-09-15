@@ -1,35 +1,30 @@
 /* ============================================================
- 🧠 Page Level Detector v22.68.0 — SEO GAP FIX (Additive)
+ 🧠 Page Level Detector v22.69.0 — CRITICAL BUG FIX (Additive)
     ============================================================
-    VERSI: v22.68.0 (FIX 64-80: SEO Gap Fix)
-    - PRINSIP: TIDAK menghapus FIX 1-63
-    - Hanya MENAMBAH fix baru untuk 12 gap SEO
+    VERSI: v22.69.0 (FIX 81-90: Critical Bug Fix)
+    - PRINSIP: TIDAK menghapus FIX 1-80
+    - Hanya MENAMBAH fix untuk 4 bug critical
     
     ✅ FIX 1-63 (v22.62-22.67.3): SEMUA DIPERTAHANKAN
-    🆕 FIX 64 (v22.68.0): Frasa "per [satuan]" → Spec detection
-    🆕 FIX 65 (v22.68.0): Kata tanya "berapa/apa/bagaimana" → INFORMATIONAL
-    🆕 FIX 66 (v22.68.0): "review/testimoni/rekomendasi" → COMMERCIAL_INVESTIGATION
-    🆕 FIX 67 (v22.68.0): "termurah/termahal/bersaing" → PRICE_WORDS
-    🆕 FIX 68 (v22.68.0): "cara order/pesan/beli" → COMMERCIAL
-    🆕 FIX 69 (v22.68.0): "gratis/free" kontekstual
-    🆕 FIX 70 (v22.68.0): "resmi/authorized/official" → COMMERCIAL
-    🆕 FIX 71 (v22.68.0): "ready stock/siap pakai" → COMMERCIAL
-    🆕 FIX 72 (v22.68.0): "update terbaru" → info priority
-    🆕 FIX 73 (v22.68.0): "custom/kustom" kontekstual
-    🆕 FIX 74 (v22.68.0): Intent commercial-investigation
-    🆕 FIX 75 (v22.68.0): Question words removal from core
-    🆕 FIX 76 (v22.68.0): Test suite +15 case (78 total)
-    🆕 FIX 77 (v22.68.0): Extended INTENT_TRIGGERS
-    🆕 FIX 78 (v22.68.0): New getSEOContext() function
-    🆕 FIX 79 (v22.68.0): Confidence level untuk intent
-    🆕 FIX 80 (v22.68.0): Version bump + cleanup
+    ✅ FIX 64-80 (v22.68.0): SEMUA DIPERTAHANKAN
+    
+    🆕 FIX 81 (v22.69.0): Hapus "jual/beli" dari ENTITY_ONLY_WORDS.produk
+    🆕 FIX 82 (v22.69.0): Pisahkan marketing terms dari MATERIAL_SPECS.grade
+    🆕 FIX 83 (v22.69.0): SPEC_PHRASE_WORDS + checkHasSpecPhrase()
+    🆕 FIX 84 (v22.69.0): PRIORITAS 2.5 — Spec Phrase → MONEY_PAGE
+    🆕 FIX 85 (v22.69.0): Test suite +7 case (85 total) + fix inconsistent test
+    🆕 FIX 86 (v22.69.0): MARKETING_TERMS array export
+    🆕 FIX 87 (v22.69.0): SPEC_PHRASE_WORDS array export
+    🆕 FIX 88 (v22.69.0): Extended getSEOContext dengan spec phrase
+    🆕 FIX 89 (v22.69.0): hasSpecPhrase di factors
+    🆕 FIX 90 (v22.69.0): Version bump 22.68.0 → 22.69.0
     ============================================================ */
 
 (function () {
   "use strict";
 
-  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "22.68.0") {
-    console.warn("⚠️ [PLD v22.68.0] Page Level Detector already loaded!");
+  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "22.69.0") {
+    console.warn("⚠️ [PLD v22.69.0] Page Level Detector already loaded!");
     return;
   }
 
@@ -59,13 +54,14 @@
       HARGA: "💵", VALIDATE: "🔍", CROSS: "🔀", ATTR: "🏷️",
       H1: "📝", TABLE: "📊", PRODUCT: "📂", MATERIAL: "🧱",
       BROWSER: "🌐", FIX: "🔥", TEST: "🧪",
-      SEO: "🎯", QUESTION: "❓", COMMINV: "🔍", PERSATUAN: "📏"
+      SEO: "🎯", QUESTION: "❓", COMMINV: "🔍", PERSATUAN: "📏",
+      SPECPHRASE: "📋"
     };
 
-    console.log((icons[type] || "📘") + " [PLD v22.68.0] " + message);
+    console.log((icons[type] || "📘") + " [PLD v22.69.0] " + message);
   }
 
-  log('📦 External JS v22.68.0 SEO GAP FIX loaded — FIX 1-63 + FIX 64-80', 'EXTERNAL');
+  log('📦 External JS v22.69.0 CRITICAL BUG FIX loaded — FIX 1-80 + FIX 81-90', 'EXTERNAL');
 
   var VALID_LEVELS = [
     "home", "pillar", "sub-pillar-tipe-2", "sub-pillar-tipe-1",
@@ -153,10 +149,13 @@
     'industrial', 'scandinavian', 'jepang', 'rustic', 'vintage'
   ];
 
+  // 🔥 FIX 81 (v22.69.0): Hapus "jual" & "beli" dari produk
+  // Alasan: "jual/beli" adalah COMMERCIAL_INTENT — harus dibaca sebagai hasCommercial=true
+  // Sebelumnya dihapus di awal → hasCommercial jadi false → salah level
   var ENTITY_ONLY_WORDS = {
     jasa: ["jasa"],
     sewa: ["sewa", "rental"],
-    produk: ["produk", "jual", "beli"],
+    produk: ["produk"],  // ← FIX 81: hanya "produk" (jual/beli dihapus)
     material: ["material", "bahan"],
     desain: ["desain", "interior", "eksterior"],
     artikel: ["artikel"]
@@ -187,7 +186,6 @@
                         "gloss", "satin", "anyaman", "natural", "ekspos", 
                         "custom", "polosan", "cat", "coating", "lapisan", "vernis"];
 
-  // 🆕 FIX 64 (v22.68.0): SATUAN_UNITS untuk frasa "per [satuan]"
   var SATUAN_UNITS = [
     "meter", "m", "cm", "mm", "km",
     "kg", "ton", "gram", "ons", "kuintal",
@@ -197,7 +195,6 @@
     "orang", "paket", "titik", "roll", "set"
   ];
 
-  // 🆕 FIX 65 (v22.68.0): QUESTION_WORDS untuk INFORMATIONAL
   var QUESTION_WORDS = [
     "berapa", "apa itu", "apa yang", "apa beda", "apa perbedaan",
     "apa fungsi", "apa manfaat", "bagaimana", "gimana cara",
@@ -205,7 +202,6 @@
     "di mana", "siapa", "yang mana", "apakah", "adakah"
   ];
 
-  // 🆕 FIX 66 (v22.68.0): COMMERCIAL_INVESTIGATION words
   var COMMERCIAL_INVESTIGATION_WORDS = [
     "review", "ulasan", "testimoni", "pengalaman", "rating", "penilaian",
     "rekomendasi", "saran", "anjuran", "suggest", "terbaik", "terburuk",
@@ -214,15 +210,36 @@
     "kelebihan", "kekurangan", "plus minus", "pro kontra", "untung rugi"
   ];
 
-  // 🆕 FIX 69 (v22.68.0): FREE context
   var FREE_INFO_WORDS = ["panduan gratis", "ebook gratis", "template gratis", "download gratis", "pdf gratis"];
   var FREE_COMM_WORDS = ["konsultasi gratis", "survey gratis", "sample gratis", "demo gratis", "trial gratis", "estimasi gratis", "penawaran gratis"];
 
-  // 🆕 FIX 70 (v22.68.0): AUTHORITY words
   var AUTHORITY_WORDS = ["resmi", "authorized", "official", "distributor resmi", "dealer resmi", "agen resmi", "mitra resmi", "sertifikat resmi"];
 
-  // 🆕 FIX 71 (v22.68.0): READY STOCK words
   var READY_STOCK_WORDS = ["ready stock", "ready stok", "siap pakai", "siap kirim", "stok tersedia", "fast respon", "same day", "instan", "ready"];
+
+  // 🔥 FIX 83 (v22.69.0): SPEC_PHRASE_WORDS — frasa yang menandakan halaman DETAIL
+  // Frasa ini menandakan "sub-topik pembatas" → naikkan level ke MONEY_PAGE
+  var SPEC_PHRASE_WORDS = [
+    "berdasarkan", "berdasar",
+    "faktor penentu", "faktor yang mempengaruhi", "faktor utama",
+    "penyebab", "sebab",
+    "dampak", "pengaruh", "efek",
+    "per kedalaman", "per ukuran", "per tipe", "per jenis",
+    "langkah-langkah", "langkah demi langkah",
+    "tahapan lengkap", "tahap demi tahap",
+    "panduan lengkap", "tutorial lengkap",
+    "analisis lengkap", "review lengkap",
+    "perbandingan lengkap", "perbedaan lengkap",
+    "jenis-jenis lengkap", "macam-macam lengkap"
+  ];
+
+  // 🔥 FIX 82 + FIX 86 (v22.69.0): MARKETING_TERMS — kata yang TIDAK boleh dianggap spec
+  // Kata ini adalah marketing descriptor, bukan spec teknis
+  var MARKETING_TERMS = [
+    "premium", "ekonomis", "terbaik", "terlaris",
+    "murah", "berkualitas", "unggul", "terkenal",
+    "favorit", "recommended", "terpercaya"
+  ];
 
   var PRODUK_SPECS = {
     mutu: ["k225", "k250", "k300", "k350", "k400", "k500", "fc", "sni", "standar", "premium", "ekonomis"],
@@ -235,8 +252,18 @@
     .concat(PRODUK_SPECS.warna)
     .concat(PRODUK_SPECS.finishing);
 
+  // 🔥 FIX 82 (v22.69.0): Hapus "premium", "ekonomis" dari grade
+  // Alasan: untuk MATERIAL, kata ini adalah MARKETING, bukan spec teknis
+  // Bandingkan dengan PRODUK: "premium" tetap spec mutu (kelas material)
   var MATERIAL_SPECS = {
-    grade: ["grade a", "grade b", "grade c", "sni", "standar", "premium", "ekonomis", "kualitas 1", "kualitas 2", "kualitas 3", "kelas 1", "kelas 2", "kelas 3"],
+    grade: [
+      "grade a", "grade b", "grade c", "sni", "standar",
+      // ✅ "standar" DIPERTAHANKAN karena bisa berarti "standar SNI"
+      // ❌ "premium" DIHAPUS (marketing)
+      // ❌ "ekonomis" DIHAPUS (marketing)
+      "kualitas 1", "kualitas 2", "kualitas 3",
+      "kelas 1", "kelas 2", "kelas 3"
+    ],
     finishing: ["ulir", "polos", "galvanis", "berlapis", "cat", "coating", "anyaman", "anti karat", "anti korosi", "anti air", "diamon", "rough", "smooth", "textured"],
     dimensi: ["tebal", "panjang", "lebar", "diameter", "radius", "ukuran", "dimensi", "ketebalan", "kedalaman", "tinggi"],
     berat: ["kg", "ton", "m3", "liter", "gram", "ons"]
@@ -286,20 +313,15 @@
 
   var STOPWORDS = new Set(["dan", "atau", "serta", "yang", "dari", "ke", "di", "untuk", "dengan", "ini", "itu", "akan", "telah", "sudah", "masih", "pada", "oleh", "karena", "sehingga", "setelah", "sebelum"]);
 
-  // 🔥 FIX 77 (v22.68.0): Extended INTENT_TRIGGERS
   var INTENT_TRIGGERS = {
     transactional: ["beli", "order", "pesan", "booking", "sewa sekarang", "harga", "biaya", "tarif", "estimasi", "promo", "diskon", "bayar", "cicilan", "kredit", "dapatkan", "pesan sekarang", "murah", "hemat", "ekonomis",
-      // 🆕 FIX 77
       "termurah", "termahal", "resmi", "authorized", "ready stock", "siap pakai", "cara order", "cara pesan", "cara beli"
     ],
     informational: ["cara", "tutorial", "panduan", "tips", "langkah", "bagaimana", "apa itu", "pengertian", "definisi", "contoh", "jenis", "perbedaan", "kelebihan", "kekurangan", "manfaat", "fungsi",
-      // 🆕 FIX 65
       "berapa", "apa yang", "mengapa", "kenapa", "kapan", "dimana", "siapa", "yang mana", "apakah",
-      // 🆕 FIX 72
       "update terbaru", "informasi terbaru", "kabar terbaru"
     ],
     commercial: ["review", "testimoni", "rekomendasi", "terbaik", "paling", "vs", "versus", "perbandingan", "alternatif", "pilihan", "populer", "favorit", "unggulan",
-      // 🆕 FIX 66
       "ulasan", "pengalaman", "rating", "penilaian", "terburuk", "terpopuler", "terfavorit"
     ],
     navigational: ["login", "daftar", "kontak", "tentang", "hubungi", "alamat", "lokasi", "maps", "direksi"]
@@ -314,18 +336,14 @@
     "produk": ["precast", "readymix", "pracetak", "siap pakai", "custom"]
   };
 
-  // 🔥 FIX 68 + FIX 70 + FIX 71 (v22.68.0): Extended COMMERCIAL_WORDS
   var COMMERCIAL_WORDS = [
     'jual', 'beli', 'order', 'pesan', 'booking',
     'supplier', 'distributor', 'toko', 'shop',
     'dapatkan', 'pesan sekarang', 'order sekarang',
     'beli sekarang', 'checkout',
-    // 🆕 FIX 68
     'cara order', 'cara pesan', 'cara beli', 'cara booking',
-    // 🆕 FIX 70
     'resmi', 'authorized', 'official', 'distributor resmi', 'dealer resmi',
     'agen resmi', 'mitra resmi', 'sertifikat resmi',
-    // 🆕 FIX 71
     'ready stock', 'ready stok', 'siap pakai', 'siap kirim',
     'stok tersedia', 'fast respon', 'same day', 'instan'
   ];
@@ -335,10 +353,8 @@
     'panduan', 'cara', 'tips', 'tutorial',
     'pengertian', 'definisi', 'penjelasan',
     'kenapa', 'mengapa', 'bagaimana',
-    // 🆕 FIX 65
     'berapa', 'apa itu', 'apa yang', 'kapan', 'dimana', 'siapa',
     'yang mana', 'apakah', 'adakah', 'apa beda', 'apa perbedaan',
-    // 🆕 FIX 72
     'update terbaru', 'informasi terbaru', 'kabar terbaru', 'update'
   ];
 
@@ -365,11 +381,9 @@
 
   var LOCATION_WORDS = TIER_1_LOCATION;
 
-  // 🔥 FIX 67 (v22.68.0): Extended PRICE_WORDS
   var PRICE_WORDS = [
     'harga', 'biaya', 'tarif', 'estimasi', 'ongkos', 'budget',
     'murah', 'hemat', 'terjangkau', 'promo', 'diskon',
-    // 🆕 FIX 67
     'termurah', 'termahal', 'bersaing', 'kompetitif',
     'dibawah pasaran', 'diatas pasaran', 'pasaran'
   ];
@@ -433,10 +447,6 @@
     return path === "/" || path === "/index.html" || path === "/home";
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // FIX 48: CEK TABEL HARGA DI DOM (STRICT)
-  // ═══════════════════════════════════════════════════════════
-
   function checkPriceTable() {
     if (typeof document === 'undefined') return false;
 
@@ -475,10 +485,6 @@
 
     return false;
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // FIX 18: isLocation() 3-TIER CONTEXT-AWARE
-  // ═══════════════════════════════════════════════════════════
 
   function isLocation(text) {
     if (!text) return false;
@@ -552,15 +558,10 @@
     return false;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🆕 FIX 64 (v22.68.0): CEK FRASA "per [satuan]"
-  // ═══════════════════════════════════════════════════════════
-
   function checkHasPerUnit(text) {
     if (!text) return false;
     var lower = text.toLowerCase();
 
-    // Pattern: "per [satuan]" atau "[angka] per [satuan]"
     var perUnitRegex = new RegExp(
       "\\bper\\s+(" + SATUAN_UNITS.join("|") + ")\\b",
       "i"
@@ -573,10 +574,6 @@
 
     return false;
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // 🆕 FIX 65 (v22.68.0): CEK KATA TANYA
-  // ═══════════════════════════════════════════════════════════
 
   function checkHasQuestionWord(text) {
     if (!text) return false;
@@ -591,10 +588,6 @@
     return false;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🆕 FIX 66 (v22.68.0): CEK COMMERCIAL INVESTIGATION
-  // ═══════════════════════════════════════════════════════════
-
   function checkHasCommercialInvestigation(text) {
     if (!text) return false;
     var lower = text.toLowerCase();
@@ -607,10 +600,6 @@
     }
     return false;
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // 🆕 FIX 69 (v22.68.0): CEK FREE CONTEXT
-  // ═══════════════════════════════════════════════════════════
 
   function checkFreeContext(text) {
     if (!text) return { isInfo: false, isComm: false };
@@ -627,10 +616,6 @@
     return { isInfo: isInfo, isComm: isComm };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🆕 FIX 70 (v22.68.0): CEK AUTHORITY
-  // ═══════════════════════════════════════════════════════════
-
   function checkHasAuthority(text) {
     if (!text) return false;
     var lower = text.toLowerCase();
@@ -642,10 +627,6 @@
     }
     return false;
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // 🆕 FIX 71 (v22.68.0): CEK READY STOCK
-  // ═══════════════════════════════════════════════════════════
 
   function checkHasReadyStock(text) {
     if (!text) return false;
@@ -659,9 +640,33 @@
     return false;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // FIX 13 + FIX 25 + FIX 70 + FIX 71 (v22.68.0): checkHasCommercial
-  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX 83 (v22.69.0): CEK SPEC PHRASE
+  // Frasa "berdasarkan", "faktor penentu", dll → naikkan ke MONEY_PAGE
+  function checkHasSpecPhrase(text) {
+    if (!text) return false;
+    var lower = text.toLowerCase();
+
+    for (var i = 0; i < SPEC_PHRASE_WORDS.length; i++) {
+      if (lower.indexOf(SPEC_PHRASE_WORDS[i]) !== -1) {
+        log('📋 SPEC_PHRASE detected: "' + SPEC_PHRASE_WORDS[i] + '"', 'SPECPHRASE');
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // 🔥 FIX 82 (v22.69.0): CEK MARKETING TERM
+  function checkHasMarketingTerm(text) {
+    if (!text) return false;
+    var lower = text.toLowerCase();
+
+    for (var i = 0; i < MARKETING_TERMS.length; i++) {
+      if (lower.indexOf(MARKETING_TERMS[i]) !== -1) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   function checkHasCommercial(text, entityType) {
     if (!text) return false;
@@ -692,7 +697,7 @@
 
   // ═══════════════════════════════════════════════════════════
   // CHECK SPECIFICATION — PER ENTITY TYPE
-  // 🔥 FIX 64 (v22.68.0): + Frasa "per [satuan]"
+  // 🔥 FIX 82 (v22.69.0): Skip MARKETING_TERMS
   // ═══════════════════════════════════════════════════════════
 
   function checkHasSpecification(text, entityType) {
@@ -700,7 +705,6 @@
     var lower = text.toLowerCase();
     var entityOnly = ENTITY_ONLY_WORDS[entityType] || [];
 
-    // 🆕 FIX 64: Cek "per [satuan]" sebagai spec UNIVERSAL
     if (checkHasPerUnit(text)) {
       log('🔬 SPEC: "per [satuan]" (FIX 64)', 'VARIANT');
       return true;
@@ -741,7 +745,7 @@
       }
     }
 
-    // ═══ ENTITY: MATERIAL ═══
+    // ═══ ENTITY: MATERIAL (FIX 82 applied — grade tanpa premium/ekonomis) ═══
     if (entityType === "material") {
       var gradeList = MATERIAL_SPECS.grade || [];
       for (var i = 0; i < gradeList.length; i++) {
@@ -907,15 +911,10 @@
     if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lower)) return true;
     if (/\d+\s*[x×]\s*\d+\s*(cm|m|meter|mm)/gi.test(lower)) return true;
 
-    // 🆕 FIX 64: Per-unit juga dianggap spec
     if (checkHasPerUnit(text)) return true;
 
     return false;
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // FIX 19 + FIX 60 (v22.67.3): DETEKSI ENTITY TYPE
-  // ═══════════════════════════════════════════════════════════
 
   function detectEntityTypeFromText(text) {
     if (!text) return null;
@@ -981,10 +980,6 @@
     return null;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // DETEKSI SUB PILLAR
-  // ═══════════════════════════════════════════════════════════
-
   function detectSubPillar(text) {
     var lower = text.toLowerCase();
 
@@ -998,10 +993,6 @@
 
     return null;
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 58 (v22.67.3): DETEKSI PILLAR — SUPPORT COMBINED TEXT
-  // ═══════════════════════════════════════════════════════════
 
   function detectPillar(text, entityType) {
     var cleanLower = text.toLowerCase().trim();
@@ -1035,10 +1026,6 @@
 
     return false;
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // DETEKSI TECHNICAL SPEC & SUB-VARIANT
-  // ═══════════════════════════════════════════════════════════
 
   function hasTechnicalSpec(text) {
     if (!text) return false;
@@ -1075,16 +1062,11 @@
     return score >= 2;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 57 + FIX 59 + FIX 75 (v22.68.0): GET CORE WORDS
-  // ═══════════════════════════════════════════════════════════
-
   function getCoreWords(text, entityType) {
     if (!text) return [];
     var coreText = text.toLowerCase();
 
     var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos',
-      // 🆕 FIX 67
       'termurah', 'termahal', 'bersaing', 'kompetitif', 'pasaran'
     ];
     for (var i = 0; i < moneyWords.length; i++) {
@@ -1128,14 +1110,17 @@
       coreText = coreText.replace(new RegExp("\\b" + COMMERCIAL_WORDS[i] + "\\b", 'g'), ' ');
     }
 
-    // 🆕 FIX 75: Hapus QUESTION_WORDS dari core
     for (var i = 0; i < QUESTION_WORDS.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + QUESTION_WORDS[i] + "\\b", 'g'), ' ');
     }
 
-    // 🆕 FIX 66: Hapus COMMERCIAL_INVESTIGATION_WORDS dari core
     for (var i = 0; i < COMMERCIAL_INVESTIGATION_WORDS.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + COMMERCIAL_INVESTIGATION_WORDS[i] + "\\b", 'g'), ' ');
+    }
+
+    // 🔥 FIX 83 (v22.69.0): Hapus SPEC_PHRASE_WORDS dari core
+    for (var i = 0; i < SPEC_PHRASE_WORDS.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + SPEC_PHRASE_WORDS[i].replace(/\s+/g, '\\s+') + "\\b", 'g'), ' ');
     }
 
     for (var ent in ENTITY_BASE_NAMES) {
@@ -1155,7 +1140,6 @@
 
     coreText = coreText.replace(/\b(dekat|sekitar|berdekatan|terdekat|near|around|disekitar|didekat)\b/g, ' ');
 
-    // 🆕 FIX 75: Hapus "per [satuan]" dari core
     coreText = coreText.replace(new RegExp("\\bper\\s+(" + SATUAN_UNITS.join("|") + ")\\b", 'g'), ' ');
 
     var coreWords = coreText.split(/\s+/).filter(function(w) { return w.length > 2; });
@@ -1172,10 +1156,6 @@
 
     return uniqueWords;
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // DETEKSI VARIANT BY PATTERN
-  // ═══════════════════════════════════════════════════════════
 
   function detectVariantByPattern(text, entityType) {
     if (!text) return { isVariant: false, score: 0, reasons: [] };
@@ -1231,19 +1211,16 @@
     return null;
   }
 
+  // 🔥 FIX 89 (v22.69.0): Tambah hasSpecPhrase ke factors
   function getFactors(text, entityType) {
     return {
       hasLocation: isLocation(text),
       hasSpec: checkHasSpecification(text, entityType),
       hasPrice: checkHasPrice(text),
-      hasCommercial: checkHasCommercial(text, entityType)
+      hasCommercial: checkHasCommercial(text, entityType),
+      hasSpecPhrase: checkHasSpecPhrase(text)
     };
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // 🆕 FIX 78 (v22.68.0): GET SEO CONTEXT
-  // Fungsi baru untuk return seluruh konteks SEO dalam 1 call
-  // ═══════════════════════════════════════════════════════════
 
   function getSEOContext(text, entityType) {
     if (!text) {
@@ -1253,6 +1230,7 @@
         hasPerUnit: false,
         hasAuthority: false,
         hasReadyStock: false,
+        hasSpecPhrase: false,
         freeContext: { isInfo: false, isComm: false },
         intent: 'informational',
         intentDetail: { dominant: 'informational', confidence: 'low' }
@@ -1264,13 +1242,12 @@
     var hasPerUnit = checkHasPerUnit(text);
     var hasAuthority = checkHasAuthority(text);
     var hasReadyStock = checkHasReadyStock(text);
+    var hasSpecPhrase = checkHasSpecPhrase(text);
     var freeContext = checkFreeContext(text);
 
-    // Determine intent dengan konteks SEO baru
     var intent = 'informational';
     var intentDetail = detectIntent(text);
 
-    // Priority order untuk intent (FIX 74)
     if (intentDetail.dominant === 'transactional') {
       intent = 'transactional';
     } else if (intentDetail.dominant === 'commercial' || hasCommInvest) {
@@ -1287,6 +1264,7 @@
       hasPerUnit: hasPerUnit,
       hasAuthority: hasAuthority,
       hasReadyStock: hasReadyStock,
+      hasSpecPhrase: hasSpecPhrase,
       freeContext: freeContext,
       intent: intent,
       intentDetail: intentDetail
@@ -1294,7 +1272,8 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // DETEKSI MONEY LEVEL — INTI LOGIKA
+  // 🔥 DETEKSI MONEY LEVEL — INTI LOGIKA
+  // FIX 84: + PRIORITAS 2.5 (Spec Phrase)
   // ═══════════════════════════════════════════════════════════
 
   function detectMoneyLevelInternal(text, entityType) {
@@ -1305,13 +1284,15 @@
     var hasLocationWord = factors.hasLocation;
     var hasCommercialWord = factors.hasCommercial;
     var hasSpecWord = factors.hasSpec;
+    var hasSpecPhrase = factors.hasSpecPhrase;
 
     var subPillar = detectSubPillar(text);
 
     log('🔍 FACTORS: hasLocation=' + hasLocationWord +
         ', hasSpec=' + hasSpecWord +
         ', hasPrice=' + hasPriceWord +
-        ', hasCommercial=' + hasCommercialWord, 'INFO');
+        ', hasCommercial=' + hasCommercialWord +
+        ', hasSpecPhrase=' + hasSpecPhrase, 'INFO');
 
     // PRIORITAS 1
     if (subPillar) return subPillar;
@@ -1320,6 +1301,13 @@
     if (hasLocationWord) {
       var hasService = /\b(jasa|layanan|sewa|produk|material|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur|mini|pile|bore|strauss)\b/i.test(lowerText);
       if (hasService) { log('📍 MONEY_CHILD', 'LOCATION'); return "money-child"; }
+    }
+
+    // 🆕 FIX 84 (v22.69.0): PRIORITAS 2.5 — SPEC PHRASE → MONEY_PAGE
+    // Frasa "berdasarkan", "faktor penentu", dll menandakan halaman DETAIL
+    if (hasSpecPhrase && !hasLocationWord && !hasCommercialWord) {
+      log('💰 MONEY_PAGE (spec phrase FIX 84)', 'PRICE');
+      return "money-page";
     }
 
     // PRIORITAS 3: VARIANT / SUB-VARIANT
@@ -1433,10 +1421,6 @@
     return level;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // FIX 46 + FIX 63 (v22.67.3): DETEKSI LEVEL DARI DOM
-  // ═══════════════════════════════════════════════════════════
-
   function detectPageLevelFromDOM(entityType) {
     if (typeof window === 'undefined' || !window.location) {
       log('⚠️ Tidak ada window.location', 'WARN'); return null;
@@ -1479,10 +1463,6 @@
     return level;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // FIX 8 + FIX 25 + FIX 49: VALIDATE FOR PROMPT (PHASE 4)
-  // ═══════════════════════════════════════════════════════════
-
   function validateForPrompt(input, entityType, options) {
     options = options || {};
     var strictMode = options.strict !== false;
@@ -1506,7 +1486,8 @@
     log('   Factors: hasLocation=' + inputFactors.hasLocation +
         ', hasSpec=' + inputFactors.hasSpec +
         ', hasPrice=' + inputFactors.hasPrice +
-        ', hasCommercial=' + inputFactors.hasCommercial, 'VALIDATE');
+        ', hasCommercial=' + inputFactors.hasCommercial +
+        ', hasSpecPhrase=' + inputFactors.hasSpecPhrase, 'VALIDATE');
 
     var browserLevel = null;
     var browserEntity = null;
@@ -1676,10 +1657,6 @@
     return result;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // UPAWARD & BREADCRUMBS
-  // ═══════════════════════════════════════════════════════════
-
   function detectUpwardFromSlug(slug, domain) {
     if (!slug) return { upward: [], breadcrumbs: [] };
 
@@ -1821,7 +1798,6 @@
     var entity = entityType || detectEntityTypeFromText(slug);
     var level = detectPageLevelForPrompt(slug, entity);
     var factors = getFactors(slug, entity);
-    // 🆕 FIX 78: Include SEO context
     var seoContext = getSEOContext(slug, entity);
 
     return {
@@ -1847,10 +1823,6 @@
     return detectUpwardFromSlug(slug, domain).upward;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // EEAT SIGNALS
-  // ═══════════════════════════════════════════════════════════
-
   function detectEEATSignals() {
     var signals = {
       author: false, date: false, source: false,
@@ -1871,10 +1843,6 @@
 
     return signals;
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // FIX 50: CONTENT STRUCTURE — FOKUS MAIN CONTENT
-  // ═══════════════════════════════════════════════════════════
 
   function detectContentStructure() {
     var structure = {
@@ -1914,10 +1882,6 @@
     return structure;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // FEATURED SNIPPET OPPORTUNITY
-  // ═══════════════════════════════════════════════════════════
-
   function detectFeaturedSnippetOpportunity() {
     var opportunities = {
       definition: false, faq: false, table: false,
@@ -1939,10 +1903,6 @@
     return opportunities;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🆕 FIX 74 + FIX 79 (v22.68.0): INTENT DETECTION (Enhanced)
-  // ═══════════════════════════════════════════════════════════
-
   function detectIntent(text) {
     if (!text) return { dominant: "informational", scores: {}, confidence: "low" };
 
@@ -1955,7 +1915,6 @@
       navigational: 0
     };
 
-    // 🆕 FIX 77: Gunakan INTENT_TRIGGERS yang sudah diperluas
     for (var intent in INTENT_TRIGGERS) {
       if (!INTENT_TRIGGERS.hasOwnProperty(intent)) continue;
       var triggers = INTENT_TRIGGERS[intent];
@@ -1966,7 +1925,6 @@
       }
     }
 
-    // 🆕 FIX 66: Deteksi Commercial Investigation
     var ciWords = COMMERCIAL_INVESTIGATION_WORDS;
     for (var i = 0; i < ciWords.length; i++) {
       if (lower.indexOf(ciWords[i]) !== -1) {
@@ -1984,7 +1942,6 @@
       }
     }
 
-    // 🆕 FIX 79: Confidence level
     var confidence = "low";
     if (maxScore >= 3) confidence = "high";
     else if (maxScore >= 2) confidence = "medium";
@@ -1996,10 +1953,6 @@
       maxScore: maxScore
     };
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // SEMANTIC CLUSTERS
-  // ═══════════════════════════════════════════════════════════
 
   function detectSemanticClusters(text) {
     if (!text) return [];
@@ -2018,10 +1971,6 @@
 
     return found;
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // GENERATE RECOMMENDATIONS
-  // ═══════════════════════════════════════════════════════════
 
   function generateRecommendations(score, level, eeat, structure) {
     var recommendations = [];
@@ -2044,10 +1993,6 @@
 
     return recommendations;
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // CALCULATE SEO SCORE
-  // ═══════════════════════════════════════════════════════════
 
   function calculateSEOScore() {
     var text = getPageText();
@@ -2135,10 +2080,6 @@
     };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // GET CONFIDENCE SCORE
-  // ═══════════════════════════════════════════════════════════
-
   function getConfidenceScore() {
     var text = getPageText();
     var level = detectPageLevel();
@@ -2156,10 +2097,6 @@
 
     return { level: level, confidence: 100, strategies: strategies, strategyCount: strategies.length };
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // BREADCRUMBS FINDER
-  // ═══════════════════════════════════════════════════════════
 
   function findBreadcrumbs() {
     if (typeof document === 'undefined') return null;
@@ -2241,10 +2178,6 @@
     }, 3000);
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // PRODUCT CATEGORY & MATERIAL (Null-safety)
-  // ═══════════════════════════════════════════════════════════
-
   function detectProductCategoryFromPLD(entityType, entitySubType) {
     if (!entityType) return '';
     var isProduct = ['produk', 'material'].indexOf(entityType) !== -1;
@@ -2286,10 +2219,6 @@
     if (entityType === 'produk') return 'Beton Precast';
     return '';
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // SET SCHEMA ATTRIBUTES
-  // ═══════════════════════════════════════════════════════════
 
   function setSchemaAttributes(level) {
     try {
@@ -2339,10 +2268,6 @@
       log('❌ Error set schema attributes: ' + e.message, 'ERROR');
     }
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // FIX 37 + FIX 45: DETECT CONTENT FOCUS
-  // ═══════════════════════════════════════════════════════════
 
   function detectContentFocus(level, entityType) {
     var h1Text = getH1Text();
@@ -2438,8 +2363,8 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🧪 FIX 34 + FIX 52 + FIX 55/56 + FIX 57-63 + FIX 76: TEST SUITE
-  // 78 TEST CASES (63 existing + 15 new)
+  // 🧪 FIX 85 (v22.69.0): TEST SUITE — 85 TEST CASES
+  // 78 existing + 7 new (FIX 81-83)
   // ═══════════════════════════════════════════════════════════
 
   function runTestSuite() {
@@ -2490,18 +2415,19 @@
       { slug: "butuh kontraktor", entity: "jasa", expect: "money-master", note: "butuh = informational" },
       { slug: "jual sewa excavator", entity: "sewa", expect: "money-page", note: "jual = TRUE commercial" },
 
-      // ═══ FIX 35-37 — 9 test ═══
+      // ═══ FIX 35-37 (v22.67.1) ═══
       { slug: "layanan bor sumur", entity: "jasa", expect: "money-master", note: "layanan = provider label" },
       { slug: "penyedia bor sumur", entity: "jasa", expect: "money-master", note: "penyedia = provider label" },
       { slug: "pengrajin pagar besi", entity: "jasa", expect: "money-master", note: "pengrajin = provider label" },
       { slug: "spesialis bor sumur", entity: "jasa", expect: "money-master", note: "spesialis = provider label" },
       { slug: "cari tukang bor sumur", entity: "jasa", expect: "money-master", note: "cari + tukang" },
       { slug: "cari jasa coring beton", entity: "jasa", expect: "money-master", note: "cari + base" },
-      { slug: "pagar panel beton premium", entity: "produk", expect: "variant", note: "premium = spec mutu" },
-      { slug: "pagar panel beton ekonomis", entity: "produk", expect: "variant", note: "ekonomis = spec mutu" },
-      { slug: "besi beton premium", entity: "material", expect: "money-master", note: "premium tidak ada di PURE_MATERIAL" },
+      { slug: "pagar panel beton premium", entity: "produk", expect: "variant", note: "premium = spec mutu (PRODUK)" },
+      { slug: "pagar panel beton ekonomis", entity: "produk", expect: "variant", note: "ekonomis = spec mutu (PRODUK)" },
+      // 🔥 FIX 82 (v22.69.0): Test CASE yang dulu inconsistent — sekarang BENAR
+      { slug: "besi beton premium", entity: "material", expect: "money-master", note: "FIX 82: premium = marketing (MATERIAL)" },
 
-      // ═══ FIX 38-44 — 15 test ═══
+      // ═══ FIX 38-44 (v22.67.1) ═══
       { slug: "desain interior victorian", entity: "desain", expect: "variant", note: "victorian = spec gaya" },
       { slug: "desain interior balinese", entity: "desain", expect: "variant", note: "balinese = spec gaya" },
       { slug: "desain interior tropis", entity: "desain", expect: "variant", note: "tropis = spec gaya" },
@@ -2518,7 +2444,7 @@
       { slug: "sewa alat berat", entity: "sewa", expect: "money-master", note: "multi-word base entity" },
       { slug: "jasa sumur bor", entity: "jasa", expect: "money-master", note: "multi-word base entity jasa" },
 
-      // ═══ FIX 55-56 — 7 test ═══
+      // ═══ FIX 55-56 (v22.67.2) ═══
       { slug: "sewa excavator baru", entity: "sewa", expect: "variant", note: "baru = kondisi spec" },
       { slug: "sewa excavator bekas", entity: "sewa", expect: "variant", note: "bekas = kondisi spec" },
       { slug: "sewa excavator harian", entity: "sewa", expect: "variant", note: "harian = durasi spec" },
@@ -2527,7 +2453,7 @@
       { slug: "desain interior konsep open space", entity: "desain", expect: "variant", note: "open space = konsep spec" },
       { slug: "desain interior furniture minimalis", entity: "desain", expect: "variant", note: "minimalis = furniture spec" },
 
-      // ═══ FIX 57-63 — 8 test ═══
+      // ═══ FIX 57-63 (v22.67.3) ═══
       { slug: "jasa pasang pagar panel beton", entity: "jasa", expect: "money-master", note: "FIX 57: cross-entity base name" },
       { slug: "jasa pasang kanopi baja ringan", entity: "jasa", expect: "money-master", note: "FIX 57: cross-entity base name" },
       { slug: "jasa coring skala kecil", entity: "jasa", expect: "variant", note: "FIX 61: PURE_SCALES lengkap" },
@@ -2537,8 +2463,7 @@
       { slug: "pagar panel beton k300 khusus", entity: "produk", expect: "variant", note: "FIX 60: entity detect dari base names" },
       { slug: "besi beton ulir khusus", entity: "material", expect: "variant", note: "FIX 60: entity detect dari base names" },
 
-      // ═══ 🆕 FIX 64-76 (v22.68.0) — 15 test BARU ═══
-      // FIX 64: Frasa "per [satuan]"
+      // ═══ FIX 64-76 (v22.68.0) ═══
       { slug: "harga jasa sumur bor per meter", entity: "jasa", expect: "money-page", note: "FIX 64: per [satuan] = spec" },
       { slug: "harga jasa bor tanah per meter", entity: "jasa", expect: "money-page", note: "FIX 64: per [satuan] = spec" },
       { slug: "harga pasang pagar per meter", entity: "jasa", expect: "money-page", note: "FIX 64: per [satuan] = spec" },
@@ -2546,28 +2471,35 @@
       { slug: "harga besi beton per kg", entity: "material", expect: "money-page", note: "FIX 64: per [satuan] berat" },
       { slug: "harga pagar panel per lembar", entity: "produk", expect: "money-page", note: "FIX 64: per [satuan] unit" },
 
-      // FIX 65: Kata tanya
       { slug: "berapa harga pagar panel per meter", entity: "produk", expect: "money-page", note: "FIX 65: berapa + per satuan" },
       { slug: "apa itu pagar panel beton", entity: "produk", expect: "money-master", note: "FIX 65: apa itu → core words dihapus" },
       { slug: "bagaimana cara pasang pagar", entity: "jasa", expect: "money-master", note: "FIX 65: bagaimana + cara dihapus" },
 
-      // FIX 67: Termurah/termahal
       { slug: "pagar panel beton termurah", entity: "produk", expect: "money-master", note: "FIX 67: termurah = price word" },
       { slug: "jasa coring termahal", entity: "jasa", expect: "money-master", note: "FIX 67: termahal = price word" },
 
-      // FIX 68: Cara order
       { slug: "cara order pagar panel", entity: "produk", expect: "money-master", note: "FIX 68: cara order = commercial" },
-
-      // FIX 70: Resmi
       { slug: "distributor resmi pagar panel", entity: "produk", expect: "money-master", note: "FIX 70: resmi = commercial" },
+      { slug: "pagar panel ready stock", entity: "produk", expect: "money-master", note: "FIX 71: ready stock = commercial" },
 
-      // FIX 71: Ready stock
-      { slug: "pagar panel ready stock", entity: "produk", expect: "money-master", note: "FIX 71: ready stock = commercial" }
+      // ═══ 🆕 FIX 81-83 (v22.69.0) — 7 TEST BARU ═══
+      // FIX 81: jual/beli untuk PRODUK sekarang jadi hasCommercial
+      { slug: "jual pagar panel beton", entity: "produk", expect: "money-page", note: "FIX 81: jual = TRUE commercial (produk)" },
+      { slug: "beli pagar panel beton", entity: "produk", expect: "money-page", note: "FIX 81: beli = TRUE commercial (produk)" },
+      { slug: "jual besi beton ulir", entity: "material", expect: "money-page", note: "FIX 81: jual = TRUE commercial (material)" },
+
+      // FIX 82: Marketing terms untuk MATERIAL
+      { slug: "besi beton ekonomis", entity: "material", expect: "money-master", note: "FIX 82: ekonomis = marketing (material)" },
+
+      // FIX 83: Spec phrase → MONEY_PAGE
+      { slug: "biaya sumur bor berdasarkan kedalaman", entity: "jasa", expect: "money-page", note: "FIX 83: spec phrase → MP" },
+      { slug: "faktor penentu biaya jasa bor sumur", entity: "jasa", expect: "money-page", note: "FIX 83: spec phrase → MP" },
+      { slug: "harga pagar panel berdasarkan ukuran", entity: "produk", expect: "money-page", note: "FIX 83: spec phrase → MP" }
     ];
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("🧪 PLD v22.68.0 — TEST SUITE (78 TEST CASES)");
-    console.log("   FIX 1-63 (63 case) + FIX 64-76 (15 case)");
+    console.log("🧪 PLD v22.69.0 — TEST SUITE (85 TEST CASES)");
+    console.log("   FIX 1-63 (63) + FIX 64-76 (15) + FIX 81-83 (7)");
     console.log("═══════════════════════════════════════════════════════════");
 
     var passed = 0;
@@ -2629,7 +2561,7 @@
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "22.68.0",
+      version: "22.69.0",
       CONFIG: CONFIG,
 
       // ─── DETEKSI ───
@@ -2669,7 +2601,7 @@
       detectProductCategoryFromPLD: detectProductCategoryFromPLD,
       detectProductMaterialFromPLD: detectProductMaterialFromPLD,
 
-      // 🆕 FIX 78 (v22.68.0): SEO Context
+      // 🆕 FIX 88 (v22.69.0): SEO Context dengan spec phrase
       getSEOContext: getSEOContext,
 
       // 🆕 FIX 64-71 (v22.68.0): Extended detectors
@@ -2679,6 +2611,10 @@
       checkFreeContext: checkFreeContext,
       checkHasAuthority: checkHasAuthority,
       checkHasReadyStock: checkHasReadyStock,
+
+      // 🆕 FIX 83 + FIX 82 (v22.69.0): Spec phrase & marketing
+      checkHasSpecPhrase: checkHasSpecPhrase,
+      checkHasMarketingTerm: checkHasMarketingTerm,
 
       // ─── UPDATE ATTR ───
       updateAttributes: function(options) {
@@ -2805,7 +2741,7 @@
       LOCATION_WORDS: LOCATION_WORDS,
       PRICE_WORDS: PRICE_WORDS,
 
-      // 🆕 FIX 64-71 (v22.68.0): Extended data export
+      // 🆕 FIX 86 + FIX 87 (v22.69.0): Extended data export
       SATUAN_UNITS: SATUAN_UNITS,
       QUESTION_WORDS: QUESTION_WORDS,
       COMMERCIAL_INVESTIGATION_WORDS: COMMERCIAL_INVESTIGATION_WORDS,
@@ -2813,6 +2749,8 @@
       FREE_COMM_WORDS: FREE_COMM_WORDS,
       AUTHORITY_WORDS: AUTHORITY_WORDS,
       READY_STOCK_WORDS: READY_STOCK_WORDS,
+      SPEC_PHRASE_WORDS: SPEC_PHRASE_WORDS,
+      MARKETING_TERMS: MARKETING_TERMS,
 
       isLocation: isLocation,
       checkHasSpecification: checkHasSpecification,
@@ -2838,29 +2776,23 @@
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v22.68.0 SEO GAP FIX Ready");
+    console.log("✅ Page Level Detector v22.69.0 CRITICAL BUG FIX Ready");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("✅ FIX 1-63 (v22.62-22.67.3): SEMUA DIPERTAHANKAN");
-    console.log("🆕 FIX 64: Frasa \"per [satuan]\" → Spec (v22.68.0)");
-    console.log("🆕 FIX 65: Kata tanya → INFORMATIONAL (v22.68.0)");
-    console.log("🆕 FIX 66: Review/testimoni → COMMERCIAL_INVESTIGATION (v22.68.0)");
-    console.log("🆕 FIX 67: Termurah/termahal → PRICE_WORDS (v22.68.0)");
-    console.log("🆕 FIX 68: Cara order/pesan → COMMERCIAL (v22.68.0)");
-    console.log("🆕 FIX 69: Gratis/free kontekstual (v22.68.0)");
-    console.log("🆕 FIX 70: Resmi/authorized → COMMERCIAL (v22.68.0)");
-    console.log("🆕 FIX 71: Ready stock/siap pakai → COMMERCIAL (v22.68.0)");
-    console.log("🆕 FIX 72: Update terbaru → Info priority (v22.68.0)");
-    console.log("🆕 FIX 73: Custom/kustom kontekstual (v22.68.0)");
-    console.log("🆕 FIX 74: Intent commercial-investigation (v22.68.0)");
-    console.log("🆕 FIX 75: Question words removal from core (v22.68.0)");
-    console.log("🆕 FIX 76: Test suite +15 case (78 total) (v22.68.0)");
-    console.log("🆕 FIX 77: Extended INTENT_TRIGGERS (v22.68.0)");
-    console.log("🆕 FIX 78: getSEOContext() function (v22.68.0)");
-    console.log("🆕 FIX 79: Confidence level untuk intent (v22.68.0)");
-    console.log("🆕 FIX 80: Version bump 22.67.3 → 22.68.0");
+    console.log("✅ FIX 64-80 (v22.68.0): SEMUA DIPERTAHANKAN");
+    console.log("🆕 FIX 81: Hapus jual/beli dari ENTITY_ONLY_WORDS.produk");
+    console.log("🆕 FIX 82: Pisahkan marketing terms dari MATERIAL_SPECS.grade");
+    console.log("🆕 FIX 83: SPEC_PHRASE_WORDS + checkHasSpecPhrase()");
+    console.log("🆕 FIX 84: PRIORITAS 2.5 — Spec Phrase → MONEY_PAGE");
+    console.log("🆕 FIX 85: Test suite 85 case + fix inconsistent test");
+    console.log("🆕 FIX 86: MARKETING_TERMS array export");
+    console.log("🆕 FIX 87: SPEC_PHRASE_WORDS array export");
+    console.log("🆕 FIX 88: Extended getSEOContext dengan spec phrase");
+    console.log("🆕 FIX 89: hasSpecPhrase di factors");
+    console.log("🆕 FIX 90: Version bump 22.68.0 → 22.69.0");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 Cara test: runPLDTestSuite()");
-    console.log("📊 Target: 78 PASSED / 0 FAILED");
+    console.log("📊 Target: 85 PASSED / 0 FAILED");
     console.log("═══════════════════════════════════════════════════════════");
 
     try {
@@ -2883,7 +2815,7 @@
   // BOOTSTRAP
   // ═══════════════════════════════════════════════════════════
 
-  log('🚀 Starting Page Level Detector v22.68.0 SEO GAP FIX...', 'INFO');
+  log('🚀 Starting Page Level Detector v22.69.0 CRITICAL BUG FIX...', 'INFO');
 
   waitForDOM(function() {
     initializeCore();
