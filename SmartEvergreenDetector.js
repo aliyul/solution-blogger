@@ -1,26 +1,33 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v16.1 — AUTO-UPDATE BERKELANJUTAN
+ 🧠 Smart Evergreen Detector v17.0 — AUTO-UPDATE BERKELANJUTAN
     ✅ SINKRON dengan V37 FULL SITE AUTO ARCHITECTURE
+    ✅ SINKRON dengan PLD v23.0.0 (Merged: Level + Schema + PHASE 4.6)
     ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Cek Tabel)
     ✅ ATURAN TAHUN: H1 mengandung tahun → NON-EVERGREEN
     ✅ ATURAN HARGA: H1 harga + tabel harga → NON-EVERGREEN
     ✅ ATURAN INFORMASI: H1 informatif tanpa harga → EVERGREEN
     ✅ AUTO-UPDATE TANPA BATAS: nextUpdate → dateModified → nextUpdate
     ✅ UPDATE META, KONTEN, H1, SCHEMA OTOMATIS
-    ✅ SUPPORT PLD v22.x, v20.x, v19.0, v18, v17, legacy
-    ✅ FIXED: JASA rules (money-master=30, money-page=30, money-child=30)
-    ✅ FIXED: PRODUK rules (variant 730 hari, sub-variant 730 hari)
+    ✅ SUPPORT PLD v23.0.0, v22.x, v20.x, v19.0, v18, v17, legacy
 
-    🔥🔥🔥 v16.1 CHANGELOG 🔥🔥🔥
+    🔥🔥🔥 v17.0 CHANGELOG 🔥🔥🔥
+    ✅ PLD v23.0.0 integration:
+       • detectContentFocus() → prioritas utama content focus
+       • detectKategori() → EVERGREEN/NON-EVERGREEN/FLEXIBLE
+       • detectH1Pattern() → with-year/no-year
+       • detectSchemaType() → schema recommendation
+       • detectCtaType() → CTA intensity
+    ✅ Versi detector ditampilkan (v23.0.0 vs v22.x)
+    ✅ Event listener tambahan: pageLevelDetectorv22Ready (v23 pakai event sama)
+    ✅ Logging: tampilkan kategori & h1Pattern dari PLD
+    ✅ AEDMetaDates: tambah pldKategori, pldH1Pattern, pldSchemaType, pldCtaType
+
+    ✅ PRESERVED (semua FIX v16.1):
     ✅ P1 — Deteksi dari PLD dulu (data-content-focus), baru fallback H1
-    ✅ P2 — Update H1 dengan syarat STOP ≤ 2025, tidak update jika ≥ newYear
+    ✅ P2 — Update H1 dengan syarat STOP ≤ 2025
     ✅ P3 — Update konten sesuai level + content focus
-           • EVERGREEN → update TAHUN saja
-           • MONEY + INFORMASI → update TAHUN saja
-           • MONEY + HARGA/COMMERCIAL/GABUNG → update BULAN + TAHUN
     ✅ P4 — hasPriceTable() cek header spesifik (<th>)
     ✅ P6 — Refactor :contains → queryByKeyword()
-    ❌ P5 — SKIP (priceValidUntil = variable di script schema)
 ============================================================ */
 
 (function () {
@@ -91,6 +98,24 @@
   const EVERGREEN_LEVELS = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2', 'variant', 'sub-variant'];
 
   // ============================================================
+  // 🆕 v17.0: Helper deteksi versi PLD
+  // ============================================================
+  function getPLDVersion() {
+    if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
+      var v = window.pageLevelDetectorv22.version;
+      if (v.indexOf("23.") === 0) return { version: v, family: "v23", label: "v23.0.0" };
+      if (v.indexOf("22.") === 0) return { version: v, family: "v22", label: "v22.x" };
+      return { version: v, family: "unknown", label: "v" + v };
+    }
+    if (window.pageLevelDetectorv20) return { version: "20.x", family: "v20", label: "v20.x" };
+    if (window.pageLevelDetectorv19) return { version: "19.x", family: "v19", label: "v19.x" };
+    if (window.pageLevelDetectorV18) return { version: "18.x", family: "v18", label: "v18" };
+    if (window.pageLevelDetectorV17) return { version: "17.x", family: "v17", label: "v17" };
+    if (window.pageLevelDetector) return { version: "legacy", family: "legacy", label: "legacy" };
+    return { version: "none", family: "none", label: "none" };
+  }
+
+  // ============================================================
   // 📌 FUNGSI TO ISO WITH TIMEZONE LOCAL
   // ============================================================
   function toISOWithTimezoneLocal(date, offset = "+07:00") {
@@ -108,7 +133,7 @@
   }
 
   // ============================================================
-  // 🆕 P6: queryByKeyword() — GANTI :contains
+  // P6: queryByKeyword() — GANTI :contains
   // ============================================================
   function queryByKeyword(container, keywords, requireYear = true) {
     const results = [];
@@ -126,25 +151,132 @@
   }
 
   // ============================================================
-  // 🆕 P3: getContentFocus() — AMBIL DARI PLD ATAU H1
+  // 🆕 v17.0: getPLDKategori() — Kategori dari PLD v23
   // ============================================================
-  function getContentFocus(h1Detection) {
-    // Prioritas 1: PLD
+  function getPLDKategori(contentFocus) {
+    if (!window.pageLevelDetectorv22) return null;
+    if (typeof window.pageLevelDetectorv22.detectKategori !== "function") return null;
+    try {
+      var focus = (contentFocus || "INFORMASI").toUpperCase();
+      var kategori = window.pageLevelDetectorv22.detectKategori(focus);
+      if (kategori) {
+        console.log(`🏷️ [PLD v23] Kategori: ${kategori} (dari detectKategori)`);
+        return kategori;
+      }
+    } catch (e) {
+      console.warn("⚠️ PLD detectKategori() error: " + e.message);
+    }
+    return null;
+  }
+
+  // ============================================================
+  // 🆕 v17.0: getPLDH1Pattern() — H1 Pattern dari PLD v23
+  // ============================================================
+  function getPLDH1Pattern(kategori) {
+    if (!window.pageLevelDetectorv22) return null;
+    if (typeof window.pageLevelDetectorv22.detectH1Pattern !== "function") return null;
+    if (!kategori) return null;
+    try {
+      var pattern = window.pageLevelDetectorv22.detectH1Pattern(kategori);
+      if (pattern) {
+        console.log(`📝 [PLD v23] H1 Pattern: ${pattern} (dari detectH1Pattern)`);
+        return pattern;
+      }
+    } catch (e) {
+      console.warn("⚠️ PLD detectH1Pattern() error: " + e.message);
+    }
+    return null;
+  }
+
+  // ============================================================
+  // 🆕 v17.0: getPLDSchemaType()
+  // ============================================================
+  function getPLDSchemaType(pageLevel, entityType, contentFocus) {
+    if (!window.pageLevelDetectorv22) return null;
+    if (typeof window.pageLevelDetectorv22.detectSchemaType !== "function") return null;
+    try {
+      var schemaType = window.pageLevelDetectorv22.detectSchemaType(
+        pageLevel, entityType, (contentFocus || "INFORMASI").toUpperCase()
+      );
+      if (schemaType) {
+        console.log(`📋 [PLD v23] Schema: ${schemaType.primary} + ${schemaType.secondary}`);
+        return schemaType;
+      }
+    } catch (e) {
+      console.warn("⚠️ PLD detectSchemaType() error: " + e.message);
+    }
+    return null;
+  }
+
+  // ============================================================
+  // 🆕 v17.0: getPLDCtaType()
+  // ============================================================
+  function getPLDCtaType(pageLevel, contentFocus) {
+    if (!window.pageLevelDetectorv22) return null;
+    if (typeof window.pageLevelDetectorv22.detectCtaType !== "function") return null;
+    try {
+      var ctaType = window.pageLevelDetectorv22.detectCtaType(
+        pageLevel, (contentFocus || "INFORMASI").toUpperCase()
+      );
+      if (ctaType) {
+        console.log(`🎯 [PLD v23] CTA: ${ctaType.type} → ${ctaType.text}`);
+        return ctaType;
+      }
+    } catch (e) {
+      console.warn("⚠️ PLD detectCtaType() error: " + e.message);
+    }
+    return null;
+  }
+
+  // ============================================================
+  // 🆕 v17.0: getPLDContentFocus() — Prioritas PLD detectContentFocus
+  // ============================================================
+  function getPLDContentFocus(pageLevel, entityType) {
+    if (!window.pageLevelDetectorv22) return null;
+    if (typeof window.pageLevelDetectorv22.detectContentFocus !== "function") return null;
+    try {
+      var focus = window.pageLevelDetectorv22.detectContentFocus(pageLevel, entityType);
+      if (focus) {
+        console.log(`🎯 [PLD v23] Content Focus: ${focus} (dari detectContentFocus)`);
+        return focus;
+      }
+    } catch (e) {
+      console.warn("⚠️ PLD detectContentFocus() error: " + e.message);
+    }
+    return null;
+  }
+
+  // ============================================================
+  // P3: getContentFocus() — AMBIL DARI PLD ATAU H1
+  // 🆕 v17.0: Prioritas PLD v23 detectContentFocus()
+  // ============================================================
+  function getContentFocus(h1Detection, pageLevel, entityType) {
+    // 🆕 v17.0: PRIORITAS 0 — PLD v23 detectContentFocus()
+    if (pageLevel && entityType) {
+      const pldFocus = getPLDContentFocus(pageLevel, entityType);
+      if (pldFocus) {
+        const normalized = String(pldFocus).toUpperCase();
+        console.log(`🎯 Content Focus dari PLD v23 detectContentFocus(): ${normalized}`);
+        return normalized;
+      }
+    }
+
+    // PRIORITAS 1: PLD data-content-focus attribute
     const bodyFocus = document.body.getAttribute('data-content-focus');
     if (bodyFocus) {
       const normalized = bodyFocus.toUpperCase();
-      console.log(`🎯 Content Focus dari PLD: ${normalized}`);
+      console.log(`🎯 Content Focus dari PLD (attribute): ${normalized}`);
       return normalized;
     }
-    
-    // Prioritas 2: V379A
+
+    // PRIORITAS 2: V379A
     if (window.V379A && window.V379A.focusKonten) {
       const normalized = String(window.V379A.focusKonten).toUpperCase();
       console.log(`🎯 Content Focus dari V379A: ${normalized}`);
       return normalized;
     }
-    
-    // Prioritas 3: Fallback dari h1Detection
+
+    // PRIORITAS 3: Fallback dari h1Detection
     if (h1Detection) {
       if (h1Detection.hasYear || h1Detection.isPrice) {
         console.log(`🎯 Content Focus: HARGA (dari H1 fallback)`);
@@ -155,30 +287,49 @@
         return 'INFORMASI';
       }
     }
-    
+
     console.log(`🎯 Content Focus: INFORMASI (default)`);
     return 'INFORMASI';
   }
 
   // ============================================================
-  // 🆕 P3: UPDATE KONTEN SESUAI LEVEL + CONTENT FOCUS
+  // 🆕 v17.0: getKategori() — EVERGREEN/NON-EVERGREEN/FLEXIBLE
+  // ============================================================
+  function getKategori(pageLevel, contentFocus) {
+    // Prioritas 1: PLD v23
+    const pldKategori = getPLDKategori(contentFocus);
+    if (pldKategori) return pldKategori;
+
+    // Fallback: internal logic
+    const isEvergreenLevel = EVERGREEN_LEVELS.includes(pageLevel);
+    const isMoneyLevel = MONEY_LEVELS.includes(pageLevel);
+
+    if (isEvergreenLevel) return 'EVERGREEN';
+    if (isMoneyLevel && contentFocus === 'INFORMASI') return 'EVERGREEN';
+    if (isMoneyLevel && ['HARGA', 'COMMERCIAL', 'GABUNG'].includes(contentFocus)) return 'NON-EVERGREEN';
+
+    console.log(`🏷️ Kategori (internal fallback): EVERGREEN`);
+    return 'EVERGREEN';
+  }
+
+  // ============================================================
+  // P3: UPDATE KONTEN SESUAI LEVEL + CONTENT FOCUS
   // ============================================================
   function updateContentByLevelAndFocus(pageLevel, contentFocus, now) {
     const monthNames = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
       'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
     ];
     const newMonth = monthNames[now.getMonth()];
     const newYear = now.getFullYear();
-    const newDateText = `${newMonth} ${newYear}`;  // "September 2026"
-    
+    const newDateText = `${newMonth} ${newYear}`;
+
     const isMoneyLevel = MONEY_LEVELS.includes(pageLevel);
     const isEvergreenLevel = EVERGREEN_LEVELS.includes(pageLevel);
-    
-    // Tentukan mode update
-    let updateMode = 'year-only';  // default
+
+    let updateMode = 'year-only';
     let modeReason = '';
-    
+
     if (isEvergreenLevel) {
       updateMode = 'year-only';
       modeReason = `Evergreen level "${pageLevel}" → update tahun saja`;
@@ -192,12 +343,11 @@
       updateMode = 'year-only';
       modeReason = `Default → update tahun saja`;
     }
-    
+
     console.log(`📅 UPDATE KONTEN MODE: ${updateMode}`);
     console.log(`   📍 Alasan: ${modeReason}`);
     console.log(`   📅 Target: ${updateMode === 'month-year' ? newDateText : newYear}`);
-    
-    // Selector konten
+
     const selectors = [
       '.update-badge', '.update-badge-class', '[class*="update-badge"]',
       '.last-updated', '.updated-date', '.date-modified',
@@ -205,56 +355,46 @@
       '.post-meta', '.entry-meta', '.article-meta',
       '.breadcrumb + p', '.toc + p', 'h1 + p'
     ];
-    
+
     let contentUpdated = false;
-    
-    // Gabungkan: selector langsung + keyword-based
     const elementsSet = new Set();
-    
-    // Dari selector
+
     selectors.forEach(sel => {
       try {
         document.querySelectorAll(sel).forEach(el => elementsSet.add(el));
       } catch(e) {}
     });
-    
-    // Dari keyword (P6: pakai queryByKeyword)
+
     const keywordEls = queryByKeyword(
       document.body,
       ['diperbarui', 'update', 'terakhir', 'last updated', 'updated', 'perbarui'],
       true
     );
     keywordEls.forEach(el => elementsSet.add(el));
-    
+
     const elements = Array.from(elementsSet);
-    
+
     for (const el of elements) {
       if (!el || el.tagName === 'H1') continue;
-      
+
       const originalText = el.innerText || '';
       if (!originalText.match(/\b(19|20)\d{2}\b/)) continue;
-      
-      // Cek apakah ada tahun yang perlu update
+
       const yearMatches = originalText.match(/\b(19|20)\d{2}\b/g);
       if (!yearMatches) continue;
-      
+
       let shouldUpdate = false;
       for (const yStr of yearMatches) {
         const y = parseInt(yStr);
-        if (y <= 2025) continue;   // Skip ≤ 2025
-        if (y < newYear) {          // < newYear AND > 2025
-          shouldUpdate = true;
-          break;
-        }
+        if (y <= 2025) continue;
+        if (y < newYear) { shouldUpdate = true; break; }
       }
-      
+
       if (!shouldUpdate) continue;
-      
-      // Build new text
+
       let newText = originalText;
-      
+
       if (updateMode === 'month-year') {
-        // Ganti BULAN + TAHUN
         newText = newText
           .replace(
             /(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi,
@@ -281,29 +421,26 @@
             return match;
           });
       } else {
-        // updateMode === 'year-only'
-        // Ganti TAHUN saja, bulan tetap
         newText = newText.replace(/\b(19|20)\d{2}\b/g, (match) => {
           const y = parseInt(match);
           if (y > 2025 && y < newYear) return String(newYear);
           return match;
         });
       }
-      
+
       if (newText === originalText) continue;
-      
-      // Update text nodes
+
       const textNodes = [];
       const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
       let node;
       while (node = walker.nextNode()) textNodes.push(node);
-      
+
       for (const textNode of textNodes) {
         const oldText = textNode.textContent || '';
         if (!oldText.match(/\b(19|20)\d{2}\b/)) continue;
-        
+
         let newTextNode = oldText;
-        
+
         if (updateMode === 'month-year') {
           newTextNode = newTextNode
             .replace(
@@ -337,7 +474,7 @@
             return match;
           });
         }
-        
+
         if (newTextNode !== oldText) {
           textNode.textContent = newTextNode;
           contentUpdated = true;
@@ -345,53 +482,49 @@
         }
       }
     }
-    
+
     return { updated: contentUpdated, mode: updateMode, target: updateMode === 'month-year' ? newDateText : newYear };
   }
 
   // ============================================================
-  // 🆕 P2: UPDATE H1 DENGAN SYARAT
+  // P2: UPDATE H1 DENGAN SYARAT
   // ============================================================
   function updateH1WithRules(pageLevel, now) {
     const isMoneyLevel = MONEY_LEVELS.includes(pageLevel);
     const isEvergreenLevel = EVERGREEN_LEVELS.includes(pageLevel);
     const levelNeedsYear = isMoneyLevel || isEvergreenLevel;
-    
+
     if (!levelNeedsYear) {
       console.log(`⏭️ Level "${pageLevel}" TIDAK butuh tahun di H1 — skip`);
       return { updated: false, reason: 'level-no-year' };
     }
-    
+
     const h1 = document.querySelector('h1');
     if (!h1) {
       console.log(`⚠️ Tidak ada H1 ditemukan`);
       return { updated: false, reason: 'no-h1' };
     }
-    
+
     const newYear = now.getFullYear();
     const h1Text = h1.innerText;
     const yearMatch = h1Text.match(/\b(19|20)\d{2}\b/);
     const detectedYear = yearMatch ? parseInt(yearMatch[0]) : null;
-    
-    // RULE 1: Tidak ada tahun → JANGAN TAMBAH
+
     if (!detectedYear) {
       console.log(`⏭️ H1 tidak ada tahun — JANGAN TAMBAH`);
       return { updated: false, reason: 'no-year-in-h1' };
     }
-    
-    // RULE 2: Tahun ≤ 2025 → STOP
+
     if (detectedYear <= 2025) {
       console.log(`🛑 H1 STOP: tahun ${detectedYear} ≤ 2025`);
       return { updated: false, reason: 'year-too-old' };
     }
-    
-    // RULE 3: Tahun ≥ newYear → tidak update
+
     if (detectedYear >= newYear) {
       console.log(`✅ H1 tidak perlu update: ${detectedYear} >= ${newYear}`);
       return { updated: false, reason: 'year-already-current' };
     }
-    
-    // RULE 4: Tahun < newYear AND > 2025 → UPDATE
+
     const newH1 = h1Text.replace(/\b(19|20)\d{2}\b/, newYear);
     if (newH1 !== h1Text) {
       h1.innerText = newH1;
@@ -399,7 +532,7 @@
       console.log(`   📝 "${h1Text}" → "${newH1}"`);
       return { updated: true, from: detectedYear, to: newYear };
     }
-    
+
     return { updated: false, reason: 'no-change' };
   }
 
@@ -408,33 +541,30 @@
   // ============================================================
   function autoUpdateDates(pageLevel, contentFocus) {
     console.log("🔄 AUTO-UPDATE: Memeriksa tanggal...");
-    
+
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
     let metaNext = document.querySelector('meta[name="nextUpdate"]');
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
-    
-    // STEP 1: Ambil nilai saat ini
+
     let currentModified = metaModified ? metaModified.getAttribute('content') : null;
     let currentNext = metaNext ? metaNext.getAttribute('content') : null;
-    
+
     if (!currentNext) {
       console.log("⚠️ Tidak ada nextUpdate, skip auto-update");
       return false;
     }
-    
+
     const now = new Date();
     const nextDate = new Date(currentNext);
     const currentModifiedDate = currentModified ? new Date(currentModified) : now;
-    
-    // STEP 2: CEK APAKAH SUDAH LEWAT NEXT UPDATE
+
     if (now < nextDate) {
       console.log(`⏭️ Belum lewat nextUpdate (${currentNext}), tidak perlu update`);
       return false;
     }
-    
+
     console.log(`🔄 NEXTUPDATE LEWAT! ${currentNext} → Sekarang ${now.toISOString()}`);
-    
-    // STEP 3: Hitung validity days
+
     let validityDays = 30;
     if (currentModified && currentNext) {
       const diffMs = nextDate.getTime() - currentModifiedDate.getTime();
@@ -444,18 +574,16 @@
         console.log(`📅 Validity days dari meta: ${validityDays} hari`);
       }
     }
-    
-    // STEP 4: Buat tanggal baru
+
     const newModified = now;
     const newNext = new Date(now.getTime() + (validityDays * 86400000));
-    
+
     const newModifiedStr = toISOWithTimezoneLocal(newModified);
     const newNextStr = toISOWithTimezoneLocal(newNext);
-    
+
     console.log(`📅 New dateModified: ${newModifiedStr}`);
     console.log(`📅 New nextUpdate: ${newNextStr}`);
-    
-    // STEP 5: Update meta tags
+
     if (metaModified) {
       metaModified.setAttribute('content', newModifiedStr);
     } else {
@@ -464,7 +592,7 @@
       metaModified.setAttribute("content", newModifiedStr);
       document.head.appendChild(metaModified);
     }
-    
+
     if (metaNext) {
       metaNext.setAttribute('content', newNextStr);
     } else {
@@ -473,21 +601,19 @@
       metaNext.setAttribute("content", newNextStr);
       document.head.appendChild(metaNext);
     }
-    
+
     if (!metaPublished) {
       metaPublished = document.createElement("meta");
       metaPublished.setAttribute("itemprop", "datePublished");
       metaPublished.setAttribute("content", newModifiedStr);
       document.head.appendChild(metaPublished);
     }
-    
-    // STEP 6: Update schema Offer priceValidUntil
+
     document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
       el.setAttribute('priceValidUntil', newNextStr);
     });
     console.log(`✅ Schema Offer priceValidUntil diupdate`);
-    
-    // STEP 7: Update window.AEDMetaDates
+
     if (window.AEDMetaDates) {
       window.AEDMetaDates.dateModified = newModifiedStr;
       window.AEDMetaDates.nextUpdate = newNextStr;
@@ -495,69 +621,117 @@
       window.AEDMetaDates.updateCount = (window.AEDMetaDates.updateCount || 0) + 1;
       console.log(`✅ AEDMetaDates diupdate (update ke-${window.AEDMetaDates.updateCount})`);
     }
-    
-    // STEP 8: Update body class
+
     document.body.classList.add('auto-updated');
     document.body.setAttribute('data-last-auto-update', now.toISOString());
     document.body.setAttribute('data-update-count', (parseInt(document.body.getAttribute('data-update-count') || '0') + 1).toString());
-    
-    // ============================================================
-    // 🆕 STEP 9 (P3): UPDATE KONTEN SESUAI LEVEL + CONTENT FOCUS
-    // ============================================================
+
     const contentResult = updateContentByLevelAndFocus(pageLevel, contentFocus, now);
     if (contentResult.updated) {
       console.log(`✅ Konten diupdate: mode=${contentResult.mode}, target=${contentResult.target}`);
     } else {
       console.log(`⏭️ Tidak ada konten yang perlu diupdate`);
     }
-    
-    // ============================================================
-    // 🆕 STEP 10 (P2): UPDATE H1 DENGAN SYARAT
-    // ============================================================
+
     const h1Result = updateH1WithRules(pageLevel, now);
     if (h1Result.updated) {
       console.log(`✅ H1 diupdate: ${h1Result.from} → ${h1Result.to}`);
     } else {
       console.log(`⏭️ H1 tidak diupdate: ${h1Result.reason}`);
     }
-    
+
     console.log(`✅ AUTO-UPDATE SELESAI! nextUpdate baru: ${newNextStr}`);
     console.log(`   📅 dateModified: ${newModifiedStr}`);
     console.log(`   📅 update ke-${document.body.getAttribute('data-update-count')}`);
-    
+
     return true;
   }
 
   // ============================================================
-  // 🆕 P1: FUNGSI DETEKSI KONTEN — PLD DULU, BARU H1
+  // P1: FUNGSI DETEKSI KONTEN — PLD DULU, BARU H1
+  // 🆕 v17.0: Support PLD v23.0.0
   // ============================================================
   function detectContentTypeByH1() {
     const h1 = document.querySelector('h1');
     if (!h1) {
       console.warn('⚠️ H1 tidak ditemukan, menggunakan fallback konten');
-      return { 
-        isInformational: false, 
-        isPrice: false, 
+      return {
+        isInformational: false,
+        isPrice: false,
         hasYear: false,
-        h1Text: '', 
+        h1Text: '',
         confidence: 'low',
         reason: 'H1 tidak ditemukan',
         source: 'fallback'
       };
     }
-    
+
     const h1Text = h1.innerText.toLowerCase();
-    
+
+    // ============================================================
+    // 🆕 v17.0: PRIORITAS 0 — PLD v23 detectContentFocus()
+    // ============================================================
+    const pldVersion = getPLDVersion();
+    if (pldVersion.family === "v23" || pldVersion.family === "v22") {
+      try {
+        const pldLevel = window.pageLevelDetectorv22.detect();
+        const pldEntity = window.pageLevelDetectorv22.detectEntityType();
+        const pldFocus = getPLDContentFocus(pldLevel, pldEntity);
+
+        if (pldFocus) {
+          const normalized = String(pldFocus).toUpperCase();
+          const hasYear = /\b(19|20)\d{2}\b/.test(h1Text);
+
+          console.log(`🎯 Content Focus dari PLD ${pldVersion.label}: ${normalized}`);
+
+          if (normalized === 'INFORMASI') {
+            return {
+              isInformational: true,
+              isPrice: false,
+              hasYear: hasYear,
+              h1Text: h1Text,
+              infoScore: 0,
+              priceScore: 0,
+              hasRpFormat: false,
+              hasNumberWithUnit: false,
+              hasPriceNumber: false,
+              reason: `PLD ${pldVersion.label} detectContentFocus = INFORMASI`,
+              confidence: 'high',
+              source: 'pld-' + pldVersion.family
+            };
+          }
+          if (['HARGA', 'COMMERCIAL', 'GABUNG'].includes(normalized)) {
+            return {
+              isInformational: false,
+              isPrice: true,
+              hasYear: hasYear,
+              h1Text: h1Text,
+              infoScore: 0,
+              priceScore: 0,
+              hasRpFormat: false,
+              hasNumberWithUnit: false,
+              hasPriceNumber: false,
+              reason: `PLD ${pldVersion.label} detectContentFocus = ${normalized}`,
+              confidence: 'high',
+              source: 'pld-' + pldVersion.family
+            };
+          }
+        }
+      } catch (e) {
+        console.warn("⚠️ PLD v23 detectContentFocus error: " + e.message);
+      }
+    }
+
     // ============================================================
     // P1: PRIORITAS 1 — PLD (data-content-focus)
     // ============================================================
     const bodyFocus = document.body.getAttribute('data-content-focus');
     if (bodyFocus) {
       const normalized = bodyFocus.toUpperCase();
-      console.log(`🎯 Content Focus dari PLD: ${normalized}`);
-      
+      console.log(`🎯 Content Focus dari PLD (attribute): ${normalized}`);
+
       const hasYear = /\b(19|20)\d{2}\b/.test(h1Text);
-      
+
       if (normalized === 'INFORMASI') {
         return {
           isInformational: true,
@@ -591,16 +765,16 @@
         };
       }
     }
-    
+
     // ============================================================
     // P1: PRIORITAS 2 — V379A
     // ============================================================
     if (window.V379A && window.V379A.focusKonten) {
       const normalized = String(window.V379A.focusKonten).toUpperCase();
       console.log(`🎯 Content Focus dari V379A: ${normalized}`);
-      
+
       const hasYear = /\b(19|20)\d{2}\b/.test(h1Text);
-      
+
       if (normalized === 'INFORMASI') {
         return {
           isInformational: true,
@@ -624,16 +798,15 @@
         };
       }
     }
-    
+
     // ============================================================
-    // P1: PRIORITAS 3 — Fallback ke H1 (yang lama)
+    // P1: PRIORITAS 3 — Fallback ke H1
     // ============================================================
     console.log(`⚠️ PLD/V379A tidak tersedia, fallback ke H1 detection`);
-    
-    // 1. Cek tahun di H1
+
     const yearPattern = /\b(19|20)\d{2}\b/;
     const hasYear = yearPattern.test(h1Text);
-    
+
     if (hasYear) {
       console.log(`📅 H1 mengandung tahun → NON-EVERGREEN (wajib)`);
       return {
@@ -651,43 +824,41 @@
         source: 'h1-fallback'
       };
     }
-    
-    // 2. Kata kunci informatif
+
     const informationalKeywords = [
-      'panduan', 'spesifikasi', 'keunggulan', 'cara memilih', 'tips', 
+      'panduan', 'spesifikasi', 'keunggulan', 'cara memilih', 'tips',
       'perbedaan', 'jenis', 'apa itu', 'pengertian', 'informasi',
       'standar', 'mutu', 'ukuran', 'komponen', 'bahan', 'material',
       'panduan lengkap', 'lengkap', 'solusi', 'rekomendasi', 'penjelasan',
       'karakteristik', 'kelebihan', 'kekurangan', 'fungsi', 'manfaat'
     ];
-    
-    // 3. Kata kunci harga
+
     const priceKeywords = [
       'harga', 'biaya', 'tarif', 'estimasi', 'rp', 'rupiah',
       'per meter', 'per lembar', 'per batang', 'per kubik',
       'promo', 'diskon', 'penawaran', 'cost', 'budget',
       'uang', 'pembayaran', 'cicilan', 'kredit'
     ];
-    
+
     let infoScore = 0;
     let priceScore = 0;
-    
+
     informationalKeywords.forEach(keyword => {
       if (h1Text.includes(keyword)) infoScore++;
     });
-    
+
     priceKeywords.forEach(keyword => {
       if (h1Text.includes(keyword)) priceScore++;
     });
-    
+
     const hasRpFormat = /Rp\s*[\d.,]+/.test(h1Text);
     const hasNumberWithUnit = /[\d.,]+\s*(per|meter|lembar|batang|kubik|m2|m²|cm|mm|kg|ton)/.test(h1Text);
     const hasPriceNumber = /[\d.,]+\s*(juta|ribu|rb|jt|k|juta-an|jutaan)/.test(h1Text);
-    
+
     let isInformational = false;
     let isPrice = false;
     let reason = '';
-    
+
     if (infoScore >= 2 && priceScore === 0 && !hasRpFormat && !hasNumberWithUnit) {
       isInformational = true;
       reason = `H1 mengandung kata informatif tanpa harga (score: ${infoScore})`;
@@ -718,7 +889,7 @@
         reason = 'Fallback: default ke evergreen (tidak terdeteksi harga)';
       }
     }
-    
+
     return {
       isInformational,
       isPrice,
@@ -736,38 +907,33 @@
   }
 
   // ============================================================
-  // 🆕 P4: hasPriceTable() — CEK HEADER SPESIFIK (<th>)
+  // P4: hasPriceTable() — CEK HEADER SPESIFIK (<th>)
   // ============================================================
   function hasPriceTable() {
     const tables = document.querySelectorAll('table');
     let priceTableFound = false;
     let tableDetails = [];
-    
+
     tables.forEach((table, index) => {
-      // P4: Cek header spesifik
       const headers = Array.from(table.querySelectorAll('th'))
         .map(th => th.innerText.toLowerCase().trim());
-      
-      // Cek apakah ada header "harga"/"biaya"/"tarif"/"price"/"cost"
-      const hasPriceHeader = headers.some(h => 
+
+      const hasPriceHeader = headers.some(h =>
         /harga|biaya|tarif|price|cost|rate/i.test(h)
       );
-      
-      // Fallback: cek text tabel jika tidak ada <th>
+
       let hasPriceColumn = hasPriceHeader;
       if (headers.length === 0) {
         const tableText = table.innerText.toLowerCase();
         hasPriceColumn = /harga|biaya|estimasi|rp|rupiah|per meter|per lembar|total|subtotal/i.test(tableText);
       }
-      
-      // Cek angka minimal 3
+
       const tableText = table.innerText;
       const numbers = tableText.match(/[\d.,]+/g);
       const hasNumbers = numbers && numbers.length >= 3;
-      
-      // Cek satuan harga
+
       const hasUnit = /per\s*(meter|m|lembar|lbr|batang|buah|unit|kg|ton|kubik|m³|m2|m²)/i.test(tableText);
-      
+
       if (hasPriceColumn && hasNumbers) {
         priceTableFound = true;
         tableDetails.push({
@@ -781,23 +947,26 @@
         });
       }
     });
-    
+
     if (priceTableFound) {
       console.log('💰 Tabel HARGA ditemukan:', tableDetails);
     } else {
       console.log('📋 Tidak ada tabel harga (hanya tabel spesifikasi/informasi)');
     }
-    
+
     return { found: priceTableFound, details: tableDetails };
   }
 
   // ============================================================
   // 📌 TUNGGU PAGE LEVEL DETECTOR READY
+  // 🆕 v17.0: Support PLD v23.0.0
   // ============================================================
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
+      const pldVer = getPLDVersion();
+
       if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
-        console.log("✅ Page Level Detector v22.x already ready");
+        console.log(`✅ Page Level Detector ${pldVer.label} already ready`);
         resolve();
         return;
       }
@@ -826,23 +995,28 @@
         resolve();
         return;
       }
-      
-      const onReadyV22 = () => { console.log("✅ PLD v22.x ready (event)"); resolve(); };
+
+      const onReadyV22 = () => {
+        const v = getPLDVersion();
+        console.log(`✅ PLD ${v.label} ready (event)`);
+        resolve();
+      };
       const onReadyV20 = () => { console.log("✅ PLD v20.x ready (event)"); resolve(); };
       const onReadyV19 = () => { console.log("✅ PLD v19 ready (event)"); resolve(); };
       const onReadyV18 = () => { console.log("✅ PLD v18 ready (event fallback)"); resolve(); };
       const onReadyLegacy = () => { console.log("✅ PLD legacy ready (event fallback)"); resolve(); };
-      
+
+      // ✅ v17.0: Nama event sama untuk v22.x dan v23.0.0 (backward compat)
       window.addEventListener("pageLevelDetectorv22Ready", onReadyV22, { once: true });
       window.addEventListener("pageLevelDetectorv20Ready", onReadyV20, { once: true });
       window.addEventListener("pageLevelDetectorv19Ready", onReadyV19, { once: true });
       window.addEventListener("pageLevelDetectorV19Ready", onReadyV19, { once: true });
       window.addEventListener("pageLevelDetectorv18Ready", onReadyV18, { once: true });
       window.addEventListener("pageLevelDetectorReady", onReadyLegacy, { once: true });
-      
+
       setTimeout(() => {
-        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || 
-            window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || 
+        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 ||
+            window.pageLevelDetectorv19 || window.pageLevelDetectorV18 ||
             window.pageLevelDetector) {
           console.log("✅ PLD found on timeout fallback");
           resolve();
@@ -860,6 +1034,7 @@
 
   // ============================================================
   // 📌 GET PAGE LEVEL DARI DETECTOR
+  // 🆕 v17.0: Support PLD v23.0.0
   // ============================================================
   function getPageLevelAndEntityType() {
     let pageLevel = 'pillar';
@@ -868,12 +1043,16 @@
     let confidence = null;
     let strategies = null;
     let strategyCount = null;
-    
+
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
       try {
         pageLevel = window.pageLevelDetectorv22.detect();
         entityType = window.pageLevelDetectorv22.detectEntityType();
-        detectorVersion = 'v22.x';
+
+        // ✅ v17.0: Deteksi versi akurat
+        const pldVer = getPLDVersion();
+        detectorVersion = pldVer.label;
+
         if (typeof window.pageLevelDetectorv22.getConfidenceScore === 'function') {
           const confidenceScore = window.pageLevelDetectorv22.getConfidenceScore();
           confidence = confidenceScore.confidence;
@@ -885,9 +1064,9 @@
           console.log(`   🎯 Confidence: ${confidence}% (${strategyCount} strategies: ${strategies?.join(", ")})`);
         }
         return { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount };
-      } catch(e) { console.warn("v22.x error:", e); }
+      } catch(e) { console.warn("v22/23 error:", e); }
     }
-    
+
     if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
       try {
         pageLevel = window.pageLevelDetectorv20.detect();
@@ -897,7 +1076,7 @@
         return { pageLevel, entityType, detectorVersion };
       } catch(e) { console.warn("v20.x error:", e); }
     }
-    
+
     if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
       try {
         pageLevel = window.pageLevelDetectorv19.detect();
@@ -907,7 +1086,7 @@
         return { pageLevel, entityType, detectorVersion };
       } catch(e) { console.warn("v19 error:", e); }
     }
-    
+
     if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
       try {
         pageLevel = window.pageLevelDetectorV18.detect();
@@ -917,7 +1096,7 @@
         return { pageLevel, entityType, detectorVersion };
       } catch(e) { console.warn("v18 error:", e); }
     }
-    
+
     if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
       try {
         pageLevel = window.pageLevelDetectorV17.detect();
@@ -927,7 +1106,7 @@
         return { pageLevel, entityType, detectorVersion };
       } catch(e) { console.warn("v17 error:", e); }
     }
-    
+
     if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
       try {
         pageLevel = window.pageLevelDetector.detect();
@@ -937,7 +1116,7 @@
         return { pageLevel, entityType, detectorVersion };
       } catch(e) { console.warn("legacy error:", e); }
     }
-    
+
     console.warn("⚠️ No detector found, using defaults");
     return { pageLevel, entityType, detectorVersion: 'none' };
   }
@@ -948,92 +1127,89 @@
   function getRulesByEntityType(entityType, pageLevel, h1Detection) {
     console.log(`📌 Getting rules for entityType=${entityType}, pageLevel=${pageLevel}`);
     console.log(`   📊 H1 Detection: informational=${h1Detection.isInformational}, price=${h1Detection.isPrice}, hasYear=${h1Detection.hasYear}`);
-    
+
     const isMoneyLevel = MONEY_LEVELS.includes(pageLevel);
-    
-    // ATURAN 1: H1 mengandung TAHUN → WAJIB NON-EVERGREEN
+
     if (isMoneyLevel && h1Detection.hasYear) {
       console.warn(`⚠️ H1 mengandung TAHUN → WAJIB NON-EVERGREEN`);
       console.warn(`   → H1: "${h1Detection.h1Text}"`);
     }
-    
-    // ATURAN 2: H1 INFORMATIF tanpa harga → EVERGREEN
+
     if (isMoneyLevel && h1Detection.isInformational && !h1Detection.isPrice && !h1Detection.hasYear) {
       console.warn(`⚠️ PERINGATAN: Halaman ${pageLevel} terdeteksi Money Level tapi H1 INFORMATIF TANPA HARGA!`);
       console.warn(`   → H1: "${h1Detection.h1Text}"`);
       console.warn(`   → Alasan: ${h1Detection.reason}`);
       console.warn(`   → Override ke EVERGREEN (3 tahun)`);
-      
+
       document.body.classList.add('warning-h1-informational');
-      
-      return { 
-        type: 'evergreen', 
-        validityDays: 1095, 
-        usePriceValidUntil: false, 
-        allowPriceRange: false, 
+
+      return {
+        type: 'evergreen',
+        validityDays: 1095,
+        usePriceValidUntil: false,
+        allowPriceRange: false,
         ctaIntensity: 'soft-medium',
         overridden: true,
         overrideReason: `H1 informatif tanpa harga: "${h1Detection.h1Text}" — ${h1Detection.reason}`
       };
     }
-    
-    // ATURAN 3: H1 mengandung HARGA → CEK TABEL HARGA
+
     if (isMoneyLevel && h1Detection.isPrice) {
       const priceTableResult = hasPriceTable();
-      
+
       if (priceTableResult.found) {
         console.log(`✅ H1 mengandung harga DAN ada tabel harga → NON-EVERGREEN`);
       } else {
         console.warn(`⚠️ H1 mengandung harga TAPI TIDAK ADA TABEL HARGA!`);
         console.warn(`   → Override ke EVERGREEN (konten informatif)`);
-        
+
         document.body.classList.add('warning-h1-price-no-table');
-        
-        return { 
-          type: 'evergreen', 
-          validityDays: 1095, 
-          usePriceValidUntil: false, 
-          allowPriceRange: false, 
+
+        return {
+          type: 'evergreen',
+          validityDays: 1095,
+          usePriceValidUntil: false,
+          allowPriceRange: false,
           ctaIntensity: 'soft-medium',
           overridden: true,
           overrideReason: `H1 mengandung harga tapi tidak ada tabel harga: "${h1Detection.h1Text}"`
         };
       }
     }
-    
-    // ATURAN 4: Default berdasarkan entity
+
     if (entityType === 'jasa') {
       const rule = JASA_RULES[pageLevel];
       if (rule) return rule;
       return DEFAULT_RULE;
     }
-    
+
     if (entityType === 'sewa') {
       const rule = SEWA_RULES[pageLevel];
       if (rule) return rule;
       return BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
     }
-    
+
     if (entityType === 'produk') {
       const rule = PRODUK_MATERIAL_RULES[pageLevel];
       if (rule) return rule;
       return BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
     }
-    
+
     if (entityType === 'material') {
       const rule = PRODUK_MATERIAL_RULES[pageLevel];
       if (rule) return rule;
       return BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
     }
-    
+
     return BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
   }
 
   // ============================================================
   // 📌 FUNGSI PROSES META DATES
+  // 🆕 v17.0: Tambah kategori & h1Pattern dari PLD v23
   // ============================================================
-  async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection) {
-    
+  async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus) {
+
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
     let metaNext = document.querySelector('meta[name="nextUpdate"]');
@@ -1083,16 +1259,16 @@
       });
       console.log(`✅ priceValidUntil removed (${finalType} content - no price in H1)`);
     }
-    
+
     document.body.classList.add(`page-level-${pageLevel}`);
     document.body.classList.add(`entity-type-${entityType}`);
     document.body.classList.add(`content-type-${finalType}`);
     document.body.classList.add(`cta-intensity-${ctaIntensity}`);
-    
+
     if (allowPriceRange) {
       document.body.classList.add(`allow-price-range`);
     }
-    
+
     if (h1Detection) {
       if (h1Detection.isInformational) {
         document.body.classList.add('h1-informational');
@@ -1104,7 +1280,7 @@
         document.body.classList.add('h1-has-year');
       }
     }
-    
+
     if (isOverridden) {
       document.body.classList.add('overridden-evergreen');
     }
@@ -1124,7 +1300,13 @@
     } else {
         validityLabel = `${finalType.toUpperCase()} (${validityDays} hari)`;
     }
-    
+
+    // 🆕 v17.0: Ambil kategori & h1Pattern dari PLD v23
+    const kategori = getKategori(pageLevel, contentFocus);
+    const h1Pattern = getPLDH1Pattern(kategori);
+    const schemaType = getPLDSchemaType(pageLevel, entityType, contentFocus);
+    const pldCtaType = getPLDCtaType(pageLevel, contentFocus);
+
     window.AEDMetaDates = {
       type: finalType,
       entityType: entityType,
@@ -1136,13 +1318,21 @@
       usePriceValidUntil,
       ctaIntensity,
       allowPriceRange,
-      detectorVersion: detectorVersion || 'v16.1',
+      detectorVersion: detectorVersion || 'v17.0',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
       isOverridden: isOverridden || false,
       overrideReason: overrideReason || null,
       h1Detection: h1Detection || null,
+
+      // 🆕 v17.0: Info dari PLD v23
+      contentFocus: contentFocus || null,
+      pldKategori: kategori,
+      pldH1Pattern: h1Pattern,
+      pldSchemaType: schemaType,
+      pldCtaType: pldCtaType,
+
       lastAutoUpdate: null,
       updateCount: 0
     };
@@ -1159,38 +1349,43 @@
     console.log(`   - H1: "${h1Detection?.h1Text || '(no h1)'}"`);
     console.log(`   - H1 Source: ${h1Detection?.source || 'N/A'}`);
     console.log(`   - H1 Reason: ${h1Detection?.reason || 'N/A'}`);
+    if (contentFocus) console.log(`   - Content Focus: ${contentFocus}`);
+    if (kategori) console.log(`   - Kategori (PLD v23): ${kategori}`);
+    if (h1Pattern) console.log(`   - H1 Pattern (PLD v23): ${h1Pattern}`);
+    if (schemaType) console.log(`   - Schema (PLD v23): ${schemaType.primary} + ${schemaType.secondary}`);
+    if (pldCtaType) console.log(`   - CTA (PLD v23): ${pldCtaType.type} → ${pldCtaType.text}`);
     if (isOverridden) {
       console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
     }
-    console.log(`🧩 processMetaDates() v16.1 — FINISHED ✅`);
+    console.log(`🧩 processMetaDates() v17.0 — FINISHED ✅`);
   }
 
   // ============================================================
   // 📌 FUNGSI UTAMA DETECT EVERGREEN
   // ============================================================
   async function detectEvergreen({ customDateModified = null } = {}) {
-    console.log("🧩 detectEvergreen() v16.1 — AUTO-UPDATE BERKELANJUTAN — Loading...");
-    
+    console.log("🧩 detectEvergreen() v17.0 — AUTO-UPDATE BERKELANJUTAN — Loading...");
+
     await waitForPageLevelDetector();
-    
+
     const { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount } = getPageLevelAndEntityType();
-    
+
     console.log(`📌 Raw detection: pageLevel=${pageLevel}, entityType=${entityType}, detector=${detectorVersion}`);
     if (confidence) {
       console.log(`   🎯 Detection Confidence: ${confidence}% (${strategyCount} strategies)`);
     }
-    
+
     // P1: Deteksi konten (PLD dulu, baru H1)
     const h1Detection = detectContentTypeByH1();
     console.log(`📊 Content Detection Result: informational=${h1Detection.isInformational}, price=${h1Detection.isPrice}, hasYear=${h1Detection.hasYear}`);
     console.log(`   📝 H1: "${h1Detection.h1Text}"`);
     console.log(`   📌 Source: ${h1Detection.source || 'N/A'}`);
     console.log(`   📌 Reason: ${h1Detection.reason}`);
-    
-    // P3: Ambil content focus untuk update konten
-    const contentFocus = getContentFocus(h1Detection);
+
+    // P3: Ambil content focus (dengan PLD v23 prioritas)
+    const contentFocus = getContentFocus(h1Detection, pageLevel, entityType);
     console.log(`🎯 Content Focus Final: ${contentFocus}`);
-    
+
     const rule = getRulesByEntityType(entityType, pageLevel, h1Detection);
     const finalType = rule.type;
     const validityDays = rule.validityDays;
@@ -1200,33 +1395,32 @@
     const ctaIntensity = rule.ctaIntensity;
     const isOverridden = rule.overridden || false;
     const overrideReason = rule.overrideReason || null;
-    
+
     console.log(`📌 Final Rule: pageLevel=${pageLevel}, type=${finalType}, validityDays=${validityDays}`);
     if (isOverridden) {
       console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
     }
-    
+
     // STEP 1: Proses meta dates
-    await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection);
-    
+    await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus);
+
     // STEP 2: Auto-update
     console.log("🔄 MEMERIKSA AUTO-UPDATE...");
     const autoUpdated = autoUpdateDates(pageLevel, contentFocus);
     if (autoUpdated) {
       console.log("✅ AUTO-UPDATE BERHASIL!");
-      // Re-process meta dates setelah update
-      await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection);
+      await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus);
     } else {
       console.log("⏭️ Tidak perlu auto-update (masih dalam periode valid)");
     }
-    
-    console.log(`🧩 detectEvergreen() v16.1 — FINISHED ✅`);
+
+    console.log(`🧩 detectEvergreen() v17.0 — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
-  
-  console.log("✅ Smart Evergreen Detector v16.1 ready (V37 rules + PLD-first detection + Level-aware content update)");
-  
+
+  console.log("✅ Smart Evergreen Detector v17.0 ready (V37 rules + PLD v23.0.0 integration + Level-aware content update)");
+
 })();
