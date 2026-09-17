@@ -2569,7 +2569,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "23.5.0",
+      version: "23.6.0",
       CONFIG: CONFIG,
 
       detect: detectPageLevel,
