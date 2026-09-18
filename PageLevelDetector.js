@@ -2347,16 +2347,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       var hasNoun = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|bangunan|konstruksi)\b/i.test(lowerText);
       if (hasNoun) { log('💰 MONEY_PAGE', 'PRICE'); return "money-page"; }
     }
-        // PRIORITAS 11: HIGH VOLUME
-    var hasHighVolume = false;
-    for (var i = 0; i < HIGH_VOLUME_WORDS.length; i++) {
-      if (lowerText.indexOf(HIGH_VOLUME_WORDS[i]) !== -1) { hasHighVolume = true; break; }
-    }
-    if (hasHighVolume && !hasLocationWord && !hasSpecWord) {
-      var hasNoun = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|bangunan|konstruksi)\b/i.test(lowerText);
-      if (hasNoun) { log('💰 MONEY_PAGE', 'PRICE'); return "money-page"; }
-    }
-
+        
     // 🔥 FIX 164: Force MP untuk conjunction "dan"/"serta" (bundling 2 layanan)
     // Skip kalau "dan" bagian dari base name ("cut and fill")
     var hasDanConj = /\b(dan|serta)\b/i.test(lowerText);
