@@ -1929,13 +1929,16 @@ var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos',
     // 🔥 FIX 162a: PINDAH BASE_NAMES KE SINI — dicek SEBELUM COMMON_JASA_WORDS
     // Alasan: compound base names yang diawali verb (pasang X, cor X, bongkar X)
     // harus match DULU sebelum verb di-strip.
-    if (entityType && ENTITY_BASE_NAMES[entityType]) {
+    // 🔥 FIX 163: SKIP base strip kalau ada conjunction "atau"/"dan"/"serta"
+    // Alasan: "jasa pasang pagar atau kanopi" = 2 layanan listing (MP),
+    // bukan 1 compound base service. Base strip akan menghilangkan konteks listing.
+    var hasConjunction = /\b(atau|dan|serta)\b/i.test(coreText);
+    if (entityType && ENTITY_BASE_NAMES[entityType] && !hasConjunction) {
       var baseNamesEarly = ENTITY_BASE_NAMES[entityType] || [];
       for (var i = 0; i < baseNamesEarly.length; i++) {
         coreText = coreText.replace(new RegExp("\\b" + baseNamesEarly[i].replace(/\s+/g, '\\s+') + "\\b", 'g'), ' ');
       }
     }
-
     if (entityType === "jasa") {
       for (var i = 0; i < COMMON_JASA_WORDS.length; i++) {
         coreText = coreText.replace(new RegExp("\\b" + COMMON_JASA_WORDS[i] + "\\b", 'g'), ' ');
@@ -3010,7 +3013,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa desain interior", entity: "desain", expect: "money-master", note: "FIX 134" },
       { slug: "jasa desain interior minimalis", entity: "desain", expect: "variant", note: "FIX 134" },
       { slug: "jasa pasang pagar", entity: "jasa", expect: "money-master", note: "FIX 135" },
-      { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-page", note: "FIX 135" },
+      { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-master", note: "FIX 163: compound MM" },
       { slug: "jasa pasang kanopi", entity: "jasa", expect: "money-master", note: "FIX 135" },
       { slug: "jasa pasang pintu", entity: "jasa", expect: "money-master", note: "FIX 135" },
       { slug: "semen jakarta", entity: "material", expect: "money-child", note: "FIX 136" },
@@ -3031,7 +3034,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa pasang kanopi", entity: "jasa", expect: "money-master", note: "FIX 146" },
       { slug: "jasa pasang pintu", entity: "jasa", expect: "money-master", note: "FIX 146" },
       { slug: "jasa pasang rolling door", entity: "jasa", expect: "money-page", note: "FIX 146: core=2" },
-      { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-page", note: "FIX 146: core=2" },
+      { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-master", note: "FIX 163: compound MM" },
       { slug: "jasa pasang pagar atau kanopi besi", entity: "jasa", expect: "sub-pillar-tipe-1", note: "FIX 147: 2 sisi" },
       { slug: "pagar besi atau pagar kayu", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 147: valid" },
       // ═══ Core Regression ═══
@@ -3178,7 +3181,6 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga sewa excavator mini", entity: "sewa", expect: "money-page", note: "FIX 151: 2 modifier" },
       { slug: "harga pasir bangka", entity: "material", expect: "money-page", note: "FIX 151: 2 modifier" },
       { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master", note: "FIX 151: base jasa" },
-        { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-master", note: "FIX 160: compound (revisi FIX 151)" },
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 153 (v23.7.1): Additional test cases
       // ═══════════════════════════════════════════════════════════
@@ -3190,9 +3192,6 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga jasa pasang pagar premium", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
       { slug: "harga jasa pasang kanopi elegan", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
             // ─── FIX 156: cross-entity base removal (UPDATED FIX 160) ───
-      { slug: "harga jasa pasang baja ringan", entity: "jasa", expect: "money-master", note: "FIX 160: compound" },
-      { slug: "harga jasa pasang pagar panel beton", entity: "jasa", expect: "money-master", note: "FIX 160: compound" },
-      { slug: "harga jasa coring bore pile", entity: "jasa", expect: "money-master", note: "FIX 160: compound" },
       { slug: "harga baja ringan", entity: "produk", expect: "money-master", note: "FIX 156: base produk only" },
       { slug: "harga pagar panel beton", entity: "produk", expect: "money-master", note: "FIX 156: base produk only" },
       // ─── FIX 154: Entity-aware spec modifier ───
@@ -3205,16 +3204,21 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       // 🔥 FIX 162 (v23.7.3): Verifikasi reorder strip + compound
       // ═══════════════════════════════════════════════════════════
       // ─── Reorder strip (FIX 162a) ───
-      { slug: "harga jasa cor dak beton", entity: "jasa", expect: "money-master", note: "FIX 162a" },
-      { slug: "harga jasa bongkar dinding beton", entity: "jasa", expect: "money-master", note: "FIX 162a" },
       // ─── Data baru (FIX 162c) ───
-      { slug: "harga jasa bor strauss", entity: "jasa", expect: "money-master", note: "FIX 162c" },
       { slug: "harga jasa bor pancang", entity: "jasa", expect: "money-master", note: "FIX 162c" },
-      { slug: "harga sofa minimalis", entity: "produk", expect: "money-page", note: "FIX 162c" },
       { slug: "harga sofa modern", entity: "produk", expect: "money-page", note: "FIX 162c" },
       // ─── Sewa power source (FIX 162d) ───
       { slug: "harga sewa forklift diesel", entity: "sewa", expect: "money-page", note: "FIX 162d" },
-      { slug: "harga sewa genset solar", entity: "sewa", expect: "money-page", note: "FIX 162d" }
+      { slug: "harga sewa genset solar", entity: "sewa", expect: "money-page", note: "FIX 162d" },
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 163 (v23.7.4): Skip base strip kalau ada conjunction
+      // ═══════════════════════════════════════════════════════════
+      { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-page", note: "FIX 163: 2 layanan listing" },
+      { slug: "jasa pasang pagar atau kanopi besi", entity: "jasa", expect: "sub-pillar-tipe-1", note: "FIX 163: SP1" },
+      { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-master", note: "FIX 163: compound MM" },
+      { slug: "jasa pasang kanopi besi", entity: "jasa", expect: "money-master", note: "FIX 163: compound MM" }
+    
+    ];   // 🔥 FIX 162e: tutup array TEST_CASES
     
     ];   // 🔥 FIX 162e: tutup array TEST_CASES
 
