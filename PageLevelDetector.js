@@ -283,7 +283,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
       "genteng keramik", "genteng beton", "genteng flat",
       "atap transparan", "atap polycarbonate", "atap solartuff",
       // Kitchen & furniture
-      "kitchen set", "kitchen set minimalis", "kitchen set modern",
+      "kitchen set",
       "wardrobe", "lemari pakaian", "lemari dapur", "lemari buku",
       "meja makan", "meja kerja", "meja kantor",
       "kursi makan", "kursi kantor", "kursi sofa",
@@ -859,12 +859,16 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     mutu: ["k225", "k250", "k300", "k350", "k400", "k500", "fc", "sni", "standar", "premium", "ekonomis"],
         finishing: ["polos", "motif", "bermotif", "bercorak", "tekstur", "serat", "halus", "kasar", "matte", "glossy", "doff", "gloss", "satin", "anyaman", "natural", "ekspos", "custom", "polosan", "cat", "coating", "lapisan", "vernis", "anti gores", "anti air", "anti jamur", "ulir"],  // 🔥 FIX 160c: +ulir
     dimensi: ["ukuran", "dimensi", "spesifikasi", "tipe", "model", "varian", "seri", "tinggi", "rendah", "panjang", "pendek", "lebar", "sempit", "tebal", "tipis", "dalam", "dangkal", "diameter", "radius", "besar", "kecil", "sedang", "mini", "jumbo"],
-    warna: ["putih", "hitam", "abu-abu", "merah", "biru", "kuning", "hijau", "coklat", "netral", "warm", "cool", "pastel", "dark", "light", "krem", "maroon", "navy", "forest", "gold", "silver", "bronze", "copper", "rose gold", "teal", "turquoise", "lavender", "magenta", "coral", "salmon", "peach", "mint"]
+    warna: ["putih", "hitam", "abu-abu", "merah", "biru", "kuning", "hijau", "coklat", "netral", "warm", "cool", "pastel", "dark", "light", "krem", "maroon", "navy", "forest", "gold", "silver", "bronze", "copper", "rose gold", "teal", "turquoise", "lavender", "magenta", "coral", "salmon", "peach", "mint"],
+    gaya: ["minimalis", "modern", "klasik", "skandinavia", "japandi", "industrial", 
+         "kontemporer", "tradisional", "rustic", "bohemian"]   // 🔥 FIX
+
   };
 
   var PURE_PRODUK_SPECS = PRODUK_SPECS.mutu
-    .concat(PRODUK_SPECS.warna)
-    .concat(PRODUK_SPECS.finishing);
+  .concat(PRODUK_SPECS.warna)
+  .concat(PRODUK_SPECS.finishing)
+  .concat(PRODUK_SPECS.gaya);   // 🔥 FIX
 
   var MATERIAL_SPECS = {
     grade: ["grade a", "grade b", "grade c", "sni", "standar", "kualitas 1", "kualitas 2", "kualitas 3", "kelas 1", "kelas 2", "kelas 3"],
@@ -2992,7 +2996,6 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "sewa jack hammer 30 kg", entity: "sewa", expect: "variant", note: "FIX 144" },
       { slug: "sewa crane 25 ton", entity: "sewa", expect: "sub-variant", note: "FIX 144: ton is besar" },
       { slug: "sewa crane 50 ton", entity: "sewa", expect: "sub-variant", note: "FIX 144: ton is besar" },
-
       // ═══ FIX 134-141: Regression ═══
       { slug: "jasa desain", entity: "desain", expect: "pillar", note: "FIX 134" },
       { slug: "jasa desain interior", entity: "desain", expect: "money-master", note: "FIX 134" },
@@ -3014,7 +3017,6 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-page", note: "FIX 140" },
       { slug: "perbandingan pagar besi atau kayu", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 140" },
       { slug: "kelebihan dan kekurangan pagar beton", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 140" },
-
       // ═══ FIX 146-147: Regression (v23.6.0) ═══
       { slug: "jasa pasang pagar", entity: "jasa", expect: "money-master", note: "FIX 146" },
       { slug: "jasa pasang kanopi", entity: "jasa", expect: "money-master", note: "FIX 146" },
@@ -3023,7 +3025,6 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-page", note: "FIX 146: core=2" },
       { slug: "jasa pasang pagar atau kanopi besi", entity: "jasa", expect: "sub-pillar-tipe-1", note: "FIX 147: 2 sisi" },
       { slug: "pagar besi atau pagar kayu", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 147: valid" },
-
       // ═══ Core Regression ═══
       { slug: "jasa coring beton", entity: "jasa", expect: "money-master", note: "regression" },
       { slug: "jasa coring hidrolik", entity: "jasa", expect: "variant", note: "regression" },
@@ -3038,11 +3039,9 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa konstruksi", entity: "jasa", expect: "pillar", note: "regression" },
       { slug: "semen 3 roda", entity: "material", expect: "variant", note: "regression" },
       { slug: "harga pasir bangka per kubik", entity: "material", expect: "money-page", note: "regression" },
-
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 153 (v23.7.0): ENTITY WORD REMOVAL + BASE SERVICE MM
-      // ═══════════════════════════════════════════════════════════
-      
+      // ══════════════════════════════════════════════════════════
       // ─── FIX 158: noise vs strong modifier ───
       // NOISE → MM
       { slug: "harga jasa bor sumur murah", entity: "jasa", expect: "money-master", note: "FIX 158: murah=noise" },
@@ -3052,7 +3051,6 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga jasa bor sumur bersaing", entity: "jasa", expect: "money-master", note: "FIX 158: bersaing=noise" },
       { slug: "harga jasa bor sumur kompetitif", entity: "jasa", expect: "money-master", note: "FIX 158: kompetitif=noise" },
       { slug: "harga jasa bor sumur pasaran", entity: "jasa", expect: "money-master", note: "FIX 158: pasaran=noise" },
-      
       // STRONG MODIFIER → MP
       { slug: "jasa coring beton diskon", entity: "jasa", expect: "money-page", note: "FIX 158: diskon=strong" },
       { slug: "jasa bor sumur promo", entity: "jasa", expect: "money-page", note: "FIX 158: promo=strong" },
@@ -3060,23 +3058,18 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa bor sumur termurah", entity: "jasa", expect: "money-page", note: "FIX 158: termurah=strong" },
       { slug: "jasa bor sumur termahal", entity: "jasa", expect: "money-page", note: "FIX 158: termahal=strong" },
       { slug: "harga jasa coring beton", entity: "jasa", expect: "money-master", note: "FIX 158: base service tetap MM" },
-      
       // ─── FIX 159: bor beton = base service ───
       { slug: "jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 159: base service" },
       { slug: "harga jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 159: base+price tetap MM" },
       { slug: "biaya jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 159" },
       { slug: "jasa boring beton", entity: "jasa", expect: "money-master", note: "FIX 159: synonym" },
       { slug: "jasa drilling beton", entity: "jasa", expect: "money-master", note: "FIX 159: EN synonym" },
-      
       // Spec/lokasi tetap naik (tidak rusak)
       { slug: "jasa bor beton 30cm", entity: "jasa", expect: "sub-variant", note: "FIX 159: + dimensi" },
       { slug: "jasa bor beton jakarta", entity: "jasa", expect: "money-child", note: "FIX 159: + lokasi" },
-
-           
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 160 (v23.7.1): Compound base names + konsistensi
       // ═══════════════════════════════════════════════════════════
-      
       // ─── FIX 160a: JASA compound base names ───
       { slug: "harga jasa bor pile", entity: "jasa", expect: "money-master", note: "FIX 160a: synonym" },
       { slug: "harga jasa bor strauss", entity: "jasa", expect: "money-master", note: "FIX 160a" },
@@ -3089,30 +3082,25 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga jasa renovasi rumah", entity: "jasa", expect: "money-master", note: "FIX 160a" },
       { slug: "harga jasa renovasi dapur", entity: "jasa", expect: "money-master", note: "FIX 160a" },
       { slug: "harga jasa renovasi kamar mandi", entity: "jasa", expect: "money-master", note: "FIX 160a" },
-      
       // ─── FIX 160b: PRODUK multi-word ───
       { slug: "harga pintu kayu", entity: "produk", expect: "money-master", note: "FIX 160b" },
       { slug: "harga pintu aluminium", entity: "produk", expect: "money-master", note: "FIX 160b" },
       { slug: "harga pagar stainless", entity: "produk", expect: "money-master", note: "FIX 160b" },
       { slug: "harga jendela aluminium", entity: "produk", expect: "money-master", note: "FIX 160b" },
       { slug: "harga kanopi alderon", entity: "produk", expect: "money-master", note: "FIX 160b" },
-      
       // ─── FIX 160c: PRODUK spec ulir ───
       { slug: "harga besi beton ulir", entity: "produk", expect: "money-page", note: "FIX 160c: ulir spec" },
-      
       // ─── FIX 160d: Konsistensi jasa + material ───
       { slug: "jasa pasang keramik", entity: "jasa", expect: "money-master", note: "FIX 160d" },
       { slug: "harga jasa pasang keramik", entity: "jasa", expect: "money-master", note: "FIX 160d: konsisten" },
       { slug: "jasa bore pile beton", entity: "jasa", expect: "money-master", note: "FIX 160d" },
       { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-master", note: "FIX 160d: revisi FIX 151" },
-
             // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 161 (v23.7.2): Full expansion semua entity
       // ═══════════════════════════════════════════════════════════
-      
       // ─── PRODUK expansion ───
       { slug: "harga kitchen set", entity: "produk", expect: "money-master", note: "FIX 161" },
-      { slug: "harga kitchen set minimalis", entity: "produk", expect: "money-page", note: "FIX 161: +gaya" },
+      { slug: "harga kitchen set minimalis", entity: "produk", expect: "money-page", note: "FIX 163: gaya→MP" },
       { slug: "harga wardrobe", entity: "produk", expect: "money-master", note: "FIX 161" },
       { slug: "harga sofa minimalis", entity: "produk", expect: "money-page", note: "FIX 161" },
       { slug: "harga gazebo kayu", entity: "produk", expect: "money-master", note: "FIX 161" },
@@ -3126,7 +3114,6 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga lantai vinyl", entity: "produk", expect: "money-master", note: "FIX 161" },
       { slug: "harga atap shingle", entity: "produk", expect: "money-master", note: "FIX 161" },
       { slug: "harga saklar listrik", entity: "produk", expect: "money-master", note: "FIX 161" },
-      
       // ─── MATERIAL expansion ───
       { slug: "harga semen mortar", entity: "material", expect: "money-master", note: "FIX 161" },
       { slug: "harga semen instan", entity: "material", expect: "money-master", note: "FIX 161" },
@@ -3143,7 +3130,6 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga aquaproof", entity: "material", expect: "money-master", note: "FIX 161" },
       { slug: "harga no drop", entity: "material", expect: "money-master", note: "FIX 161" },
       { slug: "harga beton readymix", entity: "material", expect: "money-master", note: "FIX 161" },
-      
       // ─── SEWA expansion ───
       // 🔥 FIX 162e: harga + spec sewa → MP (konsisten dengan genset 100kva)
       { slug: "harga sewa forklift 3 ton", entity: "sewa", expect: "money-page", note: "FIX 162e" },
@@ -3157,13 +3143,12 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga sewa stamper kodok", entity: "sewa", expect: "money-master", note: "FIX 161" },
       { slug: "harga sewa pompa celup", entity: "sewa", expect: "money-master", note: "FIX 161" },
       { slug: "harga sewa kompresor angin", entity: "sewa", expect: "money-master", note: "FIX 161" },
-      
       // ─── DESAIN expansion ───
       { slug: "harga desain interior restoran", entity: "desain", expect: "money-master", note: "FIX 161" },
       { slug: "harga desain interior hotel", entity: "desain", expect: "money-master", note: "FIX 161" },
       { slug: "harga desain interior apartemen", entity: "desain", expect: "money-master", note: "FIX 161" },
-      { slug: "harga desain rumah tropis", entity: "desain", expect: "money-master", note: "FIX 161" },
-      { slug: "harga desain rumah scandinavian", entity: "desain", expect: "money-master", note: "FIX 161" },
+      { slug: "harga desain rumah tropis", entity: "desain", expect: "money-page", note: "FIX 163: gaya→MP" },
+      { slug: "harga desain rumah scandinavian", entity: "desain", expect: "money-page", note: "FIX 163: gaya→MP" },
             { slug: "harga desain rumah 2 lantai", entity: "desain", expect: "money-page", note: "FIX 162e" },
       { slug: "harga desain rumah type 36", entity: "desain", expect: "money-page", note: "FIX 162e" },
       { slug: "harga desain ruang tamu", entity: "desain", expect: "money-master", note: "FIX 161" },
@@ -3173,12 +3158,10 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga desain kolam renang", entity: "desain", expect: "money-master", note: "FIX 161" },
       { slug: "harga gambar arsitektur", entity: "desain", expect: "money-master", note: "FIX 161" },
       { slug: "harga gambar kerja", entity: "desain", expect: "money-master", note: "FIX 161" },
-     
      // ─── FIX 150: ENTITY_ONLY_WORDS removal ───
       { slug: "harga rental excavator", entity: "sewa", expect: "money-master", note: "FIX 150" },
       { slug: "harga bahan pasir", entity: "material", expect: "money-master", note: "FIX 150" },
       { slug: "harga bahan material pasir", entity: "material", expect: "money-master", note: "FIX 150" },
-
       // ─── FIX 151: Base service price threshold ───
       { slug: "harga sewa excavator", entity: "sewa", expect: "money-master", note: "FIX 151" },
       { slug: "harga sewa alat berat", entity: "sewa", expect: "money-master", note: "FIX 151" },
@@ -3186,12 +3169,10 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga sewa excavator mini", entity: "sewa", expect: "money-page", note: "FIX 151: 2 modifier" },
       { slug: "harga pasir bangka", entity: "material", expect: "money-page", note: "FIX 151: 2 modifier" },
       { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master", note: "FIX 151: base jasa" },
-            { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-master", note: "FIX 160: compound (revisi FIX 151)" },
-
+        { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-master", note: "FIX 160: compound (revisi FIX 151)" },
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 153 (v23.7.1): Additional test cases
       // ═══════════════════════════════════════════════════════════
-
       // ─── FIX 155: sharedGaya di checkPureTechnicalSpec ───
       { slug: "harga jasa pasang pagar minimalis", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
       { slug: "harga jasa pasang kanopi modern", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
@@ -3199,43 +3180,29 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga jasa renovasi custom", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
       { slug: "harga jasa pasang pagar premium", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
       { slug: "harga jasa pasang kanopi elegan", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
-
             // ─── FIX 156: cross-entity base removal (UPDATED FIX 160) ───
       { slug: "harga jasa pasang baja ringan", entity: "jasa", expect: "money-master", note: "FIX 160: compound" },
       { slug: "harga jasa pasang pagar panel beton", entity: "jasa", expect: "money-master", note: "FIX 160: compound" },
       { slug: "harga jasa coring bore pile", entity: "jasa", expect: "money-master", note: "FIX 160: compound" },
       { slug: "harga baja ringan", entity: "produk", expect: "money-master", note: "FIX 156: base produk only" },
       { slug: "harga pagar panel beton", entity: "produk", expect: "money-master", note: "FIX 156: base produk only" },
-
       // ─── FIX 154: Entity-aware spec modifier ───
       { slug: "harga jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 154: metode hidrolik" },
       { slug: "harga pagar panel beton putih", entity: "produk", expect: "money-page", note: "FIX 154: warna putih" },
       { slug: "harga besi beton sni", entity: "material", expect: "money-page", note: "FIX 154: grade sni" },
       { slug: "harga sewa genset 100kva", entity: "sewa", expect: "money-page", note: "FIX 154: kapasitas angka" },
-           { slug: "harga desain interior mewah", entity: "desain", expect: "money-page", note: "FIX 154: subjektif mewah" },
-   
-          ,
+      { slug: "harga desain interior mewah", entity: "desain", expect: "money-page", note: "FIX 154: subjektif mewah" }.
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 162 (v23.7.3): Verifikasi reorder strip + compound
       // ═══════════════════════════════════════════════════════════
-      
       // ─── Reorder strip (FIX 162a) ───
-      { slug: "harga jasa pasang pagar panel beton", entity: "jasa", expect: "money-master", note: "FIX 162a" },
       { slug: "harga jasa cor dak beton", entity: "jasa", expect: "money-master", note: "FIX 162a" },
       { slug: "harga jasa bongkar dinding beton", entity: "jasa", expect: "money-master", note: "FIX 162a" },
-      { slug: "harga jasa pasang baja ringan", entity: "jasa", expect: "money-master", note: "FIX 162a" },
-      { slug: "harga jasa coring bore pile", entity: "jasa", expect: "money-master", note: "FIX 162a" },
-      
-      // ─── Base names panjang dulu (FIX 162b) ───
-      { slug: "harga kitchen set minimalis", entity: "produk", expect: "money-page", note: "FIX 162b" },
-      
       // ─── Data baru (FIX 162c) ───
       { slug: "harga jasa bor strauss", entity: "jasa", expect: "money-master", note: "FIX 162c" },
       { slug: "harga jasa bor pancang", entity: "jasa", expect: "money-master", note: "FIX 162c" },
       { slug: "harga sofa minimalis", entity: "produk", expect: "money-page", note: "FIX 162c" },
       { slug: "harga sofa modern", entity: "produk", expect: "money-page", note: "FIX 162c" },
-      { slug: "harga besi beton ulir", entity: "produk", expect: "money-page", note: "FIX 162c" },
-      
       // ─── Sewa power source (FIX 162d) ───
       { slug: "harga sewa forklift diesel", entity: "sewa", expect: "money-page", note: "FIX 162d" },
       { slug: "harga sewa genset solar", entity: "sewa", expect: "money-page", note: "FIX 162d" }
