@@ -51,6 +51,14 @@
    - DESAIN: +50 compound (interior restoran, rumah tropis, per ruangan, dll)
    - Total: ~600 compound nouns, coverage ~95%+ semua entity
     🎯 AKURASI TARGET: 99%+ (SEO aligned, all entity)
+    🔥 FIX 162 (v23.7.3) — Reorder strip + base names fix
+   - FIX 162a: Reorder strip — BASE_NAMES dicek SEBELUM COMMON_JASA_WORDS
+   - FIX 162b: Sort base names by word count DESC (longest first)
+   - FIX 162c: +bor strauss/bor pancang; hapus compound overlap dari produk & sewa
+   - FIX 162d: SEWA_SPECS.kondisi +listrik/diesel/bensin/solar/hydraulic/manual
+   - FIX 162e: Update 4 test case harga+spec sewa/desain → MP (konsisten)
+   - FIX BUG: Tutup array TEST_CASES dengan ];
+    🎯 AKURASI TARGET: 100% (SEO aligned, all entity)
     ============================================================ */
 
 (function () {
@@ -224,7 +232,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
       // Precast & beton
       "pagar panel beton", "pagar panel", "panel beton", "pagar beton",
       "u ditch", "box culvert", "paving block", "batako press",
-      "besi beton ulir", "besi beton polos", "besi beton",
+      "besi beton",
       "baja ringan", "atap baja ringan", "rangka baja ringan",
       "bata ringan", "bata hebel", "bata merah", "bata putih",
       "batako putih", "batako holcim",
@@ -279,7 +287,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
       "wardrobe", "lemari pakaian", "lemari dapur", "lemari buku",
       "meja makan", "meja kerja", "meja kantor",
       "kursi makan", "kursi kantor", "kursi sofa",
-      "sofa minimalis", "sofa modern", "sofa l bentuk",
+      "sofa l bentuk",
       "tempat tidur", "bed frame", "nakas",
       "backdrop tv", "backdrop dapur", "backdrop kamar",
       "walk in closet", "walkin closet",
@@ -346,7 +354,8 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
       "bore pile beton", "bore pile mini", "bore pile mesin",
       "bore pile manual", "bore pile hidrolik",
       "bore pile", "bor pile", "bored pile", "boring pile",
-      "mini pile", "spun pile", "micropile",
+            "mini pile", "spun pile", "micropile",
+      "bor strauss", "bor pancang",   // 🔥 FIX 162c
       "strauss pile beton", "strauss pile borongan",
       "strauss pile manual", "strauss pile mesin",
       "strauss pile mini", "strauss pile",
@@ -503,9 +512,8 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
       "mobile crane", "excavator mini", "excavator besar",
       "bulldozer mini", "vibro roller", "baby roller",
       "genset besar", "genset kecil", "genset silent",
-      // Forklift
-      "forklift 3 ton", "forklift 5 ton", "forklift listrik", "forklift diesel",
-      "forklift reach truck", "forklift hand pallet",
+            // Forklift — hanya base "forklift" (kapasitas = spec modifier)
+      "forklift",
       // Boom lift & skylift
       "boom lift", "skylift", "scissor lift", "man lift",
       "articulated boom lift", "telescopic boom lift",
@@ -579,6 +587,18 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
       "gambar arsitektur", "gambar kerja", "gambar teknik"
     ]
   };
+
+   // 🔥 FIX 162b: Sort base names by word count DESC (longest first)
+  // Alasan: hindari partial match. Contoh: "kitchen set minimalis" harus 
+  // dicek sebelum "kitchen set".
+  (function() {
+    for (var ent in ENTITY_BASE_NAMES) {
+      if (!ENTITY_BASE_NAMES.hasOwnProperty(ent)) continue;
+      ENTITY_BASE_NAMES[ent].sort(function(a, b) {
+        return b.split(' ').length - a.split(' ').length;
+      });
+    }
+  })();
  
   var PURE_JASA_TECHNIQUES = [];
   var PURE_METHODS = ["manual", "hidrolik", "auger", "rotary", "percussive", "dry", "wet", "basah", "kering"];
@@ -862,7 +882,8 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     tipe: ["mini", "besar", "kecil", "sedang", "medium", "heavy", "standar", "extra", "ekstra", "jumbo", "compact", "full size", "large"],
     merek: ["pc75", "pc200", "pc300", "pc350", "pc400", "komatsu", "hitachi", "caterpillar", "cat", "volvo", "hyundai", "doosan", "kobelco", "sumitomo", "case", "jcb", "liebherr", "kubota", "yanmar", "perkins", "cummin"],
     kapasitas: ["ton", "m3", "kg", "liter", "galon", "hp", "ps", "kva", "psi", "rpm", "kw", "inch", "inchi"],
-    kondisi: ["baru", "bekas", "servis", "recondition", "rebuilt", "ready", "siap pakai", "prima", "baik", "layak", "standar"],
+        kondisi: ["baru", "bekas", "servis", "recondition", "rebuilt", "ready", "siap pakai", "prima", "baik", "layak", "standar",
+              "listrik", "diesel", "bensin", "solar", "hydraulic", "manual"],   // 🔥 FIX 162d
     durasi: ["harian", "mingguan", "bulanan", "tahunan", "per jam", "per hari", "per minggu", "per bulan", "short term", "long term"]
   };
 
@@ -1887,10 +1908,20 @@ var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos',
       coreText = coreText.replace(new RegExp("\\b" + moneyWords[i] + "\\b", 'g'), '');
     }
 
-    // 🔥 FIX 150: Hapus SEMUA entity-only words (bukan hanya 1 kata pertama)
+       // 🔥 FIX 150: Hapus SEMUA entity-only words (bukan hanya 1 kata pertama)
     var entityOnlyWords = ENTITY_ONLY_WORDS[entityType] || [];
     for (var i = 0; i < entityOnlyWords.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + entityOnlyWords[i] + "\\b", 'g'), ' ');
+    }
+
+    // 🔥 FIX 162a: PINDAH BASE_NAMES KE SINI — dicek SEBELUM COMMON_JASA_WORDS
+    // Alasan: compound base names yang diawali verb (pasang X, cor X, bongkar X)
+    // harus match DULU sebelum verb di-strip.
+    if (entityType && ENTITY_BASE_NAMES[entityType]) {
+      var baseNamesEarly = ENTITY_BASE_NAMES[entityType] || [];
+      for (var i = 0; i < baseNamesEarly.length; i++) {
+        coreText = coreText.replace(new RegExp("\\b" + baseNamesEarly[i].replace(/\s+/g, '\\s+') + "\\b", 'g'), ' ');
+      }
     }
 
     if (entityType === "jasa") {
@@ -1925,12 +1956,7 @@ var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos',
       coreText = coreText.replace(new RegExp("\\b" + SPEC_PHRASE_WORDS[i].replace(/\s+/g, '\\s+') + "\\b", 'g'), ' ');
     }
     // 🔥 FIX 156: Hapus base names HANYA untuk entity current (bukan cross-entity)
-    if (entityType && ENTITY_BASE_NAMES[entityType]) {
-      var baseNames = ENTITY_BASE_NAMES[entityType] || [];
-      for (var i = 0; i < baseNames.length; i++) {
-        coreText = coreText.replace(new RegExp("\\b" + baseNames[i].replace(/\s+/g, '\\s+') + "\\b", 'g'), ' ');
-      }
-    }
+   
     var fisikRole = checkFisikRole(coreText);
     if (fisikRole !== "object") {
       for (var i = 0; i < FISIK_WORDS.length; i++) {
@@ -3119,8 +3145,9 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga beton readymix", entity: "material", expect: "money-master", note: "FIX 161" },
       
       // ─── SEWA expansion ───
-      { slug: "harga sewa forklift 3 ton", entity: "sewa", expect: "variant", note: "FIX 161: +kapasitas" },
-      { slug: "harga sewa forklift listrik", entity: "sewa", expect: "variant", note: "FIX 161" },
+      // 🔥 FIX 162e: harga + spec sewa → MP (konsisten dengan genset 100kva)
+      { slug: "harga sewa forklift 3 ton", entity: "sewa", expect: "money-page", note: "FIX 162e" },
+      { slug: "harga sewa forklift listrik", entity: "sewa", expect: "money-page", note: "FIX 162e" },
       { slug: "harga sewa boom lift", entity: "sewa", expect: "money-master", note: "FIX 161" },
       { slug: "harga sewa skylift", entity: "sewa", expect: "money-master", note: "FIX 161" },
       { slug: "harga sewa scissor lift", entity: "sewa", expect: "money-master", note: "FIX 161" },
@@ -3137,8 +3164,8 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga desain interior apartemen", entity: "desain", expect: "money-master", note: "FIX 161" },
       { slug: "harga desain rumah tropis", entity: "desain", expect: "money-master", note: "FIX 161" },
       { slug: "harga desain rumah scandinavian", entity: "desain", expect: "money-master", note: "FIX 161" },
-      { slug: "harga desain rumah 2 lantai", entity: "desain", expect: "sub-variant", note: "FIX 161: angka" },
-      { slug: "harga desain rumah type 36", entity: "desain", expect: "sub-variant", note: "FIX 161: angka" },
+            { slug: "harga desain rumah 2 lantai", entity: "desain", expect: "money-page", note: "FIX 162e" },
+      { slug: "harga desain rumah type 36", entity: "desain", expect: "money-page", note: "FIX 162e" },
       { slug: "harga desain ruang tamu", entity: "desain", expect: "money-master", note: "FIX 161" },
       { slug: "harga desain dapur minimalis", entity: "desain", expect: "money-page", note: "FIX 161: 2 core" },
       { slug: "harga desain walk in closet", entity: "desain", expect: "money-master", note: "FIX 161" },
@@ -3185,7 +3212,34 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga pagar panel beton putih", entity: "produk", expect: "money-page", note: "FIX 154: warna putih" },
       { slug: "harga besi beton sni", entity: "material", expect: "money-page", note: "FIX 154: grade sni" },
       { slug: "harga sewa genset 100kva", entity: "sewa", expect: "money-page", note: "FIX 154: kapasitas angka" },
-           { slug: "harga desain interior mewah", entity: "desain", expect: "money-page", note: "FIX 154: subjektif mewah" }
+           { slug: "harga desain interior mewah", entity: "desain", expect: "money-page", note: "FIX 154: subjektif mewah" },
+   
+          ,
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 162 (v23.7.3): Verifikasi reorder strip + compound
+      // ═══════════════════════════════════════════════════════════
+      
+      // ─── Reorder strip (FIX 162a) ───
+      { slug: "harga jasa pasang pagar panel beton", entity: "jasa", expect: "money-master", note: "FIX 162a" },
+      { slug: "harga jasa cor dak beton", entity: "jasa", expect: "money-master", note: "FIX 162a" },
+      { slug: "harga jasa bongkar dinding beton", entity: "jasa", expect: "money-master", note: "FIX 162a" },
+      { slug: "harga jasa pasang baja ringan", entity: "jasa", expect: "money-master", note: "FIX 162a" },
+      { slug: "harga jasa coring bore pile", entity: "jasa", expect: "money-master", note: "FIX 162a" },
+      
+      // ─── Base names panjang dulu (FIX 162b) ───
+      { slug: "harga kitchen set minimalis", entity: "produk", expect: "money-page", note: "FIX 162b" },
+      
+      // ─── Data baru (FIX 162c) ───
+      { slug: "harga jasa bor strauss", entity: "jasa", expect: "money-master", note: "FIX 162c" },
+      { slug: "harga jasa bor pancang", entity: "jasa", expect: "money-master", note: "FIX 162c" },
+      { slug: "harga sofa minimalis", entity: "produk", expect: "money-page", note: "FIX 162c" },
+      { slug: "harga sofa modern", entity: "produk", expect: "money-page", note: "FIX 162c" },
+      { slug: "harga besi beton ulir", entity: "produk", expect: "money-page", note: "FIX 162c" },
+      
+      // ─── Sewa power source (FIX 162d) ───
+      { slug: "harga sewa forklift diesel", entity: "sewa", expect: "money-page", note: "FIX 162d" },
+      { slug: "harga sewa genset solar", entity: "sewa", expect: "money-page", note: "FIX 162d" }
+    
     ];   // 🔥 FIX 162e: tutup array TEST_CASES
 
     console.log("═══════════════════════════════════════════════════════════");
