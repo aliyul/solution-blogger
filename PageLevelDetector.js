@@ -3185,8 +3185,9 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga pagar panel beton putih", entity: "produk", expect: "money-page", note: "FIX 154: warna putih" },
       { slug: "harga besi beton sni", entity: "material", expect: "money-page", note: "FIX 154: grade sni" },
       { slug: "harga sewa genset 100kva", entity: "sewa", expect: "money-page", note: "FIX 154: kapasitas angka" },
-      { slug: "harga desain interior mewah", entity: "desain", expect: "money-page", note: "FIX 154: subjektif mewah" }
-     
+           { slug: "harga desain interior mewah", entity: "desain", expect: "money-page", note: "FIX 154: subjektif mewah" }
+    ];   // 🔥 FIX 162e: tutup array TEST_CASES
+
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 PLD v23.7.0 — TEST SUITE (" + TEST_CASES.length + " CASE)");
     console.log("═══════════════════════════════════════════════════════════");
