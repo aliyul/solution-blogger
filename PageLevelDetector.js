@@ -1647,6 +1647,116 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     };
   }
 
+ // 🔥 FIX 154b: Entity-aware spec modifier check
+// ═══════════════════════════════════════════════════════════════════
+// 🔥 FIX 154b: Entity-Aware Spec Modifier Check (FULL v2)
+// Fungsi: Cek apakah single word adalah spec modifier untuk entity tertentu
+// Dipakai oleh FIX 154 di detectMoneyLevelInternal
+// 
+// Coverage:
+//   - JASA: metode, skala, finishing, kedalaman, foreignTechniques,
+//           sharedGaya, material context (30+ material)
+//   - PRODUK: mutu, finishing, warna, dimensi, cross-spec material
+//   - MATERIAL: grade, finishing, dimensi, berat, tipe (300+),
+//               extendedTypes (silika, zeolit, dll)
+//   - SEWA: tipe, merek, kapasitas, kondisi, durasi, extendedUnits,
+//           extendedTools (motor grader, tower crane, dll)
+//   - DESAIN: gaya, warna, material, konsep, furniture, subjektif,
+//             extendedColors (earth tone, sage), extendedGaya (bali modern)
+//   - ARTIKEL: informational, tidak ada spec modifier (return false)
+// ═══════════════════════════════════════════════════════════════════
+
+function isSpecModifierForEntity(word, entityType) {
+  if (!word) return false;
+  var w = word.toLowerCase().trim();
+  if (!w) return false;
+
+  // ─── UNIVERSAL: angka & mutu numeric ───
+  if (/^\d+/.test(w)) return true;                              // 60x60, 240x40, 10mm
+  if (/^(k\d+|fc\d*|m\d+|c\d+|bjts?\d*)$/i.test(w)) return true; // k225, fc20, bjts40
+
+  // ─── JASA ───
+  if (entityType === "jasa") {
+    var jasaSpecs = []
+      .concat(JASA_SPECS.metode || [])
+      .concat(JASA_SPECS.skala || [])
+      .concat(JASA_SPECS.finishing || [])
+      .concat(JASA_SPECS.kedalaman || [])
+      .concat(CROSS_ENTITY_SPECS.jasa.sharedFinishing || [])
+      .concat(CROSS_ENTITY_SPECS.jasa.sharedGaya || [])
+      .concat(CROSS_ENTITY_SPECS.jasa.foreignTechniques || []);
+    if (jasaSpecs.indexOf(w) !== -1) return true;
+
+    var jasaMaterialCtx = [
+      'beton','besi','baja','kayu','batu','kaca','aluminium','hollow',
+      'cor','semen','pasir','keramik','granit','marmer','gypsum','plafon',
+      'paving','bata','batako','hebel','genteng','asbes','atap',
+      'galvalum','precast','readymix','pipa','kabel','kuningan','tembaga'
+    ];
+    if (jasaMaterialCtx.indexOf(w) !== -1) return true;
+    return false;
+  }
+
+  // ─── PRODUK ───
+  if (entityType === "produk") {
+    var produkSpecs = []
+      .concat(PRODUK_SPECS.mutu || [])
+      .concat(PRODUK_SPECS.finishing || [])
+      .concat(PRODUK_SPECS.warna || [])
+      .concat(PRODUK_SPECS.dimensi || [])
+      .concat(CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing || [])
+      .concat(CROSS_ENTITY_SPECS.produk.sharedMaterialDimensi || []);
+    return produkSpecs.indexOf(w) !== -1;
+  }
+
+  // ─── MATERIAL ───
+  if (entityType === "material") {
+    var materialSpecs = []
+      .concat(MATERIAL_SPECS.grade || [])
+      .concat(MATERIAL_SPECS.finishing || [])
+      .concat(MATERIAL_SPECS.dimensi || [])
+      .concat(MATERIAL_SPECS.berat || [])
+      .concat(MATERIAL_SPECS.tipe || [])
+      .concat(CROSS_ENTITY_SPECS.material.extendedTypes || []);
+    return materialSpecs.indexOf(w) !== -1;
+  }
+
+  // ─── SEWA ───
+  if (entityType === "sewa") {
+    var sewaSpecs = []
+      .concat(SEWA_SPECS.tipe || [])
+      .concat(SEWA_SPECS.merek || [])
+      .concat(SEWA_SPECS.kapasitas || [])
+      .concat(SEWA_SPECS.kondisi || [])
+      .concat(SEWA_SPECS.durasi || [])
+      .concat(CROSS_ENTITY_SPECS.sewa.extendedUnits || [])
+      .concat(CROSS_ENTITY_SPECS.sewa.extendedTools || []);
+    return sewaSpecs.indexOf(w) !== -1;
+  }
+
+  // ─── DESAIN ───
+  if (entityType === "desain") {
+    var desainSpecs = []
+      .concat(DESAIN_SPECS.gaya || [])
+      .concat(DESAIN_SPECS.warna || [])
+      .concat(DESAIN_SPECS.material || [])
+      .concat(DESAIN_SPECS.konsep || [])
+      .concat(DESAIN_SPECS.furniture || [])
+      .concat(DESAIN_SPECS.subjektif || [])
+      .concat(CROSS_ENTITY_SPECS.desain.extendedColors || [])
+      .concat(CROSS_ENTITY_SPECS.desain.extendedGaya || []);
+    return desainSpecs.indexOf(w) !== -1;
+  }
+
+  // ─── ARTIKEL ───
+  if (entityType === "artikel") {
+    // Artikel = informational, tidak ada spec modifier dalam konteks harga
+    return false;
+  }
+
+  return false;
+}
+ 
   // ═══════════════════════════════════════════════════════════
   // 🔥 DETECT MONEY LEVEL — FIX 135-153
   // ═══════════════════════════════════════════════════════════
@@ -1733,17 +1843,31 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
       return "money-page";
     }
 
-    // 🔥 FIX 151: PRICE + BASE SERVICE → threshold >= 2 (dari >= 1)
-    if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
-      var preCore = getCoreWords(text, entityType);
-      log('🔥 FIX 151: preCore=[' + preCore.join(',') + '] (len=' + preCore.length + ')', 'CORE');
-      if (preCore.length >= 2) {
-        log('💵 FIX 151: MONEY_PAGE (price + 2+ modifier)', 'HARGA');
-        return "money-page";
-      }
-      log('🏛️ FIX 151: MONEY_MASTER (price + base service only)', 'MM');
-      return "money-master";
+// 🔥 FIX 154 (v23.7.1): PRICE + BASE SERVICE → smart threshold (ENTITY-AWARE)
+if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
+  var preCore = getCoreWords(text, entityType);
+  log('🔥 FIX 154: preCore=[' + preCore.join(',') + '] (len=' + preCore.length + ')', 'CORE');
+
+  // 0 core = base service murni → MM
+  if (preCore.length === 0) {
+    log('🏛️ FIX 154: MONEY_MASTER (base service murni)', 'MM');
+    return "money-master";
+  }
+
+  // 1 core + spec modifier (entity-aware) → MP
+  if (preCore.length === 1) {
+    if (isSpecModifierForEntity(preCore[0], entityType)) {
+      log('💵 FIX 154: MONEY_PAGE (price + spec: ' + preCore[0] + ')', 'HARGA');
+      return "money-page";
     }
+    log('🏛️ FIX 154: MONEY_MASTER (price + base + non-spec)', 'MM');
+    return "money-master";
+  }
+
+  // 2+ core → MP
+  log('💵 FIX 154: MONEY_PAGE (price + 2+ modifier)', 'HARGA');
+  return "money-page";
+}
 
     // PRIORITAS 9: PRICE + SPEC → MP/MM
     if (hasPriceWord && hasSpecWord && !hasLocationWord && !hasCommercialWord) {
