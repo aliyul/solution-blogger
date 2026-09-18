@@ -201,7 +201,10 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     ],
     material: ["batu split", "ready mix", "readymix"],
     jasa: ["sumur bor", "bor sumur", "air tanah", "jet pump", "bore pile",
-       "bor tanah", "bor horizontal", "bor tembok"],
+       "bor tanah", "bor horizontal", "bor tembok",
+       "coring beton",     // 🔥 FIX 157a: base service MM
+       "cutting beton",    // 🔥 FIX 157a: base service MM
+       "drilling tanah"],  // 🔥 FIX 157a: base service MM
     sewa: ["alat berat", "heavy equipment", "dump truck", "truck crane"],
     desain: ["open space", "split level", "tiny house", "smart home", "eco home", "mid century", "art deco"]
   };
@@ -1352,7 +1355,12 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     if (!text) return false;
     var lower = text.toLowerCase();
     var pureSpecs = [];
-    if (entityType === "jasa") pureSpecs = PURE_JASA_TECHNIQUES.concat(PURE_METHODS, PURE_SCALES, PURE_FINISHING, CROSS_ENTITY_SPECS.jasa.foreignTechniques);
+    if (entityType === "jasa") pureSpecs = PURE_JASA_TECHNIQUES
+  .concat(PURE_METHODS)
+  .concat(PURE_SCALES)
+  .concat(PURE_FINISHING)
+  .concat(CROSS_ENTITY_SPECS.jasa.foreignTechniques)
+  .concat(CROSS_ENTITY_SPECS.jasa.sharedGaya);  // 🔥 FIX 155
     else if (entityType === "produk") pureSpecs = PURE_PRODUK_SPECS.concat(PURE_FINISHING, CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing);
     else if (entityType === "material") pureSpecs = PURE_MATERIAL_SPECS.concat(PURE_FINISHING);
     else if (entityType === "sewa") pureSpecs = PURE_SEWA_SPECS;
@@ -1544,9 +1552,9 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     for (var i = 0; i < SPEC_PHRASE_WORDS.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + SPEC_PHRASE_WORDS[i].replace(/\s+/g, '\\s+') + "\\b", 'g'), ' ');
     }
-    for (var ent in ENTITY_BASE_NAMES) {
-      if (!ENTITY_BASE_NAMES.hasOwnProperty(ent)) continue;
-      var baseNames = ENTITY_BASE_NAMES[ent] || [];
+    // 🔥 FIX 156: Hapus base names HANYA untuk entity current (bukan cross-entity)
+    if (entityType && ENTITY_BASE_NAMES[entityType]) {
+      var baseNames = ENTITY_BASE_NAMES[entityType] || [];
       for (var i = 0; i < baseNames.length; i++) {
         coreText = coreText.replace(new RegExp("\\b" + baseNames[i].replace(/\s+/g, '\\s+') + "\\b", 'g'), ' ');
       }
@@ -1687,12 +1695,15 @@ function isSpecModifierForEntity(word, entityType) {
       .concat(CROSS_ENTITY_SPECS.jasa.foreignTechniques || []);
     if (jasaSpecs.indexOf(w) !== -1) return true;
 
-    var jasaMaterialCtx = [
-      'beton','besi','baja','kayu','batu','kaca','aluminium','hollow',
-      'cor','semen','pasir','keramik','granit','marmer','gypsum','plafon',
-      'paving','bata','batako','hebel','genteng','asbes','atap',
-      'galvalum','precast','readymix','pipa','kabel','kuningan','tembaga'
-    ];
+  var jasaMaterialCtx = [
+  'beton','besi','baja','kayu','batu','kaca','aluminium','hollow',
+  'cor','semen','pasir','keramik','granit','marmer','gypsum','plafon',
+  'paving','bata','batako','hebel','genteng','asbes','atap',
+  'galvalum','precast','readymix','pipa','kabel','kuningan','tembaga',
+  // 🔥 FIX 157b: Teknik jasa sebagai spec modifier (untuk naikkan ke MP)
+  'coring','cutting','drilling','pengeboran','pemancangan',
+  'grinding','welding','bending','forming','sambung','sambungan'
+];
     if (jasaMaterialCtx.indexOf(w) !== -1) return true;
     return false;
   }
@@ -2644,7 +2655,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga jasa bor sumur murah", entity: "jasa", expect: "money-master", note: "FIX 149" },
       { slug: "harga jasa bore pile murah", entity: "jasa", expect: "money-master", note: "FIX 149" },
       { slug: "jasa bor sumur promo", entity: "jasa", expect: "money-master", note: "FIX 149" },
-      { slug: "jasa coring beton diskon", entity: "jasa", expect: "money-master", note: "FIX 149" },
+      { slug: "jasa coring beton diskon", entity: "jasa", expect: "money-page", note: "FIX 149: coring+beton = MP" },
       { slug: "harga jasa pasang pagar hemat", entity: "jasa", expect: "money-master", note: "FIX 149" },
       { slug: "jasa bore pile terjangkau", entity: "jasa", expect: "money-master", note: "FIX 149" },
 
@@ -2660,7 +2671,37 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga sewa excavator mini", entity: "sewa", expect: "money-page", note: "FIX 151: 2 modifier" },
       { slug: "harga pasir bangka", entity: "material", expect: "money-page", note: "FIX 151: 2 modifier" },
       { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master", note: "FIX 151: base jasa" },
-      { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-page", note: "FIX 151: 2 modifier" }
+      { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-page", note: "FIX 151: 2 modifier" },
+
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 153 (v23.7.1): Additional test cases
+      // ═══════════════════════════════════════════════════════════
+
+      // ─── FIX 155: sharedGaya di checkPureTechnicalSpec ───
+      { slug: "harga jasa pasang pagar minimalis", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
+      { slug: "harga jasa pasang kanopi modern", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
+      { slug: "harga jasa pasang pintu klasik", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
+      { slug: "harga jasa renovasi custom", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
+      { slug: "harga jasa pasang pagar premium", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
+      { slug: "harga jasa pasang kanopi elegan", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
+
+      // ─── FIX 156: cross-entity base removal ───
+      { slug: "harga jasa pasang baja ringan", entity: "jasa", expect: "money-page", note: "FIX 156: material baja ringan" },
+      { slug: "harga jasa pasang pagar panel beton", entity: "jasa", expect: "money-page", note: "FIX 156: material pagar panel beton" },
+      { slug: "harga jasa coring bore pile", entity: "jasa", expect: "money-page", note: "FIX 156: 2 core words" },
+      { slug: "harga baja ringan", entity: "produk", expect: "money-master", note: "FIX 156: base produk only" },
+      { slug: "harga pagar panel beton", entity: "produk", expect: "money-master", note: "FIX 156: base produk only" },
+
+      // ─── FIX 154: Entity-aware spec modifier ───
+      { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-page", note: "FIX 154: spec beton" },
+      { slug: "harga jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 154: metode hidrolik" },
+      { slug: "harga pagar panel beton putih", entity: "produk", expect: "money-page", note: "FIX 154: warna putih" },
+      { slug: "harga besi beton sni", entity: "material", expect: "money-page", note: "FIX 154: grade sni" },
+      { slug: "harga sewa genset 100kva", entity: "sewa", expect: "money-page", note: "FIX 154: kapasitas angka" },
+      { slug: "harga desain interior mewah", entity: "desain", expect: "money-page", note: "FIX 154: subjektif mewah" },
+
+      // ─── Restore: test dari v23.6.0 ───
+      { slug: "harga jasa coring beton", entity: "jasa", expect: "money-page", note: "restore regression" }
     ];
 
     console.log("═══════════════════════════════════════════════════════════");
