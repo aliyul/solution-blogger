@@ -206,10 +206,14 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     ],
     material: ["batu split", "ready mix", "readymix"],
     jasa: ["sumur bor", "bor sumur", "air tanah", "jet pump", "bore pile",
-       "bor tanah", "bor horizontal", "bor tembok",
-       "coring beton",     // 🔥 FIX 157a: base service MM
-       "cutting beton",    // 🔥 FIX 157a: base service MM
-       "drilling tanah"],  // 🔥 FIX 157a: base service MM
+   "bor tanah", "bor horizontal", "bor tembok",
+   "coring beton",     // 🔥 FIX 157a: base service MM
+   "cutting beton",    // 🔥 FIX 157a: base service MM
+   "drilling tanah",   // 🔥 FIX 157a: base service MM
+   "bor beton",        // 🔥 FIX 159: base service MM (compound noun)
+   "boring beton",     // 🔥 FIX 159: synonym
+   "drilling beton",   // 🔥 FIX 159: synonym EN
+   "cor beton"],       // 🔥 FIX 159: base service MM
     sewa: ["alat berat", "heavy equipment", "dump truck", "truck crane"],
     desain: ["open space", "split level", "tiny house", "smart home", "eco home", "mid century", "art deco"]
   };
