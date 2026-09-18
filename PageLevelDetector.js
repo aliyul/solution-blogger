@@ -1570,6 +1570,14 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
           if (!isEntityOnly) return true;
         }
       }
+            // 🔥 FIX 163: Check gaya modifier
+      var gayaList = PRODUK_SPECS.gaya || [];
+      for (var i = 0; i < gayaList.length; i++) {
+        if (new RegExp("\\b" + gayaList[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return gayaList[i] === w; });
+          if (!isEntityOnly) return true;
+        }
+      }
       var sharedMatFin = CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing || [];
       for (var i = 0; i < sharedMatFin.length; i++) {
         if (new RegExp("\\b" + sharedMatFin[i] + "\\b", "i").test(lower)) {
@@ -2105,12 +2113,13 @@ function isSpecModifierForEntity(word, entityType) {
   }
  
   // ─── PRODUK ───
-  if (entityType === "produk") {
+    if (entityType === "produk") {
     var produkSpecs = []
       .concat(PRODUK_SPECS.mutu || [])
       .concat(PRODUK_SPECS.finishing || [])
       .concat(PRODUK_SPECS.warna || [])
       .concat(PRODUK_SPECS.dimensi || [])
+      .concat(PRODUK_SPECS.gaya || [])   // 🔥 FIX 163
       .concat(CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing || [])
       .concat(CROSS_ENTITY_SPECS.produk.sharedMaterialDimensi || []);
     return produkSpecs.indexOf(w) !== -1;
