@@ -2030,7 +2030,7 @@ var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos',
       hasBaseService: checkHasBaseService(text)
     };
   }
-
+ 
   function getSEOContext(text, entityType) {
     if (!text) {
       return {
@@ -2067,7 +2067,43 @@ var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos',
       freeContext: freeContext, intent: intent, intentDetail: intentDetail
     };
   }
+  // 🔥 FIX 164: SEO Misalignment Warning untuk conjunction "atau"/"dan"
+  // Rule:
+  //   - "atau" → target SP1 (perbandingan) atau SP2 (list). Kalau di bawah itu → warning.
+  //   - "dan"/"serta" → target MP (bundling). Kalau bukan MP → warning.
+  function detectConjunctionWarning(slug, level) {
+    if (!slug || !level) return [];
+    var lower = slug.toLowerCase();
+    var warnings = [];
 
+    // Skip kalau conjunction bagian dari base name (mis: "cut and fill")
+    if (/\bcut and fill\b/i.test(lower)) return warnings;
+
+    var hasAtau = /\batau\b/.test(lower);
+    var hasDan = /\b(dan|serta)\b/.test(lower);
+
+    // Rule 1: "atau" harus SP1 atau SP2
+    if (hasAtau && level !== "sub-pillar-tipe-1" && level !== "sub-pillar-tipe-2") {
+      warnings.push({
+        type: "SEO_MISALIGNMENT_ATAU",
+        severity: "warning",
+        message: "URL mengandung 'atau' tapi level '" + level + "'. SEO-aligned: 'atau' untuk SP1 (perbandingan) atau SP2 (list).",
+        suggestion: "Ganti ke 'dan' untuk MP (bundling), atau expand jadi 'A vs B' untuk SP1."
+      });
+    }
+
+    // Rule 2: "dan"/"serta" harus MP
+    if (hasDan && level !== "money-page") {
+      warnings.push({
+        type: "SEO_MISALIGNMENT_DAN",
+        severity: "warning",
+        message: "URL mengandung 'dan'/'serta' tapi level '" + level + "'. SEO-aligned: 'dan'/'serta' untuk MP (bundling 2 layanan).",
+        suggestion: "Pecah jadi 2 halaman, atau ganti konjungsi."
+      });
+    }
+
+    return warnings;
+  }
  // 🔥 FIX 154b: Entity-aware spec modifier check
 // ═══════════════════════════════════════════════════════════════════
 // 🔥 FIX 154b: Entity-Aware Spec Modifier Check (FULL v2)
@@ -2311,7 +2347,28 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       var hasNoun = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|bangunan|konstruksi)\b/i.test(lowerText);
       if (hasNoun) { log('💰 MONEY_PAGE', 'PRICE'); return "money-page"; }
     }
+        // PRIORITAS 11: HIGH VOLUME
+    var hasHighVolume = false;
+    for (var i = 0; i < HIGH_VOLUME_WORDS.length; i++) {
+      if (lowerText.indexOf(HIGH_VOLUME_WORDS[i]) !== -1) { hasHighVolume = true; break; }
+    }
+    if (hasHighVolume && !hasLocationWord && !hasSpecWord) {
+      var hasNoun = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|bangunan|konstruksi)\b/i.test(lowerText);
+      if (hasNoun) { log('💰 MONEY_PAGE', 'PRICE'); return "money-page"; }
+    }
 
+    // 🔥 FIX 164: Force MP untuk conjunction "dan"/"serta" (bundling 2 layanan)
+    // Skip kalau "dan" bagian dari base name ("cut and fill")
+    var hasDanConj = /\b(dan|serta)\b/i.test(lowerText);
+    var isDanBaseNamePart = /\bcut and fill\b/i.test(lowerText);
+    if (hasDanConj && !isDanBaseNamePart && !hasLocationWord && !hasCommercialWord && !hasPriceWord) {
+      var coreForDan = getCoreWords(text, entityType);
+      if (coreForDan.length >= 2) {
+        log('💰 FIX 164: MONEY_PAGE (dan-bundling: ' + coreForDan.join(',') + ')', 'PRICE');
+        return "money-page";
+      }
+    }
+   
     // PRIORITAS 12: CORE WORDS
     var coreWords = getCoreWords(text, entityType);
     log('🧠 CORE: [' + coreWords.join(', ') + ']', 'CORE');
@@ -2508,16 +2565,18 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
     var level = detectPageLevelForPrompt(slug, entity);
     var factors = getFactors(slug, entity);
     var upwardData = detectUpwardFromSlug(slug, domain);
+    var seoWarnings = detectConjunctionWarning(slug, level);   // 🔥 FIX 164
     return {
       pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
       isValid: VALID_LEVELS.indexOf(level) !== -1,
       upward: upwardData.upward, breadcrumbs: upwardData.breadcrumbs,
-      parents: detectParentLevelFromSlug(slug, entity, domain)
+      parents: detectParentLevelFromSlug(slug, entity, domain),
+      seoWarnings: seoWarnings   // 🔥 FIX 164
     };
   }
 
-  function detectForPrompt(input, entityType) {
+    function detectForPrompt(input, entityType) {
     if (!input) return { pageLevel: 'unknown', isValid: false, error: 'Input kosong' };
     var slug = extractSlugFromInput(input);
     if (!slug) return { pageLevel: 'unknown', isValid: false, error: 'Slug kosong' };
@@ -2525,11 +2584,13 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
     var level = detectPageLevelForPrompt(slug, entity);
     var factors = getFactors(slug, entity);
     var seoContext = getSEOContext(slug, entity);
+    var seoWarnings = detectConjunctionWarning(slug, level);   // 🔥 FIX 164
     return {
       pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
       isValid: VALID_LEVELS.indexOf(level) !== -1,
-      seoContext: seoContext
+      seoContext: seoContext,
+      seoWarnings: seoWarnings   // 🔥 FIX 164
     };
   }
 
@@ -3026,7 +3087,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "panduan pasang pagar panel beton", entity: "artikel", expect: "money-master", note: "FIX 138" },
       { slug: "tips memilih cat tembok", entity: "artikel", expect: "money-master", note: "FIX 138" },
       { slug: "tutorial instalasi listrik rumah", entity: "artikel", expect: "money-master", note: "FIX 138" },
-      { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-page", note: "FIX 140" },
+            { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-master", note: "FIX 164: atau = pilihan, bukan layanan ganda" },
       { slug: "perbandingan pagar besi atau kayu", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 140" },
       { slug: "kelebihan dan kekurangan pagar beton", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 140" },
       // ═══ FIX 146-147: Regression (v23.6.0) ═══
@@ -3213,10 +3274,18 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 163 (v23.7.4): Skip base strip kalau ada conjunction
       // ═══════════════════════════════════════════════════════════
-      { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-page", note: "FIX 163: 2 layanan listing" },
+      { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-master", note: "FIX 164: atau = pilihan" },
       { slug: "jasa pasang pagar atau kanopi besi", entity: "jasa", expect: "sub-pillar-tipe-1", note: "FIX 163: SP1" },
       { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-master", note: "FIX 163: compound MM" },
-      { slug: "jasa pasang kanopi besi", entity: "jasa", expect: "money-master", note: "FIX 163: compound MM" }
+           { slug: "jasa pasang kanopi besi", entity: "jasa", expect: "money-master", note: "FIX 163: compound MM" },
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 164 (v23.7.5): Conjunction "dan"/"serta" → MP
+      // ═══════════════════════════════════════════════════════════
+      { slug: "jasa pasang pagar dan kanopi", entity: "jasa", expect: "money-page", note: "FIX 164: dan-bundling" },
+      { slug: "jasa bongkar dan pasang keramik", entity: "jasa", expect: "money-page", note: "FIX 164: dan-bundling" },
+      { slug: "jasa urug dan gali tanah", entity: "jasa", expect: "money-page", note: "FIX 164: dan-bundling" },
+      { slug: "harga jasa pasang pagar dan kanopi", entity: "jasa", expect: "money-page", note: "FIX 164: dan-bundling + harga" }
+   
     ];   // 🔥 FIX 162e: tutup array TEST_CASES
     
     console.log("═══════════════════════════════════════════════════════════");
