@@ -206,48 +206,269 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     artikel: ["artikel"]
   };
 
-    var ENTITY_BASE_NAMES = {
-    // 🔥 FIX 160b: Produk multi-word ditambahkan
+     // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX 160 FULL TAXONOMY — 400+ compound nouns
+  // Aturan: 1 compound = 1 core. 2+ compound berbeda = MP.
+  // URUT PANJANG DULU untuk hindari partial match!
+  // ═══════════════════════════════════════════════════════════
+  var ENTITY_BASE_NAMES = {
+    // ─── PRODUK ───
     produk: [
+      // Precast
       "pagar panel beton", "pagar panel", "panel beton", "pagar beton",
-      "besi beton", "baja ringan", "paving block", "bata ringan",
-      "atap baja ringan", "u ditch", "box culvert",
-      // 🔥 FIX 160b: Produk multi-word compound
+      "u ditch", "box culvert", "paving block", "batako press",
+      "besi beton ulir", "besi beton polos", "besi beton",
+      "baja ringan", "atap baja ringan", "rangka baja ringan",
+      "bata ringan", "bata hebel", "bata merah",
+      // Kanopi
       "kanopi baja ringan", "kanopi genteng metal", "kanopi alderon",
-      "kanopi spandek", "kanopi solartuff",
-      "pintu kayu", "pintu besi", "pintu aluminium",
-      "jendela kayu", "jendela aluminium",
+      "kanopi spandek", "kanopi solartuff", "kanopi besi",
+      "kanopi stainless", "kanopi minimalis",
+      // Pintu & jendela
+      "pintu kayu", "pintu besi", "pintu aluminium", "pintu pvc",
+      "pintu baja", "pintu geser", "pintu lipat", "pintu swing",
+      "jendela kayu", "jendela aluminium", "jendela besi", "jendela upvc",
+      "kusen aluminium", "kusen kayu", "kusen besi",
+      // Pagar
       "pagar besi", "pagar kayu", "pagar stainless", "pagar brc",
-      "besi hollow", "besi unp", "besi wf", "besi h-beam",
-      "baja wf", "baja h-beam"
+      "pagar hollow", "pagar minimalis", "pagar tempa",
+      // Kaca
+      "kaca tempered", "kaca laminated", "kaca film",
+      // Besi profil
+      "besi hollow", "besi unp", "besi wf", "besi h-beam", "besi cnp",
+      "baja wf", "baja h-beam", "baja unp", "baja hollow",
+      // Plafon
+      "plafon gypsum", "plafon pvc", "plafon grc", "plafon akustik",
+      "plafon kayu", "plafon metal",
+      // Lantai
+      "keramik lantai", "keramik dinding", "granit tile", "homogeneous tile",
+      "parket kayu", "lantai vinyl", "lantai laminasi",
+      // Wall
+      "wallpaper dinding", "wpc wall panel", "wpc dinding", "hpl dinding",
+      "grc panel", "acp panel", "pvc dinding", "wall moulding",
+      // Atap
+      "atap spandek", "atap alderon", "genteng metal", "genteng tanah liat",
+      "atap bitumen", "atap solarflat",
+      // Material umum sebagai produk
+      "semen portland", "semen putih", "semen mortar",
+      "pasir beton", "pasir pasang", "pasir urug"
     ],
-    material: ["batu split", "ready mix", "readymix"],
-    // 🔥 FIX 160a: Jasa compound base names (URUT: panjang dulu)
+    
+    // ─── MATERIAL ───
+    material: [
+      "batu split", "ready mix", "readymix", "beton readymix",
+      "semen tiga roda", "semen gresik", "semen holcim", "semen padang",
+      "semen scg", "semen merah putih", "semen baturaja", "semen bosowa",
+      "pasir bangka", "pasir lumajang", "pasir muntilan", "pasir silika",
+      "pasir beton", "pasir pasang", "pasir urug", "pasir ayak",
+      "batu kali", "batu belah", "batu apung", "batu andesit",
+      "batu alam", "batu candi", "batu paras",
+      "besi beton sni", "besi beton bjts", "besi beton bjtd",
+      "kayu jati", "kayu meranti", "kayu mahoni", "kayu sengon",
+      "kayu kamper", "kayu merbau", "kayu ulin", "kayu bangkirai"
+    ],
+    
+    // ─── JASA ───
     jasa: [
-      "sumur bor", "bor sumur", "air tanah", "jet pump", "bore pile",
+      // Pondasi — bore pile family
+      "bore pile beton", "bore pile mini", "bore pile mesin",
+      "bore pile manual", "bore pile hidrolik",
+      "bore pile", "bor pile", "bored pile", "boring pile",
+      "mini pile", "spun pile", "micropile",
+      // Strauss family
+      "strauss pile beton", "strauss pile borongan",
+      "strauss pile manual", "strauss pile mesin",
+      "strauss pile mini", "strauss pile",
+      // Pancang
+      "tiang pancang beton", "tiang pancang kayu",
+      "pancang beton", "pancang kayu", "pancang mini",
+      "pancang mesin", "tiang pancang", "pancang",
+      // Turap
+      "turap beton", "turap baja", "turap kayu",
+      "sheet pile beton", "sheet pile baja", "sheet pile", "turap",
+      // Grouting
+      "jet grouting", "grouting beton", "grouting tanah",
+      "stabilisasi tanah", "soil improvement",
+      // Sumur bor
+      "sumur bor dalam", "sumur bor dangkal", "sumur bor artesis",
+      "sumur bor jet pump", "sumur bor air tanah",
+      "sumur bor", "bor sumur", "air tanah", "jet pump",
       "bor tanah", "bor horizontal", "bor tembok",
-      "coring beton",     // FIX 157a
-      "cutting beton",    // FIX 157a
-      "drilling tanah",   // FIX 157a
-      "bor beton", "boring beton", "drilling beton", "cor beton",  // FIX 159
-      // 🔥 FIX 160a: Synonym bor
-      "bor pile", "bor strauss", "bor pancang",
-      // 🔥 FIX 160a: Cor + objek (URUT panjang dulu!)
-      "cor dak beton", "cor dak", "cor jalan", "cor lantai",
-      "cor kolom", "cor sloof", "cor balok", "cor pondasi",
-      "cor tiang", "cor plat", "cor dinding",
-      // 🔥 FIX 160a: Bongkar + objek (URUT panjang dulu!)
+      // Cor
+      "cor dak beton", "cor dak lantai", "cor dak",
+      "cor lantai beton", "cor lantai",
+      "cor jalan beton", "cor jalan",
+      "cor kolom beton", "cor kolom",
+      "cor sloof", "cor balok", "cor plat",
+      "cor pondasi", "cor tiang", "cor dinding", "cor pagar",
+      "cor beton", "cor ready mix", "cor readymix",
+      "cor lantai gudang", "cor lantai pabrik",
+      "cor halaman", "cor garasi", "cor carport",
+      // Pasang — lantai
+      "pasang keramik lantai", "pasang keramik dinding",
+      "pasang keramik", "pasang granit", "pasang marmer",
+      "pasang parket", "pasang vinyl", "pasang lantai kayu",
+      "pasang homogeneous tile", "pasang ubin",
+      // Pasang — dinding
+      "pasang wallpaper dinding", "pasang wallpaper",
+      "pasang wpc dinding", "pasang wpc",
+      "pasang grc", "pasang hpl", "pasang pvc dinding",
+      "pasang dinding partisi", "pasang partisi",
+      // Pasang — pagar & kanopi
+      "pasang pagar panel beton", "pasang pagar beton",
+      "pasang pagar besi", "pasang pagar kayu",
+      "pasang pagar stainless", "pasang pagar brc",
+      "pasang pagar",
+      "pasang kanopi baja ringan", "pasang kanopi alderon",
+      "pasang kanopi spandek", "pasang kanopi besi",
+      "pasang kanopi", "pasang awning",
+      // Pasang — atap
+      "pasang baja ringan", "pasang rangka atap",
+      "pasang atap spandek", "pasang atap genteng",
+      "pasang atap metal", "pasang atap alderon",
+      "pasang genteng metal", "pasang atap",
+      // Pasang — plafon
+      "pasang plafon gypsum", "pasang plafon pvc",
+      "pasang plafon grc", "pasang plafon",
+      "pasang drop ceiling", "pasang gypsum",
+      // Pasang — pintu/jendela
+      "pasang pintu besi", "pasang pintu kayu",
+      "pasang pintu aluminium", "pasang pintu",
+      "pasang jendela aluminium", "pasang jendela kayu",
+      "pasang jendela", "pasang kusen aluminium",
+      "pasang kusen kayu", "pasang kusen",
+      // Pasang — kaca
+      "pasang kaca tempered", "pasang kaca jendela",
+      "pasang shower box", "pasang kaca",
+      // Pasang — MEP
+      "pasang instalasi listrik", "pasang instalasi air",
+      "pasang instalasi gas", "pasang instalasi ac",
+      "pasang pipa air", "pasang pipa paralon",
+      "pasang kabel listrik", "pasang panel listrik",
+      "pasang ac", "pasang cctv", "pasang alarm",
+      // Bongkar
       "bongkar dinding beton", "bongkar dinding",
-      "bongkar lantai", "bongkar plat", "bongkar gedung",
-      "bongkar rumah", "bongkar atap", "bongkar pagar",
-      // 🔥 FIX 160a: Renovasi + objek
-      "renovasi rumah", "renovasi gedung", "renovasi kantor",
-      "renovasi toko", "renovasi dapur", "renovasi kamar mandi"
+      "bongkar lantai beton", "bongkar lantai",
+      "bongkar plat beton", "bongkar plat",
+      "bongkar gedung", "bongkar rumah", "bongkar ruko",
+      "bongkar gudang", "bongkar atap",
+      "bongkar keramik lantai", "bongkar keramik",
+      "bongkar granit", "bongkar marmer",
+      "bongkar plafon gypsum", "bongkar plafon",
+      "bongkar kusen", "bongkar pintu", "bongkar jendela",
+      "bongkar pagar", "bongkar partisi",
+      // Tanah
+      "gali tanah pondasi", "gali tanah", "gali pondasi",
+      "gali basement", "gali saluran", "gali drainase",
+      "penggalian tanah", "penggalian pondasi",
+      "urug tanah lahan", "urug tanah", "urug lahan",
+      "urug pondasi", "urug jalan",
+      "pengurugan tanah", "pengurugan lahan",
+      "angkut tanah", "angkut puing", "angkut material",
+      "angkut sampah proyek", "buang tanah", "buang puing",
+      "pemadatan tanah", "pemadatan lahan",
+      "pemadatan pondasi", "pemadatan jalan",
+      "pengerukan sungai", "pengerukan kolam",
+      "pengerukan danau", "pengerukan saluran",
+      "pemotongan bukit", "pemotongan lahan",
+      "cut and fill", "pemotongan tanah",
+      // Renovasi
+      "renovasi rumah", "renovasi gedung",
+      "renovasi kantor", "renovasi toko",
+      "renovasi ruko", "renovasi gudang",
+      "renovasi pabrik", "renovasi villa",
+      "renovasi apartemen", "renovasi kos",
+      "renovasi dapur", "renovasi kamar mandi",
+      "renovasi kamar tidur", "renovasi ruang tamu",
+      "renovasi ruang keluarga", "renovasi teras",
+      "renovasi balkon", "renovasi carport",
+      "renovasi atap", "renovasi lantai",
+      "renovasi dinding", "renovasi plafon",
+      "renovasi fasad", "renovasi pagar", "renovasi taman",
+      // Finishing
+      "cat dinding interior", "cat dinding eksterior",
+      "cat dinding", "cat tembok", "cat plafon",
+      "cat kayu", "cat besi", "cat pagar",
+      "pengecatan dinding", "pengecatan tembok",
+      "waterproofing atap", "waterproofing beton",
+      "waterproofing dinding", "waterproofing basement",
+      "waterproofing kamar mandi", "waterproofing",
+      "poles marmer", "poles granit", "poles keramik",
+      "poles teraso", "poles lantai",
+      "grinding beton", "grinding lantai",
+      "grinding dinding", "grinding",
+      "epoxy lantai", "coating lantai",
+      "coating beton", "coating atap", "coating dinding",
+      // MEP
+      "instalasi listrik rumah", "instalasi listrik gedung",
+      "instalasi listrik", "instalasi panel listrik",
+      "instalasi kabel listrik", "instalasi lampu",
+      "instalasi air bersih", "instalasi air kotor",
+      "instalasi air", "instalasi pipa air",
+      "instalasi plumbing", "instalasi pompa air",
+      "instalasi ac", "instalasi ac split",
+      "instalasi ac central", "instalasi vrf",
+      "instalasi cctv", "instalasi kamera cctv",
+      "instalasi alarm", "instalasi jaringan",
+      // Service & perbaikan
+      "service ac", "service pompa air", "service genset",
+      "service lift", "bongkar pasang ac",
+      "perbaikan atap bocor", "perbaikan atap",
+      "perbaikan dinding retak", "perbaikan dinding",
+      "perbaikan lantai", "perbaikan plafon",
+      "perbaikan pondasi", "perbaikan struktur",
+      "perbaikan rembesan", "perbaikan bocor",
+      "perbaikan saluran air", "perbaikan pipa bocor",
+      "perawatan gedung", "perawatan kolam",
+      // Teknik khusus
+      "coring beton", "coring dinding", "coring lantai", "coring",
+      "cutting beton", "cutting aspal", "cutting dinding", "cutting",
+      "bor beton", "bor dinding", "bor horizontal",
+      "bor horizontal tanah", "drilling tanah", "drilling beton",
+      "boring beton",
+      "las besi", "las pagar", "las kanopi",
+      "las rangka baja", "las tiang",
+      "welding besi", "welding konstruksi",
+      "sandblasting besi", "sandblasting beton",
+      "sandblasting dinding", "sandblasting",
+      // Konstruksi umum
+      "bangun rumah", "bangun gedung", "bangun ruko",
+      "bangun gudang", "bangun kantor", "bangun villa",
+      "bangun apartemen", "bangun kos", "bangun pabrik",
+      "bangun sekolah", "bangun masjid", "bangun gereja",
+      "borongan rumah", "borongan gedung", "borongan ruko",
+      "borongan gudang", "borongan kantor", "borongan villa",
+      "borongan interior"
     ],
-    sewa: ["alat berat", "heavy equipment", "dump truck", "truck crane"],
-    desain: ["open space", "split level", "tiny house", "smart home", "eco home", "mid century", "art deco"]
+    
+    // ─── SEWA ───
+    sewa: [
+      "alat berat", "heavy equipment", "dump truck", "truck crane",
+      "motor grader", "wheel loader", "tower crane",
+      "asphalt finisher", "asphalt paver", "tandem roller",
+      "pneumatic tire roller", "cold milling", "batching plant",
+      "concrete pump", "pompa beton", "pompa air",
+      "jack hammer", "forklift", "crawler crane",
+      "mobile crane", "excavator mini", "excavator besar",
+      "bulldozer mini", "vibro roller", "baby roller",
+      "genset besar", "genset kecil", "genset silent"
+    ],
+    
+    // ─── DESAIN ───
+    desain: [
+      "open space", "split level", "tiny house",
+      "smart home", "eco home", "mid century", "art deco",
+      "desain interior rumah", "desain interior kantor",
+      "desain interior kafe", "desain interior toko",
+      "desain interior kamar", "desain interior dapur",
+      "desain rumah minimalis", "desain rumah modern",
+      "desain rumah klasik", "desain rumah mewah",
+      "desain ruko", "desain kantor", "desain cafe",
+      "desain dapur", "desain kamar mandi", "desain kamar tidur",
+      "desain ruang tamu", "desain teras", "desain taman"
+    ]
   };
-
+ 
   var PURE_JASA_TECHNIQUES = [];
   var PURE_METHODS = ["manual", "hidrolik", "auger", "rotary", "percussive", "dry", "wet", "basah", "kering"];
   var PURE_SCALES = ["rumahan", "komersial", "industri", "residential", "commercial", "industrial", "kecil", "sedang", "besar", "menengah"];
@@ -2760,7 +2981,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga sewa excavator mini", entity: "sewa", expect: "money-page", note: "FIX 151: 2 modifier" },
       { slug: "harga pasir bangka", entity: "material", expect: "money-page", note: "FIX 151: 2 modifier" },
       { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master", note: "FIX 151: base jasa" },
-      { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-master", note: "FIX 160d: bore pile = 1 layanan" },
+            { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-master", note: "FIX 160: compound (revisi FIX 151)" },
 
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 153 (v23.7.1): Additional test cases
@@ -2774,25 +2995,20 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga jasa pasang pagar premium", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
       { slug: "harga jasa pasang kanopi elegan", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
 
-      // ─── FIX 156: cross-entity base removal ───
-      { slug: "harga jasa pasang baja ringan", entity: "jasa", expect: "money-page", note: "FIX 156: material baja ringan" },
-      { slug: "harga jasa pasang pagar panel beton", entity: "jasa", expect: "money-page", note: "FIX 156: material pagar panel beton" },
-      { slug: "harga jasa coring bore pile", entity: "jasa", expect: "money-page", note: "FIX 156: 2 core words" },
+            // ─── FIX 156: cross-entity base removal (UPDATED FIX 160) ───
+      { slug: "harga jasa pasang baja ringan", entity: "jasa", expect: "money-master", note: "FIX 160: compound" },
+      { slug: "harga jasa pasang pagar panel beton", entity: "jasa", expect: "money-master", note: "FIX 160: compound" },
+      { slug: "harga jasa coring bore pile", entity: "jasa", expect: "money-master", note: "FIX 160: compound" },
       { slug: "harga baja ringan", entity: "produk", expect: "money-master", note: "FIX 156: base produk only" },
       { slug: "harga pagar panel beton", entity: "produk", expect: "money-master", note: "FIX 156: base produk only" },
 
       // ─── FIX 154: Entity-aware spec modifier ───
-      { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-page", note: "FIX 154: spec beton" },
       { slug: "harga jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 154: metode hidrolik" },
       { slug: "harga pagar panel beton putih", entity: "produk", expect: "money-page", note: "FIX 154: warna putih" },
       { slug: "harga besi beton sni", entity: "material", expect: "money-page", note: "FIX 154: grade sni" },
       { slug: "harga sewa genset 100kva", entity: "sewa", expect: "money-page", note: "FIX 154: kapasitas angka" },
-      { slug: "harga desain interior mewah", entity: "desain", expect: "money-page", note: "FIX 154: subjektif mewah" },
-
-      // ─── Restore: test dari v23.6.0 ───
-      { slug: "harga jasa coring beton", entity: "jasa", expect: "money-page", note: "restore regression" }
-    ];
-
+      { slug: "harga desain interior mewah", entity: "desain", expect: "money-page", note: "FIX 154: subjektif mewah" }
+     
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 PLD v23.7.0 — TEST SUITE (" + TEST_CASES.length + " CASE)");
     console.log("═══════════════════════════════════════════════════════════");
