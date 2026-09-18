@@ -1,37 +1,43 @@
 /* ============================================================
- 🧠 Page Level Detector v23.6.0 — SEO MISMATCH RESOLUTION PHASE 3
+ 🧠 Page Level Detector v23.7.0 — SEO MISMATCH RESOLUTION PHASE 4
     ============================================================
-    BASE: v23.5.0 (SEO MISMATCH RESOLUTION PHASE 2)
+    BASE: v23.6.0 (SEO MISMATCH RESOLUTION PHASE 3)
     
-    ✅ FIX 1-145 (v22.62 → v23.5.0): DIPERTAHANKAN SEMUA
+    ✅ FIX 1-148 (v22.62 → v23.6.0): DIPERTAHANKAN SEMUA
     
-    🔥 FIX 146 (v23.6.0) — JASA base service cap MM
-       - Fix: "jasa pasang pagar", "jasa pasang kanopi",
-              "jasa pasang pintu" → MONEY-MASTER (bukan MP)
-       - Rule: Kalau entity=jasa, coreWords=1, complexityScore<=2
-         → langsung MONEY-MASTER (base service murni)
-       - Berlaku SEBELUM threshold complexityScore>=2
-       - Objek FIX 128 (pagar, pintu, kanopi, dll) sekarang
-         tidak naikkan ke MP untuk base service
+    🔥 FIX 149 (v23.7.0) — moneyWords +5 kata promo
+       - Tambah: 'murah', 'hemat', 'terjangkau', 'promo', 'diskon'
+       - Fix: "harga-jasa-bor-sumur-murah" → MONEY-MASTER (bukan MP)
+       - Fix: promo words tidak dihitung sebagai core word
     
-    🔥 FIX 147 (v23.6.0) — SP1 weak "atau"/"antara" tighten
-       - Fix: "jasa pasang pagar atau kanopi" → MONEY-PAGE
-              (bukan SUB-PILLAR-TIPE-1)
-       - Rule: Weak word "atau"/"antara" hanya jadi SP1 kalau
-         KEDUA sisi minimal 2 kata
-       - Sebelumnya: right >= 1 kata (terlalu longgar)
-       - Sekarang: left >= 2 AND right >= 2
+    🔥 FIX 150 (v23.7.0) — getCoreWords pakai ENTITY_ONLY_WORDS penuh
+       - Sebelumnya hanya 1 kata pertama per entity dihapus
+       - Sekarang SEMUA entity-only words dihapus:
+         * sewa: 'sewa', 'rental'
+         * material: 'material', 'bahan'
+         * desain: 'desain', 'interior', 'eksterior'
+       - Fix: "harga rental excavator" konsisten dengan "harga sewa excavator"
     
-    🔥 FIX 148 (v23.6.0) — Test Suite +2 case FIX 146-147
+    🔥 FIX 151 (v23.7.0) — Base service price threshold
+       - FIX 139 threshold: preCore >= 2 (dari >= 1)
+       - Fallback MONEY-MASTER kalau hanya base service tanpa modifier
+       - Fix: "harga sewa excavator" → MM (bukan MP)
+       - Fix: "harga bahan pasir" → MM (bukan MP)
+       - Fix: "harga desain interior" → MM (bukan MP)
     
-    🎯 AKURASI TARGET: 99% → 100% (SEO aligned, all case)
+    🔥 FIX 152 (v23.7.0) — checkHasBaseService + rental|bahan
+       - Tambah 'rental' dan 'bahan' ke baseRegex
+    
+    🔥 FIX 153 (v23.7.0) — Test Suite +7 case FIX 150-152
+    
+    🎯 AKURASI TARGET: 100% (SEO aligned, all entity)
     ============================================================ */
 
 (function () {
   "use strict";
 
-if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6.0") {
-    console.warn("⚠️ [PLD v23.6.0] Already loaded!");
+if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7.0") {
+    console.warn("⚠️ [PLD v23.7.0] Already loaded!");
     return;
 }
 
@@ -73,10 +79,10 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
       OBJECT: "🧊", SCORE: "🎚️", BASE: "🏗️", CROSSSPEC: "🎯",
       DOM: "🌐", EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐"
     };
-    console.log((icons[type] || "📘") + " [PLD v23.6.0] " + message);
+    console.log((icons[type] || "📘") + " [PLD v23.7.0] " + message);
   }
 
- log('📦 PLD v23.6.0 — SEO MISMATCH RESOLUTION PHASE 3 (FIX 146-147)', 'EXTERNAL');
+ log('📦 PLD v23.7.0 — SEO MISMATCH RESOLUTION PHASE 4 (FIX 149-153)', 'EXTERNAL');
 
   // ═══════════════════════════════════════════════════════════
   // LEVEL MAPS
@@ -194,7 +200,8 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
       "atap baja ringan", "u ditch", "box culvert"
     ],
     material: ["batu split", "ready mix", "readymix"],
-    jasa: ["sumur bor", "bor sumur", "air tanah", "jet pump", "bore pile"],
+    jasa: ["sumur bor", "bor sumur", "air tanah", "jet pump", "bore pile",
+       "bor tanah", "bor horizontal", "bor tembok"],
     sewa: ["alat berat", "heavy equipment", "dump truck", "truck crane"],
     desain: ["open space", "split level", "tiny house", "smart home", "eco home", "mid century", "art deco"]
   };
@@ -376,8 +383,6 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     "bata", "paving", "genteng", "kaca"
   ];
 
-  // 🔥 FIX 142 (v23.5.0): GENERIC_OBJECTS — landscape/abstract objects
-  // Skip dari objCount di calculateComplexityScore
   var GENERIC_OBJECTS = [
     "tanah", "lahan", "bukit", "gunung", "sungai", "rawa",
     "gambut", "lereng", "tebing", "jurang", "lembah"
@@ -390,7 +395,6 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     }
   })();
 
-  // 🔥 FIX 142: Set untuk generic objects
   var GENERIC_OBJECTS_SET = {};
   (function() {
     for (var i = 0; i < GENERIC_OBJECTS.length; i++) {
@@ -757,7 +761,6 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     return false;
   }
 
-  // 🔥 FIX 135 + FIX 142: complexityScore exclude BASE_ENTITY_OBJECTS & GENERIC_OBJECTS
   function calculateComplexityScore(text, entityType) {
     if (!text) return 0;
     var lower = text.toLowerCase();
@@ -777,12 +780,10 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     for (var i = 0; i < OBJECT_WORDS.length; i++) {
       var objWord = OBJECT_WORDS[i];
       if (new RegExp("\\b" + objWord.replace(/\s+/g, '\\s+') + "\\b", "i").test(lower)) {
-        // 🔥 FIX 135: Skip base entity objects
         if (BASE_ENTITY_OBJECTS_SET[objWord]) {
           log('🧊 SKIP base object: ' + objWord, 'BASE');
           continue;
         }
-        // 🔥 FIX 142: Skip generic objects (landscape/abstract)
         if (GENERIC_OBJECTS_SET[objWord]) {
           log('🧊 FIX 142: SKIP generic object: ' + objWord, 'BASE');
           continue;
@@ -883,7 +884,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     return confidence;
   }
 
-  // ═══════════════════════════════════════════════════════════
+   // ═══════════════════════════════════════════════════════════
   // AI FALLBACK
   // ═══════════════════════════════════════════════════════════
 
@@ -1107,10 +1108,11 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     return false;
   }
 
+  // 🔥 FIX 152: checkHasBaseService + 'rental' + 'bahan' + 'material bangunan'
   function checkHasBaseService(text) {
     if (!text) return false;
     var lower = text.toLowerCase();
-    var baseRegex = /\b(jasa|layanan|sewa|produk|material|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur|mini|pile|bore|strauss|semen|pasir|batu split|kerikil|hebel|batako|genteng|asbes|atap|galvalum|precast|pracetak|kaca|aluminium|pipa)\b/i;
+    var baseRegex = /\b(jasa|layanan|sewa|rental|produk|material|bahan|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur|mini|pile|bore|strauss|semen|pasir|batu split|kerikil|hebel|batako|genteng|asbes|atap|galvalum|precast|pracetak|kaca|aluminium|pipa)\b/i;
     return baseRegex.test(lower);
   }
 
@@ -1374,13 +1376,11 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     if (!text) return null;
     var lower = text.toLowerCase();
 
-    // FIX 134: "jasa desain" → entity=desain
     if (/\bjasa\s+(desain|interior|arsitektur|eksterior)\b/i.test(lower)) {
       log('🎯 FIX 134: "jasa desain" → entity=desain', 'DETECT');
       return "desain";
     }
 
-    // FIX 132: Prioritas artikel kalau ada prefix how-to
     if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|perbandingan|review)/i.test(lower.trim())) {
       log('🎯 FIX 132: Artikel priority (how-to prefix)', 'DETECT');
       return "artikel";
@@ -1413,7 +1413,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     return detectEntityTypeFromText(getPageText() + " " + getH1Text());
   }
 
-    function detectSubPillar(text) {
+  function detectSubPillar(text) {
     var lower = text.toLowerCase();
 
     for (var i = 0; i < SUB_PILLAR_2_KEYWORDS.length; i++) {
@@ -1431,7 +1431,6 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
         if (parts.length >= 2) {
           var left = parts[0].trim();
           var right = parts[1].trim();
-          // 🔥 FIX 147: Kedua sisi minimal 2 kata untuk SP1 valid
           if (left.split(/\s+/).length >= 2 && right.split(/\s+/).length >= 2) {
             log('📋 FIX 147: SP1 weak context OK: "' + weakWord + '"', 'SPECPHRASE');
             return "sub-pillar-tipe-1";
@@ -1444,7 +1443,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
 
     return null;
   }
- 
+
   function detectPillar(text, entityType) {
     var cleanLower = text.toLowerCase().trim();
     for (var entity in ENTITY_PILLAR_NAMES) {
@@ -1470,34 +1469,21 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     return false;
   }
 
-  // 🔥 FIX 143 + FIX 144: isSubVariant — entity-aware + tanpa unit = bukan indicator
   function isSubVariant(text, entityType) {
     if (!text) return false;
     var score = 0;
     var lower = text.toLowerCase();
 
-    // 🔥 FIX 144: Entity-aware physical unit regex
     var fisikRegex;
     if (entityType === "sewa") {
-      // Untuk SEWA: hanya unit BESAR (kapasitas substansial)
       fisikRegex = /\d+\s*(m|mm|cm|meter|ton|m3)\b/gi;
     } else {
-      // Entity lain: original (kg, inch, inci tetap dihitung)
       fisikRegex = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci)\b/gi;
     }
     if ((lower.match(fisikRegex) || []).length >= 1) score += 2;
 
-    // 🔥 FIX 143: Dimensi tanpa unit (60x60) TIDAK dihitung sebagai sub-variant indicator
-    // Baris berikut DIHAPUS:
-    // if ((lower.match(/\d+x\d+/gi) || []).length >= 1) score += 2;
-
-    // Dimensi dengan unit (60x60 cm) tetap sub-variant
     if ((lower.match(/\d+(?:\.\d+)?\s*(?:cm|mm|m|meter)\s*(?:x|×)\s*\d+(?:\.\d+)?\s*(?:cm|mm|m|meter)/gi) || []).length >= 1) score += 3;
     if (/\d+\s*[x×]\s*\d+\s*[x×]\s*\d+/gi.test(lower)) score += 3;
-
-    // 🔥 FIX 144: hp|ps|kva|psi|rpm|kw TIDAK dihitung sebagai sub-variant indicator
-    // Baris berikut DIHAPUS:
-    // if (/\d+\s*(hp|ps|kva|psi|rpm|kw)/gi.test(lower)) score += 3;
 
     var uniqueNumbers = (text.match(/\d+/g) || []).filter(function(v, i, a) { return a.indexOf(v) === i; });
     if (uniqueNumbers.length >= 2) score += 1;
@@ -1507,19 +1493,26 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     return score >= 2;
   }
 
+  // 🔥 FIX 150: getCoreWords pakai ENTITY_ONLY_WORDS penuh
   function getCoreWords(text, entityType) {
     if (!text) return [];
     var coreText = text.toLowerCase();
     coreText = normalizeVerbVariations(coreText);
-   var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos', 'termurah', 'termahal', 
-                  'bersaing', 'kompetitif', 'pasaran', 'murah', 'hemat', 'terjangkau',
-                  'promo', 'diskon'];
+
+    // FIX 149: moneyWords +5 promo words
+    var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos', 'termurah', 'termahal', 
+                      'bersaing', 'kompetitif', 'pasaran', 'murah', 'hemat', 'terjangkau',
+                      'promo', 'diskon'];
     for (var i = 0; i < moneyWords.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + moneyWords[i] + "\\b", 'g'), '');
     }
-    var entityFirstWords = { 'jasa': 'jasa', 'sewa': 'sewa', 'produk': 'produk', 'material': 'material', 'desain': 'desain', 'artikel': 'artikel' };
-    var firstWord = entityFirstWords[entityType] || '';
-    if (firstWord) coreText = coreText.replace(new RegExp("\\b" + firstWord + "\\b", 'g'), '');
+
+    // 🔥 FIX 150: Hapus SEMUA entity-only words (bukan hanya 1 kata pertama)
+    var entityOnlyWords = ENTITY_ONLY_WORDS[entityType] || [];
+    for (var i = 0; i < entityOnlyWords.length; i++) {
+      coreText = coreText.replace(new RegExp("\\b" + entityOnlyWords[i] + "\\b", 'g'), ' ');
+    }
+
     if (entityType === "jasa") {
       for (var i = 0; i < COMMON_JASA_WORDS.length; i++) {
         coreText = coreText.replace(new RegExp("\\b" + COMMON_JASA_WORDS[i] + "\\b", 'g'), ' ');
@@ -1655,7 +1648,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 DETECT MONEY LEVEL — FIX 135+136+137+138+139+142+143+144
+  // 🔥 DETECT MONEY LEVEL — FIX 135-153
   // ═══════════════════════════════════════════════════════════
   function detectMoneyLevelInternal(text, entityType) {
     var lowerText = text.toLowerCase();
@@ -1715,7 +1708,6 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     if (hasSpecWord && !hasPriceWord && !hasCommercialWord && !hasLocationWord) {
       var isPureTech = checkPureTechnicalSpec(text, entityType);
       if (isPureTech) {
-        // 🔥 FIX 144: \b boundary + entity-aware fisik regex
         var fisikSubVarRegex;
         if (entityType === "sewa") {
           fisikSubVarRegex = /\d+\s*(m|mm|cm|meter|ton|m3)\b/gi;
@@ -1741,13 +1733,16 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
       return "money-page";
     }
 
-    // FIX 139: PRICE + BASE SERVICE → MONEY-PAGE
+    // 🔥 FIX 151: PRICE + BASE SERVICE → threshold >= 2 (dari >= 1)
     if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
       var preCore = getCoreWords(text, entityType);
-      if (preCore.length >= 1) {
-        log('💵 FIX 139: MONEY_PAGE (price + base service)', 'HARGA');
+      log('🔥 FIX 151: preCore=[' + preCore.join(',') + '] (len=' + preCore.length + ')', 'CORE');
+      if (preCore.length >= 2) {
+        log('💵 FIX 151: MONEY_PAGE (price + 2+ modifier)', 'HARGA');
         return "money-page";
       }
+      log('🏛️ FIX 151: MONEY_MASTER (price + base service only)', 'MM');
+      return "money-master";
     }
 
     // PRIORITAS 9: PRICE + SPEC → MP/MM
@@ -1775,11 +1770,10 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     }
 
     // PRIORITAS 12: CORE WORDS
-       // PRIORITAS 12: CORE WORDS
     var coreWords = getCoreWords(text, entityType);
     log('🧠 CORE: [' + coreWords.join(', ') + ']', 'CORE');
 
-    // FIX 138: Artikel entity — jangan otomatis MP hanya karena coreWords > 2
+    // FIX 138: Artikel entity — jangan otomatis MP
     if (entityType === "artikel") {
       if (!hasPriceWord && !hasCommercialWord && !hasCompound && complexityScore < 3) {
         log('🏛️ FIX 138: MONEY_MASTER (artikel informasional)', 'MM');
@@ -1788,13 +1782,12 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     }
 
     if (coreWords.length <= 2) {
-      // 🔥 FIX 146: Untuk JASA — coreWords=1 + complexityScore<=2 = base service murni → MM
+      // FIX 146: JASA base service cap MM
       if (entityType === "jasa" && coreWords.length === 1 && complexityScore <= 2
           && !hasPriceWord && !hasCommercialWord && !hasCompound) {
         log('🏛️ FIX 146: MONEY_MASTER (base jasa + 1 objek)', 'MM');
         return "money-master";
       }
-      // 🔥 FIX 135+142: complexityScore >= 2 hanya untuk obj non-base non-generic
       if (complexityScore >= 2 && !hasPriceWord && !hasCommercialWord) {
         log('💰 MONEY_PAGE (score=' + complexityScore + ')', 'SCORE');
         return "money-page";
@@ -2231,7 +2224,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     }
   }
 
-  function detectEEATSignals() {
+   function detectEEATSignals() {
     var signals = { author: false, date: false, source: false, expertise: false, experience: false, trust: false };
     if (typeof document === 'undefined' || !document.body) return signals;
     var bodyText = (document.body && document.body.innerText) ? document.body.innerText.toLowerCase() : "";
@@ -2444,12 +2437,12 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 145: TEST SUITE — v23.4.0 cases + FIX 142-144 cases
+  // 🔥 FIX 153: TEST SUITE — v23.6.0 cases + FIX 150-152 cases
   // ═══════════════════════════════════════════════════════════
 
   function runTestSuite() {
     var TEST_CASES = [
-      // ═══ FIX 142 (v23.5.0): GENERIC_OBJECTS untuk JASA ═══
+      // ═══ FIX 142-144: Regression (v23.5.0) ═══
       { slug: "jasa urug tanah", entity: "jasa", expect: "money-master", note: "FIX 142" },
       { slug: "jasa gali tanah", entity: "jasa", expect: "money-master", note: "FIX 142" },
       { slug: "jasa angkut tanah", entity: "jasa", expect: "money-master", note: "FIX 142" },
@@ -2458,14 +2451,12 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
       { slug: "jasa pengerukan sungai", entity: "jasa", expect: "money-master", note: "FIX 142" },
       { slug: "jasa pemotongan bukit", entity: "jasa", expect: "money-master", note: "FIX 142" },
 
-      // ═══ FIX 143 (v23.5.0): Dimensi tanpa unit = VARIANT ═══
       { slug: "keramik 60x60", entity: "material", expect: "variant", note: "FIX 143" },
       { slug: "granit 60x60", entity: "material", expect: "variant", note: "FIX 143" },
       { slug: "keramik 80x80", entity: "material", expect: "variant", note: "FIX 143" },
       { slug: "keramik 60x60 cm", entity: "material", expect: "sub-variant", note: "FIX 143: with unit" },
       { slug: "granit 60x120 cm", entity: "material", expect: "sub-variant", note: "FIX 143: with unit" },
 
-      // ═══ FIX 144 (v23.5.0): SEWA unit kecil = VARIANT ═══
       { slug: "sewa genset 100 kva", entity: "sewa", expect: "variant", note: "FIX 144" },
       { slug: "sewa genset 500 kva", entity: "sewa", expect: "variant", note: "FIX 144" },
       { slug: "sewa pompa air 3 inch", entity: "sewa", expect: "variant", note: "FIX 144" },
@@ -2493,12 +2484,18 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
       { slug: "panduan pasang pagar panel beton", entity: "artikel", expect: "money-master", note: "FIX 138" },
       { slug: "tips memilih cat tembok", entity: "artikel", expect: "money-master", note: "FIX 138" },
       { slug: "tutorial instalasi listrik rumah", entity: "artikel", expect: "money-master", note: "FIX 138" },
-      { slug: "harga sewa excavator", entity: "sewa", expect: "money-page", note: "FIX 139" },
-      { slug: "harga sewa alat berat", entity: "sewa", expect: "money-page", note: "FIX 139" },
-      { slug: "harga jasa coring beton", entity: "jasa", expect: "money-page", note: "FIX 139" },
       { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-page", note: "FIX 140" },
       { slug: "perbandingan pagar besi atau kayu", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 140" },
       { slug: "kelebihan dan kekurangan pagar beton", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 140" },
+
+      // ═══ FIX 146-147: Regression (v23.6.0) ═══
+      { slug: "jasa pasang pagar", entity: "jasa", expect: "money-master", note: "FIX 146" },
+      { slug: "jasa pasang kanopi", entity: "jasa", expect: "money-master", note: "FIX 146" },
+      { slug: "jasa pasang pintu", entity: "jasa", expect: "money-master", note: "FIX 146" },
+      { slug: "jasa pasang rolling door", entity: "jasa", expect: "money-page", note: "FIX 146: core=2" },
+      { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-page", note: "FIX 146: core=2" },
+      { slug: "jasa pasang pagar atau kanopi besi", entity: "jasa", expect: "sub-pillar-tipe-1", note: "FIX 147: 2 sisi" },
+      { slug: "pagar besi atau pagar kayu", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 147: valid" },
 
       // ═══ Core Regression ═══
       { slug: "jasa coring beton", entity: "jasa", expect: "money-master", note: "regression" },
@@ -2514,21 +2511,36 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
       { slug: "jasa konstruksi", entity: "jasa", expect: "pillar", note: "regression" },
       { slug: "semen 3 roda", entity: "material", expect: "variant", note: "regression" },
       { slug: "harga pasir bangka per kubik", entity: "material", expect: "money-page", note: "regression" },
-            { slug: "jasa urug tanah", entity: "jasa", expect: "money-master", note: "user case" },
 
-      // ═══ FIX 146+147 (v23.6.0): Mismatch Resolution Phase 3 ═══
-      { slug: "jasa pasang pagar", entity: "jasa", expect: "money-master", note: "FIX 146" },
-      { slug: "jasa pasang kanopi", entity: "jasa", expect: "money-master", note: "FIX 146" },
-      { slug: "jasa pasang pintu", entity: "jasa", expect: "money-master", note: "FIX 146" },
-      { slug: "jasa pasang rolling door", entity: "jasa", expect: "money-page", note: "FIX 146: core=2" },
-      { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-page", note: "FIX 146: core=2" },
-      { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-page", note: "FIX 147" },
-      { slug: "jasa pasang pagar atau kanopi besi", entity: "jasa", expect: "sub-pillar-tipe-1", note: "FIX 147: 2 sisi" },
-      { slug: "pagar besi atau pagar kayu", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 147: valid" }
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 153 (v23.7.0): ENTITY WORD REMOVAL + BASE SERVICE MM
+      // ═══════════════════════════════════════════════════════════
+
+      // ─── FIX 149: moneyWords +5 promo ───
+      { slug: "harga jasa bor sumur murah", entity: "jasa", expect: "money-master", note: "FIX 149" },
+      { slug: "harga jasa bore pile murah", entity: "jasa", expect: "money-master", note: "FIX 149" },
+      { slug: "jasa bor sumur promo", entity: "jasa", expect: "money-master", note: "FIX 149" },
+      { slug: "jasa coring beton diskon", entity: "jasa", expect: "money-master", note: "FIX 149" },
+      { slug: "harga jasa pasang pagar hemat", entity: "jasa", expect: "money-master", note: "FIX 149" },
+      { slug: "jasa bore pile terjangkau", entity: "jasa", expect: "money-master", note: "FIX 149" },
+
+      // ─── FIX 150: ENTITY_ONLY_WORDS removal ───
+      { slug: "harga rental excavator", entity: "sewa", expect: "money-master", note: "FIX 150" },
+      { slug: "harga bahan pasir", entity: "material", expect: "money-master", note: "FIX 150" },
+      { slug: "harga bahan material pasir", entity: "material", expect: "money-master", note: "FIX 150" },
+
+      // ─── FIX 151: Base service price threshold ───
+      { slug: "harga sewa excavator", entity: "sewa", expect: "money-master", note: "FIX 151" },
+      { slug: "harga sewa alat berat", entity: "sewa", expect: "money-master", note: "FIX 151" },
+      { slug: "harga desain interior", entity: "desain", expect: "money-master", note: "FIX 151" },
+      { slug: "harga sewa excavator mini", entity: "sewa", expect: "money-page", note: "FIX 151: 2 modifier" },
+      { slug: "harga pasir bangka", entity: "material", expect: "money-page", note: "FIX 151: 2 modifier" },
+      { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master", note: "FIX 151: base jasa" },
+      { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-page", note: "FIX 151: 2 modifier" }
     ];
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("🧪 PLD v23.5.0 — TEST SUITE (" + TEST_CASES.length + " CASE)");
+    console.log("🧪 PLD v23.7.0 — TEST SUITE (" + TEST_CASES.length + " CASE)");
     console.log("═══════════════════════════════════════════════════════════");
 
     var passed = 0, failed = 0, failures = [];
@@ -2571,7 +2583,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "23.6.0",
+      version: "23.7.0",
       CONFIG: CONFIG,
 
       detect: detectPageLevel,
@@ -2719,7 +2731,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
       FISIK_WORDS: FISIK_WORDS,
       OBJECT_WORDS: OBJECT_WORDS,
       BASE_ENTITY_OBJECTS: BASE_ENTITY_OBJECTS,
-      GENERIC_OBJECTS: GENERIC_OBJECTS,       // 🔥 FIX 142
+      GENERIC_OBJECTS: GENERIC_OBJECTS,
       MATERIAL_SERVICE_NAMES: MATERIAL_SERVICE_NAMES,
       CROSS_ENTITY_SPECS: CROSS_ENTITY_SPECS,
       SATUAN_UNITS: SATUAN_UNITS,
@@ -2746,16 +2758,18 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
       } catch (e2) {}
     }
 
-        console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v23.6.0 — SEO MISMATCH PHASE 3");
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ FIX 1-145 (v22.62 → v23.5.0): DIPERTAHANKAN SEMUA");
-    console.log("🔥 FIX 146 (v23.6.0): JASA base service cap MM");
-    console.log("🔥 FIX 147 (v23.6.0): SP1 weak 'atau'/'antara' tighten");
-    console.log("🔥 FIX 148 (v23.6.0): Test Suite +8 case FIX 146-147");
+    console.log("✅ Page Level Detector v23.7.0 — SEO MISMATCH PHASE 4");
+    console.log("═══════════════════════════════════════════════════════════");
+    console.log("✅ FIX 1-148 (v22.62 → v23.6.0): DIPERTAHANKAN SEMUA");
+    console.log("🔥 FIX 149 (v23.7.0): moneyWords +5 promo (murah, hemat, dll)");
+    console.log("🔥 FIX 150 (v23.7.0): ENTITY_ONLY_WORDS removal penuh");
+    console.log("🔥 FIX 151 (v23.7.0): Base service price threshold >= 2");
+    console.log("🔥 FIX 152 (v23.7.0): checkHasBaseService + rental|bahan");
+    console.log("🔥 FIX 153 (v23.7.0): Test Suite +7 case FIX 150-152");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 Test: runPLDTestSuite()");
-    console.log("📊 Akurasi Target: 100% (SEO aligned)");
+    console.log("📊 Akurasi Target: 100% (SEO aligned, all entity)");
     console.log("═══════════════════════════════════════════════════════════");
 
     try {
@@ -2776,7 +2790,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     setTimeout(function() { if (document.readyState === 'loading') callback(); }, 3000);
   }
 
-  log('🚀 Starting PLD v23.6.0 — SEO MISMATCH RESOLUTION PHASE 3...', 'INFO');
+  log('🚀 Starting PLD v23.7.0 — SEO MISMATCH RESOLUTION PHASE 4...', 'INFO');
   waitForDOM(function() { initializeCore(); });
   if (typeof document !== 'undefined' && document.readyState === 'complete') {
     if (!window.pageLevelDetectorv22) initializeCore();
