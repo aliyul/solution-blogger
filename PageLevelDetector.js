@@ -1511,7 +1511,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.6
     if (!text) return [];
     var coreText = text.toLowerCase();
     coreText = normalizeVerbVariations(coreText);
-    var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos', 'termurah', 'termahal', 'bersaing', 'kompetitif', 'pasaran'];
+    var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos', 'termurah','murah', 'termahal', 'bersaing', 'kompetitif', 'pasaran'];
     for (var i = 0; i < moneyWords.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + moneyWords[i] + "\\b", 'g'), '');
     }
