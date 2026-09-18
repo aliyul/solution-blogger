@@ -2680,7 +2680,18 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa bor sumur termurah", entity: "jasa", expect: "money-page", note: "FIX 158: termurah=strong" },
       { slug: "jasa bor sumur termahal", entity: "jasa", expect: "money-page", note: "FIX 158: termahal=strong" },
       { slug: "harga jasa coring beton", entity: "jasa", expect: "money-master", note: "FIX 158: base service tetap MM" },
-      // ─── FIX 150: ENTITY_ONLY_WORDS removal ───
+      
+      // ─── FIX 159: bor beton = base service ───
+      { slug: "jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 159: base service" },
+      { slug: "harga jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 159: base+price tetap MM" },
+      { slug: "biaya jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 159" },
+      { slug: "jasa boring beton", entity: "jasa", expect: "money-master", note: "FIX 159: synonym" },
+      { slug: "jasa drilling beton", entity: "jasa", expect: "money-master", note: "FIX 159: EN synonym" },
+      
+      // Spec/lokasi tetap naik (tidak rusak)
+      { slug: "jasa bor beton 30cm", entity: "jasa", expect: "sub-variant", note: "FIX 159: + dimensi" },
+      { slug: "jasa bor beton jakarta", entity: "jasa", expect: "money-child", note: "FIX 159: + lokasi" },
+     // ─── FIX 150: ENTITY_ONLY_WORDS removal ───
       { slug: "harga rental excavator", entity: "sewa", expect: "money-master", note: "FIX 150" },
       { slug: "harga bahan pasir", entity: "material", expect: "money-master", note: "FIX 150" },
       { slug: "harga bahan material pasir", entity: "material", expect: "money-master", note: "FIX 150" },
