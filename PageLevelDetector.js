@@ -35,6 +35,14 @@
    - Strong (termurah/termahal/promo/diskon) → naikkan ke MP
    - Fix: "jasa coring beton diskon" → MP
    - Keep: "harga jasa coring beton" → MM (base service murni)
+
+    🔥 FIX 160 (v23.7.1) — Compound base names + konsistensi material
+   - FIX 160a: JASA compound base names (bor pile, cor dak, bongkar dinding, renovasi X)
+   - FIX 160b: PRODUK multi-word (pintu kayu, pagar stainless, kanopi alderon)
+   - FIX 160c: PRODUK_SPECS.finishing +ulir
+   - FIX 160d: Hapus jasaMaterialCtx (material BUKAN spec JASA — konsisten MM)
+   - Fix: "harga jasa bore pile beton" → MM (bukan MP)
+   - Fix: "harga jasa pasang keramik" = "jasa pasang keramik" → MM (konsisten)
     🎯 AKURASI TARGET: 100% (SEO aligned, all entity)
     ============================================================ */
 
@@ -198,22 +206,44 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     artikel: ["artikel"]
   };
 
-  var ENTITY_BASE_NAMES = {
+    var ENTITY_BASE_NAMES = {
+    // 🔥 FIX 160b: Produk multi-word ditambahkan
     produk: [
       "pagar panel beton", "pagar panel", "panel beton", "pagar beton",
       "besi beton", "baja ringan", "paving block", "bata ringan",
-      "atap baja ringan", "u ditch", "box culvert"
+      "atap baja ringan", "u ditch", "box culvert",
+      // 🔥 FIX 160b: Produk multi-word compound
+      "kanopi baja ringan", "kanopi genteng metal", "kanopi alderon",
+      "kanopi spandek", "kanopi solartuff",
+      "pintu kayu", "pintu besi", "pintu aluminium",
+      "jendela kayu", "jendela aluminium",
+      "pagar besi", "pagar kayu", "pagar stainless", "pagar brc",
+      "besi hollow", "besi unp", "besi wf", "besi h-beam",
+      "baja wf", "baja h-beam"
     ],
     material: ["batu split", "ready mix", "readymix"],
-    jasa: ["sumur bor", "bor sumur", "air tanah", "jet pump", "bore pile",
-   "bor tanah", "bor horizontal", "bor tembok",
-   "coring beton",     // 🔥 FIX 157a: base service MM
-   "cutting beton",    // 🔥 FIX 157a: base service MM
-   "drilling tanah",   // 🔥 FIX 157a: base service MM
-   "bor beton",        // 🔥 FIX 159: base service MM (compound noun)
-   "boring beton",     // 🔥 FIX 159: synonym
-   "drilling beton",   // 🔥 FIX 159: synonym EN
-   "cor beton"],       // 🔥 FIX 159: base service MM
+    // 🔥 FIX 160a: Jasa compound base names (URUT: panjang dulu)
+    jasa: [
+      "sumur bor", "bor sumur", "air tanah", "jet pump", "bore pile",
+      "bor tanah", "bor horizontal", "bor tembok",
+      "coring beton",     // FIX 157a
+      "cutting beton",    // FIX 157a
+      "drilling tanah",   // FIX 157a
+      "bor beton", "boring beton", "drilling beton", "cor beton",  // FIX 159
+      // 🔥 FIX 160a: Synonym bor
+      "bor pile", "bor strauss", "bor pancang",
+      // 🔥 FIX 160a: Cor + objek (URUT panjang dulu!)
+      "cor dak beton", "cor dak", "cor jalan", "cor lantai",
+      "cor kolom", "cor sloof", "cor balok", "cor pondasi",
+      "cor tiang", "cor plat", "cor dinding",
+      // 🔥 FIX 160a: Bongkar + objek (URUT panjang dulu!)
+      "bongkar dinding beton", "bongkar dinding",
+      "bongkar lantai", "bongkar plat", "bongkar gedung",
+      "bongkar rumah", "bongkar atap", "bongkar pagar",
+      // 🔥 FIX 160a: Renovasi + objek
+      "renovasi rumah", "renovasi gedung", "renovasi kantor",
+      "renovasi toko", "renovasi dapur", "renovasi kamar mandi"
+    ],
     sewa: ["alat berat", "heavy equipment", "dump truck", "truck crane"],
     desain: ["open space", "split level", "tiny house", "smart home", "eco home", "mid century", "art deco"]
   };
@@ -475,7 +505,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
 
   var PRODUK_SPECS = {
     mutu: ["k225", "k250", "k300", "k350", "k400", "k500", "fc", "sni", "standar", "premium", "ekonomis"],
-    finishing: ["polos", "motif", "bermotif", "bercorak", "tekstur", "serat", "halus", "kasar", "matte", "glossy", "doff", "gloss", "satin", "anyaman", "natural", "ekspos", "custom", "polosan", "cat", "coating", "lapisan", "vernis", "anti gores", "anti air", "anti jamur"],
+        finishing: ["polos", "motif", "bermotif", "bercorak", "tekstur", "serat", "halus", "kasar", "matte", "glossy", "doff", "gloss", "satin", "anyaman", "natural", "ekspos", "custom", "polosan", "cat", "coating", "lapisan", "vernis", "anti gores", "anti air", "anti jamur", "ulir"],  // 🔥 FIX 160c: +ulir
     dimensi: ["ukuran", "dimensi", "spesifikasi", "tipe", "model", "varian", "seri", "tinggi", "rendah", "panjang", "pendek", "lebar", "sempit", "tebal", "tipis", "dalam", "dangkal", "diameter", "radius", "besar", "kecil", "sedang", "mini", "jumbo"],
     warna: ["putih", "hitam", "abu-abu", "merah", "biru", "kuning", "hijau", "coklat", "netral", "warm", "cool", "pastel", "dark", "light", "krem", "maroon", "navy", "forest", "gold", "silver", "bronze", "copper", "rose gold", "teal", "turquoise", "lavender", "magenta", "coral", "salmon", "peach", "mint"]
   };
@@ -1695,7 +1725,11 @@ function isSpecModifierForEntity(word, entityType) {
     // ─── UNIVERSAL: strong price modifier (SEO-aligned) ───
   // 🔥 FIX 158: 4 kata ini naikkan level ke MP (bukan noise)
   if (w === 'termurah' || w === 'termahal' || w === 'promo' || w === 'diskon') return true;
-  // ─── JASA ───
+  
+ // ─── JASA ───
+  // 🔥 FIX 160d: Hapus jasaMaterialCtx — material BUKAN spec untuk JASA
+  // Alasan SEO: "jasa [action] [material]" = 1 layanan utuh, bukan base+modifier
+  // Spec JASA sejati = metode (hidrolik/manual) atau skala (rumahan/komersial)
   if (entityType === "jasa") {
     var jasaSpecs = []
       .concat(JASA_SPECS.metode || [])
@@ -1705,21 +1739,9 @@ function isSpecModifierForEntity(word, entityType) {
       .concat(CROSS_ENTITY_SPECS.jasa.sharedFinishing || [])
       .concat(CROSS_ENTITY_SPECS.jasa.sharedGaya || [])
       .concat(CROSS_ENTITY_SPECS.jasa.foreignTechniques || []);
-    if (jasaSpecs.indexOf(w) !== -1) return true;
-
-  var jasaMaterialCtx = [
-  'beton','besi','baja','kayu','batu','kaca','aluminium','hollow',
-  'cor','semen','pasir','keramik','granit','marmer','gypsum','plafon',
-  'paving','bata','batako','hebel','genteng','asbes','atap',
-  'galvalum','precast','readymix','pipa','kabel','kuningan','tembaga',
-  // 🔥 FIX 157b: Teknik jasa sebagai spec modifier (untuk naikkan ke MP)
-  'coring','cutting','drilling','pengeboran','pemancangan',
-  'grinding','welding','bending','forming','sambung','sambungan'
-];
-    if (jasaMaterialCtx.indexOf(w) !== -1) return true;
-    return false;
+    return jasaSpecs.indexOf(w) !== -1;
   }
-
+ 
   // ─── PRODUK ───
   if (entityType === "produk") {
     var produkSpecs = []
@@ -2691,6 +2713,41 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       // Spec/lokasi tetap naik (tidak rusak)
       { slug: "jasa bor beton 30cm", entity: "jasa", expect: "sub-variant", note: "FIX 159: + dimensi" },
       { slug: "jasa bor beton jakarta", entity: "jasa", expect: "money-child", note: "FIX 159: + lokasi" },
+
+           
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 160 (v23.7.1): Compound base names + konsistensi
+      // ═══════════════════════════════════════════════════════════
+      
+      // ─── FIX 160a: JASA compound base names ───
+      { slug: "harga jasa bor pile", entity: "jasa", expect: "money-master", note: "FIX 160a: synonym" },
+      { slug: "harga jasa bor strauss", entity: "jasa", expect: "money-master", note: "FIX 160a" },
+      { slug: "harga jasa cor dak", entity: "jasa", expect: "money-master", note: "FIX 160a" },
+      { slug: "harga jasa cor dak beton", entity: "jasa", expect: "money-master", note: "FIX 160a" },
+      { slug: "harga jasa cor jalan", entity: "jasa", expect: "money-master", note: "FIX 160a" },
+      { slug: "harga jasa bongkar dinding", entity: "jasa", expect: "money-master", note: "FIX 160a" },
+      { slug: "harga jasa bongkar dinding beton", entity: "jasa", expect: "money-master", note: "FIX 160a" },
+      { slug: "harga jasa bongkar gedung", entity: "jasa", expect: "money-master", note: "FIX 160a" },
+      { slug: "harga jasa renovasi rumah", entity: "jasa", expect: "money-master", note: "FIX 160a" },
+      { slug: "harga jasa renovasi dapur", entity: "jasa", expect: "money-master", note: "FIX 160a" },
+      { slug: "harga jasa renovasi kamar mandi", entity: "jasa", expect: "money-master", note: "FIX 160a" },
+      
+      // ─── FIX 160b: PRODUK multi-word ───
+      { slug: "harga pintu kayu", entity: "produk", expect: "money-master", note: "FIX 160b" },
+      { slug: "harga pintu aluminium", entity: "produk", expect: "money-master", note: "FIX 160b" },
+      { slug: "harga pagar stainless", entity: "produk", expect: "money-master", note: "FIX 160b" },
+      { slug: "harga jendela aluminium", entity: "produk", expect: "money-master", note: "FIX 160b" },
+      { slug: "harga kanopi alderon", entity: "produk", expect: "money-master", note: "FIX 160b" },
+      
+      // ─── FIX 160c: PRODUK spec ulir ───
+      { slug: "harga besi beton ulir", entity: "produk", expect: "money-page", note: "FIX 160c: ulir spec" },
+      
+      // ─── FIX 160d: Konsistensi jasa + material ───
+      { slug: "jasa pasang keramik", entity: "jasa", expect: "money-master", note: "FIX 160d" },
+      { slug: "harga jasa pasang keramik", entity: "jasa", expect: "money-master", note: "FIX 160d: konsisten" },
+      { slug: "jasa bore pile beton", entity: "jasa", expect: "money-master", note: "FIX 160d" },
+      { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-master", note: "FIX 160d: revisi FIX 151" },
+     
      // ─── FIX 150: ENTITY_ONLY_WORDS removal ───
       { slug: "harga rental excavator", entity: "sewa", expect: "money-master", note: "FIX 150" },
       { slug: "harga bahan pasir", entity: "material", expect: "money-master", note: "FIX 150" },
@@ -2703,7 +2760,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga sewa excavator mini", entity: "sewa", expect: "money-page", note: "FIX 151: 2 modifier" },
       { slug: "harga pasir bangka", entity: "material", expect: "money-page", note: "FIX 151: 2 modifier" },
       { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master", note: "FIX 151: base jasa" },
-      { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-page", note: "FIX 151: 2 modifier" },
+      { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-master", note: "FIX 160d: bore pile = 1 layanan" },
 
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 153 (v23.7.1): Additional test cases
