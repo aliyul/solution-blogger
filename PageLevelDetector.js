@@ -29,7 +29,12 @@
        - Tambah 'rental' dan 'bahan' ke baseRegex
     
     🔥 FIX 153 (v23.7.0) — Test Suite +7 case FIX 150-152
-    
+    🔥 FIX 158 (v23.7.0) — SEO-aligned strong modifier
+   - Pisah moneyWords jadi: noise vs strong
+   - Noise (murah/hemat/terjangkau/bersaing/kompetitif/pasaran) → tetap MM
+   - Strong (termurah/termahal/promo/diskon) → naikkan ke MP
+   - Fix: "jasa coring beton diskon" → MP
+   - Keep: "harga jasa coring beton" → MM (base service murni)
     🎯 AKURASI TARGET: 100% (SEO aligned, all entity)
     ============================================================ */
 
@@ -1507,10 +1512,11 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     var coreText = text.toLowerCase();
     coreText = normalizeVerbVariations(coreText);
 
-    // FIX 149: moneyWords +5 promo words
-    var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos', 'termurah', 'termahal', 
-                      'bersaing', 'kompetitif', 'pasaran', 'murah', 'hemat', 'terjangkau',
-                      'promo', 'diskon'];
+// 🔥 FIX 158: Pisah noise vs strong modifier (SEO-aligned)
+// NOISE (tetap di-strip, tidak jadi core) → MM
+// STRONG (jangan di-strip, jadi core) → MP: termurah, termahal, promo, diskon
+var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos',
+                  'bersaing', 'kompetitif', 'pasaran', 'murah', 'hemat', 'terjangkau'];
     for (var i = 0; i < moneyWords.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + moneyWords[i] + "\\b", 'g'), '');
     }
@@ -1682,7 +1688,9 @@ function isSpecModifierForEntity(word, entityType) {
   // ─── UNIVERSAL: angka & mutu numeric ───
   if (/^\d+/.test(w)) return true;                              // 60x60, 240x40, 10mm
   if (/^(k\d+|fc\d*|m\d+|c\d+|bjts?\d*)$/i.test(w)) return true; // k225, fc20, bjts40
-
+    // ─── UNIVERSAL: strong price modifier (SEO-aligned) ───
+  // 🔥 FIX 158: 4 kata ini naikkan level ke MP (bukan noise)
+  if (w === 'termurah' || w === 'termahal' || w === 'promo' || w === 'diskon') return true;
   // ─── JASA ───
   if (entityType === "jasa") {
     var jasaSpecs = []
@@ -2650,15 +2658,24 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 153 (v23.7.0): ENTITY WORD REMOVAL + BASE SERVICE MM
       // ═══════════════════════════════════════════════════════════
-
-      // ─── FIX 149: moneyWords +5 promo ───
-      { slug: "harga jasa bor sumur murah", entity: "jasa", expect: "money-master", note: "FIX 149" },
-      { slug: "harga jasa bore pile murah", entity: "jasa", expect: "money-master", note: "FIX 149" },
-      { slug: "jasa bor sumur promo", entity: "jasa", expect: "money-master", note: "FIX 149" },
-      { slug: "jasa coring beton diskon", entity: "jasa", expect: "money-page", note: "FIX 149: coring+beton = MP" },
-      { slug: "harga jasa pasang pagar hemat", entity: "jasa", expect: "money-master", note: "FIX 149" },
-      { slug: "jasa bore pile terjangkau", entity: "jasa", expect: "money-master", note: "FIX 149" },
-
+      
+      // ─── FIX 158: noise vs strong modifier ───
+      // NOISE → MM
+      { slug: "harga jasa bor sumur murah", entity: "jasa", expect: "money-master", note: "FIX 158: murah=noise" },
+      { slug: "harga jasa bore pile murah", entity: "jasa", expect: "money-master", note: "FIX 158: murah=noise" },
+      { slug: "harga jasa pasang pagar hemat", entity: "jasa", expect: "money-master", note: "FIX 158: hemat=noise" },
+      { slug: "jasa bore pile terjangkau", entity: "jasa", expect: "money-master", note: "FIX 158: terjangkau=noise" },
+      { slug: "harga jasa bor sumur bersaing", entity: "jasa", expect: "money-master", note: "FIX 158: bersaing=noise" },
+      { slug: "harga jasa bor sumur kompetitif", entity: "jasa", expect: "money-master", note: "FIX 158: kompetitif=noise" },
+      { slug: "harga jasa bor sumur pasaran", entity: "jasa", expect: "money-master", note: "FIX 158: pasaran=noise" },
+      
+      // STRONG MODIFIER → MP
+      { slug: "jasa coring beton diskon", entity: "jasa", expect: "money-page", note: "FIX 158: diskon=strong" },
+      { slug: "jasa bor sumur promo", entity: "jasa", expect: "money-page", note: "FIX 158: promo=strong" },
+      { slug: "jasa bor sumur diskon", entity: "jasa", expect: "money-page", note: "FIX 158: diskon=strong" },
+      { slug: "jasa bor sumur termurah", entity: "jasa", expect: "money-page", note: "FIX 158: termurah=strong" },
+      { slug: "jasa bor sumur termahal", entity: "jasa", expect: "money-page", note: "FIX 158: termahal=strong" },
+      { slug: "harga jasa coring beton", entity: "jasa", expect: "money-master", note: "FIX 158: base service tetap MM" },
       // ─── FIX 150: ENTITY_ONLY_WORDS removal ───
       { slug: "harga rental excavator", entity: "sewa", expect: "money-master", note: "FIX 150" },
       { slug: "harga bahan pasir", entity: "material", expect: "money-master", note: "FIX 150" },
