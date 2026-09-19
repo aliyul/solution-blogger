@@ -126,7 +126,24 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     "money-master": 4, "money-page": 5, "money-child": 6,
     variant: 7, "sub-variant": 8
   };
+    // 🔥 FIX 165: Hierarchy maps untuk parent-child validator
+  var LEVEL_HIERARCHY_MAP = {
+    "pillar": 1,
+    "sub-pillar-tipe-2": 2,
+    "sub-pillar-tipe-1": 3,
+    "money-master": 4,
+    "money-page": 5,
+    "money-child": 6,
+    "variant": 7,
+    "sub-variant": 8
+  };
 
+  var LEVEL_INVERSE_MAP = {
+    1: "pillar", 2: "sub-pillar-tipe-2", 3: "sub-pillar-tipe-1",
+    4: "money-master", 5: "money-page", 6: "money-child",
+    7: "variant", 8: "sub-variant"
+  };
+ 
   var VALID_ENTITY_TYPES = ["produk", "material", "jasa", "desain", "sewa", "artikel"];
 
   var ENTITY_PILLAR_NAMES = {
@@ -2104,6 +2121,66 @@ var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos',
 
     return warnings;
   }
+
+   // 🔥 FIX 165: Parent-Child Hierarchy Validator
+  // Rule SEO: Child URL harus 1 level lebih spesifik dari parent.
+  //   - parent MM → child MP
+  //   - parent SP1 → child MM
+  //   - parent MP → child variant
+  // Kalau current level <= parent level → WARNING (mismatch hierarchy).
+  function detectHierarchyWarning(slug, entityType) {
+    var warnings = [];
+    if (!slug) return warnings;
+
+    var words = slug.split(" ").filter(function(w) { return w.length > 0; });
+
+    // Skip kalau terlalu pendek (tidak mungkin punya parent)
+    if (words.length <= 2) return warnings;
+
+    // Skip kalau ada conjunction — sudah ada warning terpisah (FIX 164)
+    if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
+
+    // Immediate parent = remove 1 kata terakhir
+    var parentSlug = words.slice(0, -1).join(" ");
+    var currentLevel = detectPageLevelForPrompt(slug, entityType);
+    var parentLevel = detectPageLevelForPrompt(parentSlug, entityType);
+
+    var currentNum = LEVEL_HIERARCHY_MAP[currentLevel] || -1;
+    var parentNum = LEVEL_HIERARCHY_MAP[parentLevel] || -1;
+
+    // Skip kalau parent tidak terdeteksi level valid (< SP1)
+    if (parentNum < 3) return warnings;
+
+    // Skip kalau parent = pillar (root, tidak ada parent di atasnya)
+    if (parentLevel === "pillar") return warnings;
+
+    // Skip kalau current sudah money-child (valid pattern — location child)
+    if (currentLevel === "money-child") return warnings;
+
+    // 🔥 VALIDASI: current harus > parent
+    if (currentNum <= parentNum) {
+      var expectedNum = parentNum + 1;
+      var expectedLevel = LEVEL_INVERSE_MAP[expectedNum];
+
+      warnings.push({
+        type: "SEO_HIERARCHY_MISMATCH",
+        severity: "warning",
+        parentSlug: parentSlug,
+        parentLevel: parentLevel,
+        currentLevel: currentLevel,
+        expectedLevel: expectedLevel,
+        message: "URL '" + slug + "' terdeteksi '" + currentLevel + 
+                 "', tapi parent '" + parentSlug + "' = '" + parentLevel + 
+                 "'. Child seharusnya lebih spesifik (mis: " + expectedLevel + ").",
+        suggestion: "Pisah jadi halaman terpisah (topik unik), atau " +
+                    "tambahkan modifier spesifik (ukuran/tipe/spesifikasi) " +
+                    "untuk naikkan ke " + expectedLevel + "."
+      });
+    }
+
+    return warnings;
+  }
+ 
  // 🔥 FIX 154b: Entity-aware spec modifier check
 // ═══════════════════════════════════════════════════════════════════
 // 🔥 FIX 154b: Entity-Aware Spec Modifier Check (FULL v2)
@@ -2556,14 +2633,16 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
     var level = detectPageLevelForPrompt(slug, entity);
     var factors = getFactors(slug, entity);
     var upwardData = detectUpwardFromSlug(slug, domain);
-    var seoWarnings = detectConjunctionWarning(slug, level);   // 🔥 FIX 164
+    var seoWarnings = detectConjunctionWarning(slug, level);       // 🔥 FIX 164
+    var hierarchyWarnings = detectHierarchyWarning(slug, entity);  // 🔥 FIX 165
+    var allWarnings = seoWarnings.concat(hierarchyWarnings);        // 🔥 FIX 165
     return {
       pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
       isValid: VALID_LEVELS.indexOf(level) !== -1,
       upward: upwardData.upward, breadcrumbs: upwardData.breadcrumbs,
       parents: detectParentLevelFromSlug(slug, entity, domain),
-      seoWarnings: seoWarnings   // 🔥 FIX 164
+      seoWarnings: allWarnings
     };
   }
 
@@ -2574,14 +2653,16 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
     var entity = entityType || detectEntityTypeFromText(slug);
     var level = detectPageLevelForPrompt(slug, entity);
     var factors = getFactors(slug, entity);
-    var seoContext = getSEOContext(slug, entity);
+        var seoContext = getSEOContext(slug, entity);
     var seoWarnings = detectConjunctionWarning(slug, level);   // 🔥 FIX 164
+    var hierarchyWarnings = detectHierarchyWarning(slug, entity);   // 🔥 FIX 165
+    var allWarnings = seoWarnings.concat(hierarchyWarnings);        // 🔥 FIX 165
     return {
       pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
       isValid: VALID_LEVELS.indexOf(level) !== -1,
       seoContext: seoContext,
-      seoWarnings: seoWarnings   // 🔥 FIX 164
+      seoWarnings: allWarnings
     };
   }
 
@@ -3078,7 +3159,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "panduan pasang pagar panel beton", entity: "artikel", expect: "money-master", note: "FIX 138" },
       { slug: "tips memilih cat tembok", entity: "artikel", expect: "money-master", note: "FIX 138" },
       { slug: "tutorial instalasi listrik rumah", entity: "artikel", expect: "money-master", note: "FIX 138" },
-            { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-master", note: "FIX 164: atau = pilihan, bukan layanan ganda" },
+      { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-master", note: "FIX 164: atau = pilihan, bukan layanan ganda" },
       { slug: "perbandingan pagar besi atau kayu", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 140" },
       { slug: "kelebihan dan kekurangan pagar beton", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 140" },
       // ═══ FIX 146-147: Regression (v23.6.0) ═══
@@ -3275,7 +3356,13 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa pasang pagar dan kanopi", entity: "jasa", expect: "money-page", note: "FIX 164: dan-bundling" },
       { slug: "jasa bongkar dan pasang keramik", entity: "jasa", expect: "money-page", note: "FIX 164: dan-bundling" },
       { slug: "jasa urug dan gali tanah", entity: "jasa", expect: "money-page", note: "FIX 164: dan-bundling" },
-      { slug: "harga jasa pasang pagar dan kanopi", entity: "jasa", expect: "money-page", note: "FIX 164: dan-bundling + harga" }
+            { slug: "harga jasa pasang pagar dan kanopi", entity: "jasa", expect: "money-page", note: "FIX 164: dan-bundling + harga" },
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 165 (v23.7.6): Hierarchy validator test
+      // ═══════════════════════════════════════════════════════════
+      { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master", note: "FIX 165: parent MM" },
+      { slug: "harga jasa pasang wall panel", entity: "jasa", expect: "money-page", note: "FIX 165: child MP (valid)" },
+      { slug: "harga jasa pasang hpl dinding", entity: "jasa", expect: "money-master", note: "FIX 165: child MM (warning expected)" }
    
     ];   // 🔥 FIX 162e: tutup array TEST_CASES
     
