@@ -1933,9 +1933,21 @@ var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos',
     if (entityType && ENTITY_BASE_NAMES[entityType] && !hasConjunction) {
       var baseNamesEarly = ENTITY_BASE_NAMES[entityType] || [];
       for (var i = 0; i < baseNamesEarly.length; i++) {
-        coreText = coreText.replace(new RegExp("\\b" + baseNamesEarly[i].replace(/\s+/g, '\\s+') + "\\b", 'g'), ' ');
+        var bn = baseNamesEarly[i];
+        // 🔥 FIX 170: Skip strip base name yang END dengan application target
+        // Alasan: base + target = 2 core → naik MP (FIX 167).
+        // Kalau base di-strip full, target hilang → preCore=[] → MM (SALAH).
+        // Contoh: "pasang wallpaper dinding" → skip → "pasang wallpaper" strip → "dinding" tetap ada
+        var bnWords = bn.split(' ');
+        var lastWord = bnWords[bnWords.length - 1];
+        if (bnWords.length >= 2 && APPLICATION_TARGETS.indexOf(lastWord) !== -1) {
+          log('🔥 FIX 170: SKIP base strip "' + bn + '" (ends target: ' + lastWord + ')', 'CORE');
+          continue;
+        }
+        coreText = coreText.replace(new RegExp("\\b" + bn.replace(/\s+/g, '\\s+') + "\\b", 'g'), ' ');
       }
     }
+   
     if (entityType === "jasa") {
       for (var i = 0; i < COMMON_JASA_WORDS.length; i++) {
         coreText = coreText.replace(new RegExp("\\b" + COMMON_JASA_WORDS[i] + "\\b", 'g'), ' ');
