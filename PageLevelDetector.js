@@ -2347,7 +2347,7 @@ function isSpecModifierForEntity(word, entityType) {
   
   // 🔥 FIX 167: Application target (universal semua entity)
   // Base + target surface/context → naik 1 level
-  if (APPLICATION_TARGETS.indexOf(w) !== -1) return true;
+  //if (APPLICATION_TARGETS.indexOf(w) !== -1) return true;
   
  // ─── JASA ───
   // 🔥 FIX 160d: Hapus jasaMaterialCtx — material BUKAN spec untuk JASA
@@ -2512,7 +2512,7 @@ function isSpecModifierForEntity(word, entityType) {
       return "money-page";
     }
 
-// 🔥 FIX 154 (v23.7.1): PRICE + BASE SERVICE → smart threshold (ENTITY-AWARE)
+    // 🔥 FIX 154 (v23.7.1): PRICE + BASE SERVICE → smart threshold (ENTITY-AWARE)
 if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
   var preCore = getCoreWords(text, entityType);
   log('🔥 FIX 154: preCore=[' + preCore.join(',') + '] (len=' + preCore.length + ')', 'CORE');
@@ -2525,6 +2525,26 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
 
   // 1 core + spec modifier (entity-aware) → MP
   if (preCore.length === 1) {
+    // 🔥 FIX 167 (Revised): Cek dulu apakah core adalah application target
+    // DAN ada compound base name (2+ kata) → MP
+    if (APPLICATION_TARGETS.indexOf(preCore[0]) !== -1) {
+      var hasCompoundBase154 = false;
+      var baseList154 = ENTITY_BASE_NAMES[entityType] || [];
+      for (var bi154 = 0; bi154 < baseList154.length; bi154++) {
+        var baseName154 = baseList154[bi154];
+        if (baseName154.split(' ').length >= 2 && text.indexOf(baseName154) !== -1) {
+          hasCompoundBase154 = true;
+          break;
+        }
+      }
+      if (hasCompoundBase154) {
+        log('💵 FIX 167: MONEY_PAGE (compound base + target: ' + preCore[0] + ')', 'HARGA');
+        return "money-page";
+      }
+      log('🏛️ FIX 167: MONEY_MASTER (single base + target: ' + preCore[0] + ')', 'MM');
+      return "money-master";
+    }
+    
     if (isSpecModifierForEntity(preCore[0], entityType)) {
       log('💵 FIX 154: MONEY_PAGE (price + spec: ' + preCore[0] + ')', 'HARGA');
       return "money-page";
@@ -2537,7 +2557,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
   log('💵 FIX 154: MONEY_PAGE (price + 2+ modifier)', 'HARGA');
   return "money-page";
 }
-
+   
     // PRIORITAS 9: PRICE + SPEC → MP/MM
     if (hasPriceWord && hasSpecWord && !hasLocationWord && !hasCommercialWord) {
       var isPureTechForPrice = checkPureTechnicalSpec(text, entityType);
@@ -2570,16 +2590,6 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       var coreForDan = getCoreWords(text, entityType);
       if (coreForDan.length >= 2) {
         log('💰 FIX 164: MONEY_PAGE (dan-bundling: ' + coreForDan.join(',') + ')', 'PRICE');
-        return "money-page";
-      }
-    }
-
-    // 🔥 FIX 167: Application target → naik 1 level (universal semua entity)
-    // Contoh: "jasa pasang grc dinding" → base "pasang grc" + target "dinding" → MP
-    if (hasBaseService && !hasLocationWord && !hasPriceWord && !hasCommercialWord && !hasSpecWord) {
-      var targetCore = getCoreWords(text, entityType);
-      if (targetCore.length === 1 && APPLICATION_TARGETS.indexOf(targetCore[0]) !== -1) {
-        log('💵 FIX 167: MONEY_PAGE (base + target: ' + targetCore[0] + ')', 'PRICE');
         return "money-page";
       }
     }
