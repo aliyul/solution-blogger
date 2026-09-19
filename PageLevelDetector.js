@@ -630,7 +630,36 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
   var PURE_JASA_TECHNIQUES = [];
   var PURE_METHODS = ["manual", "hidrolik", "auger", "rotary", "percussive", "dry", "wet", "basah", "kering"];
   var PURE_SCALES = ["rumahan", "komersial", "industri", "residential", "commercial", "industrial", "kecil", "sedang", "besar", "menengah"];
-  var PURE_FINISHING = ["polos", "motif", "bermotif", "bercorak", "tekstur", "serat", "halus", "kasar", "matte", "glossy", "doff", "gloss", "satin", "anyaman", "natural", "ekspos", "custom", "polosan", "cat", "coating", "lapisan", "vernis"];
+    var PURE_FINISHING = ["polos", "motif", "bermotif", "bercorak", "tekstur", "serat", "halus", "kasar", "matte", "glossy", "doff", "gloss", "satin", "anyaman", "natural", "ekspos", "custom", "polosan", "cat", "coating", "lapisan", "vernis"];
+
+  // 🔥 FIX 167: Application Targets — target surface/usage context
+  // Berlaku UNIVERSAL untuk semua entity (jasa, produk, material, sewa, desain)
+  // Konsep: base service/produk + target → naik 1 level (MP)
+  var APPLICATION_TARGETS = [
+    // Struktur bangunan
+    "dinding", "tembok", "lantai", "plafon", "atap",
+    "partisi", "kolom", "balok", "plat", "slab", "pelat",
+    "pondasi", "tiang", "tangga", "railing", "kusen",
+    "pagar", "pintu", "jendela", "rolling door", "kanopi",
+    "awning", "fasad", "facade",
+    // Ruangan
+    "teras", "balkon", "halaman", "carport", "garasi",
+    "kamar mandi", "kamar tidur", "ruang tamu", "ruang keluarga",
+    "ruang makan", "ruang kerja", "dapur", "toilet", "wc",
+    // Bangunan
+    "kantor", "toko", "gudang", "pabrik", "sekolah",
+    "rumah", "gedung", "ruko", "villa", "apartemen",
+    "cafe", "restoran", "hotel", "kios", "rukan",
+    // Area eksterior
+    "jalan", "trotoar", "saluran", "drainase",
+    "taman", "kolam", "sawah", "lahan"
+  ];
+
+  // 🔥 FIX 167: Helper untuk cek application target
+  function isApplicationTarget(word) {
+    if (!word) return false;
+    return APPLICATION_TARGETS.indexOf(word.toLowerCase().trim()) !== -1;
+  }
 
   var SATUAN_UNITS = [
     "meter", "m", "cm", "mm", "km", "mtr", "mtrs", "inchi", "inch", "ft", "feet",
@@ -2313,8 +2342,12 @@ function isSpecModifierForEntity(word, entityType) {
   if (/^\d+/.test(w)) return true;                              // 60x60, 240x40, 10mm
   if (/^(k\d+|fc\d*|m\d+|c\d+|bjts?\d*)$/i.test(w)) return true; // k225, fc20, bjts40
     // ─── UNIVERSAL: strong price modifier (SEO-aligned) ───
-  // 🔥 FIX 158: 4 kata ini naikkan level ke MP (bukan noise)
+    // 🔥 FIX 158: 4 kata ini naikkan level ke MP (bukan noise)
   if (w === 'termurah' || w === 'termahal' || w === 'promo' || w === 'diskon') return true;
+  
+  // 🔥 FIX 167: Application target (universal semua entity)
+  // Base + target surface/context → naik 1 level
+  if (APPLICATION_TARGETS.indexOf(w) !== -1) return true;
   
  // ─── JASA ───
   // 🔥 FIX 160d: Hapus jasaMaterialCtx — material BUKAN spec untuk JASA
@@ -2529,7 +2562,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       if (hasNoun) { log('💰 MONEY_PAGE', 'PRICE'); return "money-page"; }
     }
         
-    // 🔥 FIX 164: Force MP untuk conjunction "dan"/"serta" (bundling 2 layanan)
+       // 🔥 FIX 164: Force MP untuk conjunction "dan"/"serta" (bundling 2 layanan)
     // Skip kalau "dan" bagian dari base name ("cut and fill")
     var hasDanConj = /\b(dan|serta)\b/i.test(lowerText);
     var isDanBaseNamePart = /\bcut and fill\b/i.test(lowerText);
@@ -2537,6 +2570,16 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       var coreForDan = getCoreWords(text, entityType);
       if (coreForDan.length >= 2) {
         log('💰 FIX 164: MONEY_PAGE (dan-bundling: ' + coreForDan.join(',') + ')', 'PRICE');
+        return "money-page";
+      }
+    }
+
+    // 🔥 FIX 167: Application target → naik 1 level (universal semua entity)
+    // Contoh: "jasa pasang grc dinding" → base "pasang grc" + target "dinding" → MP
+    if (hasBaseService && !hasLocationWord && !hasPriceWord && !hasCommercialWord && !hasSpecWord) {
+      var targetCore = getCoreWords(text, entityType);
+      if (targetCore.length === 1 && APPLICATION_TARGETS.indexOf(targetCore[0]) !== -1) {
+        log('💵 FIX 167: MONEY_PAGE (base + target: ' + targetCore[0] + ')', 'PRICE');
         return "money-page";
       }
     }
@@ -2557,9 +2600,15 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       // FIX 146: JASA base service cap MM
       if (entityType === "jasa" && coreWords.length === 1 && complexityScore <= 2
           && !hasPriceWord && !hasCommercialWord && !hasCompound) {
+        // 🔥 FIX 167: Kalau core word = application target → naik ke MP
+        if (APPLICATION_TARGETS.indexOf(coreWords[0]) !== -1) {
+          log('💵 FIX 167: MONEY_PAGE (base jasa + target: ' + coreWords[0] + ')', 'PRICE');
+          return "money-page";
+        }
         log('🏛️ FIX 146: MONEY_MASTER (base jasa + 1 objek)', 'MM');
         return "money-master";
       }
+     
       if (complexityScore >= 2 && !hasPriceWord && !hasCommercialWord) {
         log('💰 MONEY_PAGE (score=' + complexityScore + ')', 'SCORE');
         return "money-page";
@@ -3497,18 +3546,17 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa urug dan gali tanah", entity: "jasa", expect: "money-page", note: "FIX 164: dan-bundling" },
             { slug: "harga jasa pasang pagar dan kanopi", entity: "jasa", expect: "money-page", note: "FIX 164: dan-bundling + harga" },
       // ═══════════════════════════════════════════════════════════
+      // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 165 (v23.7.6): Hierarchy validator test
       // ═══════════════════════════════════════════════════════════
-      { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master", note: "FIX 165: parent MM" },
-      { slug: "harga jasa pasang wall panel", entity: "jasa", expect: "money-page", note: "FIX 165: child MP (valid)" },
-      { slug: "harga jasa pasang hpl dinding", entity: "jasa", expect: "money-master", note: "FIX 165: child MM (warning expected)" },
+      // Di-superseded oleh FIX 168 — test case dipindah ke bawah
       // ═══════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 166 (v23.7.7): Breadcrumb hierarchy validator
       // ═══════════════════════════════════════════════════════════
-      { slug: "harga jasa pasang grc dinding", entity: "jasa", expect: "money-master", note: "FIX 166: flat hierarchy warning" },
-      { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master", note: "FIX 166: parent base" },
+      // Di-superseded oleh FIX 168 — lihat test di bawah
       { slug: "harga desain rumah tropis 2 lantai", entity: "desain", expect: "money-page", note: "FIX 167: 2 core+target" },
-      // ═══════════════════════════════════════════════════════════
+     // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 168 (v23.7.9): Parent-driven hierarchy validator
       // ═══════════════════════════════════════════════════════════
       { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master", note: "FIX 168: parent MM" },
@@ -3615,6 +3663,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       isSubVariant: isSubVariant,
       getCoreWords: getCoreWords,
       normalizeVerbVariations: normalizeVerbVariations,
+      isApplicationTarget: isApplicationTarget,   // 🔥 FIX 167
 
       detectIntent: detectIntent,
       detectEEATSignals: detectEEATSignals,
