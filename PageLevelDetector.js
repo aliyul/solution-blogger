@@ -143,7 +143,19 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     4: "money-master", 5: "money-page", 6: "money-child",
     7: "variant", 8: "sub-variant"
   };
- 
+   // 🔥 FIX 168: Parent-driven expected child mapping
+  // Setiap parent punya expected child level (parent + 1)
+  // Khusus pillar → root, tidak ada parent di atasnya
+  var EXPECTED_CHILD_MAP = {
+    "pillar":            { expected: "sub-pillar-tipe-2", num: 2 },
+    "sub-pillar-tipe-2": { expected: "sub-pillar-tipe-1", num: 3 },
+    "sub-pillar-tipe-1": { expected: "money-master",      num: 4 },
+    "money-master":      { expected: "money-page",        num: 5 },
+    "money-page":        { expected: "money-child",       num: 6, alternate: "variant" },
+    "money-child":       { expected: "variant",           num: 7 },
+    "variant":           { expected: "sub-variant",       num: 8 },
+    "sub-variant":       { expected: null,                num: 9, isLeaf: true }
+  };
   var VALID_ENTITY_TYPES = ["produk", "material", "jasa", "desain", "sewa", "artikel"];
 
   var ENTITY_PILLAR_NAMES = {
@@ -2180,6 +2192,159 @@ var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos',
 
     return warnings;
   }
+   // 🔥 FIX 166: Compute level untuk SEMUA breadcrumb segment
+  // Return array: [{ slug, level, levelNum, label }, ...]
+  function computeBreadcrumbLevels(slug, entityType, domain) {
+    if (!slug) return [];
+    var words = slug.split(" ").filter(Boolean);
+    var entity = entityType || detectEntityTypeFromText(slug);
+    var results = [];
+
+    // Progressive: dari kata pertama sampai full slug
+    // Contoh: "harga jasa pasang grc dinding"
+    //   → "harga jasa" (skip, < 2 meaningful)
+    //   → "harga jasa pasang" (base service?)
+    //   → "harga jasa pasang grc"
+    //   → "harga jasa pasang grc dinding" (full)
+    for (var i = 2; i <= words.length; i++) {
+      var segSlug = words.slice(0, i).join(" ");
+      var segLevel = detectPageLevelForPrompt(segSlug, entity);
+      var segLevelNum = LEVEL_HIERARCHY_MAP[segLevel] || -1;
+      results.push({
+        position: i,
+        slug: segSlug,
+        level: segLevel,
+        levelNum: segLevelNum,
+        isCurrent: (i === words.length)
+      });
+    }
+
+    return results;
+  }
+
+  // 🔥 FIX 166: Hierarchy Validator berbasis breadcrumb chain
+  // Bandingkan level chain: harus MONOTONIC NAIK atau tetap.
+  // Kalau ada yang turun / flat di posisi tertentu → warning.
+  function validateBreadcrumbHierarchy(slug, entityType) {
+    var warnings = [];
+    if (!slug) return warnings;
+
+    var chain = computeBreadcrumbLevels(slug, entityType);
+    if (chain.length < 2) return warnings;
+
+    // Skip conjunction case (sudah ada warning FIX 164)
+    if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
+
+    // Skip kalau slug terlalu pendek
+    if (chain.length < 2) return warnings;
+
+    // Cari parent terdekat yang punya level valid (>= MM)
+    var current = chain[chain.length - 1];
+    var parent = null;
+    for (var i = chain.length - 2; i >= 0; i--) {
+      if (chain[i].levelNum >= 4) {   // MM (4) atau lebih tinggi
+        parent = chain[i];
+        break;
+      }
+    }
+
+    if (!parent) return warnings;
+
+    // Skip kalau current = money-child (location child valid)
+    if (current.level === "money-child") return warnings;
+
+    // Skip kalau current = variant/sub-variant (sudah lebih spesifik)
+    if (current.levelNum >= 7) return warnings;
+
+    // 🔥 VALIDASI: current harus > parent
+    if (current.levelNum <= parent.levelNum) {
+      var expectedNum = parent.levelNum + 1;
+      var expectedLevel = LEVEL_INVERSE_MAP[expectedNum] || "money-page";
+
+      warnings.push({
+        type: "SEO_HIERARCHY_MISMATCH",
+        severity: "warning",
+        parentSlug: parent.slug,
+        parentLevel: parent.level,
+        currentSlug: current.slug,
+        currentLevel: current.level,
+        expectedLevel: expectedLevel,
+        message: "URL '" + current.slug + "' terdeteksi '" + current.level + 
+                 "', tapi parent '" + parent.slug + "' juga '" + parent.level + 
+                 "'. Child seharusnya 1+ level lebih spesifik (" + expectedLevel + ").",
+        suggestion: "Tambahkan modifier spesifik (material, tipe, ukuran) untuk naikkan ke '" + 
+                    expectedLevel + "', atau pisah jadi halaman topik berbeda."
+      });
+    }
+
+    return warnings;
+  }
+
+    // 🔥 FIX 168: Parent-Driven Hierarchy Validator (Enhanced)
+  // Aturan: Child level HARUS = parent level + 1
+  // Pengecualian:
+  //   - pillar = root, tidak ada parent
+  //   - money-page boleh child = money-child ATAU variant (multi-path)
+  //   - sub-variant = leaf, tidak ada child
+  function validateParentDrivenHierarchy(slug, entityType) {
+    var warnings = [];
+    if (!slug) return warnings;
+
+    var words = slug.split(" ").filter(Boolean);
+    if (words.length <= 2) return warnings;
+
+    // Skip conjunction
+    if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
+
+    // Compute level untuk immediate parent
+    var parentSlug = words.slice(0, -1).join(" ");
+    var parentLevel = detectPageLevelForPrompt(parentSlug, entityType);
+
+    // Skip kalau parent = pillar (root, no parent above)
+    if (parentLevel === "pillar") return warnings;
+
+    // Skip kalau parent level tidak dikenal
+    if (!EXPECTED_CHILD_MAP[parentLevel]) return warnings;
+
+    var rule = EXPECTED_CHILD_MAP[parentLevel];
+
+    // Skip kalau parent = leaf
+    if (rule.isLeaf) return warnings;
+
+    // Current level
+    var currentLevel = detectPageLevelForPrompt(slug, entityType);
+
+    // Skip kalau current adalah MC (money-child) karena biasanya lokasi
+    // tidak selalu child langsung dari MP
+    if (currentLevel === "money-child" && parentLevel === "money-page") return warnings;
+
+    // 🔥 VALIDASI: current harus = expected (atau alternate)
+    var isExpected = (currentLevel === rule.expected);
+    var isAlternate = (rule.alternate && currentLevel === rule.alternate);
+
+    if (!isExpected && !isAlternate) {
+      warnings.push({
+        type: "SEO_PARENT_DRIVEN_MISMATCH",
+        severity: "warning",
+        parentSlug: parentSlug,
+        parentLevel: parentLevel,
+        parentLevelNum: LEVEL_HIERARCHY_MAP[parentLevel],
+        currentLevel: currentLevel,
+        currentLevelNum: LEVEL_HIERARCHY_MAP[currentLevel],
+        expectedLevel: rule.expected,
+        alternateLevel: rule.alternate || null,
+        message: "URL '" + slug + "' terdeteksi '" + currentLevel + 
+                 "'. Berdasarkan parent '" + parentSlug + "' (" + parentLevel + 
+                 "), child yang SEO-aligned = '" + rule.expected + "'" +
+                 (rule.alternate ? " atau '" + rule.alternate + "'" : "") + ".",
+        suggestion: currentLevel === parentLevel 
+          ? "Child level sama dengan parent. Tambahkan modifier spesifik, atau pisah jadi topik berbeda."
+          : "Level child bukan expected. Cek struktur URL & konten."
+      });
+    }
+
+    return warnings;
+  }
  
  // 🔥 FIX 154b: Entity-aware spec modifier check
 // ═══════════════════════════════════════════════════════════════════
@@ -2633,9 +2798,13 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
     var level = detectPageLevelForPrompt(slug, entity);
     var factors = getFactors(slug, entity);
     var upwardData = detectUpwardFromSlug(slug, domain);
-    var seoWarnings = detectConjunctionWarning(slug, level);       // 🔥 FIX 164
+        var seoWarnings = detectConjunctionWarning(slug, level);       // 🔥 FIX 164
     var hierarchyWarnings = detectHierarchyWarning(slug, entity);  // 🔥 FIX 165
-    var allWarnings = seoWarnings.concat(hierarchyWarnings);        // 🔥 FIX 165
+    var breadcrumbWarnings = validateBreadcrumbHierarchy(slug, entity);  // 🔥 FIX 166
+    var parentDrivenWarnings = validateParentDrivenHierarchy(slug, entity);  // 🔥 FIX 168
+    var allWarnings = seoWarnings.concat(hierarchyWarnings)
+                                .concat(breadcrumbWarnings)
+                                .concat(parentDrivenWarnings);      // 🔥 FIX 168
     return {
       pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
@@ -2646,17 +2815,21 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
     };
   }
 
-    function detectForPrompt(input, entityType) {
+ function detectForPrompt(input, entityType) {
     if (!input) return { pageLevel: 'unknown', isValid: false, error: 'Input kosong' };
     var slug = extractSlugFromInput(input);
     if (!slug) return { pageLevel: 'unknown', isValid: false, error: 'Slug kosong' };
     var entity = entityType || detectEntityTypeFromText(slug);
     var level = detectPageLevelForPrompt(slug, entity);
     var factors = getFactors(slug, entity);
-        var seoContext = getSEOContext(slug, entity);
-    var seoWarnings = detectConjunctionWarning(slug, level);   // 🔥 FIX 164
-    var hierarchyWarnings = detectHierarchyWarning(slug, entity);   // 🔥 FIX 165
-    var allWarnings = seoWarnings.concat(hierarchyWarnings);        // 🔥 FIX 165
+    var seoContext = getSEOContext(slug, entity);
+    var seoWarnings = detectConjunctionWarning(slug, level);       // 🔥 FIX 164
+    var hierarchyWarnings = detectHierarchyWarning(slug, entity);  // 🔥 FIX 165
+    var breadcrumbWarnings = validateBreadcrumbHierarchy(slug, entity);  // 🔥 FIX 166
+    var parentDrivenWarnings = validateParentDrivenHierarchy(slug, entity);  // 🔥 FIX 168
+    var allWarnings = seoWarnings.concat(hierarchyWarnings)
+                                .concat(breadcrumbWarnings)
+                                .concat(parentDrivenWarnings);      // 🔥 FIX 168
     return {
       pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
@@ -3362,7 +3535,19 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       // ═══════════════════════════════════════════════════════════
       { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master", note: "FIX 165: parent MM" },
       { slug: "harga jasa pasang wall panel", entity: "jasa", expect: "money-page", note: "FIX 165: child MP (valid)" },
-      { slug: "harga jasa pasang hpl dinding", entity: "jasa", expect: "money-master", note: "FIX 165: child MM (warning expected)" }
+      { slug: "harga jasa pasang hpl dinding", entity: "jasa", expect: "money-master", note: "FIX 165: child MM (warning expected)" },
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 166 (v23.7.7): Breadcrumb hierarchy validator
+      // ═══════════════════════════════════════════════════════════
+      { slug: "harga jasa pasang grc dinding", entity: "jasa", expect: "money-master", note: "FIX 166: flat hierarchy warning" },
+      { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master", note: "FIX 166: parent base" },
+      { slug: "harga desain rumah tropis 2 lantai", entity: "desain", expect: "money-page", note: "FIX 167: 2 core+target" },
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 168 (v23.7.9): Parent-driven hierarchy validator
+      // ═══════════════════════════════════════════════════════════
+      { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master", note: "FIX 168: parent MM" },
+      { slug: "harga jasa pasang grc dinding", entity: "jasa", expect: "money-page", note: "FIX 168: child MP (expected)" },
+      { slug: "harga jasa pasang hpl dinding", entity: "jasa", expect: "money-page", note: "FIX 168: child MP (expected)" }
    
     ];   // 🔥 FIX 162e: tutup array TEST_CASES
     
@@ -3426,6 +3611,10 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       detectBreadcrumbsFromSlug: detectBreadcrumbsFromSlug,
       detectParentFromSlug: detectParentFromSlug,
       detectParentLevelFromSlug: detectParentLevelFromSlug,
+      computeBreadcrumbLevels: computeBreadcrumbLevels,
+      validateBreadcrumbHierarchy: validateBreadcrumbHierarchy,
+      validateParentDrivenHierarchy: validateParentDrivenHierarchy,  // 🔥 FIX 168
+      EXPECTED_CHILD_MAP: EXPECTED_CHILD_MAP,                        // 🔥 FIX 168
       findBreadcrumbs: findBreadcrumbs,
       waitForBreadcrumbs: waitForBreadcrumbs,
 
