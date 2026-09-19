@@ -1929,21 +1929,32 @@ var moneyWords = ['harga', 'biaya', 'tarif', 'estimasi', 'ongkos',
     // 🔥 FIX 163: SKIP base strip kalau ada conjunction "atau"/"dan"/"serta"
     // Alasan: "jasa pasang pagar atau kanopi" = 2 layanan listing (MP),
     // bukan 1 compound base service. Base strip akan menghilangkan konteks listing.
-    var hasConjunction = /\b(atau|dan|serta)\b/i.test(coreText);
+   var hasConjunction = /\b(atau|dan|serta)\b/i.test(coreText);
     if (entityType && ENTITY_BASE_NAMES[entityType] && !hasConjunction) {
       var baseNamesEarly = ENTITY_BASE_NAMES[entityType] || [];
+      
+      // 🔥 FIX 170: Bangun set lookup untuk cek "base tanpa target"
+      var baseNamesSet = {};
+      for (var k = 0; k < baseNamesEarly.length; k++) {
+        baseNamesSet[baseNamesEarly[k]] = true;
+      }
+      
       for (var i = 0; i < baseNamesEarly.length; i++) {
         var bn = baseNamesEarly[i];
-        // 🔥 FIX 170: Skip strip base name yang END dengan application target
-        // Alasan: base + target = 2 core → naik MP (FIX 167).
-        // Kalau base di-strip full, target hilang → preCore=[] → MM (SALAH).
-        // Contoh: "pasang wallpaper dinding" → skip → "pasang wallpaper" strip → "dinding" tetap ada
         var bnWords = bn.split(' ');
         var lastWord = bnWords[bnWords.length - 1];
+        
+        // 🔥 FIX 170: Skip base name KALAU:
+        //   1. Ends dengan application target
+        //   2. DAN tanpa target = base name valid juga
         if (bnWords.length >= 2 && APPLICATION_TARGETS.indexOf(lastWord) !== -1) {
-          log('🔥 FIX 170: SKIP base strip "' + bn + '" (ends target: ' + lastWord + ')', 'CORE');
-          continue;
+          var baseWithoutTarget = bnWords.slice(0, -1).join(' ');
+          if (baseNamesSet[baseWithoutTarget]) {
+            log('🔥 FIX 170: SKIP "' + bn + '" (sub-base "' + baseWithoutTarget + '" covers it)', 'CORE');
+            continue;
+          }
         }
+        
         coreText = coreText.replace(new RegExp("\\b" + bn.replace(/\s+/g, '\\s+') + "\\b", 'g'), ' ');
       }
     }
