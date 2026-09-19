@@ -69,6 +69,7 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     return;
 }
 
+   // 🔥 FIX 169: Browser-compatible config (via Cloudflare Worker proxy)
   var CONFIG = {
     DEBUG: true,
     BREADCRUMBS_TIMEOUT: 5000,
@@ -80,16 +81,13 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
       '[itemprop="breadcrumb"]', '[typeof="BreadcrumbList"]',
       'nav[aria-label="breadcrumb"]', 'ol.breadcrumb', 'ul.breadcrumb'
     ],
-    AI_ENABLED: false,
+    AI_ENABLED: true,
     AI_CONFIDENCE_THRESHOLD: 60,
     AI_TIMEOUT_MS: 8000,
-    AI_GROQ_ENDPOINT: "https://api.groq.com/openai/v1/chat/completions",
-    AI_GROQ_MODEL: "llama-3.1-8b-instant",
-    AI_GEMINI_ENDPOINT: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
-    AI_GROQ_KEY: "",
-    AI_GEMINI_KEY: ""
+    AI_WORKER_URL: "https://pld-proxy.jasaalkonstruksi.workers.dev",  // ← URL Worker Anda
+    AI_PROVIDER: "auto"                                                 // "groq" | "gemini" | "auto"
   };
-
+ 
   function log(message, type) {
     if (!CONFIG.DEBUG && type === "INFO") return;
     if (!type) type = "INFO";
@@ -1313,102 +1311,43 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
   }
 
    // ═══════════════════════════════════════════════════════════
-  // AI FALLBACK
-  // ═══════════════════════════════════════════════════════════
+   // 🔥 FIX 169: AI Proxy (via Cloudflare Worker)
+  // Browser-compatible: pakai fetch() dengan CORS support
+  function callAIProxy(text, entityType) {
+    if (!CONFIG.AI_ENABLED || !CONFIG.AI_WORKER_URL) {
+      return Promise.resolve(null);
+    }
 
-  function callGroqAPI(text, entityType) {
-    if (!CONFIG.AI_GROQ_KEY) return null;
-    try {
-      var prompt = buildAIPrompt(text, entityType);
-      var payload = {
-        model: CONFIG.AI_GROQ_MODEL,
-        messages: [
-          { role: "system", content: "You are a SEO page level classifier. Respond only with valid JSON." },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.1, max_tokens: 200,
-        response_format: { type: "json_object" }
-      };
-      var response = UrlFetchApp.fetch(CONFIG.AI_GROQ_ENDPOINT, {
-        method: "post", contentType: "application/json",
-        headers: { "Authorization": "Bearer " + CONFIG.AI_GROQ_KEY },
-        payload: JSON.stringify(payload), muteHttpExceptions: true
-      });
-      if (response.getResponseCode() !== 200) return null;
-      var data = JSON.parse(response.getContentText());
-      var content = data.choices && data.choices[0] && data.choices[0].message.content;
-      if (!content) return null;
-      var parsed = JSON.parse(content);
-      return {
-        pageLevel: parsed.pageLevel, focus: parsed.focus,
-        intent: parsed.intent, confidence: parsed.confidence || 85,
-        source: "GROQ", reason: parsed.reason || "AI classification"
-      };
-    } catch (e) { return null; }
+    var controller = new AbortController();
+    var timeoutId = setTimeout(function() {
+      controller.abort();
+    }, CONFIG.AI_TIMEOUT_MS || 8000);
+
+    return fetch(CONFIG.AI_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        provider: CONFIG.AI_PROVIDER || 'auto',
+        text: text,
+        entityType: entityType
+      }),
+      signal: controller.signal
+    })
+    .then(function(res) {
+      clearTimeout(timeoutId);
+      if (!res.ok) return null;
+      return res.json();
+    })
+    .then(function(data) {
+      if (!data || data.error) return null;
+      return data;
+    })
+    .catch(function(e) {
+      clearTimeout(timeoutId);
+      log('AI proxy error: ' + e.message, 'WARN');
+      return null;
+    });
   }
-
-  function callGeminiAPI(text, entityType) {
-    if (!CONFIG.AI_GEMINI_KEY) return null;
-    try {
-      var prompt = buildAIPrompt(text, entityType);
-      var payload = {
-        contents: [{ parts: [{ text: "You are a SEO page level classifier. " + prompt + "\n\nRespond with valid JSON only." }] }],
-        generationConfig: { temperature: 0.1, maxOutputTokens: 200, responseMimeType: "application/json" }
-      };
-      var endpoint = CONFIG.AI_GEMINI_ENDPOINT + "?key=" + CONFIG.AI_GEMINI_KEY;
-      var response = UrlFetchApp.fetch(endpoint, {
-        method: "post", contentType: "application/json",
-        payload: JSON.stringify(payload), muteHttpExceptions: true
-      });
-      if (response.getResponseCode() !== 200) return null;
-      var data = JSON.parse(response.getContentText());
-      var content = data.candidates && data.candidates[0] &&
-                    data.candidates[0].content && data.candidates[0].content.parts &&
-                    data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
-      if (!content) return null;
-      var parsed = JSON.parse(content);
-      return {
-        pageLevel: parsed.pageLevel, focus: parsed.focus,
-        intent: parsed.intent, confidence: parsed.confidence || 80,
-        source: "GEMINI", reason: parsed.reason || "AI classification"
-      };
-    } catch (e) { return null; }
-  }
-
-  function buildAIPrompt(text, entityType) {
-    return [
-      "Classify this SEO keyword for page level.",
-      "",
-      "Keyword: \"" + text + "\"",
-      "Entity Type: \"" + entityType + "\"",
-      "",
-      "Levels (high to low):",
-      "- home: homepage",
-      "- pillar: main category (exact)",
-      "- sub-pillar-tipe-2: list (jenis, daftar, macam)",
-      "- sub-pillar-tipe-1: comparison (vs, kelebihan)",
-      "- money-master: general page (1-2 core words)",
-      "- money-page: specific page (3+ core words)",
-      "- money-child: location",
-      "- variant: technical spec (K300, ulir, jati)",
-      "- sub-variant: variant + dimension (K300 2m, 30cm)",
-      "",
-      "Focus: INFORMASI, HARGA, COMMERCIAL, GABUNG",
-      "",
-      "Respond with valid JSON:",
-      '{"pageLevel": "...", "focus": "...", "intent": "...", "confidence": 0-100, "reason": "..."}'
-    ].join("\n");
-  }
-
-  function callHybridAI(text, entityType) {
-    if (!CONFIG.AI_ENABLED) return null;
-    var groqResult = callGroqAPI(text, entityType);
-    if (groqResult && groqResult.pageLevel) return groqResult;
-    var geminiResult = callGeminiAPI(text, entityType);
-    if (geminiResult && geminiResult.pageLevel) return geminiResult;
-    return null;
-  }
-
   // ═══════════════════════════════════════════════════════════
   // FUNGSI DETEKSI UTAMA
   // ═══════════════════════════════════════════════════════════
@@ -2838,42 +2777,69 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       seoWarnings: allWarnings
     };
   }
-
+    // 🔥 FIX 169: Sync version (tanpa AI) untuk kode legacy
+  function detectForPromptSync(input, entityType) {
+    return detectForPrompt(input, entityType);
+  }
+ 
   function detectForPromptWithUpward(input, entityType, domain) { return detectForPromptFull(input, entityType, domain); }
   function detectBreadcrumbsFromSlug(slug, domain) { return detectUpwardFromSlug(slug, domain).breadcrumbs; }
   function detectParentFromSlug(slug, domain) { return detectUpwardFromSlug(slug, domain).upward; }
 
+    // 🔥 FIX 169: Async AI detection (browser-compatible)
   function detectPageLevelWithAI(text, entityType) {
     var pldLevel = detectPageLevelForPrompt(text, entityType);
     var confidence = calculatePLDConfidence(text, entityType, pldLevel);
-    if (confidence < CONFIG.AI_CONFIDENCE_THRESHOLD && CONFIG.AI_ENABLED) {
-      var aiResult = callHybridAI(text, entityType);
+
+    // Kalau confidence cukup tinggi atau AI disabled → return sync
+    if (confidence >= CONFIG.AI_CONFIDENCE_THRESHOLD || !CONFIG.AI_ENABLED) {
+      return Promise.resolve({
+        pageLevel: pldLevel,
+        source: "PLD_RULE",
+        confidence: confidence,
+        reason: "Rule-based"
+      });
+    }
+
+    // Confidence rendah → coba AI via Worker
+    return callAIProxy(text, entityType).then(function(aiResult) {
       if (aiResult && aiResult.pageLevel) {
         return {
-          pageLevel: aiResult.pageLevel, source: aiResult.source,
-          confidence: aiResult.confidence, reason: aiResult.reason,
-          pldFallback: pldLevel, pldConfidence: confidence
+          pageLevel: aiResult.pageLevel,
+          source: aiResult.source || "AI_PROXY",
+          confidence: aiResult.confidence || 85,
+          reason: aiResult.reason || "AI classification",
+          pldFallback: pldLevel,
+          pldConfidence: confidence
         };
       }
-    }
-    return { pageLevel: pldLevel, source: "PLD_RULE", confidence: confidence, reason: "Rule-based" };
+      // AI gagal → fallback
+      return {
+        pageLevel: pldLevel,
+        source: "PLD_RULE",
+        confidence: confidence,
+        reason: "Rule-based (AI unavailable)"
+      };
+    });
   }
-
+ 
+  // 🔥 FIX 169: Async detect with AI (browser-compatible)
   function detectForPromptWithAI(input, entityType) {
     var pldResult = detectForPrompt(input, entityType);
-    var aiResult = detectPageLevelWithAI(pldResult.text, entityType);
-    if (aiResult.source !== "PLD_RULE") {
-      pldResult.pageLevel = aiResult.pageLevel;
-      pldResult.aiEnhanced = true;
-      pldResult.aiSource = aiResult.source;
-      pldResult.aiConfidence = aiResult.confidence;
-      pldResult.aiReason = aiResult.reason;
-      pldResult.pldFallback = aiResult.pldFallback;
-    } else {
-      pldResult.aiEnhanced = false;
-      pldResult.aiConfidence = aiResult.confidence;
-    }
-    return pldResult;
+    return detectPageLevelWithAI(pldResult.text, entityType).then(function(aiResult) {
+      if (aiResult.source !== "PLD_RULE") {
+        pldResult.pageLevel = aiResult.pageLevel;
+        pldResult.aiEnhanced = true;
+        pldResult.aiSource = aiResult.source;
+        pldResult.aiConfidence = aiResult.confidence;
+        pldResult.aiReason = aiResult.reason;
+        pldResult.pldFallback = aiResult.pldFallback;
+      } else {
+        pldResult.aiEnhanced = false;
+        pldResult.aiConfidence = aiResult.confidence;
+      }
+      return pldResult;
+    });
   }
 
   function detectIntent(text) {
@@ -3671,9 +3637,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       detectProductCategoryFromPLD: detectProductCategoryFromPLD,
       detectProductMaterialFromPLD: detectProductMaterialFromPLD,
 
-      callGroqAPI: callGroqAPI,
-      callGeminiAPI: callGeminiAPI,
-      callHybridAI: callHybridAI,
+      callAIProxy: callAIProxy,                 // 🔥 FIX 169
       calculatePLDConfidence: calculatePLDConfidence,
       detectPageLevelWithAI: detectPageLevelWithAI,
 
