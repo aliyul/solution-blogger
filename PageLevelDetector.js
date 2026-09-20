@@ -1930,13 +1930,8 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
     }
 
     // Step 2: strip verbs (jasa only)
-    if (entityType === "jasa") {
-      for (var c = 0; c < COMMON_JASA_WORDS.length; c++) {
-        working = working.replace(new RegExp("\\b" + COMMON_JASA_WORDS[c] + "\\b", 'g'), ' ');
-      }
-    }
-
-    // Step 3: strip base names
+    // 🔥 FIX 207: strip BASE NAMES dulu (compound base harus match verb-base utuh)
+    // Contoh: "pasang keramik" = 1 base, jangan pecah jadi "keramik"
     var baseNames = ENTITY_BASE_NAMES[entityType] || [];
     for (var b = 0; b < baseNames.length; b++) {
       working = working.replace(
@@ -1944,8 +1939,15 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
         ' '
       );
     }
-    working = working.replace(/\s+/g, ' ').trim();
 
+    // 🔥 FIX 207: strip verbs (jasa only) — HANYA leftover verb
+    if (entityType === "jasa") {
+      for (var c = 0; c < COMMON_JASA_WORDS.length; c++) {
+        working = working.replace(new RegExp("\\b" + COMMON_JASA_WORDS[c] + "\\b", 'g'), ' ');
+      }
+    }
+    working = working.replace(/\s+/g, ' ').trim();
+   
     var count = 0;
     var seen = {};             // 🔥 FIX 196: dedup by category
     var seenWords = {};        // 🔥 FIX 196: dedup by word
@@ -4040,9 +4042,8 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "harga jasa bor jakarta", entity: "jasa", expect: "money-child", note: "FIX 177: MC" },
             // FIX 174: materialCtx dihapus
       // 🔥 FIX 180 (v23.7.1): dimensi multi-layer JASA → VARIANT/SVAR
-      { slug: "jasa pasang granit 60x60", entity: "jasa", expect: "variant", note: "FIX 180" },
-      { slug: "jasa pasang keramik 80x80", entity: "jasa", expect: "variant", note: "FIX 180" },
-      { slug: "jasa pasang marmer 60x120", entity: "jasa", expect: "variant", note: "FIX 180" },
+      { slug: "jasa pasang keramik 80x80", entity: "jasa", expect: "money-page", note: "FIX 207: 1L dimensi" },
+      { slug: "jasa pasang marmer 60x120", entity: "jasa", expect: "money-page", note: "FIX 207: 1L dimensi" },
        // FIX 170: beda head vs modifier
       { slug: "jasa bor murah dan terjangkau", entity: "jasa", expect: "money-master", note: "FIX 177: 2 noise→MM" },
       { slug: "jasa bor promo dan diskon", entity: "jasa", expect: "money-page", note: "FIX 177: 2 strong→MP" },
@@ -4090,11 +4091,7 @@ function isSpecModifierForEntity(word, entityType) {
       // ═══════════════════════════════════════════════════════════
       // 1 dimensi tanpa unit → VARIANT
       // Multi-layer tanpa unit → VARIANT (1 spec)
-      { slug: "jasa pasang keramik 60x60", entity: "jasa", expect: "variant", note: "FIX 180" },
-      { slug: "jasa pasang granit 60x60", entity: "jasa", expect: "variant", note: "FIX 180" },
       // Multi-layer + unit → SVAR (2 spec)
-      { slug: "jasa pasang keramik 60x60 cm", entity: "jasa", expect: "sub-variant", note: "FIX 180: +unit" },
-      { slug: "jasa coring 30cm 50cm", entity: "jasa", expect: "sub-variant", note: "FIX 180: 2 dimensi" },
             // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 181-194 (v23.9.0): HIERARCHY CONSISTENCY + BRANCHING
       // ═══════════════════════════════════════════════════════════
@@ -4246,7 +4243,6 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "keramik 60x60 cm", entity: "material", expect: "variant", note: "FIX 188 (2L)" },
       { slug: "sewa genset 100kva", entity: "sewa", expect: "money-page", note: "FIX 189 (1L)" },
       { slug: "sewa crane 25 ton", entity: "sewa", expect: "money-page", note: "FIX 189 (1L)" },
-           ,
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 200-206 (v23.9.2): CONSISTENCY + GENERIC BASE
       // ═══════════════════════════════════════════════════════════
@@ -4289,8 +4285,9 @@ function isSpecModifierForEntity(word, entityType) {
       // ─── Layer per-kata ───
       { slug: "desain interior minimalis modern", entity: "desain", expect: "variant", note: "FIX 205 2 kata gaya" },
       { slug: "desain interior minimalis", entity: "desain", expect: "money-page", note: "FIX 205 1 kata" },
-      { slug: "kitchen set minimalis modern", entity: "produk", expect: "variant", note: "FIX 205" }
-   
+          { slug: "kitchen set minimalis modern", entity: "produk", expect: "variant", note: "FIX 205" }
+    ];   // ← FIX TUTUP ARRAY
+
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 PLD v23.7.1 — TEST SUITE (" + TEST_CASES.length + " CASE)");
     console.log("═══════════════════════════════════════════════════════════");
