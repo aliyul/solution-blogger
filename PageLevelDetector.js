@@ -461,7 +461,7 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       // 🔥 FIX 182 CLEANUP: hapus material-composite (beton/dinding/lantai/aspal)
       // Base murni saja — material/target = modifier yang naik ke MP
       "coring", "cutting",
-      "bor", "bor horizontal", "bor horizontal tanah",
+      "bor", "bor horizontal",
       "drilling", "boring",
       "grouting",
       "las", "welding", "sandblasting",
@@ -1906,7 +1906,16 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
           durasi: SEWA_SPECS.durasi,
           target: APPLICATION_TARGETS_FULL    // 🔥 FIX 195
         };
-      case "desain":
+            case "desain":
+        // 🔥 FIX 218: exclude room context dari target
+        // "rumah", "kantor", "toko" = context ruangan (base), bukan modifier
+        var ROOM_CTX_218 = ["rumah", "kantor", "toko", "hotel", "restoran",
+          "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
+          "sekolah", "mall", "spa", "salon", "bar", "lounge", "butik",
+          "showroom", "minimarket"];
+        var targetDesain218 = APPLICATION_TARGETS_FULL.filter(function(t) {
+          return ROOM_CTX_218.indexOf(t) === -1;
+        });
         return {
           gaya: DESAIN_SPECS.gaya,
           warna: DESAIN_SPECS.warna,
@@ -1914,7 +1923,7 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
           konsep: DESAIN_SPECS.konsep,
           furniture: DESAIN_SPECS.furniture,
           subjektif: DESAIN_SPECS.subjektif,
-          target: APPLICATION_TARGETS_FULL    // 🔥 FIX 195
+          target: targetDesain218
         };
       default:
         return {};
@@ -1952,12 +1961,25 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
     }
 
     // 🔥 FIX 208: STRIP PRICE_HEAD + SATUAN + PER-UNIT (bukan layer)
+       // 🔥 FIX 208: STRIP PRICE_HEAD + SATUAN + PER-UNIT (bukan layer)
     for (var ph = 0; ph < PRICE_HEAD_WORDS.length; ph++) {
       working = working.replace(new RegExp("\\b" + PRICE_HEAD_WORDS[ph] + "\\b", 'g'), ' ');
     }
     working = working.replace(new RegExp("\\bper\\s+(" + SATUAN_UNITS.join("|") + ")\\b", 'g'), ' ');
     for (var su = 0; su < SATUAN_UNITS.length; su++) {
       working = working.replace(new RegExp("\\b" + SATUAN_UNITS[su] + "\\b", 'g'), ' ');
+    }
+
+    // 🔥 FIX 216: STRIP ALL PROMO MODIFIER (weak + strong) — bukan layer
+    // weak: murah, hemat, terjangkau, dll (noise)
+    // strong: promo, diskon, termurah, termahal (boost MP, bukan layer)
+    var PROMO_STRIP_216 = PROMO_MODIFIER_WORDS.concat(HIGH_VOLUME_WORDS);
+    var seen216 = {};
+    for (var ps216 = 0; ps216 < PROMO_STRIP_216.length; ps216++) {
+      var pword216 = PROMO_STRIP_216[ps216];
+      if (seen216[pword216]) continue;
+      seen216[pword216] = true;
+      working = working.replace(new RegExp("\\b" + pword216 + "\\b", 'g'), ' ');
     }
     working = working.replace(/\s+/g, ' ').trim();
    
@@ -2034,12 +2056,25 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       }
     }
     // Strip stopwords & conjunction
+        // Strip stopwords & conjunction
     var stopwords197 = ["dan","atau","serta","yang","dari","ke","di","untuk",
                         "dengan","ini","itu","akan","pada","oleh","per"];
     for (var s = 0; s < stopwords197.length; s++) {
       cleaned = cleaned.replace(new RegExp("\\b" + stopwords197[s] + "\\b", 'g'), ' ');
     }
+
+    // 🔥 FIX 218b: strip room context untuk desain (bukan unknown noun)
+    if (entityType === "desain") {
+      var ROOM_CTX_218b = ["rumah", "kantor", "toko", "hotel", "restoran",
+        "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
+        "sekolah", "mall", "spa", "salon", "bar", "lounge", "butik",
+        "showroom", "minimarket"];
+      for (var rc218 = 0; rc218 < ROOM_CTX_218b.length; rc218++) {
+        cleaned = cleaned.replace(new RegExp("\\b" + ROOM_CTX_218b[rc218] + "\\b", 'g'), ' ');
+      }
+    }
     cleaned = cleaned.replace(/\s+/g, ' ').trim();
+   
     var unknownWords = cleaned.split(/\s+/).filter(function(w) {
       return w.length > 3;
     });
@@ -3051,14 +3086,25 @@ function isSpecModifierForEntity(word, entityType) {
 
     // PRIORITAS 11: HIGH VOLUME
         // 🔥 FIX 209: HIGH VOLUME (strong promo only — noise murah/hemat/terjangkau TIDAK masuk sini)
+        // 🔥 FIX 215: HIGH VOLUME + SPEC/NOUN → layer-based
+    // Aturan: strong promo TIDAK tambah layer, tapi existing layer tetap dihitung
     var hasHighVolume = false;
     for (var i = 0; i < HIGH_VOLUME_WORDS.length; i++) {
       if (lowerText.indexOf(HIGH_VOLUME_WORDS[i]) !== -1) { hasHighVolume = true; break; }
     }
  
-    if (hasHighVolume && !hasLocationWord && !hasSpecWord) {
-      var hasNoun = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|bangunan|konstruksi)\b/i.test(lowerText);
-      if (hasNoun) { log('💰 FIX 209: MONEY_PAGE (strong promo)', 'PRICE'); return "money-page"; }
+    if (hasHighVolume && !hasLocationWord) {
+      var layers215 = countModifierLayers(text, entityType);
+      if (layers215 > 0) {
+        var decision215 = decideLevelByLayers(layers215);
+        log('💰 FIX 215: ' + decision215 + ' (' + layers215 + ' layer + promo)', 'PRICE');
+        return decision215;
+      }
+      var hasNoun215 = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|bangunan|konstruksi)\b/i.test(lowerText);
+      if (hasNoun215 || hasSpecWord) {
+        log('💰 FIX 215: MONEY_PAGE (strong promo, 0 layer)', 'PRICE');
+        return "money-page";
+      }
     }
    
        // 🔥 FIX 164: Force MP untuk conjunction "dan"/"serta" (bundling 2 layanan)
@@ -4223,10 +4269,6 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "sewa pompa air kolam", entity: "sewa", expect: "money-page", note: "FIX 213: 1L target" },
       { slug: "sewa crane proyek jalan", entity: "sewa", expect: "variant", note: "FIX 195" },
 
-      // ─── FIX 195: Application targets → MP (DESAIN) ───
-      { slug: "desain interior taman", entity: "desain", expect: "money-page", note: "FIX 195 desain" },
-      { slug: "desain interior kamar mandi", entity: "desain", expect: "money-page", note: "FIX 195" },
-
       // ─── FIX 196: Dedup ───
       { slug: "jasa cutting beton beton", entity: "jasa", expect: "money-page", note: "FIX 196 dedup" },
       { slug: "pagar panel beton putih putih", entity: "produk", expect: "money-page", note: "FIX 196" },
@@ -4335,9 +4377,32 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "cat tembok", entity: "material", expect: "money-page", note: "FIX 212" },
       { slug: "sewa excavator tambang", entity: "sewa", expect: "money-page", note: "FIX 212" },
       { slug: "desain interior taman", entity: "desain", expect: "money-page", note: "FIX 212" },
-      { slug: "desain interior kamar mandi", entity: "desain", expect: "money-page", note: "FIX 212" }
-     
-    ];   // ← FIX TUTUP ARRAY
+      { slug: "desain interior kamar mandi", entity: "desain", expect: "money-page", note: "FIX 212" },
+
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 215-219 (v23.9.4): RE-CHECK MISMATCH FIX
+      // ═══════════════════════════════════════════════════════════
+
+      // FIX 215: strong promo + spec → MP
+      { slug: "jasa coring hidrolik promo", entity: "jasa", expect: "money-page", note: "FIX 215" },
+      { slug: "jasa coring hidrolik diskon", entity: "jasa", expect: "money-page", note: "FIX 215" },
+      { slug: "jasa coring hidrolik termurah", entity: "jasa", expect: "money-page", note: "FIX 215" },
+
+      // FIX 216: noise + strong promo bukan layer
+      { slug: "jasa bor tanah murah", entity: "jasa", expect: "money-page", note: "FIX 216" },
+      { slug: "jasa bor beton hemat", entity: "jasa", expect: "money-page", note: "FIX 216" },
+      { slug: "jasa coring beton terjangkau", entity: "jasa", expect: "money-page", note: "FIX 216" },
+
+      // FIX 219: bor horizontal tanah
+      { slug: "jasa bor horizontal tanah", entity: "jasa", expect: "money-page", note: "FIX 219" },
+      { slug: "jasa bor horizontal", entity: "jasa", expect: "money-master", note: "FIX 219 base murni" },
+
+      // FIX 218: room context desain
+      { slug: "desain interior rumah minimalis", entity: "desain", expect: "money-page", note: "FIX 218" },
+      { slug: "desain interior rumah minimalis modern", entity: "desain", expect: "variant", note: "FIX 218" },
+      { slug: "harga desain rumah tropis", entity: "desain", expect: "money-page", note: "FIX 218 regression" },
+      { slug: "harga desain rumah tropis 2 lantai", entity: "desain", expect: "money-page", note: "FIX 218 regression" }
+    ];   // ← TUTUP ARRAY
 
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 PLD v23.7.1 — TEST SUITE (" + TEST_CASES.length + " CASE)");
