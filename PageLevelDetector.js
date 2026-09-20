@@ -2682,11 +2682,28 @@ function isSpecModifierForEntity(word, entityType) {
         // PRIORITAS 7: VARIANT / SUB-VARIANT
     if (hasSpecWord && !hasPriceWord && !hasCommercialWord && !hasLocationWord) {
       // 🔥 FIX 178 (v23.7.1): JASA + metode → MP (bukan Variant)
-      // Metode = cara melayani, bukan spec variant produk
+      // 🔥 FIX 179 REVISI (v23.7.1): JASA + metode + dimensi → VARIANT (naik 1 level dari MP)
+      // 🔥 FIX 179 REVISI (v23.7.1): JASA + metode + 2 dimensi → SUB-VARIANT
       if (entityType === "jasa") {
         var metodeMatch178 = checkHasJasaMetode(text);
         if (metodeMatch178) {
-          log('💵 FIX 178: MONEY_PAGE (jasa + metode: ' + metodeMatch178 + ')', 'PRICE');
+          // Hitung jumlah layer dimensi (untuk bedakan Variant vs Sub-Variant)
+          var dimensiMatches179 = lowerText.match(/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci)\b/gi) || [];
+          var layerCount179 = dimensiMatches179.length;
+
+          // Cek multi-layer (60x60 cm, 240x40) — lebih spesifik = SVAR
+          var hasMultiLayer179 = /\d+\s*(?:m|mm|cm|meter)\s*(?:x|×)\s*\d+/i.test(lowerText);
+
+          if (hasMultiLayer179 || layerCount179 >= 2) {
+            log('🔬 FIX 179: SUB-VARIANT (metode + 2+ dimensi)', 'VARIANT');
+            return "sub-variant";
+          }
+          if (layerCount179 === 1) {
+            log('🔬 FIX 179: VARIANT (metode + 1 dimensi: ' + dimensiMatches179[0] + ')', 'VARIANT');
+            return "variant";
+          }
+          // Tidak ada dimensi → MP (metode murni)
+          log('💵 FIX 178: MONEY_PAGE (jasa + metode murni)', 'PRICE');
           return "money-page";
         }
       }
@@ -3842,7 +3859,24 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa coring polos", entity: "jasa", expect: "variant", note: "FIX 178: finishing≠metode" },
       // Base murni tetap MM
       { slug: "jasa coring beton", entity: "jasa", expect: "money-master", note: "FIX 178: base murni" },
-      { slug: "jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 178: base murni" }
+      { slug: "jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 178: base murni" },
+
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 179 REVISI (v23.7.1): Metode + dimensi → increment hierarki
+      // ═══════════════════════════════════════════════════════════
+      // Metode + 1 dimensi → VARIANT (naik 1 level dari MP)
+      { slug: "jasa coring hidrolik 30cm", entity: "jasa", expect: "variant", note: "FIX 179r: metode + 1 dimensi" },
+      { slug: "jasa bor manual 50cm", entity: "jasa", expect: "variant", note: "FIX 179r: metode + 1 dimensi" },
+      { slug: "jasa coring komersial 30cm", entity: "jasa", expect: "variant", note: "FIX 179r: skala + 1 dimensi" },
+      { slug: "jasa pengeboran rotary 40cm", entity: "jasa", expect: "variant", note: "FIX 179r: metode + 1 dimensi" },
+
+      // Metode + 2+ dimensi (multi-layer) → SUB-VARIANT
+      { slug: "jasa coring hidrolik 30cm 50cm", entity: "jasa", expect: "sub-variant", note: "FIX 179r: metode + 2 dimensi" },
+      { slug: "jasa coring hidrolik 60x60 cm", entity: "jasa", expect: "sub-variant", note: "FIX 179r: metode + multi-layer" },
+
+      // Metode murni (tanpa dimensi) → MP
+      { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 178: metode murni" },
+      { slug: "jasa bor manual", entity: "jasa", expect: "money-page", note: "FIX 178: metode murni" }
    
     ];   // 🔥 FIX 162e: tutup array TEST_CASES
    
