@@ -1,7 +1,36 @@
 /* ============================================================
- 🧠 Page Level Detector v23.7.0 — SEO ALIGNED MONEY WORDS
+ 🧠 Page Level Detector v23.7.1 — SEO ALIGNED MONEY WORDS PHASE 2
     ============================================================
     BASE: v23.7.0 (SEO MISMATCH RESOLUTION PHASE 4)
+
+    🔥 FIX 170 (v23.7.1) — Price head vs promo modifier split
+       - PRICE_HEAD_WORDS: harga, biaya, tarif, estimasi, ongkos, budget, fee, rate
+       - PROMO_MODIFIER_WORDS: murah, hemat, terjangkau, promo, diskon, obral, sale
+       - checkHasPrice() cuma cek HEAD word
+       - checkHasPromoModifier() — fungsi baru
+       - promo/diskon/termurah/termahal → MP (via FIX 158)
+       - murah/hemat/terjangkau → MM (noise)
+
+    🔥 FIX 171 (v23.7.1) — Intent triggers cleanup
+       - Hapus 'murah','hemat','ekonomis','termurah','termahal' dari transactional
+
+    🔥 FIX 172 (v23.7.1) — detectContentSignalsFromSlug() 🆕
+       - Fungsi baru untuk mode GAS (tanpa DOM)
+
+    🔥 FIX 173 (v23.7.1) — detectSchemaType support areaServed (MC)
+
+    🔥 FIX 174 (v23.7.1) — Hapus materialCtx di JASA
+       - Konsisten FIX 160d: material BUKAN spec JASA
+       - JASA + 60x60 (dimensi tanpa unit) → bukan pure spec
+
+    🔥 FIX 177 (v23.7.1) — Test cases tambahan FIX 170-174
+
+    ⚠️  FIX 175 (checkHasBaseService regex) — SKIPPED
+       - Alasan: 'cor','bangun','rumah' tetap dibutuhkan untuk MC detection
+       - False negative MC lebih bahaya dari false positive
+
+    ⚠️  FIX 176 (test case update FIX 158) — tidak diperlukan
+       - Test case existing sudah konsisten
 
     🔥 FIX 170 (v23.7.1) — Price head vs promo modifier split
        - Pisah PRICE_WORDS jadi 2 grup:
@@ -93,8 +122,8 @@
 (function () {
   "use strict";
 
-if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7.0") {
-    console.warn("⚠️ [PLD v23.7.0] Already loaded!");
+if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7.1") {
+    console.warn("⚠️ [PLD v23.7.1] Already loaded!");
     return;
 }
 
@@ -134,10 +163,10 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
       OBJECT: "🧊", SCORE: "🎚️", BASE: "🏗️", CROSSSPEC: "🎯",
       DOM: "🌐", EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐"
     };
-    console.log((icons[type] || "📘") + " [PLD v23.7.0] " + message);
+        console.log((icons[type] || "📘") + " [PLD v23.7.1] " + message);
   }
 
- log('📦 PLD v23.7.0 — SEO MISMATCH RESOLUTION PHASE 4 (FIX 149-153)', 'EXTERNAL');
+ log('📦 PLD v23.7.1 — SEO ALIGNED MONEY WORDS PHASE 2 (FIX 170-177)', 'EXTERNAL');
 
   // ═══════════════════════════════════════════════════════════
   // LEVEL MAPS
@@ -1026,16 +1055,11 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
   var HIGH_VOLUME_WORDS = ["promo", "diskon", "obral", "cuci gudang", "flash sale"];
   var SIZE_WORDS = ["mini", "besar", "kecil", "sedang", "medium", "extra", "ekstra", "standar"];
 
-    // 🔥 FIX 171 (v23.7.1): Hapus 'murah','hemat','ekonomis','termurah','termahal' dari transactional
+// 🔥 FIX 171 (v23.7.1): Hapus 'murah','hemat','ekonomis','termurah','termahal' dari transactional
   // Alasan: modifier bukan transactional murni (SEO-aligned)
   var INTENT_TRIGGERS = {
-    transactional: [
-      "beli", "order", "pesan", "booking", "sewa sekarang",
-      "harga", "biaya", "tarif", "estimasi",
-      "bayar", "cicilan", "kredit", "dapatkan", "pesan sekarang",
-      "resmi", "authorized", "ready stock", "siap pakai",
-      "cara order", "cara pesan", "cara beli"
-    ],
+    transactional: ["beli", "order", "pesan", "booking", "sewa sekarang", "harga", "biaya", "tarif", "estimasi", "promo", "diskon", "bayar", "cicilan", "kredit", "dapatkan", "pesan sekarang", "resmi", "authorized", "ready stock", "siap pakai", "cara order", "cara pesan", "cara beli"],
+   
     informational: ["cara", "tutorial", "panduan", "tips", "langkah", "bagaimana", "apa itu", "pengertian", "definisi", "contoh", "jenis", "perbedaan", "kelebihan", "kekurangan", "manfaat", "fungsi", "berapa", "apa yang", "mengapa", "kenapa", "kapan", "dimana", "siapa", "yang mana", "apakah", "update terbaru", "informasi terbaru", "kabar terbaru"],
     commercial: ["review", "testimoni", "rekomendasi", "terbaik", "paling", "vs", "versus", "perbandingan", "alternatif", "pilihan", "populer", "favorit", "unggulan", "ulasan", "pengalaman", "rating", "penilaian", "terburuk", "terpopuler", "terfavorit"],
     navigational: ["login", "daftar", "kontak", "tentang", "hubungi", "alamat", "lokasi", "maps", "direksi"]
@@ -1651,11 +1675,12 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     return false;
   }
 
-   // 🔥 FIX 175 (v23.7.1): Rapikan regex — hapus 'cor','bangun','rumah' yang terlalu umum
+  // ⚠️ FIX 175 SKIPPED (v23.7.1): 'cor','bangun','rumah' TETAP dibutuhkan untuk MC
+  // Alasan: false negative MC lebih bahaya dari false positive
   function checkHasBaseService(text) {
     if (!text) return false;
     var lower = text.toLowerCase();
-    var baseRegex = /\b(jasa|layanan|sewa|rental|produk|material|bahan|kontraktor|tukang|borongan|pasang|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|desain|interior|eksterior|arsitektur|konstruksi|gedung|ruko|gudang|pabrik|jembatan|infrastruktur|pile|bore|strauss|semen|pasir|kerikil|hebel|batako|genteng|asbes|atap|galvalum|precast|pracetak|kaca|aluminium|pipa)\b/i;
+    var baseRegex = /\b(jasa|layanan|sewa|rental|produk|material|bahan|kontraktor|tukang|borongan|pasang|bangun|renovasi|perbaikan|instalasi|service|servis|pemasangan|pemancangan|pengeboran|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|desain|interior|eksterior|arsitektur|konstruksi|rumah|gedung|ruko|gudang|pabrik|jalan|jembatan|infrastruktur|mini|pile|bore|strauss|semen|pasir|batu split|kerikil|hebel|batako|genteng|asbes|atap|galvalum|precast|pracetak|kaca|aluminium|pipa)\b/i;
     return baseRegex.test(lower);
   }
 
@@ -3164,10 +3189,11 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
   }
 
     // 🔥 FIX 173 (v23.7.1): Support areaServed untuk MC (money-child)
+   // 🔥 FIX 173 (v23.7.1): Support areaServed untuk MC (money-child)
   function detectSchemaType(level, entityType, contentFocus) {
     var primary = 'WebPage';
     var secondary = '';
-    var note = '';   // 🆕
+    var note = '';
     var isMoneyLevel = ['money-master', 'money-page', 'money-child'].indexOf(level) !== -1;
     var isEvergreen = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].indexOf(level) !== -1;
     var isVariant = ['variant', 'sub-variant'].indexOf(level) !== -1;
@@ -3182,9 +3208,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
     else if (isMoneyLevel) {
       if (contentFocus === 'HARGA' || contentFocus === 'COMMERCIAL') {
         primary = 'Product'; secondary = 'Service';
-        // 🆕 FIX 173: MC + HARGA/COMMERCIAL → with-areaServed
         if (level === 'money-child') {
-          secondary = 'Service';  // Service + areaServed
           note = 'with-areaServed';
         }
       } else if (contentFocus === 'INFORMASI') {
@@ -3756,14 +3780,36 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
      // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 168 (v23.7.9): Parent-driven hierarchy validator
       // ═══════════════════════════════════════════════════════════
-      { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master", note: "FIX 168: parent MM" },
+         { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master", note: "FIX 168: parent MM" },
       { slug: "harga jasa pasang grc dinding", entity: "jasa", expect: "money-page", note: "FIX 168: child MP (expected)" },
-      { slug: "harga jasa pasang hpl dinding", entity: "jasa", expect: "money-page", note: "FIX 168: child MP (expected)" }
+      { slug: "harga jasa pasang hpl dinding", entity: "jasa", expect: "money-page", note: "FIX 168: child MP (expected)" },
+
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 177 (v23.7.1): Test cases FIX 170-174
+      // ═══════════════════════════════════════════════════════════
+      // FIX 170: Promo modifier vs price head
+      { slug: "jasa bor promo", entity: "jasa", expect: "money-page", note: "FIX 177: promo=strong→MP" },
+      { slug: "jasa bor diskon", entity: "jasa", expect: "money-page", note: "FIX 177: diskon=strong→MP" },
+      { slug: "jasa bor termurah", entity: "jasa", expect: "money-page", note: "FIX 177: termurah=strong→MP" },
+      { slug: "jasa bor termahal", entity: "jasa", expect: "money-page", note: "FIX 177: termahal=strong→MP" },
+      { slug: "jasa bor murah", entity: "jasa", expect: "money-master", note: "FIX 177: murah=noise→MM" },
+      { slug: "jasa bor hemat", entity: "jasa", expect: "money-master", note: "FIX 177: hemat=noise→MM" },
+      { slug: "jasa bor terjangkau", entity: "jasa", expect: "money-master", note: "FIX 177: terjangkau=noise→MM" },
+      { slug: "harga jasa bor promo", entity: "jasa", expect: "money-page", note: "FIX 177: harga+promo→MP" },
+      { slug: "harga jasa bor murah", entity: "jasa", expect: "money-master", note: "FIX 177: harga+murah→MM" },
+      { slug: "biaya jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 177: biaya+spec→MP" },
+      // FIX 173: areaServed untuk MC
+      { slug: "harga jasa bor jakarta", entity: "jasa", expect: "money-child", note: "FIX 177: MC" },
+      // FIX 174: materialCtx dihapus
+      { slug: "jasa pasang keramik 60x60", entity: "jasa", expect: "money-page", note: "FIX 177: tanpa materialCtx→MP" },
+      // FIX 170: beda head vs modifier
+      { slug: "jasa bor murah dan terjangkau", entity: "jasa", expect: "money-master", note: "FIX 177: 2 noise→MM" },
+      { slug: "jasa bor promo dan diskon", entity: "jasa", expect: "money-page", note: "FIX 177: 2 strong→MP" }
    
     ];   // 🔥 FIX 162e: tutup array TEST_CASES
-    
+   
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("🧪 PLD v23.7.0 — TEST SUITE (" + TEST_CASES.length + " CASE)");
+    console.log("🧪 PLD v23.7.1 — TEST SUITE (" + TEST_CASES.length + " CASE)");
     console.log("═══════════════════════════════════════════════════════════");
 
     var passed = 0, failed = 0, failures = [];
@@ -3806,7 +3852,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "23.7.0",
+      version: "23.7.1",
       CONFIG: CONFIG,
 
       detect: detectPageLevel,
@@ -3988,23 +4034,20 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       } catch (e2) {}
     }
 
-    console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v23.7.0 — SEO MISMATCH PHASE 4");
-    console.log("═══════════════════════════════════════════════════════════");
-    console.log("🔥 FIX 170: PRICE_HEAD vs PROMO_MODIFIER split");
-    console.log("🔥 FIX 171: Intent triggers cleanup (murah≠transactional)");
-    console.log("🔥 FIX 172: detectContentSignalsFromSlug() 🆕");
-    console.log("🔥 FIX 173: Schema areaServed untuk MC");
-    console.log("🔥 FIX 174: Hapus materialCtx di JASA");
-    console.log("🔥 FIX 175: Rapikan checkHasBaseService regex");
-    console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ FIX 1-148 (v22.62 → v23.6.0): DIPERTAHANKAN SEMUA");
-    console.log("🔥 FIX 149 (v23.7.0): moneyWords +5 promo (murah, hemat, dll)");
-    console.log("🔥 FIX 150 (v23.7.0): ENTITY_ONLY_WORDS removal penuh");
-    console.log("🔥 FIX 151 (v23.7.0): Base service price threshold >= 2");
-    console.log("🔥 FIX 152 (v23.7.0): checkHasBaseService + rental|bahan");
-    console.log("🔥 FIX 153 (v23.7.0): Test Suite +7 case FIX 150-152");
-    console.log("═══════════════════════════════════════════════════════════");
+   console.log("═══════════════════════════════════════════════════════════");
+console.log("✅ Page Level Detector v23.7.1 — SEO ALIGNED MONEY WORDS PHASE 2");
+console.log("═══════════════════════════════════════════════════════════");
+console.log("🔥 FIX 170 (v23.7.1): PRICE_HEAD vs PROMO_MODIFIER split");
+console.log("🔥 FIX 171 (v23.7.1): Intent triggers cleanup (murah≠transactional)");
+console.log("🔥 FIX 172 (v23.7.1): detectContentSignalsFromSlug() 🆕");
+console.log("🔥 FIX 173 (v23.7.1): Schema areaServed untuk MC");
+console.log("🔥 FIX 174 (v23.7.1): Hapus materialCtx di JASA");
+console.log("⚠️  FIX 175 (v23.7.1): SKIPPED — cor/bangun/rumah tetap");
+console.log("🔥 FIX 177 (v23.7.1): Test cases +10 FIX 170-174");
+console.log("═══════════════════════════════════════════════════════════");
+console.log("✅ FIX 1-148 (v22.62 → v23.6.0): DIPERTAHANKAN SEMUA");
+console.log("🔥 FIX 149-169 (v23.7.0): DIPERTAHANKAN SEMUA");
+console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 Test: runPLDTestSuite()");
     console.log("📊 Akurasi Target: 100% (SEO aligned, all entity)");
     console.log("═══════════════════════════════════════════════════════════");
@@ -4027,7 +4070,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
     setTimeout(function() { if (document.readyState === 'loading') callback(); }, 3000);
   }
 
-  log('🚀 Starting PLD v23.7.0 — SEO MISMATCH RESOLUTION PHASE 4...', 'INFO');
+ log('🚀 Starting PLD v23.7.1 — SEO ALIGNED MONEY WORDS PHASE 2...', 'INFO');
   waitForDOM(function() { initializeCore(); });
   if (typeof document !== 'undefined' && document.readyState === 'complete') {
     if (!window.pageLevelDetectorv22) initializeCore();
