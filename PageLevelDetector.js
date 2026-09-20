@@ -1,8 +1,6 @@
 /* ============================================================
---- v23.7.1
-+++ v23.8.0
 @@
- 🧠 Page Level Detector v23.9.0 — HIERARCHY CONSISTENCY + BRANCHING PHASE
+ 🧠 Page Level Detector v23.9.1 — HIERARCHY CONSISTENCY + BRANCHING PHASE
     ============================================================
     BASE: v23.7.1
 
