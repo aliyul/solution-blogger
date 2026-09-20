@@ -21,46 +21,27 @@
 
     🔥 FIX 174 (v23.7.1) — Hapus materialCtx di JASA
        - Konsisten FIX 160d: material BUKAN spec JASA
-       - JASA + 60x60 (dimensi tanpa unit) → bukan pure spec
 
     🔥 FIX 177 (v23.7.1) — Test cases tambahan FIX 170-174
+
+    🔥 FIX 178 (v23.7.1) — Metode JASA → MP (bukan Variant)
+       - Tambah checkHasJasaMetode() — deteksi metode JASA
+       - Metode: hidrolik, manual, auger, rotary, dll
+       - Skala: rumahan, komersial, industri, dll
+       - Update PRIORITAS 7 & 9 di detectMoneyLevelInternal
+       - Fix: "jasa coring hidrolik" → MP (bukan Variant)
+       - Fix: "jasa pengeboran hidrolik" → MP
+       - Fix: "biaya jasa coring hidrolik" → MP
+       - Keep: "jasa coring beton" → MM (base murni)
+       - Keep: "jasa pasang keramik 60x60" → MP (via FIX 174)
 
     ⚠️  FIX 175 (checkHasBaseService regex) — SKIPPED
        - Alasan: 'cor','bangun','rumah' tetap dibutuhkan untuk MC detection
        - False negative MC lebih bahaya dari false positive
 
-    ⚠️  FIX 176 (test case update FIX 158) — tidak diperlukan
+    ⚠️  FIX 176 (test case update FIX 158) — SKIPPED
        - Test case existing sudah konsisten
 
-    🔥 FIX 170 (v23.7.1) — Price head vs promo modifier split
-       - Pisah PRICE_WORDS jadi 2 grup:
-         * PRICE_HEAD_WORDS: harga, biaya, tarif, estimasi, ongkos, budget
-         * PROMO_MODIFIER_WORDS: murah, hemat, terjangkau, promo, diskon
-       - checkHasPrice() cuma cek head word
-       - checkHasPromoModifier() — fungsi baru
-       - Effect: "jasa bor sumur murah" → tetap bisa MONEY-MASTER (bukan MP)
-
-    🔥 FIX 171 (v23.7.1) — Intent triggers cleanup
-       - Hapus 'murah','hemat','ekonomis','termurah','termahal' dari transactional
-       - Alasan: modifier bukan transactional murni (SEO-aligned)
-
-    🔥 FIX 172 (v23.7.1) — detectContentSignalsFromSlug() 🆕
-       - Fungsi baru untuk mode GAS (tanpa DOM)
-       - Output: hasPriceWord, priceWord, isPriceAtStart,
-                 hasCommercialWord, hasPromoModifier, hasInfoWord
-       - Dipakai oleh FocusSuggestion.gs v3.3+
-
-    🔥 FIX 173 (v23.7.1) — detectSchemaType support areaServed
-       - MC (money-child) + HARGA/COMMERCIAL → note: 'with-areaServed'
-
-    🔥 FIX 174 (v23.7.1) — Hapus materialCtx di JASA
-       - Konsisten FIX 160d: material BUKAN spec JASA
-
-    🔥 FIX 175 (v23.7.1) — Rapikan checkHasBaseService regex
-       - Discriminative: hapus 'cor','bangun','rumah' (terlalu umum)
-
-    🔥 FIX 176 (v23.7.1) — Fix test cases FIX 158 (sesuai konsep baru)
-   
     ✅ FIX 1-148 (v22.62 → v23.6.0): DIPERTAHANKAN SEMUA
     
     🔥 FIX 149 (v23.7.0) — moneyWords +5 kata promo
@@ -1929,6 +1910,21 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
     return false;
   }
 
+    // 🔥 FIX 178 (v23.7.1): Deteksi metode JASA untuk naikkan ke MP
+  // Metode (hidrolik/manual/auger) = cara melayani, BUKAN spec variant produk
+  // Base + metode → naik 1 level → MP
+  function checkHasJasaMetode(text) {
+    if (!text) return null;
+    var lower = text.toLowerCase();
+    var metodeWords = PURE_METHODS.concat(PURE_SCALES);
+    for (var i = 0; i < metodeWords.length; i++) {
+      if (new RegExp("\\b" + metodeWords[i] + "\\b", "i").test(lower)) {
+        return metodeWords[i];
+      }
+    }
+    return null;
+  }
+ 
   function checkPureTechnicalSpec(text, entityType) {
     if (!text) return false;
     var lower = text.toLowerCase();
@@ -2683,8 +2679,18 @@ function isSpecModifierForEntity(word, entityType) {
       return "money-page";
     }
 
-    // PRIORITAS 7: VARIANT / SUB-VARIANT
+        // PRIORITAS 7: VARIANT / SUB-VARIANT
     if (hasSpecWord && !hasPriceWord && !hasCommercialWord && !hasLocationWord) {
+      // 🔥 FIX 178 (v23.7.1): JASA + metode → MP (bukan Variant)
+      // Metode = cara melayani, bukan spec variant produk
+      if (entityType === "jasa") {
+        var metodeMatch178 = checkHasJasaMetode(text);
+        if (metodeMatch178) {
+          log('💵 FIX 178: MONEY_PAGE (jasa + metode: ' + metodeMatch178 + ')', 'PRICE');
+          return "money-page";
+        }
+      }
+     
       var isPureTech = checkPureTechnicalSpec(text, entityType);
       if (isPureTech) {
         var fisikSubVarRegex;
@@ -2758,8 +2764,17 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
   return "money-page";
 }
    
-    // PRIORITAS 9: PRICE + SPEC → MP/MM
+       // PRIORITAS 9: PRICE + SPEC → MP/MM
     if (hasPriceWord && hasSpecWord && !hasLocationWord && !hasCommercialWord) {
+      // 🔥 FIX 178 (v23.7.1): JASA + metode + harga → MP
+      if (entityType === "jasa") {
+        var metodeMatch178b = checkHasJasaMetode(text);
+        if (metodeMatch178b) {
+          log('💵 FIX 178: MONEY_PAGE (harga + jasa + metode: ' + metodeMatch178b + ')', 'HARGA');
+          return "money-page";
+        }
+      }
+     
       var isPureTechForPrice = checkPureTechnicalSpec(text, entityType);
       if (isPureTechForPrice) { log('💵 MONEY_PAGE', 'HARGA'); return "money-page"; }
       else { log('🏛️ MONEY_MASTER', 'HARGA'); return "money-master"; }
@@ -3581,7 +3596,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "pagar besi atau pagar kayu", entity: "produk", expect: "sub-pillar-tipe-1", note: "FIX 147: valid" },
       // ═══ Core Regression ═══
       { slug: "jasa coring beton", entity: "jasa", expect: "money-master", note: "regression" },
-      { slug: "jasa coring hidrolik", entity: "jasa", expect: "variant", note: "regression" },
+      { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 178: metode JASA → MP" },
       { slug: "jasa coring 30cm", entity: "jasa", expect: "sub-variant", note: "regression" },
       { slug: "jasa pasang pagar jakarta", entity: "jasa", expect: "money-child", note: "regression" },
       { slug: "semen portland", entity: "material", expect: "variant", note: "regression" },
@@ -3802,9 +3817,32 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "harga jasa bor jakarta", entity: "jasa", expect: "money-child", note: "FIX 177: MC" },
       // FIX 174: materialCtx dihapus
       { slug: "jasa pasang keramik 60x60", entity: "jasa", expect: "money-page", note: "FIX 177: tanpa materialCtx→MP" },
-      // FIX 170: beda head vs modifier
+       // FIX 170: beda head vs modifier
       { slug: "jasa bor murah dan terjangkau", entity: "jasa", expect: "money-master", note: "FIX 177: 2 noise→MM" },
-      { slug: "jasa bor promo dan diskon", entity: "jasa", expect: "money-page", note: "FIX 177: 2 strong→MP" }
+      { slug: "jasa bor promo dan diskon", entity: "jasa", expect: "money-page", note: "FIX 177: 2 strong→MP" },
+
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 178 (v23.7.1): Metode JASA → MP (bukan Variant)
+      // ═══════════════════════════════════════════════════════════
+      { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 178" },
+      { slug: "jasa pengeboran hidrolik", entity: "jasa", expect: "money-page", note: "FIX 178" },
+      { slug: "jasa bor manual", entity: "jasa", expect: "money-page", note: "FIX 178" },
+      { slug: "jasa coring manual", entity: "jasa", expect: "money-page", note: "FIX 178" },
+      { slug: "jasa pengeboran rotary", entity: "jasa", expect: "money-page", note: "FIX 178" },
+      { slug: "jasa pengeboran auger", entity: "jasa", expect: "money-page", note: "FIX 178" },
+      { slug: "jasa coring basah", entity: "jasa", expect: "money-page", note: "FIX 178: metode basah" },
+      { slug: "jasa coring kering", entity: "jasa", expect: "money-page", note: "FIX 178: metode kering" },
+      // Skala JASA juga → MP
+      { slug: "jasa coring komersial", entity: "jasa", expect: "money-page", note: "FIX 178: skala" },
+      { slug: "jasa bor sumur industri", entity: "jasa", expect: "money-page", note: "FIX 178: skala" },
+      // Base + metode + harga → MP
+      { slug: "biaya jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 178: harga+metode" },
+      { slug: "harga jasa bor manual", entity: "jasa", expect: "money-page", note: "FIX 178: harga+metode" },
+      // Finishing JASA tetap Variant (bukan metode)
+      { slug: "jasa coring polos", entity: "jasa", expect: "variant", note: "FIX 178: finishing≠metode" },
+      // Base murni tetap MM
+      { slug: "jasa coring beton", entity: "jasa", expect: "money-master", note: "FIX 178: base murni" },
+      { slug: "jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 178: base murni" }
    
     ];   // 🔥 FIX 162e: tutup array TEST_CASES
    
@@ -3891,6 +3929,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       checkHasPrice: checkHasPrice,
       checkHasPromoModifier: checkHasPromoModifier,      // 🔥 FIX 170
       detectContentSignalsFromSlug: detectContentSignalsFromSlug,  // 🔥 FIX 172
+      checkHasJasaMetode: checkHasJasaMetode,            // 🔥 FIX 178
       checkHasPerUnit: checkHasPerUnit,
       checkHasQuestionWord: checkHasQuestionWord,
       checkHasCommercialInvestigation: checkHasCommercialInvestigation,
@@ -4042,8 +4081,11 @@ console.log("🔥 FIX 171 (v23.7.1): Intent triggers cleanup (murah≠transactio
 console.log("🔥 FIX 172 (v23.7.1): detectContentSignalsFromSlug() 🆕");
 console.log("🔥 FIX 173 (v23.7.1): Schema areaServed untuk MC");
 console.log("🔥 FIX 174 (v23.7.1): Hapus materialCtx di JASA");
+console.log("🔥 FIX 178 (v23.7.1): Metode JASA → MP (checkHasJasaMetode)");
 console.log("⚠️  FIX 175 (v23.7.1): SKIPPED — cor/bangun/rumah tetap");
+console.log("⚠️  FIX 176 (v23.7.1): SKIPPED — test case existing sudah OK");
 console.log("🔥 FIX 177 (v23.7.1): Test cases +10 FIX 170-174");
+console.log("🔥 FIX 178 (v23.7.1): Test cases +15 metode JASA");
 console.log("═══════════════════════════════════════════════════════════");
 console.log("✅ FIX 1-148 (v22.62 → v23.6.0): DIPERTAHANKAN SEMUA");
 console.log("🔥 FIX 149-169 (v23.7.0): DIPERTAHANKAN SEMUA");
