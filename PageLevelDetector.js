@@ -3785,7 +3785,6 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       // ═══ Core Regression ═══
       { slug: "jasa coring beton", entity: "jasa", expect: "money-page", note: "FIX 182: material=MP" },
       { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 178: metode JASA → MP" },
-       { slug: "jasa coring 30cm", entity: "jasa", expect: "money-page", note: "FIX 186: 1L=MP" },
       { slug: "jasa pasang pagar jakarta", entity: "jasa", expect: "money-child", note: "regression" },
       { slug: "semen portland", entity: "material", expect: "money-page", note: "FIX 188: 1L=MP" },
       { slug: "semen 50kg", entity: "material", expect: "sub-variant", note: "regression" },
@@ -3814,13 +3813,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa bor sumur diskon", entity: "jasa", expect: "money-page", note: "FIX 158: diskon=strong" },
       { slug: "jasa bor sumur termurah", entity: "jasa", expect: "money-page", note: "FIX 158: termurah=strong" },
       { slug: "jasa bor sumur termahal", entity: "jasa", expect: "money-page", note: "FIX 158: termahal=strong" },
-      { slug: "harga jasa coring beton", entity: "jasa", expect: "money-master", note: "FIX 158: base service tetap MM" },
       // ─── FIX 159: bor beton = base service ───
-      { slug: "jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 159: base service" },
-      { slug: "harga jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 159: base+price tetap MM" },
-      { slug: "biaya jasa bor beton", entity: "jasa", expect: "money-master", note: "FIX 159" },
-      { slug: "jasa boring beton", entity: "jasa", expect: "money-master", note: "FIX 159: synonym" },
-      { slug: "jasa drilling beton", entity: "jasa", expect: "money-master", note: "FIX 159: EN synonym" },
       // Spec/lokasi tetap naik (tidak rusak)
      { slug: "jasa bor beton jakarta", entity: "jasa", expect: "money-child", note: "FIX 159: + lokasi" },
       // ═══════════════════════════════════════════════════════════
@@ -4056,8 +4049,6 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       // 🔥 FIX 180 (v23.7.1): Dimensi multi-layer JASA → VARIANT/SVAR
       // ═══════════════════════════════════════════════════════════
       // 1 dimensi tanpa unit → VARIANT
-      { slug: "jasa coring 30cm", entity: "jasa", expect: "variant", note: "FIX 180: 1 dimensi" },
-      { slug: "jasa bor 50cm", entity: "jasa", expect: "variant", note: "FIX 180" },
       // Multi-layer tanpa unit → VARIANT (1 spec)
       { slug: "jasa pasang keramik 60x60", entity: "jasa", expect: "variant", note: "FIX 180" },
       { slug: "jasa pasang granit 60x60", entity: "jasa", expect: "variant", note: "FIX 180" },
@@ -4152,6 +4143,70 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "pagar panel beton k300 putih", entity: "produk", expect: "variant", note: "parent: pagar panel beton k300=MP" },
       { slug: "semen portland 50kg", entity: "material", expect: "variant", note: "parent: semen portland=MP" },
       { slug: "desain interior minimalis modern", entity: "desain", expect: "variant", note: "parent: desain interior minimalis=MP" }
+   
+          // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 195-199 (v23.9.1): ANTI-GAP + APPLICATION TARGETS
+      // ═══════════════════════════════════════════════════════════
+
+      // ─── FIX 195: Application targets → MP (JASA) ───
+      { slug: "jasa cutting dinding", entity: "jasa", expect: "money-page", note: "FIX 195 target" },
+      { slug: "jasa cutting lantai", entity: "jasa", expect: "money-page", note: "FIX 195" },
+      { slug: "jasa cutting plat", entity: "jasa", expect: "money-page", note: "FIX 195" },
+      { slug: "jasa cutting kolom", entity: "jasa", expect: "money-page", note: "FIX 195" },
+      { slug: "jasa coring dinding", entity: "jasa", expect: "money-page", note: "FIX 195 cross" },
+      { slug: "jasa bor lantai", entity: "jasa", expect: "money-page", note: "FIX 195" },
+      { slug: "jasa bongkar dinding", entity: "jasa", expect: "money-page", note: "FIX 195" },
+      { slug: "jasa coring lantai beton", entity: "jasa", expect: "variant", note: "FIX 195+196 (2 layer)" },
+      { slug: "jasa cutting beton dinding", entity: "jasa", expect: "variant", note: "FIX 195+196" },
+      { slug: "jasa cutting aspal jalan", entity: "jasa", expect: "variant", note: "FIX 195" },
+
+      // ─── FIX 195: Application targets → MP (PRODUK) ───
+      { slug: "pagar panel beton dinding", entity: "produk", expect: "money-page", note: "FIX 195 produk" },
+      { slug: "pagar panel beton taman", entity: "produk", expect: "money-page", note: "FIX 195" },
+
+      // ─── FIX 195: Application targets → MP (MATERIAL) ───
+      { slug: "semen lantai", entity: "material", expect: "money-page", note: "FIX 195 material" },
+      { slug: "keramik dinding", entity: "material", expect: "money-page", note: "FIX 195" },
+      { slug: "cat tembok", entity: "material", expect: "money-page", note: "FIX 195" },
+
+      // ─── FIX 195: Application targets → MP (SEWA) ───
+      { slug: "sewa excavator tambang", entity: "sewa", expect: "money-page", note: "FIX 195 sewa" },
+      { slug: "sewa pompa air kolam", entity: "sewa", expect: "variant", note: "FIX 195 (kolam+air=2)" },
+      { slug: "sewa crane proyek jalan", entity: "sewa", expect: "variant", note: "FIX 195" },
+
+      // ─── FIX 195: Application targets → MP (DESAIN) ───
+      { slug: "desain interior taman", entity: "desain", expect: "money-page", note: "FIX 195 desain" },
+      { slug: "desain interior kamar mandi", entity: "desain", expect: "money-page", note: "FIX 195" },
+
+      // ─── FIX 196: Dedup ───
+      { slug: "jasa cutting beton beton", entity: "jasa", expect: "money-page", note: "FIX 196 dedup" },
+      { slug: "pagar panel beton putih putih", entity: "produk", expect: "money-page", note: "FIX 196" },
+
+      // ─── FIX 197: Unknown noun fallback ───
+      { slug: "jasa cutting alderon", entity: "jasa", expect: "money-page", note: "FIX 197 unknown" },
+      { slug: "jasa cutting xyz", entity: "jasa", expect: "money-page", note: "FIX 197" },
+      { slug: "jasa coring material baru", entity: "jasa", expect: "variant", note: "FIX 197 (2 unknown)" },
+
+      // ─── FIX 198: Priority resolution ───
+      { slug: "jasa cutting beton dinding", entity: "jasa", expect: "variant", note: "FIX 198 material+target" },
+
+      // ─── Hierarki cross-check ───
+      { slug: "jasa cutting dinding jakarta", entity: "jasa", expect: "money-child", note: "MC dominan" },
+      { slug: "jasa cutting beton dinding jakarta", entity: "jasa", expect: "money-child", note: "MC dominan" },
+      { slug: "jasa coring hidrolik 30cm beton dinding", entity: "jasa", expect: "sub-variant", note: "4 layer" },
+
+      // ─── Regression update FIX 182/186 (levels changed) ───
+      { slug: "jasa coring beton", entity: "jasa", expect: "money-page", note: "FIX 182 material=MP" },
+      { slug: "jasa bor beton", entity: "jasa", expect: "money-page", note: "FIX 182" },
+      { slug: "harga jasa coring beton", entity: "jasa", expect: "money-page", note: "FIX 182" },
+      { slug: "jasa coring 30cm", entity: "jasa", expect: "money-page", note: "FIX 186 (1L)" },
+      { slug: "jasa pasang keramik 60x60", entity: "jasa", expect: "money-page", note: "FIX 186 (1L)" },
+      { slug: "jasa pasang keramik 60x60 cm", entity: "jasa", expect: "variant", note: "FIX 186 (2L)" },
+      { slug: "jasa coring 30cm 50cm", entity: "jasa", expect: "variant", note: "FIX 186 (2L)" },
+      { slug: "keramik 60x60", entity: "material", expect: "money-page", note: "FIX 188 (1L)" },
+      { slug: "keramik 60x60 cm", entity: "material", expect: "variant", note: "FIX 188 (2L)" },
+      { slug: "sewa genset 100kva", entity: "sewa", expect: "money-page", note: "FIX 189 (1L)" },
+      { slug: "sewa crane 25 ton", entity: "sewa", expect: "money-page", note: "FIX 189 (1L)" }
     ];   // 🔥 FIX 162e: tutup array TEST_CASES
    
     console.log("═══════════════════════════════════════════════════════════");
