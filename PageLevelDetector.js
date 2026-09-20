@@ -1850,19 +1850,21 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.7
       for (var i = 0; i < foreignList.length; i++) {
         if (new RegExp("\\b" + foreignList[i].replace(/\s+/g, '\\s+') + "\\b", "i").test(lower)) return true;
       }
-      var sharedGaya = CROSS_ENTITY_SPECS.jasa.sharedGaya || [];
+     var sharedGaya = CROSS_ENTITY_SPECS.jasa.sharedGaya || [];
       for (var i = 0; i < sharedGaya.length; i++) {
         if (new RegExp("\\b" + sharedGaya[i] + "\\b", "i").test(lower)) return true;
       }
-         /*
-          if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) {
-            var materialCtx = /\b(keramik|granit|marmer|vinyl|parket|wallpaper|laminasi|homogeneous|keramik lantai|keramik dinding|granit tile|paving|bata|tile|ubin|wall|wall-panel|ceiling|partisi)\b/i.test(lower);
-            if (materialCtx) return true;
-          }*/
            // 🔥 FIX 174 (v23.7.1): Hapus materialCtx — material BUKAN spec JASA
-          // Alasan SEO: "jasa [action] [material]" = 1 layanan utuh
-          // Spec JASA sejati = metode/skala/finishing
-          // (dimensi sudah dicek di atas via /\d+\s*(m|meter|cm|...)/
+           // 🔥 FIX 180 (v23.7.1): JASA + dimensi multi-layer (60x60) tanpa unit → spec
+      if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) {
+        var hasJasaAction180 = ACTION_VERBS.some(function(w) { 
+          return lower.indexOf(w) !== -1; 
+        });
+        if (hasJasaAction180) {
+          log('🔬 FIX 180: JASA dimensi multi-layer tanpa unit', 'VARIANT');
+          return true;
+        }
+      }
     }
 
     if (entityType === "desain") {
@@ -2692,10 +2694,12 @@ function isSpecModifierForEntity(word, entityType) {
           var layerCount179 = dimensiMatches179.length;
 
           // Cek multi-layer (60x60 cm, 240x40) — lebih spesifik = SVAR
-          var hasMultiLayer179 = /\d+\s*(?:m|mm|cm|meter)\s*(?:x|×)\s*\d+/i.test(lowerText);
+          // 🔥 FIX 179r-BUG: Unit OPTIONAL agar "60x60" tanpa unit tetap match
+          // Match: "60x60", "60x60 cm", "240x40x5", "60x120 m"
+          var hasMultiLayer179 = /\d+\s*(?:[a-z]+)?\s*(?:x|×)\s*\d+/i.test(lowerText);
 
           if (hasMultiLayer179 || layerCount179 >= 2) {
-            log('🔬 FIX 179: SUB-VARIANT (metode + 2+ dimensi)', 'VARIANT');
+            log('🔬 FIX 179: SUB-VARIANT (metode + multi-layer/dimensi)', 'VARIANT');
             return "sub-variant";
           }
           if (layerCount179 === 1) {
@@ -3614,7 +3618,7 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       // ═══ Core Regression ═══
       { slug: "jasa coring beton", entity: "jasa", expect: "money-master", note: "regression" },
       { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 178: metode JASA → MP" },
-      { slug: "jasa coring 30cm", entity: "jasa", expect: "sub-variant", note: "regression" },
+      { slug: "jasa coring 30cm", entity: "jasa", expect: "variant", note: "FIX 180: 1 dimensi = variant" },
       { slug: "jasa pasang pagar jakarta", entity: "jasa", expect: "money-child", note: "regression" },
       { slug: "semen portland", entity: "material", expect: "variant", note: "regression" },
       { slug: "semen 50kg", entity: "material", expect: "sub-variant", note: "regression" },
@@ -3832,12 +3836,16 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "biaya jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 177: biaya+spec→MP" },
       // FIX 173: areaServed untuk MC
       { slug: "harga jasa bor jakarta", entity: "jasa", expect: "money-child", note: "FIX 177: MC" },
-      // FIX 174: materialCtx dihapus
-      { slug: "jasa pasang keramik 60x60", entity: "jasa", expect: "money-page", note: "FIX 177: tanpa materialCtx→MP" },
+            // FIX 174: materialCtx dihapus
+      // 🔥 FIX 180 (v23.7.1): dimensi multi-layer JASA → VARIANT/SVAR
+      { slug: "jasa pasang keramik 60x60", entity: "jasa", expect: "variant", note: "FIX 180: dimensi multi-layer" },
+      { slug: "jasa pasang keramik 60x60 cm", entity: "jasa", expect: "sub-variant", note: "FIX 180: multi-layer + unit" },
+      { slug: "jasa pasang granit 60x60", entity: "jasa", expect: "variant", note: "FIX 180" },
+      { slug: "jasa pasang keramik 80x80", entity: "jasa", expect: "variant", note: "FIX 180" },
+      { slug: "jasa pasang marmer 60x120", entity: "jasa", expect: "variant", note: "FIX 180" },
        // FIX 170: beda head vs modifier
       { slug: "jasa bor murah dan terjangkau", entity: "jasa", expect: "money-master", note: "FIX 177: 2 noise→MM" },
       { slug: "jasa bor promo dan diskon", entity: "jasa", expect: "money-page", note: "FIX 177: 2 strong→MP" },
-
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 178 (v23.7.1): Metode JASA → MP (bukan Variant)
       // ═══════════════════════════════════════════════════════════
@@ -3875,8 +3883,22 @@ if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !has
       { slug: "jasa coring hidrolik 60x60 cm", entity: "jasa", expect: "sub-variant", note: "FIX 179r: metode + multi-layer" },
 
       // Metode murni (tanpa dimensi) → MP
+            // Metode murni (tanpa dimensi) → MP
       { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 178: metode murni" },
-      { slug: "jasa bor manual", entity: "jasa", expect: "money-page", note: "FIX 178: metode murni" }
+      { slug: "jasa bor manual", entity: "jasa", expect: "money-page", note: "FIX 178: metode murni" },
+
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX 180 (v23.7.1): Dimensi multi-layer JASA → VARIANT/SVAR
+      // ═══════════════════════════════════════════════════════════
+      // 1 dimensi tanpa unit → VARIANT
+      { slug: "jasa coring 30cm", entity: "jasa", expect: "variant", note: "FIX 180: 1 dimensi" },
+      { slug: "jasa bor 50cm", entity: "jasa", expect: "variant", note: "FIX 180" },
+      // Multi-layer tanpa unit → VARIANT (1 spec)
+      { slug: "jasa pasang keramik 60x60", entity: "jasa", expect: "variant", note: "FIX 180" },
+      { slug: "jasa pasang granit 60x60", entity: "jasa", expect: "variant", note: "FIX 180" },
+      // Multi-layer + unit → SVAR (2 spec)
+      { slug: "jasa pasang keramik 60x60 cm", entity: "jasa", expect: "sub-variant", note: "FIX 180: +unit" },
+      { slug: "jasa coring 30cm 50cm", entity: "jasa", expect: "sub-variant", note: "FIX 180: 2 dimensi" },
    
     ];   // 🔥 FIX 162e: tutup array TEST_CASES
    
