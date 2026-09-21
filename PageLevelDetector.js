@@ -230,8 +230,8 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
     artikel: ["artikel"]
   };
 
-  // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 161 FULL TAXONOMY — FIX SEO v5 FINAL
+   // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX 161 FULL TAXONOMY — FIX SEO v10 FINAL
   // Aturan: 1 compound = 1 core. 2+ compound berbeda = MP.
   // URUT PANJANG DULU untuk hindari partial match (auto-sort FIX 162b).
   //
@@ -241,23 +241,28 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
   //   JASA     = tindakan/layanan
   //   SEWA     = penyewaan alat
   //   DESAIN   = jasa desain (head term + scope)
+  //
+  // 🔥 FIX SEO v10: Bersihkan base name overreach
+  //   - Hapus [root]+[material/skala/metode] dari JASA (bore pile beton, dll)
+  //   - Hapus [root]+[dimensi] dari PRODUK (u ditch 30x30, dll)
+  //   - Dedup (besi h-beam vs besi h beam)
+  //   - Hapus [root]+[modifier] dari sumur bor
+  // Modifier baru (mesin, dalam, dangkal, artesis, jet pump, borongan,
+  // perumahan, proyek) sudah dipindah ke PURE_METHODS/PURE_SCALES.
   // ═══════════════════════════════════════════════════════════
   var ENTITY_BASE_NAMES = {
 
-       // ─── PRODUK (barang jadi: merek/tipe/dimensi/varian) ───
+    // ─── PRODUK (barang jadi: merek/tipe/dimensi/varian) ───
     produk: [
       // ═══════════════════════════════════════════════════════════
       // PRECAST & BETON (barang jadi dengan spek unit)
       // ═══════════════════════════════════════════════════════════
       // Pagar panel
-      "pagar panel beton", "pagar panel", "panel beton", "pagar beton",
+      "pagar panel", "panel beton", "pagar beton",
       // U-Ditch & Box Culvert
-      "u ditch cover", "tutup u ditch",
-      "u ditch 30x30", "u ditch 40x40", "u ditch 50x50",
-      "u ditch 60x60", "u ditch 80x80", "u ditch 100x100",
-      "u ditch 120x120", "u ditch",
-      "box culvert 100x100", "box culvert 120x120",
-      "box culvert 150x150", "box culvert 200x200", "box culvert",
+      // 🔥 FIX SEO v10: hapus [root]+dimensi (u ditch 30x30, dll)
+      "u ditch cover", "tutup u ditch", "u ditch",
+      "box culvert",
       // Buis beton & gorong-gorong
       "buis beton bertulang", "buis beton biasa", "buis beton",
       "gorong gorong beton", "gorong-gorong beton", "gorong gorong",
@@ -271,10 +276,11 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "paving segi enam", "paving hexagon", "paving cacing",
       "tactile paving", "paving disabilitas",
       // Rooster / roster beton
-      "rooster beton", "roster beton",
+      // 🔥 FIX SEO v10: dedup — keep "rooster beton"
+      "rooster beton",
       "roster dinding", "ventilasi beton", "lubang angin beton",
       // Tiang & pondasi precast (produk — beda intent dengan jasa)
-      // 🔥 FIX SEO v6: tambah bare forms (base name utuh = produk)
+      // 🔥 FIX SEO v6: tambah bare forms
       "tiang listrik beton", "tiang pancang beton",
       "spun pile beton", "tiang spun pile", "mini pile beton",
       "sheet pile beton", "turap beton", "tiang beton",
@@ -324,11 +330,13 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
 
       // ═══════════════════════════════════════════════════════════
       // BESI PROFIL (barang jadi, per batang dengan spek dimensi)
+      // 🔥 FIX SEO v10: dedup h-beam/h beam
       // ═══════════════════════════════════════════════════════════
-      "besi hollow", "besi wf", "besi h-beam", "besi cnp",
-      "besi h beam", "besi unp", "besi siku", "besi kanal",
-      "baja wf", "baja h-beam", "baja unp", "baja hollow", "baja siku",
-      "baja kanal", "baja iwf", "baja hbeam",
+      "besi hollow", "besi wf", "besi h beam", "besi cnp",
+      "besi unp", "besi siku", "besi kanal",
+      "baja wf", "baja h beam", "baja hbeam",
+      "baja unp", "baja hollow", "baja siku",
+      "baja kanal", "baja iwf",
 
       // ═══════════════════════════════════════════════════════════
       // PIPA (barang jadi bermerek — Rucika, Wavin, Vinilon)
@@ -345,12 +353,11 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
 
       // ═══════════════════════════════════════════════════════════
       // LANTAI (varian dengan dimensi/tipe spesifik)
+      // 🔥 FIX SEO v10: hapus [root]+dimensi (keramik 60x60, dll)
       // ═══════════════════════════════════════════════════════════
       "keramik lantai", "keramik dinding", "granit tile", "homogeneous tile",
       "parket kayu", "lantai vinyl", "lantai laminasi", "lantai kayu",
       "granit alam", "marmer lantai", "teraso lantai",
-      "keramik 60x60", "keramik 80x80", "keramik 40x40",
-      "granit 60x60", "granit 80x80", "granit 100x100",
 
       // ═══════════════════════════════════════════════════════════
       // WALL PANEL
@@ -413,35 +420,30 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "besi beton",
       "atap baja ringan", "rangka baja ringan",
       "bata ringan", "bata hebel", "bata merah", "bata putih",
-      "batako press", "batako putih", "batako holcim",
+      "batako press", "batako putih", "batako holocim",
       "paving block"
     ],
 
     // ─── JASA (tindakan/layanan — FIX 160/182) ───
+    // 🔥 FIX SEO v10: HAPUS [root]+[material/skala/metode]
+    // Modifier dipindah ke PURE_METHODS/PURE_SCALES
     jasa: [
-      // ─── Pondasi & tiang ───
-      "bore pile beton", "bore pile mini", "bore pile mesin",
-      "bore pile manual", "bore pile hidrolik",
+      // ─── Pondasi & tiang (FIX SEO v10: clean) ───
       "bore pile", "bor pile", "bored pile", "boring pile",
       "mini pile", "spun pile", "micropile",
       "bor strauss", "bor pancang",
-      "strauss pile beton", "strauss pile borongan",
-      "strauss pile manual", "strauss pile mesin",
-      "strauss pile mini", "strauss pile",
-      "tiang pancang beton", "tiang pancang kayu",
-      "pancang beton", "pancang kayu", "pancang mini",
-      "pancang mesin", "tiang pancang", "pancang",
-      "turap beton", "turap baja", "turap kayu",
-      "sheet pile beton", "sheet pile baja", "sheet pile", "turap",
-      "jet grouting", "grouting beton", "grouting tanah",
+      "strauss pile",
+      "tiang pancang", "pancang",
+      "turap", "sheet pile",
+      "jet grouting",
       "stabilisasi tanah", "soil improvement",
 
-      // ─── Sumur bor ───
-      "sumur bor dalam", "sumur bor dangkal", "sumur bor artesis",
-      "sumur bor jet pump", "sumur bor air tanah",
-      "sumur bor", "bor sumur", "air tanah", "jet pump",
+      // ─── Sumur bor (FIX SEO v10: clean) ───
+      "sumur bor", "bor sumur", "air tanah",
 
       // ─── Cor ───
+      // ⚠️ Catatan: "cor dak beton" dll dipertahankan sebagai fixed term
+      // (test case existing expect MM untuk "harga jasa cor dak beton")
       "cor dak beton", "cor dak lantai", "cor dak",
       "cor lantai beton", "cor lantai",
       "cor jalan beton", "cor jalan",
@@ -452,7 +454,7 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "cor lantai gudang", "cor lantai pabrik",
       "cor halaman", "cor garasi", "cor carport",
 
-            // ─── Pasang ───
+      // ─── Pasang ───
       // 🔥 FIX SEO v7: "pasang dinding" = base service (bukan base + target)
       "pasang dinding", "pasang keramik lantai", "pasang keramik dinding",
       "pasang keramik", "pasang granit", "pasang marmer",
@@ -639,8 +641,6 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       // PER RUANGAN (scope ruangan = base)
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX SEO v9: tambah "desain interior [ruangan]" sebagai base
-      // (sebelumnya hanya "desain [ruangan]" — varian dgn "interior" jadi
-      // tidak terdeteksi sebagai base utuh → level salah)
       "desain interior kamar mandi", "desain interior kamar tidur",
       "desain interior ruang tamu", "desain interior ruang keluarga",
       "desain interior ruang makan", "desain interior ruang kerja",
@@ -692,7 +692,19 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
   })();
  
   var PURE_JASA_TECHNIQUES = [];
-  var PURE_METHODS = ["manual", "hidrolik", "auger", "rotary", "percussive", "dry", "wet", "basah", "kering"];
+  // 🔥 FIX SEO v10: tambah modifier untuk sumur bor + pondasi + skala
+var PURE_METHODS = [
+  "manual", "hidrolik", "auger", "rotary", "percussive",
+  "dry", "wet", "basah", "kering",
+  "mesin",           // ← metode pengeboran mesin
+  "dalam",           // ← kedalaman sumur
+  "dangkal",         // ← kedalaman sumur
+  "artesis",         // ← tipe sumur
+  "jet pump",        // ← tipe sumur
+  "borongan",        // ← skala layanan
+  "perumahan",       // ← skala target
+  "proyek"           // ← skala target
+];
   var PURE_SCALES = ["rumahan", "komersial", "industri", "residential", "commercial", "industrial", "kecil", "sedang", "besar", "menengah"];
     var PURE_FINISHING = ["polos", "motif", "bermotif", "bercorak", "tekstur", "serat", "halus", "kasar", "matte", "glossy", "doff", "gloss", "satin", "anyaman", "natural", "ekspos", "custom", "polosan", "cat", "coating", "lapisan", "vernis"];
  
@@ -2008,14 +2020,17 @@ function isApplicationTarget(word) {
           target: APPLICATION_TARGETS_FULL,   // 🔥 FIX 195
           finishing: PURE_FINISHING
         };
-      case "produk":
-        return {
-          mutu: PRODUK_SPECS.mutu,
-          warna: PRODUK_SPECS.warna,
-          finishing: PRODUK_SPECS.finishing,
-          gaya: PRODUK_SPECS.gaya,
-          target: APPLICATION_TARGETS_FULL    // 🔥 FIX 195
-        };
+     case "produk":
+       return {
+         mutu: PRODUK_SPECS.mutu,
+         warna: PRODUK_SPECS.warna,
+         finishing: PRODUK_SPECS.finishing,
+         gaya: PRODUK_SPECS.gaya,
+         // 🔥 FIX SEO v11: material = modifier untuk produk (pagar panel + beton → MP)
+         material: ["beton", "besi", "kayu", "aluminium", "kaca", "stainless",
+                    "baja", "pvc", "wpc", "grc", "hpl", "acp", "vinyl", "upvc"],
+         target: APPLICATION_TARGETS_FULL
+       };
       case "material":
         return {
           grade: MATERIAL_SPECS.grade,
@@ -3043,16 +3058,19 @@ function isSpecModifierForEntity(word, entityType) {
     return jasaSpecs.indexOf(w) !== -1;
   }
  
-  // ─── PRODUK ───
-    if (entityType === "produk") {
+   if (entityType === "produk") {
     var produkSpecs = []
       .concat(PRODUK_SPECS.mutu || [])
       .concat(PRODUK_SPECS.finishing || [])
       .concat(PRODUK_SPECS.warna || [])
       .concat(PRODUK_SPECS.dimensi || [])
-      .concat(PRODUK_SPECS.gaya || [])   // 🔥 FIX 163
+      .concat(PRODUK_SPECS.gaya || [])
       .concat(CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing || [])
-      .concat(CROSS_ENTITY_SPECS.produk.sharedMaterialDimensi || []);
+      .concat(CROSS_ENTITY_SPECS.produk.sharedMaterialDimensi || [])
+      // 🔥 FIX SEO v12: material = spec modifier untuk produk
+      .concat(["beton", "besi", "kayu", "aluminium", "kaca", "stainless",
+               "baja", "pvc", "wpc", "grc", "hpl", "acp", "vinyl", "upvc",
+               "galvanis", "tembaga", "kuningan", "perunggu"]);
     return produkSpecs.indexOf(w) !== -1;
   }
 
@@ -4183,7 +4201,7 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "sewa excavator mini", entity: "sewa", expect: "money-page", note: "FIX 189: 1L=MP" },
       { slug: "desain interior minimalis", entity: "desain", expect: "money-page", note: "FIX 189: 1L=MP" },
       { slug: "pagar panel beton k300", entity: "produk", expect: "money-page", note: "FIX 187: 1L=MP" },
-      { slug: "harga pagar panel beton k300", entity: "produk", expect: "money-page", note: "regression" },
+            { slug: "harga pagar panel beton k300", entity: "produk", expect: "variant", note: "FIX SEO v12: 2L" },
       { slug: "jasa konstruksi", entity: "jasa", expect: "pillar", note: "regression" },
             { slug: "semen 3 roda", entity: "material", expect: "money-page", note: "FIX 213: 1L tipe" },
       { slug: "harga pasir bangka per kubik", entity: "material", expect: "money-page", note: "regression" },
@@ -4321,7 +4339,7 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "harga jasa pasang kanopi elegan", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
             // ─── FIX 156: cross-entity base removal (UPDATED FIX 160) ───
       { slug: "harga baja ringan", entity: "material", expect: "money-master", note: "baja ringan=material" },
-      { slug: "harga pagar panel beton", entity: "produk", expect: "money-master", note: "FIX 156: base produk only" },
+      { slug: "harga pagar panel beton", entity: "produk", expect: "money-page", note: "FIX SEO v12: +material=MP" },
       // ─── FIX 154: Entity-aware spec modifier ───
       { slug: "harga jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 154: metode hidrolik" },
       { slug: "harga pagar panel beton putih", entity: "produk", expect: "money-page", note: "FIX 154: warna putih" },
@@ -4468,13 +4486,14 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "jasa coring hidrolik 30cm beton", entity: "jasa", expect: "sub-variant", note: "3L" },
       { slug: "jasa coring hidrolik 60x60 cm", entity: "jasa", expect: "sub-variant", note: "3L" },
 
-      // ─── FIX 187: PRODUK ───
-      { slug: "pagar panel beton", entity: "produk", expect: "money-master", note: "0L" },
-      { slug: "pagar panel beton k300", entity: "produk", expect: "money-page", note: "1L mutu" },
-      { slug: "pagar panel beton putih", entity: "produk", expect: "money-page", note: "1L warna" },
-      { slug: "pagar panel beton ulir", entity: "produk", expect: "money-page", note: "1L finishing" },
-      { slug: "pagar panel beton k300 putih", entity: "produk", expect: "variant", note: "2L" },
-      { slug: "pagar panel beton k300 putih ulir", entity: "produk", expect: "sub-variant", note: "3L" },
+            // ─── FIX SEO v12: PRODUK — material sekarang jadi layer ───
+      { slug: "pagar panel", entity: "produk", expect: "money-master", note: "FIX SEO v12: head term MM" },
+      { slug: "pagar panel beton", entity: "produk", expect: "money-page", note: "FIX SEO v12: 1L material" },
+      { slug: "pagar panel beton k300", entity: "produk", expect: "variant", note: "FIX SEO v12: 2L (material+mutu)" },
+      { slug: "pagar panel beton putih", entity: "produk", expect: "variant", note: "FIX SEO v12: 2L (material+warna)" },
+      { slug: "pagar panel beton ulir", entity: "produk", expect: "variant", note: "FIX SEO v12: 2L (material+finishing)" },
+      { slug: "pagar panel beton k300 putih", entity: "produk", expect: "sub-variant", note: "FIX SEO v12: 3L" },
+      { slug: "pagar panel beton k300 putih ulir", entity: "produk", expect: "sub-variant", note: "FIX SEO v12: 4L→SV" },
       { slug: "kitchen set", entity: "produk", expect: "money-master", note: "0L" },
       { slug: "kitchen set minimalis", entity: "produk", expect: "money-page", note: "1L gaya" },
       { slug: "kitchen set minimalis modern", entity: "produk", expect: "variant", note: "2L" },
@@ -4543,8 +4562,8 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "jasa cutting aspal jalan", entity: "jasa", expect: "variant", note: "FIX 195" },
 
       // ─── FIX 195: Application targets → MP (PRODUK) ───
-      { slug: "pagar panel beton dinding", entity: "produk", expect: "money-page", note: "FIX 195 produk" },
-      { slug: "pagar panel beton taman", entity: "produk", expect: "money-page", note: "FIX 195" },
+      { slug: "pagar panel beton dinding", entity: "produk", expect: "variant", note: "FIX SEO v12: 2L (material+target)" },
+      { slug: "pagar panel beton taman", entity: "produk", expect: "variant", note: "FIX SEO v12: 2L (material+target)" },
 
       // ─── FIX 195: Application targets → MP (MATERIAL) ───
       { slug: "semen lantai", entity: "material", expect: "money-page", note: "FIX 195 material" },
@@ -4558,7 +4577,7 @@ function isSpecModifierForEntity(word, entityType) {
 
       // ─── FIX 196: Dedup ───
       { slug: "jasa cutting beton beton", entity: "jasa", expect: "money-page", note: "FIX 196 dedup" },
-      { slug: "pagar panel beton putih putih", entity: "produk", expect: "money-page", note: "FIX 196" },
+            { slug: "pagar panel beton putih putih", entity: "produk", expect: "variant", note: "FIX SEO v12: 2L (material+warna dedup)" },
 
       // ─── FIX 197: Unknown noun fallback ───
       { slug: "jasa cutting alderon", entity: "jasa", expect: "money-page", note: "FIX 197 unknown" },
