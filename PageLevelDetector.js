@@ -231,26 +231,73 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
   };
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 161 FULL TAXONOMY — 600+ compound nouns
+  // 🔥 FIX 161 FULL TAXONOMY — FIX SEO v5 FINAL
   // Aturan: 1 compound = 1 core. 2+ compound berbeda = MP.
-  // URUT PANJANG DULU untuk hindari partial match!
+  // URUT PANJANG DULU untuk hindari partial match (auto-sort FIX 162b).
+  //
+  // Prinsip SEO:
+  //   PRODUK   = barang jadi (merek/tipe/dimensi/varian spesifik)
+  //   MATERIAL = bahan mentah / kategori umum (spec → layer)
+  //   JASA     = tindakan/layanan
+  //   SEWA     = penyewaan alat
+  //   DESAIN   = jasa desain (head term + scope)
   // ═══════════════════════════════════════════════════════════
   var ENTITY_BASE_NAMES = {
-    // ─── PRODUK (full) ───
+
+       // ─── PRODUK (barang jadi: merek/tipe/dimensi/varian) ───
     produk: [
-      // Precast & beton
+      // ═══════════════════════════════════════════════════════════
+      // PRECAST & BETON (barang jadi dengan spek unit)
+      // ═══════════════════════════════════════════════════════════
+      // Pagar panel
       "pagar panel beton", "pagar panel", "panel beton", "pagar beton",
-      "u ditch", "box culvert", "paving block", "batako press",
-      "besi beton",
-      "baja ringan", "atap baja ringan", "rangka baja ringan",
-      "bata ringan", "bata hebel", "bata merah", "bata putih",
-      "batako putih", "batako holcim",
-      // Kanopi
+      // U-Ditch & Box Culvert
+      "u ditch cover", "tutup u ditch",
+      "u ditch 30x30", "u ditch 40x40", "u ditch 50x50",
+      "u ditch 60x60", "u ditch 80x80", "u ditch 100x100",
+      "u ditch 120x120", "u ditch",
+      "box culvert 100x100", "box culvert 120x120",
+      "box culvert 150x150", "box culvert 200x200", "box culvert",
+      // Buis beton & gorong-gorong
+      "buis beton bertulang", "buis beton biasa", "buis beton",
+      "gorong gorong beton", "gorong-gorong beton", "gorong gorong",
+      "culvert beton", "beton culvert",
+      "sumuran beton", "sumur resapan beton",
+      // Kanstin & curb
+      "kanstin beton", "kanstein beton", "kanstin jalan", "kanstin taman",
+      "curb stone", "curb beton",
+      // Paving khusus (bukan curah)
+      "paving grass block", "grass block", "grassblock",
+      "paving segi enam", "paving hexagon", "paving cacing",
+      "tactile paving", "paving disabilitas",
+      // Rooster / roster beton
+      "rooster beton", "roster beton",
+      "roster dinding", "ventilasi beton", "lubang angin beton",
+      // Tiang & pondasi precast (produk — beda intent dengan jasa)
+      // 🔥 FIX SEO v6: tambah bare forms (base name utuh = produk)
+      "tiang listrik beton", "tiang pancang beton",
+      "spun pile beton", "tiang spun pile", "mini pile beton",
+      "sheet pile beton", "turap beton", "tiang beton",
+      "spun pile", "mini pile", "micropile",
+      "sheet pile", "tiang pancang",
+      // Struktur precast
+      "half slab beton", "half slab", "plat lantai precast",
+      "kolom beton precast", "kolom praktis",
+      "balok beton precast", "sloof beton",
+      "plat beton precast", "panel lantai precast",
+
+      // ═══════════════════════════════════════════════════════════
+      // KANOPI (head term + varian spesifik)
+      // ═══════════════════════════════════════════════════════════
       "kanopi baja ringan", "kanopi genteng metal", "kanopi alderon",
       "kanopi spandek", "kanopi solartuff", "kanopi besi",
-      "kanopi stainless", "kanopi minimalis", "kanopi kaca",
+      "kanopi stainless", "kanopi kaca",
       "kanopi polycarbonate", "kanopi membrane",
-      // Pintu & jendela
+      "kanopi",
+
+      // ═══════════════════════════════════════════════════════════
+      // PINTU & JENDELA
+      // ═══════════════════════════════════════════════════════════
       "pintu kayu", "pintu besi", "pintu aluminium", "pintu pvc",
       "pintu baja", "pintu geser", "pintu lipat", "pintu swing",
       "pintu rolling door", "pintu folding gate", "pintu harmonika",
@@ -258,40 +305,71 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "jendela kayu", "jendela aluminium", "jendela besi", "jendela upvc",
       "jendela kaca", "jendela casement", "jendela sliding",
       "kusen aluminium", "kusen kayu", "kusen besi", "kusen upvc",
-      // Pagar
-      "pagar besi", "pagar kayu", "pagar stainless", "pagar brc",
-      "pagar hollow", "pagar minimalis", "pagar tempa",
-      "pagar wpc", "pagar grc", "pagar laser cutting",
+
+      // ═══════════════════════════════════════════════════════════
+      // PAGAR (head term + varian spesifik)
+      // ═══════════════════════════════════════════════════════════
       "pagar besi tempa", "pagar besi hollow", "pagar kawat brc",
-      // Kaca
+      "pagar besi", "pagar kayu", "pagar stainless", "pagar brc",
+      "pagar hollow", "pagar tempa",
+      "pagar wpc", "pagar grc", "pagar laser cutting",
+      "pagar",
+
+      // ═══════════════════════════════════════════════════════════
+      // KACA
+      // ═══════════════════════════════════════════════════════════
       "kaca tempered", "kaca laminated", "kaca film",
       "kaca es", "kaca buram", "kaca patri", "kaca sandblast",
       "kaca cermin", "kaca meja", "kaca jendela",
-      // Besi profil
-      "besi hollow", "besi unp", "besi wf", "besi h-beam", "besi cnp",
+
+      // ═══════════════════════════════════════════════════════════
+      // BESI PROFIL (barang jadi, per batang dengan spek dimensi)
+      // ═══════════════════════════════════════════════════════════
+      "besi hollow", "besi wf", "besi h-beam", "besi cnp",
       "besi h beam", "besi unp", "besi siku", "besi kanal",
       "baja wf", "baja h-beam", "baja unp", "baja hollow", "baja siku",
       "baja kanal", "baja iwf", "baja hbeam",
-      // Plafon
+
+      // ═══════════════════════════════════════════════════════════
+      // PIPA (barang jadi bermerek — Rucika, Wavin, Vinilon)
+      // ═══════════════════════════════════════════════════════════
+      "pipa pvc", "pipa paralon", "pipa hdpe", "pipa galvanis",
+      "pipa tembaga", "pipa besi", "pipa air",
+
+      // ═══════════════════════════════════════════════════════════
+      // PLAFON (barang jadi bermerek)
+      // ═══════════════════════════════════════════════════════════
       "plafon gypsum", "plafon pvc", "plafon grc", "plafon akustik",
       "plafon kayu", "plafon metal", "plafon kalsiboard",
       "plafon jayaboard", "plafon shunda", "plafon drop",
-      // Lantai
+
+      // ═══════════════════════════════════════════════════════════
+      // LANTAI (varian dengan dimensi/tipe spesifik)
+      // ═══════════════════════════════════════════════════════════
       "keramik lantai", "keramik dinding", "granit tile", "homogeneous tile",
       "parket kayu", "lantai vinyl", "lantai laminasi", "lantai kayu",
       "granit alam", "marmer lantai", "teraso lantai",
       "keramik 60x60", "keramik 80x80", "keramik 40x40",
       "granit 60x60", "granit 80x80", "granit 100x100",
-      // Wall panel
+
+      // ═══════════════════════════════════════════════════════════
+      // WALL PANEL
+      // ═══════════════════════════════════════════════════════════
       "wallpaper dinding", "wpc wall panel", "wpc dinding", "hpl dinding",
       "grc panel", "acp panel", "pvc dinding", "wall moulding",
       "wall panel", "dinding panel", "panel dinding",
-      // Atap
+
+      // ═══════════════════════════════════════════════════════════
+      // ATAP (varian spesifik dengan material/tipe)
+      // ═══════════════════════════════════════════════════════════
       "atap spandek", "atap alderon", "genteng metal", "genteng tanah liat",
       "atap bitumen", "atap solarflat", "atap shingle", "atap aspal",
       "genteng keramik", "genteng beton", "genteng flat",
       "atap transparan", "atap polycarbonate", "atap solartuff",
-      // Kitchen & furniture
+
+      // ═══════════════════════════════════════════════════════════
+      // KITCHEN & FURNITURE
+      // ═══════════════════════════════════════════════════════════
       "kitchen set",
       "wardrobe", "lemari pakaian", "lemari dapur", "lemari buku",
       "meja makan", "meja kerja", "meja kantor",
@@ -300,39 +378,53 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "tempat tidur", "bed frame", "nakas",
       "backdrop tv", "backdrop dapur", "backdrop kamar",
       "walk in closet", "walkin closet",
-      // Produk exterior
-      "gazebo kayu", "gazebo besi", "gazebo minimalis",
-      "kolam renang", "kolam ikan", "kolam minimalis",
-      "taman minimalis", "taman kering", "taman vertikal",
-      // Produk MEP
+
+      // ═══════════════════════════════════════════════════════════
+      // PRODUK EXTERIOR (head term + varian fungsional)
+      // ═══════════════════════════════════════════════════════════
+      "gazebo kayu", "gazebo besi", "gazebo",
+      "kolam renang", "kolam ikan", "kolam",
+      "taman kering", "taman vertikal", "taman",
+
+      // ═══════════════════════════════════════════════════════════
+      // PRODUK MEP
+      // ═══════════════════════════════════════════════════════════
       "saklar listrik", "stop kontak", "mcb listrik", "panel listrik",
       "lampu hias", "lampu taman", "lampu jalan",
       "cctv rumah", "kamera cctv", "alarm rumah"
     ],
-    
-    // ─── MATERIAL (full) ───
-    // ─── MATERIAL (GENERIK ONLY — FIX 200) ───
-       // ─── MATERIAL (GENERIK ONLY — FIX 210) ───
+
+    // ─── MATERIAL (GENERIK ONLY — FIX 200/210/SEO v3) ───
+    // Aturan: bahan mentah atau kategori umum (spec → layer)
     material: [
-      // Base generik (spec jadi layer)
-      "semen", "pasir", "batu", "besi beton", "besi", "baja", "kayu",
+      // ─── Base generik murni ───
+      "semen", "pasir", "batu", "besi", "baja", "kayu",
       "ready mix", "readymix", "beton", "pipa", "kabel", "fitting",
       "valve", "stop kran", "kran", "cat", "vernis", "politur",
       "plamir", "lem", "aquaproof", "no drop", "waterproofing",
-      // 🔥 FIX 210: generik yang hilang
+
+      // ─── FIX 210: generik yang hilang ───
       "keramik", "granit", "marmer", "gypsum", "plafon", "paving",
       "bata", "batako", "hebel", "genteng", "asbes", "atap",
       "baja ringan", "galvalum", "precast", "pracetak", "kaca",
-      "aluminium", "kerikil", "batu split", "batu kali", "batu belah"
+      "aluminium", "kerikil", "batu split", "batu kali", "batu belah",
+
+      // ─── FIX SEO v3: kategori bahan (spesifik tapi umum sebagai bahan) ───
+      "besi beton",
+      "atap baja ringan", "rangka baja ringan",
+      "bata ringan", "bata hebel", "bata merah", "bata putih",
+      "batako press", "batako putih", "batako holcim",
+      "paving block"
     ],
-    
-    // ─── JASA (sudah lengkap dari FIX 160 — tidak diubah) ───
+
+    // ─── JASA (tindakan/layanan — FIX 160/182) ───
     jasa: [
+      // ─── Pondasi & tiang ───
       "bore pile beton", "bore pile mini", "bore pile mesin",
       "bore pile manual", "bore pile hidrolik",
       "bore pile", "bor pile", "bored pile", "boring pile",
-            "mini pile", "spun pile", "micropile",
-      "bor strauss", "bor pancang",   // 🔥 FIX 162c
+      "mini pile", "spun pile", "micropile",
+      "bor strauss", "bor pancang",
       "strauss pile beton", "strauss pile borongan",
       "strauss pile manual", "strauss pile mesin",
       "strauss pile mini", "strauss pile",
@@ -343,10 +435,13 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "sheet pile beton", "sheet pile baja", "sheet pile", "turap",
       "jet grouting", "grouting beton", "grouting tanah",
       "stabilisasi tanah", "soil improvement",
+
+      // ─── Sumur bor ───
       "sumur bor dalam", "sumur bor dangkal", "sumur bor artesis",
       "sumur bor jet pump", "sumur bor air tanah",
       "sumur bor", "bor sumur", "air tanah", "jet pump",
-      "bor horizontal",
+
+      // ─── Cor ───
       "cor dak beton", "cor dak lantai", "cor dak",
       "cor lantai beton", "cor lantai",
       "cor jalan beton", "cor jalan",
@@ -356,6 +451,8 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "cor beton", "cor ready mix", "cor readymix",
       "cor lantai gudang", "cor lantai pabrik",
       "cor halaman", "cor garasi", "cor carport",
+
+      // ─── Pasang ───
       "pasang keramik lantai", "pasang keramik dinding",
       "pasang keramik", "pasang granit", "pasang marmer",
       "pasang parket", "pasang vinyl", "pasang lantai kayu",
@@ -390,6 +487,8 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "pasang pipa air", "pasang pipa paralon",
       "pasang kabel listrik", "pasang panel listrik",
       "pasang ac", "pasang cctv", "pasang alarm",
+
+      // ─── Bongkar ───
       "bongkar dinding beton", "bongkar dinding",
       "bongkar lantai beton", "bongkar lantai",
       "bongkar plat beton", "bongkar plat",
@@ -400,6 +499,8 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "bongkar plafon gypsum", "bongkar plafon",
       "bongkar kusen", "bongkar pintu", "bongkar jendela",
       "bongkar pagar", "bongkar partisi",
+
+      // ─── Tanah ───
       "gali tanah pondasi", "gali tanah", "gali pondasi",
       "gali basement", "gali saluran", "gali drainase",
       "penggalian tanah", "penggalian pondasi",
@@ -414,6 +515,8 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "pengerukan danau", "pengerukan saluran",
       "pemotongan bukit", "pemotongan lahan",
       "cut and fill", "pemotongan tanah",
+
+      // ─── Renovasi ───
       "renovasi rumah", "renovasi gedung",
       "renovasi kantor", "renovasi toko",
       "renovasi ruko", "renovasi gudang",
@@ -426,6 +529,8 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "renovasi atap", "renovasi lantai",
       "renovasi dinding", "renovasi plafon",
       "renovasi fasad", "renovasi pagar", "renovasi taman",
+
+      // ─── Cat & finishing ───
       "cat dinding interior", "cat dinding eksterior",
       "cat dinding", "cat tembok", "cat plafon",
       "cat kayu", "cat besi", "cat pagar",
@@ -439,6 +544,8 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "grinding dinding", "grinding",
       "epoxy lantai", "coating lantai",
       "coating beton", "coating atap", "coating dinding",
+
+      // ─── Instalasi & service ───
       "instalasi listrik rumah", "instalasi listrik gedung",
       "instalasi listrik", "instalasi panel listrik",
       "instalasi kabel listrik", "instalasi lampu",
@@ -458,18 +565,20 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "perbaikan rembesan", "perbaikan bocor",
       "perbaikan saluran air", "perbaikan pipa bocor",
       "perawatan gedung", "perawatan kolam",
-      // 🔥 FIX 182 CLEANUP: hapus material-composite (beton/dinding/lantai/aspal)
-      // Base murni saja — material/target = modifier yang naik ke MP
+
+      // ─── Base murni (material/target = modifier → MP) ───
       "coring", "cutting",
       "bor", "bor horizontal",
       "drilling", "boring",
       "grouting",
-      "las", "welding", "sandblasting",
+      "las", "welding",
       "las besi", "las pagar", "las kanopi",
       "las rangka baja", "las tiang",
       "welding besi", "welding konstruksi",
       "sandblasting besi", "sandblasting beton",
       "sandblasting dinding", "sandblasting",
+
+      // ─── Bangun & borongan ───
       "bangun rumah", "bangun gedung", "bangun ruko",
       "bangun gudang", "bangun kantor", "bangun villa",
       "bangun apartemen", "bangun kos", "bangun pabrik",
@@ -478,9 +587,8 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "borongan gudang", "borongan kantor", "borongan villa",
       "borongan interior"
     ],
-    
-    // ─── SEWA (full expansion) ───
-       // ─── SEWA (GENERIK ONLY — FIX 201) ───
+
+    // ─── SEWA (GENERIK ONLY — FIX 201) ───
     sewa: [
       // Base generik — spec (mini/besar/pc75/dll) jadi layer
       "alat berat", "heavy equipment", "excavator", "bulldozer",
@@ -505,13 +613,19 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "pompa centrifugal", "pompa transfer", "kompresor angin",
       "compressor"
     ],
-    
-    // ─── DESAIN (full expansion) ───
+
+    // ─── DESAIN (SEO-Aligned v2) ───
+    // Prinsip: head term + scope layanan = base.
+    // Gaya/dimensi/tipe/konsep = modifier → TIDAK masuk base.
     desain: [
-      // Konsep umum
-      "open space", "split level", "tiny house",
-      "smart home", "eco home", "mid century", "art deco",
-      // Interior rumah
+      // ═══════════════════════════════════════════════════════════
+      // HEAD TERM (kategori utama)
+      // ═══════════════════════════════════════════════════════════
+      "desain interior", "desain eksterior", "desain rumah",
+
+      // ═══════════════════════════════════════════════════════════
+      // INTERIOR — per scope bangunan (layanan spesifik)
+      // ═══════════════════════════════════════════════════════════
       "desain interior rumah", "desain interior kantor",
       "desain interior kafe", "desain interior toko",
       "desain interior kamar", "desain interior dapur",
@@ -519,44 +633,45 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "desain interior apartemen", "desain interior ruko",
       "desain interior sekolah", "desain interior klinik",
       "desain interior mall", "desain interior gym",
-      // Rumah
-      "desain rumah minimalis", "desain rumah modern",
-      "desain rumah klasik", "desain rumah mewah",
-      "desain rumah tropis", "desain rumah industrial",
-      "desain rumah scandinavian", "desain rumah japandi",
-      "desain rumah 2 lantai", "desain rumah 3 lantai",
-      "desain rumah 1 lantai", "desain rumah hook",
-      "desain rumah type 36", "desain rumah type 45",
-      "desain rumah type 54", "desain rumah type 70",
-      "desain rumah type 100", "desain rumah type 120",
-      // Per ruangan
+
+      // ═══════════════════════════════════════════════════════════
+      // PER RUANGAN (scope ruangan = base)
+      // ═══════════════════════════════════════════════════════════
       "desain dapur", "desain kamar mandi", "desain kamar tidur",
       "desain ruang tamu", "desain ruang keluarga", "desain ruang makan",
       "desain teras", "desain taman", "desain balkon",
       "desain carport", "desain garasi", "desain fasad",
-      "desain walk in closet", "desain kamar anak",
-      "desain kamar utama", "desain kamar mandi minimalis",
-      "desain dapur minimalis", "desain dapur kering",
-      "desain dapur basah", "desain ruang kerja",
-      // Komersial
+      "desain walk in closet", "desain kamar anak", "desain kamar utama",
+      "desain ruang kerja",
+      // Tipe fungsional (kategori arsitektur)
+      "desain dapur kering", "desain dapur basah",
+
+      // ═══════════════════════════════════════════════════════════
+      // KOMERSIAL (scope bangunan = base)
+      // ═══════════════════════════════════════════════════════════
       "desain ruko", "desain kantor", "desain cafe",
       "desain restoran", "desain hotel", "desain villa",
       "desain apartemen", "desain showroom", "desain butik",
       "desain bar", "desain lounge", "desain spa",
       "desain salon", "desain laundry", "desain minimarket",
-      // Eksterior
+
+      // ═══════════════════════════════════════════════════════════
+      // EKSTERIOR (scope = base)
+      // ═══════════════════════════════════════════════════════════
       "desain eksterior rumah", "desain eksterior gedung",
-      "desain taman rumah", "desain kolam renang",
-      "desain taman minimalis", "desain taman kering",
-      "desain taman tropis", "desain gazebo",
-      // Arsitektur
+      "desain taman rumah", "desain taman kering",
+      "desain kolam renang", "desain gazebo",
+
+      // ═══════════════════════════════════════════════════════════
+      // ARSITEKTUR & TEKNIK
+      // ═══════════════════════════════════════════════════════════
       "desain arsitektur", "desain 3d", "desain denah",
       "desain layout", "desain bangunan", "desain struktur",
       "gambar arsitektur", "gambar kerja", "gambar teknik"
     ]
   };
-
-   // 🔥 FIX 162b: Sort base names by word count DESC (longest first)
+ 
+ // 🔥 FIX 162b: Sort base names by word count DESC (longest first)
   // Alasan: hindari partial match. Contoh: "kitchen set minimalis" harus 
   // dicek sebelum "kitchen set".
   (function() {
@@ -619,10 +734,12 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
     "custom","modern","minimalis","klasik"
   ];
   // 🔥 FIX 167: Helper untuk cek application target
-  function isApplicationTarget(word) {
-    if (!word) return false;
-    return APPLICATION_TARGETS.indexOf(word.toLowerCase().trim()) !== -1;
-  }
+function isApplicationTarget(word) {
+  if (!word) return false;
+  var w = word.toLowerCase().trim();
+  return APPLICATION_TARGETS.indexOf(w) !== -1 ||
+         APPLICATION_TARGETS_FULL.indexOf(w) !== -1;   // 🔥 FIX 195 alignment
+}
 
   var SATUAN_UNITS = [
     "meter", "m", "cm", "mm", "km", "mtr", "mtrs", "inchi", "inch", "ft", "feet",
@@ -1931,7 +2048,7 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
   }
  
     // 🔥 FIX 195-198 (v23.9.1): Unified layer counter with anti-gap
-  function countModifierLayers(text, entityType) {
+   function countModifierLayers(text, entityType) {
     if (!text) return 0;
     var working = text.toLowerCase();
 
@@ -1941,8 +2058,7 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       working = working.replace(new RegExp("\\b" + entityOnly[e] + "\\b", 'g'), ' ');
     }
 
-    // Step 2: strip verbs (jasa only)
-    // 🔥 FIX 207: strip BASE NAMES dulu (compound base harus match verb-base utuh)
+    // Step 2: strip base names (compound base harus match verb-base utuh)
     // Contoh: "pasang keramik" = 1 base, jangan pecah jadi "keramik"
     var baseNames = ENTITY_BASE_NAMES[entityType] || [];
     for (var b = 0; b < baseNames.length; b++) {
@@ -1953,7 +2069,6 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
     }
 
     // 🔥 FIX 207: strip verbs (jasa only) — HANYA leftover verb
-       // 🔥 FIX 207: strip verbs (jasa only) — HANYA leftover verb
     if (entityType === "jasa") {
       for (var c = 0; c < COMMON_JASA_WORDS.length; c++) {
         working = working.replace(new RegExp("\\b" + COMMON_JASA_WORDS[c] + "\\b", 'g'), ' ');
@@ -1961,7 +2076,6 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
     }
 
     // 🔥 FIX 208: STRIP PRICE_HEAD + SATUAN + PER-UNIT (bukan layer)
-       // 🔥 FIX 208: STRIP PRICE_HEAD + SATUAN + PER-UNIT (bukan layer)
     for (var ph = 0; ph < PRICE_HEAD_WORDS.length; ph++) {
       working = working.replace(new RegExp("\\b" + PRICE_HEAD_WORDS[ph] + "\\b", 'g'), ' ');
     }
@@ -1982,10 +2096,42 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       working = working.replace(new RegExp("\\b" + pword216 + "\\b", 'g'), ' ');
     }
     working = working.replace(/\s+/g, ' ').trim();
-   
+
     var count = 0;
     var seen = {};             // 🔥 FIX 196: dedup by category
     var seenWords = {};        // 🔥 FIX 196: dedup by word
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX SEO v6: strip modifier khusus desain SEBELUM category loop
+    // Alasan: mencegah DOUBLE-COUNT kata "lantai" (dari target + regex "N lantai")
+    // Contoh bug sebelum fix:
+    //   "harga desain rumah 2 lantai":
+    //     - target "lantai" → count=1
+    //     - regex "2 lantai" → count=2 → VARIANT (salah, harusnya MP)
+    // Setelah fix:
+    //   - regex "2 lantai" di-strip dulu → count=1
+    //   - category loop tidak lihat "lantai" lagi → total 1L → MP ✅
+    // ═══════════════════════════════════════════════════════════
+    if (entityType === "desain") {
+      // "N lantai" = 1 layer spec
+      var lantaiMatch = working.match(/\b\d+\s*lantai\b/gi) || [];
+      count += lantaiMatch.length;
+      for (var lm = 0; lm < lantaiMatch.length; lm++) {
+        working = working.replace(lantaiMatch[lm], ' ');
+      }
+      // "type N" = 1 layer spec
+      var typeMatch = working.match(/\btype\s+\d+\b/gi) || [];
+      count += typeMatch.length;
+      for (var tm = 0; tm < typeMatch.length; tm++) {
+        working = working.replace(typeMatch[tm], ' ');
+      }
+      // "hook" = 1 layer spec
+      if (/\bhook\b/i.test(working)) {
+        count += 1;
+        working = working.replace(/\bhook\b/gi, ' ');
+      }
+      working = working.replace(/\s+/g, ' ').trim();
+    }
 
     // 🔥 FIX 198: Category priority (high wins)
     var CATEGORY_PRIORITY = {
@@ -1995,7 +2141,7 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "durasi": 2, "konsep": 2, "furniture": 2, "subjektif": 1
     };
 
-        var categories = getCategoryDefs(entityType);
+    var categories = getCategoryDefs(entityType);
     for (var cat in categories) {
       if (!categories.hasOwnProperty(cat)) continue;
       var words = categories[cat];
@@ -2056,7 +2202,6 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       }
     }
     // Strip stopwords & conjunction
-        // Strip stopwords & conjunction
     var stopwords197 = ["dan","atau","serta","yang","dari","ke","di","untuk",
                         "dengan","ini","itu","akan","pada","oleh","per"];
     for (var s = 0; s < stopwords197.length; s++) {
@@ -2074,7 +2219,7 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       }
     }
     cleaned = cleaned.replace(/\s+/g, ' ').trim();
-   
+
     var unknownWords = cleaned.split(/\s+/).filter(function(w) {
       return w.length > 3;
     });
@@ -2088,7 +2233,7 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
         ' working="' + working.trim() + '"', 'VARIANT');
     return count;
   }
-
+ 
     // 🔥 FIX 199 (v23.9.1): Ambiguity logger untuk manual review
   function flagAmbiguous(text, entityType, level, layers) {
     if (!CONFIG.DEBUG) return;
@@ -2153,20 +2298,23 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
     return false;
   }
 
-  function detectEntityTypeFromText(text) {
+    function detectEntityTypeFromText(text) {
     if (!text) return null;
     var lower = text.toLowerCase();
 
+    // ─── PRIORITAS 1: Special case "jasa desain" ───
     if (/\bjasa\s+(desain|interior|arsitektur|eksterior)\b/i.test(lower)) {
       log('🎯 FIX 134: "jasa desain" → entity=desain', 'DETECT');
       return "desain";
     }
 
+    // ─── PRIORITAS 2: Artikel (how-to prefix) ───
     if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|perbandingan|review)/i.test(lower.trim())) {
       log('🎯 FIX 132: Artikel priority (how-to prefix)', 'DETECT');
       return "artikel";
     }
 
+    // ─── PRIORITAS 3: ENTITY_TRIGGERS loop ───
     for (var i = 0; i < ENTITY_PRIORITY.length; i++) {
       var entity = ENTITY_PRIORITY[i];
       var triggers = ENTITY_TRIGGERS[entity] || [];
@@ -2174,13 +2322,15 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
         if (lower.indexOf(triggers[j]) !== -1) return entity;
       }
     }
+
+    // ─── PRIORITAS 4: Keyword hardcode ───
     if (lower.indexOf("jasa") !== -1 || lower.indexOf("kontraktor") !== -1 || lower.indexOf("tukang") !== -1) return "jasa";
     if (lower.indexOf("sewa") !== -1 || lower.indexOf("rental") !== -1) return "sewa";
     if (lower.indexOf("desain") !== -1 || lower.indexOf("interior") !== -1) return "desain";
     if (lower.indexOf("material") !== -1 || lower.indexOf("bahan") !== -1) return "material";
     if (lower.indexOf("produk") !== -1 || lower.indexOf("jual") !== -1) return "produk";
 
-    // 🔥 FIX 202: Pakai word lists untuk entity detection
+    // ─── PRIORITAS 5: Word lists detection (FIX 202) ───
     for (var m = 0; m < MATERIAL_WORDS.length; m++) {
       if (new RegExp("\\b" + MATERIAL_WORDS[m] + "\\b", "i").test(lower)) {
         log('🎯 FIX 202: entity=material via word: ' + MATERIAL_WORDS[m], 'DETECT');
@@ -2206,16 +2356,67 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       }
     }
 
-    for (var ent in ENTITY_BASE_NAMES) {
-      if (!ENTITY_BASE_NAMES.hasOwnProperty(ent)) continue;
-      var names = ENTITY_BASE_NAMES[ent];
-      for (var n = 0; n < names.length; n++) {
-        if (lower.indexOf(names[n]) !== -1) return ent;
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX SEO v6: PRIORITY RESOLVER — LONGEST-MATCH (deterministik)
+    // ═══════════════════════════════════════════════════════════
+    // Aturan:
+    //   1. Kalau ada VERB SIGNAL JASA (pasang/borongan/dll.) tanpa sinyal transaksi produk
+    //      → JASA menang (duplikasi jasa↔produk)
+    //   2. Fallback: longest-match (base name terpanjang menang)
+    //      → "spun pile beton" (15 char, produk) > "spun pile" (9 char, jasa)
+    //   3. Tie-breaker: priority order (jasa > sewa > desain > produk > material > artikel)
+
+    // ─── STEP A: Verb signal jasa ───
+    var hasJasaVerbSignal = /\b(jasa|pasang|borongan|tukang|bongkar|gali|urug|cor|bor|coring|renovasi|perbaikan|instalasi|service|servis|bangun|las|grouting|cutting|drilling|sandblasting|pancang|pemancangan|pengecoran|pengeboran)\b/i.test(lower);
+    var hasProdukTxSignal = /\b(harga|jual|beli|supplier|distributor|ready|stok|stock|unit|batang|lembar|keping)\b/i.test(lower);
+
+    if (hasJasaVerbSignal && !hasProdukTxSignal) {
+      var jasaNamesRL = ENTITY_BASE_NAMES.jasa || [];
+      for (var jnRL = 0; jnRL < jasaNamesRL.length; jnRL++) {
+        if (lower.indexOf(jasaNamesRL[jnRL]) !== -1) {
+          log('🎯 FIX SEO v6: priority resolver → jasa (verb signal via "' +
+              jasaNamesRL[jnRL] + '")', 'DETECT');
+          return "jasa";
+        }
       }
     }
+
+    // ─── STEP B: Longest-match fallback ───
+    var bestMatchRL = { entity: null, length: 0, name: null, priority: 99 };
+    for (var epRL = 0; epRL < ENTITY_PRIORITY.length; epRL++) {
+      var entRL = ENTITY_PRIORITY[epRL];
+      if (!ENTITY_BASE_NAMES[entRL]) continue;
+      var namesRL = ENTITY_BASE_NAMES[entRL];
+      for (var nRL = 0; nRL < namesRL.length; nRL++) {
+        var nameRL = namesRL[nRL];
+        if (lower.indexOf(nameRL) === -1) continue;
+        var isBetterRL = false;
+        if (nameRL.length > bestMatchRL.length) {
+          isBetterRL = true;
+        } else if (nameRL.length === bestMatchRL.length && epRL < bestMatchRL.priority) {
+          isBetterRL = true;
+        }
+        if (isBetterRL) {
+          bestMatchRL = {
+            entity: entRL,
+            length: nameRL.length,
+            name: nameRL,
+            priority: epRL
+          };
+        }
+      }
+    }
+
+    if (bestMatchRL.entity) {
+      log('🎯 FIX SEO v6: longest match → ' + bestMatchRL.entity +
+          ' (via "' + bestMatchRL.name + '", ' + bestMatchRL.length + ' char)',
+          'DETECT');
+      return bestMatchRL.entity;
+    }
+
     return null;
   }
-
+ 
   function detectEntityType(userEntityType) {
     if (userEntityType && VALID_ENTITY_TYPES.indexOf(userEntityType) !== -1) return userEntityType;
     return detectEntityTypeFromText(getPageText() + " " + getH1Text());
@@ -3943,7 +4144,7 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "harga jendela aluminium", entity: "produk", expect: "money-master", note: "FIX 160b" },
       { slug: "harga kanopi alderon", entity: "produk", expect: "money-master", note: "FIX 160b" },
       // ─── FIX 160c: PRODUK spec ulir ───
-      { slug: "harga besi beton ulir", entity: "produk", expect: "money-page", note: "FIX 160c: ulir spec" },
+      { slug: "harga besi beton ulir", entity: "material", expect: "money-page", note: "besi beton=material, ulir=finishing" },
       // ─── FIX 160d: Konsistensi jasa + material ───
          { slug: "jasa bore pile beton", entity: "jasa", expect: "money-page", note: "FIX 182: material=MP" },
             { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-page", note: "FIX 182: material=MP" },
@@ -4033,7 +4234,7 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "harga jasa pasang pagar premium", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
       { slug: "harga jasa pasang kanopi elegan", entity: "jasa", expect: "money-page", note: "FIX 155: sharedGaya" },
             // ─── FIX 156: cross-entity base removal (UPDATED FIX 160) ───
-      { slug: "harga baja ringan", entity: "produk", expect: "money-master", note: "FIX 156: base produk only" },
+      { slug: "harga baja ringan", entity: "material", expect: "money-master", note: "baja ringan=material" },
       { slug: "harga pagar panel beton", entity: "produk", expect: "money-master", note: "FIX 156: base produk only" },
       // ─── FIX 154: Entity-aware spec modifier ───
       { slug: "harga jasa coring hidrolik", entity: "jasa", expect: "money-page", note: "FIX 154: metode hidrolik" },
@@ -4075,7 +4276,7 @@ function isSpecModifierForEntity(word, entityType) {
       // 🔥 FIX 166 (v23.7.7): Breadcrumb hierarchy validator
       // ═══════════════════════════════════════════════════════════
       // Di-superseded oleh FIX 168 — lihat test di bawah
-      { slug: "harga desain rumah tropis 2 lantai", entity: "desain", expect: "money-page", note: "FIX 167: 2 core+target" },
+      { slug: "harga desain rumah tropis 2 lantai", entity: "desain", expect: "variant", note: "2 modifier (gaya + lantai)" },
      // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 168 (v23.7.9): Parent-driven hierarchy validator
       // ═══════════════════════════════════════════════════════════
@@ -4399,24 +4600,60 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "desain interior rumah minimalis", entity: "desain", expect: "money-page", note: "FIX 218" },
       { slug: "desain interior rumah minimalis modern", entity: "desain", expect: "variant", note: "FIX 218" },
       { slug: "harga desain rumah tropis", entity: "desain", expect: "money-page", note: "FIX 218 regression" },
-      { slug: "harga desain rumah tropis 2 lantai", entity: "desain", expect: "money-page", note: "FIX 218 regression" }
-    ];   // ← TUTUP ARRAY
+           // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX SEO v6: DUPLIKASI JASA ↔ PRODUK (longest-match)
+      // ═══════════════════════════════════════════════════════════
+      // Rule: tanpa "jasa" keyword → PRODUK. Dengan "jasa" → JASA.
 
+      // ─── Spun pile (tanpa "jasa" = produk) ───
+      { slug: "spun pile", entity: "produk", expect: "money-master", note: "FIX SEO v6: bare = produk" },
+      { slug: "spun pile beton", entity: "produk", expect: "money-master", note: "FIX SEO v6: produk" },
+      { slug: "harga spun pile beton", entity: "produk", expect: "money-master", note: "FIX SEO v6" },
+      { slug: "harga spun pile 30x30", entity: "produk", expect: "money-page", note: "FIX SEO v6: 1L dimensi" },
+
+      // ─── Spun pile + "jasa" = jasa ───
+      { slug: "jasa spun pile", entity: "jasa", expect: "money-master", note: "FIX SEO v6: trigger jasa" },
+      { slug: "jasa spun pile beton", entity: "jasa", expect: "money-page", note: "FIX SEO v6: jasa + material" },
+      { slug: "jasa pancang spun pile", entity: "jasa", expect: "money-master", note: "FIX SEO v6: trigger jasa" },
+
+      // ─── Sheet pile ───
+      { slug: "sheet pile", entity: "produk", expect: "money-master", note: "FIX SEO v6: bare = produk" },
+      { slug: "sheet pile beton", entity: "produk", expect: "money-master", note: "FIX SEO v6" },
+      { slug: "jasa sheet pile", entity: "jasa", expect: "money-master", note: "FIX SEO v6: trigger jasa" },
+      { slug: "jasa pasang sheet pile", entity: "jasa", expect: "money-master", note: "FIX SEO v6" },
+
+      // ─── Mini pile ───
+      { slug: "mini pile", entity: "produk", expect: "money-master", note: "FIX SEO v6: bare = produk" },
+      { slug: "mini pile beton", entity: "produk", expect: "money-master", note: "FIX SEO v6" },
+      { slug: "jasa mini pile", entity: "jasa", expect: "money-master", note: "FIX SEO v6: trigger jasa" },
+
+      // ─── Tiang pancang ───
+      { slug: "tiang pancang", entity: "produk", expect: "money-master", note: "FIX SEO v6: bare = produk" },
+      { slug: "tiang pancang beton", entity: "produk", expect: "money-master", note: "FIX SEO v6" },
+      { slug: "jasa tiang pancang", entity: "jasa", expect: "money-master", note: "FIX SEO v6: trigger jasa" },
+      { slug: "jasa pancang beton", entity: "jasa", expect: "money-master", note: "FIX SEO v6" },
+
+      // ─── Auto-detect entity null ───
+      { slug: "spun pile beton", entity: null, expect: "money-master", note: "FIX SEO v6: auto-detect → produk" },
+      { slug: "jasa spun pile beton", entity: null, expect: "money-page", note: "FIX SEO v6: auto-detect → jasa" }
+    ];
+   
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("🧪 PLD v23.7.1 — TEST SUITE (" + TEST_CASES.length + " CASE)");
+    console.log("🧪 PLD v23.9.1 — TEST SUITE (" + TEST_CASES.length + " CASE)");
     console.log("═══════════════════════════════════════════════════════════");
 
     var passed = 0, failed = 0, failures = [];
     for (var i = 0; i < TEST_CASES.length; i++) {
-      var test = TEST_CASES[i];
-      var result;
-      try {
-        result = pageLevelDetectorv22.detectForPrompt(test.slug, test.entity);
-      } catch (e) {
-        result = { pageLevel: "ERROR: " + e.message };
-      }
-      var actual = result.pageLevel;
-      var isPass = (actual === test.expect);
+     var test = TEST_CASES[i];
+     if (!test || !test.slug) continue;   // 🔥 skip array hole / malformed
+     var result;
+     try {
+       result = pageLevelDetectorv22.detectForPrompt(test.slug, test.entity);
+     } catch (e) {
+       result = { pageLevel: "ERROR: " + e.message };
+     }
+     var actual = result.pageLevel;
+     var isPass = (actual === test.expect);
       if (isPass) {
         passed++;
         console.log("✅ " + test.slug + " → " + actual + (test.note ? " (" + test.note + ")" : ""));
