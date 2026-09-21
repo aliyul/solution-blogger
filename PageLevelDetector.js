@@ -230,25 +230,16 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
     artikel: ["artikel"]
   };
 
-   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX 161 FULL TAXONOMY — FIX SEO v10 FINAL
+    // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX 161 FULL TAXONOMY — FIX SEO v13 FINAL
   // Aturan: 1 compound = 1 core. 2+ compound berbeda = MP.
   // URUT PANJANG DULU untuk hindari partial match (auto-sort FIX 162b).
   //
-  // Prinsip SEO:
-  //   PRODUK   = barang jadi (merek/tipe/dimensi/varian spesifik)
-  //   MATERIAL = bahan mentah / kategori umum (spec → layer)
-  //   JASA     = tindakan/layanan
-  //   SEWA     = penyewaan alat
-  //   DESAIN   = jasa desain (head term + scope)
-  //
-  // 🔥 FIX SEO v10: Bersihkan base name overreach
-  //   - Hapus [root]+[material/skala/metode] dari JASA (bore pile beton, dll)
-  //   - Hapus [root]+[dimensi] dari PRODUK (u ditch 30x30, dll)
-  //   - Dedup (besi h-beam vs besi h beam)
-  //   - Hapus [root]+[modifier] dari sumur bor
-  // Modifier baru (mesin, dalam, dangkal, artesis, jet pump, borongan,
-  // perumahan, proyek) sudah dipindah ke PURE_METHODS/PURE_SCALES.
+  // 🔥 FIX SEO v13: Prinsip MM = head term (TANPA modifier baked)
+  //   - Hapus base variant-disguised (buis beton bertulang, spun pile beton, dll)
+  //   - Hapus base dengan dimensi baked (keramik 60x60, granit 80x80)
+  //   - Hapus typo/synonym redundant (kanstein beton, roster dinding)
+  //   - KEEP industry idioms (kanstin beton, tiang listrik beton, sloof beton)
   // ═══════════════════════════════════════════════════════════
   var ENTITY_BASE_NAMES = {
 
@@ -256,41 +247,33 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
     produk: [
       // ═══════════════════════════════════════════════════════════
       // PRECAST & BETON (barang jadi dengan spek unit)
+      // 🔥 FIX SEO v13: hapus variant-disguised & dimensi baked
       // ═══════════════════════════════════════════════════════════
-      // Pagar panel
+      // Pagar panel (industry idiom)
       "pagar panel", "panel beton", "pagar beton",
       // U-Ditch & Box Culvert
-      // 🔥 FIX SEO v10: hapus [root]+dimensi (u ditch 30x30, dll)
-      "u ditch cover", "tutup u ditch", "u ditch",
-      "box culvert",
-      // Buis beton & gorong-gorong
-      "buis beton bertulang", "buis beton biasa", "buis beton",
+      "u ditch cover", "tutup u ditch", "u ditch", "box culvert",
+      // Buis beton (bare saja — "bertulang"/"biasa" jadi modifier)
+      "buis beton",
+      // Gorong-gorong
       "gorong gorong beton", "gorong-gorong beton", "gorong gorong",
-      "culvert beton", "beton culvert",
+      "culvert beton",
       "sumuran beton", "sumur resapan beton",
       // Kanstin & curb
-      "kanstin beton", "kanstein beton", "kanstin jalan", "kanstin taman",
+      "kanstin beton", "kanstin jalan", "kanstin taman",
       "curb stone", "curb beton",
       // Paving khusus (bukan curah)
-      "paving grass block", "grass block", "grassblock",
+      "grass block", "grassblock",
       "paving segi enam", "paving hexagon", "paving cacing",
       "tactile paving", "paving disabilitas",
-      // Rooster / roster beton
-      // 🔥 FIX SEO v10: dedup — keep "rooster beton"
-      "rooster beton",
-      "roster dinding", "ventilasi beton", "lubang angin beton",
+      // Rooster / roster (bare beton, bukan dinding)
+      "rooster beton", "roster beton",
       // Tiang & pondasi precast (produk — beda intent dengan jasa)
-      // 🔥 FIX SEO v6: tambah bare forms
-      "tiang listrik beton", "tiang pancang beton",
-      "spun pile beton", "tiang spun pile", "mini pile beton",
-      "sheet pile beton", "turap beton", "tiang beton",
+      "tiang listrik beton", "tiang pancang",
       "spun pile", "mini pile", "micropile",
-      "sheet pile", "tiang pancang",
-      // Struktur precast
-      "half slab beton", "half slab", "plat lantai precast",
-      "kolom beton precast", "kolom praktis",
-      "balok beton precast", "sloof beton",
-      "plat beton precast", "panel lantai precast",
+      "sheet pile",
+      // Struktur precast (bare saja)
+      "half slab", "kolom praktis", "sloof beton",
 
       // ═══════════════════════════════════════════════════════════
       // KANOPI (head term + varian spesifik)
@@ -330,7 +313,6 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
 
       // ═══════════════════════════════════════════════════════════
       // BESI PROFIL (barang jadi, per batang dengan spek dimensi)
-      // 🔥 FIX SEO v10: dedup h-beam/h beam
       // ═══════════════════════════════════════════════════════════
       "besi hollow", "besi wf", "besi h beam", "besi cnp",
       "besi unp", "besi siku", "besi kanal",
@@ -352,8 +334,8 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "plafon jayaboard", "plafon shunda", "plafon drop",
 
       // ═══════════════════════════════════════════════════════════
-      // LANTAI (varian dengan dimensi/tipe spesifik)
-      // 🔥 FIX SEO v10: hapus [root]+dimensi (keramik 60x60, dll)
+      // LANTAI (varian dengan tipe spesifik — TANPA dimensi)
+      // 🔥 FIX SEO v13: hapus keramik 60x60/80x80/40x40, granit 60x60/80x80/100x100
       // ═══════════════════════════════════════════════════════════
       "keramik lantai", "keramik dinding", "granit tile", "homogeneous tile",
       "parket kayu", "lantai vinyl", "lantai laminasi", "lantai kayu",
@@ -416,7 +398,7 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "baja ringan", "galvalum", "precast", "pracetak", "kaca",
       "aluminium", "kerikil", "batu split", "batu kali", "batu belah",
 
-      // ─── FIX SEO v3: kategori bahan (spesifik tapi umum sebagai bahan) ───
+      // ─── FIX SEO v3: kategori bahan ───
       "besi beton",
       "atap baja ringan", "rangka baja ringan",
       "bata ringan", "bata hebel", "bata merah", "bata putih",
@@ -428,7 +410,7 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
     // 🔥 FIX SEO v10: HAPUS [root]+[material/skala/metode]
     // Modifier dipindah ke PURE_METHODS/PURE_SCALES
     jasa: [
-      // ─── Pondasi & tiang (FIX SEO v10: clean) ───
+      // ─── Pondasi & tiang ───
       "bore pile", "bor pile", "bored pile", "boring pile",
       "mini pile", "spun pile", "micropile",
       "bor strauss", "bor pancang",
@@ -438,12 +420,10 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "jet grouting",
       "stabilisasi tanah", "soil improvement",
 
-      // ─── Sumur bor (FIX SEO v10: clean) ───
+      // ─── Sumur bor ───
       "sumur bor", "bor sumur", "air tanah",
 
-      // ─── Cor ───
-      // ⚠️ Catatan: "cor dak beton" dll dipertahankan sebagai fixed term
-      // (test case existing expect MM untuk "harga jasa cor dak beton")
+      // ─── Cor (fixed term) ───
       "cor dak beton", "cor dak lantai", "cor dak",
       "cor lantai beton", "cor lantai",
       "cor jalan beton", "cor jalan",
@@ -455,7 +435,6 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "cor halaman", "cor garasi", "cor carport",
 
       // ─── Pasang ───
-      // 🔥 FIX SEO v7: "pasang dinding" = base service (bukan base + target)
       "pasang dinding", "pasang keramik lantai", "pasang keramik dinding",
       "pasang keramik", "pasang granit", "pasang marmer",
       "pasang parket", "pasang vinyl", "pasang lantai kayu",
@@ -618,17 +597,11 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
     ],
 
     // ─── DESAIN (SEO-Aligned v2) ───
-    // Prinsip: head term + scope layanan = base.
-    // Gaya/dimensi/tipe/konsep = modifier → TIDAK masuk base.
     desain: [
-      // ═══════════════════════════════════════════════════════════
-      // HEAD TERM (kategori utama)
-      // ═══════════════════════════════════════════════════════════
+      // HEAD TERM
       "desain interior", "desain eksterior", "desain rumah",
 
-      // ═══════════════════════════════════════════════════════════
-      // INTERIOR — per scope bangunan (layanan spesifik)
-      // ═══════════════════════════════════════════════════════════
+      // INTERIOR — per scope bangunan
       "desain interior rumah", "desain interior kantor",
       "desain interior kafe", "desain interior toko",
       "desain interior kamar", "desain interior dapur",
@@ -637,10 +610,7 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "desain interior sekolah", "desain interior klinik",
       "desain interior mall", "desain interior gym",
 
-      // ═══════════════════════════════════════════════════════════
-      // PER RUANGAN (scope ruangan = base)
-      // ═══════════════════════════════════════════════════════════
-      // 🔥 FIX SEO v9: tambah "desain interior [ruangan]" sebagai base
+      // PER RUANGAN
       "desain interior kamar mandi", "desain interior kamar tidur",
       "desain interior ruang tamu", "desain interior ruang keluarga",
       "desain interior ruang makan", "desain interior ruang kerja",
@@ -651,33 +621,27 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "desain carport", "desain garasi", "desain fasad",
       "desain walk in closet", "desain kamar anak", "desain kamar utama",
       "desain ruang kerja",
-      // Tipe fungsional (kategori arsitektur)
       "desain dapur kering", "desain dapur basah",
 
-      // ═══════════════════════════════════════════════════════════
-      // KOMERSIAL (scope bangunan = base)
-      // ═══════════════════════════════════════════════════════════
+      // KOMERSIAL
       "desain ruko", "desain kantor", "desain cafe",
       "desain restoran", "desain hotel", "desain villa",
       "desain apartemen", "desain showroom", "desain butik",
       "desain bar", "desain lounge", "desain spa",
       "desain salon", "desain laundry", "desain minimarket",
 
-      // ═══════════════════════════════════════════════════════════
-      // EKSTERIOR (scope = base)
-      // ═══════════════════════════════════════════════════════════
+      // EKSTERIOR
       "desain eksterior rumah", "desain eksterior gedung",
       "desain taman rumah", "desain taman kering",
       "desain kolam renang", "desain gazebo",
 
-      // ═══════════════════════════════════════════════════════════
       // ARSITEKTUR & TEKNIK
-      // ═══════════════════════════════════════════════════════════
       "desain arsitektur", "desain 3d", "desain denah",
       "desain layout", "desain bangunan", "desain struktur",
       "gambar arsitektur", "gambar kerja", "gambar teknik"
     ]
   };
+ 
  
  // 🔥 FIX 162b: Sort base names by word count DESC (longest first)
   // Alasan: hindari partial match. Contoh: "kitchen set minimalis" harus 
