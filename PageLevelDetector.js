@@ -379,7 +379,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
         return b.split(' ').length - a.split(' ').length;
       });
     }
-
+})();   // ← ✅ TAMBAHKAN BARIS INI
   // ═══════════════════════════════════════════════════════════
   // ✅ PART 1/3 SELESAI
 
