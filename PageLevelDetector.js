@@ -637,8 +637,6 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
 
       // ═══════════════════════════════════════════════════════════
       // PER RUANGAN (scope ruangan = base)
-          // ═══════════════════════════════════════════════════════════
-      // PER RUANGAN (scope ruangan = base)
       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX SEO v9: tambah "desain interior [ruangan]" sebagai base
       // (sebelumnya hanya "desain [ruangan]" — varian dgn "interior" jadi
