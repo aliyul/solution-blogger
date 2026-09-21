@@ -4723,7 +4723,7 @@ function isSpecModifierForEntity(word, entityType) {
 
       // ─── Auto-detect entity null ───
       { slug: "spun pile beton", entity: null, expect: "money-master", note: "FIX SEO v6: auto-detect → produk" },
-      { slug: "jasa spun pile beton", entity: null, expect: "money-page", note: "FIX SEO v6: auto-detect → jasa" }
+      { slug: "jasa spun pile beton", entity: null, expect: "money-page", note: "FIX SEO v6: auto-detect → jasa" },
     
           // ═══════════════════════════════════════════════════════════
       // 🔥 FIX SEO v9: Universal prefix + room target + base names
