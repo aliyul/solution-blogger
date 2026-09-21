@@ -1,28 +1,28 @@
 /**
- * AUTO-SCHEMA GENERATOR v8.0.0 FINAL — ARTICLE ONLY + isPartOf
+ * AUTO-SCHEMA GENERATOR v8.1.0 FINAL — ARTICLE ONLY + isPartOf
  * INTEGRATED WITH Page Level Detector v23.0.0 & Smart Evergreen Detector v17.0
  *
- * ✅ v8.0.0 CHANGELOG:
- * ✅ NEW: SINKRON PLD v23.0.0 (Merged: Level + Schema + PHASE 4.6)
- * ✅ NEW: Helper getPLDVersion() untuk deteksi versi akurat
- * ✅ NEW: Prioritas PLD v23 detectContentFocus() > body attribute > H1
- * ✅ NEW: Prioritas PLD v23 detectKategori() untuk kategori
- * ✅ NEW: Prioritas PLD v23 detectH1Pattern() untuk H1 pattern
- * ✅ NEW: Prioritas PLD v23 detectSchemaType() untuk schema type
- * ✅ NEW: Prioritas PLD v23 detectCtaType() untuk CTA type
- * ✅ NEW: Log versi PLD (v23.0.0 / v22.x / ...)
+ * ✅ v8.1.0 CHANGELOG (FIXES):
+ * ✅ FIX: Hapus dead code homepage (generateHomePageSchema dihapus)
+ * ✅ FIX: Homepage di-skip sepenuhnya — ditangani @graph statis di template
+ * ✅ FIX: Image Article diambil dari halaman dengan filter naturalWidth >= 400
+ * ✅ FIX: Image Article fallback NULL (bukan LOGO_IMAGE) — Google lebih suka tanpa image
+ * ✅ FIX: Image object pakai format ImageObject + width/height (1200x675)
+ * ✅ FIX: Publisher logo tetap statis (LOGO_IMAGE) — WAJIB konsisten
+ * ✅ FIX: Pembersihan log summary homepage
  *
- * ✅ PRESERVED (semua v7.9):
+ * ✅ PRESERVED (semua v8.0.0):
+ * ✅ SINKRON PLD v23.0.0
+ * ✅ Helper getPLDVersion()
+ * ✅ Prioritas PLD v23 detectContentFocus() > body attribute > H1
+ * ✅ Prioritas PLD v23 detectKategori(), detectH1Pattern(), detectSchemaType(), detectCtaType()
  * ✅ waitForBreadcrumbGenerated() — tunggu event dari generateBreadcrumb
  * ✅ Cek flag data-breadcrumb-ready di body
  * ✅ Fallback tunggu breadcrumb FINAL (link terakhir = current)
  * ✅ Prioritaskan breadcrumb mengandung "Beranda"/"Home"
  * ✅ Strip separator dari parent name (›, », >, dll)
- * ✅ Publisher logo pakai LOGO_IMAGE (bukan firstImg)
  * ✅ escapeJSON() escape <, >, &
  * ✅ Tambah @id di Article schema
- * ✅ waitForBreadcrumbReady() — sebagai fallback
- * ✅ getParentFromBreadcrumbReady() — dengan prioritas flag
  * ✅ isPartOf di generateArticleSchema()
  * ✅ Format Article schema (valid)
  * ✅ Prioritas SP1/SP2/Pillar
@@ -30,7 +30,7 @@
  * ✅ PLD-ONLY MODE
  * ✅ 6 Parameter
  *
- * @version 8.0.0
+ * @version 8.1.0
  * @date 2026
  */
 
@@ -53,11 +53,14 @@
     BREADCRUMB_TIMEOUT: 3000,
     BREADCRUMB_READY_TIMEOUT: 5000,
     BREADCRUMB_GENERATED_TIMEOUT: 10000,
-    VERSION: "8.0.0"
+    MIN_IMAGE_WIDTH: 400,        // ✅ NEW: minimum lebar gambar
+    ARTICLE_IMG_WIDTH: 1200,     // ✅ NEW: default width output schema
+    ARTICLE_IMG_HEIGHT: 675,     // ✅ NEW: default height output schema (16:9)
+    VERSION: "8.1.0"
   };
 
   // =========================================================
-  // LOGO IMAGE
+  // LOGO IMAGE (untuk publisher logo — WAJIB statis)
   // =========================================================
 
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
@@ -88,13 +91,13 @@
       CONFIDENCE: "🎯", FOCUS: "🎯", SKIP: "⏭️", TABLE: "📊",
       H1: "📝", PRIORITY: "🔴", BREADCRUMB: "🍞", AED: "⚡",
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
-      PARENT: "👪", FIX: "🔧", NEW: "🆕"
+      PARENT: "👪", FIX: "🔧", NEW: "🆕", IMG: "🖼️"
     };
-    console.log(`${icons[type] || "📘"} [Schema v8.0.0] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v8.1.0] ${msg}`);
   }
 
   // =========================================================
-  // 🆕 v8.0.0: HELPER DETEKSI VERSI PLD
+  // HELPER DETEKSI VERSI PLD
   // =========================================================
 
   function getPLDVersion() {
@@ -450,7 +453,7 @@
   }
 
   // =========================================================
-  // 🆕 v8.0.0: HELPER PHASE 4.6 DARI PLD v23.0.0
+  // HELPER PHASE 4.6 DARI PLD v23.0.0
   // =========================================================
 
   function getPLDContentFocus(pageLevel, entityType) {
@@ -536,11 +539,10 @@
   }
 
   // =========================================================
-  // PLD-ONLY DATA READERS (v8.0.0: Prioritas PLD v23)
+  // PLD-ONLY DATA READERS (Prioritas PLD v23)
   // =========================================================
 
   function detectContentFocus(pageLevel, entityType) {
-    // 🆕 v8.0.0: PRIORITAS 0 — PLD v23 detectContentFocus()
     const pldVer = getPLDVersion();
     if (pldVer.family === "v23" && pageLevel && entityType) {
       const pldFocus = getPLDContentFocus(pageLevel, entityType);
@@ -551,20 +553,17 @@
       }
     }
 
-    // PRIORITAS 1: body attribute
     const bodyFocus = document.body.getAttribute('data-content-focus');
     if (bodyFocus) {
       log(`🎯 Content Focus dari body: ${bodyFocus}`, "FOCUS");
       return bodyFocus.toLowerCase();
     }
 
-    // PRIORITAS 2: V379A
     if (window.V379A && window.V379A.focusKonten) {
       log(`🎯 Content Focus dari V37.9-A: ${window.V379A.focusKonten}`, "FOCUS");
       return window.V379A.focusKonten.toLowerCase();
     }
 
-    // PRIORITAS 3: Fallback H1
     const h1 = document.querySelector('h1')?.innerText?.toLowerCase() || '';
 
     if (/\b(20[2-9][0-9])\b/.test(h1)) {
@@ -587,7 +586,6 @@
   }
 
   function getKategori(contentFocus) {
-    // 🆕 v8.0.0: PRIORITAS 0 — PLD v23 detectKategori()
     const pldVer = getPLDVersion();
     if (pldVer.family === "v23" && contentFocus) {
       const pldKategori = getPLDKategori(contentFocus);
@@ -597,20 +595,17 @@
       }
     }
 
-    // PRIORITAS 1: body attribute
     const bodyKategori = document.body.getAttribute('data-kategori');
     if (bodyKategori) {
       log(`🏷️ Kategori dari body: ${bodyKategori}`, "KATEGORI");
       return bodyKategori.toUpperCase();
     }
 
-    // PRIORITAS 2: V379A
     if (window.V379A && window.V379A.kategori) {
       log(`🏷️ Kategori dari V37.9-A: ${window.V379A.kategori}`, "KATEGORI");
       return window.V379A.kategori.toUpperCase();
     }
 
-    // PRIORITAS 3: Fallback dari focus
     const focus = contentFocus || detectContentFocus();
     if (focus === 'informasi') {
       log(`🏷️ Kategori: EVERGREEN (dari INFORMASI)`, "KATEGORI");
@@ -642,7 +637,6 @@
   }
 
   function getSchemaType(pageLevel, entityType, contentFocus) {
-    // 🆕 v8.0.0: PRIORITAS 0 — PLD v23 detectSchemaType()
     const pldVer = getPLDVersion();
     if (pldVer.family === "v23" && pageLevel && entityType) {
       const pldSchema = getPLDSchemaType(pageLevel, entityType, contentFocus);
@@ -651,7 +645,6 @@
       }
     }
 
-    // PRIORITAS 1: body attribute
     const bodyPrimary = document.body.getAttribute('data-schema-type-primary');
     const bodySecondary = document.body.getAttribute('data-schema-type-secondary');
     if (bodyPrimary) {
@@ -663,7 +656,6 @@
       return result;
     }
 
-    // PRIORITAS 2: V379A
     if (window.V379A && window.V379A.schemaType) {
       log(`🔗 Schema Type dari V37.9-A`, "SCHEMA");
       return window.V379A.schemaType;
@@ -674,7 +666,6 @@
   }
 
   function getCtaType(pageLevel, contentFocus) {
-    // 🆕 v8.0.0: PRIORITAS 0 — PLD v23 detectCtaType()
     const pldVer = getPLDVersion();
     if (pldVer.family === "v23" && pageLevel) {
       const pldCta = getPLDCtaType(pageLevel, contentFocus);
@@ -683,7 +674,6 @@
       }
     }
 
-    // PRIORITAS 1: body attribute
     const bodyCtaType = document.body.getAttribute('data-cta-type');
     const bodyCtaText = document.body.getAttribute('data-cta-text');
     if (bodyCtaType) {
@@ -695,7 +685,6 @@
       return result;
     }
 
-    // PRIORITAS 2: V379A
     if (window.V379A && window.V379A.ctaType) {
       log(`🔘 CTA Type dari V37.9-A`, "PLD");
       return window.V379A.ctaType;
@@ -706,7 +695,6 @@
   }
 
   function getH1Pattern(kategori) {
-    // 🆕 v8.0.0: PRIORITAS 0 — PLD v23 detectH1Pattern()
     const pldVer = getPLDVersion();
     if (pldVer.family === "v23" && kategori) {
       const pldPattern = getPLDH1Pattern(kategori);
@@ -715,20 +703,17 @@
       }
     }
 
-    // PRIORITAS 1: body attribute
     const bodyH1Pattern = document.body.getAttribute('data-h1-pattern');
     if (bodyH1Pattern) {
       log(`📝 H1 Pattern dari body: ${bodyH1Pattern}`, "PLD");
       return bodyH1Pattern;
     }
 
-    // PRIORITAS 2: V379A
     if (window.V379A && window.V379A.h1Pattern) {
       log(`📝 H1 Pattern dari V37.9-A`, "PLD");
       return window.V379A.h1Pattern;
     }
 
-    // PRIORITAS 3: Fallback dari kategori
     const kat = kategori || getKategori();
     const pattern = kat === 'NON-EVERGREEN' ? 'with-year' : 'no-year';
     log(`📝 H1 Pattern: ${pattern} (dari kategori)`, "PLD");
@@ -737,14 +722,16 @@
 
   // =========================================================
   // SKIP LOGIC
+  // ✅ v8.1.0: Homepage skip sepenuhnya — ditangani @graph statis
   // =========================================================
 
   function shouldSkipPage() {
     const currentPath = window.location.pathname;
 
+    // ✅ SKIP HOMEPAGE — @graph statis sudah handle
     const isHomepage = currentPath === '/' || currentPath === '/index.html' || currentPath === '';
     if (isHomepage) {
-      log(`⏭️ SKIP: HOMEPAGE (${currentPath})`, "SKIP");
+      log(`⏭️ SKIP: HOMEPAGE (${currentPath}) — ditangani @graph statis`, "SKIP");
       return true;
     }
 
@@ -770,7 +757,6 @@
 
   // =========================================================
   // GET PAGE LEVEL & ENTITY TYPE
-  // 🆕 v8.0.0: Deteksi versi PLD akurat
   // =========================================================
 
   async function getPageLevelAndEntityType() {
@@ -795,7 +781,6 @@
         const entityType = window.pageLevelDetectorv22.detectEntityType();
 
         if (pageLevel && entityType) {
-          // 🆕 v8.0.0: Deteksi versi akurat
           const pldVer = getPLDVersion();
           log(`📌 Page Level dari PLD ${pldVer.label}: ${pageLevel}`, "PLD");
           log(`📌 Entity Type dari PLD ${pldVer.label}: ${entityType}`, "PLD");
@@ -906,7 +891,6 @@
         resolve(true);
       };
 
-      // ✅ v8.0.0: Event sama untuk v22 & v23
       window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
       window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
       window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
@@ -1044,22 +1028,62 @@
   }
 
   // =========================================================
-  // HOMEPAGE SCHEMA
+  // ✅ v8.1.0: FIND BEST ARTICLE IMAGE
+  // Filter gambar kecil (ikon/tracking pixel), ambil yang besar
   // =========================================================
 
-  function generateHomePageSchema(data) {
-    return {
-      "@context": "https://schema.org",
-      "@type": "WebPage",
-      "name": "Beranda - " + CONFIG.SITE_NAME,
-      "url": data.url,
-      "description": data.descMeta,
-      "inLanguage": "id-ID"
-    };
+  function findBestArticleImage() {
+    const selectors = [
+      ".post-body.entry-content img",
+      ".post-body img",
+      "article img",
+      "main img"
+    ];
+
+    const seen = new Set();
+    const candidates = [];
+
+    for (const sel of selectors) {
+      document.querySelectorAll(sel).forEach(img => {
+        if (seen.has(img)) return;
+        seen.add(img);
+        candidates.push(img);
+      });
+    }
+
+    for (const img of candidates) {
+      const src = img.currentSrc || img.src || "";
+      if (!src) continue;
+      if (src.startsWith("data:")) continue;
+
+      // Prioritas: gambar dengan dimensi jelas >= MIN_IMAGE_WIDTH
+      const w = img.naturalWidth || img.width || 0;
+      const h = img.naturalHeight || img.height || 0;
+
+      if (w >= CONFIG.MIN_IMAGE_WIDTH && h > 0) {
+        log(`🖼️ Article image: ${src} (${w}x${h})`, "IMG");
+        return { url: src, width: w, height: h };
+      }
+    }
+
+    // Fallback: coba ambil yang punya width attribute besar
+    for (const img of candidates) {
+      const src = img.currentSrc || img.src || "";
+      if (!src || src.startsWith("data:")) continue;
+      const attrW = parseInt(img.getAttribute("width") || "0", 10);
+      if (attrW >= CONFIG.MIN_IMAGE_WIDTH) {
+        log(`🖼️ Article image (attr): ${src} (${attrW}px)`, "IMG");
+        return { url: src, width: attrW, height: Math.round(attrW * 9 / 16) };
+      }
+    }
+
+    log(`⚠️ Tidak ada gambar artikel >= ${CONFIG.MIN_IMAGE_WIDTH}px — image di-omit`, "WARN");
+    return null;
   }
 
   // =========================================================
   // ARTICLE SCHEMA DENGAN @id, LOGO, isPartOf
+  // ✅ v8.1.0: image optional + ImageObject format
   // =========================================================
 
   function generateArticleSchema(data, dates, pageLevel, entityType, parentData, contentFocus, kategori) {
@@ -1100,7 +1124,6 @@
       "@id": data.url + "#article",
       "headline": escapeJSON(data.title),
       "description": escapeJSON(data.descMeta),
-      "image": [data.firstImg],
       "author": {
         "@type": "Organization",
         "name": CONFIG.SITE_NAME,
@@ -1134,6 +1157,19 @@
       }
     };
 
+    // ✅ v8.1.0: Image opsional — hanya jika gambar artikel valid ditemukan
+    if (data.articleImage && data.articleImage.url) {
+      schema.image = [{
+        "@type": "ImageObject",
+        "url": data.articleImage.url,
+        "width": data.articleImage.width || CONFIG.ARTICLE_IMG_WIDTH,
+        "height": data.articleImage.height || CONFIG.ARTICLE_IMG_HEIGHT
+      }];
+      log(`🖼️ Image schema: ${data.articleImage.url}`, "IMG");
+    } else {
+      log(`⏭️ Image di-omit (tidak ada gambar artikel valid)`, "IMG");
+    }
+
     if (isPartOf) {
       schema.isPartOf = isPartOf;
     }
@@ -1143,24 +1179,31 @@
 
   // =========================================================
   // EXTRACT PAGE DATA
+  // ✅ v8.1.0: firstImg diganti articleImage (ImageObject)
   // =========================================================
 
   function extractPageData() {
     const url = location.href.split("?")[0];
     const title = document.title || "";
     const descMeta = document.querySelector("meta[name='description']")?.content || "";
-    const firstImg = document.querySelector(".post-body img, article img, main img")?.src || LOGO_IMAGE;
-    const content = document.querySelector(".post-body.entry-content") || document.querySelector("article") || document.querySelector("main");
-    return { url, title, descMeta, firstImg, content };
+
+    // ✅ Ambil gambar artikel dengan filter ukuran (bukan LOGO_IMAGE)
+    const articleImage = findBestArticleImage();
+
+    const content = document.querySelector(".post-body.entry-content")
+                 || document.querySelector("article")
+                 || document.querySelector("main");
+
+    return { url, title, descMeta, articleImage, content };
   }
 
   // =========================================================
-  // 🚀 MAIN INIT v8.0.0
+  // 🚀 MAIN INIT v8.1.0
   // =========================================================
 
   async function init() {
     log("════════════════════════════════════");
-    log("AUTO SCHEMA GENERATOR v8.0.0 — ARTICLE ONLY");
+    log("AUTO SCHEMA GENERATOR v8.1.0 — ARTICLE ONLY");
     log("PLD v23.0.0 + BREADCRUMB GENERATED + isPartOf");
     log("════════════════════════════════════");
 
@@ -1211,11 +1254,11 @@
       log(`   🎯 Confidence: ${confidence}% (${strategyCount} strategies)`, "CONFIDENCE");
     }
 
-    // 🆕 v8.0.0: Content Focus dengan prioritas PLD v23
+    // Content Focus dengan prioritas PLD v23
     const contentFocus = detectContentFocus(pageLevel, entityType);
     log(`📌 Content Focus: ${contentFocus.toUpperCase()}`, "FOCUS");
 
-    // 🆕 v8.0.0: 6 Parameter dengan prioritas PLD v23
+    // 6 Parameter dengan prioritas PLD v23
     const kategori = getKategori(contentFocus);
     const entitySubType = getEntitySubType();
     const schemaType = getSchemaType(pageLevel, entityType, contentFocus);
@@ -1241,12 +1284,8 @@
 
     const pageData = extractPageData();
 
-    // Homepage schema
-    const homeElem = document.getElementById("auto-schema-home");
-    if (homeElem && pageLevel === "home") {
-      homeElem.textContent = JSON.stringify(generateHomePageSchema(pageData), null, 2);
-      log("HOMEPAGE SCHEMA GENERATED", "SUCCESS");
-    }
+    // ✅ v8.1.0: Homepage TIDAK di-generate (ditangani @graph statis)
+    // (Dead code generateHomePageSchema sudah dihapus)
 
     // Wait untuk AED
     log("⚡ Menunggu AEDMetaDates...", "AED");
@@ -1280,6 +1319,7 @@
       log(`   📌 isPartOf: ${parentData.parentName} ✅`, "SCHEMA");
       log(`   📌 @id: ${pageData.url}#article ✅`, "SCHEMA");
       log(`   📌 Publisher logo: LOGO_IMAGE ✅`, "SCHEMA");
+      log(`   📌 Article image: ${pageData.articleImage ? 'DARI HALAMAN ✅' : 'DI-OMIT ⏭️'}`, "IMG");
 
       if (pageLevel === 'pillar' || pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
         log(`   ✅ ${pageLevel.toUpperCase()} → Article schema (EVERGREEN — V37)`, "SUCCESS");
@@ -1293,7 +1333,7 @@
     // EXECUTION SUMMARY
     // =========================================================
     log("════════════════════════════════════");
-    log("FINISHED (v8.0.0)");
+    log("FINISHED (v8.1.0)");
     log(`   ✅ PLD Version: ${pldVer.label}`);
     log(`   ✅ Page Level: ${pageLevel}`);
     log(`   ✅ Entity Type: ${entityType}`);
@@ -1306,6 +1346,7 @@
     log(`   ✅ Parent Source: ${parentData.source}`);
     log(`   ✅ Parent Name: ${parentData.parentName}`);
     log(`   ✅ AED: ${aedData ? 'READY ✅' : 'FALLBACK ⚠️'}`);
+    log(`   ✅ Article Image: ${pageData.articleImage ? 'FROM PAGE ✅' : 'OMITTED ⏭️'}`);
     log(`   ✅ Article Schema: ${shouldGenerate ? 'GENERATED ✅' : 'SKIPPED ⏭️'}`);
     log(`   ✅ isPartOf: ${parentData.parentName} ✅`);
     log(`   ✅ PLD-ONLY MODE: ✅ ACTIVE`);
