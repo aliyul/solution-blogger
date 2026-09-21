@@ -452,8 +452,9 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
       "cor lantai gudang", "cor lantai pabrik",
       "cor halaman", "cor garasi", "cor carport",
 
-      // ─── Pasang ───
-      "pasang keramik lantai", "pasang keramik dinding",
+            // ─── Pasang ───
+      // 🔥 FIX SEO v7: "pasang dinding" = base service (bukan base + target)
+      "pasang dinding", "pasang keramik lantai", "pasang keramik dinding",
       "pasang keramik", "pasang granit", "pasang marmer",
       "pasang parket", "pasang vinyl", "pasang lantai kayu",
       "pasang homogeneous tile", "pasang ubin",
@@ -2023,13 +2024,18 @@ function isApplicationTarget(word) {
           durasi: SEWA_SPECS.durasi,
           target: APPLICATION_TARGETS_FULL    // 🔥 FIX 195
         };
-            case "desain":
+        case "desain":
         // 🔥 FIX 218: exclude room context dari target
         // "rumah", "kantor", "toko" = context ruangan (base), bukan modifier
+        // 🔥 FIX SEO v7: tambah room rooms supaya "desain dapur minimalis" = MP (bukan Variant)
         var ROOM_CTX_218 = ["rumah", "kantor", "toko", "hotel", "restoran",
           "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
           "sekolah", "mall", "spa", "salon", "bar", "lounge", "butik",
-          "showroom", "minimarket"];
+          "showroom", "minimarket",
+          // 🔥 FIX SEO v7: room context (bukan target modifier)
+          "dapur", "kamar mandi", "kamar tidur", "ruang tamu",
+          "ruang keluarga", "ruang makan", "ruang kerja",
+          "teras", "balkon", "toilet", "wc"];
         var targetDesain218 = APPLICATION_TARGETS_FULL.filter(function(t) {
           return ROOM_CTX_218.indexOf(t) === -1;
         });
@@ -2209,11 +2215,16 @@ function isApplicationTarget(word) {
     }
 
     // 🔥 FIX 218b: strip room context untuk desain (bukan unknown noun)
+    // 🔥 FIX SEO v7: extend dengan room rooms
     if (entityType === "desain") {
       var ROOM_CTX_218b = ["rumah", "kantor", "toko", "hotel", "restoran",
         "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
         "sekolah", "mall", "spa", "salon", "bar", "lounge", "butik",
-        "showroom", "minimarket"];
+        "showroom", "minimarket",
+        // 🔥 FIX SEO v7: room rooms
+        "dapur", "kamar mandi", "kamar tidur", "ruang tamu",
+        "ruang keluarga", "ruang makan", "ruang kerja",
+        "teras", "balkon", "toilet", "wc"];
       for (var rc218 = 0; rc218 < ROOM_CTX_218b.length; rc218++) {
         cleaned = cleaned.replace(new RegExp("\\b" + ROOM_CTX_218b[rc218] + "\\b", 'g'), ' ');
       }
@@ -3162,15 +3173,31 @@ function isSpecModifierForEntity(word, entityType) {
       else log('🔥 FIX 203: material part of compound base → tidak naik level', 'VARIANT');
     }
 
-       // 🔥 FIX 211: Skip P7 kalau ada strong promo (promo/diskon/termurah/termahal)
+            // 🔥 FIX 211: Skip P7 kalau ada strong promo (promo/diskon/termurah/termahal)
     var hasStrongPromo211 = false;
     for (var hp = 0; hp < HIGH_VOLUME_WORDS.length; hp++) {
       if (lowerText.indexOf(HIGH_VOLUME_WORDS[hp]) !== -1) { hasStrongPromo211 = true; break; }
     }
 
+    // 🔥 FIX SEO v7: Skip P7 kalau ada "atau" pilihan (bukan modifier)
+    // Contoh: "jasa pasang pagar atau kanopi" = 1 layanan dgn 2 pilihan → MM
+    // Bukan 2 layanan terpisah → MP
+    var skipP7Atau = false;
+    if (/\batau\b/i.test(lowerText)) {
+      var partsAtau = lowerText.split(/\batau\b/);
+      var leftAtau = (partsAtau[0] || "").trim().split(/\s+/).filter(Boolean);
+      var rightAtau = (partsAtau[1] || "").trim().split(/\s+/).filter(Boolean);
+      // Kalau salah satu sisi <= 1 kata → pilihan biasa, bukan listing layanan
+      if (leftAtau.length <= 1 || rightAtau.length <= 1) {
+        skipP7Atau = true;
+        log('🔥 FIX SEO v7: skip P7 (pilihan "atau" dgn sisi pendek)', 'PRICE');
+      }
+    }
+
     if ((hasSpecWord || jasaMaterialCtx186) 
         && !hasPriceWord && !hasCommercialWord && !hasLocationWord
-        && !hasStrongPromo211) {
+        && !hasStrongPromo211
+        && !skipP7Atau) {   // 🔥 FIX SEO v7
 
       var layers186 = countModifierLayers(text, entityType);
       if (layers186 > 0 || jasaMaterialCtx186) {
