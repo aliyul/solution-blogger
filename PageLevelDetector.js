@@ -4340,10 +4340,8 @@ function isSpecModifierForEntity(word, entityType) {
       // ─── Layer per-kata ───
       { slug: "desain interior minimalis modern", entity: "desain", expect: "variant", note: "FIX 205 2 kata gaya" },
       { slug: "desain interior minimalis", entity: "desain", expect: "money-page", note: "FIX 205 1 kata" },
-          { slug: "kitchen set minimalis modern", entity: "produk", expect: "variant", note: "FIX 205" },
-
-           ,
-      // ═══════════════════════════════════════════════════════════
+      { slug: "kitchen set minimalis modern", entity: "produk", expect: "variant", note: "FIX 205" },
+       // ═══════════════════════════════════════════════════════════
       // 🔥 FIX 208-213 (v23.9.3): VERIFIKASI SEMUA FIX
       // ═══════════════════════════════════════════════════════════
       // FIX 208: harga/biaya tidak jadi layer
