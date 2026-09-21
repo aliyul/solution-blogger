@@ -4676,7 +4676,7 @@ function isSpecModifierForEntity(word, entityType) {
 
       // ─── Spun pile (tanpa "jasa" = produk) ───
       { slug: "spun pile", entity: "produk", expect: "money-master", note: "FIX SEO v6: bare = produk" },
-      { slug: "spun pile beton", entity: "produk", expect: "money-master", note: "FIX SEO v6: produk" },
+      { slug: "spun pile beton", entity: "produk", expect: "money-page", note: "FIX SEO v13: +material=MP" },
       { slug: "harga spun pile beton", entity: "produk", expect: "money-master", note: "FIX SEO v6" },
       { slug: "harga spun pile 30x30", entity: "produk", expect: "money-page", note: "FIX SEO v6: 1L dimensi" },
 
@@ -4687,25 +4687,38 @@ function isSpecModifierForEntity(word, entityType) {
 
       // ─── Sheet pile ───
       { slug: "sheet pile", entity: "produk", expect: "money-master", note: "FIX SEO v6: bare = produk" },
-      { slug: "sheet pile beton", entity: "produk", expect: "money-master", note: "FIX SEO v6" },
+     { slug: "sheet pile beton", entity: "produk", expect: "money-page", note: "FIX SEO v13: +material=MP" },
       { slug: "jasa sheet pile", entity: "jasa", expect: "money-master", note: "FIX SEO v6: trigger jasa" },
       { slug: "jasa pasang sheet pile", entity: "jasa", expect: "money-master", note: "FIX SEO v6" },
 
       // ─── Mini pile ───
       { slug: "mini pile", entity: "produk", expect: "money-master", note: "FIX SEO v6: bare = produk" },
-      { slug: "mini pile beton", entity: "produk", expect: "money-master", note: "FIX SEO v6" },
+      { slug: "mini pile beton", entity: "produk", expect: "money-page", note: "FIX SEO v13: +material=MP" },
       { slug: "jasa mini pile", entity: "jasa", expect: "money-master", note: "FIX SEO v6: trigger jasa" },
 
       // ─── Tiang pancang ───
       { slug: "tiang pancang", entity: "produk", expect: "money-master", note: "FIX SEO v6: bare = produk" },
-      { slug: "tiang pancang beton", entity: "produk", expect: "money-master", note: "FIX SEO v6" },
+      { slug: "tiang pancang beton", entity: "produk", expect: "money-page", note: "FIX SEO v13: +material=MP" },
       { slug: "jasa tiang pancang", entity: "jasa", expect: "money-master", note: "FIX SEO v6: trigger jasa" },
       { slug: "jasa pancang beton", entity: "jasa", expect: "money-master", note: "FIX SEO v6" },
 
       // ─── Auto-detect entity null ───
       { slug: "spun pile beton", entity: null, expect: "money-master", note: "FIX SEO v6: auto-detect → produk" },
       { slug: "jasa spun pile beton", entity: null, expect: "money-page", note: "FIX SEO v6: auto-detect → jasa" },
-    
+            // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX SEO v13: base name cleanup verification
+      // ═══════════════════════════════════════════════════════════
+      { slug: "buis beton", entity: "produk", expect: "money-master", note: "FIX SEO v13: bare MM" },
+      { slug: "buis beton bertulang", entity: "produk", expect: "money-page", note: "FIX SEO v13: +modifier=MP" },
+      { slug: "buis beton biasa 30cm", entity: "produk", expect: "variant", note: "FIX SEO v13: 2L" },
+      { slug: "spun pile", entity: "produk", expect: "money-master", note: "FIX SEO v13: bare MM" },
+      { slug: "spun pile beton 30x30", entity: "produk", expect: "variant", note: "FIX SEO v13: 2L" },
+      { slug: "mini pile", entity: "produk", expect: "money-master", note: "FIX SEO v13: bare MM" },
+      { slug: "mini pile beton", entity: "produk", expect: "money-page", note: "FIX SEO v13: +material=MP" },
+      { slug: "half slab", entity: "produk", expect: "money-master", note: "FIX SEO v13: bare MM" },
+      { slug: "half slab beton", entity: "produk", expect: "money-page", note: "FIX SEO v13: +material=MP" },
+      { slug: "keramik 60x60", entity: "produk", expect: "money-page", note: "FIX SEO v13: +dimensi=MP" },
+      { slug: "granit 80x80", entity: "produk", expect: "money-page", note: "FIX SEO v13: +dimensi=MP" },
           // ═══════════════════════════════════════════════════════════
       // 🔥 FIX SEO v9: Universal prefix + room target + base names
       // ═══════════════════════════════════════════════════════════
