@@ -637,7 +637,16 @@ log('📦 PLD v23.9.1 — HIERARCHY CONSISTENCY + ANTI-GAP PHASE (FIX 181-199)',
 
       // ═══════════════════════════════════════════════════════════
       // PER RUANGAN (scope ruangan = base)
+          // ═══════════════════════════════════════════════════════════
+      // PER RUANGAN (scope ruangan = base)
       // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX SEO v9: tambah "desain interior [ruangan]" sebagai base
+      // (sebelumnya hanya "desain [ruangan]" — varian dgn "interior" jadi
+      // tidak terdeteksi sebagai base utuh → level salah)
+      "desain interior kamar mandi", "desain interior kamar tidur",
+      "desain interior ruang tamu", "desain interior ruang keluarga",
+      "desain interior ruang makan", "desain interior ruang kerja",
+      "desain interior dapur", "desain interior kamar",
       "desain dapur", "desain kamar mandi", "desain kamar tidur",
       "desain ruang tamu", "desain ruang keluarga", "desain ruang makan",
       "desain teras", "desain taman", "desain balkon",
@@ -2081,6 +2090,19 @@ function isApplicationTarget(word) {
       }
     }
 
+        // 🔥 FIX SEO v9: STRIP UNIVERSAL PREFIX (bukan layer)
+    // Alasan: "jasa", "layanan", "toko", "supplier" dll = prefix komersial,
+    // BUKAN modifier. Tanpa strip ini, mereka lolos ke FIX 197 unknown noun
+    // → level naik 1 lebih tinggi dari seharusnya (mis: MP jadi Variant).
+    // Contoh bug: "jasa desain interior minimalis" → 2L → Variant ❌
+    //              harusnya 1L → MP ✅
+    var UNIVERSAL_PREFIX_9 = ["jasa", "layanan", "borongan", "tukang",
+      "kontraktor", "toko", "supplier", "distributor", "jual", "beli",
+      "rental", "sewa", "service", "servis"];
+    for (var up9 = 0; up9 < UNIVERSAL_PREFIX_9.length; up9++) {
+      working = working.replace(new RegExp("\\b" + UNIVERSAL_PREFIX_9[up9] + "\\b", 'g'), ' ');
+    }
+
     // 🔥 FIX 208: STRIP PRICE_HEAD + SATUAN + PER-UNIT (bukan layer)
     for (var ph = 0; ph < PRICE_HEAD_WORDS.length; ph++) {
       working = working.replace(new RegExp("\\b" + PRICE_HEAD_WORDS[ph] + "\\b", 'g'), ' ');
@@ -3222,6 +3244,22 @@ function isSpecModifierForEntity(word, entityType) {
       return "money-page";
     }
 
+       // 🔥 FIX SEO v8: desain + multi-word room target (di-mask oleh ROOM_CTX_218)
+    // Kenapa perlu: base name "desain interior kamar" (3-word) memakan "kamar"
+    // dari target "kamar mandi", menyisakan "mandi" yang bukan target apapun.
+    // Karena itu hasSpec jadi false → PRIORITAS 9 tidak fire → jatuh ke MM.
+    // Fix: deteksi multi-word target di teks ASLI (bukan yang sudah di-strip).
+    if (hasPriceWord && entityType === "desain"
+        && !hasLocationWord && !hasCommercialWord && !hasSpecWord) {
+      for (var mwt8 = 0; mwt8 < APPLICATION_TARGETS_FULL.length; mwt8++) {
+        var mwt8w = APPLICATION_TARGETS_FULL[mwt8];
+        if (mwt8w.indexOf(' ') !== -1 && new RegExp("\\b" + mwt8w + "\\b", "i").test(lowerText)) {
+          log('🔥 FIX SEO v8: desain masked multi-word target "' + mwt8w + '" → MP', 'HARGA');
+          return "money-page";
+        }
+      }
+    }
+
     // 🔥 FIX 154 (v23.7.1): PRICE + BASE SERVICE → smart threshold (ENTITY-AWARE)
     // 🔥 FIX 204: PRICE + BASE SERVICE → smart threshold (ENTITY-AWARE)
     if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
@@ -3291,14 +3329,37 @@ function isSpecModifierForEntity(word, entityType) {
       return "money-page";
     }
    
-       // PRIORITAS 9: PRICE + SPEC → MP/MM
-       // 🔥 FIX 186 (v23.9.0): PRIORITAS 9 — Price + Spec (unified layer)
+         // PRIORITAS 9: PRICE + SPEC → MP/MM
+    // 🔥 FIX 186 (v23.9.0): PRIORITAS 9 — Price + Spec (unified layer)
+    // 🔥 FIX SEO v9: tambah fallback untuk application target yang di-exclude ROOM_CTX
     if (hasPriceWord && hasSpecWord && !hasLocationWord && !hasCommercialWord) {
       var layersP9 = countModifierLayers(text, entityType);
       if (layersP9 >= 1) {
         var decisionP9 = decideLevelByLayers(layersP9);
         log('🔥 FIX 186: price+spec → ' + decisionP9 + ' (' + layersP9 + ' layer)', 'HARGA');
         return decisionP9;
+      }
+      // 🔥 FIX SEO v9: hasSpec=true tapi layers=0 → cek apakah application target
+      // Contoh: "harga desain interior kamar mandi" — hasSpec=true via FIX 212,
+      // tapi "kamar mandi" di-exclude dari countModifierLayers (ROOM_CTX_218).
+      // Solusi: kalau ada application target yang match di teks ASLI → MP.
+      for (var at9 = 0; at9 < APPLICATION_TARGETS_FULL.length; at9++) {
+        var at9w = APPLICATION_TARGETS_FULL[at9];
+        if (new RegExp("\\b" + at9w + "\\b", "i").test(lowerText)) {
+          // Cek apakah target ini BUKAN room context (untuk desain)
+          var isRoomCtx9 = false;
+          if (entityType === "desain") {
+            var ROOM_CTX_9 = ["rumah", "kantor", "toko", "hotel", "restoran",
+              "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
+              "sekolah", "mall", "spa", "salon", "bar", "lounge", "butik",
+              "showroom", "minimarket"];
+            isRoomCtx9 = ROOM_CTX_9.indexOf(at9w) !== -1;
+          }
+          if (!isRoomCtx9) {
+            log('🔥 FIX SEO v9: price+spec+target "' + at9w + '" (layers=0) → MP', 'HARGA');
+            return "money-page";
+          }
+        }
       }
       var isPureTechForPrice = checkPureTechnicalSpec(text, entityType);
       if (isPureTechForPrice) return "money-page";
@@ -4663,6 +4724,34 @@ function isSpecModifierForEntity(word, entityType) {
       // ─── Auto-detect entity null ───
       { slug: "spun pile beton", entity: null, expect: "money-master", note: "FIX SEO v6: auto-detect → produk" },
       { slug: "jasa spun pile beton", entity: null, expect: "money-page", note: "FIX SEO v6: auto-detect → jasa" }
+    
+          // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX SEO v9: Universal prefix + room target + base names
+      // ═══════════════════════════════════════════════════════════
+      // ─── Bug A/B: Universal prefix strip ───
+      { slug: "jasa desain interior minimalis", entity: "desain", expect: "money-page", note: "FIX SEO v9: jasa prefix strip" },
+      { slug: "jasa desain rumah tropis", entity: "desain", expect: "money-page", note: "FIX SEO v9" },
+      { slug: "jasa desain rumah minimalis", entity: "desain", expect: "money-page", note: "FIX SEO v9" },
+      { slug: "jasa desain interior kamar mandi minimalis", entity: "desain", expect: "money-page", note: "FIX SEO v9: full trace" },
+      { slug: "layanan desain interior minimalis", entity: "desain", expect: "money-page", note: "FIX SEO v9: layanan prefix" },
+      { slug: "toko desain interior minimalis", entity: "desain", expect: "money-page", note: "FIX SEO v9: toko prefix" },
+
+      // ─── Bug C: Fallback room target ───
+      { slug: "harga desain interior kamar mandi", entity: "desain", expect: "money-page", note: "FIX SEO v9: hasSpec=true, layers=0" },
+      { slug: "harga desain interior taman", entity: "desain", expect: "money-page", note: "regression FIX 212" },
+      { slug: "harga desain interior rumah minimalis", entity: "desain", expect: "money-page", note: "regression" },
+
+      // ─── Bug D: Base names scope ruangan ───
+      { slug: "desain interior kamar mandi", entity: "desain", expect: "money-master", note: "FIX SEO v9: base baru" },
+      { slug: "desain interior kamar mandi minimalis", entity: "desain", expect: "money-page", note: "FIX SEO v9: base + gaya" },
+      { slug: "desain interior kamar tidur", entity: "desain", expect: "money-master", note: "FIX SEO v9" },
+      { slug: "desain interior ruang tamu", entity: "desain", expect: "money-master", note: "FIX SEO v9" },
+
+      // ─── Regression: yang sudah benar tetap benar ───
+      { slug: "jasa pasang keramik", entity: "jasa", expect: "money-master", note: "regression prefix strip" },
+      { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master", note: "regression" },
+      { slug: "jasa bor murah", entity: "jasa", expect: "money-master", note: "regression noise" },
+      { slug: "harga sewa excavator", entity: "sewa", expect: "money-master", note: "regression" }
     ];
    
     console.log("═══════════════════════════════════════════════════════════");
