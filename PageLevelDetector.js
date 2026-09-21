@@ -4768,7 +4768,29 @@ function isSpecModifierForEntity(word, entityType) {
       { slug: "jasa pasang keramik", entity: "jasa", expect: "money-master", note: "regression prefix strip" },
       { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master", note: "regression" },
       { slug: "jasa bor murah", entity: "jasa", expect: "money-master", note: "regression noise" },
-      { slug: "harga sewa excavator", entity: "sewa", expect: "money-master", note: "regression" }
+      { slug: "harga sewa excavator", entity: "sewa", expect: "money-master", note: "regression" },
+
+           // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX SEO v12: PRODUK + material modifier (pagar panel dll)
+      // ═══════════════════════════════════════════════════════════
+      { slug: "pagar panel", entity: "produk", expect: "money-master", note: "FIX SEO v12: MM" },
+      { slug: "pagar panel beton", entity: "produk", expect: "money-page", note: "FIX SEO v12: MP" },
+      { slug: "pagar panel besi", entity: "produk", expect: "money-page", note: "FIX SEO v12: +besi" },
+      { slug: "pagar panel stainless", entity: "produk", expect: "money-page", note: "FIX SEO v12: +stainless" },
+      { slug: "pagar panel beton minimalis", entity: "produk", expect: "variant", note: "FIX SEO v12: 2L" },
+
+      // U ditch — material/dimensi
+      { slug: "u ditch", entity: "produk", expect: "money-master", note: "FIX SEO v12: MM" },
+      { slug: "u ditch 30x30", entity: "produk", expect: "money-page", note: "FIX SEO v12: MP (dimensi)" },
+      { slug: "u ditch beton", entity: "produk", expect: "money-page", note: "FIX SEO v12: MP (material)" },
+
+      // Box culvert
+      { slug: "box culvert", entity: "produk", expect: "money-master", note: "FIX SEO v12: MM" },
+      { slug: "box culvert 100x100", entity: "produk", expect: "money-page", note: "FIX SEO v12: MP" },
+
+      // Regression: pagar panel existing
+      { slug: "pagar panel", entity: null, expect: "money-master", note: "FIX SEO v12: auto-detect" },
+      { slug: "pagar panel beton", entity: null, expect: "money-page", note: "FIX SEO v12: auto-detect MP" }
     ];
    
     console.log("═══════════════════════════════════════════════════════════");
