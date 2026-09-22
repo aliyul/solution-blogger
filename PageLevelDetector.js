@@ -273,7 +273,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "paku", "baut", "sekrup", "mur", "kawat",
       "wiremesh", "besi wiremesh",
       "kabel twisted", "kabel nyy", "kabel nym"
-    ],    ],
+    ],
 
     // ─── JASA (verb + object = 1 pekerjaan utuh) ───
     jasa: [
