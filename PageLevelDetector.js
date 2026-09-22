@@ -250,7 +250,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
 
       // K2 extended (idiom yang sudah menyatu)
       "kolam renang", "taman kering", "taman vertikal",
-      "walk in closet", "walkin closet"
+      "walk in closet"
     ],
      
     // ─── MATERIAL (bahan mentah / kategori umum) ───
@@ -265,18 +265,15 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "galvalum", "precast", "pracetak", "kaca", "aluminium",
       "kerikil",
 
-            // K2: Compound material sejati
+      // K2: Compound material sejati
       "ready mix", "readymix",
       "baja ringan", "besi beton", "bata ringan",
       "batu split", "batu kali", "batu belah",
-      // 🔥 FIX v14-L: material baru
+      // 🔥 FIX v14-L + R-4: material baru (hapus duplikat K1)
       "paku", "baut", "sekrup", "mur", "kawat",
       "wiremesh", "besi wiremesh",
-      "kabel twisted", "kabel nyy", "kabel nym",
-      "keramik", "granit", "marmer", "gypsum", "plafon", "paving",
-      "bata", "batako", "hebel", "genteng", "asbes",
-      "cat", "vernis", "politur", "plamir", "lem"
-    ],
+      "kabel twisted", "kabel nyy", "kabel nym"
+    ],    ],
 
     // ─── JASA (verb + object = 1 pekerjaan utuh) ───
     jasa: [
@@ -300,6 +297,8 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "pasang parket", "pasang vinyl", "pasang ubin",
       "pasang wallpaper", "pasang wpc", "pasang grc", "pasang hpl",
       "pasang partisi", "pasang pagar", "pasang kanopi", "pasang awning",
+      // 🔥 FIX R-2: base baru
+      "pasang railing", "pasang tangga", "pasang gerbang",
       "pasang baja ringan", "pasang rangka atap", "pasang atap",
       "pasang genteng", "pasang plafon", "pasang gypsum",
       "pasang pintu", "pasang jendela", "pasang kusen", "pasang kaca",
@@ -372,7 +371,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "borongan rumah", "borongan gedung", "borongan interior",
       // JASA teknik baru
       "pembersihan lahan", "land clearing",
-      "pengaspalan", "aspal hotmix", "aspal jalan",
+      "pengaspalan", "aspal jalan",
       "pemasangan wifi", "instalasi internet", "instalasi antena",
       "pemasangan parabola",
       "pembuatan kanopi", "pembuatan pagar", "pembuatan railing"   
@@ -839,7 +838,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
 
   var HIGH_VOLUME_WORDS = ["promo", "diskon", "obral", "cuci gudang", "flash sale",
                            "termurah", "termahal"];
-  var SIZE_WORDS = ["mini", "besar", "kecil", "sedang", "medium", "extra", "ekstra", "standar"];
+    // 🔥 FIX R-7: SIZE_WORDS dihapus (tidak dipakai). Ukuran sudah ditangani via PURE_SCALES & SEWA_SPECS.tipe
 
   var INTENT_TRIGGERS = {
     transactional: ["beli", "order", "pesan", "booking", "sewa sekarang", "harga", "biaya", "tarif", "estimasi", "promo", "diskon", "bayar", "cicilan", "kredit", "dapatkan", "pesan sekarang", "resmi", "authorized", "ready stock", "siap pakai", "cara order", "cara pesan", "cara beli"],
@@ -1821,7 +1820,9 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
             "perunggu","karbon","grafit","bambu","rotan"
           ],
           target: APPLICATION_TARGETS_FULL,
-          finishing: PURE_FINISHING
+          finishing: PURE_FINISHING,
+          // 🔥 FIX R-3: kategori hotmix
+          tipe_aspal: ["hotmix", "coldmix", "aspal cair", "aspal buton"]
         };
       case "produk":
         return {
@@ -2204,6 +2205,23 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     }
 
     if (bestMatchRL.entity) {
+      // 🔥 FIX R-8: tie-breaker untuk base name yang ada di >1 entity
+      var AMBIGUOUS_PAIRS = ["mini pile", "spun pile", "sheet pile", "tiang pancang", "pancang"];
+      var matchName = bestMatchRL.name;
+      if (AMBIGUOUS_PAIRS.indexOf(matchName) !== -1) {
+        // Cek sinyal transaksi produk
+        var hasProdukCtx = /\b(harga|jual|beli|supplier|distributor|ready|stok|stock|unit|batang|lembar|keping|ukuran|dimensi|spesifikasi|mutu)\b/i.test(lower);
+        // Cek sinyal jasa
+        var hasJasaCtx = /\b(jasa|pasang|borongan|tukang|pemancangan|pancang|bor|pile)\b/i.test(lower);
+        if (hasProdukCtx && !hasJasaCtx) {
+          log('🎯 FIX R-8: ambiguous "' + matchName + '" → produk (context: tx)', 'DETECT');
+          return "produk";
+        }
+        if (hasJasaCtx && !hasProdukCtx) {
+          log('🎯 FIX R-8: ambiguous "' + matchName + '" → jasa (context: verb)', 'DETECT');
+          return "jasa";
+        }
+      }
       log('🎯 FIX SEO v6: longest match → ' + bestMatchRL.entity +
           ' (via "' + bestMatchRL.name + '", ' + bestMatchRL.length + ' char)',
           'DETECT');
@@ -4237,7 +4255,8 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       { slug: "metode jasa bore pile", entity: "jasa", expect: "money-page" },
       { slug: "mutu jasa bore pile", entity: "jasa", expect: "money-page" },
       { slug: "spesifikasi jasa bore pile", entity: "jasa", expect: "money-page" },
-      { slug: "jasa bor horizontal", entity: "jasa", expect: "money-page" },
+      // 🔥 FIX R-1: hapus duplikat "jasa bor horizontal"
+      // (sudah ada di FIX 219 dengan expect "money-master")
       // ═══ FIX v14-L/M/N/O/P/Q: REGRESI PATCH v23.9.3 ═══
       // Produk head term baru
       { slug: "railing tangga", entity: "produk", expect: "money-master" },
