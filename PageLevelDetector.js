@@ -2730,34 +2730,36 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
 
     var lower = slug.toLowerCase();
 
-    // Kategori trigger yang bikin 2 URL "mirip"
+     // Kategori trigger yang bikin 2 URL "mirip"
+    // 🔥 FIX v15-G: pakai doNotTemplate + replace("{WORD}", word)
+    //    untuk hindari ReferenceError (word belum ada di scope ini)
     var TRIGGER_CATEGORIES = [
       {
         type: "PROMO_WORD",
         words: ["murah", "hemat", "terjangkau", "bersaing", "kompetitif", "ekonomis"],
         icon: "💰",
-        doNot: "JANGAN redirect — user cari '" + word + "' butuh halaman ini",
+        doNotTemplate: "JANGAN redirect — user cari '{WORD}' butuh halaman ini",
         angle_suggestion: "Buat angle beda: tips hemat, paket ekonomis, perbandingan harga"
       },
       {
         type: "SCALE_WORD",
         words: ["kecil", "besar", "sedang", "mini", "jumbo", "heavy", "medium"],
         icon: "📏",
-        doNot: "JANGAN redirect kalau kontennya memang beda scope",
+        doNotTemplate: "JANGAN redirect kalau kontennya memang beda scope",
         angle_suggestion: "Buat angle beda: kapasitas, portabilitas, penggunaan"
       },
       {
         type: "PROMO_STRONG",
         words: ["promo", "diskon", "obral", "flash sale", "cuci gudang"],
         icon: "🔥",
-        doNot: "Cek apakah halaman promo ini temporary atau permanen",
+        doNotTemplate: "Cek apakah halaman promo ini temporary atau permanen",
         angle_suggestion: "Paket bundle, limited time offer, benefit eksklusif"
       },
       {
         type: "LOCATION_VARIANT",
         words: ["jakarta", "bandung", "surabaya", "jogja", "semarang"],
         icon: "📍",
-        doNot: "JANGAN redirect — lokasi beda = audiens beda",
+        doNotTemplate: "JANGAN redirect — lokasi beda = audiens beda",
         angle_suggestion: "Konten lokal: studi kasus, klien, testimoni di kota itu"
       }
     ];
@@ -2795,7 +2797,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
             "5. Angle beda? (umum vs hemat/harga)",
             "6. Internal link beda? (anchor text berbeda)"
           ],
-          do_not: cat.doNot,
+          do_not: cat.doNotTemplate.replace("{WORD}", word),  // 🔥 FIX v15-G
           suggestion: cat.angle_suggestion,
           action_if_duplicate: "REWRITE konten, JANGAN redirect/hapus",
           action_if_unique: "✅ Aman — biarkan 2 halaman"
