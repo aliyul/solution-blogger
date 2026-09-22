@@ -3080,6 +3080,16 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     // 🔥 FIX v14-D: sebelum jatuh ke MM, cek layer residual
     var residualLayers = countModifierLayers(text, entityType);
 
+        // 🔥 FIX v14-T: kalau coreWords = 0, artinya semua sudah di-strip (base + entity + modifier known).
+    // Kalau tidak ada residual layer, return MM langsung — jangan biarkan complexityScore override.
+    if (coreWords.length === 0
+        && residualLayers === 0
+        && !hasPriceWord && !hasCommercialWord && !hasLocationWord
+        && !hasCompound) {
+      log('🏛️ FIX v14-T: MONEY_MASTER (0 core, 0 residual)', 'MM');
+      return "money-master";
+    }
+
     if (coreWords.length <= 2) {
       // FIX 146: JASA base service cap MM
       if (entityType === "jasa" && coreWords.length === 1 && complexityScore <= 2
@@ -3089,7 +3099,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
           return "money-page";
         }
         // 🔥 FIX v14-J: cek spec modifier JASA sebelum MM
-        // Tangkap "proyek", "borongan", "dalam", "manual", dll yang lolos
         if (isSpecModifierForEntity(coreWords[0], "jasa")) {
           log('💵 FIX v14-J: MONEY_PAGE (base jasa + spec: ' + coreWords[0] + ')', 'PRICE');
           return "money-page";
@@ -3097,7 +3106,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
         log('🏛️ FIX 146: MONEY_MASTER (base jasa + 1 objek)', 'MM');
         return "money-master";
       }
-
+       
       // 🔥 FIX v14-D: kalau ada residual layer > 0, naikkan ke layer-based level
       if (residualLayers > 0 && !hasLocationWord && !hasCommercialWord) {
         var decision14D = decideLevelByLayers(residualLayers);
@@ -3832,7 +3841,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
   // 🔥 FIX v14-E: TEST SUITE (dengan update konsisten strict base)
   // ═══════════════════════════════════════════════════════════
   function runTestSuite() {
-        var TEST_CASES = [
+            var TEST_CASES = [
       // ═══ Regression dasar ═══
       { slug: "jasa urug tanah", entity: "jasa", expect: "money-master" },
       { slug: "jasa gali tanah", entity: "jasa", expect: "money-master" },
@@ -4253,8 +4262,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       { slug: "metode jasa bore pile", entity: "jasa", expect: "money-page" },
       { slug: "mutu jasa bore pile", entity: "jasa", expect: "money-page" },
       { slug: "spesifikasi jasa bore pile", entity: "jasa", expect: "money-page" },
-      // 🔥 FIX R-1: hapus duplikat "jasa bor horizontal"
-      // (sudah ada di FIX 219 dengan expect "money-master")
       // ═══ FIX v14-L/M/N/O/P/Q: REGRESI PATCH v23.9.3 ═══
       // Produk head term baru
       { slug: "railing tangga", entity: "produk", expect: "money-master" },
@@ -4287,11 +4294,11 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       { slug: "jasa pembersihan lahan", entity: "jasa", expect: "money-master" },
       { slug: "jasa pengaspalan", entity: "jasa", expect: "money-master" },
       { slug: "jasa aspal hotmix", entity: "jasa", expect: "money-page" },
-      // FIX v14-P: checkHasBaseService regex extended (cutting tanpa jasa)
+      // FIX v14-P: checkHasBaseService regex extended
       { slug: "cutting dinding jakarta", entity: "jasa", expect: "money-child" },
       { slug: "coring dinding jakarta", entity: "jasa", expect: "money-child" },
       { slug: "jasa coring dinding jakarta", entity: "jasa", expect: "money-child" },
-      // FIX v14-Q: ENTITY_ONLY_WORDS (service/servis/layanan strip)
+      // FIX v14-Q: ENTITY_ONLY_WORDS
       { slug: "layanan bor sumur", entity: "jasa", expect: "money-master" },
       { slug: "service ac", entity: "jasa", expect: "money-master" },
       // FIX A-1 rev + A-7: regresi pagar
@@ -4302,8 +4309,26 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       { slug: "pagar besi", entity: "produk", expect: "money-page" },
       { slug: "pagar kayu", entity: "produk", expect: "money-page" },
       { slug: "pagar stainless", entity: "produk", expect: "money-page" },
-      { slug: "pagar panel beton", entity: "produk", expect: "money-page" }
+      { slug: "pagar panel beton", entity: "produk", expect: "money-page" },
+      // ═══ FIX v14-T: REGRESI 0-CORE BASE NAME ═══
+      // Base jasa yang core=0 (semua sudah di-strip) → harus MM
+      { slug: "las besi", entity: "jasa", expect: "money-master" },
+      { slug: "las pagar", entity: "jasa", expect: "money-master" },
+      { slug: "las kanopi", entity: "jasa", expect: "money-master" },
+      { slug: "cor dak", entity: "jasa", expect: "money-master" },
+      { slug: "cor jalan", entity: "jasa", expect: "money-master" },
+      { slug: "cor lantai", entity: "jasa", expect: "money-master" },
+      { slug: "pasang railing", entity: "jasa", expect: "money-master" },
+      { slug: "pasang tangga", entity: "jasa", expect: "money-master" },
+      { slug: "pasang gerbang", entity: "jasa", expect: "money-master" },
+      { slug: "aspal jalan", entity: "jasa", expect: "money-master" },
+      { slug: "instalasi internet", entity: "jasa", expect: "money-master" },
+      { slug: "pemasangan wifi", entity: "jasa", expect: "money-master" },
+      { slug: "pembuatan kanopi", entity: "jasa", expect: "money-master" },
+      { slug: "pembuatan pagar", entity: "jasa", expect: "money-master" },
+      { slug: "pembuatan railing", entity: "jasa", expect: "money-master" }
     ];
+     
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 PLD v23.9.2 — TEST SUITE (" + TEST_CASES.length + " CASE)");
     console.log("═══════════════════════════════════════════════════════════");
