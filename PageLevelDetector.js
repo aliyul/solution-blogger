@@ -1,25 +1,25 @@
 /* ============================================================
-🧠 Page Level Detector v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY
+🧠 Page Level Detector v23.9.5 — TIERED MODIFIER SYSTEM
 ============================================================
-BASE: v23.9.1
+BASE: v23.9.2
 
-🔥 FIX 181-219 — DIPERTAHANKAN SEMUA
-🔥 FIX v14-A — ENTITY_BASE_NAMES STRICT MODE (head term murni)
-🔥 FIX v14-B — checkHasSpecification(produk) + material category
-🔥 FIX v14-C — Priority 7 gate pakai earlyLayers
-🔥 FIX v14-D — Priority 12 cek modifier nyata
-🔥 FIX v14-E — Update test cases konsisten STRICT MODE
-🔥 FIX v14-F — Self-audit: countModifierLayers(base) HARUS 0
+🔥 FIX v14-A..T — DIPERTAHANKAN SEMUA
+🔥 FIX v15-A — Hierarki Berlapis: GLOBAL_NUMERIC, SHARED_MODIFIERS, ENTITY_SPECIFIC
+🔥 FIX v15-B — getCategoryDefs pakai 3-tier resolution
+🔥 FIX v15-C — Audit otomatis modifier tiers (auditModifierTiers)
 
-🎯 PRINSIP: Base name = head term MURNI → MM (0 layer)
-   Material/target/merek/tipe/ukuran WAJIB jadi modifier → MP/Variant
+🎯 PRINSIP:
+   Base name = head term MURNI → MM (0 layer)
+   Tier 1 (GLOBAL)      : angka, unit, grade — semua entity
+   Tier 2 (SHARED)      : material, finishing, warna, gaya — 2+ entity
+   Tier 3 (SPECIFIC)    : metode, merek, portland, balinese — 1 entity
 ============================================================ */
 
 (function () {
   "use strict";
 
-if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.2") {
-    console.warn("⚠️ [PLD v23.9.2] Already loaded!");
+if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.5") {
+    console.warn("⚠️ [PLD v23.9.5] Already loaded!");
     return;
 }
 
@@ -56,13 +56,17 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9
       FISIKCTX: "🎭", VERBEXP: "⚡", COMPOUND: "🔗",
       AI: "🤖", GROQ: "⚡", GEMINI: "💎",
       OBJECT: "🧊", SCORE: "🎚️", BASE: "🏗️", CROSSSPEC: "🎯",
-      DOM: "🌐", EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐"
+      DOM: "🌐", EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐",
+      TIER: "🎚️"
     };
-    console.log((icons[type] || "📘") + " [PLD v23.9.2] " + message);
+    console.log((icons[type] || "📘") + " [PLD v23.9.5] " + message);
   }
 
-log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTERNAL');
+log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
 
+  // ═══════════════════════════════════════════════════════════
+  // LEVEL MAPS
+  // ═══════════════════════════════════════════════════════════
   var VALID_LEVELS = [
     "home", "pillar", "sub-pillar-tipe-2", "sub-pillar-tipe-1",
     "money-master", "money-page", "money-child", "variant", "sub-variant"
@@ -111,7 +115,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     artikel: ["artikel konstruksi"]
   };
 
-    // 🔥 FIX v14-M: entity triggers extended
   var ENTITY_TRIGGERS = {
     jasa: [
       "jasa", "kontraktor", "tukang", "borongan",
@@ -144,7 +147,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "review", "ulasan", "berita", "informasi", "update"
     ]
   };
-   
+
   var ENTITY_PRIORITY = ["jasa", "sewa", "desain", "produk", "material", "artikel"];
 
   var JASA_WORDS = [
@@ -167,7 +170,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     'mengeruk','memancang'
   ];
 
-  // 🔥 FIX v14-N: sewa words extended
   var SEWA_WORDS = [
     'sewa','rental','rent','alat','mesin','heavy equipment','excavator','bulldozer','crane','backhoe',
     'dozer','vibro','roller','compactor','diesel','hydraulic','mini','besar','kecil','sedang','medium','extra',
@@ -175,7 +177,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     'portacamp','toilet portable','tower lamp'
   ];
 
-    // 🔥 FIX v14-N: material words extended
   var MATERIAL_WORDS = [
     'material','bahan','semen','pasir','batu split','kerikil','besi','baja','kayu','keramik','granit',
     'marmer','gypsum','plafon','paving','bata','batako','hebel','genteng','asbes','atap','baja ringan',
@@ -184,7 +185,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     'cat','vernis','politur','plamir','lem',
     'pipa','kabel','fitting','kran'
   ];
-  // 🔥 FIX v14-N: produk words extended
+
   var PRODUK_WORDS = [
     'produk','jual','beli','supplier','distributor','toko','shop',
     'pagar panel','panel beton','pagar beton','pagar panel beton',
@@ -194,7 +195,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     'wastafel','closet','kitchen set','wardrobe','lemari'
   ];
 
-  // 🔥 FIX v14-N: desain words extended
   var DESAIN_WORDS = [
     'desain','interior','eksterior','arsitektur','layout','denah','gambar','konsep','rencana','modern',
     'minimalis','klasik','tradisional','kontemporer','elegan','luxury','industrial','scandinavian','jepang',
@@ -202,7 +202,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     'render','visualisasi','3d','shop drawing','tata ruang'
   ];
 
-    // 🔥 FIX v14-Q: entity only words extended
   var ENTITY_ONLY_WORDS = {
     jasa: ["jasa", "layanan", "service", "servis"],
     sewa: ["sewa", "rental"],
@@ -214,13 +213,11 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
 
   // ═══════════════════════════════════════════════════════════
   // 🔥 FIX v14-A: ENTITY_BASE_NAMES — STRICT MODE
-  // Prinsip: base name = head term MURNI (K1-K4)
-  // Verifikasi: countModifierLayers(base) === 0 HARUS lulus 100%
+  // Prinsip: base name = head term MURNI → MM (0 layer)
   // ═══════════════════════════════════════════════════════════
   var ENTITY_BASE_NAMES = {
 
-    // ─── PRODUK (barang jadi) ───
-       produk: [
+    produk: [
       // K1: Single word head term
       "pintu", "jendela", "kusen", "pagar", "kanopi", "kaca",
       "pipa", "plafon", "keramik", "granit", "marmer",
@@ -229,14 +226,12 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "lemari", "nakas", "tempat tidur", "bed frame",
       "gazebo", "kolam", "taman",
       "lampu", "cctv", "saklar listrik", "stop kontak", "panel listrik",
-      // 🔥 FIX v14-L: produk head term baru
       "railing", "tangga", "gerbang", "wastafel", "closet",
       "tandon air", "tangki air", "water heater",
       "gorden", "blind", "kasa nyamuk", "tralis",
       "rak dinding", "rak tv", "rak buku", "gantungan baju",
 
-      // K2: Compound noun sejati (idiom industri)
-      // 🔥 FIX A-7: "pagar brc" sebagai kategori produk tersendiri
+      // K2: Compound noun (idiom industri)
       "pagar panel", "pagar beton", "pagar brc",
       "u ditch", "u ditch cover", "tutup u ditch",
       "box culvert", "buis beton",
@@ -248,13 +243,12 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "spun pile", "mini pile", "micropile", "sheet pile",
       "tiang pancang", "half slab", "sloof beton", "kolom praktis",
 
-      // K2 extended (idiom yang sudah menyatu)
+      // K2 extended
       "kolam renang", "taman kering", "taman vertikal",
       "walk in closet"
     ],
-     
-    // ─── MATERIAL (bahan mentah / kategori umum) ───
-        material: [
+
+    material: [
       "semen", "pasir", "batu", "besi", "baja", "kayu",
       "beton", "pipa", "kabel", "fitting",
       "valve", "kran", "cat", "vernis", "politur", "plamir", "lem",
@@ -263,8 +257,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "bata", "batako", "hebel", "genteng", "asbes", "atap",
       "galvalum", "precast", "pracetak", "kaca", "aluminium",
       "kerikil",
-
-      // K2
       "ready mix", "readymix",
       "baja ringan", "besi beton", "bata ringan",
       "batu split", "batu kali", "batu belah",
@@ -272,8 +264,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "wiremesh", "besi wiremesh",
       "kabel twisted", "kabel nyy", "kabel nym"
     ],
-     
-    // ─── JASA (verb + object = 1 pekerjaan utuh) ───
+
     jasa: [
       // Pondasi & tiang
       "bore pile", "bor pile", "bored pile", "boring pile",
@@ -285,7 +276,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "sumur bor", "bor sumur",
 
       // Cor
-      // 🔥 FIX v14-L: hapus "cor beton" (beton=material → MP)
       "cor", "cor dak", "cor lantai", "cor jalan", "cor kolom",
       "cor sloof", "cor balok", "cor plat", "cor pondasi",
       "cor tiang", "cor dinding", "cor pagar",
@@ -295,7 +285,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "pasang parket", "pasang vinyl", "pasang ubin",
       "pasang wallpaper", "pasang wpc", "pasang grc", "pasang hpl",
       "pasang partisi", "pasang pagar", "pasang kanopi", "pasang awning",
-      // 🔥 FIX R-2: base baru
       "pasang railing", "pasang tangga", "pasang gerbang",
       "pasang baja ringan", "pasang rangka atap", "pasang atap",
       "pasang genteng", "pasang plafon", "pasang gypsum",
@@ -362,20 +351,17 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       // Sandblasting + object
       "sandblasting besi", "sandblasting beton", "sandblasting dinding",
 
-            // Bangun & borongan
-      // 🔥 FIX v14-L: JASA teknik baru
+      // Bangun & borongan
       "bangun rumah", "bangun gedung", "bangun ruko", "bangun gudang",
       "bangun kantor", "bangun pabrik", "bangun sekolah",
       "borongan rumah", "borongan gedung", "borongan interior",
-      // JASA teknik baru
       "pembersihan lahan", "land clearing",
       "pengaspalan", "aspal jalan",
       "pemasangan wifi", "instalasi internet", "instalasi antena",
       "pemasangan parabola",
-      "pembuatan kanopi", "pembuatan pagar", "pembuatan railing"   
+      "pembuatan kanopi", "pembuatan pagar", "pembuatan railing"
     ],
 
-    // ─── SEWA (nama alat / equipment) ───
     sewa: [
       "alat berat", "heavy equipment",
       "excavator", "bulldozer", "backhoe", "dozer", "vibro",
@@ -397,21 +383,15 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "mesin potong", "chainsaw", "gergaji mesin",
       "pompa celup", "pompa submersible", "pompa sentrifugal",
       "pompa transfer", "kompresor angin", "compressor",
-      // 🔥 FIX v14-L: sewa baru
       "scaffolding", "steger", "tenda", "terpal",
       "toilet portable", "portacamp",
       "tower lamp", "lampu sorot"
     ],
 
-    // ─── DESAIN (desain + scope = 1 layanan) ───
     desain: [
-      // Head term
       "desain interior", "desain eksterior", "desain rumah",
       "desain arsitektur", "desain 3d", "desain denah", "desain layout",
       "desain bangunan", "desain struktur",
-
-           // Scope bangunan
-      // 🔥 FIX v14-L: scope baru
       "desain kantor", "desain toko", "desain ruko", "desain villa",
       "desain apartemen", "desain showroom",
       "desain kos", "desain guest house", "desain pujasera",
@@ -421,21 +401,17 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "desain bar", "desain lounge", "desain spa", "desain salon",
       "desain minimarket", "desain butik",
       "desain sekolah", "desain klinik",
-
-      // Scope ruangan
       "desain dapur", "desain kamar mandi", "desain kamar tidur",
       "desain ruang tamu", "desain ruang keluarga", "desain ruang makan",
       "desain ruang kerja", "desain teras", "desain balkon",
       "desain carport", "desain fasad",
       "desain taman", "desain kolam renang", "desain gazebo",
       "desain walk in closet", "desain kamar anak",
-
-      // Teknik
       "gambar arsitektur", "gambar kerja", "gambar teknik"
     ]
   };
 
-  // 🔥 FIX 162b: Sort base names DESC by word count (longest first)
+  // Sort base names DESC by word count (longest first)
   (function() {
     for (var ent in ENTITY_BASE_NAMES) {
       if (!ENTITY_BASE_NAMES.hasOwnProperty(ent)) continue;
@@ -443,9 +419,223 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
         return b.split(' ').length - a.split(' ').length;
       });
     }
-})();   // ← ✅ TAMBAHKAN BARIS INI
+  })();
+
   // ═══════════════════════════════════════════════════════════
-  // ✅ PART 1/3 SELESAI
+  // 🔥 FIX v15-A: HIERARKI BERLAPIS — TIERED MODIFIER SYSTEM
+  // ═══════════════════════════════════════════════════════════
+  // Tier 1 (GLOBAL)   : berlaku semua entity (angka, unit, grade)
+  // Tier 2 (SHARED)   : 2+ entity (material, finishing, warna, gaya)
+  // Tier 3 (SPECIFIC) : 1 entity (metode, merek, portland, balinese)
+  // ═══════════════════════════════════════════════════════════
+
+  // ─── TIER 1: GLOBAL MODIFIERS ───
+  var GLOBAL_NUMERIC_KEYWORDS = [
+    "grade a","grade b","grade c","sni","standar",
+    "kualitas 1","kualitas 2","kualitas 3","kelas 1","kelas 2","kelas 3"
+  ];
+
+  // ─── TIER 2: SHARED MODIFIERS (2+ entity) ───
+  var SHARED_MODIFIERS = {
+    material: [
+      "beton","besi","kayu","aluminium","kaca","stainless",
+      "baja","pvc","wpc","grc","hpl","acp","vinyl","upvc",
+      "tembaga","kuningan","perunggu","titanium","bambu","rotan"
+    ],
+    finishing: [
+      "polos","motif","bermotif","bercorak","tekstur","serat",
+      "halus","kasar","matte","glossy","doff","gloss","satin",
+      "anyaman","natural","ekspos","custom","polosan",
+      "cat","coating","lapisan","vernis"
+    ],
+    warna: [
+      "putih","hitam","abu-abu","merah","biru","kuning","hijau","coklat",
+      "netral","krem","maroon","navy","forest","gold","silver","bronze",
+      "copper","rose gold","teal","turquoise","lavender","magenta",
+      "coral","salmon","peach","mint","warm","cool","pastel","dark","light"
+    ],
+    gaya: [
+      "minimalis","modern","klasik","skandinavia","japandi","industrial",
+      "kontemporer","tradisional","rustic","bohemian"
+    ]
+  };
+
+  // ─── TIER 3: ENTITY-SPECIFIC MODIFIERS ───
+  var ENTITY_SPECIFIC = {
+    jasa: {
+      metode: [
+        "manual","hidrolik","auger","rotary","percussive",
+        "dry","wet","basah","kering","mesin","dalam","dangkal",
+        "artesis","jet pump"
+      ],
+      skala: [
+        "rumahan","komersial","industri","residential","commercial",
+        "industrial","kecil","sedang","besar","menengah"
+      ],
+      tipe_aspal: ["hotmix","coldmix","aspal cair","aspal buton"]
+    },
+    produk: {
+      mutu: ["k225","k250","k300","k350","k400","k500","fc"],
+      tipe: [
+        "geser","lipat","swing","sliding","casement","rolling door",
+        "folding gate","harmonika","ayun","kupu-kupu","revolving",
+        "otomatis","manual"
+      ]
+    },
+    material: {
+      grade_material: [
+        "portland","opc","ppc","pcc","type 1","type 2","type 3",
+        "type 4","type 5","tipe 1","tipe 2","tipe 3","tipe 4","tipe 5"
+      ],
+      tipe_extended: [
+        "wiry","bjku","bjtd","bjp","bjts",
+        "plywood","multiplek","blockboard","mdf","hdf","particle board","solid wood",
+        "jati","meranti","mahoni","sengon","pinus","randu",
+        "sungkai","bangkirai","ulin","kamper","kruing","keruing",
+        "merbau","sonokeling","trembesi","glugu",
+        "andesit","kali","apung","split","koral","candi",
+        "palimanan","paras","breksi",
+        "batu alam","batu belah","batu gunung","batu karang",
+        "silika","zeolit","cor",
+        "homogeneous","homogen","roman","platinum","mulia","essence",
+        "granito","granit tile","keramik lantai","keramik dinding",
+        "marmer italy","marmer lokal","marmer import",
+        "granit hitam","granit putih","granit coklat",
+        "granit import","granit lokal",
+        "dulux","jotun","nippon","mowilex","avian","decolith",
+        "propan","falcon","vinilex",
+        "pasir beton","pasir pasang","pasir urug","pasir halus",
+        "pasir kasar","pasir putih","pasir hitam","pasir ayak",
+        "pasir silika","pasir bangka","pasir lumajang",
+        "h-beam","hbeam","wf","hollow","kanal","siku",
+        "unesp","unp","cnp","inp","besi hollow","besi kanal",
+        "eterna","supreme","kabelindo","tranka",
+        "rucika","wavin","vinilon","pralon","maspion",
+        "besi cor","aluminium foil",
+        "bangka","lumajang","tulungagung","pangkep","muntilan",
+        "borneo","kalimantan","jepara","kudus","cilacap",
+        "tiga roda","3 roda","tiga-roda","3-roda",
+        "gresik","semen gresik","semen-gresik",
+        "holcim","semen holcim","semen-holcim",
+        "scg","semen scg","semen-scg",
+        "padang","semen padang","semen-padang",
+        "merah putih","semen merah putih",
+        "cibinong","semen cibinong",
+        "baturaja","semen baturaja",
+        "bosowa","semen bosowa",
+        "tonasa","semen tonasa",
+        "master","besi master",
+        "intan","besi intan",
+        "handuk","besi handuk",
+        "krakatau steel","krakatau-steel","ks",
+        "gunung garuda","gunung-garuda",
+        "hanil","jeka",
+        "danagri","magic","aquaproof","no drop","no-drop",
+        "nodrop","aqua proof",
+        "icera","ardena","milano","asia tile","asia-tile",
+        "indograha","kian","eleganza","elegan"
+      ]
+    },
+    sewa: {
+      merek: [
+        "pc75","pc200","pc300","pc350","pc400","komatsu","hitachi",
+        "caterpillar","cat","volvo","hyundai","doosan","kobelco",
+        "sumitomo","case","jcb","liebherr","kubota","yanmar",
+        "perkins","cummin"
+      ],
+      kondisi: [
+        "baru","bekas","servis","recondition","rebuilt","ready",
+        "siap pakai","prima","baik","layak","standar",
+        "listrik","diesel","bensin","solar","hydraulic"
+      ],
+      durasi: [
+        "harian","mingguan","bulanan","tahunan","per jam",
+        "per hari","per minggu","per bulan","short term","long term"
+      ],
+      tipe: [
+        "mini","besar","kecil","sedang","medium","heavy","standar",
+        "extra","ekstra","jumbo","compact","full size","large"
+      ],
+      kapasitas: [
+        "ton","m3","kg","liter","galon","hp","ps","kva","psi","rpm","kw",
+        "inch","inchi"
+      ],
+      tools_extended: [
+        "motor grader","wheel loader","tower crane","asphalt finisher",
+        "asphalt paver","tandem roller","pneumatic tire roller",
+        "cold milling","batching plant","concrete pump",
+        "genset","pompa air","pompa-beton","compressor","jack hammer"
+      ]
+    },
+    desain: {
+      gaya_extended: [
+        "art deco","mid century","victorian","gothic","renaissance",
+        "baroque","rococo","neoklasik","art nouveau","bauhaus",
+        "postmodern","dekonstruksi","high tech","eklektik","transisi",
+        "tropis","mediterania","kolonial","peranakan","balinese","javanese",
+        "japandi","coastal","new york","hampton","farmhouse",
+        "shabby chic","parisian","moroccan","brutalist","cottage core",
+        "grand millennial","tropical modern","contemporary","industrial chic",
+        "minimalism","classic","modern classic","streamline",
+        "boho chic","mid-century","memphis","cyberpunk","steampunk",
+        "neofuturism","biophilic","wabi sabi","zen","feng shui",
+        "bali modern","java etnik","minimalis tropis","kolonial modern",
+        "industrial rustic","scandinavian japandi","modern klasik",
+        "minimalis skandinavia","japandi minimalis","tropical modern",
+        "classic modern","modern farmhouse","boho industrial",
+        "javanese modern","balinese contemporary","traditional modern",
+        "ethnic modern","modern etnik","tribal modern"
+      ],
+      warna_extended: [
+        "earth tone","sage green","sage","dusty pink","dusty",
+        "terracotta","navy blue","mustard","olive","mauve",
+        "charcoal","cream","ivory","beige","taupe","greige"
+      ],
+      konsep: [
+        "open space","split level","loft","studio","apartment",
+        "villa","tiny house","smart home","eco home","sustainable",
+        "green building","biophilic","zen","feng shui","vastu","wabi sabi"
+      ],
+      material: [
+        "kayu","besi","kaca","marmer","granit","keramik",
+        "plafon","gypsum","pvc","acp","vinyl","wpc","grc","hpl",
+        "bambu","rotan","anyaman","kain","kulit","karpet",
+        "parket","ubin","batu alam","batu bata","beton ekspos"
+      ],
+      furniture: [
+        "minimalis","skandinavia","jepang","klasik","modern","retro",
+        "vintage","industrial","rustic","bohemian","mid century",
+        "art deco","contemporary"
+      ],
+      subjektif: ["mewah","eksklusif","premium","luxury","high end","artistik","estetik"]
+    }
+  };
+
+  // ─── UTIL: DEDUPE ARRAY ───
+  function uniqArray(arr) {
+    var seen = {};
+    return arr.filter(function(w) {
+      if (seen[w]) return false;
+      seen[w] = true;
+      return true;
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // ✅ AKHIR BAGIAN 1/4
+  // ═══════════════════════════════════════════════════════════
+  // Bagian 2/4 berisi:
+  //   - PURE_METHODS (fallback legacy)
+  //   - APPLICATION_TARGETS_FULL
+  //   - SATUAN_UNITS, QUESTION_WORDS, dll
+  //   - All constants Part 2 (INTENT_TRIGGERS, COMMERCIAL_WORDS, dll)
+  //   - Utility functions: cleanText, getPageText, getH1Text
+  //   - Core detection Part A: checkHasSpecification, isLocation
+  // ═══════════════════════════════════════════════════════════
+
+   // ═══════════════════════════════════════════════════════════
+  // CONSTANTS PART 2 — Legacy Constants (Fallback)
+  // ═══════════════════════════════════════════════════════════
 
   var PURE_JASA_TECHNIQUES = [];
 
@@ -547,7 +737,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     "analisis lengkap", "review lengkap",
     "perbandingan lengkap", "perbedaan lengkap",
     "jenis-jenis lengkap", "macam-macam lengkap",
-    // 🔥 FIX v14-I: Prefix fungsional — 1 layer = MP (deterministik)
     "spesifikasi", "mutu", "metode", "cara kerja", "panduan", "fungsi"
   ];
 
@@ -836,7 +1025,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
 
   var HIGH_VOLUME_WORDS = ["promo", "diskon", "obral", "cuci gudang", "flash sale",
                            "termurah", "termahal"];
-    // 🔥 FIX R-7: SIZE_WORDS dihapus (tidak dipakai). Ukuran sudah ditangani via PURE_SCALES & SEWA_SPECS.tipe
 
   var INTENT_TRIGGERS = {
     transactional: ["beli", "order", "pesan", "booking", "sewa sekarang", "harga", "biaya", "tarif", "estimasi", "promo", "diskon", "bayar", "cicilan", "kredit", "dapatkan", "pesan sekarang", "resmi", "authorized", "ready stock", "siap pakai", "cara order", "cara pesan", "cara beli"],
@@ -1222,10 +1410,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     });
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // FUNGSI DETEKSI — PART A
-  // ═══════════════════════════════════════════════════════════
-
   function isLocation(text) {
     if (!text) return false;
     var lower = cleanText(text);
@@ -1441,13 +1625,9 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
   function checkHasBaseService(text) {
     if (!text) return false;
     var lower = text.toLowerCase();
-    // 🔥 FIX v14-P: regex extended
     var baseWords = [
-      // Entity
       "jasa","layanan","sewa","rental","produk","material","bahan",
-      // Prefix umum
       "kontraktor","tukang","borongan","mandor","vendor","supplier",
-      // Aksi JASA
       "pasang","bangun","renovasi","perbaikan","perawatan",
       "instalasi","pemasangan","pembongkaran","pembersihan",
       "coring","cutting","drilling","grouting","sandblasting",
@@ -1455,20 +1635,15 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "bongkar","gali","urug","angkut","pemadatan",
       "pelapisan","coating","poles","grinding",
       "waterproofing","epoxy",
-      // Struktur & elemen
       "pondasi","tiang","pancang","pagar","panel","railing","tangga",
       "gerbang","wastafel","closet","shower",
-      // Material umum
       "beton","baja","besi","kayu","batu","keramik","granit","marmer",
       "semen","pasir","pipa","kaca","aluminium","bata","batako","hebel",
       "genteng","asbes","atap","plafon","gypsum","paving","readymix",
       "kanopi","precast","pracetak","galvalum",
-      // Teknik & konsep
       "desain","interior","eksterior","arsitektur","konstruksi",
-      // Bangunan
       "rumah","gedung","ruko","gudang","pabrik","jalan","jembatan",
       "masjid","gereja","sekolah","hotel","villa","apartemen",
-      // Pile
       "mini","pile","bore","strauss"
     ];
     var baseRegex = new RegExp("\\b(" + baseWords.join("|") + ")\\b", "i");
@@ -1499,7 +1674,29 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     return false;
   }
 
-  // 🔥 FIX v14-B: checkHasSpecification — tambah material & target untuk PRODUK
+  // ═══════════════════════════════════════════════════════════
+  // ✅ AKHIR BAGIAN 2/4
+  // ═══════════════════════════════════════════════════════════
+  // Bagian 3/4 berisi:
+  //   - checkHasSpecification (pakai tier system + fallback)
+  //   - checkHasJasaMetode
+  //   - getCategoryDefs (FIX v15-B — 3-tier resolution)
+  //   - countModifierLayers
+  //   - hasJasaMaterialCtx, decideLevelByLayers
+  //   - checkPureTechnicalSpec, detectEntityTypeFromText
+  //   - detectSubPillar, detectPillar, hasTechnicalSpec, isSubVariant
+  //   - getCoreWords, detectVariantByPattern
+  //   - getFactors, getSEOContext
+  //   - detectConjunctionWarning, detectHierarchyWarning
+  //   - validateBreadcrumbHierarchy, validateParentDrivenHierarchy
+  //   - isSpecModifierForEntity (pakai tier system)
+  //   - detectMoneyLevelInternal
+  //   - detectPageLevel + turunannya
+  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════
+  // PART 2B — CHECK HAS SPECIFICATION (Pakai Tier System)
+  // ═══════════════════════════════════════════════════════════
+
   function checkHasSpecification(text, entityType) {
     if (!text) return false;
     var lower = text.toLowerCase();
@@ -1508,14 +1705,15 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     if (checkHasPerUnit(text)) { log('🔬 SPEC: per unit', 'VARIANT'); return true; }
 
     if (entityType === "produk") {
-      var mutuList = PRODUK_SPECS.mutu || [];
+      // 🔥 FIX v15: pakai tier system
+      var mutuList = ENTITY_SPECIFIC.produk.mutu || [];
       for (var i = 0; i < mutuList.length; i++) {
         if (new RegExp("\\b" + mutuList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return mutuList[i] === w; });
           if (!isEntityOnly) return true;
         }
       }
-      var finishingList = PRODUK_SPECS.finishing || [];
+      var finishingList = SHARED_MODIFIERS.finishing || [];
       for (var i = 0; i < finishingList.length; i++) {
         if (new RegExp("\\b" + finishingList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return finishingList[i] === w; });
@@ -1524,14 +1722,14 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       }
       if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lower)) return true;
       if (/\d+\s*[x×]\s*\d+\s*(cm|m|meter|mm)/gi.test(lower)) return true;
-      var warnaList = PRODUK_SPECS.warna || [];
+      var warnaList = SHARED_MODIFIERS.warna || [];
       for (var i = 0; i < warnaList.length; i++) {
         if (new RegExp("\\b" + warnaList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return warnaList[i] === w; });
           if (!isEntityOnly) return true;
         }
       }
-      var gayaList = PRODUK_SPECS.gaya || [];
+      var gayaList = SHARED_MODIFIERS.gaya || [];
       for (var i = 0; i < gayaList.length; i++) {
         if (new RegExp("\\b" + gayaList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return gayaList[i] === w; });
@@ -1546,18 +1744,16 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
         }
       }
 
-      // 🔥 FIX v14-B: Material modifier untuk PRODUK (beton, besi, kayu, dll)
-      var materialModifiers = ["beton", "besi", "kayu", "aluminium", "kaca", "stainless",
-                               "baja", "pvc", "wpc", "grc", "hpl", "acp", "vinyl", "upvc",
-                               "galvanis", "tembaga", "kuningan", "perunggu"];
+      // Material modifier untuk PRODUK
+      var materialModifiers = SHARED_MODIFIERS.material || [];
       for (var i = 0; i < materialModifiers.length; i++) {
         if (new RegExp("\\b" + materialModifiers[i] + "\\b", "i").test(lower)) {
-          log('🔥 FIX v14-B: produk + material=' + materialModifiers[i], 'CROSSSPEC');
+          log('🔥 FIX v15: produk + material=' + materialModifiers[i], 'CROSSSPEC');
           return true;
         }
       }
 
-      // 🔥 FIX v14-B: Application target untuk PRODUK
+      // Application target untuk PRODUK
       var textNoBaseB = lower;
       var baseListB = ENTITY_BASE_NAMES.produk || [];
       for (var biB = 0; biB < baseListB.length; biB++) {
@@ -1568,7 +1764,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       }
       for (var atB = 0; atB < APPLICATION_TARGETS_FULL.length; atB++) {
         if (new RegExp("\\b" + APPLICATION_TARGETS_FULL[atB] + "\\b", "i").test(textNoBaseB)) {
-          log('🔥 FIX v14-B: produk + target=' + APPLICATION_TARGETS_FULL[atB], 'CROSSSPEC');
+          log('🔥 FIX v15: produk + target=' + APPLICATION_TARGETS_FULL[atB], 'CROSSSPEC');
           return true;
         }
       }
@@ -1587,7 +1783,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
           if (!isEntityOnly) return true;
         }
       }
-      var finishingList = MATERIAL_SPECS.finishing || [];
+      var finishingList = SHARED_MODIFIERS.finishing || [];
       for (var i = 0; i < finishingList.length; i++) {
         if (new RegExp("\\b" + finishingList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return finishingList[i] === w; });
@@ -1599,7 +1795,8 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       for (var i = 0; i < beratList.length; i++) {
         if (new RegExp("\\b" + beratList[i] + "\\b", "i").test(lower)) return true;
       }
-      var tipeList = MATERIAL_SPECS.tipe || [];
+      // 🔥 FIX v15: pakai ENTITY_SPECIFIC.material
+      var tipeList = ENTITY_SPECIFIC.material.tipe_extended || [];
       for (var i = 0; i < tipeList.length; i++) {
         if (new RegExp("\\b" + tipeList[i].replace(/\s+/g, '\\s+') + "\\b", "i").test(lower)) {
           log('🧱 MATERIAL tipe: ' + tipeList[i], 'MATTYPE');
@@ -1618,14 +1815,14 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     }
 
     if (entityType === "sewa") {
-      var merekList = SEWA_SPECS.merek || [];
+      var merekList = ENTITY_SPECIFIC.sewa.merek || [];
       for (var i = 0; i < merekList.length; i++) {
         if (new RegExp("\\b" + merekList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return merekList[i] === w; });
           if (!isEntityOnly) return true;
         }
       }
-      var tipeList = SEWA_SPECS.tipe || [];
+      var tipeList = ENTITY_SPECIFIC.sewa.tipe || [];
       for (var i = 0; i < tipeList.length; i++) {
         if (new RegExp("\\b" + tipeList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return tipeList[i] === w; });
@@ -1633,14 +1830,14 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
         }
       }
       if (/\d+\s*(ton|m3|kg|liter)/gi.test(lower)) return true;
-      var kondisiList = SEWA_SPECS.kondisi || [];
+      var kondisiList = ENTITY_SPECIFIC.sewa.kondisi || [];
       for (var i = 0; i < kondisiList.length; i++) {
         if (new RegExp("\\b" + kondisiList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return kondisiList[i] === w; });
           if (!isEntityOnly) return true;
         }
       }
-      var durasiList = SEWA_SPECS.durasi || [];
+      var durasiList = ENTITY_SPECIFIC.sewa.durasi || [];
       for (var i = 0; i < durasiList.length; i++) {
         if (new RegExp("\\b" + durasiList[i] + "\\b", "i").test(lower)) return true;
       }
@@ -1659,21 +1856,21 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     }
 
     if (entityType === "jasa") {
-      var metodeList = JASA_SPECS.metode || [];
+      var metodeList = ENTITY_SPECIFIC.jasa.metode || [];
       for (var i = 0; i < metodeList.length; i++) {
         if (new RegExp("\\b" + metodeList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return metodeList[i] === w; });
           if (!isEntityOnly) return true;
         }
       }
-      var skalaList = JASA_SPECS.skala || [];
+      var skalaList = ENTITY_SPECIFIC.jasa.skala || [];
       for (var i = 0; i < skalaList.length; i++) {
         if (new RegExp("\\b" + skalaList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return skalaList[i] === w; });
           if (!isEntityOnly) return true;
         }
       }
-      var finishingList = JASA_SPECS.finishing || [];
+      var finishingList = SHARED_MODIFIERS.finishing || [];
       for (var i = 0; i < finishingList.length; i++) {
         if (new RegExp("\\b" + finishingList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return finishingList[i] === w; });
@@ -1692,6 +1889,11 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       for (var i = 0; i < sharedGaya.length; i++) {
         if (new RegExp("\\b" + sharedGaya[i] + "\\b", "i").test(lower)) return true;
       }
+      // tipe_aspal
+      var tipeAspal = ENTITY_SPECIFIC.jasa.tipe_aspal || [];
+      for (var i = 0; i < tipeAspal.length; i++) {
+        if (new RegExp("\\b" + tipeAspal[i] + "\\b", "i").test(lower)) return true;
+      }
       if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) {
         var hasJasaAction180 = ACTION_VERBS.some(function(w) {
           return lower.indexOf(w) !== -1;
@@ -1704,48 +1906,62 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     }
 
     if (entityType === "desain") {
-      var gayaList = DESAIN_SPECS.gaya || [];
+      var gayaList = ENTITY_SPECIFIC.desain.gaya_extended || [];
       for (var i = 0; i < gayaList.length; i++) {
         if (new RegExp("\\b" + gayaList[i].replace(/\s+/g, '\\s+') + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return gayaList[i] === w; });
           if (!isEntityOnly) return true;
         }
       }
-      var warnaList = DESAIN_SPECS.warna || [];
+      var sharedGayaD = SHARED_MODIFIERS.gaya || [];
+      for (var i = 0; i < sharedGayaD.length; i++) {
+        if (new RegExp("\\b" + sharedGayaD[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return sharedGayaD[i] === w; });
+          if (!isEntityOnly) return true;
+        }
+      }
+      var warnaList = ENTITY_SPECIFIC.desain.warna_extended || [];
       for (var i = 0; i < warnaList.length; i++) {
         if (new RegExp("\\b" + warnaList[i].replace(/\s+/g, '\\s+') + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return warnaList[i] === w; });
           if (!isEntityOnly) return true;
         }
       }
-      var konsepList = DESAIN_SPECS.konsep || [];
+      var sharedWarnaD = SHARED_MODIFIERS.warna || [];
+      for (var i = 0; i < sharedWarnaD.length; i++) {
+        if (new RegExp("\\b" + sharedWarnaD[i] + "\\b", "i").test(lower)) {
+          var isEntityOnly = entityOnly.some(function(w) { return sharedWarnaD[i] === w; });
+          if (!isEntityOnly) return true;
+        }
+      }
+      var konsepList = ENTITY_SPECIFIC.desain.konsep || [];
       for (var i = 0; i < konsepList.length; i++) {
         if (new RegExp("\\b" + konsepList[i].replace(/\s+/g, '\\s+') + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return konsepList[i] === w; });
           if (!isEntityOnly) return true;
         }
       }
-      var materialList = DESAIN_SPECS.material || [];
+      var materialList = ENTITY_SPECIFIC.desain.material || [];
       for (var i = 0; i < materialList.length; i++) {
         if (new RegExp("\\b" + materialList[i].replace(/\s+/g, '\\s+') + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return materialList[i] === w; });
           if (!isEntityOnly) return true;
         }
       }
-      var furnitureList = DESAIN_SPECS.furniture || [];
+      var furnitureList = ENTITY_SPECIFIC.desain.furniture || [];
       for (var i = 0; i < furnitureList.length; i++) {
         if (new RegExp("\\b" + furnitureList[i] + "\\b", "i").test(lower)) {
           var isEntityOnly = entityOnly.some(function(w) { return furnitureList[i] === w; });
           if (!isEntityOnly) return true;
         }
       }
-      var subjektifList = DESAIN_SPECS.subjektif || [];
+      var subjektifList = ENTITY_SPECIFIC.desain.subjektif || [];
       for (var i = 0; i < subjektifList.length; i++) {
         if (new RegExp("\\b" + subjektifList[i] + "\\b", "i").test(lower)) return true;
       }
     }
 
-    // 🔥 FIX 212: Application target = spec (universal)
+    // Application target = spec (universal)
     var textNoBase = lower;
     var baseList212 = ENTITY_BASE_NAMES[entityType] || [];
     for (var bi212 = 0; bi212 < baseList212.length; bi212++) {
@@ -1765,36 +1981,13 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
   }
 
   // ═══════════════════════════════════════════════════════════
-  // ✅ PART 2/3 SELESAI
-  // Part 3/3 berisi:
-  //   - checkHasJasaMetode
-  //   - getCategoryDefs
-  //   - countModifierLayers (FIX v14-C/D)
-  //   - flagAmbiguous, decideLevelByLayers, hasJasaMaterialCtx
-  //   - checkPureTechnicalSpec, detectEntityTypeFromText, detectEntityType
-  //   - detectSubPillar, detectPillar
-  //   - hasTechnicalSpec, isSubVariant, getCoreWords
-  //   - detectVariantByPattern, detectVariantLevel
-  //   - getFactors, getSEOContext
-  //   - detectConjunctionWarning, detectHierarchyWarning
-  //   - computeBreadcrumbLevels, validateBreadcrumbHierarchy
-  //   - validateParentDrivenHierarchy, isSpecModifierForEntity
-  //   - detectMoneyLevelInternal (FIX v14-C/D)
-  //   - detectPageLevel & turunannya
-  //   - Schema/Attributes functions
-  //   - TEST_CASES (FIX v14-E)
-  //   - runTestSuite + self-audit (FIX v14-F)
-  //   - INITIALIZATION
-  // ═══════════════════════════════════════════════════════════
-
-     // ═══════════════════════════════════════════════════════════
-  // PART 3/3 — CORE ENGINE + TEST + INIT
+  // PART 3 — CORE ENGINE
   // ═══════════════════════════════════════════════════════════
 
   function checkHasJasaMetode(text) {
     if (!text) return null;
     var lower = text.toLowerCase();
-    var metodeWords = PURE_METHODS.concat(PURE_SCALES);
+    var metodeWords = (ENTITY_SPECIFIC.jasa.metode || []).concat(ENTITY_SPECIFIC.jasa.skala || []);
     for (var i = 0; i < metodeWords.length; i++) {
       if (new RegExp("\\b" + metodeWords[i] + "\\b", "i").test(lower)) {
         return metodeWords[i];
@@ -1803,86 +1996,75 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     return null;
   }
 
-    function getCategoryDefs(entityType) {
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX v15-B: getCategoryDefs — 3-TIER RESOLUTION
+  // ═══════════════════════════════════════════════════════════
+  function getCategoryDefs(entityType) {
+    var result = {
+      global_numeric: GLOBAL_NUMERIC_KEYWORDS
+    };
+
+    // Tier 2: Shared modifiers untuk semua entity
+    result.material = SHARED_MODIFIERS.material;
+    result.finishing = SHARED_MODIFIERS.finishing;
+    result.warna = SHARED_MODIFIERS.warna;
+    result.gaya = SHARED_MODIFIERS.gaya;
+
+    // Tier 3: Entity-specific
     switch (entityType) {
       case "jasa":
-        return {
-          // 🔥 FIX v14-O: skala dipisah dari metode
-          skala: PURE_SCALES,
-          metode: PURE_METHODS,
-          material: [
-            "beton","baja","besi","kayu","batu","tanah","aspal",
-            "keramik","granit","marmer","kaca","aluminium",
-            "pipa","semen","pasir","pvc","wpc","grc","hpl","acp",
-            "vinyl","upvc","stainless","titanium","tembaga","kuningan",
-            "perunggu","karbon","grafit","bambu","rotan"
-          ],
-          target: APPLICATION_TARGETS_FULL,
-          finishing: PURE_FINISHING,
-          // 🔥 FIX R-3: kategori hotmix
-          tipe_aspal: ["hotmix", "coldmix", "aspal cair", "aspal buton"]
-        };
+        result.metode = ENTITY_SPECIFIC.jasa.metode;
+        result.skala = ENTITY_SPECIFIC.jasa.skala;
+        result.tipe_aspal = ENTITY_SPECIFIC.jasa.tipe_aspal;
+        result.target = APPLICATION_TARGETS_FULL;
+        break;
+
       case "produk":
-        return {
-          mutu: PRODUK_SPECS.mutu,
-          warna: PRODUK_SPECS.warna,
-          finishing: PRODUK_SPECS.finishing,
-          gaya: PRODUK_SPECS.gaya,
-          // 🔥 FIX v14-O: kategori tipe baru
-          tipe: ["geser","lipat","swing","sliding","casement","rolling door",
-                 "folding gate","harmonika","ayun","kupu-kupu","revolving","otomatis","manual"],
-          material: [
-            "beton","besi","kayu","aluminium","kaca","stainless",
-            "baja","pvc","wpc","grc","hpl","acp","vinyl","upvc",
-            "tembaga","kuningan","perunggu"
-          ],
-          target: APPLICATION_TARGETS_FULL
-        };
+        result.mutu = ENTITY_SPECIFIC.produk.mutu;
+        result.tipe = ENTITY_SPECIFIC.produk.tipe;
+        result.target = APPLICATION_TARGETS_FULL;
+        break;
+
       case "material":
-        return {
-          grade: MATERIAL_SPECS.grade,
-          tipe: MATERIAL_SPECS.tipe,
-          finishing: MATERIAL_SPECS.finishing,
-          // 🔥 FIX v14-O: warna untuk material
-          warna: ["putih","hitam","abu-abu","merah","kuning","hijau","coklat","krem","natural"],
-          target: APPLICATION_TARGETS_FULL
-        };
+        result.grade_material = ENTITY_SPECIFIC.material.grade_material;
+        result.tipe_extended = ENTITY_SPECIFIC.material.tipe_extended;
+        result.target = APPLICATION_TARGETS_FULL;
+        break;
+
       case "sewa":
-        return {
-          tipe: SEWA_SPECS.tipe,
-          merek: SEWA_SPECS.merek,
-          kondisi: SEWA_SPECS.kondisi,
-          durasi: SEWA_SPECS.durasi,
-          // 🔥 FIX v14-O: kapasitas masuk kategori
-          kapasitas: SEWA_SPECS.kapasitas,
-          target: APPLICATION_TARGETS_FULL
-        };
-     case "desain":
-        var ROOM_CTX_218 = ["rumah", "kantor", "toko", "hotel", "restoran",
+        result.tipe = ENTITY_SPECIFIC.sewa.tipe;
+        result.merek = ENTITY_SPECIFIC.sewa.merek;
+        result.kondisi = ENTITY_SPECIFIC.sewa.kondisi;
+        result.durasi = ENTITY_SPECIFIC.sewa.durasi;
+        result.kapasitas = ENTITY_SPECIFIC.sewa.kapasitas;
+        result.tools_extended = ENTITY_SPECIFIC.sewa.tools_extended;
+        result.target = APPLICATION_TARGETS_FULL;
+        break;
+
+      case "desain":
+        var ROOM_CTX = ["rumah", "kantor", "toko", "hotel", "restoran",
           "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
           "sekolah", "mall", "spa", "salon", "bar", "lounge", "butik",
           "showroom", "minimarket",
           "dapur", "kamar mandi", "kamar tidur", "ruang tamu",
           "ruang keluarga", "ruang makan", "ruang kerja",
           "teras", "balkon", "toilet", "wc"];
-        var targetDesain218 = APPLICATION_TARGETS_FULL.filter(function(t) {
-          return ROOM_CTX_218.indexOf(t) === -1;
+        var targetDesain = APPLICATION_TARGETS_FULL.filter(function(t) {
+          return ROOM_CTX.indexOf(t) === -1;
         });
-        return {
-          gaya: DESAIN_SPECS.gaya,
-          warna: DESAIN_SPECS.warna,
-          material: DESAIN_SPECS.material,
-          konsep: DESAIN_SPECS.konsep,
-          furniture: DESAIN_SPECS.furniture,
-          subjektif: DESAIN_SPECS.subjektif,
-          // 🔥 FIX v14-O: kategori baru
-          scope_ruangan: ROOM_CTX_218,
-          luas: ["2 lantai","3 lantai","1 lantai","studio","loft","duplex","townhouse"],
-          target: targetDesain218
-        };
-      default:
-        return {};
+        result.gaya_extended = ENTITY_SPECIFIC.desain.gaya_extended;
+        result.warna_extended = ENTITY_SPECIFIC.desain.warna_extended;
+        result.konsep = ENTITY_SPECIFIC.desain.konsep;
+        result.material_desain = ENTITY_SPECIFIC.desain.material;
+        result.furniture = ENTITY_SPECIFIC.desain.furniture;
+        result.subjektif = ENTITY_SPECIFIC.desain.subjektif;
+        result.scope_ruangan = ROOM_CTX;
+        result.luas = ["2 lantai","3 lantai","1 lantai","studio","loft","duplex","townhouse"];
+        result.target = targetDesain;
+        break;
     }
+
+    return result;
   }
 
   function countModifierLayers(text, entityType) {
@@ -1923,18 +2105,17 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       working = working.replace(new RegExp("\\b" + SATUAN_UNITS[su] + "\\b", 'g'), ' ');
     }
 
-    var PROMO_STRIP_216 = PROMO_MODIFIER_WORDS.concat(HIGH_VOLUME_WORDS);
+    var PROMO_STRIP = PROMO_MODIFIER_WORDS.concat(HIGH_VOLUME_WORDS);
     var seen216 = {};
-    for (var ps216 = 0; ps216 < PROMO_STRIP_216.length; ps216++) {
-      var pword216 = PROMO_STRIP_216[ps216];
-      if (seen216[pword216]) continue;
-      seen216[pword216] = true;
-      working = working.replace(new RegExp("\\b" + pword216 + "\\b", 'g'), ' ');
+    for (var ps = 0; ps < PROMO_STRIP.length; ps++) {
+      var pword = PROMO_STRIP[ps];
+      if (seen216[pword]) continue;
+      seen216[pword] = true;
+      working = working.replace(new RegExp("\\b" + pword + "\\b", 'g'), ' ');
     }
     working = working.replace(/\s+/g, ' ').trim();
 
     var count = 0;
-    var seen = {};
     var seenWords = {};
 
     if (entityType === "desain") {
@@ -1954,13 +2135,6 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       }
       working = working.replace(/\s+/g, ' ').trim();
     }
-
-    var CATEGORY_PRIORITY = {
-      "material": 5, "target": 4, "metode": 3, "mutu": 3,
-      "grade": 3, "tipe": 3, "merek": 3, "kapasitas": 3,
-      "gaya": 2, "warna": 2, "finishing": 2, "kondisi": 2,
-      "durasi": 2, "konsep": 2, "furniture": 2, "subjektif": 1
-    };
 
     var categories = getCategoryDefs(entityType);
     for (var cat in categories) {
@@ -2014,22 +2188,22 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
         );
       }
     }
-    var stopwords197 = ["dan","atau","serta","yang","dari","ke","di","untuk",
-                        "dengan","ini","itu","akan","pada","oleh","per"];
-    for (var s = 0; s < stopwords197.length; s++) {
-      cleaned = cleaned.replace(new RegExp("\\b" + stopwords197[s] + "\\b", 'g'), ' ');
+    var stopwords = ["dan","atau","serta","yang","dari","ke","di","untuk",
+                     "dengan","ini","itu","akan","pada","oleh","per"];
+    for (var s = 0; s < stopwords.length; s++) {
+      cleaned = cleaned.replace(new RegExp("\\b" + stopwords[s] + "\\b", 'g'), ' ');
     }
 
     if (entityType === "desain") {
-      var ROOM_CTX_218b = ["rumah", "kantor", "toko", "hotel", "restoran",
+      var ROOM_CTX = ["rumah", "kantor", "toko", "hotel", "restoran",
         "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
         "sekolah", "mall", "spa", "salon", "bar", "lounge", "butik",
         "showroom", "minimarket",
         "dapur", "kamar mandi", "kamar tidur", "ruang tamu",
         "ruang keluarga", "ruang makan", "ruang kerja",
         "teras", "balkon", "toilet", "wc"];
-      for (var rc218 = 0; rc218 < ROOM_CTX_218b.length; rc218++) {
-        cleaned = cleaned.replace(new RegExp("\\b" + ROOM_CTX_218b[rc218] + "\\b", 'g'), ' ');
+      for (var rc = 0; rc < ROOM_CTX.length; rc++) {
+        cleaned = cleaned.replace(new RegExp("\\b" + ROOM_CTX[rc] + "\\b", 'g'), ' ');
       }
     }
     cleaned = cleaned.replace(/\s+/g, ' ').trim();
@@ -2043,7 +2217,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
           unknownWords.length, 'VARIANT');
     }
 
-    log('🔥 FIX v14: layers=' + count + ' entity=' + entityType +
+    log('🔥 FIX v15: layers=' + count + ' entity=' + entityType +
         ' working="' + working.trim() + '"', 'VARIANT');
     return count;
   }
@@ -2069,10 +2243,9 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     return "sub-variant";
   }
 
-function hasJasaMaterialCtx(text) {
+  function hasJasaMaterialCtx(text) {
     if (!text) return false;
     var lower = text.toLowerCase();
-    // 🔥 FIX v14-U: sinkron dengan getCategoryDefs.jasa.material
     var narrow = ["beton","baja","besi","kayu","batu","tanah","aspal",
                   "keramik","granit","marmer","kaca","aluminium",
                   "pipa","semen","pasir","pvc","wpc","grc","hpl","acp",
@@ -2083,18 +2256,19 @@ function hasJasaMaterialCtx(text) {
     }
     return false;
   }
+
   function checkPureTechnicalSpec(text, entityType) {
     if (!text) return false;
     var lower = text.toLowerCase();
     var pureSpecs = [];
     if (entityType === "jasa") pureSpecs = PURE_JASA_TECHNIQUES
-  .concat(PURE_METHODS)
-  .concat(PURE_SCALES)
-  .concat(PURE_FINISHING)
+  .concat(ENTITY_SPECIFIC.jasa.metode)
+  .concat(ENTITY_SPECIFIC.jasa.skala)
+  .concat(SHARED_MODIFIERS.finishing)
   .concat(CROSS_ENTITY_SPECS.jasa.foreignTechniques)
   .concat(CROSS_ENTITY_SPECS.jasa.sharedGaya);
-    else if (entityType === "produk") pureSpecs = PURE_PRODUK_SPECS.concat(PURE_FINISHING, CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing);
-    else if (entityType === "material") pureSpecs = PURE_MATERIAL_SPECS.concat(PURE_FINISHING);
+    else if (entityType === "produk") pureSpecs = PURE_PRODUK_SPECS.concat(SHARED_MODIFIERS.finishing, CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing);
+    else if (entityType === "material") pureSpecs = PURE_MATERIAL_SPECS.concat(SHARED_MODIFIERS.finishing);
     else if (entityType === "sewa") pureSpecs = PURE_SEWA_SPECS;
     else if (entityType === "desain") pureSpecs = PURE_DESAIN_SPECS;
     for (var i = 0; i < pureSpecs.length; i++) {
@@ -2205,13 +2379,10 @@ function hasJasaMaterialCtx(text) {
     }
 
     if (bestMatchRL.entity) {
-      // 🔥 FIX R-8: tie-breaker untuk base name yang ada di >1 entity
       var AMBIGUOUS_PAIRS = ["mini pile", "spun pile", "sheet pile", "tiang pancang", "pancang"];
       var matchName = bestMatchRL.name;
       if (AMBIGUOUS_PAIRS.indexOf(matchName) !== -1) {
-        // Cek sinyal transaksi produk
         var hasProdukCtx = /\b(harga|jual|beli|supplier|distributor|ready|stok|stock|unit|batang|lembar|keping|ukuran|dimensi|spesifikasi|mutu)\b/i.test(lower);
-        // Cek sinyal jasa
         var hasJasaCtx = /\b(jasa|pasang|borongan|tukang|pemancangan|pancang|bor|pile)\b/i.test(lower);
         if (hasProdukCtx && !hasJasaCtx) {
           log('🎯 FIX R-8: ambiguous "' + matchName + '" → produk (context: tx)', 'DETECT');
@@ -2335,17 +2506,14 @@ function hasJasaMaterialCtx(text) {
     var hasConjunction = /\b(atau|dan|serta)\b/i.test(coreText);
     if (entityType && ENTITY_BASE_NAMES[entityType] && !hasConjunction) {
       var baseNamesEarly = ENTITY_BASE_NAMES[entityType] || [];
-
       var baseNamesSet = {};
       for (var k = 0; k < baseNamesEarly.length; k++) {
         baseNamesSet[baseNamesEarly[k]] = true;
       }
-
       for (var i = 0; i < baseNamesEarly.length; i++) {
         var bn = baseNamesEarly[i];
         var bnWords = bn.split(' ');
         var lastWord = bnWords[bnWords.length - 1];
-
         if (bnWords.length >= 2 && APPLICATION_TARGETS.indexOf(lastWord) !== -1) {
           var baseWithoutTarget = bnWords.slice(0, -1).join(' ');
           if (baseNamesSet[baseWithoutTarget]) {
@@ -2353,7 +2521,6 @@ function hasJasaMaterialCtx(text) {
             continue;
           }
         }
-
         coreText = coreText.replace(new RegExp("\\b" + bn.replace(/\s+/g, '\\s+') + "\\b", 'g'), ' ');
       }
     }
@@ -2530,9 +2697,7 @@ function hasJasaMaterialCtx(text) {
     if (!slug) return warnings;
 
     var words = slug.split(" ").filter(function(w) { return w.length > 0; });
-
     if (words.length <= 2) return warnings;
-
     if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
 
     var parentSlug = words.slice(0, -1).join(" ");
@@ -2543,9 +2708,7 @@ function hasJasaMaterialCtx(text) {
     var parentNum = LEVEL_HIERARCHY_MAP[parentLevel] || -1;
 
     if (parentNum < 3) return warnings;
-
     if (parentLevel === "pillar") return warnings;
-
     if (currentLevel === "money-child") return warnings;
 
     if (currentNum <= parentNum) {
@@ -2599,10 +2762,7 @@ function hasJasaMaterialCtx(text) {
 
     var chain = computeBreadcrumbLevels(slug, entityType);
     if (chain.length < 2) return warnings;
-
     if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
-
-    if (chain.length < 2) return warnings;
 
     var current = chain[chain.length - 1];
     var parent = null;
@@ -2614,9 +2774,7 @@ function hasJasaMaterialCtx(text) {
     }
 
     if (!parent) return warnings;
-
     if (current.level === "money-child") return warnings;
-
     if (current.levelNum >= 7) return warnings;
 
     if (current.levelNum <= parent.levelNum) {
@@ -2648,7 +2806,6 @@ function hasJasaMaterialCtx(text) {
 
     var words = slug.split(" ").filter(Boolean);
     if (words.length <= 2) return warnings;
-
     if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
 
     var parentSlug = words.slice(0, -1).join(" ");
@@ -2715,81 +2872,41 @@ function hasJasaMaterialCtx(text) {
     return warnings;
   }
 
+  // 🔥 FIX v15-C: isSpecModifierForEntity pakai tier system
   function isSpecModifierForEntity(word, entityType) {
     if (!word) return false;
     var w = word.toLowerCase().trim();
     if (!w) return false;
 
+    // Universal numeric
     if (/^\d+/.test(w)) return true;
     if (/^(k\d+|fc\d*|m\d+|c\d+|bjts?\d*)$/i.test(w)) return true;
+    if (GLOBAL_NUMERIC_KEYWORDS.indexOf(w) !== -1) return true;
 
+    // Strong promo
     if (w === 'termurah' || w === 'termahal' || w === 'promo' || w === 'diskon') return true;
 
-    if (entityType === "jasa") {
-      var jasaSpecs = []
-        .concat(JASA_SPECS.metode || [])
-        .concat(JASA_SPECS.skala || [])
-        .concat(JASA_SPECS.finishing || [])
-        .concat(JASA_SPECS.kedalaman || [])
-        .concat(CROSS_ENTITY_SPECS.jasa.sharedFinishing || [])
-        .concat(CROSS_ENTITY_SPECS.jasa.sharedGaya || [])
-        .concat(CROSS_ENTITY_SPECS.jasa.foreignTechniques || []);
-      return jasaSpecs.indexOf(w) !== -1;
+    // Tier 2: Shared — cek semua kategori shared
+    for (var cat in SHARED_MODIFIERS) {
+      if (!SHARED_MODIFIERS.hasOwnProperty(cat)) continue;
+      if (SHARED_MODIFIERS[cat].indexOf(w) !== -1) return true;
     }
 
-    if (entityType === "produk") {
-      var produkSpecs = []
-        .concat(PRODUK_SPECS.mutu || [])
-        .concat(PRODUK_SPECS.finishing || [])
-        .concat(PRODUK_SPECS.warna || [])
-        .concat(PRODUK_SPECS.dimensi || [])
-        .concat(PRODUK_SPECS.gaya || [])
-        .concat(CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing || [])
-        .concat(CROSS_ENTITY_SPECS.produk.sharedMaterialDimensi || [])
-        .concat(["beton", "besi", "kayu", "aluminium", "kaca", "stainless",
-                 "baja", "pvc", "wpc", "grc", "hpl", "acp", "vinyl", "upvc",
-                 "galvanis", "tembaga", "kuningan", "perunggu"]);
-      return produkSpecs.indexOf(w) !== -1;
+    // Tier 3: Entity specific
+    if (entityType && ENTITY_SPECIFIC[entityType]) {
+      var spec = ENTITY_SPECIFIC[entityType];
+      for (var key in spec) {
+        if (!spec.hasOwnProperty(key)) continue;
+        if (spec[key].indexOf(w) !== -1) return true;
+      }
     }
 
-    if (entityType === "material") {
-      var materialSpecs = []
-        .concat(MATERIAL_SPECS.grade || [])
-        .concat(MATERIAL_SPECS.finishing || [])
-        .concat(MATERIAL_SPECS.dimensi || [])
-        .concat(MATERIAL_SPECS.berat || [])
-        .concat(MATERIAL_SPECS.tipe || [])
-        .concat(CROSS_ENTITY_SPECS.material.extendedTypes || []);
-      return materialSpecs.indexOf(w) !== -1;
-    }
-
+    // Additional
     if (entityType === "sewa") {
-      var sewaSpecs = []
-        .concat(SEWA_SPECS.tipe || [])
-        .concat(SEWA_SPECS.merek || [])
-        .concat(SEWA_SPECS.kapasitas || [])
-        .concat(SEWA_SPECS.kondisi || [])
-        .concat(SEWA_SPECS.durasi || [])
-        .concat(CROSS_ENTITY_SPECS.sewa.extendedUnits || [])
-        .concat(CROSS_ENTITY_SPECS.sewa.extendedTools || []);
-      return sewaSpecs.indexOf(w) !== -1;
+      if (SEWA_SPECS.kapasitas.indexOf(w) !== -1) return true;
     }
-
-    if (entityType === "desain") {
-      var desainSpecs = []
-        .concat(DESAIN_SPECS.gaya || [])
-        .concat(DESAIN_SPECS.warna || [])
-        .concat(DESAIN_SPECS.material || [])
-        .concat(DESAIN_SPECS.konsep || [])
-        .concat(DESAIN_SPECS.furniture || [])
-        .concat(DESAIN_SPECS.subjektif || [])
-        .concat(CROSS_ENTITY_SPECS.desain.extendedColors || [])
-        .concat(CROSS_ENTITY_SPECS.desain.extendedGaya || []);
-      return desainSpecs.indexOf(w) !== -1;
-    }
-
-    if (entityType === "artikel") {
-      return false;
+    if (entityType === "material") {
+      if (MATERIAL_SPECS.berat.indexOf(w) !== -1) return true;
     }
 
     return false;
@@ -2849,16 +2966,12 @@ function hasJasaMaterialCtx(text) {
       return "money-page";
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // 🔥 FIX v14-C: PRIORITAS 7 — gate pakai earlyLayers
-    // ═══════════════════════════════════════════════════════════
+    // PRIORITAS 7
     var jasaMaterialCtx186 = false;
     if (entityType === "jasa" && hasJasaMaterialCtx(text)) {
       var isMaterialInBase = false;
       var jasaBaseList = ENTITY_BASE_NAMES.jasa || [];
-      var materialWords186 = ["beton","baja","besi","kayu","batu","tanah","aspal",
-                              "keramik","granit","marmer","kaca","aluminium",
-                              "pipa","semen","pasir"];
+      var materialWords186 = SHARED_MODIFIERS.material;
       for (var mbi = 0; mbi < jasaBaseList.length; mbi++) {
         var baseName186 = jasaBaseList[mbi];
         for (var mwi = 0; mwi < materialWords186.length; mwi++) {
@@ -2891,7 +3004,6 @@ function hasJasaMaterialCtx(text) {
       }
     }
 
-    // 🔥 FIX v14-C: hitung earlyLayers sebagai gate tambahan
     var earlyLayers = 0;
     if (!hasPriceWord && !hasCommercialWord && !hasLocationWord
         && !hasStrongPromo211 && !skipP7Atau) {
@@ -2902,12 +3014,11 @@ function hasJasaMaterialCtx(text) {
         && !hasPriceWord && !hasCommercialWord && !hasLocationWord
         && !hasStrongPromo211
         && !skipP7Atau) {
-
       var layers186 = earlyLayers;
       if (layers186 === 0 && jasaMaterialCtx186) layers186 = 1;
       if (layers186 > 0) {
         var decision186 = decideLevelByLayers(layers186);
-        log('🔥 FIX v14-C: ' + decision186 + ' (' + layers186 + ' layer)', 'VARIANT');
+        log('🔥 FIX v15-C: ' + decision186 + ' (' + layers186 + ' layer)', 'VARIANT');
         return decision186;
       }
     }
@@ -2924,7 +3035,7 @@ function hasJasaMaterialCtx(text) {
       return "money-page";
     }
 
-    // 🔥 FIX SEO v8: desain + multi-word target
+    // FIX SEO v8
     if (hasPriceWord && entityType === "desain"
         && !hasLocationWord && !hasCommercialWord && !hasSpecWord) {
       for (var mwt8 = 0; mwt8 < APPLICATION_TARGETS_FULL.length; mwt8++) {
@@ -2969,9 +3080,7 @@ function hasJasaMaterialCtx(text) {
         }
 
         if (entityType === "jasa") {
-          var narrow182 = ["beton","baja","besi","kayu","batu","tanah","aspal",
-                           "keramik","granit","marmer","kaca","aluminium",
-                           "pipa","semen","pasir"];
+          var narrow182 = SHARED_MODIFIERS.material;
           if (narrow182.indexOf(coreWord) !== -1) {
             var isMatInBase204 = false;
             var jasaBase204 = ENTITY_BASE_NAMES.jasa || [];
@@ -3066,9 +3175,7 @@ function hasJasaMaterialCtx(text) {
       }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // 🔥 FIX v14-D: PRIORITAS 12 — cek modifier nyata sebelum MM
-    // ═══════════════════════════════════════════════════════════
+    // PRIORITAS 12
     var coreWords = getCoreWords(text, entityType);
     log('🧠 CORE: [' + coreWords.join(', ') + ']', 'CORE');
 
@@ -3079,11 +3186,8 @@ function hasJasaMaterialCtx(text) {
       }
     }
 
-    // 🔥 FIX v14-D: sebelum jatuh ke MM, cek layer residual
     var residualLayers = countModifierLayers(text, entityType);
 
-        // 🔥 FIX v14-T: kalau coreWords = 0, artinya semua sudah di-strip (base + entity + modifier known).
-    // Kalau tidak ada residual layer, return MM langsung — jangan biarkan complexityScore override.
     if (coreWords.length === 0
         && residualLayers === 0
         && !hasPriceWord && !hasCommercialWord && !hasLocationWord
@@ -3093,14 +3197,12 @@ function hasJasaMaterialCtx(text) {
     }
 
     if (coreWords.length <= 2) {
-      // FIX 146: JASA base service cap MM
       if (entityType === "jasa" && coreWords.length === 1 && complexityScore <= 2
           && !hasPriceWord && !hasCommercialWord && !hasCompound) {
         if (APPLICATION_TARGETS.indexOf(coreWords[0]) !== -1) {
           log('💵 FIX 167: MONEY_PAGE (base jasa + target: ' + coreWords[0] + ')', 'PRICE');
           return "money-page";
         }
-        // 🔥 FIX v14-J: cek spec modifier JASA sebelum MM
         if (isSpecModifierForEntity(coreWords[0], "jasa")) {
           log('💵 FIX v14-J: MONEY_PAGE (base jasa + spec: ' + coreWords[0] + ')', 'PRICE');
           return "money-page";
@@ -3108,8 +3210,7 @@ function hasJasaMaterialCtx(text) {
         log('🏛️ FIX 146: MONEY_MASTER (base jasa + 1 objek)', 'MM');
         return "money-master";
       }
-       
-      // 🔥 FIX v14-D: kalau ada residual layer > 0, naikkan ke layer-based level
+
       if (residualLayers > 0 && !hasLocationWord && !hasCommercialWord) {
         var decision14D = decideLevelByLayers(residualLayers);
         log('🔥 FIX v14-D: ' + decision14D + ' (' + residualLayers + ' residual layer)', 'PRICE');
@@ -3124,7 +3225,6 @@ function hasJasaMaterialCtx(text) {
       else log('🏛️ MONEY_MASTER', 'MM');
       return "money-master";
     } else {
-      // 🔥 FIX v14-D: core > 2 → cek layer, jangan langsung MP
       if (residualLayers > 0) {
         var decision14Db = decideLevelByLayers(residualLayers);
         log('🔥 FIX v14-D: ' + decision14Db + ' (' + residualLayers + ' layer, core=' + coreWords.length + ')', 'PRICE');
@@ -3424,6 +3524,24 @@ function hasJasaMaterialCtx(text) {
     else if (maxScore >= 2) confidence = "medium";
     return { dominant: dominantIntent, scores: scores, confidence: confidence, maxScore: maxScore };
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // ✅ AKHIR BAGIAN 3/4
+  // ═══════════════════════════════════════════════════════════
+  // Bagian 4/4 berisi:
+  //   - Schema/Attributes functions (detectContentFocus, setSchemaAttributes, dll)
+  //   - EEAT, Structure, Snippet detection
+  //   - SEO score calculation
+  //   - Breadcrumbs finder
+  //   - auditBaseNames + auditModifierTiers (FIX v15-C)
+  //   - runTestSuite (dengan semua test case)
+  //   - initializeCore + Export
+  //   - Close IIFE
+  // ═══════════════════════════════════════════════════════════
+
+  // ═══════════════════════════════════════════════════════════
+  // PART 4 — SCHEMA / ATTRIBUTES / SEO
+  // ═══════════════════════════════════════════════════════════
 
   function detectContentFocus(level, entityType) {
     var h1Text = getH1Text();
@@ -3814,7 +3932,7 @@ function hasJasaMaterialCtx(text) {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX v14-F: SELF-AUDIT — Base name HARUS 0 layer
+  // AUDIT BASE NAMES
   // ═══════════════════════════════════════════════════════════
   function auditBaseNames() {
     var bad = [];
@@ -3840,10 +3958,95 @@ function hasJasaMaterialCtx(text) {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX v14-E: TEST SUITE (dengan update konsisten strict base)
+  // 🔥 FIX v15-C: AUDIT MODIFIER TIERS
+  // ═══════════════════════════════════════════════════════════
+  function auditModifierTiers() {
+    var report = {
+      tier1_count: GLOBAL_NUMERIC_KEYWORDS.length,
+      tier2_count: 0,
+      tier3_count: 0,
+      duplicates_tier2: [],
+      duplicates_tier3: [],
+      cross_tier_overlap: []
+    };
+
+    for (var cat in SHARED_MODIFIERS) {
+      if (!SHARED_MODIFIERS.hasOwnProperty(cat)) continue;
+      var words = SHARED_MODIFIERS[cat];
+      report.tier2_count += words.length;
+      var seen = {};
+      for (var i = 0; i < words.length; i++) {
+        if (seen[words[i]]) {
+          report.duplicates_tier2.push({ cat: cat, word: words[i] });
+        }
+        seen[words[i]] = true;
+      }
+    }
+
+    for (var ent in ENTITY_SPECIFIC) {
+      if (!ENTITY_SPECIFIC.hasOwnProperty(ent)) continue;
+      var spec = ENTITY_SPECIFIC[ent];
+      for (var key in spec) {
+        if (!spec.hasOwnProperty(key)) continue;
+        var arr = spec[key];
+        report.tier3_count += arr.length;
+        var seenT3 = {};
+        for (var j = 0; j < arr.length; j++) {
+          if (seenT3[arr[j]]) {
+            report.duplicates_tier3.push({ entity: ent, cat: key, word: arr[j] });
+          }
+          seenT3[arr[j]] = true;
+        }
+      }
+    }
+
+    var tier2All = [];
+    for (var c in SHARED_MODIFIERS) {
+      if (!SHARED_MODIFIERS.hasOwnProperty(c)) continue;
+      tier2All = tier2All.concat(SHARED_MODIFIERS[c]);
+    }
+
+    for (var e in ENTITY_SPECIFIC) {
+      if (!ENTITY_SPECIFIC.hasOwnProperty(e)) continue;
+      var sp = ENTITY_SPECIFIC[e];
+      for (var k in sp) {
+        if (!sp.hasOwnProperty(k)) continue;
+        for (var m = 0; m < sp[k].length; m++) {
+          if (tier2All.indexOf(sp[k][m]) !== -1) {
+            report.cross_tier_overlap.push(e + "." + k + ": " + sp[k][m]);
+          }
+        }
+      }
+    }
+
+    console.log("═══════════════════════════════════════════════════════════");
+    console.log("📊 FIX v15-C AUDIT — MODIFIER TIERS");
+    console.log("═══════════════════════════════════════════════════════════");
+    console.log("Tier 1 (GLOBAL): " + report.tier1_count);
+    console.log("Tier 2 (SHARED): " + report.tier2_count);
+    console.log("Tier 3 (SPECIFIC): " + report.tier3_count);
+    console.log("──────────────────────────────────────────────────────────");
+    if (report.duplicates_tier2.length === 0 && report.duplicates_tier3.length === 0) {
+      console.log("✅ Tidak ada duplikat dalam tier");
+    } else {
+      console.warn("⚠️ Duplikat Tier 2: " + report.duplicates_tier2.length);
+      console.warn("⚠️ Duplikat Tier 3: " + report.duplicates_tier3.length);
+    }
+    if (report.cross_tier_overlap.length > 0) {
+      console.warn("⚠️ Cross-tier overlap: " + report.cross_tier_overlap.length);
+      console.warn("   " + report.cross_tier_overlap.slice(0, 10).join(", "));
+    } else {
+      console.log("✅ Tidak ada cross-tier overlap");
+    }
+    console.log("═══════════════════════════════════════════════════════════");
+    return report;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // TEST SUITE
   // ═══════════════════════════════════════════════════════════
   function runTestSuite() {
-            var TEST_CASES = [
+    var TEST_CASES = [
       // ═══ Regression dasar ═══
       { slug: "jasa urug tanah", entity: "jasa", expect: "money-master" },
       { slug: "jasa gali tanah", entity: "jasa", expect: "money-master" },
@@ -3883,7 +4086,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "jasa konstruksi", entity: "jasa", expect: "pillar" },
       { slug: "semen 3 roda", entity: "material", expect: "money-page" },
       { slug: "harga pasir bangka per kubik", entity: "material", expect: "money-page" },
-      // FIX 158
+
+      // ═══ FIX 158: noise vs strong modifier ═══
       { slug: "harga jasa bor sumur murah", entity: "jasa", expect: "money-master" },
       { slug: "harga jasa bore pile murah", entity: "jasa", expect: "money-master" },
       { slug: "harga jasa pasang pagar hemat", entity: "jasa", expect: "money-master" },
@@ -3897,7 +4101,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "jasa bor sumur termurah", entity: "jasa", expect: "money-page" },
       { slug: "jasa bor sumur termahal", entity: "jasa", expect: "money-page" },
       { slug: "jasa bor beton jakarta", entity: "jasa", expect: "money-child" },
-      // FIX 160a
+
+      // ═══ FIX 160a: JASA compound ═══
       { slug: "harga jasa bor pile", entity: "jasa", expect: "money-master" },
       { slug: "harga jasa bor strauss", entity: "jasa", expect: "money-master" },
       { slug: "harga jasa cor dak", entity: "jasa", expect: "money-master" },
@@ -3912,7 +4117,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "harga besi beton ulir", entity: "material", expect: "money-page" },
       { slug: "jasa bore pile beton", entity: "jasa", expect: "money-page" },
       { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-page" },
-      // FIX 161
+
+      // ═══ FIX 161 ═══
       { slug: "harga kitchen set", entity: "produk", expect: "money-master" },
       { slug: "harga kitchen set minimalis", entity: "produk", expect: "money-page" },
       { slug: "harga wardrobe", entity: "produk", expect: "money-master" },
@@ -3928,7 +4134,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "harga lantai vinyl", entity: "produk", expect: "money-page" },
       { slug: "harga atap shingle", entity: "produk", expect: "money-page" },
       { slug: "harga saklar listrik", entity: "produk", expect: "money-master" },
-      // MATERIAL
+
+      // ═══ MATERIAL ═══
       { slug: "harga semen mortar", entity: "material", expect: "money-page" },
       { slug: "harga semen instan", entity: "material", expect: "money-page" },
       { slug: "harga pasir cor", entity: "material", expect: "money-page" },
@@ -3944,7 +4151,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "harga aquaproof", entity: "material", expect: "money-master" },
       { slug: "harga no drop", entity: "material", expect: "money-master" },
       { slug: "harga beton readymix", entity: "material", expect: "money-page" },
-      // SEWA
+
+      // ═══ SEWA ═══
       { slug: "harga sewa forklift 3 ton", entity: "sewa", expect: "money-page" },
       { slug: "harga sewa forklift listrik", entity: "sewa", expect: "money-page" },
       { slug: "harga sewa boom lift", entity: "sewa", expect: "money-master" },
@@ -3956,7 +4164,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "harga sewa stamper kodok", entity: "sewa", expect: "money-master" },
       { slug: "harga sewa pompa celup", entity: "sewa", expect: "money-master" },
       { slug: "harga sewa kompresor angin", entity: "sewa", expect: "money-master" },
-      // DESAIN
+
+      // ═══ DESAIN ═══
       { slug: "harga desain interior restoran", entity: "desain", expect: "money-page" },
       { slug: "harga desain interior hotel", entity: "desain", expect: "money-page" },
       { slug: "harga desain interior apartemen", entity: "desain", expect: "money-page" },
@@ -3971,39 +4180,38 @@ function hasJasaMaterialCtx(text) {
       { slug: "harga desain kolam renang", entity: "desain", expect: "money-master" },
       { slug: "harga gambar arsitektur", entity: "desain", expect: "money-master" },
       { slug: "harga gambar kerja", entity: "desain", expect: "money-master" },
-      // FIX 150
+
+      // ═══ FIX 150, 151, 155, 156, 154 ═══
       { slug: "harga rental excavator", entity: "sewa", expect: "money-master" },
       { slug: "harga bahan pasir", entity: "material", expect: "money-master" },
       { slug: "harga bahan material pasir", entity: "material", expect: "money-master" },
-      // FIX 151
       { slug: "harga sewa excavator", entity: "sewa", expect: "money-master" },
       { slug: "harga sewa alat berat", entity: "sewa", expect: "money-master" },
       { slug: "harga desain interior", entity: "desain", expect: "money-master" },
       { slug: "harga sewa excavator mini", entity: "sewa", expect: "money-page" },
       { slug: "harga pasir bangka", entity: "material", expect: "money-page" },
       { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master" },
-      // FIX 155
       { slug: "harga jasa pasang pagar minimalis", entity: "jasa", expect: "money-page" },
       { slug: "harga jasa pasang kanopi modern", entity: "jasa", expect: "money-page" },
       { slug: "harga jasa pasang pintu klasik", entity: "jasa", expect: "money-page" },
       { slug: "harga jasa renovasi custom", entity: "jasa", expect: "money-page" },
       { slug: "harga jasa pasang pagar premium", entity: "jasa", expect: "money-page" },
       { slug: "harga jasa pasang kanopi elegan", entity: "jasa", expect: "money-page" },
-      // FIX 156
       { slug: "harga baja ringan", entity: "material", expect: "money-master" },
       { slug: "harga pagar panel beton", entity: "produk", expect: "money-page" },
-      // FIX 154
       { slug: "harga jasa coring hidrolik", entity: "jasa", expect: "money-page" },
       { slug: "harga pagar panel beton putih", entity: "produk", expect: "money-page" },
       { slug: "harga besi beton sni", entity: "material", expect: "money-page" },
       { slug: "harga sewa genset 100kva", entity: "sewa", expect: "money-page" },
       { slug: "harga desain interior mewah", entity: "desain", expect: "money-page" },
-      // FIX 162c-d
+
+      // ═══ FIX 162c-d ═══
       { slug: "harga jasa bor pancang", entity: "jasa", expect: "money-master" },
       { slug: "harga sofa modern", entity: "produk", expect: "money-page" },
       { slug: "harga sewa forklift diesel", entity: "sewa", expect: "money-page" },
       { slug: "harga sewa genset solar", entity: "sewa", expect: "money-page" },
-      // FIX 163-164
+
+      // ═══ FIX 163-164: Conjunction ═══
       { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-master" },
       { slug: "jasa pasang pagar atau kanopi besi", entity: "jasa", expect: "sub-pillar-tipe-1" },
       { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-page" },
@@ -4012,13 +4220,12 @@ function hasJasaMaterialCtx(text) {
       { slug: "jasa bongkar dan pasang keramik", entity: "jasa", expect: "money-page" },
       { slug: "jasa urug dan gali tanah", entity: "jasa", expect: "money-page" },
       { slug: "harga jasa pasang pagar dan kanopi", entity: "jasa", expect: "money-page" },
-      // FIX 166
+
+      // ═══ FIX 166, 168, 177 ═══
       { slug: "harga desain rumah tropis 2 lantai", entity: "desain", expect: "variant" },
-      // FIX 168
       { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master" },
       { slug: "harga jasa pasang grc dinding", entity: "jasa", expect: "money-page" },
       { slug: "harga jasa pasang hpl dinding", entity: "jasa", expect: "money-page" },
-      // FIX 177
       { slug: "jasa bor promo", entity: "jasa", expect: "money-page" },
       { slug: "jasa bor diskon", entity: "jasa", expect: "money-page" },
       { slug: "jasa bor termurah", entity: "jasa", expect: "money-page" },
@@ -4034,7 +4241,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "jasa pasang marmer 60x120", entity: "jasa", expect: "money-page" },
       { slug: "jasa bor murah dan terjangkau", entity: "jasa", expect: "money-master" },
       { slug: "jasa bor promo dan diskon", entity: "jasa", expect: "money-page" },
-      // FIX 178
+
+      // ═══ FIX 178: Metode JASA ═══
       { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page" },
       { slug: "jasa pengeboran hidrolik", entity: "jasa", expect: "money-page" },
       { slug: "jasa bor manual", entity: "jasa", expect: "money-page" },
@@ -4048,24 +4256,22 @@ function hasJasaMaterialCtx(text) {
       { slug: "biaya jasa coring hidrolik", entity: "jasa", expect: "money-page" },
       { slug: "harga jasa bor manual", entity: "jasa", expect: "money-page" },
       { slug: "jasa coring polos", entity: "jasa", expect: "money-page" },
-      // FIX 179r
+
+      // ═══ FIX 179r, 181, 182, 183, 186 ═══
       { slug: "jasa coring hidrolik 30cm", entity: "jasa", expect: "variant" },
       { slug: "jasa bor manual 50cm", entity: "jasa", expect: "variant" },
       { slug: "jasa coring komersial 30cm", entity: "jasa", expect: "variant" },
       { slug: "jasa pengeboran rotary 40cm", entity: "jasa", expect: "variant" },
       { slug: "jasa coring hidrolik 30cm 50cm", entity: "jasa", expect: "sub-variant" },
       { slug: "jasa coring hidrolik 60x60 cm", entity: "jasa", expect: "sub-variant" },
-      // FIX 181
       { slug: "jasa bor termurah", entity: "jasa", expect: "money-page" },
       { slug: "jasa bor termahal", entity: "jasa", expect: "money-page" },
       { slug: "jasa coring termurah", entity: "jasa", expect: "money-page" },
-      // FIX 182
       { slug: "jasa coring beton", entity: "jasa", expect: "money-page" },
       { slug: "jasa bor kayu", entity: "jasa", expect: "money-page" },
       { slug: "jasa grouting beton", entity: "jasa", expect: "money-page" },
       { slug: "jasa pemancangan beton", entity: "jasa", expect: "money-page" },
       { slug: "harga jasa coring beton", entity: "jasa", expect: "money-page" },
-      // FIX 183/186
       { slug: "jasa coring", entity: "jasa", expect: "money-master" },
       { slug: "jasa bor", entity: "jasa", expect: "money-master" },
       { slug: "jasa pasang keramik", entity: "jasa", expect: "money-master" },
@@ -4078,7 +4284,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "jasa pasang keramik 60x60 cm", entity: "jasa", expect: "variant" },
       { slug: "jasa coring hidrolik 30cm beton", entity: "jasa", expect: "sub-variant" },
       { slug: "jasa coring hidrolik 60x60 cm", entity: "jasa", expect: "sub-variant" },
-      // PRODUK material modifier
+
+      // ═══ PRODUK material modifier ═══
       { slug: "pagar panel", entity: "produk", expect: "money-master" },
       { slug: "pagar panel beton", entity: "produk", expect: "money-page" },
       { slug: "pagar panel beton k300", entity: "produk", expect: "variant" },
@@ -4089,7 +4296,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "kitchen set", entity: "produk", expect: "money-master" },
       { slug: "kitchen set minimalis", entity: "produk", expect: "money-page" },
       { slug: "kitchen set minimalis modern", entity: "produk", expect: "variant" },
-      // MATERIAL
+
+      // ═══ MATERIAL ═══
       { slug: "semen", entity: "material", expect: "money-master" },
       { slug: "semen portland", entity: "material", expect: "money-page" },
       { slug: "semen 50kg", entity: "material", expect: "money-page" },
@@ -4099,7 +4307,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "keramik", entity: "material", expect: "money-master" },
       { slug: "keramik 60x60", entity: "material", expect: "money-page" },
       { slug: "keramik 60x60 cm", entity: "material", expect: "variant" },
-      // SEWA
+
+      // ═══ SEWA ═══
       { slug: "sewa excavator", entity: "sewa", expect: "money-master" },
       { slug: "sewa excavator mini", entity: "sewa", expect: "money-page" },
       { slug: "sewa excavator pc75", entity: "sewa", expect: "money-page" },
@@ -4108,23 +4317,25 @@ function hasJasaMaterialCtx(text) {
       { slug: "sewa crane 25 ton", entity: "sewa", expect: "money-page" },
       { slug: "sewa genset 100kva", entity: "sewa", expect: "money-page" },
       { slug: "sewa genset 100kva diesel", entity: "sewa", expect: "variant" },
-      // DESAIN
+
+      // ═══ DESAIN ═══
       { slug: "desain interior", entity: "desain", expect: "money-master" },
       { slug: "desain interior minimalis", entity: "desain", expect: "money-page" },
       { slug: "desain interior kayu", entity: "desain", expect: "money-page" },
       { slug: "desain interior minimalis modern", entity: "desain", expect: "variant" },
       { slug: "desain interior minimalis kayu", entity: "desain", expect: "variant" },
       { slug: "desain interior minimalis modern kayu", entity: "desain", expect: "sub-variant" },
-      // FIX 185
+
+      // ═══ FIX 185, 190-193 ═══
       { slug: "jasa bor promo", entity: "jasa", expect: "money-page" },
       { slug: "jasa coring diskon", entity: "jasa", expect: "money-page" },
       { slug: "jasa coring obral", entity: "jasa", expect: "money-page" },
-      // FIX 190-193
       { slug: "jasa coring jakarta", entity: "jasa", expect: "money-child" },
       { slug: "jasa coring hidrolik jakarta", entity: "jasa", expect: "money-child" },
       { slug: "jasa coring 30cm jakarta", entity: "jasa", expect: "money-child" },
       { slug: "jasa coring hidrolik 30cm jakarta", entity: "jasa", expect: "money-child" },
-      // FIX 195
+
+      // ═══ FIX 195 ═══
       { slug: "jasa cutting dinding", entity: "jasa", expect: "money-page" },
       { slug: "jasa cutting lantai", entity: "jasa", expect: "money-page" },
       { slug: "jasa cutting plat", entity: "jasa", expect: "money-page" },
@@ -4135,20 +4346,21 @@ function hasJasaMaterialCtx(text) {
       { slug: "jasa coring lantai beton", entity: "jasa", expect: "variant" },
       { slug: "jasa cutting beton dinding", entity: "jasa", expect: "variant" },
       { slug: "jasa cutting aspal jalan", entity: "jasa", expect: "variant" },
-      // FIX 196
+
+      // ═══ FIX 196, 197, 198 ═══
       { slug: "jasa cutting beton beton", entity: "jasa", expect: "money-page" },
       { slug: "pagar panel beton putih putih", entity: "produk", expect: "variant" },
-      // FIX 197
       { slug: "jasa cutting alderon", entity: "jasa", expect: "money-page" },
       { slug: "jasa cutting xyz", entity: "jasa", expect: "money-page" },
       { slug: "jasa coring material baru", entity: "jasa", expect: "variant" },
-      // FIX 198
       { slug: "jasa cutting beton dinding", entity: "jasa", expect: "variant" },
-      // Hierarki
+
+      // ═══ Hierarki ═══
       { slug: "jasa cutting dinding jakarta", entity: "jasa", expect: "money-child" },
       { slug: "jasa cutting beton dinding jakarta", entity: "jasa", expect: "money-child" },
       { slug: "jasa coring hidrolik 30cm beton dinding", entity: "jasa", expect: "sub-variant" },
-      // FIX 200-206
+
+      // ═══ FIX 200-206 ═══
       { slug: "semen", entity: "material", expect: "money-master" },
       { slug: "semen portland", entity: "material", expect: "money-page" },
       { slug: "harga semen portland", entity: "material", expect: "money-page" },
@@ -4168,7 +4380,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "harga jasa coring", entity: "jasa", expect: "money-master" },
       { slug: "jasa coring", entity: "jasa", expect: "money-master" },
       { slug: "jasa coring beton jakarta", entity: "jasa", expect: "money-child" },
-      // FIX 208-213
+
+      // ═══ FIX 208-213 ═══
       { slug: "harga semen portland", entity: "material", expect: "money-page" },
       { slug: "harga pasir bangka", entity: "material", expect: "money-page" },
       { slug: "biaya jasa coring hidrolik", entity: "jasa", expect: "money-page" },
@@ -4178,7 +4391,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "keramik 60x60", entity: "material", expect: "money-page" },
       { slug: "keramik 60x60 cm", entity: "material", expect: "variant" },
       { slug: "granit 60x60", entity: "material", expect: "money-page" },
-      // FIX 215-219
+
+      // ═══ FIX 215-219 ═══
       { slug: "jasa coring hidrolik promo", entity: "jasa", expect: "money-page" },
       { slug: "jasa coring hidrolik diskon", entity: "jasa", expect: "money-page" },
       { slug: "jasa coring hidrolik termurah", entity: "jasa", expect: "money-page" },
@@ -4189,7 +4403,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "jasa bor horizontal", entity: "jasa", expect: "money-master" },
       { slug: "desain interior rumah minimalis", entity: "desain", expect: "money-page" },
       { slug: "desain interior rumah minimalis modern", entity: "desain", expect: "variant" },
-      // FIX SEO v6/v13
+
+      // ═══ FIX SEO v6/v13 ═══
       { slug: "spun pile", entity: "produk", expect: "money-master" },
       { slug: "spun pile beton", entity: "produk", expect: "money-page" },
       { slug: "harga spun pile beton", entity: "produk", expect: "money-page" },
@@ -4210,14 +4425,16 @@ function hasJasaMaterialCtx(text) {
       { slug: "jasa pancang beton", entity: "jasa", expect: "money-master" },
       { slug: "spun pile beton", entity: null, expect: "money-page" },
       { slug: "jasa spun pile beton", entity: null, expect: "money-page" },
-      // FIX SEO v13 cleanup
+
+      // ═══ FIX SEO v13 cleanup ═══
       { slug: "buis beton", entity: "produk", expect: "money-master" },
       { slug: "buis beton bertulang", entity: "produk", expect: "money-page" },
       { slug: "buis beton biasa 30cm", entity: "produk", expect: "variant" },
       { slug: "spun pile beton 30x30", entity: "produk", expect: "variant" },
       { slug: "half slab", entity: "produk", expect: "money-master" },
       { slug: "half slab beton", entity: "produk", expect: "money-page" },
-      // FIX SEO v9
+
+      // ═══ FIX SEO v9 ═══
       { slug: "jasa desain interior minimalis", entity: "desain", expect: "money-page" },
       { slug: "jasa desain rumah tropis", entity: "desain", expect: "money-page" },
       { slug: "jasa desain rumah minimalis", entity: "desain", expect: "money-page" },
@@ -4231,7 +4448,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "desain interior kamar mandi minimalis", entity: "desain", expect: "money-page" },
       { slug: "desain interior kamar tidur", entity: "desain", expect: "money-master" },
       { slug: "desain interior ruang tamu", entity: "desain", expect: "money-master" },
-      // FIX SEO v12
+
+      // ═══ FIX SEO v12 ═══
       { slug: "pagar panel", entity: "produk", expect: "money-master" },
       { slug: "pagar panel beton", entity: "produk", expect: "money-page" },
       { slug: "pagar panel besi", entity: "produk", expect: "money-page" },
@@ -4244,7 +4462,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "box culvert 100x100", entity: "produk", expect: "money-page" },
       { slug: "pagar panel", entity: null, expect: "money-master" },
       { slug: "pagar panel beton", entity: null, expect: "money-page" },
-      // ═══ FIX v14-G/H/J: REGRESI tukang-sumur-bor ═══
+
+      // ═══ FIX v14-G/H/J: tukang-sumur-bor ═══
       { slug: "tukang sumur bor", entity: "jasa", expect: "money-master" },
       { slug: "tukang sumur bor borongan", entity: "jasa", expect: "money-page" },
       { slug: "tukang sumur bor proyek", entity: "jasa", expect: "money-page" },
@@ -4258,52 +4477,47 @@ function hasJasaMaterialCtx(text) {
       { slug: "tukang sumur bor rumahan", entity: "jasa", expect: "money-page" },
       { slug: "tukang sumur bor industri", entity: "jasa", expect: "money-page" },
       { slug: "tukang sumur bor perumahan", entity: "jasa", expect: "money-page" },
-      // FIX v14-I: prefix fungsional
+
+      // ═══ FIX v14-I: prefix fungsional ═══
       { slug: "spesifikasi jasa sumur bor", entity: "jasa", expect: "money-page" },
       { slug: "mutu jasa sumur bor", entity: "jasa", expect: "money-page" },
       { slug: "metode jasa bore pile", entity: "jasa", expect: "money-page" },
       { slug: "mutu jasa bore pile", entity: "jasa", expect: "money-page" },
       { slug: "spesifikasi jasa bore pile", entity: "jasa", expect: "money-page" },
-      // ═══ FIX v14-L/M/N/O/P/Q: REGRESI PATCH v23.9.3 ═══
-      // Produk head term baru
+
+      // ═══ FIX v14-L/M/N/O/P/Q ═══
       { slug: "railing tangga", entity: "produk", expect: "money-master" },
       { slug: "railing tangga stainless", entity: "produk", expect: "money-page" },
       { slug: "wastafel", entity: "produk", expect: "money-master" },
       { slug: "gerbang besi", entity: "produk", expect: "money-page" },
       { slug: "gorden", entity: "produk", expect: "money-master" },
       { slug: "rak dinding", entity: "produk", expect: "money-master" },
-      // Produk dengan tipe modifier (FIX v14-O)
       { slug: "pintu geser", entity: "produk", expect: "money-page" },
       { slug: "pintu lipat", entity: "produk", expect: "money-page" },
       { slug: "jendela casement", entity: "produk", expect: "money-page" },
       { slug: "jendela sliding", entity: "produk", expect: "money-page" },
-      // Material fastener
       { slug: "harga paku beton", entity: "material", expect: "money-page" },
       { slug: "harga wiremesh", entity: "material", expect: "money-master" },
       { slug: "harga kawat beton", entity: "material", expect: "money-page" },
       { slug: "harga baut", entity: "material", expect: "money-master" },
-      // Sewa baru
       { slug: "sewa scaffolding", entity: "sewa", expect: "money-master" },
       { slug: "sewa scaffolding 3 bulan", entity: "sewa", expect: "money-page" },
       { slug: "sewa steger", entity: "sewa", expect: "money-master" },
       { slug: "sewa tower lamp", entity: "sewa", expect: "money-master" },
-      // Desain scope baru
       { slug: "desain kos", entity: "desain", expect: "money-master" },
       { slug: "desain kos minimalis", entity: "desain", expect: "money-page" },
       { slug: "desain guest house", entity: "desain", expect: "money-master" },
       { slug: "desain pujasera", entity: "desain", expect: "money-master" },
-      // JASA teknik baru
       { slug: "jasa pembersihan lahan", entity: "jasa", expect: "money-master" },
       { slug: "jasa pengaspalan", entity: "jasa", expect: "money-master" },
       { slug: "jasa aspal hotmix", entity: "jasa", expect: "money-page" },
-      // FIX v14-P: checkHasBaseService regex extended
       { slug: "cutting dinding jakarta", entity: "jasa", expect: "money-child" },
       { slug: "coring dinding jakarta", entity: "jasa", expect: "money-child" },
       { slug: "jasa coring dinding jakarta", entity: "jasa", expect: "money-child" },
-      // FIX v14-Q: ENTITY_ONLY_WORDS
       { slug: "layanan bor sumur", entity: "jasa", expect: "money-master" },
       { slug: "service ac", entity: "jasa", expect: "money-master" },
-      // FIX A-1 rev + A-7: regresi pagar
+
+      // ═══ FIX A-1 rev + A-7 ═══
       { slug: "pagar", entity: "produk", expect: "money-master" },
       { slug: "pagar panel", entity: "produk", expect: "money-master" },
       { slug: "pagar beton", entity: "produk", expect: "money-master" },
@@ -4312,8 +4526,8 @@ function hasJasaMaterialCtx(text) {
       { slug: "pagar kayu", entity: "produk", expect: "money-page" },
       { slug: "pagar stainless", entity: "produk", expect: "money-page" },
       { slug: "pagar panel beton", entity: "produk", expect: "money-page" },
-      // ═══ FIX v14-T: REGRESI 0-CORE BASE NAME ═══
-      // Base jasa yang core=0 (semua sudah di-strip) → harus MM
+
+      // ═══ FIX v14-T: 0-core base name ═══
       { slug: "las besi", entity: "jasa", expect: "money-master" },
       { slug: "las pagar", entity: "jasa", expect: "money-master" },
       { slug: "las kanopi", entity: "jasa", expect: "money-master" },
@@ -4328,11 +4542,22 @@ function hasJasaMaterialCtx(text) {
       { slug: "pemasangan wifi", entity: "jasa", expect: "money-master" },
       { slug: "pembuatan kanopi", entity: "jasa", expect: "money-master" },
       { slug: "pembuatan pagar", entity: "jasa", expect: "money-master" },
-      { slug: "pembuatan railing", entity: "jasa", expect: "money-master" }
+      { slug: "pembuatan railing", entity: "jasa", expect: "money-master" },
+
+      // ═══ FIX v15: NEW — coverage tier system ═══
+      { slug: "harga pagar stainless", entity: "produk", expect: "money-page" },
+      { slug: "jasa coring stainless", entity: "jasa", expect: "money-page" },
+      { slug: "harga wpc dinding", entity: "produk", expect: "money-page" },
+      { slug: "jasa cat grc", entity: "jasa", expect: "money-page" },
+      { slug: "harga aluminium", entity: "material", expect: "money-master" },
+      { slug: "kabel nym", entity: "material", expect: "money-master" },
+      { slug: "harga baut", entity: "material", expect: "money-master" },
+      { slug: "tukang bor sumur", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master" }
     ];
-     
+
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("🧪 PLD v23.9.2 — TEST SUITE (" + TEST_CASES.length + " CASE)");
+    console.log("🧪 PLD v23.9.5 — TEST SUITE (" + TEST_CASES.length + " CASE)");
     console.log("═══════════════════════════════════════════════════════════");
 
     var passed = 0, failed = 0, failures = [];
@@ -4376,7 +4601,7 @@ function hasJasaMaterialCtx(text) {
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "23.9.2",
+      version: "23.9.5",
       CONFIG: CONFIG,
 
       detect: detectPageLevel,
@@ -4441,7 +4666,8 @@ function hasJasaMaterialCtx(text) {
       hasJasaMaterialCtx: hasJasaMaterialCtx,
       flagAmbiguous: flagAmbiguous,
       APPLICATION_TARGETS_FULL: APPLICATION_TARGETS_FULL,
-      auditBaseNames: auditBaseNames,   // 🔥 FIX v14-F
+      auditBaseNames: auditBaseNames,
+      auditModifierTiers: auditModifierTiers,
 
       detectIntent: detectIntent,
       detectEEATSignals: detectEEATSignals,
@@ -4511,7 +4737,7 @@ function hasJasaMaterialCtx(text) {
 
       runTestSuite: runTestSuite,
 
-      // DATA EXPORT
+      // ─── DATA EXPORT ───
       JASA_WORDS: JASA_WORDS,
       COMMON_JASA_WORDS: COMMON_JASA_WORDS,
       SEWA_WORDS: SEWA_WORDS,
@@ -4520,6 +4746,11 @@ function hasJasaMaterialCtx(text) {
       DESAIN_WORDS: DESAIN_WORDS,
       ENTITY_BASE_NAMES: ENTITY_BASE_NAMES,
       ENTITY_ONLY_WORDS: ENTITY_ONLY_WORDS,
+      // 🔥 FIX v15-A: export tier system
+      GLOBAL_NUMERIC_KEYWORDS: GLOBAL_NUMERIC_KEYWORDS,
+      SHARED_MODIFIERS: SHARED_MODIFIERS,
+      ENTITY_SPECIFIC: ENTITY_SPECIFIC,
+
       PURE_JASA_TECHNIQUES: PURE_JASA_TECHNIQUES,
       PURE_METHODS: PURE_METHODS,
       PURE_SCALES: PURE_SCALES,
@@ -4545,7 +4776,6 @@ function hasJasaMaterialCtx(text) {
       COMMERCIAL_WORDS: COMMERCIAL_WORDS,
       INFORMATIONAL_WORDS: INFORMATIONAL_WORDS,
       HIGH_VOLUME_WORDS: HIGH_VOLUME_WORDS,
-      //SIZE_WORDS: SIZE_WORDS,
       TIER_1_LOCATION: TIER_1_LOCATION,
       LOCATION_WORDS: LOCATION_WORDS,
       PRICE_WORDS: PRICE_WORDS,
@@ -4568,21 +4798,20 @@ function hasJasaMaterialCtx(text) {
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v23.9.2 — PRUNE + CONSISTENCY");
+    console.log("✅ Page Level Detector v23.9.5 — TIERED MODIFIER SYSTEM");
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("🔥 FIX v14-A: ENTITY_BASE_NAMES STRICT MODE");
-    console.log("🔥 FIX v14-B: checkHasSpecification(produk) + material");
-    console.log("🔥 FIX v14-C: Priority 7 gate pakai earlyLayers");
-    console.log("🔥 FIX v14-D: Priority 12 cek residual layer");
-    console.log("🔥 FIX v14-E: Test case konsisten strict mode");
-    console.log("🔥 FIX v14-F: Self-audit base name");
+    console.log("🔥 FIX v15-A: Hierarki Berlapis (3-tier modifier system)");
+    console.log("🔥 FIX v15-B: getCategoryDefs pakai 3-tier resolution");
+    console.log("🔥 FIX v15-C: isSpecModifierForEntity + auditModifierTiers");
+    console.log("🔥 FIX v14-A..T: DIPERTAHANKAN SEMUA");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 Test: runPLDTestSuite()");
     console.log("🔍 Audit base: pageLevelDetectorv22.auditBaseNames()");
+    console.log("🎚️ Audit tiers: pageLevelDetectorv22.auditModifierTiers()");
     console.log("═══════════════════════════════════════════════════════════");
 
-    // Auto-run audit di console (membantu verifikasi)
     try { auditBaseNames(); } catch (e) {}
+    try { auditModifierTiers(); } catch (e) {}
 
     try {
       window.pageLevelDetectorv22.updateAttributes()
@@ -4602,7 +4831,7 @@ function hasJasaMaterialCtx(text) {
     setTimeout(function() { if (document.readyState === 'loading') callback(); }, 3000);
   }
 
-  log('🚀 Starting PLD v23.9.2...', 'INFO');
+  log('🚀 Starting PLD v23.9.5...', 'INFO');
 
   waitForDOM(function() { initializeCore(); });
   if (typeof document !== 'undefined' && document.readyState === 'complete') {
@@ -4624,6 +4853,14 @@ function hasJasaMaterialCtx(text) {
       console.error("❌ PLD belum ready.");
       return null;
     };
+    window.auditPLDTiers = function() {
+      if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.auditModifierTiers) {
+        return window.pageLevelDetectorv22.auditModifierTiers();
+      }
+      console.error("❌ PLD belum ready.");
+      return null;
+    };
   }
 
 })();  // 🔥 CLOSING IIFE UTAMA — SATU-SATUNYA di akhir file
+ 
