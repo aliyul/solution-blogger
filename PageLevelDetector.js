@@ -2689,6 +2689,103 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       });
     }
 
+       return warnings;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX v15-W2: SAME-LEVEL CONTENT REVIEW WARNING
+  // ═══════════════════════════════════════════════════════════
+  // Tujuan: Alert kalau ada 2 halaman dengan level SAMA yang
+  //         mungkin akan kanibalisasi. Warning ini TIDAK bilang
+  //         redirect. Warning ini bilang "cek konten beda".
+  //
+  // Prinsip SEO:
+  //   - Halaman *-murah untuk user yang cari "murah" — PERTAHANKAN
+  //   - Konten HARUS BEDA (angle, H1, meta, body)
+  //   - JANGAN redirect — malah kalah bersaing
+  // ═══════════════════════════════════════════════════════════
+  function detectSameLevelContentWarning(slug, entityType) {
+    var warnings = [];
+    if (!slug) return warnings;
+
+    var lower = slug.toLowerCase();
+
+    // Kategori trigger yang bikin 2 URL "mirip"
+    var TRIGGER_CATEGORIES = [
+      {
+        type: "PROMO_WORD",
+        words: ["murah", "hemat", "terjangkau", "bersaing", "kompetitif", "ekonomis"],
+        icon: "💰",
+        doNot: "JANGAN redirect — user cari '" + "murah" + "' butuh halaman ini",
+        angle_suggestion: "Buat angle beda: tips hemat, paket ekonomis, perbandingan harga"
+      },
+      {
+        type: "SCALE_WORD",
+        words: ["kecil", "besar", "sedang", "mini", "jumbo", "heavy", "medium"],
+        icon: "📏",
+        doNot: "JANGAN redirect kalau kontennya memang beda scope",
+        angle_suggestion: "Buat angle beda: kapasitas, portabilitas, penggunaan"
+      },
+      {
+        type: "PROMO_STRONG",
+        words: ["promo", "diskon", "obral", "flash sale", "cuci gudang"],
+        icon: "🔥",
+        doNot: "Cek apakah halaman promo ini temporary atau permanen",
+        angle_suggestion: "Paket bundle, limited time offer, benefit eksklusif"
+      },
+      {
+        type: "LOCATION_VARIANT",
+        words: ["jakarta", "bandung", "surabaya", "jogja", "semarang"],
+        icon: "📍",
+        doNot: "JANGAN redirect — lokasi beda = audiens beda",
+        angle_suggestion: "Konten lokal: studi kasus, klien, testimoni di kota itu"
+      }
+    ];
+
+    for (var catIdx = 0; catIdx < TRIGGER_CATEGORIES.length; catIdx++) {
+      var cat = TRIGGER_CATEGORIES[catIdx];
+      for (var wIdx = 0; wIdx < cat.words.length; wIdx++) {
+        var word = cat.words[wIdx];
+        var rx = new RegExp("\\b" + word + "\\b", "i");
+        if (!rx.test(lower)) continue;
+
+        // Buat base slug (tanpa kata trigger)
+        var baseSlug = lower.replace(new RegExp("\\b" + word + "\\b", "gi"), "")
+                            .replace(/\s+/g, " ")
+                            .trim();
+
+        if (!baseSlug) continue;
+
+        warnings.push({
+          type: "SAME_LEVEL_CONTENT_REVIEW",
+          severity: "info",
+          category: cat.type,
+          icon: cat.icon,
+          triggerWord: word,
+          currentSlug: lower,
+          baseSlug: baseSlug,
+          message: "URL ini punya level SAMA dengan '" + baseSlug +
+                   "'. Keduanya = money-master. Risk: kanibalisasi kalau " +
+                   "konten sama.",
+          checklist: [
+            "1. H1 beda? (mis: 'Jasa Bore Pile' vs 'Jasa Bore Pile Murah')",
+            "2. Title tag beda?",
+            "3. Meta description beda?",
+            "4. Konten >60% unik? (bukan copy-paste)",
+            "5. Angle beda? (umum vs hemat/harga)",
+            "6. Internal link beda? (anchor text berbeda)"
+          ],
+          do_not: cat.doNot,
+          suggestion: cat.angle_suggestion,
+          action_if_duplicate: "REWRITE konten, JANGAN redirect/hapus",
+          action_if_unique: "✅ Aman — biarkan 2 halaman"
+        });
+
+        // Hanya flag 1x per kategori (hindari warning spam)
+        break;
+      }
+    }
+
     return warnings;
   }
 
@@ -3403,9 +3500,12 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     var hierarchyWarnings = detectHierarchyWarning(slug, entity);
     var breadcrumbWarnings = validateBreadcrumbHierarchy(slug, entity);
     var parentDrivenWarnings = validateParentDrivenHierarchy(slug, entity);
+        // 🔥 FIX v15-W2: Same-level content review
+    var sameLevelWarnings = detectSameLevelContentWarning(slug, entity);
     var allWarnings = seoWarnings.concat(hierarchyWarnings)
                                 .concat(breadcrumbWarnings)
                                 .concat(parentDrivenWarnings);
+                                 .concat(sameLevelWarnings);
     return {
       pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
@@ -3428,9 +3528,12 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     var hierarchyWarnings = detectHierarchyWarning(slug, entity);
     var breadcrumbWarnings = validateBreadcrumbHierarchy(slug, entity);
     var parentDrivenWarnings = validateParentDrivenHierarchy(slug, entity);
+       // 🔥 FIX v15-W2: Same-level content review
+    var sameLevelWarnings = detectSameLevelContentWarning(slug, entity);
     var allWarnings = seoWarnings.concat(hierarchyWarnings)
                                 .concat(breadcrumbWarnings)
                                 .concat(parentDrivenWarnings);
+                                .concat(sameLevelWarnings);
     return {
       pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
@@ -4620,6 +4723,8 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       computeBreadcrumbLevels: computeBreadcrumbLevels,
       validateBreadcrumbHierarchy: validateBreadcrumbHierarchy,
       validateParentDrivenHierarchy: validateParentDrivenHierarchy,
+       // 🔥 FIX v15-W2: same-level content review
+      detectSameLevelContentWarning: detectSameLevelContentWarning,
       EXPECTED_CHILD_MAP: EXPECTED_CHILD_MAP,
       findBreadcrumbs: findBreadcrumbs,
       waitForBreadcrumbs: waitForBreadcrumbs,
