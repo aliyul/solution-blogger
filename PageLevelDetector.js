@@ -135,7 +135,8 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     material: [
       "material", "bahan", "semen", "pasir", "besi", "baja", "kayu",
       "keramik", "granit", "marmer", "bata", "batako", "hebel",
-      "genteng", "pipa", "cat", "kabel", "paku", "baut"
+      "genteng", "pipa", "cat", "kabel", "paku", "baut",
+      "kaca", "aluminium", "tembaga"  // 🔥 FIX v15-D
     ],
     produk: [
       "produk", "jual", "beli", "supplier", "distributor", "toko",
@@ -183,7 +184,8 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     'galvalum','precast','pracetak','readymix','ready mix',
     'paku','baut','mur','sekrup','kawat','wiremesh',
     'cat','vernis','politur','plamir','lem',
-    'pipa','kabel','fitting','kran'
+    'pipa','kabel','fitting','kran',
+     'kaca','aluminium','tembaga'  // 🔥 TAMBAHKAN
   ];
 
   var PRODUK_WORDS = [
@@ -215,12 +217,13 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
   // 🔥 FIX v14-A: ENTITY_BASE_NAMES — STRICT MODE
   // Prinsip: base name = head term MURNI → MM (0 layer)
   // ═══════════════════════════════════════════════════════════
-  var ENTITY_BASE_NAMES = {
+   var ENTITY_BASE_NAMES = {
 
     produk: [
       // K1: Single word head term
-      "pintu", "jendela", "kusen", "pagar", "kanopi", "kaca",
-      "pipa", "plafon", "keramik", "granit", "marmer",
+      // 🔥 FIX v15-D: hapus duplikat dgn material (kaca, pipa, keramik, granit, marmer)
+      "pintu", "jendela", "kusen", "pagar", "kanopi",
+      "plafon",
       "wallpaper", "atap", "paving",
       "kitchen set", "wardrobe", "sofa", "meja", "kursi",
       "lemari", "nakas", "tempat tidur", "bed frame",
@@ -251,11 +254,13 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     material: [
       "semen", "pasir", "batu", "besi", "baja", "kayu",
       "beton", "pipa", "kabel", "fitting",
+      "kaca",
       "valve", "kran", "cat", "vernis", "politur", "plamir", "lem",
       "waterproofing",
-      "keramik", "granit", "marmer", "gypsum", "plafon", "paving",
-      "bata", "batako", "hebel", "genteng", "asbes", "atap",
-      "galvalum", "precast", "pracetak", "kaca", "aluminium",
+      // 🔥 FIX v15-D: hapus duplikat dgn produk (plafon, paving, atap)
+      "keramik", "granit", "marmer", "gypsum",
+      "bata", "batako", "hebel", "genteng", "asbes",
+      "galvalum", "precast", "pracetak", "aluminium",
       "kerikil",
       "ready mix", "readymix",
       "baja ringan", "besi beton", "bata ringan",
@@ -410,7 +415,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       "gambar arsitektur", "gambar kerja", "gambar teknik"
     ]
   };
-
+   
   // Sort base names DESC by word count (longest first)
   (function() {
     for (var ent in ENTITY_BASE_NAMES) {
@@ -514,7 +519,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         "besi cor","aluminium foil",
         "bangka","lumajang","tulungagung","pangkep","muntilan",
         "borneo","kalimantan","jepara","kudus","cilacap",
-        "tiga roda","3 roda","tiga-roda","3-roda",
+        "tiga roda","3 roda",
         "gresik","semen gresik","semen-gresik",
         "holcim","semen holcim","semen-holcim",
         "scg","semen scg","semen-scg",
@@ -532,8 +537,13 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         "hanil","jeka",
         "danagri","magic","aquaproof","no drop","no-drop",
         "nodrop","aqua proof",
-        "icera","ardena","milano","asia tile","asia-tile",
-        "indograha","kian","eleganza","elegan"
+                "icera","ardena","milano","asia tile","asia-tile",
+        "indograha","kian","eleganza","elegan",
+        // 🔥 FIX v15-D: paving/atap/plafon variants untuk material entity
+        "paving","paving block","grass block",
+        "atap","atap spandek","atap metal","atap genteng",
+         "plafon","plafon gypsum","plafon pvc","plafon grc",
+        "shunda","kalsiboard","gyproc","jayaboard"  // 🔥 FIX v15-F: plafon brands
       ]
     },
     sewa: {
@@ -581,7 +591,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         "neofuturism","biophilic","wabi sabi","zen","feng shui",
         "bali modern","java etnik","minimalis tropis","kolonial modern",
         "industrial rustic","scandinavian japandi","modern klasik",
-        "minimalis skandinavia","japandi minimalis","tropical modern",
+        "minimalis skandinavia","japandi minimalis",
         "classic modern","modern farmhouse","boho industrial",
         "javanese modern","balinese contemporary","traditional modern",
         "ethnic modern","modern etnik","tribal modern"
@@ -932,7 +942,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       extendedGaya: [
         "bali modern", "java etnik", "minimalis tropis", "kolonial modern",
         "industrial rustic", "scandinavian japandi", "modern klasik",
-        "minimalis skandinavia", "japandi minimalis", "tropical modern",
+        "minimalis skandinavia", "japandi minimalis",
         "classic modern", "modern farmhouse", "boho industrial",
         "javanese modern", "balinese contemporary", "traditional modern",
         "ethnic modern", "modern etnik", "tribal modern"
@@ -1977,6 +1987,16 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       }
     }
 
+    // 🔥 FIX v15-E: Universal unit/dimension check (50kg, 5mm, 60x60)
+    if (/\d+\s*(kg|ton|m|cm|mm|m3|liter|kva|psi|hp|inch|k)\b/i.test(lower)) {
+      log('🔬 FIX v15-E: universal unit detected', 'VARIANT');
+      return true;
+    }
+    if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) {
+      log('🔬 FIX v15-E: universal dimension detected', 'VARIANT');
+      return true;
+    }
+
     return false;
   }
 
@@ -2716,7 +2736,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         type: "PROMO_WORD",
         words: ["murah", "hemat", "terjangkau", "bersaing", "kompetitif", "ekonomis"],
         icon: "💰",
-        doNot: "JANGAN redirect — user cari '" + "murah" + "' butuh halaman ini",
+        doNot: "JANGAN redirect — user cari '" + word + "' butuh halaman ini",
         angle_suggestion: "Buat angle beda: tips hemat, paket ekonomis, perbandingan harga"
       },
       {
@@ -2975,6 +2995,9 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     var w = word.toLowerCase().trim();
     if (!w) return false;
 
+    if (/^\d+(kg|ton|m|cm|mm|m3|liter|kva|psi|hp|inch|k)$/i.test(w)) return true;
+    if (/^\d+x\d+$/i.test(w)) return true;
+     
     // Universal numeric
     if (/^\d+/.test(w)) return true;
     if (/^(k\d+|fc\d*|m\d+|c\d+|bjts?\d*)$/i.test(w)) return true;
