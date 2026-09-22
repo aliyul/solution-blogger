@@ -2069,18 +2069,20 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     return "sub-variant";
   }
 
-  function hasJasaMaterialCtx(text) {
+function hasJasaMaterialCtx(text) {
     if (!text) return false;
     var lower = text.toLowerCase();
+    // 🔥 FIX v14-U: sinkron dengan getCategoryDefs.jasa.material
     var narrow = ["beton","baja","besi","kayu","batu","tanah","aspal",
                   "keramik","granit","marmer","kaca","aluminium",
-                  "pipa","semen","pasir"];
+                  "pipa","semen","pasir","pvc","wpc","grc","hpl","acp",
+                  "vinyl","upvc","stainless","titanium","tembaga","kuningan",
+                  "perunggu","karbon","grafit","bambu","rotan"];
     for (var i = 0; i < narrow.length; i++) {
       if (new RegExp("\\b" + narrow[i] + "\\b", "i").test(lower)) return true;
     }
     return false;
   }
-
   function checkPureTechnicalSpec(text, entityType) {
     if (!text) return false;
     var lower = text.toLowerCase();
