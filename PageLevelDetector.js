@@ -254,8 +254,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
     ],
      
     // ─── MATERIAL (bahan mentah / kategori umum) ───
-    material: [
-      // K1
+        material: [
       "semen", "pasir", "batu", "besi", "baja", "kayu",
       "beton", "pipa", "kabel", "fitting",
       "valve", "kran", "cat", "vernis", "politur", "plamir", "lem",
@@ -265,16 +264,15 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       "galvalum", "precast", "pracetak", "kaca", "aluminium",
       "kerikil",
 
-      // K2: Compound material sejati
+      // K2
       "ready mix", "readymix",
       "baja ringan", "besi beton", "bata ringan",
       "batu split", "batu kali", "batu belah",
-      // 🔥 FIX v14-L + R-4: material baru (hapus duplikat K1)
       "paku", "baut", "sekrup", "mur", "kawat",
       "wiremesh", "besi wiremesh",
       "kabel twisted", "kabel nyy", "kabel nym"
     ],
-
+     
     // ─── JASA (verb + object = 1 pekerjaan utuh) ───
     jasa: [
       // Pondasi & tiang
@@ -4520,7 +4518,7 @@ log('📦 PLD v23.9.2 — HIERARCHY + PRUNE + CONSISTENCY (FIX v14-A..F)', 'EXTE
       COMMERCIAL_WORDS: COMMERCIAL_WORDS,
       INFORMATIONAL_WORDS: INFORMATIONAL_WORDS,
       HIGH_VOLUME_WORDS: HIGH_VOLUME_WORDS,
-      SIZE_WORDS: SIZE_WORDS,
+      //SIZE_WORDS: SIZE_WORDS,
       TIER_1_LOCATION: TIER_1_LOCATION,
       LOCATION_WORDS: LOCATION_WORDS,
       PRICE_WORDS: PRICE_WORDS,
