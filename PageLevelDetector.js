@@ -2078,8 +2078,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         result.material_desain = ENTITY_SPECIFIC.desain.material;
         result.furniture = ENTITY_SPECIFIC.desain.furniture;
         result.subjektif = ENTITY_SPECIFIC.desain.subjektif;
-        result.scope_ruangan = ROOM_CTX;
-        result.luas = ["2 lantai","3 lantai","1 lantai","studio","loft","duplex","townhouse"];
+ 
         result.target = targetDesain;
         break;
     }
