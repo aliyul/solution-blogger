@@ -3504,8 +3504,8 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     var sameLevelWarnings = detectSameLevelContentWarning(slug, entity);
     var allWarnings = seoWarnings.concat(hierarchyWarnings)
                                 .concat(breadcrumbWarnings)
-                                .concat(parentDrivenWarnings);
-                                 .concat(sameLevelWarnings);
+                                .concat(parentDrivenWarnings)
+                                .concat(sameLevelWarnings);
     return {
       pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
@@ -3532,8 +3532,8 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     var sameLevelWarnings = detectSameLevelContentWarning(slug, entity);
     var allWarnings = seoWarnings.concat(hierarchyWarnings)
                                 .concat(breadcrumbWarnings)
-                                .concat(parentDrivenWarnings);
-                                .concat(sameLevelWarnings);
+                                .concat(parentDrivenWarnings)
+                                 .concat(sameLevelWarnings);
     return {
       pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
