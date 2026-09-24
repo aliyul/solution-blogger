@@ -171,7 +171,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
   ];
 
   var COMMON_JASA_WORDS = [
-    'tukang','kontraktor','mandor','vendor','supplier','layanan','penyedia','pengrajin','spesialis',
+    'tukang','borongan','kontraktor','mandor','vendor','supplier','layanan','penyedia','pengrajin','spesialis',
     'biro','firma','perusahaan','penjual jasa','pasang','pemasangan','bangun','renovasi','perbaikan',
     'instalasi','service','servis','konstruksi','pembangunan','cor','gali','urug','angkut',
     'pemotongan','penggalian','pengurugan','pengangkutan','pengeboran','pengelasan','pengecoran','pengecatan',
@@ -817,7 +817,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
   var ENTITY_SPECIFIC = {
     jasa: {
       metode: [
-        "borongan","manual","hidrolik","auger","rotary","percussive",
+        "manual","hidrolik","auger","rotary","percussive",
         "dry","wet","basah","kering","mesin","dalam","dangkal",
         "artesis","jet pump",
         // usulan baru
