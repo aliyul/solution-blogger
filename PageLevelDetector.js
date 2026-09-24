@@ -1495,13 +1495,17 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
   //   "sewa excavator harian"             → MP (harian = durasi)
   //   "sewa excavator meteran"            → MP (meteran = durasi)
 var NOISE_WORDS_JASA = [
-  // ═══ Cara kerja — JASA ═══
+  // ═══ Cara kerja — JASA (khas jasa, tidak ada di SATUAN_UNITS) ═══
   'meteran', 'sistem meteran',
-  'harian', 'mingguan', 'bulanan', 'tahunan',
   'sistem harian', 'sistem mingguan', 'sistem bulanan', 'sistem tahunan',
-  'per jam', 'per hari', 'per minggu', 'per bulan', 'per tahun',
-  'per proyek', 'per paket', 'per pekerjaan', 'per unit',
-  'short term', 'long term'
+  'per proyek', 'per paket', 'per pekerjaan',
+  'short term', 'long term',
+
+  // ═══ Satuan hitung jasa (yang TIDAK ada di SATUAN_UNITS) ═══
+  'per area', 'per zona', 'per ruangan', 'per lantai',
+  'per hari kerja', 'per jam kerja', 'per shift',
+  'per tongkang',
+  'per rit', 'per ritase'
 ];
    
   var ACTION_VERBS = [
@@ -2654,15 +2658,22 @@ var NOISE_WORDS_JASA = [
       working = working.replace(new RegExp("\\b" + UNIVERSAL_PREFIX_9[up9] + "\\b", 'g'), ' ');
     }
 
-    // ─── Step 5: Strip price, satuan, promo ───
+            // ─── Step 5: Strip price, satuan, promo ───
     for (var ph = 0; ph < PRICE_HEAD_WORDS.length; ph++) {
       working = working.replace(new RegExp("\\b" + PRICE_HEAD_WORDS[ph] + "\\b", 'g'), ' ');
     }
-    working = working.replace(new RegExp("\\bper\\s+(" + SATUAN_UNITS.join("|") + ")\\b", 'g'), ' ');
-    for (var su = 0; su < SATUAN_UNITS.length; su++) {
-      working = working.replace(new RegExp("\\b" + SATUAN_UNITS[su] + "\\b", 'g'), ' ');
-    }
 
+    // 🔥 FIX #1b: JANGAN strip satuan untuk SEWA (baik "per X" maupun "X")
+    // "harian", "mingguan", "bulanan", "tahunan", "per hari" = DURASI (layer valid) untuk sewa
+    if (entityType !== "sewa") {
+      working = working.replace(new RegExp("\\bper\\s+(" + SATUAN_UNITS.join("|") + ")\\b", 'g'), ' ');
+      for (var su = 0; su < SATUAN_UNITS.length; su++) {
+        working = working.replace(new RegExp("\\b" + SATUAN_UNITS[su] + "\\b", 'g'), ' ');
+      }
+    } else {
+      log('🔥 FIX #1b: SKIP strip satuan untuk sewa (durasi = layer)', 'DOMAIN');
+    }
+     
     var PROMO_STRIP = PROMO_MODIFIER_WORDS.concat(HIGH_VOLUME_WORDS);
     var seen216 = {};
     for (var ps = 0; ps < PROMO_STRIP.length; ps++) {
@@ -2980,27 +2991,85 @@ var NOISE_WORDS_JASA = [
       }
     }
 
-    if (bestMatchRL.entity) {
-      var AMBIGUOUS_PAIRS = ["mini pile", "spun pile", "sheet pile", "tiang pancang", "pancang"];
+        if (bestMatchRL.entity) {
       var matchName = bestMatchRL.name;
-      if (AMBIGUOUS_PAIRS.indexOf(matchName) !== -1) {
-        var hasProdukCtx = /\b(harga|jual|beli|supplier|distributor|ready|stok|stock|unit|batang|lembar|keping|ukuran|dimensi|spesifikasi|mutu)\b/i.test(lower);
-        var hasJasaCtx = /\b(jasa|pasang|borongan|tukang|pemancangan|pancang|bor|pile)\b/i.test(lower);
-        if (hasProdukCtx && !hasJasaCtx) {
-          log('🎯 FIX R-8: ambiguous "' + matchName + '" → produk (context: tx)', 'DETECT');
-          return "produk";
-        }
-        if (hasJasaCtx && !hasProdukCtx) {
-          log('🎯 FIX R-8: ambiguous "' + matchName + '" → jasa (context: verb)', 'DETECT');
-          return "jasa";
+
+      // 🔥 FIX #4: Deteksi ambiguitas OTOMATIS — cek apakah base name
+      // muncul di 2+ entity. Tidak perlu hardcoded list.
+      var entitiesForBaseName = [];
+      for (var entScan in ENTITY_BASE_NAMES) {
+        if (!ENTITY_BASE_NAMES.hasOwnProperty(entScan)) continue;
+        var baseListScan = ENTITY_BASE_NAMES[entScan];
+        for (var bsScan = 0; bsScan < baseListScan.length; bsScan++) {
+          if (baseListScan[bsScan] === matchName) {
+            entitiesForBaseName.push(entScan);
+            break;
+          }
         }
       }
+
+      log('🔀 FIX #4: base "' + matchName + '" ditemukan di entity: [' +
+          entitiesForBaseName.join(', ') + ']', 'CROSS');
+
+      // Jika base name muncul di 2+ entity → AMBIGU → context-based
+      if (entitiesForBaseName.length >= 2) {
+        // Signal produk/transaksional
+        var hasProdukCtx = /\b(harga|jual|beli|supplier|distributor|ready|stok|stock|unit|batang|lembar|keping|ukuran|dimensi|spesifikasi|mutu|k\d+|fc|sni|grade|ton|kg|m3|per kubik|per batang|per lembar)\b/i.test(lower);
+
+        // Signal jasa/verb konstruksi
+        var hasJasaCtx = /\b(jasa|pasang|borongan|tukang|pemancangan|pengeboran|pancang|bor|pile|bongkar|gali|urug|cor|las|bending|cutting|coring|grouting|renovasi|perbaikan|instalasi|service|servis|bangun|pembuatan|pemasangan|pengerjaan|proyek)\b/i.test(lower);
+
+        // Signal sewa (jika base name ada di sewa juga)
+        var hasSewaCtx = /\b(sewa|rental|rent|harian|mingguan|bulanan|tahunan|operator|self drive|lepas kunci)\b/i.test(lower);
+
+        // Signal desain (jika base name ada di desain juga)
+        var hasDesainCtx = /\b(desain|gambar|render|visualisasi|3d|2d|animasi|walkthrough|konsep|layout)\b/i.test(lower);
+
+        log('🔀 FIX #4: ctx → produk=' + hasProdukCtx +
+            ' jasa=' + hasJasaCtx + ' sewa=' + hasSewaCtx +
+            ' desain=' + hasDesainCtx, 'CROSS');
+
+        // Prioritas resolusi (dari paling spesifik ke umum)
+        if (hasDesainCtx && entitiesForBaseName.indexOf('desain') !== -1 && !hasJasaCtx && !hasProdukCtx) {
+          log('🎯 FIX #4: ambiguous "' + matchName + '" → desain (context)', 'DETECT');
+          return "desain";
+        }
+        if (hasSewaCtx && entitiesForBaseName.indexOf('sewa') !== -1 && !hasProdukCtx) {
+          log('🎯 FIX #4: ambiguous "' + matchName + '" → sewa (context)', 'DETECT');
+          return "sewa";
+        }
+        if (hasJasaCtx && hasProdukCtx) {
+          // Kedua sinyal ada → menang yang lebih kuat (jasa verb lebih kuat)
+          log('🎯 FIX #4: ambiguous "' + matchName + '" → jasa (jasa+produk ctx, jasa menang)', 'DETECT');
+          return "jasa";
+        }
+        if (hasJasaCtx && entitiesForBaseName.indexOf('jasa') !== -1) {
+          log('🎯 FIX #4: ambiguous "' + matchName + '" → jasa (verb ctx)', 'DETECT');
+          return "jasa";
+        }
+        if (hasProdukCtx && entitiesForBaseName.indexOf('produk') !== -1) {
+          log('🎯 FIX #4: ambiguous "' + matchName + '" → produk (tx ctx)', 'DETECT');
+          return "produk";
+        }
+
+        // Tidak ada context signal → pakai entity prioritas tertinggi
+        // ENTITY_PRIORITY = [jasa, sewa, desain, produk, material, artikel]
+        var priorityOrder = ["jasa", "sewa", "desain", "produk", "material", "artikel"];
+        for (var po = 0; po < priorityOrder.length; po++) {
+          if (entitiesForBaseName.indexOf(priorityOrder[po]) !== -1) {
+            log('🎯 FIX #4: ambiguous "' + matchName + '" → ' + priorityOrder[po] +
+                ' (fallback priority)', 'DETECT');
+            return priorityOrder[po];
+          }
+        }
+      }
+
       log('🎯 FIX SEO v6: longest match → ' + bestMatchRL.entity +
           ' (via "' + bestMatchRL.name + '", ' + bestMatchRL.length + ' char)',
           'DETECT');
       return bestMatchRL.entity;
     }
-
+     
     return null;
   }
 
@@ -3196,7 +3265,7 @@ var NOISE_WORDS_JASA = [
     return uniqueWords;
   }
 
-  function detectVariantByPattern(text, entityType) {
+    function detectVariantByPattern(text, entityType) {
     if (!text) return { isVariant: false, score: 0, reasons: [] };
     var score = 0;
     var reasons = [];
@@ -3204,20 +3273,45 @@ var NOISE_WORDS_JASA = [
     if (specResult) {
       var isPureTech = checkPureTechnicalSpec(text, entityType);
       if (isPureTech) {
-        score += 5;
-        reasons.push("Pure tech spec");
-        if (isSubVariant(text, entityType)) return { isVariant: true, score: score + 3, reasons: reasons };
-        return { isVariant: true, score: score, reasons: reasons };
+        // 🔥 FIX #2: JANGAN langsung return variant.
+        // Cek dulu berapa layer SEBENARNYA via countModifierLayers.
+        // checkPureTechnicalSpec hanya BOOST CONFIDENCE, bukan penentu level.
+        var actualLayers = countModifierLayers(text, entityType);
+        log('🔥 FIX #2: pureTech=true, actualLayers=' + actualLayers, 'VARIANT');
+
+        if (actualLayers >= 3) {
+          reasons.push("Pure tech spec + 3+ layers");
+          return { isVariant: true, score: 10, reasons: reasons, level: "sub-variant" };
+        }
+        if (actualLayers === 2) {
+          reasons.push("Pure tech spec + 2 layers");
+          return { isVariant: true, score: 8, reasons: reasons, level: "variant" };
+        }
+        if (actualLayers === 1) {
+          reasons.push("Pure tech spec + 1 layer");
+          return { isVariant: true, score: 6, reasons: reasons, level: "money-page" };
+        }
+        // actualLayers === 0 → bukan variant, meskipun pureTech=true
+        reasons.push("Pure tech spec tapi 0 layer");
+        return { isVariant: false, score: 3, reasons: reasons };
       }
     }
     return { isVariant: score >= 3, score: score, reasons: reasons };
   }
-
+   
   function detectVariantLevel(text, entityType) {
     if (isSubVariant(text, entityType)) return "sub-variant";
     if (hasTechnicalSpec(text)) return "variant";
     var result = detectVariantByPattern(text, entityType);
-    if (result.isVariant) return "variant";
+    if (result.isVariant) {
+      // 🔥 FIX #1c: pakai result.level kalau ada (dari FIX #2)
+      // result.level bisa "money-page", "variant", atau "sub-variant"
+      if (result.level) {
+        log('🔥 FIX #1c: detectVariantLevel → ' + result.level + ' (dari result.level)', 'VARIANT');
+        return result.level;
+      }
+      return "variant";
+    }
     return null;
   }
 
@@ -3623,17 +3717,37 @@ var NOISE_WORDS_JASA = [
       return "money-page";
     }
 
-    var jasaMaterialCtx186 = false;
+       var jasaMaterialCtx186 = false;
     if (entityType === "jasa" && hasJasaMaterialCtx(text)) {
       var isMaterialInBase = false;
       var jasaBaseList = ENTITY_BASE_NAMES.jasa || [];
       var materialWords186 = SHARED_MODIFIERS.material;
+
+      // 🔥 FIX #3b: pakai word boundary + skip kalau material = base itu sendiri
+      // Contoh bug lama: base "cor dak" + material "cor" → substring match → FALSE POSITIVE
+      // Fix: cek dengan regex \b + skip kalau material == base name
       for (var mbi = 0; mbi < jasaBaseList.length; mbi++) {
         var baseName186 = jasaBaseList[mbi];
+
+        // Skip kalau base name SAMA PERSIS dengan material word
+        // (misal base "beton" = material "beton" → jangan anggap sebagai "material in base")
+        if (materialWords186.indexOf(baseName186) !== -1) {
+          log('🔥 FIX #3b: SKIP base "' + baseName186 + '" (= material word)', 'VARIANT');
+          continue;
+        }
+
         for (var mwi = 0; mwi < materialWords186.length; mwi++) {
-          if (baseName186.indexOf(materialWords186[mwi]) !== -1) {
+          var matWord = materialWords186[mwi];
+
+          // Skip kalau matWord sama persis dengan baseName186
+          if (matWord === baseName186) continue;
+
+          // 🔥 FIX #3b: pakai word boundary regex, bukan substring
+          var baseHasMat = new RegExp("\\b" + matWord + "\\b").test(baseName186);
+          if (baseHasMat) {
             if (text.indexOf(baseName186) !== -1) {
               isMaterialInBase = true;
+              log('🔥 FIX #3b: material "' + matWord + '" in base "' + baseName186 + '"', 'VARIANT');
               break;
             }
           }
@@ -3641,9 +3755,9 @@ var NOISE_WORDS_JASA = [
         if (isMaterialInBase) break;
       }
       if (!isMaterialInBase) jasaMaterialCtx186 = true;
-      else log('🔥 FIX 203: material part of compound base → tidak naik level', 'VARIANT');
+      else log('🔥 FIX #3b: material part of compound base → tidak naik level', 'VARIANT');
     }
-
+     
     var hasStrongPromo211 = false;
     for (var hp = 0; hp < HIGH_VOLUME_WORDS.length; hp++) {
       if (lowerText.indexOf(HIGH_VOLUME_WORDS[hp]) !== -1) { hasStrongPromo211 = true; break; }
