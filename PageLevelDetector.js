@@ -1461,6 +1461,49 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
 
   var PRICE_WORDS = PRICE_HEAD_WORDS;
 
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX v17-M-FINAL: NOISE_WORDS — 2 TIER
+  // ═══════════════════════════════════════════════════════════
+
+ var NOISE_WORDS_UNIVERSAL = [
+  // ═══ Sistem kerja — universal ═══
+  'borongan',
+  'sistem borongan',
+  'borongan penuh', 'borongan sebagian',
+  'paket borongan', 'sistem paket', 'sistem paket borongan',
+  'all in', 'all-in', 'all in one',
+
+  // ═══ Sistem pembayaran ═══
+  'cash', 'kredit', 'cicilan', 'tunai', 'transfer',
+  'dp', 'lunas', 'termin', 'kontan',
+  'installment', 'debit', 'cod', 'cash on delivery',
+  'paylater', 'pay later',
+  'bayar di tempat', 'bayar di awal', 'bayar di akhir',
+  'pembayaran',
+
+  // ═══ Status ═══
+  'ready', 'preorder', 'pre-order', 'indent', 'po'
+];
+
+  // ─── TIER 2: NOISE_WORDS_JASA ───
+  // HANYA untuk JASA.
+  // Kata yang untuk JASA = cara kerja (noise),
+  // TAPI untuk SEWA = durasi (modifier topik → harus dihitung layer).
+  //
+  // Contoh:
+  //   "jasa borongan strauss pile harian" → MM (harian = noise)
+  //   "sewa excavator harian"             → MP (harian = durasi)
+  //   "sewa excavator meteran"            → MP (meteran = durasi)
+var NOISE_WORDS_JASA = [
+  // ═══ Cara kerja — JASA ═══
+  'meteran', 'sistem meteran',
+  'harian', 'mingguan', 'bulanan', 'tahunan',
+  'sistem harian', 'sistem mingguan', 'sistem bulanan', 'sistem tahunan',
+  'per jam', 'per hari', 'per minggu', 'per bulan', 'per tahun',
+  'per proyek', 'per paket', 'per pekerjaan', 'per unit',
+  'short term', 'long term'
+];
+   
   var ACTION_VERBS = [
     "pemotongan", "pemotong", "memotong", "potong", "potongan",
     "penggalian", "penggali", "menggali", "gali", "galian",
@@ -2553,17 +2596,25 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX v16-D: countModifierLayers dengan domain filter
+  // 🔥 FIX v17-L-FINAL: countModifierLayers
+  // ═══════════════════════════════════════════════════════════
+  // REVISI v17-L-FINAL:
+  //   - Hapus Loop #1 (redundant)
+  //   - Batasi Loop #2 dengan if (entityType === "jasa")
+  //   - NOISE_WORDS hanya di-strip untuk JASA
+  //   - Untuk SEWA/MATERIAL/PRODUK/DESAIN → "harian" tetap sebagai durasi
   // ═══════════════════════════════════════════════════════════
   function countModifierLayers(text, entityType) {
     if (!text) return 0;
     var working = text.toLowerCase();
 
+    // ─── Step 1: Strip entity-only words ───
     var entityOnly = ENTITY_ONLY_WORDS[entityType] || [];
     for (var e = 0; e < entityOnly.length; e++) {
       working = working.replace(new RegExp("\\b" + entityOnly[e] + "\\b", 'g'), ' ');
     }
 
+    // ─── Step 2: Strip base names ───
     var baseNames = ENTITY_BASE_NAMES[entityType] || [];
     for (var b = 0; b < baseNames.length; b++) {
       working = working.replace(
@@ -2572,12 +2623,30 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       );
     }
 
-    if (entityType === "jasa") {
-      for (var c = 0; c < COMMON_JASA_WORDS.length; c++) {
-        working = working.replace(new RegExp("\\b" + COMMON_JASA_WORDS[c] + "\\b", 'g'), ' ');
+       // ─── Step 3: Strip NOISE_WORDS (2 TIER) ───
+    // ── Tier 1: UNIVERSAL — strip untuk SEMUA entity ──
+    for (var nwu = 0; nwu < NOISE_WORDS_UNIVERSAL.length; nwu++) {
+      var noiseUniv = NOISE_WORDS_UNIVERSAL[nwu];
+      var rxUniv = new RegExp("\\b" + noiseUniv.replace(/\s+/g, '\\s+') + "\\b", 'g');
+      if (rxUniv.test(working)) {
+        log('🔇 FIX v17-M: strip NOISE_UNIVERSAL "' + noiseUniv + '"', 'CORE');
+        working = working.replace(rxUniv, ' ');
       }
     }
 
+    // ── Tier 2: JASA — strip HANYA untuk JASA ──
+    if (entityType === "jasa") {
+      for (var nwj = 0; nwj < NOISE_WORDS_JASA.length; nwj++) {
+        var noiseJasa = NOISE_WORDS_JASA[nwj];
+        var rxJasa = new RegExp("\\b" + noiseJasa.replace(/\s+/g, '\\s+') + "\\b", 'g');
+        if (rxJasa.test(working)) {
+          log('🔇 FIX v17-M: strip NOISE_JASA "' + noiseJasa + '"', 'CORE');
+          working = working.replace(rxJasa, ' ');
+        }
+      }
+    }
+     
+    // ─── Step 4: Strip universal prefix ───
     var UNIVERSAL_PREFIX_9 = ["jasa", "layanan", "tukang",
       "kontraktor", "toko", "supplier", "distributor", "jual", "beli",
       "rental", "sewa", "service", "servis"];
@@ -2585,6 +2654,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       working = working.replace(new RegExp("\\b" + UNIVERSAL_PREFIX_9[up9] + "\\b", 'g'), ' ');
     }
 
+    // ─── Step 5: Strip price, satuan, promo ───
     for (var ph = 0; ph < PRICE_HEAD_WORDS.length; ph++) {
       working = working.replace(new RegExp("\\b" + PRICE_HEAD_WORDS[ph] + "\\b", 'g'), ' ');
     }
@@ -2601,20 +2671,14 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       seen216[pword] = true;
       working = working.replace(new RegExp("\\b" + pword + "\\b", 'g'), ' ');
     }
-         // 🔥 FIX v17-L: Strip NOISE_WORDS (cara kerja — 0 layer)
-    // Tujuan: "borongan", "harian", "meteran" di-strip → tidak naik level
-    for (var nw = 0; nw < NOISE_WORDS.length; nw++) {
-      var noiseWord = NOISE_WORDS[nw];
-      working = working.replace(
-        new RegExp("\\b" + noiseWord.replace(/\s+/g, '\\s+') + "\\b", 'g'),
-        ' '
-      );
-    }
+
+    // ─── Step 6: Normalize whitespace ───
     working = working.replace(/\s+/g, ' ').trim();
 
     var count = 0;
     var seenWords = {};
 
+    // ─── Step 7: Khusus DESAIN — cek "N lantai", "type N", "hook" ───
     if (entityType === "desain") {
       var lantaiMatch = working.match(/\b\d+\s*lantai\b/gi) || [];
       count += lantaiMatch.length;
@@ -2633,6 +2697,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       working = working.replace(/\s+/g, ' ').trim();
     }
 
+    // ─── Step 8: Cek kategori (pakai domain filter) ───
     var categories = getCategoryDefs(entityType);
 
     // 🔥 FIX v16-A: Dapatkan domain constraints
@@ -2661,7 +2726,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       }
     }
 
-   
+    // ─── Step 9: Cek dimensi (x cm, x m, dll) ───
     var dimUnit = working.match(
       /\d+\s*(?:x|×)\s*\d+\s*(?:cm|m|mm|meter|inch|inci)\b/gi
     ) || [];
@@ -2688,6 +2753,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       working = working.replace(dimSimple[k3], ' ');
     }
 
+    // ─── Step 10: Strip kategori dari "cleaned" (untuk unknown words) ───
     var cleaned = working;
     for (var cat2 in categories) {
       if (!categories.hasOwnProperty(cat2)) continue;
@@ -2701,7 +2767,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       }
     }
 
-       // 🔥 FIX v17-I: Strip forbidden categories dari cleaned juga
+    // 🔥 FIX v17-I: Strip forbidden categories dari cleaned juga
     // Tujuan: supaya kata-kata forbidden (polos, putih, minimalis, dll)
     // TIDAK dihitung sebagai unknown word → tetap MM (bukan Variant)
     for (var catF in categories) {
@@ -2715,13 +2781,15 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
         );
       }
     }
-     
+
+    // ─── Step 11: Strip stopwords ───
     var stopwords = ["dan","atau","serta","yang","dari","ke","di","untuk",
                      "dengan","ini","itu","akan","pada","oleh","per"];
     for (var s = 0; s < stopwords.length; s++) {
       cleaned = cleaned.replace(new RegExp("\\b" + stopwords[s] + "\\b", 'g'), ' ');
     }
 
+    // ─── Step 12: Khusus DESAIN — strip room context ───
     if (entityType === "desain") {
       var ROOM_CTX = ["rumah", "kantor", "toko", "hotel", "restoran",
         "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
@@ -2736,6 +2804,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
     }
     cleaned = cleaned.replace(/\s+/g, ' ').trim();
 
+    // ─── Step 13: Hitung unknown words ───
     var unknownWords = cleaned.split(/\s+/).filter(function(w) {
       return w.length > 3;
     });
@@ -2745,11 +2814,12 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
           unknownWords.length, 'VARIANT');
     }
 
-    log('🔥 FIX v16: layers=' + count + ' entity=' + entityType +
+    // ─── Step 14: Log hasil ───
+    log('🔥 FIX v17-L-FINAL: layers=' + count + ' entity=' + entityType +
         ' subCat=' + subCat + ' working="' + working.trim() + '"', 'VARIANT');
     return count;
   }
-
+   
   function flagAmbiguous(text, entityType, level, layers) {
     if (!CONFIG.DEBUG) return;
     var residues = countModifierLayers(text, entityType);
@@ -3030,12 +3100,23 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       coreText = coreText.replace(new RegExp("\\b" + moneyWords[i] + "\\b", 'g'), '');
     }
 
-    // 🔥 FIX v17-L: Strip NOISE_WORDS dari coreText juga
-    for (var nw2 = 0; nw2 < NOISE_WORDS.length; nw2++) {
+    // 🔥 FIX v17-M: Strip NOISE_WORDS (2 TIER)
+    // ── Tier 1: UNIVERSAL — strip untuk SEMUA entity ──
+    for (var nw2 = 0; nw2 < NOISE_WORDS_UNIVERSAL.length; nw2++) {
       coreText = coreText.replace(
-        new RegExp("\\b" + NOISE_WORDS[nw2].replace(/\s+/g, '\\s+') + "\\b", 'g'),
+        new RegExp("\\b" + NOISE_WORDS_UNIVERSAL[nw2].replace(/\s+/g, '\\s+') + "\\b", 'g'),
         ' '
       );
+    }
+
+    // ── Tier 2: JASA — strip HANYA untuk JASA ──
+    if (entityType === "jasa") {
+      for (var nw3 = 0; nw3 < NOISE_WORDS_JASA.length; nw3++) {
+        coreText = coreText.replace(
+          new RegExp("\\b" + NOISE_WORDS_JASA[nw3].replace(/\s+/g, '\\s+') + "\\b", 'g'),
+          ' '
+        );
+      }
     }
      
     var entityOnlyWords = ENTITY_ONLY_WORDS[entityType] || [];
