@@ -818,13 +818,20 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
   var ENTITY_SPECIFIC = {
     jasa: {
       metode: [
-        "manual","hidrolik","auger","rotary","percussive",
+        "borongan","manual","hidrolik","auger","rotary","percussive",
         "dry","wet","basah","kering","mesin","dalam","dangkal",
-        "artesis","jet pump"
+        "artesis","jet pump",
+        // usulan baru
+        "harian","meteran","sistem borongan","sistem harian","sistem meteran"
       ],
       skala: [
         "rumahan","komersial","industri","residential","commercial",
-        "industrial","kecil","sedang","besar","menengah"
+        "industrial","kecil","sedang","besar","menengah",
+         "proyek",           // 🆕 konteks proyek
+        "perumahan",        // 🆕 konteks perumahan
+        "perkantoran",      // 🆕 konteks kantor
+        "pabrik",           // 🆕 konteks pabrik
+        "sekolah"           // 🆕 konteks sekolah
       ],
       tipe_aspal: ["hotmix","coldmix","aspal cair","aspal buton"]
     },
@@ -833,7 +840,9 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       tipe: [
         "geser","lipat","swing","sliding","casement","rolling door",
         "folding gate","harmonika","ayun","kupu-kupu","revolving",
-        "otomatis","manual"
+        "otomatis","manual",
+         // 🔥 FIX v17-C: tipe produk tambahan
+        "knockdown","prefab","precast"
       ]
     },
     material: {
@@ -891,7 +900,9 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
         "paving","paving block","grass block",
         "atap","atap spandek","atap metal","atap genteng",
         "plafon","plafon gypsum","plafon pvc","plafon grc",
-        "shunda","kalsiboard","gyproc","jayaboard"
+        "shunda","kalsiboard","gyproc","jayaboard",
+                 // 🔥 FIX v17-F: grade material (BARU)
+        "grade a","grade b","grade c","sni","standar"
       ]
     },
     sewa: {
@@ -912,7 +923,9 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       ],
       tipe: [
         "mini","besar","kecil","sedang","medium","heavy","standar",
-        "extra","ekstra","jumbo","compact","full size","large"
+        "extra","ekstra","jumbo","compact","full size","large",
+        // 🔥 FIX v17-D: operator system
+        "operator","tanpa operator","self drive","lepas kunci","include operator"
       ],
       kapasitas: [
         "ton","m3","kg","liter","galon","hp","ps","kva","psi","rpm","kw",
@@ -926,9 +939,13 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       ]
     },
     desain: {
+// 🔥 FIX v17-E: tipe desain (BARU)
+      tipe: [
+        "2d","3d","animasi","walkthrough","virtual tour","vr","ar","render"
+      ],
       gaya_extended: [
         "art deco","mid century","victorian","gothic","renaissance",
-        "baroque","rococo","neoklasik","art nouveau","bauhaus",
+        "baroque","rococo","neoklasik","art nouveau","bauhaus,
         "postmodern","dekonstruksi","high tech","eklektik","transisi",
         "tropis","mediterania","kolonial","peranakan","balinese","javanese",
         "japandi","coastal","new york","hampton","farmhouse",
@@ -2309,7 +2326,17 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       for (var i = 0; i < subjektifList.length; i++) {
         if (new RegExp("\\b" + subjektifList[i] + "\\b", "i").test(lower)) return true;
       }
+
+           // 🔥 FIX v17-E: cek tipe desain (2d, 3d, animasi, walkthrough, dll)
+    var tipeListDesain = ENTITY_SPECIFIC.desain.tipe || [];
+    for (var i = 0; i < tipeListDesain.length; i++) {
+      if (new RegExp("\\b" + tipeListDesain[i] + "\\b", "i").test(lower)) {
+        var isEntityOnly = entityOnly.some(function(w) { return tipeListDesain[i] === w; });
+        if (!isEntityOnly) return true;
+      }
     }
+       
+    } //penutup desain
 
     // Application target = spec (universal)
     var textNoBase = lower;
@@ -2416,7 +2443,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
         result.material_desain = ENTITY_SPECIFIC.desain.material;
         result.furniture = ENTITY_SPECIFIC.desain.furniture;
         result.subjektif = ENTITY_SPECIFIC.desain.subjektif;
-
+        result.tipe = ENTITY_SPECIFIC.desain.tipe;  // 🔥 FIX v17-E: TAMBAH INI
         result.target = targetDesain;
         break;
     }
@@ -3647,6 +3674,26 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       var isPureTechForPrice = checkPureTechnicalSpec(text, entityType);
       if (isPureTechForPrice) return "money-page";
       return "money-master";
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX v17-G: P9.5 — PRICE + PER-UNIT (TANPA SPEC)
+    // ═══════════════════════════════════════════════════════════
+    // Handle: "harga jasa bore pile per meter", "biaya jasa bore pile per titik"
+    // Sebelumnya: MM (salah) → Sekarang: MP (benar)
+    if (hasPriceWord && hasPerUnit && !hasLocationWord && !hasCommercialWord && !hasSpecWord) {
+      log('💰 FIX v17-G: MONEY_PAGE (price + per-unit)', 'PRICE');
+      return "money-page";
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX v17-H: P9.6 — PRICE + PER-UNIT + SPEC
+    // ═══════════════════════════════════════════════════════════
+    // Handle: "harga jasa bore pile hidrolik per meter"
+    // Sebelumnya: fallback ke MM (salah) → Sekarang: MP
+    if (hasPriceWord && hasPerUnit && hasSpecWord && !hasLocationWord && !hasCommercialWord) {
+      log('💰 FIX v17-H: MONEY_PAGE (price + per-unit + spec)', 'PRICE');
+      return "money-page";
     }
 
     if (hasCommercialWord && !hasLocationWord) {
