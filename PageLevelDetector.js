@@ -826,7 +826,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       skala: [
         "rumahan","komersial","industri","residential","commercial",
         "industrial","kecil","sedang","besar","menengah",
-         "proyek",           // 🆕 konteks proyek
+        "proyek",           // 🆕 konteks proyek
         "perumahan",        // 🆕 konteks perumahan
         "perkantoran",      // 🆕 konteks kantor
         "pabrik",           // 🆕 konteks pabrik
@@ -2608,6 +2608,20 @@ var NOISE_WORDS_JASA = [
   //   - NOISE_WORDS hanya di-strip untuk JASA
   //   - Untuk SEWA/MATERIAL/PRODUK/DESAIN → "harian" tetap sebagai durasi
   // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX v17-L-FINAL + FIX #8: countModifierLayers
+  // ═══════════════════════════════════════════════════════════
+  // REVISI:
+  //   v17-L-FINAL:
+  //     - Hapus Loop #1 (redundant)
+  //     - NOISE_WORDS hanya di-strip untuk JASA
+  //     - Untuk SEWA/MATERIAL/PRODUK/DESAIN → "harian" tetap sebagai durasi
+  //   FIX #8:
+  //     - CEK DIMENSI SEBELUM strip satuan (agar "6 meter", "2 inch" tidak hilang)
+  //     - Tanpa fix ini: "6 meter" → strip "meter" → "6" → tidak terdeteksi dimensi
+  //     - Contoh bug: "jasa bore pile 6 meter" → MM ❌ (harus MP)
+  //     - Contoh OK:   "jasa bore pile 30cm"    → MP ✅ (karena \bcm\b tidak match "30cm")
+  // ═══════════════════════════════════════════════════════════
   function countModifierLayers(text, entityType) {
     if (!text) return 0;
     var working = text.toLowerCase();
@@ -2627,7 +2641,7 @@ var NOISE_WORDS_JASA = [
       );
     }
 
-       // ─── Step 3: Strip NOISE_WORDS (2 TIER) ───
+    // ─── Step 3: Strip NOISE_WORDS (2 TIER) ───
     // ── Tier 1: UNIVERSAL — strip untuk SEMUA entity ──
     for (var nwu = 0; nwu < NOISE_WORDS_UNIVERSAL.length; nwu++) {
       var noiseUniv = NOISE_WORDS_UNIVERSAL[nwu];
@@ -2649,7 +2663,7 @@ var NOISE_WORDS_JASA = [
         }
       }
     }
-     
+
     // ─── Step 4: Strip universal prefix ───
     var UNIVERSAL_PREFIX_9 = ["jasa", "layanan", "tukang",
       "kontraktor", "toko", "supplier", "distributor", "jual", "beli",
@@ -2658,13 +2672,68 @@ var NOISE_WORDS_JASA = [
       working = working.replace(new RegExp("\\b" + UNIVERSAL_PREFIX_9[up9] + "\\b", 'g'), ' ');
     }
 
-            // ─── Step 5: Strip price, satuan, promo ───
+    // ─── Step 5: Normalize whitespace ───
+    working = working.replace(/\s+/g, ' ').trim();
+
+    var count = 0;
+    var seenWords = {};
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX #8: CEK DIMENSI SEBELUM STRIP SATUAN
+    // ═══════════════════════════════════════════════════════════
+    // Alasan: kalau "6 meter" di-strip "meter"-nya dulu, sisa "6"
+    // tidak akan terdeteksi sebagai dimensi.
+    // Solusi: cek dimensi di sini, SEBELUM Step 6 strip satuan.
+
+    // ─── Step 5a: Dimensi multi-unit (60x60 cm, 30x30 mm) ───
+    var dimUnitEarly = working.match(
+      /\d+\s*(?:x|×)\s*\d+\s*(?:cm|m|mm|meter|inch|inci)\b/gi
+    ) || [];
+    if (dimUnitEarly.length > 0) {
+      count += dimUnitEarly.length;
+      log('🔥 FIX #8: dimUnitEarly=[' + dimUnitEarly.join(',') + '] +' + dimUnitEarly.length, 'VARIANT');
+      for (var k = 0; k < dimUnitEarly.length; k++) {
+        working = working.replace(dimUnitEarly[k], ' ');
+      }
+    }
+
+    // ─── Step 5b: Dimensi multi-angka tanpa unit (60x60, 30x30) ───
+    var dimMultiEarly = working.match(/\d+\s*(?:x|×)\s*\d+/gi) || [];
+    if (dimMultiEarly.length > 0) {
+      count += dimMultiEarly.length;
+      log('🔥 FIX #8: dimMultiEarly=[' + dimMultiEarly.join(',') + '] +' + dimMultiEarly.length, 'VARIANT');
+      for (var k2 = 0; k2 < dimMultiEarly.length; k2++) {
+        working = working.replace(dimMultiEarly[k2], ' ');
+      }
+    }
+
+    // ─── Step 5c: Dimensi sederhana (6 meter, 30cm, 2 inch, 50kg) ───
+    // 🔥 FIX #8: match dengan atau tanpa spasi
+    // Regex ini WAJIB di sini, sebelum Step 6 strip satuan.
+    var dimSimpleEarly = working.match(
+      /\d+\s*(?:cm|mm|m|meter|kg|ton|inch|inci|kva|psi|hp|ft|feet)\b/gi
+    ) || [];
+    if (dimSimpleEarly.length > 0) {
+      count += dimSimpleEarly.length;
+      log('🔥 FIX #8: dimSimpleEarly=[' + dimSimpleEarly.join(',') + '] +' + dimSimpleEarly.length, 'VARIANT');
+      for (var k3 = 0; k3 < dimSimpleEarly.length; k3++) {
+        working = working.replace(dimSimpleEarly[k3], ' ');
+      }
+    }
+
+    // Re-normalize whitespace setelah strip dimensi
+    working = working.replace(/\s+/g, ' ').trim();
+
+    // ═══════════════════════════════════════════════════════════
+    // LANJUT STEP 6 (YANG LAMA) — Strip price, satuan, promo
+    // ═══════════════════════════════════════════════════════════
+
+    // ─── Step 6: Strip price ───
     for (var ph = 0; ph < PRICE_HEAD_WORDS.length; ph++) {
       working = working.replace(new RegExp("\\b" + PRICE_HEAD_WORDS[ph] + "\\b", 'g'), ' ');
     }
 
     // 🔥 FIX #1b: JANGAN strip satuan untuk SEWA (baik "per X" maupun "X")
-    // "harian", "mingguan", "bulanan", "tahunan", "per hari" = DURASI (layer valid) untuk sewa
     if (entityType !== "sewa") {
       working = working.replace(new RegExp("\\bper\\s+(" + SATUAN_UNITS.join("|") + ")\\b", 'g'), ' ');
       for (var su = 0; su < SATUAN_UNITS.length; su++) {
@@ -2673,7 +2742,8 @@ var NOISE_WORDS_JASA = [
     } else {
       log('🔥 FIX #1b: SKIP strip satuan untuk sewa (durasi = layer)', 'DOMAIN');
     }
-     
+
+    // ─── Step 7: Strip promo ───
     var PROMO_STRIP = PROMO_MODIFIER_WORDS.concat(HIGH_VOLUME_WORDS);
     var seen216 = {};
     for (var ps = 0; ps < PROMO_STRIP.length; ps++) {
@@ -2683,13 +2753,10 @@ var NOISE_WORDS_JASA = [
       working = working.replace(new RegExp("\\b" + pword + "\\b", 'g'), ' ');
     }
 
-    // ─── Step 6: Normalize whitespace ───
+    // ─── Step 8: Normalize whitespace ───
     working = working.replace(/\s+/g, ' ').trim();
 
-    var count = 0;
-    var seenWords = {};
-
-    // ─── Step 7: Khusus DESAIN — cek "N lantai", "type N", "hook" ───
+    // ─── Step 9: Khusus DESAIN — cek "N lantai", "type N", "hook" ───
     if (entityType === "desain") {
       var lantaiMatch = working.match(/\b\d+\s*lantai\b/gi) || [];
       count += lantaiMatch.length;
@@ -2708,7 +2775,7 @@ var NOISE_WORDS_JASA = [
       working = working.replace(/\s+/g, ' ').trim();
     }
 
-    // ─── Step 8: Cek kategori (pakai domain filter) ───
+    // ─── Step 10: Cek kategori (pakai domain filter) ───
     var categories = getCategoryDefs(entityType);
 
     // 🔥 FIX v16-A: Dapatkan domain constraints
@@ -2737,34 +2804,7 @@ var NOISE_WORDS_JASA = [
       }
     }
 
-    // ─── Step 9: Cek dimensi (x cm, x m, dll) ───
-    var dimUnit = working.match(
-      /\d+\s*(?:x|×)\s*\d+\s*(?:cm|m|mm|meter|inch|inci)\b/gi
-    ) || [];
-    if (dimUnit.length > 0) {
-      count += dimUnit.length;
-      for (var k = 0; k < dimUnit.length; k++) {
-        working = working.replace(dimUnit[k], ' ');
-      }
-    }
-
-    var dimMulti = working.match(/\d+\s*(?:x|×)\s*\d+/gi) || [];
-    if (dimMulti.length > 0) {
-      count += dimMulti.length;
-      for (var k2 = 0; k2 < dimMulti.length; k2++) {
-        working = working.replace(dimMulti[k2], ' ');
-      }
-    }
-
-    var dimSimple = working.match(
-      /\d+\s*(?:cm|m|mm|meter|kg|ton|inch|inci|kva|psi|hp)\b/gi
-    ) || [];
-    count += dimSimple.length;
-    for (var k3 = 0; k3 < dimSimple.length; k3++) {
-      working = working.replace(dimSimple[k3], ' ');
-    }
-
-    // ─── Step 10: Strip kategori dari "cleaned" (untuk unknown words) ───
+    // ─── Step 11: Strip kategori dari "cleaned" (untuk unknown words) ───
     var cleaned = working;
     for (var cat2 in categories) {
       if (!categories.hasOwnProperty(cat2)) continue;
@@ -2779,11 +2819,9 @@ var NOISE_WORDS_JASA = [
     }
 
     // 🔥 FIX v17-I: Strip forbidden categories dari cleaned juga
-    // Tujuan: supaya kata-kata forbidden (polos, putih, minimalis, dll)
-    // TIDAK dihitung sebagai unknown word → tetap MM (bukan Variant)
     for (var catF in categories) {
       if (!categories.hasOwnProperty(catF)) continue;
-      if (forbiddenCats.indexOf(catF) === -1) continue;  // hanya forbidden
+      if (forbiddenCats.indexOf(catF) === -1) continue;
       var wordsF = categories[catF];
       for (var jF = 0; jF < wordsF.length; jF++) {
         cleaned = cleaned.replace(
@@ -2793,14 +2831,14 @@ var NOISE_WORDS_JASA = [
       }
     }
 
-    // ─── Step 11: Strip stopwords ───
+    // ─── Step 12: Strip stopwords ───
     var stopwords = ["dan","atau","serta","yang","dari","ke","di","untuk",
                      "dengan","ini","itu","akan","pada","oleh","per"];
     for (var s = 0; s < stopwords.length; s++) {
       cleaned = cleaned.replace(new RegExp("\\b" + stopwords[s] + "\\b", 'g'), ' ');
     }
 
-    // ─── Step 12: Khusus DESAIN — strip room context ───
+    // ─── Step 13: Khusus DESAIN — strip room context ───
     if (entityType === "desain") {
       var ROOM_CTX = ["rumah", "kantor", "toko", "hotel", "restoran",
         "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
@@ -2815,7 +2853,7 @@ var NOISE_WORDS_JASA = [
     }
     cleaned = cleaned.replace(/\s+/g, ' ').trim();
 
-    // ─── Step 13: Hitung unknown words ───
+    // ─── Step 14: Hitung unknown words ───
     var unknownWords = cleaned.split(/\s+/).filter(function(w) {
       return w.length > 3;
     });
@@ -2825,8 +2863,8 @@ var NOISE_WORDS_JASA = [
           unknownWords.length, 'VARIANT');
     }
 
-    // ─── Step 14: Log hasil ───
-    log('🔥 FIX v17-L-FINAL: layers=' + count + ' entity=' + entityType +
+    // ─── Step 15: Log hasil ───
+    log('🔥 FIX v17-L-FINAL + FIX #8: layers=' + count + ' entity=' + entityType +
         ' subCat=' + subCat + ' working="' + working.trim() + '"', 'VARIANT');
     return count;
   }
