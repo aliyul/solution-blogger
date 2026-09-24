@@ -2653,6 +2653,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       }
     }
 
+   
     var dimUnit = working.match(
       /\d+\s*(?:x|×)\s*\d+\s*(?:cm|m|mm|meter|inch|inci)\b/gi
     ) || [];
@@ -2691,6 +2692,22 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
         );
       }
     }
+
+       // 🔥 FIX v17-I: Strip forbidden categories dari cleaned juga
+    // Tujuan: supaya kata-kata forbidden (polos, putih, minimalis, dll)
+    // TIDAK dihitung sebagai unknown word → tetap MM (bukan Variant)
+    for (var catF in categories) {
+      if (!categories.hasOwnProperty(catF)) continue;
+      if (forbiddenCats.indexOf(catF) === -1) continue;  // hanya forbidden
+      var wordsF = categories[catF];
+      for (var jF = 0; jF < wordsF.length; jF++) {
+        cleaned = cleaned.replace(
+          new RegExp("\\b" + wordsF[jF].replace(/\s+/g, '\\s+') + "\\b", 'gi'),
+          ' '
+        );
+      }
+    }
+     
     var stopwords = ["dan","atau","serta","yang","dari","ke","di","untuk",
                      "dengan","ini","itu","akan","pada","oleh","per"];
     for (var s = 0; s < stopwords.length; s++) {
