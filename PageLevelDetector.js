@@ -945,7 +945,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       ],
       gaya_extended: [
         "art deco","mid century","victorian","gothic","renaissance",
-        "baroque","rococo","neoklasik","art nouveau","bauhaus,
+        "baroque","rococo","neoklasik","art nouveau","bauhaus",
         "postmodern","dekonstruksi","high tech","eklektik","transisi",
         "tropis","mediterania","kolonial","peranakan","balinese","javanese",
         "japandi","coastal","new york","hampton","farmhouse",
