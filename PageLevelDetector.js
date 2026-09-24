@@ -470,7 +470,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       "cor", "cor dak", "cor lantai", "cor jalan", "cor kolom",
       "cor sloof", "cor balok", "cor plat", "cor pondasi",
       "cor tiang", "cor dinding", "cor pagar",
-      "pengeboran", "drilling", "boring",
+      "pengeboran", "drilling", "boring","coring", "cutting", "cutting beton",
       "uji tanah", "soil test",
       "gali tanah", "gali pondasi", "gali basement", "gali saluran",
       "penggalian tanah", "penggalian pondasi",
@@ -491,7 +491,6 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       "poles marmer", "poles granit", "poles keramik", "poles lantai",
       "grinding", "grinding beton", "grinding lantai",
       "epoxy lantai", "coating", "coating lantai", "coating beton",
-      "cutting", "cutting beton",
       "sandblasting besi", "sandblasting beton", "sandblasting dinding"
     ],
 
