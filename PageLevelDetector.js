@@ -900,9 +900,8 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
         "paving","paving block","grass block",
         "atap","atap spandek","atap metal","atap genteng",
         "plafon","plafon gypsum","plafon pvc","plafon grc",
-        "shunda","kalsiboard","gyproc","jayaboard",
-                 // 🔥 FIX v17-F: grade material (BARU)
-        "grade a","grade b","grade c","sni","standar"
+        "shunda","kalsiboard","gyproc","jayaboard"
+   
       ]
     },
     sewa: {
