@@ -1,25 +1,30 @@
 /* ============================================================
-🧠 Page Level Detector v23.9.5 — TIERED MODIFIER SYSTEM
+🧠 Page Level Detector v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM
 ============================================================
-BASE: v23.9.2
+BASE: v23.9.5 (Tiered Modifier System)
 
-🔥 FIX v14-A..T — DIPERTAHANKAN SEMUA
-🔥 FIX v15-A — Hierarki Berlapis: GLOBAL_NUMERIC, SHARED_MODIFIERS, ENTITY_SPECIFIC
-🔥 FIX v15-B — getCategoryDefs pakai 3-tier resolution
-🔥 FIX v15-C — Audit otomatis modifier tiers (auditModifierTiers)
+🔥 FIX v16-A — Domain Constraint per Sub-Kategori JASA
+🔥 FIX v16-B — JASA Sub-Categories (14 kategori)
+🔥 FIX v16-C — Modifier Compatibility Matrix
+🔥 FIX v16-D — countModifierLayers dengan domain filter
+🔥 FIX v16-E — checkHasSpecification JASA sub-category aware
+🔥 FIX v16-F — isSpecModifierForEntity pakai compatibility matrix
+🔥 FIX v16-G — 25 base name JASA baru
+🔥 FIX v15-A..C — DIPERTAHANKAN SEMUA
 
 🎯 PRINSIP:
    Base name = head term MURNI → MM (0 layer)
    Tier 1 (GLOBAL)      : angka, unit, grade — semua entity
    Tier 2 (SHARED)      : material, finishing, warna, gaya — 2+ entity
    Tier 3 (SPECIFIC)    : metode, merek, portland, balinese — 1 entity
+   Tier 4 (DOMAIN)      : modifier hanya valid untuk sub-kategori tertentu
 ============================================================ */
 
 (function () {
   "use strict";
 
-if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.5") {
-    console.warn("⚠️ [PLD v23.9.5] Already loaded!");
+if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.6") {
+    console.warn("⚠️ [PLD v23.9.6] Already loaded!");
     return;
 }
 
@@ -57,12 +62,12 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9
       AI: "🤖", GROQ: "⚡", GEMINI: "💎",
       OBJECT: "🧊", SCORE: "🎚️", BASE: "🏗️", CROSSSPEC: "🎯",
       DOM: "🌐", EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐",
-      TIER: "🎚️"
+      TIER: "🎚️", DOMAIN: "🌍", SUBCAT: "📂"
     };
-    console.log((icons[type] || "📘") + " [PLD v23.9.5] " + message);
+    console.log((icons[type] || "📘") + " [PLD v23.9.6] " + message);
   }
 
-log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
+log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNAL');
 
   // ═══════════════════════════════════════════════════════════
   // LEVEL MAPS
@@ -124,7 +129,12 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       "pengeboran", "pemancangan", "pengecoran", "pengelasan",
       "pondasi", "bored pile", "bor pile", "strauss", "pancang",
       "waterproofing", "epoxy", "coating", "poles",
-      "service", "servis", "layanan"
+      "service", "servis", "layanan",
+      "relief", "profil beton", "interior", "eksterior",
+      "konsultan", "pembuatan", "pasang", "finishing",
+      "uji tanah", "perkuatan tanah", "pembatas pengaman",
+      "buang puing", "saluran drainase", "jalan perkerasan",
+      "pematangan lahan", "lapangan olahraga"
     ],
     desain: [
       "desain", "interior", "eksterior", "arsitektur",
@@ -136,7 +146,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       "material", "bahan", "semen", "pasir", "besi", "baja", "kayu",
       "keramik", "granit", "marmer", "bata", "batako", "hebel",
       "genteng", "pipa", "cat", "kabel", "paku", "baut",
-      "kaca", "aluminium", "tembaga"  // 🔥 FIX v15-D
+      "kaca", "aluminium", "tembaga"
     ],
     produk: [
       "produk", "jual", "beli", "supplier", "distributor", "toko",
@@ -156,7 +166,8 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     'cor','gali','urug','angkut','service','servis','desain','interior','eksterior','arsitektur',
     'coring','cutting','drilling','pengeboran','pemancangan','pemasangan','bongkar','potong','las','sambung',
     'grinding','welding','bending','forming','pondasi','tiang','pancang','bore','pile','strauss',
-    'konstruksi','bangunan','rumah','gedung','ruko','gudang','pabrik','jalan','jembatan','infrastruktur'
+    'konstruksi','bangunan','rumah','gedung','ruko','gudang','pabrik','jalan','jembatan','infrastruktur',
+    'relief','profil','konsultan','finishing','uji','perkuatan','pembatas','pengaman','puing','drainase','perkerasan'
   ];
 
   var COMMON_JASA_WORDS = [
@@ -185,7 +196,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     'paku','baut','mur','sekrup','kawat','wiremesh',
     'cat','vernis','politur','plamir','lem',
     'pipa','kabel','fitting','kran',
-     'kaca','aluminium','tembaga'  // 🔥 TAMBAHKAN
+    'kaca','aluminium','tembaga'
   ];
 
   var PRODUK_WORDS = [
@@ -214,14 +225,11 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
   };
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX v14-A: ENTITY_BASE_NAMES — STRICT MODE
-  // Prinsip: base name = head term MURNI → MM (0 layer)
+  // 🔥 FIX v16-G: ENTITY_BASE_NAMES — DENGAN 25 JASA BARU
   // ═══════════════════════════════════════════════════════════
    var ENTITY_BASE_NAMES = {
 
     produk: [
-      // K1: Single word head term
-      // 🔥 FIX v15-D: hapus duplikat dgn material (kaca, pipa, keramik, granit, marmer)
       "pintu", "jendela", "kusen", "pagar", "kanopi",
       "plafon",
       "wallpaper", "atap", "paving",
@@ -233,8 +241,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       "tandon air", "tangki air", "water heater",
       "gorden", "blind", "kasa nyamuk", "tralis",
       "rak dinding", "rak tv", "rak buku", "gantungan baju",
-
-      // K2: Compound noun (idiom industri)
       "pagar panel", "pagar beton", "pagar brc",
       "u ditch", "u ditch cover", "tutup u ditch",
       "box culvert", "buis beton",
@@ -245,8 +251,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       "rooster beton", "roster beton",
       "spun pile", "mini pile", "micropile", "sheet pile",
       "tiang pancang", "half slab", "sloof beton", "kolom praktis",
-
-      // K2 extended
       "kolam renang", "taman kering", "taman vertikal",
       "walk in closet"
     ],
@@ -257,7 +261,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       "kaca",
       "valve", "kran", "cat", "vernis", "politur", "plamir", "lem",
       "waterproofing",
-      // 🔥 FIX v15-D: hapus duplikat dgn produk (plafon, paving, atap)
       "keramik", "granit", "marmer", "gypsum",
       "bata", "batako", "hebel", "genteng", "asbes",
       "galvalum", "precast", "pracetak", "aluminium",
@@ -364,7 +367,32 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       "pengaspalan", "aspal jalan",
       "pemasangan wifi", "instalasi internet", "instalasi antena",
       "pemasangan parabola",
-      "pembuatan kanopi", "pembuatan pagar", "pembuatan railing"
+      "pembuatan kanopi", "pembuatan pagar", "pembuatan railing",
+
+      // 🔥 FIX v16-G: 25 JASA BARU dari daftar betonjaya
+      "relief", "relief beton",
+      "profil beton",
+      "interior", "eksterior",
+      "konsultan", "konsultan konstruksi",
+      "pembuatan", "pasang",
+      "alat konstruksi",
+      "konstruksi bangunan", "konstruksi struktur",
+      "struktur khusus", "struktur konstruksi",
+      "lapangan olahraga",
+      "pondasi",
+      "saluran drainase",
+      "jalan perkerasan",
+      "pematangan lahan",
+      "pekerjaan galian tanah",
+      "uji tanah", "soil test",
+      "cutting beton",
+      "bongkar bangunan",
+      "buang puing",
+      "perkuatan tanah",
+      "pembatas pengaman",
+      "finishing",
+      "perbaikan bangunan",
+      "perbaikan infrastruktur"
     ],
 
     sewa: [
@@ -415,7 +443,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       "gambar arsitektur", "gambar kerja", "gambar teknik"
     ]
   };
-   
+
   // Sort base names DESC by word count (longest first)
   (function() {
     for (var ent in ENTITY_BASE_NAMES) {
@@ -426,12 +454,333 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     }
   })();
 
+   // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX v16-B: JASA SUB-CATEGORIES (14 kategori)
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX v15-A: HIERARKI BERLAPIS — TIERED MODIFIER SYSTEM
+  var JASA_SUB_CATEGORIES = {
+    struktural: [
+      "bore pile", "bor pile", "bored pile", "boring pile",
+      "mini pile", "spun pile", "micropile",
+      "bor strauss", "bor pancang", "strauss pile",
+      "tiang pancang", "pancang",
+      "turap", "sheet pile",
+      "jet grouting", "stabilisasi tanah", "soil improvement",
+      "sumur bor", "bor sumur",
+      "pondasi", "perkuatan tanah",
+      "cor", "cor dak", "cor lantai", "cor jalan", "cor kolom",
+      "cor sloof", "cor balok", "cor plat", "cor pondasi",
+      "cor tiang", "cor dinding", "cor pagar",
+      "pengeboran", "drilling", "boring",
+      "uji tanah", "soil test",
+      "gali tanah", "gali pondasi", "gali basement", "gali saluran",
+      "penggalian tanah", "penggalian pondasi",
+      "urug tanah", "urug lahan", "urug pondasi", "urug jalan",
+      "pengurugan tanah", "pengurugan lahan",
+      "pemadatan tanah", "pemadatan lahan",
+      "pemotongan bukit", "cut and fill"
+    ],
+
+    finishing: [
+      "relief", "relief beton",
+      "profil beton",
+      "finishing",
+      "cat dinding", "cat tembok", "cat plafon", "cat kayu",
+      "cat besi", "cat pagar",
+      "pengecatan dinding", "pengecatan tembok",
+      "waterproofing",
+      "poles marmer", "poles granit", "poles keramik", "poles lantai",
+      "grinding", "grinding beton", "grinding lantai",
+      "epoxy lantai", "coating", "coating lantai", "coating beton",
+      "cutting", "cutting beton",
+      "sandblasting besi", "sandblasting beton", "sandblasting dinding"
+    ],
+
+    konstruksi: [
+      "konstruksi bangunan", "konstruksi struktur",
+      "struktur khusus", "struktur konstruksi",
+      "lapangan olahraga",
+      "bangun rumah", "bangun gedung", "bangun ruko", "bangun gudang",
+      "bangun kantor", "bangun pabrik", "bangun sekolah",
+      "borongan rumah", "borongan gedung", "borongan interior",
+      "pembuatan kanopi", "pembuatan pagar", "pembuatan railing"
+    ],
+
+    infrastruktur: [
+      "saluran drainase",
+      "jalan perkerasan",
+      "pengaspalan", "aspal jalan",
+      "pengerukan sungai", "pengerukan kolam", "pengerukan saluran"
+    ],
+
+    pematangan: [
+      "pematangan lahan",
+      "pekerjaan galian tanah",
+      "pembersihan lahan", "land clearing",
+      "angkut tanah", "angkut puing", "angkut material"
+    ],
+
+    bongkar_buang: [
+      "bongkar dinding", "bongkar lantai", "bongkar plat",
+      "bongkar gedung", "bongkar rumah", "bongkar ruko",
+      "bongkar gudang", "bongkar atap",
+      "bongkar keramik", "bongkar granit", "bongkar marmer",
+      "bongkar plafon", "bongkar kusen", "bongkar pintu", "bongkar jendela",
+      "bongkar pagar", "bongkar partisi",
+      "bongkar bangunan",
+      "buang puing"
+    ],
+
+    perbaikan: [
+      "renovasi rumah", "renovasi gedung", "renovasi kantor",
+      "renovasi toko", "renovasi ruko", "renovasi gudang",
+      "renovasi pabrik", "renovasi apartemen",
+      "renovasi dapur", "renovasi kamar mandi", "renovasi kamar tidur",
+      "renovasi ruang tamu", "renovasi teras", "renovasi balkon",
+      "renovasi atap", "renovasi lantai", "renovasi dinding",
+      "renovasi plafon", "renovasi pagar", "renovasi taman",
+      "perbaikan atap", "perbaikan dinding", "perbaikan lantai",
+      "perbaikan plafon", "perbaikan pondasi", "perbaikan struktur",
+      "perbaikan pipa", "perbaikan saluran air",
+      "perbaikan bangunan",
+      "perbaikan infrastruktur",
+      "perawatan gedung", "perawatan kolam"
+    ],
+
+    instalasi: [
+      "instalasi listrik", "instalasi air", "instalasi plumbing",
+      "instalasi ac", "instalasi cctv", "instalasi alarm",
+      "pasang instalasi listrik", "pasang instalasi air",
+      "pasang instalasi gas", "pasang instalasi ac",
+      "pasang pipa", "pasang kabel listrik", "pasang panel listrik",
+      "pasang ac", "pasang cctv", "pasang alarm",
+      "service ac", "service pompa air", "service genset", "service lift",
+      "pemasangan wifi", "instalasi internet", "instalasi antena",
+      "pemasangan parabola"
+    ],
+
+    konsultasi: [
+      "konsultan", "konsultan konstruksi"
+    ],
+
+    pembuatan_pasang: [
+      "pembuatan", "pasang",
+      "pasang dinding", "pasang keramik", "pasang granit", "pasang marmer",
+      "pasang parket", "pasang vinyl", "pasang ubin",
+      "pasang wallpaper", "pasang wpc", "pasang grc", "pasang hpl",
+      "pasang partisi", "pasang pagar", "pasang kanopi", "pasang awning",
+      "pasang railing", "pasang tangga", "pasang gerbang",
+      "pasang baja ringan", "pasang rangka atap", "pasang atap",
+      "pasang genteng", "pasang plafon", "pasang gypsum",
+      "pasang pintu", "pasang jendela", "pasang kusen", "pasang kaca",
+      "pasang shower box"
+    ],
+
+    pengaman: [
+      "pembatas pengaman"
+    ],
+
+    alat_konstruksi: [
+      "alat konstruksi"
+    ],
+
+    interior_eksterior: [
+      "interior", "eksterior"
+    ],
+
+    las_welding: [
+      "las", "welding", "sandblasting",
+      "las besi", "las pagar", "las kanopi", "las rangka baja", "las tiang",
+      "welding besi", "welding konstruksi"
+    ]
+  };
+
   // ═══════════════════════════════════════════════════════════
-  // Tier 1 (GLOBAL)   : berlaku semua entity (angka, unit, grade)
-  // Tier 2 (SHARED)   : 2+ entity (material, finishing, warna, gaya)
-  // Tier 3 (SPECIFIC) : 1 entity (metode, merek, portland, balinese)
+  // 🔥 FIX v16-A: DOMAIN CONSTRAINTS
+  // ═══════════════════════════════════════════════════════════
+  var DOMAIN_CONSTRAINTS = {
+    struktural: {
+      allowed_categories: ["metode", "skala", "tipe_aspal", "material", "dimensi", "kedalaman", "target", "price", "per_unit", "global_numeric", "tipe", "merek", "kondisi", "durasi", "kapasitas"],
+      forbidden_categories: ["finishing", "warna", "gaya", "furniture", "subjektif", "konsep", "warna_extended", "gaya_extended"]
+    },
+    finishing: {
+      allowed_categories: ["metode", "skala", "finishing", "warna", "material", "target", "price", "per_unit", "global_numeric"],
+      forbidden_categories: ["dimensi", "kedalaman", "gaya", "furniture", "konsep", "warna_extended", "gaya_extended"]
+    },
+    konstruksi: {
+      allowed_categories: ["metode", "skala", "material", "target", "price", "per_unit", "global_numeric"],
+      forbidden_categories: ["finishing", "warna", "gaya", "furniture", "subjektif", "konsep", "warna_extended", "gaya_extended"]
+    },
+    infrastruktur: {
+      allowed_categories: ["metode", "skala", "material", "target", "price", "per_unit", "global_numeric", "tipe_aspal"],
+      forbidden_categories: ["finishing", "warna", "gaya", "furniture", "subjektif", "konsep", "warna_extended", "gaya_extended"]
+    },
+    pematangan: {
+      allowed_categories: ["metode", "skala", "target", "price", "per_unit", "global_numeric"],
+      forbidden_categories: ["finishing", "warna", "gaya", "furniture", "subjektif", "konsep", "dimensi", "kedalaman"]
+    },
+    bongkar_buang: {
+      allowed_categories: ["metode", "skala", "target", "price", "per_unit", "global_numeric"],
+      forbidden_categories: ["finishing", "warna", "gaya", "furniture", "subjektif", "konsep", "dimensi", "kedalaman"]
+    },
+    perbaikan: {
+      allowed_categories: ["metode", "skala", "material", "finishing", "gaya", "target", "price", "per_unit", "global_numeric"],
+      forbidden_categories: ["dimensi", "kedalaman", "furniture", "konsep", "warna_extended", "gaya_extended"]
+    },
+    instalasi: {
+      allowed_categories: ["metode", "skala", "merek", "kapasitas", "kondisi", "target", "price", "per_unit", "global_numeric"],
+      forbidden_categories: ["finishing", "warna", "gaya", "furniture", "konsep", "dimensi", "kedalaman", "warna_extended", "gaya_extended"]
+    },
+    konsultasi: {
+      allowed_categories: ["skala", "target", "price", "per_unit", "global_numeric"],
+      forbidden_categories: ["finishing", "warna", "gaya", "furniture", "konsep", "dimensi", "kedalaman", "metode", "material"]
+    },
+    pembuatan_pasang: {
+      allowed_categories: ["metode", "skala", "material", "finishing", "gaya", "dimensi", "target", "price", "per_unit", "global_numeric", "warna"],
+      forbidden_categories: ["kedalaman", "furniture", "konsep", "warna_extended", "gaya_extended"]
+    },
+    pengaman: {
+      allowed_categories: ["material", "dimensi", "target", "price", "per_unit", "global_numeric", "metode"],
+      forbidden_categories: ["finishing", "warna", "gaya", "furniture", "konsep", "kedalaman", "warna_extended", "gaya_extended"]
+    },
+    alat_konstruksi: {
+      allowed_categories: ["merek", "kapasitas", "kondisi", "durasi", "tipe", "target", "price", "per_unit", "global_numeric"],
+      forbidden_categories: ["finishing", "warna", "gaya", "furniture", "konsep", "dimensi", "kedalaman", "warna_extended", "gaya_extended"]
+    },
+    interior_eksterior: {
+      allowed_categories: ["gaya", "warna", "material", "finishing", "konsep", "furniture", "subjektif", "target", "price", "per_unit", "global_numeric", "warna_extended", "gaya_extended"],
+      forbidden_categories: ["dimensi", "kedalaman", "metode"]
+    },
+    las_welding: {
+      allowed_categories: ["metode", "material", "dimensi", "target", "price", "per_unit", "global_numeric"],
+      forbidden_categories: ["finishing", "warna", "gaya", "furniture", "konsep", "kedalaman", "warna_extended", "gaya_extended"]
+    },
+    default: {
+      allowed_categories: ["metode", "skala", "material", "finishing", "warna", "gaya", "dimensi", "target", "price", "per_unit", "global_numeric", "tipe", "merek", "kondisi", "durasi", "kapasitas"],
+      forbidden_categories: []
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX v16-C: MODIFIER COMPATIBILITY MATRIX
+  // ═══════════════════════════════════════════════════════════
+  var MODIFIER_COMPATIBILITY = {
+    // Finishing modifiers
+    "polos": ["produk", "material", "desain", "jasa_finishing", "jasa_pembuatan_pasang"],
+    "motif": ["produk", "material", "desain", "jasa_finishing"],
+    "bermotif": ["produk", "material", "desain"],
+    "bercorak": ["produk", "material", "desain"],
+    "tekstur": ["produk", "material", "desain", "jasa_finishing"],
+    "serat": ["produk", "material", "desain"],
+    "halus": ["produk", "material", "desain", "jasa_finishing"],
+    "kasar": ["produk", "material", "desain"],
+    "matte": ["produk", "material", "desain"],
+    "glossy": ["produk", "material", "desain"],
+    "doff": ["produk", "material", "desain"],
+    "gloss": ["produk", "material", "desain"],
+    "satin": ["produk", "material", "desain"],
+    "anyaman": ["produk", "material", "desain"],
+    "natural": ["produk", "material", "desain"],
+    "ekspos": ["produk", "material", "desain", "jasa_finishing"],
+    "custom": ["produk", "material", "desain", "jasa_pembuatan_pasang"],
+    "polosan": ["produk", "material", "desain"],
+    "cat": ["produk", "material", "desain", "jasa_finishing"],
+    "coating": ["produk", "material", "desain", "jasa_finishing"],
+    "lapisan": ["produk", "material", "desain"],
+    "vernis": ["produk", "material", "desain", "jasa_finishing"],
+
+    // Warna modifiers
+    "putih": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "hitam": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "abu-abu": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "merah": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "biru": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "kuning": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "hijau": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "coklat": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "netral": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "krem": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "maroon": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "navy": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "forest": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "gold": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "silver": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "bronze": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "copper": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "rose gold": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "teal": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "turquoise": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "lavender": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "magenta": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "coral": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "salmon": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "peach": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "mint": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "warm": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "cool": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "pastel": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "dark": ["produk", "material", "desain", "jasa_interior_eksterior"],
+    "light": ["produk", "material", "desain", "jasa_interior_eksterior"],
+
+    // Gaya modifiers
+    "minimalis": ["produk", "desain", "jasa_interior_eksterior", "jasa_perbaikan", "jasa_pembuatan_pasang"],
+    "modern": ["produk", "desain", "jasa_interior_eksterior", "jasa_perbaikan", "jasa_pembuatan_pasang"],
+    "klasik": ["produk", "desain", "jasa_interior_eksterior"],
+    "skandinavia": ["produk", "desain", "jasa_interior_eksterior"],
+    "japandi": ["produk", "desain", "jasa_interior_eksterior"],
+    "industrial": ["produk", "desain", "jasa_interior_eksterior"],
+    "kontemporer": ["produk", "desain", "jasa_interior_eksterior"],
+    "tradisional": ["produk", "desain", "jasa_interior_eksterior"],
+    "rustic": ["produk", "desain", "jasa_interior_eksterior"],
+    "bohemian": ["produk", "desain", "jasa_interior_eksterior"],
+
+    // Dimensi
+    "dimensi": ["material", "produk", "jasa_struktural", "jasa_pengaman", "jasa_las_welding"],
+    "ukuran": ["material", "produk", "jasa_struktural", "jasa_pengaman"],
+    "tebal": ["material", "produk"],
+    "panjang": ["material", "produk", "jasa_struktural"],
+    "lebar": ["material", "produk"],
+    "tinggi": ["material", "produk"],
+    "diameter": ["material", "produk", "jasa_struktural"],
+    "kedalaman": ["jasa_struktural"],
+    "radius": ["material", "produk"],
+
+    // Metode
+    "manual": ["jasa_struktural", "jasa_instalasi", "jasa_las_welding", "jasa_pembuatan_pasang", "jasa_finishing"],
+    "hidrolik": ["jasa_struktural", "jasa_alat_konstruksi"],
+    "auger": ["jasa_struktural"],
+    "rotary": ["jasa_struktural"],
+    "percussive": ["jasa_struktural"],
+    "dry": ["jasa_struktural", "jasa_finishing"],
+    "wet": ["jasa_struktural", "jasa_finishing"],
+    "basah": ["jasa_finishing"],
+    "kering": ["jasa_finishing"],
+    "mesin": ["jasa_struktural", "jasa_instalasi", "jasa_las_welding"],
+
+    // Material
+    "beton": ["produk", "material", "jasa_struktural", "jasa_konstruksi", "jasa_perbaikan"],
+    "besi": ["produk", "material", "jasa_las_welding", "jasa_struktural", "jasa_pembuatan_pasang"],
+    "kayu": ["produk", "material", "desain", "jasa_pembuatan_pasang"],
+    "aluminium": ["produk", "material", "jasa_instalasi", "jasa_pembuatan_pasang"],
+    "kaca": ["produk", "material", "jasa_instalasi", "jasa_pembuatan_pasang"],
+    "stainless": ["produk", "material", "jasa_pembuatan_pasang"],
+    "baja": ["produk", "material", "jasa_struktural", "jasa_las_welding"],
+    "pvc": ["produk", "material", "jasa_instalasi"],
+    "wpc": ["produk", "material", "jasa_pembuatan_pasang"],
+    "grc": ["produk", "material", "jasa_pembuatan_pasang", "jasa_finishing"],
+    "hpl": ["produk", "material", "jasa_pembuatan_pasang"],
+    "acp": ["produk", "material", "jasa_pembuatan_pasang"],
+    "vinyl": ["produk", "material", "jasa_pembuatan_pasang"],
+    "upvc": ["produk", "material", "jasa_instalasi"],
+    "tembaga": ["produk", "material", "jasa_instalasi"],
+    "kuningan": ["produk", "material"],
+    "perunggu": ["produk", "material"],
+    "titanium": ["produk", "material"],
+    "bambu": ["produk", "material", "desain"],
+    "rotan": ["produk", "material", "desain"]
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  // TIERED MODIFIER SYSTEM (v15 — DIPERTAHANKAN)
   // ═══════════════════════════════════════════════════════════
 
   // ─── TIER 1: GLOBAL MODIFIERS ───
@@ -537,13 +886,12 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         "hanil","jeka",
         "danagri","magic","aquaproof","no drop","no-drop",
         "nodrop","aqua proof",
-                "icera","ardena","milano","asia tile","asia-tile",
+        "icera","ardena","milano","asia tile","asia-tile",
         "indograha","kian","eleganza","elegan",
-        // 🔥 FIX v15-D: paving/atap/plafon variants untuk material entity
         "paving","paving block","grass block",
         "atap","atap spandek","atap metal","atap genteng",
-         "plafon","plafon gypsum","plafon pvc","plafon grc",
-        "shunda","kalsiboard","gyproc","jayaboard"  // 🔥 FIX v15-F: plafon brands
+        "plafon","plafon gypsum","plafon pvc","plafon grc",
+        "shunda","kalsiboard","gyproc","jayaboard"
       ]
     },
     sewa: {
@@ -630,18 +978,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       return true;
     });
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // ✅ AKHIR BAGIAN 1/4
-  // ═══════════════════════════════════════════════════════════
-  // Bagian 2/4 berisi:
-  //   - PURE_METHODS (fallback legacy)
-  //   - APPLICATION_TARGETS_FULL
-  //   - SATUAN_UNITS, QUESTION_WORDS, dll
-  //   - All constants Part 2 (INTENT_TRIGGERS, COMMERCIAL_WORDS, dll)
-  //   - Utility functions: cleanText, getPageText, getH1Text
-  //   - Core detection Part A: checkHasSpecification, isLocation
-  // ═══════════════════════════════════════════════════════════
 
    // ═══════════════════════════════════════════════════════════
   // CONSTANTS PART 2 — Legacy Constants (Fallback)
@@ -1141,7 +1477,9 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     "service", "servis", "menyervis",
     "penggantian", "mengganti", "ganti",
     "pemeliharaan", "memelihara", "rawat", "perawatan",
-    "pengadaan", "menyediakan"
+    "pengadaan", "menyediakan",
+    "relief", "profil", "finishing", "cutting", "bongkar", "buang",
+    "uji", "perkuatan", "pematangan"
   ];
 
   var SYNTAX_CONJUNCTIONS = ["dan", "serta", "juga", "dengan", "tanpa"];
@@ -1654,7 +1992,9 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       "desain","interior","eksterior","arsitektur","konstruksi",
       "rumah","gedung","ruko","gudang","pabrik","jalan","jembatan",
       "masjid","gereja","sekolah","hotel","villa","apartemen",
-      "mini","pile","bore","strauss"
+      "mini","pile","bore","strauss",
+      "relief","profil","konsultan","finishing","uji","perkuatan",
+      "pembatas","pengaman","puing","drainase","perkerasan","pematangan"
     ];
     var baseRegex = new RegExp("\\b(" + baseWords.join("|") + ")\\b", "i");
     return baseRegex.test(lower);
@@ -1684,27 +2024,8 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     return false;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // ✅ AKHIR BAGIAN 2/4
-  // ═══════════════════════════════════════════════════════════
-  // Bagian 3/4 berisi:
-  //   - checkHasSpecification (pakai tier system + fallback)
-  //   - checkHasJasaMetode
-  //   - getCategoryDefs (FIX v15-B — 3-tier resolution)
-  //   - countModifierLayers
-  //   - hasJasaMaterialCtx, decideLevelByLayers
-  //   - checkPureTechnicalSpec, detectEntityTypeFromText
-  //   - detectSubPillar, detectPillar, hasTechnicalSpec, isSubVariant
-  //   - getCoreWords, detectVariantByPattern
-  //   - getFactors, getSEOContext
-  //   - detectConjunctionWarning, detectHierarchyWarning
-  //   - validateBreadcrumbHierarchy, validateParentDrivenHierarchy
-  //   - isSpecModifierForEntity (pakai tier system)
-  //   - detectMoneyLevelInternal
-  //   - detectPageLevel + turunannya
-  // ═══════════════════════════════════════════════════════════
-  // ═══════════════════════════════════════════════════════════
-  // PART 2B — CHECK HAS SPECIFICATION (Pakai Tier System)
+   // ═══════════════════════════════════════════════════════════
+  // PART 2B — CHECK HAS SPECIFICATION (Pakai Tier + Domain System)
   // ═══════════════════════════════════════════════════════════
 
   function checkHasSpecification(text, entityType) {
@@ -1715,7 +2036,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     if (checkHasPerUnit(text)) { log('🔬 SPEC: per unit', 'VARIANT'); return true; }
 
     if (entityType === "produk") {
-      // 🔥 FIX v15: pakai tier system
       var mutuList = ENTITY_SPECIFIC.produk.mutu || [];
       for (var i = 0; i < mutuList.length; i++) {
         if (new RegExp("\\b" + mutuList[i] + "\\b", "i").test(lower)) {
@@ -1754,7 +2074,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         }
       }
 
-      // Material modifier untuk PRODUK
       var materialModifiers = SHARED_MODIFIERS.material || [];
       for (var i = 0; i < materialModifiers.length; i++) {
         if (new RegExp("\\b" + materialModifiers[i] + "\\b", "i").test(lower)) {
@@ -1763,7 +2082,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         }
       }
 
-      // Application target untuk PRODUK
       var textNoBaseB = lower;
       var baseListB = ENTITY_BASE_NAMES.produk || [];
       for (var biB = 0; biB < baseListB.length; biB++) {
@@ -1805,7 +2123,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       for (var i = 0; i < beratList.length; i++) {
         if (new RegExp("\\b" + beratList[i] + "\\b", "i").test(lower)) return true;
       }
-      // 🔥 FIX v15: pakai ENTITY_SPECIFIC.material
       var tipeList = ENTITY_SPECIFIC.material.tipe_extended || [];
       for (var i = 0; i < tipeList.length; i++) {
         if (new RegExp("\\b" + tipeList[i].replace(/\s+/g, '\\s+') + "\\b", "i").test(lower)) {
@@ -1866,6 +2183,12 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     }
 
     if (entityType === "jasa") {
+      // 🔥 FIX v16-E: SUB-CATEGORY AWARE
+      var subCat = detectJasaSubCategory(text, "jasa");
+      var domainConstraints = DOMAIN_CONSTRAINTS[subCat] || DOMAIN_CONSTRAINTS["default"];
+      var forbiddenCats = domainConstraints.forbidden_categories || [];
+
+      // Metode — selalu allowed untuk jasa
       var metodeList = ENTITY_SPECIFIC.jasa.metode || [];
       for (var i = 0; i < metodeList.length; i++) {
         if (new RegExp("\\b" + metodeList[i] + "\\b", "i").test(lower)) {
@@ -1873,6 +2196,8 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
           if (!isEntityOnly) return true;
         }
       }
+
+      // Skala — selalu allowed
       var skalaList = ENTITY_SPECIFIC.jasa.skala || [];
       for (var i = 0; i < skalaList.length; i++) {
         if (new RegExp("\\b" + skalaList[i] + "\\b", "i").test(lower)) {
@@ -1880,30 +2205,45 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
           if (!isEntityOnly) return true;
         }
       }
-      var finishingList = SHARED_MODIFIERS.finishing || [];
-      for (var i = 0; i < finishingList.length; i++) {
-        if (new RegExp("\\b" + finishingList[i] + "\\b", "i").test(lower)) {
-          var isEntityOnly = entityOnly.some(function(w) { return finishingList[i] === w; });
-          if (!isEntityOnly) return true;
+
+      // 🔥 FIX v16-E: finishing HANYA kalau TIDAK forbidden
+      if (forbiddenCats.indexOf("finishing") === -1) {
+        var finishingList = SHARED_MODIFIERS.finishing || [];
+        for (var i = 0; i < finishingList.length; i++) {
+          if (new RegExp("\\b" + finishingList[i] + "\\b", "i").test(lower)) {
+            var isEntityOnly = entityOnly.some(function(w) { return finishingList[i] === w; });
+            if (!isEntityOnly) return true;
+          }
         }
+      } else {
+        log('🚫 FIX v16-E: SKIP finishing untuk subCat=' + subCat, 'DOMAIN');
       }
+
+      // Dimensi
       if (/\d+\s*(m|meter|cm|centimeter|feet|ft)/gi.test(lower)) {
         var hasEntityWord = JASA_WORDS.some(function(w) { return lower.indexOf(w) !== -1; });
         if (hasEntityWord) return true;
       }
+
+      // Foreign techniques
       var foreignList = CROSS_ENTITY_SPECS.jasa.foreignTechniques || [];
       for (var i = 0; i < foreignList.length; i++) {
         if (new RegExp("\\b" + foreignList[i].replace(/\s+/g, '\\s+') + "\\b", "i").test(lower)) return true;
       }
-      var sharedGaya = CROSS_ENTITY_SPECS.jasa.sharedGaya || [];
-      for (var i = 0; i < sharedGaya.length; i++) {
-        if (new RegExp("\\b" + sharedGaya[i] + "\\b", "i").test(lower)) return true;
+
+      // Gaya — hanya kalau TIDAK forbidden
+      if (forbiddenCats.indexOf("gaya") === -1) {
+        var sharedGaya = CROSS_ENTITY_SPECS.jasa.sharedGaya || [];
+        for (var i = 0; i < sharedGaya.length; i++) {
+          if (new RegExp("\\b" + sharedGaya[i] + "\\b", "i").test(lower)) return true;
+        }
       }
-      // tipe_aspal
+
       var tipeAspal = ENTITY_SPECIFIC.jasa.tipe_aspal || [];
       for (var i = 0; i < tipeAspal.length; i++) {
         if (new RegExp("\\b" + tipeAspal[i] + "\\b", "i").test(lower)) return true;
       }
+
       if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) {
         var hasJasaAction180 = ACTION_VERBS.some(function(w) {
           return lower.indexOf(w) !== -1;
@@ -1987,7 +2327,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       }
     }
 
-    // 🔥 FIX v15-E: Universal unit/dimension check (50kg, 5mm, 60x60)
+    // Universal unit/dimension check
     if (/\d+\s*(kg|ton|m|cm|mm|m3|liter|kva|psi|hp|inch|k)\b/i.test(lower)) {
       log('🔬 FIX v15-E: universal unit detected', 'VARIANT');
       return true;
@@ -2017,20 +2357,18 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX v15-B: getCategoryDefs — 3-TIER RESOLUTION
+  // 🔥 FIX v16-B: getCategoryDefs — 3-TIER + DOMAIN RESOLUTION
   // ═══════════════════════════════════════════════════════════
   function getCategoryDefs(entityType) {
     var result = {
       global_numeric: GLOBAL_NUMERIC_KEYWORDS
     };
 
-    // Tier 2: Shared modifiers untuk semua entity
     result.material = SHARED_MODIFIERS.material;
     result.finishing = SHARED_MODIFIERS.finishing;
     result.warna = SHARED_MODIFIERS.warna;
     result.gaya = SHARED_MODIFIERS.gaya;
 
-    // Tier 3: Entity-specific
     switch (entityType) {
       case "jasa":
         result.metode = ENTITY_SPECIFIC.jasa.metode;
@@ -2078,7 +2416,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         result.material_desain = ENTITY_SPECIFIC.desain.material;
         result.furniture = ENTITY_SPECIFIC.desain.furniture;
         result.subjektif = ENTITY_SPECIFIC.desain.subjektif;
- 
+
         result.target = targetDesain;
         break;
     }
@@ -2086,6 +2424,112 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     return result;
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX v16-D: detectJasaSubCategory
+  // ═══════════════════════════════════════════════════════════
+  function detectJasaSubCategory(text, entityType) {
+    if (entityType !== "jasa") return null;
+    if (!text) return null;
+    var lower = text.toLowerCase().trim();
+
+    var priorityOrder = [
+      "struktural",
+      "las_welding",
+      "finishing",
+      "bongkar_buang",
+      "pematangan",
+      "infrastruktur",
+      "pengaman",
+      "alat_konstruksi",
+      "instalasi",
+      "konsultasi",
+      "interior_eksterior",
+      "pembuatan_pasang",
+      "konstruksi",
+      "perbaikan"
+    ];
+
+    for (var p = 0; p < priorityOrder.length; p++) {
+      var cat = priorityOrder[p];
+      var words = JASA_SUB_CATEGORIES[cat] || [];
+      for (var i = 0; i < words.length; i++) {
+        var w = words[i];
+        if (w.length < 3) continue;
+        var rx = new RegExp("\\b" + w.replace(/\s+/g, '\\s+') + "\\b", "i");
+        if (rx.test(lower)) {
+          log('📂 SUBCAT: ' + cat + ' (match: "' + w + '")', 'SUBCAT');
+          return cat;
+        }
+      }
+    }
+
+    log('📂 SUBCAT: default (tidak terdeteksi)', 'SUBCAT');
+    return "default";
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX v16-F: isSpecModifierForEntity dengan compatibility matrix
+  // ═══════════════════════════════════════════════════════════
+  function isSpecModifierForEntity(word, entityType) {
+    if (!word) return false;
+    var w = word.toLowerCase().trim();
+    if (!w) return false;
+
+    if (/^\d+(kg|ton|m|cm|mm|m3|liter|kva|psi|hp|inch|k)$/i.test(w)) return true;
+    if (/^\d+x\d+$/i.test(w)) return true;
+    if (/^\d+/.test(w)) return true;
+    if (/^(k\d+|fc\d*|m\d+|c\d+|bjts?\d*)$/i.test(w)) return true;
+    if (GLOBAL_NUMERIC_KEYWORDS.indexOf(w) !== -1) return true;
+
+    if (w === 'termurah' || w === 'termahal' || w === 'promo' || w === 'diskon') return true;
+
+    // 🔥 FIX v16-F: cek compatibility matrix dulu
+    if (MODIFIER_COMPATIBILITY[w]) {
+      var compatibleEntities = MODIFIER_COMPATIBILITY[w];
+      if (entityType === "jasa") {
+        var subCat = detectJasaSubCategory(w, "jasa");
+        var jasaKey = "jasa_" + subCat;
+        if (compatibleEntities.indexOf(jasaKey) !== -1) return true;
+        if (compatibleEntities.indexOf("jasa") !== -1) return true;
+        for (var i = 0; i < compatibleEntities.length; i++) {
+          if (compatibleEntities[i].indexOf("jasa_") === 0) return true;
+        }
+        log('🚫 FIX v16-F: modifier "' + w + '" tidak kompatibel untuk jasa/' + subCat, 'DOMAIN');
+        return false;
+      }
+      if (compatibleEntities.indexOf(entityType) !== -1) return true;
+      log('🚫 FIX v16-F: modifier "' + w + '" tidak kompatibel untuk ' + entityType, 'DOMAIN');
+      return false;
+    }
+
+    // Tier 2: Shared — fallback
+    for (var cat in SHARED_MODIFIERS) {
+      if (!SHARED_MODIFIERS.hasOwnProperty(cat)) continue;
+      if (SHARED_MODIFIERS[cat].indexOf(w) !== -1) return true;
+    }
+
+    // Tier 3: Entity specific
+    if (entityType && ENTITY_SPECIFIC[entityType]) {
+      var spec = ENTITY_SPECIFIC[entityType];
+      for (var key in spec) {
+        if (!spec.hasOwnProperty(key)) continue;
+        if (spec[key].indexOf(w) !== -1) return true;
+      }
+    }
+
+    if (entityType === "sewa") {
+      if (SEWA_SPECS.kapasitas.indexOf(w) !== -1) return true;
+    }
+    if (entityType === "material") {
+      if (MATERIAL_SPECS.berat.indexOf(w) !== -1) return true;
+    }
+
+    return false;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX v16-D: countModifierLayers dengan domain filter
+  // ═══════════════════════════════════════════════════════════
   function countModifierLayers(text, entityType) {
     if (!text) return 0;
     var working = text.toLowerCase();
@@ -2156,8 +2600,21 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     }
 
     var categories = getCategoryDefs(entityType);
+
+    // 🔥 FIX v16-A: Dapatkan domain constraints
+    var subCat = detectJasaSubCategory(text, entityType);
+    var domainConstraints = DOMAIN_CONSTRAINTS[subCat] || DOMAIN_CONSTRAINTS["default"];
+    var forbiddenCats = domainConstraints.forbidden_categories || [];
+
     for (var cat in categories) {
       if (!categories.hasOwnProperty(cat)) continue;
+
+      // 🔥 FIX v16-A: SKIP kategori yang forbidden untuk domain ini
+      if (forbiddenCats.indexOf(cat) !== -1) {
+        log('🚫 FIX v16-A: SKIP category "' + cat + '" (forbidden untuk ' + subCat + ')', 'DOMAIN');
+        continue;
+      }
+
       var words = categories[cat];
       for (var i = 0; i < words.length; i++) {
         var word = words[i];
@@ -2199,6 +2656,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     var cleaned = working;
     for (var cat2 in categories) {
       if (!categories.hasOwnProperty(cat2)) continue;
+      if (forbiddenCats.indexOf(cat2) !== -1) continue;
       var words2 = categories[cat2];
       for (var j = 0; j < words2.length; j++) {
         cleaned = cleaned.replace(
@@ -2236,8 +2694,8 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
           unknownWords.length, 'VARIANT');
     }
 
-    log('🔥 FIX v15: layers=' + count + ' entity=' + entityType +
-        ' working="' + working.trim() + '"', 'VARIANT');
+    log('🔥 FIX v16: layers=' + count + ' entity=' + entityType +
+        ' subCat=' + subCat + ' working="' + working.trim() + '"', 'VARIANT');
     return count;
   }
 
@@ -2280,12 +2738,16 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     if (!text) return false;
     var lower = text.toLowerCase();
     var pureSpecs = [];
-    if (entityType === "jasa") pureSpecs = PURE_JASA_TECHNIQUES
-  .concat(ENTITY_SPECIFIC.jasa.metode)
-  .concat(ENTITY_SPECIFIC.jasa.skala)
-  .concat(SHARED_MODIFIERS.finishing)
-  .concat(CROSS_ENTITY_SPECS.jasa.foreignTechniques)
-  .concat(CROSS_ENTITY_SPECS.jasa.sharedGaya);
+    if (entityType === "jasa") {
+      // 🔥 FIX v16-E: HANYA metode & skala yang pure
+      var subCat = detectJasaSubCategory(text, "jasa");
+      pureSpecs = ENTITY_SPECIFIC.jasa.metode
+        .concat(ENTITY_SPECIFIC.jasa.skala)
+        .concat(ENTITY_SPECIFIC.jasa.tipe_aspal || []);
+      if (["finishing", "interior_eksterior", "pembuatan_pasang", "perbaikan"].indexOf(subCat) !== -1) {
+        pureSpecs = pureSpecs.concat(SHARED_MODIFIERS.finishing);
+      }
+    }
     else if (entityType === "produk") pureSpecs = PURE_PRODUK_SPECS.concat(SHARED_MODIFIERS.finishing, CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing);
     else if (entityType === "material") pureSpecs = PURE_MATERIAL_SPECS.concat(SHARED_MODIFIERS.finishing);
     else if (entityType === "sewa") pureSpecs = PURE_SEWA_SPECS;
@@ -2708,30 +3170,15 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       });
     }
 
-       return warnings;
+    return warnings;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX v15-W2: SAME-LEVEL CONTENT REVIEW WARNING
-  // ═══════════════════════════════════════════════════════════
-  // Tujuan: Alert kalau ada 2 halaman dengan level SAMA yang
-  //         mungkin akan kanibalisasi. Warning ini TIDAK bilang
-  //         redirect. Warning ini bilang "cek konten beda".
-  //
-  // Prinsip SEO:
-  //   - Halaman *-murah untuk user yang cari "murah" — PERTAHANKAN
-  //   - Konten HARUS BEDA (angle, H1, meta, body)
-  //   - JANGAN redirect — malah kalah bersaing
-  // ═══════════════════════════════════════════════════════════
   function detectSameLevelContentWarning(slug, entityType) {
     var warnings = [];
     if (!slug) return warnings;
 
     var lower = slug.toLowerCase();
 
-     // Kategori trigger yang bikin 2 URL "mirip"
-    // 🔥 FIX v15-G: pakai doNotTemplate + replace("{WORD}", word)
-    //    untuk hindari ReferenceError (word belum ada di scope ini)
     var TRIGGER_CATEGORIES = [
       {
         type: "PROMO_WORD",
@@ -2770,7 +3217,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         var rx = new RegExp("\\b" + word + "\\b", "i");
         if (!rx.test(lower)) continue;
 
-        // Buat base slug (tanpa kata trigger)
         var baseSlug = lower.replace(new RegExp("\\b" + word + "\\b", "gi"), "")
                             .replace(/\s+/g, " ")
                             .trim();
@@ -2796,13 +3242,12 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
             "5. Angle beda? (umum vs hemat/harga)",
             "6. Internal link beda? (anchor text berbeda)"
           ],
-          do_not: cat.doNotTemplate.replace("{WORD}", word),  // 🔥 FIX v15-G
+          do_not: cat.doNotTemplate.replace("{WORD}", word),
           suggestion: cat.angle_suggestion,
           action_if_duplicate: "REWRITE konten, JANGAN redirect/hapus",
           action_if_unique: "✅ Aman — biarkan 2 halaman"
         });
 
-        // Hanya flag 1x per kategori (hindari warning spam)
         break;
       }
     }
@@ -2990,49 +3435,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     return warnings;
   }
 
-  // 🔥 FIX v15-C: isSpecModifierForEntity pakai tier system
-  function isSpecModifierForEntity(word, entityType) {
-    if (!word) return false;
-    var w = word.toLowerCase().trim();
-    if (!w) return false;
-
-    if (/^\d+(kg|ton|m|cm|mm|m3|liter|kva|psi|hp|inch|k)$/i.test(w)) return true;
-    if (/^\d+x\d+$/i.test(w)) return true;
-     
-    // Universal numeric
-    if (/^\d+/.test(w)) return true;
-    if (/^(k\d+|fc\d*|m\d+|c\d+|bjts?\d*)$/i.test(w)) return true;
-    if (GLOBAL_NUMERIC_KEYWORDS.indexOf(w) !== -1) return true;
-
-    // Strong promo
-    if (w === 'termurah' || w === 'termahal' || w === 'promo' || w === 'diskon') return true;
-
-    // Tier 2: Shared — cek semua kategori shared
-    for (var cat in SHARED_MODIFIERS) {
-      if (!SHARED_MODIFIERS.hasOwnProperty(cat)) continue;
-      if (SHARED_MODIFIERS[cat].indexOf(w) !== -1) return true;
-    }
-
-    // Tier 3: Entity specific
-    if (entityType && ENTITY_SPECIFIC[entityType]) {
-      var spec = ENTITY_SPECIFIC[entityType];
-      for (var key in spec) {
-        if (!spec.hasOwnProperty(key)) continue;
-        if (spec[key].indexOf(w) !== -1) return true;
-      }
-    }
-
-    // Additional
-    if (entityType === "sewa") {
-      if (SEWA_SPECS.kapasitas.indexOf(w) !== -1) return true;
-    }
-    if (entityType === "material") {
-      if (MATERIAL_SPECS.berat.indexOf(w) !== -1) return true;
-    }
-
-    return false;
-  }
-
   function detectMoneyLevelInternal(text, entityType) {
     var lowerText = text.toLowerCase();
     var factors = getFactors(text, entityType);
@@ -3052,10 +3454,8 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         ' price=' + hasPriceWord + ' comm=' + hasCommercialWord +
         ' score=' + complexityScore + ' baseSvc=' + hasBaseService, 'INFO');
 
-    // PRIORITAS 1: SUB-PILLAR
     if (subPillar) return subPillar;
 
-    // PRIORITAS 2: LOCATION → MONEY_CHILD
     if (hasLocationWord) {
       if (hasBaseService) {
         log('📍 FIX 193: MONEY_CHILD (base service + location)', 'LOCATION');
@@ -3063,31 +3463,26 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       }
     }
 
-    // PRIORITAS 3: SPEC PHRASE
     if (hasSpecPhrase && !hasLocationWord && !hasCommercialWord) {
       log('💰 MONEY_PAGE (spec phrase)', 'PRICE');
       return "money-page";
     }
 
-    // PRIORITAS 4: PER-UNIT
     if (hasPerUnit && !hasPriceWord && !hasCommercialWord && !hasLocationWord && !hasSpecPhrase) {
       log('💰 MONEY_PAGE (per-unit)', 'PRICE');
       return "money-page";
     }
 
-    // PRIORITAS 5: COMPOUND ACTION
     if (hasCompound && !hasLocationWord && !hasCommercialWord) {
       log('💰 MONEY_PAGE (compound)', 'PRICE');
       return "money-page";
     }
 
-    // PRIORITAS 6: HIGH COMPLEXITY
     if (complexityScore >= 3 && !hasLocationWord && !hasCommercialWord && !hasPriceWord) {
       log('💰 MONEY_PAGE (score=' + complexityScore + ')', 'SCORE');
       return "money-page";
     }
 
-    // PRIORITAS 7
     var jasaMaterialCtx186 = false;
     if (entityType === "jasa" && hasJasaMaterialCtx(text)) {
       var isMaterialInBase = false;
@@ -3139,12 +3534,11 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       if (layers186 === 0 && jasaMaterialCtx186) layers186 = 1;
       if (layers186 > 0) {
         var decision186 = decideLevelByLayers(layers186);
-        log('🔥 FIX v15-C: ' + decision186 + ' (' + layers186 + ' layer)', 'VARIANT');
+        log('🔥 FIX v16-C: ' + decision186 + ' (' + layers186 + ' layer)', 'VARIANT');
         return decision186;
       }
     }
 
-    // PRIORITAS 8: COMMERCIAL + SPEC
     if (hasCommercialWord && hasSpecWord && !hasLocationWord) {
       var layersP8 = countModifierLayers(text, entityType);
       if (layersP8 >= 1) {
@@ -3156,7 +3550,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       return "money-page";
     }
 
-    // FIX SEO v8
     if (hasPriceWord && entityType === "desain"
         && !hasLocationWord && !hasCommercialWord && !hasSpecWord) {
       for (var mwt8 = 0; mwt8 < APPLICATION_TARGETS_FULL.length; mwt8++) {
@@ -3168,7 +3561,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       }
     }
 
-    // PRIORITAS 7.5: PRICE + BASE SERVICE
     if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
       var preCore = getCoreWords(text, entityType);
       log('🔥 FIX 204: preCore=[' + preCore.join(',') + '] (len=' + preCore.length + ')', 'CORE');
@@ -3228,7 +3620,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       return "money-page";
     }
 
-    // PRIORITAS 9: PRICE + SPEC
     if (hasPriceWord && hasSpecWord && !hasLocationWord && !hasCommercialWord) {
       var layersP9 = countModifierLayers(text, entityType);
       if (layersP9 >= 1) {
@@ -3258,14 +3649,12 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       return "money-master";
     }
 
-    // PRIORITAS 10: COMMERCIAL
     if (hasCommercialWord && !hasLocationWord) {
       if (hasPriceWord && !hasSpecWord) { log('🏛️ MONEY_MASTER', 'HARGA'); return "money-master"; }
       log('💰 MONEY_PAGE (comm)', 'PRICE');
       return "money-page";
     }
 
-    // PRIORITAS 11: HIGH VOLUME
     var hasHighVolume = false;
     for (var i = 0; i < HIGH_VOLUME_WORDS.length; i++) {
       if (lowerText.indexOf(HIGH_VOLUME_WORDS[i]) !== -1) { hasHighVolume = true; break; }
@@ -3285,7 +3674,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       }
     }
 
-    // FIX 164: DAN-bundling
     var hasDanConj = /\b(dan|serta)\b/i.test(lowerText);
     var isDanBaseNamePart = /\bcut and fill\b/i.test(lowerText);
     if (hasDanConj && !isDanBaseNamePart && !hasLocationWord && !hasCommercialWord && !hasPriceWord) {
@@ -3296,7 +3684,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       }
     }
 
-    // PRIORITAS 12
     var coreWords = getCoreWords(text, entityType);
     log('🧠 CORE: [' + coreWords.join(', ') + ']', 'CORE');
 
@@ -3524,7 +3911,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     var hierarchyWarnings = detectHierarchyWarning(slug, entity);
     var breadcrumbWarnings = validateBreadcrumbHierarchy(slug, entity);
     var parentDrivenWarnings = validateParentDrivenHierarchy(slug, entity);
-        // 🔥 FIX v15-W2: Same-level content review
     var sameLevelWarnings = detectSameLevelContentWarning(slug, entity);
     var allWarnings = seoWarnings.concat(hierarchyWarnings)
                                 .concat(breadcrumbWarnings)
@@ -3552,12 +3938,11 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     var hierarchyWarnings = detectHierarchyWarning(slug, entity);
     var breadcrumbWarnings = validateBreadcrumbHierarchy(slug, entity);
     var parentDrivenWarnings = validateParentDrivenHierarchy(slug, entity);
-       // 🔥 FIX v15-W2: Same-level content review
     var sameLevelWarnings = detectSameLevelContentWarning(slug, entity);
     var allWarnings = seoWarnings.concat(hierarchyWarnings)
                                 .concat(breadcrumbWarnings)
                                 .concat(parentDrivenWarnings)
-                                 .concat(sameLevelWarnings);
+                                .concat(sameLevelWarnings);
     return {
       pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
@@ -3651,20 +4036,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     else if (maxScore >= 2) confidence = "medium";
     return { dominant: dominantIntent, scores: scores, confidence: confidence, maxScore: maxScore };
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // ✅ AKHIR BAGIAN 3/4
-  // ═══════════════════════════════════════════════════════════
-  // Bagian 4/4 berisi:
-  //   - Schema/Attributes functions (detectContentFocus, setSchemaAttributes, dll)
-  //   - EEAT, Structure, Snippet detection
-  //   - SEO score calculation
-  //   - Breadcrumbs finder
-  //   - auditBaseNames + auditModifierTiers (FIX v15-C)
-  //   - runTestSuite (dengan semua test case)
-  //   - initializeCore + Export
-  //   - Close IIFE
-  // ═══════════════════════════════════════════════════════════
 
   // ═══════════════════════════════════════════════════════════
   // PART 4 — SCHEMA / ATTRIBUTES / SEO
@@ -3813,6 +4184,12 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
         entityType = detectEntityTypeFromText(h1Text);
       }
       document.body.setAttribute("data-entity-type", entityType || '');
+
+      // 🔥 FIX v16: Set sub-kategori JASA
+      if (entityType === "jasa") {
+        var subCat = detectJasaSubCategory(getPageText() + " " + getH1Text(), "jasa");
+        document.body.setAttribute("data-jasa-sub-category", subCat || 'default');
+      }
 
       var contentFocus = detectContentFocus(level, entityType);
       document.body.setAttribute("data-content-focus", contentFocus);
@@ -4058,9 +4435,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     setTimeout(checkBreadcrumbs, 0);
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // AUDIT BASE NAMES
-  // ═══════════════════════════════════════════════════════════
   function auditBaseNames() {
     var bad = [];
     var totalBase = 0;
@@ -4074,9 +4448,9 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       });
     });
     if (bad.length === 0) {
-      console.log('✅ FIX v14-F AUDIT PASS: Semua ' + totalBase + ' base name = 0 layer');
+      console.log('✅ FIX v16-G AUDIT PASS: Semua ' + totalBase + ' base name = 0 layer');
     } else {
-      console.warn('⚠️ FIX v14-F AUDIT: ' + bad.length + ' / ' + totalBase + ' base name masih punya layer:');
+      console.warn('⚠️ FIX v16-G AUDIT: ' + bad.length + ' / ' + totalBase + ' base name masih punya layer:');
       bad.forEach(function(b) {
         console.warn('  • [' + b.ent + '] "' + b.base + '" → ' + b.layers + ' layer');
       });
@@ -4084,9 +4458,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     return { total: totalBase, bad: bad.length, details: bad };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX v15-C: AUDIT MODIFIER TIERS
-  // ═══════════════════════════════════════════════════════════
   function auditModifierTiers() {
     var report = {
       tier1_count: GLOBAL_NUMERIC_KEYWORDS.length,
@@ -4147,11 +4518,14 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("📊 FIX v15-C AUDIT — MODIFIER TIERS");
+    console.log("📊 FIX v16 AUDIT — MODIFIER TIERS + DOMAIN CONSTRAINTS");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("Tier 1 (GLOBAL): " + report.tier1_count);
     console.log("Tier 2 (SHARED): " + report.tier2_count);
     console.log("Tier 3 (SPECIFIC): " + report.tier3_count);
+    console.log("Sub-Kategori JASA: " + Object.keys(JASA_SUB_CATEGORIES).length);
+    console.log("Domain Constraints: " + Object.keys(DOMAIN_CONSTRAINTS).length);
+    console.log("Compatibility Matrix: " + Object.keys(MODIFIER_COMPATIBILITY).length);
     console.log("──────────────────────────────────────────────────────────");
     if (report.duplicates_tier2.length === 0 && report.duplicates_tier3.length === 0) {
       console.log("✅ Tidak ada duplikat dalam tier");
@@ -4174,533 +4548,584 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
   // ═══════════════════════════════════════════════════════════
   function runTestSuite() {
     var TEST_CASES = [
-  // ═══ Regression dasar ═══
-  { slug: "jasa urug tanah", entity: "jasa", expect: "money-master" },
-  { slug: "jasa gali tanah", entity: "jasa", expect: "money-master" },
-  { slug: "jasa angkut tanah", entity: "jasa", expect: "money-master" },
-  { slug: "jasa penggalian tanah", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pengurugan lahan", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pengerukan sungai", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pemotongan bukit", entity: "jasa", expect: "money-master" },
-  { slug: "jasa desain", entity: "desain", expect: "pillar" },
-  { slug: "jasa desain interior", entity: "desain", expect: "money-master" },
-  { slug: "jasa pasang pagar", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-page" },
-  { slug: "jasa pasang kanopi", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pasang pintu", entity: "jasa", expect: "money-master" },
-  { slug: "semen jakarta", entity: "material", expect: "money-child" },
-  { slug: "pasir jakarta", entity: "material", expect: "money-child" },
-  { slug: "batu split jakarta", entity: "material", expect: "money-child" },
-  { slug: "semen bandung", entity: "material", expect: "money-child" },
-  { slug: "biaya sumur bor berdasarkan kedalaman", entity: "jasa", expect: "money-page" },
-  { slug: "faktor penentu biaya jasa bor sumur", entity: "jasa", expect: "money-page" },
-  { slug: "cara pasang keramik lantai", entity: "artikel", expect: "money-master" },
-  { slug: "panduan pasang pagar panel beton", entity: "artikel", expect: "money-master" },
-  { slug: "tips memilih cat tembok", entity: "artikel", expect: "money-master" },
-  { slug: "tutorial instalasi listrik rumah", entity: "artikel", expect: "money-master" },
-  { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-master" },
-  { slug: "perbandingan pagar besi atau kayu", entity: "produk", expect: "sub-pillar-tipe-1" },
-  { slug: "kelebihan dan kekurangan pagar beton", entity: "produk", expect: "sub-pillar-tipe-1" },
-  { slug: "jasa pasang rolling door", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring beton", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page" },
-  { slug: "jasa pasang pagar jakarta", entity: "jasa", expect: "money-child" },
-  { slug: "semen portland", entity: "material", expect: "money-page" },
-  { slug: "sewa excavator mini", entity: "sewa", expect: "money-page" },
-  { slug: "desain interior minimalis", entity: "desain", expect: "money-page" },
-  { slug: "pagar panel beton k300", entity: "produk", expect: "variant" },
-  { slug: "harga pagar panel beton k300", entity: "produk", expect: "variant" },
-  { slug: "jasa konstruksi", entity: "jasa", expect: "pillar" },
-  { slug: "semen 3 roda", entity: "material", expect: "money-page" },
-  { slug: "harga pasir bangka per kubik", entity: "material", expect: "money-page" },
+      // ═══ REGRESSION DASAR ═══
+      { slug: "jasa urug tanah", entity: "jasa", expect: "money-master" },
+      { slug: "jasa gali tanah", entity: "jasa", expect: "money-master" },
+      { slug: "jasa angkut tanah", entity: "jasa", expect: "money-master" },
+      { slug: "jasa penggalian tanah", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pengurugan lahan", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pengerukan sungai", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pemotongan bukit", entity: "jasa", expect: "money-master" },
+      { slug: "jasa desain", entity: "desain", expect: "pillar" },
+      { slug: "jasa desain interior", entity: "desain", expect: "money-master" },
+      { slug: "jasa pasang pagar", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-page" },
+      { slug: "jasa pasang kanopi", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pasang pintu", entity: "jasa", expect: "money-master" },
+      { slug: "semen jakarta", entity: "material", expect: "money-child" },
+      { slug: "pasir jakarta", entity: "material", expect: "money-child" },
+      { slug: "batu split jakarta", entity: "material", expect: "money-child" },
+      { slug: "semen bandung", entity: "material", expect: "money-child" },
+      { slug: "biaya sumur bor berdasarkan kedalaman", entity: "jasa", expect: "money-page" },
+      { slug: "faktor penentu biaya jasa bor sumur", entity: "jasa", expect: "money-page" },
+      { slug: "cara pasang keramik lantai", entity: "artikel", expect: "money-master" },
+      { slug: "panduan pasang pagar panel beton", entity: "artikel", expect: "money-master" },
+      { slug: "tips memilih cat tembok", entity: "artikel", expect: "money-master" },
+      { slug: "tutorial instalasi listrik rumah", entity: "artikel", expect: "money-master" },
+      { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-master" },
+      { slug: "perbandingan pagar besi atau kayu", entity: "produk", expect: "sub-pillar-tipe-1" },
+      { slug: "kelebihan dan kekurangan pagar beton", entity: "produk", expect: "sub-pillar-tipe-1" },
+      { slug: "jasa pasang rolling door", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring beton", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page" },
+      { slug: "jasa pasang pagar jakarta", entity: "jasa", expect: "money-child" },
+      { slug: "semen portland", entity: "material", expect: "money-page" },
+      { slug: "sewa excavator mini", entity: "sewa", expect: "money-page" },
+      { slug: "desain interior minimalis", entity: "desain", expect: "money-page" },
+      { slug: "pagar panel beton k300", entity: "produk", expect: "variant" },
+      { slug: "harga pagar panel beton k300", entity: "produk", expect: "variant" },
+      { slug: "jasa konstruksi", entity: "jasa", expect: "pillar" },
+      { slug: "semen 3 roda", entity: "material", expect: "money-page" },
+      { slug: "harga pasir bangka per kubik", entity: "material", expect: "money-page" },
 
-  // ═══ FIX 158: noise vs strong modifier ═══
-  { slug: "harga jasa bor sumur murah", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa bore pile murah", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa pasang pagar hemat", entity: "jasa", expect: "money-master" },
-  { slug: "jasa bore pile terjangkau", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa bor sumur bersaing", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa bor sumur kompetitif", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa bor sumur pasaran", entity: "jasa", expect: "money-master" },
-  { slug: "jasa coring beton diskon", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor sumur promo", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor sumur diskon", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor sumur termurah", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor sumur termahal", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor beton jakarta", entity: "jasa", expect: "money-child" },
+      // ═══ 🔥 FIX v16-G: JASA BARU (25) ═══
+      { slug: "jasa relief", entity: "jasa", expect: "money-master" },
+      { slug: "jasa profil beton", entity: "jasa", expect: "money-master" },
+      { slug: "jasa interior", entity: "jasa", expect: "money-master" },
+      { slug: "jasa eksterior", entity: "jasa", expect: "money-master" },
+      { slug: "jasa konsultan", entity: "jasa", expect: "money-master" },
+      { slug: "jasa kitchen set", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pembuatan", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pasang", entity: "jasa", expect: "money-master" },
+      { slug: "jasa alat konstruksi", entity: "jasa", expect: "money-master" },
+      { slug: "jasa konstruksi bangunan", entity: "jasa", expect: "money-master" },
+      { slug: "jasa konstruksi struktur", entity: "jasa", expect: "money-master" },
+      { slug: "jasa struktur khusus", entity: "jasa", expect: "money-master" },
+      { slug: "jasa lapangan olahraga", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pondasi", entity: "jasa", expect: "money-master" },
+      { slug: "jasa saluran drainase", entity: "jasa", expect: "money-master" },
+      { slug: "jasa jalan perkerasan", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pematangan lahan", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pekerjaan galian tanah", entity: "jasa", expect: "money-master" },
+      { slug: "jasa uji tanah", entity: "jasa", expect: "money-master" },
+      { slug: "jasa cutting beton", entity: "jasa", expect: "money-master" },
+      { slug: "jasa bongkar bangunan", entity: "jasa", expect: "money-master" },
+      { slug: "jasa buang puing", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pengeboran", entity: "jasa", expect: "money-master" },
+      { slug: "jasa perkuatan tanah", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pembatas pengaman", entity: "jasa", expect: "money-master" },
+      { slug: "jasa renovasi", entity: "jasa", expect: "money-master" },
+      { slug: "jasa finishing", entity: "jasa", expect: "money-master" },
+      { slug: "jasa instalasi listrik", entity: "jasa", expect: "money-master" },
+      { slug: "jasa perbaikan bangunan", entity: "jasa", expect: "money-master" },
+      { slug: "jasa perbaikan infrastruktur", entity: "jasa", expect: "money-master" },
+      { slug: "jasa struktur konstruksi", entity: "jasa", expect: "money-master" },
 
-  // ═══ FIX 160a: JASA compound ═══
-  { slug: "harga jasa bor pile", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa bor strauss", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa cor dak", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa bongkar dinding", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa renovasi rumah", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa renovasi dapur", entity: "jasa", expect: "money-master" },
-  { slug: "harga pintu kayu", entity: "produk", expect: "money-page" },
-  { slug: "harga pintu aluminium", entity: "produk", expect: "money-page" },
-  { slug: "harga pagar stainless", entity: "produk", expect: "money-page" },
-  { slug: "harga jendela aluminium", entity: "produk", expect: "money-page" },
-  { slug: "harga kanopi alderon", entity: "produk", expect: "money-page" },
-  { slug: "harga besi beton ulir", entity: "material", expect: "money-page" },
-  { slug: "jasa bore pile beton", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-page" },
+      // ═══ 🔥 FIX v16-A: DOMAIN FILTER TEST (KUNCI!) ═══
+      // Strauss pile = struktural → finishing TIDAK relevan → tetap MM
+      { slug: "jasa borongan strauss pile polos", entity: "jasa", expect: "money-master" },
+      { slug: "jasa borongan strauss pile ekspos", entity: "jasa", expect: "money-master" },
+      { slug: "jasa borongan strauss pile custom", entity: "jasa", expect: "money-master" },
+      { slug: "jasa borongan strauss pile minimalis", entity: "jasa", expect: "money-master" },
+      { slug: "jasa borongan strauss pile modern", entity: "jasa", expect: "money-master" },
+      { slug: "jasa borongan strauss pile putih", entity: "jasa", expect: "money-master" },
+      { slug: "jasa borongan strauss pile glossy", entity: "jasa", expect: "money-master" },
+      // Tapi metode/dimensi VALID untuk strauss pile → MP
+      { slug: "jasa borongan strauss pile manual", entity: "jasa", expect: "money-page" },
+      { slug: "jasa borongan strauss pile hidrolik", entity: "jasa", expect: "money-page" },
+      { slug: "jasa borongan strauss pile 30cm", entity: "jasa", expect: "money-page" },
+      { slug: "jasa borongan strauss pile 40cm", entity: "jasa", expect: "money-page" },
+      // Finishing JASA (cat dinding) → finishing VALID → MP
+      { slug: "jasa cat dinding polos", entity: "jasa", expect: "money-page" },
+      { slug: "jasa cat dinding ekspos", entity: "jasa", expect: "money-page" },
+      { slug: "jasa cat dinding putih", entity: "jasa", expect: "money-page" },
 
-  // ═══ FIX 161 ═══
-  { slug: "harga kitchen set", entity: "produk", expect: "money-master" },
-  { slug: "harga kitchen set minimalis", entity: "produk", expect: "money-page" },
-  { slug: "harga wardrobe", entity: "produk", expect: "money-master" },
-  { slug: "harga sofa minimalis", entity: "produk", expect: "money-page" },
-  { slug: "harga gazebo kayu", entity: "produk", expect: "money-page" },
-  { slug: "harga kolam renang", entity: "produk", expect: "money-master" },
-  { slug: "harga pintu rolling door", entity: "produk", expect: "money-page" },
-  { slug: "harga pintu kaca", entity: "produk", expect: "money-page" },
-  { slug: "harga jendela upvc", entity: "produk", expect: "money-page" },
-  { slug: "harga pagar wpc", entity: "produk", expect: "money-page" },
-  { slug: "harga plafon kalsiboard", entity: "produk", expect: "money-page" },
-  { slug: "harga plafon shunda", entity: "produk", expect: "money-page" },
-  { slug: "harga lantai vinyl", entity: "produk", expect: "money-page" },
-  { slug: "harga atap shingle", entity: "produk", expect: "money-page" },
-  { slug: "harga saklar listrik", entity: "produk", expect: "money-master" },
+      // ═══ FIX 158: noise vs strong modifier ═══
+      { slug: "harga jasa bor sumur murah", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa bore pile murah", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa pasang pagar hemat", entity: "jasa", expect: "money-master" },
+      { slug: "jasa bore pile terjangkau", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa bor sumur bersaing", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa bor sumur kompetitif", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa bor sumur pasaran", entity: "jasa", expect: "money-master" },
+      { slug: "jasa coring beton diskon", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor sumur promo", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor sumur diskon", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor sumur termurah", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor sumur termahal", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor beton jakarta", entity: "jasa", expect: "money-child" },
 
-  // ═══ MATERIAL ═══
-  { slug: "harga semen mortar", entity: "material", expect: "money-page" },
-  { slug: "harga semen instan", entity: "material", expect: "money-page" },
-  { slug: "harga pasir cor", entity: "material", expect: "money-page" },
-  { slug: "harga pasir plester", entity: "material", expect: "money-page" },
-  { slug: "harga batu templek", entity: "material", expect: "money-page" },
-  { slug: "harga kawat beton", entity: "material", expect: "money-page" },
-  { slug: "harga kayu kruing", entity: "material", expect: "money-page" },
-  { slug: "harga pipa pvc", entity: "material", expect: "money-page" },
-  { slug: "harga kabel listrik", entity: "material", expect: "money-page" },
-  { slug: "harga fitting pvc", entity: "material", expect: "money-page" },
-  { slug: "harga cat waterproof", entity: "material", expect: "money-page" },
-  { slug: "harga vernis kayu", entity: "material", expect: "money-page" },
-  { slug: "harga aquaproof", entity: "material", expect: "money-master" },
-  { slug: "harga no drop", entity: "material", expect: "money-master" },
-  { slug: "harga beton readymix", entity: "material", expect: "money-page" },
+      // ═══ FIX 160a: JASA compound ═══
+      { slug: "harga jasa bor pile", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa bor strauss", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa cor dak", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa bongkar dinding", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa renovasi rumah", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa renovasi dapur", entity: "jasa", expect: "money-master" },
+      { slug: "harga pintu kayu", entity: "produk", expect: "money-page" },
+      { slug: "harga pintu aluminium", entity: "produk", expect: "money-page" },
+      { slug: "harga pagar stainless", entity: "produk", expect: "money-page" },
+      { slug: "harga jendela aluminium", entity: "produk", expect: "money-page" },
+      { slug: "harga kanopi alderon", entity: "produk", expect: "money-page" },
+      { slug: "harga besi beton ulir", entity: "material", expect: "money-page" },
+      { slug: "jasa bore pile beton", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa bore pile beton", entity: "jasa", expect: "money-page" },
 
-  // ═══ SEWA ═══
-  { slug: "harga sewa forklift 3 ton", entity: "sewa", expect: "money-page" },
-  { slug: "harga sewa forklift listrik", entity: "sewa", expect: "money-page" },
-  { slug: "harga sewa boom lift", entity: "sewa", expect: "money-master" },
-  { slug: "harga sewa skylift", entity: "sewa", expect: "money-master" },
-  { slug: "harga sewa scissor lift", entity: "sewa", expect: "money-master" },
-  { slug: "harga sewa concrete mixer", entity: "sewa", expect: "money-master" },
-  { slug: "harga sewa molen beton", entity: "sewa", expect: "money-master" },
-  { slug: "harga sewa vibrator beton", entity: "sewa", expect: "money-master" },
-  { slug: "harga sewa stamper kodok", entity: "sewa", expect: "money-master" },
-  { slug: "harga sewa pompa celup", entity: "sewa", expect: "money-master" },
-  { slug: "harga sewa kompresor angin", entity: "sewa", expect: "money-master" },
+      // ═══ FIX 161 ═══
+      { slug: "harga kitchen set", entity: "produk", expect: "money-master" },
+      { slug: "harga kitchen set minimalis", entity: "produk", expect: "money-page" },
+      { slug: "harga wardrobe", entity: "produk", expect: "money-master" },
+      { slug: "harga sofa minimalis", entity: "produk", expect: "money-page" },
+      { slug: "harga gazebo kayu", entity: "produk", expect: "money-page" },
+      { slug: "harga kolam renang", entity: "produk", expect: "money-master" },
+      { slug: "harga pintu rolling door", entity: "produk", expect: "money-page" },
+      { slug: "harga pintu kaca", entity: "produk", expect: "money-page" },
+      { slug: "harga jendela upvc", entity: "produk", expect: "money-page" },
+      { slug: "harga pagar wpc", entity: "produk", expect: "money-page" },
+      { slug: "harga plafon kalsiboard", entity: "produk", expect: "money-page" },
+      { slug: "harga plafon shunda", entity: "produk", expect: "money-page" },
+      { slug: "harga lantai vinyl", entity: "produk", expect: "money-page" },
+      { slug: "harga atap shingle", entity: "produk", expect: "money-page" },
+      { slug: "harga saklar listrik", entity: "produk", expect: "money-master" },
 
-  // ═══ DESAIN ═══
-  { slug: "harga desain interior restoran", entity: "desain", expect: "money-page" },
-  { slug: "harga desain interior hotel", entity: "desain", expect: "money-page" },
-  { slug: "harga desain interior apartemen", entity: "desain", expect: "money-page" },
-  { slug: "harga desain rumah tropis", entity: "desain", expect: "money-page" },
-  { slug: "harga desain rumah scandinavian", entity: "desain", expect: "money-page" },
-  { slug: "harga desain rumah 2 lantai", entity: "desain", expect: "money-page" },
-  { slug: "harga desain rumah type 36", entity: "desain", expect: "money-page" },
-  { slug: "harga desain ruang tamu", entity: "desain", expect: "money-master" },
-  { slug: "harga desain dapur minimalis", entity: "desain", expect: "money-page" },
-  { slug: "harga desain walk in closet", entity: "desain", expect: "money-master" },
-  { slug: "harga desain showroom", entity: "desain", expect: "money-master" },
-  { slug: "harga desain kolam renang", entity: "desain", expect: "money-master" },
-  { slug: "harga gambar arsitektur", entity: "desain", expect: "money-master" },
-  { slug: "harga gambar kerja", entity: "desain", expect: "money-master" },
+      // ═══ MATERIAL ═══
+      { slug: "harga semen mortar", entity: "material", expect: "money-page" },
+      { slug: "harga semen instan", entity: "material", expect: "money-page" },
+      { slug: "harga pasir cor", entity: "material", expect: "money-page" },
+      { slug: "harga pasir plester", entity: "material", expect: "money-page" },
+      { slug: "harga batu templek", entity: "material", expect: "money-page" },
+      { slug: "harga kawat beton", entity: "material", expect: "money-page" },
+      { slug: "harga kayu kruing", entity: "material", expect: "money-page" },
+      { slug: "harga pipa pvc", entity: "material", expect: "money-page" },
+      { slug: "harga kabel listrik", entity: "material", expect: "money-page" },
+      { slug: "harga fitting pvc", entity: "material", expect: "money-page" },
+      { slug: "harga cat waterproof", entity: "material", expect: "money-page" },
+      { slug: "harga vernis kayu", entity: "material", expect: "money-page" },
+      { slug: "harga aquaproof", entity: "material", expect: "money-master" },
+      { slug: "harga no drop", entity: "material", expect: "money-master" },
+      { slug: "harga beton readymix", entity: "material", expect: "money-page" },
 
-  // ═══ FIX 150, 151, 155, 156, 154 ═══
-  { slug: "harga rental excavator", entity: "sewa", expect: "money-master" },
-  { slug: "harga bahan pasir", entity: "material", expect: "money-master" },
-  { slug: "harga bahan material pasir", entity: "material", expect: "money-master" },
-  { slug: "harga sewa excavator", entity: "sewa", expect: "money-master" },
-  { slug: "harga sewa alat berat", entity: "sewa", expect: "money-master" },
-  { slug: "harga desain interior", entity: "desain", expect: "money-master" },
-  { slug: "harga sewa excavator mini", entity: "sewa", expect: "money-page" },
-  { slug: "harga pasir bangka", entity: "material", expect: "money-page" },
-  { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa pasang pagar minimalis", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa pasang kanopi modern", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa pasang pintu klasik", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa renovasi custom", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa pasang pagar premium", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa pasang kanopi elegan", entity: "jasa", expect: "money-page" },
-  { slug: "harga baja ringan", entity: "material", expect: "money-master" },
-  { slug: "harga pagar panel beton", entity: "produk", expect: "money-page" },
-  { slug: "harga jasa coring hidrolik", entity: "jasa", expect: "money-page" },
-  { slug: "harga pagar panel beton putih", entity: "produk", expect: "money-page" },
-  { slug: "harga besi beton sni", entity: "material", expect: "money-page" },
-  { slug: "harga sewa genset 100kva", entity: "sewa", expect: "money-page" },
-  { slug: "harga desain interior mewah", entity: "desain", expect: "money-page" },
+      // ═══ SEWA ═══
+      { slug: "harga sewa forklift 3 ton", entity: "sewa", expect: "money-page" },
+      { slug: "harga sewa forklift listrik", entity: "sewa", expect: "money-page" },
+      { slug: "harga sewa boom lift", entity: "sewa", expect: "money-master" },
+      { slug: "harga sewa skylift", entity: "sewa", expect: "money-master" },
+      { slug: "harga sewa scissor lift", entity: "sewa", expect: "money-master" },
+      { slug: "harga sewa concrete mixer", entity: "sewa", expect: "money-master" },
+      { slug: "harga sewa molen beton", entity: "sewa", expect: "money-master" },
+      { slug: "harga sewa vibrator beton", entity: "sewa", expect: "money-master" },
+      { slug: "harga sewa stamper kodok", entity: "sewa", expect: "money-master" },
+      { slug: "harga sewa pompa celup", entity: "sewa", expect: "money-master" },
+      { slug: "harga sewa kompresor angin", entity: "sewa", expect: "money-master" },
 
-  // ═══ FIX 162c-d ═══
-  { slug: "harga jasa bor pancang", entity: "jasa", expect: "money-master" },
-  { slug: "harga sofa modern", entity: "produk", expect: "money-page" },
-  { slug: "harga sewa forklift diesel", entity: "sewa", expect: "money-page" },
-  { slug: "harga sewa genset solar", entity: "sewa", expect: "money-page" },
+      // ═══ DESAIN ═══
+      { slug: "harga desain interior restoran", entity: "desain", expect: "money-page" },
+      { slug: "harga desain interior hotel", entity: "desain", expect: "money-page" },
+      { slug: "harga desain interior apartemen", entity: "desain", expect: "money-page" },
+      { slug: "harga desain rumah tropis", entity: "desain", expect: "money-page" },
+      { slug: "harga desain rumah scandinavian", entity: "desain", expect: "money-page" },
+      { slug: "harga desain rumah 2 lantai", entity: "desain", expect: "money-page" },
+      { slug: "harga desain rumah type 36", entity: "desain", expect: "money-page" },
+      { slug: "harga desain ruang tamu", entity: "desain", expect: "money-master" },
+      { slug: "harga desain dapur minimalis", entity: "desain", expect: "money-page" },
+      { slug: "harga desain walk in closet", entity: "desain", expect: "money-master" },
+      { slug: "harga desain showroom", entity: "desain", expect: "money-master" },
+      { slug: "harga desain kolam renang", entity: "desain", expect: "money-master" },
+      { slug: "harga gambar arsitektur", entity: "desain", expect: "money-master" },
+      { slug: "harga gambar kerja", entity: "desain", expect: "money-master" },
 
-  // ═══ FIX 163-164: Conjunction ═══
-  { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pasang pagar atau kanopi besi", entity: "jasa", expect: "sub-pillar-tipe-1" },
-  { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-page" },
-  { slug: "jasa pasang kanopi besi", entity: "jasa", expect: "money-page" },
-  { slug: "jasa pasang pagar dan kanopi", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bongkar dan pasang keramik", entity: "jasa", expect: "money-page" },
-  { slug: "jasa urug dan gali tanah", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa pasang pagar dan kanopi", entity: "jasa", expect: "money-page" },
+      // ═══ FIX 150, 151, 155, 156, 154 ═══
+      { slug: "harga rental excavator", entity: "sewa", expect: "money-master" },
+      { slug: "harga bahan pasir", entity: "material", expect: "money-master" },
+      { slug: "harga bahan material pasir", entity: "material", expect: "money-master" },
+      { slug: "harga sewa excavator", entity: "sewa", expect: "money-master" },
+      { slug: "harga sewa alat berat", entity: "sewa", expect: "money-master" },
+      { slug: "harga desain interior", entity: "desain", expect: "money-master" },
+      { slug: "harga sewa excavator mini", entity: "sewa", expect: "money-page" },
+      { slug: "harga pasir bangka", entity: "material", expect: "money-page" },
+      { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa pasang pagar minimalis", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa pasang kanopi modern", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa pasang pintu klasik", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa renovasi custom", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa pasang pagar premium", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa pasang kanopi elegan", entity: "jasa", expect: "money-page" },
+      { slug: "harga baja ringan", entity: "material", expect: "money-master" },
+      { slug: "harga pagar panel beton", entity: "produk", expect: "money-page" },
+      { slug: "harga jasa coring hidrolik", entity: "jasa", expect: "money-page" },
+      { slug: "harga pagar panel beton putih", entity: "produk", expect: "money-page" },
+      { slug: "harga besi beton sni", entity: "material", expect: "money-page" },
+      { slug: "harga sewa genset 100kva", entity: "sewa", expect: "money-page" },
+      { slug: "harga desain interior mewah", entity: "desain", expect: "money-page" },
 
-  // ═══ FIX 166, 168, 177 ═══
-  { slug: "harga desain rumah tropis 2 lantai", entity: "desain", expect: "variant" },
-  { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa pasang grc dinding", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa pasang hpl dinding", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor promo", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor diskon", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor termurah", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor termahal", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor murah", entity: "jasa", expect: "money-master" },
-  { slug: "jasa bor hemat", entity: "jasa", expect: "money-master" },
-  { slug: "jasa bor terjangkau", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa bor promo", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa bor murah", entity: "jasa", expect: "money-master" },
-  { slug: "biaya jasa coring hidrolik", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa bor jakarta", entity: "jasa", expect: "money-child" },
-  { slug: "jasa pasang keramik 80x80", entity: "jasa", expect: "money-page" },
-  { slug: "jasa pasang marmer 60x120", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor murah dan terjangkau", entity: "jasa", expect: "money-master" },
-  { slug: "jasa bor promo dan diskon", entity: "jasa", expect: "money-page" },
+      // ═══ FIX 162c-d ═══
+      { slug: "harga jasa bor pancang", entity: "jasa", expect: "money-master" },
+      { slug: "harga sofa modern", entity: "produk", expect: "money-page" },
+      { slug: "harga sewa forklift diesel", entity: "sewa", expect: "money-page" },
+      { slug: "harga sewa genset solar", entity: "sewa", expect: "money-page" },
 
-  // ═══ FIX 178: Metode JASA ═══
-  { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page" },
-  { slug: "jasa pengeboran hidrolik", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor manual", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring manual", entity: "jasa", expect: "money-page" },
-  { slug: "jasa pengeboran rotary", entity: "jasa", expect: "money-page" },
-  { slug: "jasa pengeboran auger", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring basah", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring kering", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring komersial", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor sumur industri", entity: "jasa", expect: "money-page" },
-  { slug: "biaya jasa coring hidrolik", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa bor manual", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring polos", entity: "jasa", expect: "money-page" },
+      // ═══ FIX 163-164: Conjunction ═══
+      { slug: "jasa pasang pagar atau kanopi", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pasang pagar atau kanopi besi", entity: "jasa", expect: "sub-pillar-tipe-1" },
+      { slug: "jasa pasang pagar besi", entity: "jasa", expect: "money-page" },
+      { slug: "jasa pasang kanopi besi", entity: "jasa", expect: "money-page" },
+      { slug: "jasa pasang pagar dan kanopi", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bongkar dan pasang keramik", entity: "jasa", expect: "money-page" },
+      { slug: "jasa urug dan gali tanah", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa pasang pagar dan kanopi", entity: "jasa", expect: "money-page" },
 
-  // ═══ FIX 179r, 181, 182, 183, 186 ═══
-  { slug: "jasa coring hidrolik 30cm", entity: "jasa", expect: "variant" },
-  { slug: "jasa bor manual 50cm", entity: "jasa", expect: "variant" },
-  { slug: "jasa coring komersial 30cm", entity: "jasa", expect: "variant" },
-  { slug: "jasa pengeboran rotary 40cm", entity: "jasa", expect: "variant" },
-  { slug: "jasa coring hidrolik 30cm 50cm", entity: "jasa", expect: "sub-variant" },
-  { slug: "jasa coring hidrolik 60x60 cm", entity: "jasa", expect: "sub-variant" },
-  { slug: "jasa bor termurah", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor termahal", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring termurah", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring beton", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor kayu", entity: "jasa", expect: "money-page" },
-  { slug: "jasa grouting beton", entity: "jasa", expect: "money-page" },
-  { slug: "jasa pemancangan beton", entity: "jasa", expect: "money-page" },
-  { slug: "harga jasa coring beton", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring", entity: "jasa", expect: "money-master" },
-  { slug: "jasa bor", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pasang keramik", entity: "jasa", expect: "money-master" },
-  { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring 30cm", entity: "jasa", expect: "money-page" },
-  { slug: "jasa pasang keramik 60x60", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring hidrolik 30cm", entity: "jasa", expect: "variant" },
-  { slug: "jasa coring hidrolik beton", entity: "jasa", expect: "variant" },
-  { slug: "jasa coring 30cm 50cm", entity: "jasa", expect: "variant" },
-  { slug: "jasa pasang keramik 60x60 cm", entity: "jasa", expect: "variant" },
-  { slug: "jasa coring hidrolik 30cm beton", entity: "jasa", expect: "sub-variant" },
-  { slug: "jasa coring hidrolik 60x60 cm", entity: "jasa", expect: "sub-variant" },
+      // ═══ FIX 166, 168, 177 ═══
+      { slug: "harga desain rumah tropis 2 lantai", entity: "desain", expect: "variant" },
+      { slug: "harga jasa pasang dinding", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa pasang grc dinding", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa pasang hpl dinding", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor promo", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor diskon", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor termurah", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor termahal", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor murah", entity: "jasa", expect: "money-master" },
+      { slug: "jasa bor hemat", entity: "jasa", expect: "money-master" },
+      { slug: "jasa bor terjangkau", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa bor promo", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa bor murah", entity: "jasa", expect: "money-master" },
+      { slug: "biaya jasa coring hidrolik", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa bor jakarta", entity: "jasa", expect: "money-child" },
+      { slug: "jasa pasang keramik 80x80", entity: "jasa", expect: "money-page" },
+      { slug: "jasa pasang marmer 60x120", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor murah dan terjangkau", entity: "jasa", expect: "money-master" },
+      { slug: "jasa bor promo dan diskon", entity: "jasa", expect: "money-page" },
 
-  // ═══ PRODUK material modifier ═══
-  { slug: "pagar panel", entity: "produk", expect: "money-master" },
-  { slug: "pagar panel beton", entity: "produk", expect: "money-page" },
-  { slug: "pagar panel beton k300", entity: "produk", expect: "variant" },
-  { slug: "pagar panel beton putih", entity: "produk", expect: "variant" },
-  { slug: "pagar panel beton ulir", entity: "produk", expect: "variant" },
-  { slug: "pagar panel beton k300 putih", entity: "produk", expect: "sub-variant" },
-  { slug: "pagar panel beton k300 putih ulir", entity: "produk", expect: "sub-variant" },
-  { slug: "kitchen set", entity: "produk", expect: "money-master" },
-  { slug: "kitchen set minimalis", entity: "produk", expect: "money-page" },
-  { slug: "kitchen set minimalis modern", entity: "produk", expect: "variant" },
+      // ═══ FIX 178: Metode JASA ═══
+      { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page" },
+      { slug: "jasa pengeboran hidrolik", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor manual", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring manual", entity: "jasa", expect: "money-page" },
+      { slug: "jasa pengeboran rotary", entity: "jasa", expect: "money-page" },
+      { slug: "jasa pengeboran auger", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring basah", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring kering", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring komersial", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor sumur industri", entity: "jasa", expect: "money-page" },
+      { slug: "biaya jasa coring hidrolik", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa bor manual", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring polos", entity: "jasa", expect: "money-master" },
 
-  // ═══ MATERIAL ═══
-  { slug: "semen", entity: "material", expect: "money-master" },
-  { slug: "semen portland", entity: "material", expect: "money-page" },
-  { slug: "semen 50kg", entity: "material", expect: "money-page" },
-  { slug: "semen sni", entity: "material", expect: "money-page" },
-  { slug: "semen portland 50kg", entity: "material", expect: "variant" },
-  { slug: "semen portland 50kg sni", entity: "material", expect: "sub-variant" },
-  { slug: "keramik", entity: "material", expect: "money-master" },
-  { slug: "keramik 60x60", entity: "material", expect: "money-page" },
-  { slug: "keramik 60x60 cm", entity: "material", expect: "variant" },
+      // ═══ FIX 179r, 181, 182, 183, 186 ═══
+      { slug: "jasa coring hidrolik 30cm", entity: "jasa", expect: "variant" },
+      { slug: "jasa bor manual 50cm", entity: "jasa", expect: "variant" },
+      { slug: "jasa coring komersial 30cm", entity: "jasa", expect: "variant" },
+      { slug: "jasa pengeboran rotary 40cm", entity: "jasa", expect: "variant" },
+      { slug: "jasa coring hidrolik 30cm 50cm", entity: "jasa", expect: "sub-variant" },
+      { slug: "jasa coring hidrolik 60x60 cm", entity: "jasa", expect: "sub-variant" },
+      { slug: "jasa bor termurah", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor termahal", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring termurah", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring beton", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor kayu", entity: "jasa", expect: "money-page" },
+      { slug: "jasa grouting beton", entity: "jasa", expect: "money-page" },
+      { slug: "jasa pemancangan beton", entity: "jasa", expect: "money-page" },
+      { slug: "harga jasa coring beton", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring", entity: "jasa", expect: "money-master" },
+      { slug: "jasa bor", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pasang keramik", entity: "jasa", expect: "money-master" },
+      { slug: "jasa coring hidrolik", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring 30cm", entity: "jasa", expect: "money-page" },
+      { slug: "jasa pasang keramik 60x60", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring hidrolik 30cm", entity: "jasa", expect: "variant" },
+      { slug: "jasa coring hidrolik beton", entity: "jasa", expect: "variant" },
+      { slug: "jasa coring 30cm 50cm", entity: "jasa", expect: "variant" },
+      { slug: "jasa pasang keramik 60x60 cm", entity: "jasa", expect: "variant" },
+      { slug: "jasa coring hidrolik 30cm beton", entity: "jasa", expect: "sub-variant" },
+      { slug: "jasa coring hidrolik 60x60 cm", entity: "jasa", expect: "sub-variant" },
 
-  // ═══ SEWA ═══
-  { slug: "sewa excavator", entity: "sewa", expect: "money-master" },
-  { slug: "sewa excavator mini", entity: "sewa", expect: "money-page" },
-  { slug: "sewa excavator pc75", entity: "sewa", expect: "money-page" },
-  { slug: "sewa excavator mini pc75", entity: "sewa", expect: "variant" },
-  { slug: "sewa excavator mini pc75 harian", entity: "sewa", expect: "sub-variant" },
-  { slug: "sewa crane 25 ton", entity: "sewa", expect: "money-page" },
-  { slug: "sewa genset 100kva", entity: "sewa", expect: "money-page" },
-  { slug: "sewa genset 100kva diesel", entity: "sewa", expect: "variant" },
+      // ═══ PRODUK material modifier ═══
+      { slug: "pagar panel", entity: "produk", expect: "money-master" },
+      { slug: "pagar panel beton", entity: "produk", expect: "money-page" },
+      { slug: "pagar panel beton k300", entity: "produk", expect: "variant" },
+      { slug: "pagar panel beton putih", entity: "produk", expect: "variant" },
+      { slug: "pagar panel beton ulir", entity: "produk", expect: "variant" },
+      { slug: "pagar panel beton k300 putih", entity: "produk", expect: "sub-variant" },
+      { slug: "pagar panel beton k300 putih ulir", entity: "produk", expect: "sub-variant" },
+      { slug: "kitchen set", entity: "produk", expect: "money-master" },
+      { slug: "kitchen set minimalis", entity: "produk", expect: "money-page" },
+      { slug: "kitchen set minimalis modern", entity: "produk", expect: "variant" },
 
-  // ═══ DESAIN ═══
-  { slug: "desain interior", entity: "desain", expect: "money-master" },
-  { slug: "desain interior minimalis", entity: "desain", expect: "money-page" },
-  { slug: "desain interior kayu", entity: "desain", expect: "money-page" },
-  { slug: "desain interior minimalis modern", entity: "desain", expect: "variant" },
-  { slug: "desain interior minimalis kayu", entity: "desain", expect: "variant" },
-  { slug: "desain interior minimalis modern kayu", entity: "desain", expect: "sub-variant" },
+      // ═══ MATERIAL ═══
+      { slug: "semen", entity: "material", expect: "money-master" },
+      { slug: "semen portland", entity: "material", expect: "money-page" },
+      { slug: "semen 50kg", entity: "material", expect: "money-page" },
+      { slug: "semen sni", entity: "material", expect: "money-page" },
+      { slug: "semen portland 50kg", entity: "material", expect: "variant" },
+      { slug: "semen portland 50kg sni", entity: "material", expect: "sub-variant" },
+      { slug: "keramik", entity: "material", expect: "money-master" },
+      { slug: "keramik 60x60", entity: "material", expect: "money-page" },
+      { slug: "keramik 60x60 cm", entity: "material", expect: "variant" },
 
-  // ═══ FIX 185, 190-193 ═══
-  { slug: "jasa bor promo", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring diskon", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring obral", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring jakarta", entity: "jasa", expect: "money-child" },
-  { slug: "jasa coring hidrolik jakarta", entity: "jasa", expect: "money-child" },
-  { slug: "jasa coring 30cm jakarta", entity: "jasa", expect: "money-child" },
-  { slug: "jasa coring hidrolik 30cm jakarta", entity: "jasa", expect: "money-child" },
+      // ═══ SEWA ═══
+      { slug: "sewa excavator", entity: "sewa", expect: "money-master" },
+      { slug: "sewa excavator mini", entity: "sewa", expect: "money-page" },
+      { slug: "sewa excavator pc75", entity: "sewa", expect: "money-page" },
+      { slug: "sewa excavator mini pc75", entity: "sewa", expect: "variant" },
+      { slug: "sewa excavator mini pc75 harian", entity: "sewa", expect: "sub-variant" },
+      { slug: "sewa crane 25 ton", entity: "sewa", expect: "money-page" },
+      { slug: "sewa genset 100kva", entity: "sewa", expect: "money-page" },
+      { slug: "sewa genset 100kva diesel", entity: "sewa", expect: "variant" },
 
-  // ═══ FIX 195 ═══
-  { slug: "jasa cutting dinding", entity: "jasa", expect: "money-page" },
-  { slug: "jasa cutting lantai", entity: "jasa", expect: "money-page" },
-  { slug: "jasa cutting plat", entity: "jasa", expect: "money-page" },
-  { slug: "jasa cutting kolom", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring dinding", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor lantai", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bongkar dinding", entity: "jasa", expect: "money-master" },
-  { slug: "jasa coring lantai beton", entity: "jasa", expect: "variant" },
-  { slug: "jasa cutting beton dinding", entity: "jasa", expect: "variant" },
-  { slug: "jasa cutting aspal jalan", entity: "jasa", expect: "variant" },
+      // ═══ DESAIN ═══
+      { slug: "desain interior", entity: "desain", expect: "money-master" },
+      { slug: "desain interior minimalis", entity: "desain", expect: "money-page" },
+      { slug: "desain interior kayu", entity: "desain", expect: "money-page" },
+      { slug: "desain interior minimalis modern", entity: "desain", expect: "variant" },
+      { slug: "desain interior minimalis kayu", entity: "desain", expect: "variant" },
+      { slug: "desain interior minimalis modern kayu", entity: "desain", expect: "sub-variant" },
 
-  // ═══ FIX 196, 197, 198 ═══
-  { slug: "jasa cutting beton beton", entity: "jasa", expect: "money-page" },
-  { slug: "pagar panel beton putih putih", entity: "produk", expect: "variant" },
-  { slug: "jasa cutting alderon", entity: "jasa", expect: "money-page" },
-  { slug: "jasa cutting xyz", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring material baru", entity: "jasa", expect: "variant" },
-  { slug: "jasa cutting beton dinding", entity: "jasa", expect: "variant" },
+      // ═══ FIX 185, 190-193 ═══
+      { slug: "jasa bor promo", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring diskon", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring obral", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring jakarta", entity: "jasa", expect: "money-child" },
+      { slug: "jasa coring hidrolik jakarta", entity: "jasa", expect: "money-child" },
+      { slug: "jasa coring 30cm jakarta", entity: "jasa", expect: "money-child" },
+      { slug: "jasa coring hidrolik 30cm jakarta", entity: "jasa", expect: "money-child" },
 
-  // ═══ Hierarki ═══
-  { slug: "jasa cutting dinding jakarta", entity: "jasa", expect: "money-child" },
-  { slug: "jasa cutting beton dinding jakarta", entity: "jasa", expect: "money-child" },
-  { slug: "jasa coring hidrolik 30cm beton dinding", entity: "jasa", expect: "sub-variant" },
+      // ═══ FIX 195 ═══
+      { slug: "jasa cutting dinding", entity: "jasa", expect: "money-page" },
+      { slug: "jasa cutting lantai", entity: "jasa", expect: "money-page" },
+      { slug: "jasa cutting plat", entity: "jasa", expect: "money-page" },
+      { slug: "jasa cutting kolom", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring dinding", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor lantai", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bongkar dinding", entity: "jasa", expect: "money-master" },
+      { slug: "jasa coring lantai beton", entity: "jasa", expect: "variant" },
+      { slug: "jasa cutting beton dinding", entity: "jasa", expect: "variant" },
+      { slug: "jasa cutting aspal jalan", entity: "jasa", expect: "variant" },
 
-  // ═══ FIX 200-206 ═══
-  { slug: "semen", entity: "material", expect: "money-master" },
-  { slug: "semen portland", entity: "material", expect: "money-page" },
-  { slug: "harga semen portland", entity: "material", expect: "money-page" },
-  { slug: "semen portland 50kg", entity: "material", expect: "variant" },
-  { slug: "pasir", entity: "material", expect: "money-master" },
-  { slug: "pasir bangka", entity: "material", expect: "money-page" },
-  { slug: "batu", entity: "material", expect: "money-master" },
-  { slug: "batu split", entity: "material", expect: "money-page" },
-  { slug: "sewa excavator", entity: "sewa", expect: "money-master" },
-  { slug: "sewa genset", entity: "sewa", expect: "money-master" },
-  { slug: "semen", entity: null, expect: "money-master" },
-  { slug: "keramik", entity: null, expect: "money-master" },
-  { slug: "jasa pasang keramik", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa pasang keramik", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pasang granit", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pasang marmer", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa coring", entity: "jasa", expect: "money-master" },
-  { slug: "jasa coring", entity: "jasa", expect: "money-master" },
-  { slug: "jasa coring beton jakarta", entity: "jasa", expect: "money-child" },
+      // ═══ FIX 196, 197, 198 ═══
+      { slug: "jasa cutting beton beton", entity: "jasa", expect: "money-page" },
+      { slug: "pagar panel beton putih putih", entity: "produk", expect: "variant" },
+      { slug: "jasa cutting alderon", entity: "jasa", expect: "money-page" },
+      { slug: "jasa cutting xyz", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring material baru", entity: "jasa", expect: "variant" },
+      { slug: "jasa cutting beton dinding", entity: "jasa", expect: "variant" },
 
-  // ═══ FIX 208-213 ═══
-  { slug: "harga semen portland", entity: "material", expect: "money-page" },
-  { slug: "harga pasir bangka", entity: "material", expect: "money-page" },
-  { slug: "biaya jasa coring hidrolik", entity: "jasa", expect: "money-page" },
-  { slug: "harga sewa genset 100kva", entity: "sewa", expect: "money-page" },
-  { slug: "harga pasir bangka per kubik", entity: "material", expect: "money-page" },
-  { slug: "keramik", entity: "material", expect: "money-master" },
-  { slug: "keramik 60x60", entity: "material", expect: "money-page" },
-  { slug: "keramik 60x60 cm", entity: "material", expect: "variant" },
-  { slug: "granit 60x60", entity: "material", expect: "money-page" },
+      // ═══ Hierarki ═══
+      { slug: "jasa cutting dinding jakarta", entity: "jasa", expect: "money-child" },
+      { slug: "jasa cutting beton dinding jakarta", entity: "jasa", expect: "money-child" },
+      { slug: "jasa coring hidrolik 30cm beton dinding", entity: "jasa", expect: "sub-variant" },
 
-  // ═══ FIX 215-219 ═══
-  { slug: "jasa coring hidrolik promo", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring hidrolik diskon", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring hidrolik termurah", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor tanah murah", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor beton hemat", entity: "jasa", expect: "money-page" },
-  { slug: "jasa coring beton terjangkau", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor horizontal tanah", entity: "jasa", expect: "money-page" },
-  { slug: "jasa bor horizontal", entity: "jasa", expect: "money-master" },
-  { slug: "desain interior rumah minimalis", entity: "desain", expect: "money-page" },
-  { slug: "desain interior rumah minimalis modern", entity: "desain", expect: "variant" },
+      // ═══ FIX 200-206 ═══
+      { slug: "semen", entity: "material", expect: "money-master" },
+      { slug: "semen portland", entity: "material", expect: "money-page" },
+      { slug: "harga semen portland", entity: "material", expect: "money-page" },
+      { slug: "semen portland 50kg", entity: "material", expect: "variant" },
+      { slug: "pasir", entity: "material", expect: "money-master" },
+      { slug: "pasir bangka", entity: "material", expect: "money-page" },
+      { slug: "batu", entity: "material", expect: "money-master" },
+      { slug: "batu split", entity: "material", expect: "money-page" },
+      { slug: "sewa excavator", entity: "sewa", expect: "money-master" },
+      { slug: "sewa genset", entity: "sewa", expect: "money-master" },
+      { slug: "semen", entity: null, expect: "money-master" },
+      { slug: "keramik", entity: null, expect: "money-master" },
+      { slug: "jasa pasang keramik", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa pasang keramik", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pasang granit", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pasang marmer", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa coring", entity: "jasa", expect: "money-master" },
+      { slug: "jasa coring", entity: "jasa", expect: "money-master" },
+      { slug: "jasa coring beton jakarta", entity: "jasa", expect: "money-child" },
 
-  // ═══ FIX SEO v6/v13 ═══
-  { slug: "spun pile", entity: "produk", expect: "money-master" },
-  { slug: "spun pile beton", entity: "produk", expect: "money-page" },
-  { slug: "harga spun pile beton", entity: "produk", expect: "money-page" },
-  { slug: "harga spun pile 30x30", entity: "produk", expect: "money-page" },
-  { slug: "jasa spun pile", entity: "jasa", expect: "money-master" },
-  { slug: "jasa spun pile beton", entity: "jasa", expect: "money-page" },
-  { slug: "jasa pancang spun pile", entity: "jasa", expect: "money-master" },
-  { slug: "sheet pile", entity: "produk", expect: "money-master" },
-  { slug: "sheet pile beton", entity: "produk", expect: "money-page" },
-  { slug: "jasa sheet pile", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pasang sheet pile", entity: "jasa", expect: "money-master" },
-  { slug: "mini pile", entity: "produk", expect: "money-master" },
-  { slug: "mini pile beton", entity: "produk", expect: "money-page" },
-  { slug: "jasa mini pile", entity: "jasa", expect: "money-master" },
-  { slug: "tiang pancang", entity: "produk", expect: "money-master" },
-  { slug: "tiang pancang beton", entity: "produk", expect: "money-page" },
-  { slug: "jasa tiang pancang", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pancang beton", entity: "jasa", expect: "money-master" },
-  { slug: "spun pile beton", entity: null, expect: "money-page" },
-  { slug: "jasa spun pile beton", entity: null, expect: "money-page" },
+      // ═══ FIX 208-213 ═══
+      { slug: "harga semen portland", entity: "material", expect: "money-page" },
+      { slug: "harga pasir bangka", entity: "material", expect: "money-page" },
+      { slug: "biaya jasa coring hidrolik", entity: "jasa", expect: "money-page" },
+      { slug: "harga sewa genset 100kva", entity: "sewa", expect: "money-page" },
+      { slug: "harga pasir bangka per kubik", entity: "material", expect: "money-page" },
+      { slug: "keramik", entity: "material", expect: "money-master" },
+      { slug: "keramik 60x60", entity: "material", expect: "money-page" },
+      { slug: "keramik 60x60 cm", entity: "material", expect: "variant" },
+      { slug: "granit 60x60", entity: "material", expect: "money-page" },
 
-  // ═══ FIX SEO v13 cleanup ═══
-  { slug: "buis beton", entity: "produk", expect: "money-master" },
-  { slug: "buis beton bertulang", entity: "produk", expect: "money-page" },
-  { slug: "buis beton biasa 30cm", entity: "produk", expect: "variant" },
-  { slug: "spun pile beton 30x30", entity: "produk", expect: "variant" },
-  { slug: "half slab", entity: "produk", expect: "money-master" },
-  { slug: "half slab beton", entity: "produk", expect: "money-page" },
+      // ═══ FIX 215-219 ═══
+      { slug: "jasa coring hidrolik promo", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring hidrolik diskon", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring hidrolik termurah", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor tanah murah", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor beton hemat", entity: "jasa", expect: "money-page" },
+      { slug: "jasa coring beton terjangkau", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor horizontal tanah", entity: "jasa", expect: "money-page" },
+      { slug: "jasa bor horizontal", entity: "jasa", expect: "money-master" },
+      { slug: "desain interior rumah minimalis", entity: "desain", expect: "money-page" },
+      { slug: "desain interior rumah minimalis modern", entity: "desain", expect: "variant" },
 
-  // ═══ FIX SEO v9 ═══
-  { slug: "jasa desain interior minimalis", entity: "desain", expect: "money-page" },
-  { slug: "jasa desain rumah tropis", entity: "desain", expect: "money-page" },
-  { slug: "jasa desain rumah minimalis", entity: "desain", expect: "money-page" },
-  { slug: "jasa desain interior kamar mandi minimalis", entity: "desain", expect: "money-page" },
-  { slug: "layanan desain interior minimalis", entity: "desain", expect: "money-page" },
-  { slug: "toko desain interior minimalis", entity: "desain", expect: "money-page" },
+      // ═══ FIX SEO v6/v13 ═══
+      { slug: "spun pile", entity: "produk", expect: "money-master" },
+      { slug: "spun pile beton", entity: "produk", expect: "money-page" },
+      { slug: "harga spun pile beton", entity: "produk", expect: "money-page" },
+      { slug: "harga spun pile 30x30", entity: "produk", expect: "money-page" },
+      { slug: "jasa spun pile", entity: "jasa", expect: "money-master" },
+      { slug: "jasa spun pile beton", entity: "jasa", expect: "money-page" },
+      { slug: "jasa pancang spun pile", entity: "jasa", expect: "money-master" },
+      { slug: "sheet pile", entity: "produk", expect: "money-master" },
+      { slug: "sheet pile beton", entity: "produk", expect: "money-page" },
+      { slug: "jasa sheet pile", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pasang sheet pile", entity: "jasa", expect: "money-master" },
+      { slug: "mini pile", entity: "produk", expect: "money-master" },
+      { slug: "mini pile beton", entity: "produk", expect: "money-page" },
+      { slug: "jasa mini pile", entity: "jasa", expect: "money-master" },
+      { slug: "tiang pancang", entity: "produk", expect: "money-master" },
+      { slug: "tiang pancang beton", entity: "produk", expect: "money-page" },
+      { slug: "jasa tiang pancang", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pancang beton", entity: "jasa", expect: "money-master" },
+      { slug: "spun pile beton", entity: null, expect: "money-page" },
+      { slug: "jasa spun pile beton", entity: null, expect: "money-page" },
 
-  // 🔥 FIX v15-I: harga + desain + room context → MM (room = base name, bukan spec)
-  { slug: "harga desain interior kamar mandi", entity: "desain", expect: "money-master" },  // ← REVISI
-  { slug: "harga desain interior taman", entity: "desain", expect: "money-master" },        // ← REVISI
-  { slug: "harga desain interior rumah minimalis", entity: "desain", expect: "money-page" },
+      // ═══ FIX SEO v13 cleanup ═══
+      { slug: "buis beton", entity: "produk", expect: "money-master" },
+      { slug: "buis beton bertulang", entity: "produk", expect: "money-page" },
+      { slug: "buis beton biasa 30cm", entity: "produk", expect: "variant" },
+      { slug: "spun pile beton 30x30", entity: "produk", expect: "variant" },
+      { slug: "half slab", entity: "produk", expect: "money-master" },
+      { slug: "half slab beton", entity: "produk", expect: "money-page" },
 
-  { slug: "desain interior kamar mandi", entity: "desain", expect: "money-master" },
-  { slug: "desain interior kamar mandi minimalis", entity: "desain", expect: "money-page" },
-  { slug: "desain interior kamar tidur", entity: "desain", expect: "money-master" },
-  { slug: "desain interior ruang tamu", entity: "desain", expect: "money-master" },
+      // ═══ FIX SEO v9 ═══
+      { slug: "jasa desain interior minimalis", entity: "desain", expect: "money-page" },
+      { slug: "jasa desain rumah tropis", entity: "desain", expect: "money-page" },
+      { slug: "jasa desain rumah minimalis", entity: "desain", expect: "money-page" },
+      { slug: "jasa desain interior kamar mandi minimalis", entity: "desain", expect: "money-page" },
+      { slug: "layanan desain interior minimalis", entity: "desain", expect: "money-page" },
+      { slug: "toko desain interior minimalis", entity: "desain", expect: "money-page" },
 
-  // ═══ FIX SEO v12 ═══
-  { slug: "pagar panel", entity: "produk", expect: "money-master" },
-  { slug: "pagar panel beton", entity: "produk", expect: "money-page" },
-  { slug: "pagar panel besi", entity: "produk", expect: "money-page" },
-  { slug: "pagar panel stainless", entity: "produk", expect: "money-page" },
-  { slug: "pagar panel beton minimalis", entity: "produk", expect: "variant" },
-  { slug: "u ditch", entity: "produk", expect: "money-master" },
-  { slug: "u ditch 30x30", entity: "produk", expect: "money-page" },
-  { slug: "u ditch beton", entity: "produk", expect: "money-page" },
-  { slug: "box culvert", entity: "produk", expect: "money-master" },
-  { slug: "box culvert 100x100", entity: "produk", expect: "money-page" },
-  { slug: "pagar panel", entity: null, expect: "money-master" },
-  { slug: "pagar panel beton", entity: null, expect: "money-page" },
+      { slug: "harga desain interior kamar mandi", entity: "desain", expect: "money-master" },
+      { slug: "harga desain interior taman", entity: "desain", expect: "money-master" },
+      { slug: "harga desain interior rumah minimalis", entity: "desain", expect: "money-page" },
 
-  // ═══ FIX v14-G/H/J: tukang-sumur-bor ═══
-  { slug: "tukang sumur bor", entity: "jasa", expect: "money-master" },
-  { slug: "tukang sumur bor borongan", entity: "jasa", expect: "money-page" },
-  { slug: "tukang sumur bor proyek", entity: "jasa", expect: "money-page" },
-  { slug: "tukang sumur bor dalam", entity: "jasa", expect: "money-page" },
-  { slug: "tukang sumur bor dangkal", entity: "jasa", expect: "money-page" },
-  { slug: "tukang sumur bor jet pump", entity: "jasa", expect: "money-page" },
-  { slug: "tukang sumur bor artesis", entity: "jasa", expect: "money-page" },
-  { slug: "tukang sumur bor manual", entity: "jasa", expect: "money-page" },
-  { slug: "tukang sumur bor hidrolik", entity: "jasa", expect: "money-page" },
-  { slug: "tukang sumur bor rotary", entity: "jasa", expect: "money-page" },
-  { slug: "tukang sumur bor rumahan", entity: "jasa", expect: "money-page" },
-  { slug: "tukang sumur bor industri", entity: "jasa", expect: "money-page" },
-  { slug: "tukang sumur bor perumahan", entity: "jasa", expect: "money-page" },
+      { slug: "desain interior kamar mandi", entity: "desain", expect: "money-master" },
+      { slug: "desain interior kamar mandi minimalis", entity: "desain", expect: "money-page" },
+      { slug: "desain interior kamar tidur", entity: "desain", expect: "money-master" },
+      { slug: "desain interior ruang tamu", entity: "desain", expect: "money-master" },
 
-  // ═══ FIX v14-I: prefix fungsional ═══
-  { slug: "spesifikasi jasa sumur bor", entity: "jasa", expect: "money-page" },
-  { slug: "mutu jasa sumur bor", entity: "jasa", expect: "money-page" },
-  { slug: "metode jasa bore pile", entity: "jasa", expect: "money-page" },
-  { slug: "mutu jasa bore pile", entity: "jasa", expect: "money-page" },
-  { slug: "spesifikasi jasa bore pile", entity: "jasa", expect: "money-page" },
+      // ═══ FIX SEO v12 ═══
+      { slug: "pagar panel", entity: "produk", expect: "money-master" },
+      { slug: "pagar panel beton", entity: "produk", expect: "money-page" },
+      { slug: "pagar panel besi", entity: "produk", expect: "money-page" },
+      { slug: "pagar panel stainless", entity: "produk", expect: "money-page" },
+      { slug: "pagar panel beton minimalis", entity: "produk", expect: "variant" },
+      { slug: "u ditch", entity: "produk", expect: "money-master" },
+      { slug: "u ditch 30x30", entity: "produk", expect: "money-page" },
+      { slug: "u ditch beton", entity: "produk", expect: "money-page" },
+      { slug: "box culvert", entity: "produk", expect: "money-master" },
+      { slug: "box culvert 100x100", entity: "produk", expect: "money-page" },
+      { slug: "pagar panel", entity: null, expect: "money-master" },
+      { slug: "pagar panel beton", entity: null, expect: "money-page" },
 
-  // ═══ FIX v14-L/M/N/O/P/Q ═══
-  { slug: "railing tangga", entity: "produk", expect: "money-master" },
-  { slug: "railing tangga stainless", entity: "produk", expect: "money-page" },
-  { slug: "wastafel", entity: "produk", expect: "money-master" },
-  { slug: "gerbang besi", entity: "produk", expect: "money-page" },
-  { slug: "gorden", entity: "produk", expect: "money-master" },
-  { slug: "rak dinding", entity: "produk", expect: "money-master" },
-  { slug: "pintu geser", entity: "produk", expect: "money-page" },
-  { slug: "pintu lipat", entity: "produk", expect: "money-page" },
-  { slug: "jendela casement", entity: "produk", expect: "money-page" },
-  { slug: "jendela sliding", entity: "produk", expect: "money-page" },
-  { slug: "harga paku beton", entity: "material", expect: "money-page" },
-  { slug: "harga wiremesh", entity: "material", expect: "money-master" },
-  { slug: "harga kawat beton", entity: "material", expect: "money-page" },
-  { slug: "harga baut", entity: "material", expect: "money-master" },
-  { slug: "sewa scaffolding", entity: "sewa", expect: "money-master" },
-  { slug: "sewa scaffolding 3 bulan", entity: "sewa", expect: "money-page" },
-  { slug: "sewa steger", entity: "sewa", expect: "money-master" },
-  { slug: "sewa tower lamp", entity: "sewa", expect: "money-master" },
-  { slug: "desain kos", entity: "desain", expect: "money-master" },
-  { slug: "desain kos minimalis", entity: "desain", expect: "money-page" },
-  { slug: "desain guest house", entity: "desain", expect: "money-master" },
-  { slug: "desain pujasera", entity: "desain", expect: "money-master" },
-  { slug: "jasa pembersihan lahan", entity: "jasa", expect: "money-master" },
-  { slug: "jasa pengaspalan", entity: "jasa", expect: "money-master" },
-  { slug: "jasa aspal hotmix", entity: "jasa", expect: "money-page" },
-  { slug: "cutting dinding jakarta", entity: "jasa", expect: "money-child" },
-  { slug: "coring dinding jakarta", entity: "jasa", expect: "money-child" },
-  { slug: "jasa coring dinding jakarta", entity: "jasa", expect: "money-child" },
-  { slug: "layanan bor sumur", entity: "jasa", expect: "money-master" },
-  { slug: "service ac", entity: "jasa", expect: "money-master" },
+      // ═══ FIX v14-G/H/J: tukang-sumur-bor ═══
+      { slug: "tukang sumur bor", entity: "jasa", expect: "money-master" },
+      { slug: "tukang sumur bor borongan", entity: "jasa", expect: "money-page" },
+      { slug: "tukang sumur bor proyek", entity: "jasa", expect: "money-page" },
+      { slug: "tukang sumur bor dalam", entity: "jasa", expect: "money-page" },
+      { slug: "tukang sumur bor dangkal", entity: "jasa", expect: "money-page" },
+      { slug: "tukang sumur bor jet pump", entity: "jasa", expect: "money-page" },
+      { slug: "tukang sumur bor artesis", entity: "jasa", expect: "money-page" },
+      { slug: "tukang sumur bor manual", entity: "jasa", expect: "money-page" },
+      { slug: "tukang sumur bor hidrolik", entity: "jasa", expect: "money-page" },
+      { slug: "tukang sumur bor rotary", entity: "jasa", expect: "money-page" },
+      { slug: "tukang sumur bor rumahan", entity: "jasa", expect: "money-page" },
+      { slug: "tukang sumur bor industri", entity: "jasa", expect: "money-page" },
+      { slug: "tukang sumur bor perumahan", entity: "jasa", expect: "money-page" },
 
-  // ═══ FIX A-1 rev + A-7 ═══
-  { slug: "pagar", entity: "produk", expect: "money-master" },
-  { slug: "pagar panel", entity: "produk", expect: "money-master" },
-  { slug: "pagar beton", entity: "produk", expect: "money-master" },
-  { slug: "pagar brc", entity: "produk", expect: "money-master" },
-  { slug: "pagar besi", entity: "produk", expect: "money-page" },
-  { slug: "pagar kayu", entity: "produk", expect: "money-page" },
-  { slug: "pagar stainless", entity: "produk", expect: "money-page" },
-  { slug: "pagar panel beton", entity: "produk", expect: "money-page" },
+      // ═══ FIX v14-I: prefix fungsional ═══
+      { slug: "spesifikasi jasa sumur bor", entity: "jasa", expect: "money-page" },
+      { slug: "mutu jasa sumur bor", entity: "jasa", expect: "money-page" },
+      { slug: "metode jasa bore pile", entity: "jasa", expect: "money-page" },
+      { slug: "mutu jasa bore pile", entity: "jasa", expect: "money-page" },
+      { slug: "spesifikasi jasa bore pile", entity: "jasa", expect: "money-page" },
 
-  // ═══ FIX v14-T: 0-core base name ═══
-  { slug: "las besi", entity: "jasa", expect: "money-master" },
-  { slug: "las pagar", entity: "jasa", expect: "money-master" },
-  { slug: "las kanopi", entity: "jasa", expect: "money-master" },
-  { slug: "cor dak", entity: "jasa", expect: "money-master" },
-  { slug: "cor jalan", entity: "jasa", expect: "money-master" },
-  { slug: "cor lantai", entity: "jasa", expect: "money-master" },
-  { slug: "pasang railing", entity: "jasa", expect: "money-master" },
-  { slug: "pasang tangga", entity: "jasa", expect: "money-master" },
-  { slug: "pasang gerbang", entity: "jasa", expect: "money-master" },
-  { slug: "aspal jalan", entity: "jasa", expect: "money-master" },
-  { slug: "instalasi internet", entity: "jasa", expect: "money-master" },
-  { slug: "pemasangan wifi", entity: "jasa", expect: "money-master" },
-  { slug: "pembuatan kanopi", entity: "jasa", expect: "money-master" },
-  { slug: "pembuatan pagar", entity: "jasa", expect: "money-master" },
-  { slug: "pembuatan railing", entity: "jasa", expect: "money-master" },
+      // ═══ FIX v14-L/M/N/O/P/Q ═══
+      { slug: "railing tangga", entity: "produk", expect: "money-master" },
+      { slug: "railing tangga stainless", entity: "produk", expect: "money-page" },
+      { slug: "wastafel", entity: "produk", expect: "money-master" },
+      { slug: "gerbang besi", entity: "produk", expect: "money-page" },
+      { slug: "gorden", entity: "produk", expect: "money-master" },
+      { slug: "rak dinding", entity: "produk", expect: "money-master" },
+      { slug: "pintu geser", entity: "produk", expect: "money-page" },
+      { slug: "pintu lipat", entity: "produk", expect: "money-page" },
+      { slug: "jendela casement", entity: "produk", expect: "money-page" },
+      { slug: "jendela sliding", entity: "produk", expect: "money-page" },
+      { slug: "harga paku beton", entity: "material", expect: "money-page" },
+      { slug: "harga wiremesh", entity: "material", expect: "money-master" },
+      { slug: "harga kawat beton", entity: "material", expect: "money-page" },
+      { slug: "harga baut", entity: "material", expect: "money-master" },
+      { slug: "sewa scaffolding", entity: "sewa", expect: "money-master" },
+      { slug: "sewa scaffolding 3 bulan", entity: "sewa", expect: "money-page" },
+      { slug: "sewa steger", entity: "sewa", expect: "money-master" },
+      { slug: "sewa tower lamp", entity: "sewa", expect: "money-master" },
+      { slug: "desain kos", entity: "desain", expect: "money-master" },
+      { slug: "desain kos minimalis", entity: "desain", expect: "money-page" },
+      { slug: "desain guest house", entity: "desain", expect: "money-master" },
+      { slug: "desain pujasera", entity: "desain", expect: "money-master" },
+      { slug: "jasa pembersihan lahan", entity: "jasa", expect: "money-master" },
+      { slug: "jasa pengaspalan", entity: "jasa", expect: "money-master" },
+      { slug: "jasa aspal hotmix", entity: "jasa", expect: "money-page" },
+      { slug: "cutting dinding jakarta", entity: "jasa", expect: "money-child" },
+      { slug: "coring dinding jakarta", entity: "jasa", expect: "money-child" },
+      { slug: "jasa coring dinding jakarta", entity: "jasa", expect: "money-child" },
+      { slug: "layanan bor sumur", entity: "jasa", expect: "money-master" },
+      { slug: "service ac", entity: "jasa", expect: "money-master" },
 
-  // ═══ FIX v15: NEW — coverage tier system ═══
-  { slug: "harga pagar stainless", entity: "produk", expect: "money-page" },
-  { slug: "jasa coring stainless", entity: "jasa", expect: "money-page" },
-  { slug: "harga wpc dinding", entity: "produk", expect: "money-page" },
-  { slug: "jasa cat grc", entity: "jasa", expect: "money-page" },
-  { slug: "harga aluminium", entity: "material", expect: "money-master" },
-  { slug: "kabel nym", entity: "material", expect: "money-master" },
-  { slug: "harga baut", entity: "material", expect: "money-master" },
-  { slug: "tukang bor sumur", entity: "jasa", expect: "money-master" },
-  { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master" },
+      // ═══ FIX A-1 rev + A-7 ═══
+      { slug: "pagar", entity: "produk", expect: "money-master" },
+      { slug: "pagar panel", entity: "produk", expect: "money-master" },
+      { slug: "pagar beton", entity: "produk", expect: "money-master" },
+      { slug: "pagar brc", entity: "produk", expect: "money-master" },
+      { slug: "pagar besi", entity: "produk", expect: "money-page" },
+      { slug: "pagar kayu", entity: "produk", expect: "money-page" },
+      { slug: "pagar stainless", entity: "produk", expect: "money-page" },
+      { slug: "pagar panel beton", entity: "produk", expect: "money-page" },
 
-  // ═══ FIX v15-D: Ambiguous material words ═══
-  { slug: "kaca", entity: null, expect: "money-master" },
-  { slug: "kaca", entity: "material", expect: "money-master" },
-  { slug: "kaca tempered", entity: "material", expect: "money-page" },
-  { slug: "harga kaca", entity: "material", expect: "money-master" },
-  { slug: "pintu kaca", entity: "produk", expect: "money-page" },
-  { slug: "jendela kaca", entity: "produk", expect: "money-page" },
-  { slug: "pipa", entity: null, expect: "money-master" },
-  { slug: "pipa pvc", entity: "material", expect: "money-page" },
-  { slug: "kabel", entity: null, expect: "money-master" },
-  { slug: "kabel nym", entity: "material", expect: "money-master" },
-  { slug: "aluminium", entity: null, expect: "money-master" },
-  { slug: "tembaga", entity: null, expect: "money-master" }
-];
+      // ═══ FIX v14-T: 0-core base name ═══
+      { slug: "las besi", entity: "jasa", expect: "money-master" },
+      { slug: "las pagar", entity: "jasa", expect: "money-master" },
+      { slug: "las kanopi", entity: "jasa", expect: "money-master" },
+      { slug: "cor dak", entity: "jasa", expect: "money-master" },
+      { slug: "cor jalan", entity: "jasa", expect: "money-master" },
+      { slug: "cor lantai", entity: "jasa", expect: "money-master" },
+      { slug: "pasang railing", entity: "jasa", expect: "money-master" },
+      { slug: "pasang tangga", entity: "jasa", expect: "money-master" },
+      { slug: "pasang gerbang", entity: "jasa", expect: "money-master" },
+      { slug: "aspal jalan", entity: "jasa", expect: "money-master" },
+      { slug: "instalasi internet", entity: "jasa", expect: "money-master" },
+      { slug: "pemasangan wifi", entity: "jasa", expect: "money-master" },
+      { slug: "pembuatan kanopi", entity: "jasa", expect: "money-master" },
+      { slug: "pembuatan pagar", entity: "jasa", expect: "money-master" },
+      { slug: "pembuatan railing", entity: "jasa", expect: "money-master" },
+
+      // ═══ FIX v15: tier system ═══
+      { slug: "harga pagar stainless", entity: "produk", expect: "money-page" },
+      { slug: "jasa coring stainless", entity: "jasa", expect: "money-page" },
+      { slug: "harga wpc dinding", entity: "produk", expect: "money-page" },
+      { slug: "jasa cat grc", entity: "jasa", expect: "money-page" },
+      { slug: "harga aluminium", entity: "material", expect: "money-master" },
+      { slug: "kabel nym", entity: "material", expect: "money-master" },
+      { slug: "harga baut", entity: "material", expect: "money-master" },
+      { slug: "tukang bor sumur", entity: "jasa", expect: "money-master" },
+      { slug: "harga jasa bor sumur", entity: "jasa", expect: "money-master" },
+
+      // ═══ FIX v15-D: Ambiguous material words ═══
+      { slug: "kaca", entity: null, expect: "money-master" },
+      { slug: "kaca", entity: "material", expect: "money-master" },
+      { slug: "kaca tempered", entity: "material", expect: "money-page" },
+      { slug: "harga kaca", entity: "material", expect: "money-master" },
+      { slug: "pintu kaca", entity: "produk", expect: "money-page" },
+      { slug: "jendela kaca", entity: "produk", expect: "money-page" },
+      { slug: "pipa", entity: null, expect: "money-master" },
+      { slug: "pipa pvc", entity: "material", expect: "money-page" },
+      { slug: "kabel", entity: null, expect: "money-master" },
+      { slug: "kabel nym", entity: "material", expect: "money-master" },
+      { slug: "aluminium", entity: null, expect: "money-master" },
+      { slug: "tembaga", entity: null, expect: "money-master" }
+    ];
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("🧪 PLD v23.9.5 — TEST SUITE (" + TEST_CASES.length + " CASE)");
+    console.log("🧪 PLD v23.9.6 — TEST SUITE (" + TEST_CASES.length + " CASE)");
     console.log("═══════════════════════════════════════════════════════════");
 
     var passed = 0, failed = 0, failures = [];
@@ -4744,7 +5169,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     log('🧠 Core functions ready', 'CORE');
 
     window.pageLevelDetectorv22 = {
-      version: "23.9.5",
+      version: "23.9.6",
       CONFIG: CONFIG,
 
       detect: detectPageLevel,
@@ -4763,7 +5188,6 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       computeBreadcrumbLevels: computeBreadcrumbLevels,
       validateBreadcrumbHierarchy: validateBreadcrumbHierarchy,
       validateParentDrivenHierarchy: validateParentDrivenHierarchy,
-       // 🔥 FIX v15-W2: same-level content review
       detectSameLevelContentWarning: detectSameLevelContentWarning,
       EXPECTED_CHILD_MAP: EXPECTED_CHILD_MAP,
       findBreadcrumbs: findBreadcrumbs,
@@ -4775,6 +5199,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       ENTITY_PILLAR_NAMES: ENTITY_PILLAR_NAMES,
 
       detectEntityType: detectEntityType,
+      detectJasaSubCategory: detectJasaSubCategory,
 
       getFactors: getFactors,
       getSEOContext: getSEOContext,
@@ -4891,10 +5316,14 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
       DESAIN_WORDS: DESAIN_WORDS,
       ENTITY_BASE_NAMES: ENTITY_BASE_NAMES,
       ENTITY_ONLY_WORDS: ENTITY_ONLY_WORDS,
-      // 🔥 FIX v15-A: export tier system
       GLOBAL_NUMERIC_KEYWORDS: GLOBAL_NUMERIC_KEYWORDS,
       SHARED_MODIFIERS: SHARED_MODIFIERS,
       ENTITY_SPECIFIC: ENTITY_SPECIFIC,
+
+      // 🔥 FIX v16: EXPORT DOMAIN SYSTEM
+      JASA_SUB_CATEGORIES: JASA_SUB_CATEGORIES,
+      DOMAIN_CONSTRAINTS: DOMAIN_CONSTRAINTS,
+      MODIFIER_COMPATIBILITY: MODIFIER_COMPATIBILITY,
 
       PURE_JASA_TECHNIQUES: PURE_JASA_TECHNIQUES,
       PURE_METHODS: PURE_METHODS,
@@ -4943,12 +5372,16 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v23.9.5 — TIERED MODIFIER SYSTEM");
+    console.log("✅ Page Level Detector v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM");
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("🔥 FIX v15-A: Hierarki Berlapis (3-tier modifier system)");
-    console.log("🔥 FIX v15-B: getCategoryDefs pakai 3-tier resolution");
-    console.log("🔥 FIX v15-C: isSpecModifierForEntity + auditModifierTiers");
-    console.log("🔥 FIX v14-A..T: DIPERTAHANKAN SEMUA");
+    console.log("🔥 FIX v16-A: Domain Constraint per Sub-Kategori JASA");
+    console.log("🔥 FIX v16-B: JASA Sub-Categories (14 kategori)");
+    console.log("🔥 FIX v16-C: Modifier Compatibility Matrix");
+    console.log("🔥 FIX v16-D: countModifierLayers dengan domain filter");
+    console.log("🔥 FIX v16-E: checkHasSpecification JASA sub-category aware");
+    console.log("🔥 FIX v16-F: isSpecModifierForEntity pakai compatibility matrix");
+    console.log("🔥 FIX v16-G: 25 base name JASA baru");
+    console.log("🔥 FIX v15-A..C: DIPERTAHANKAN SEMUA");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 Test: runPLDTestSuite()");
     console.log("🔍 Audit base: pageLevelDetectorv22.auditBaseNames()");
@@ -4976,7 +5409,7 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     setTimeout(function() { if (document.readyState === 'loading') callback(); }, 3000);
   }
 
-  log('🚀 Starting PLD v23.9.5...', 'INFO');
+  log('🚀 Starting PLD v23.9.6...', 'INFO');
 
   waitForDOM(function() { initializeCore(); });
   if (typeof document !== 'undefined' && document.readyState === 'complete') {
@@ -5007,5 +5440,4 @@ log('📦 PLD v23.9.5 — TIERED MODIFIER SYSTEM (FIX v15-A..C)', 'EXTERNAL');
     };
   }
 
-})();  // 🔥 CLOSING IIFE UTAMA — SATU-SATUNYA di akhir file
- 
+})();  // 🔥 CLOSING IIFE UTAMA
