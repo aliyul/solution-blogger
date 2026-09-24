@@ -171,7 +171,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
   ];
 
   var COMMON_JASA_WORDS = [
-    'tukang','borongan','kontraktor','mandor','vendor','supplier','layanan','penyedia','pengrajin','spesialis',
+    'tukang','kontraktor','mandor','vendor','supplier','layanan','penyedia','pengrajin','spesialis',
     'biro','firma','perusahaan','penjual jasa','pasang','pemasangan','bangun','renovasi','perbaikan',
     'instalasi','service','servis','konstruksi','pembangunan','cor','gali','urug','angkut',
     'pemotongan','penggalian','pengurugan','pengangkutan','pengeboran','pengelasan','pengecoran','pengecatan',
@@ -819,9 +819,9 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       metode: [
         "manual","hidrolik","auger","rotary","percussive",
         "dry","wet","basah","kering","mesin","dalam","dangkal",
-        "artesis","jet pump",
+        "artesis","jet pump"
         // usulan baru
-        "harian","meteran","sistem borongan","sistem harian","sistem meteran"
+       // "harian","meteran","sistem borongan","sistem harian","sistem meteran"
       ],
       skala: [
         "rumahan","komersial","industri","residential","commercial",
@@ -1990,7 +1990,7 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
     var lower = text.toLowerCase();
     var baseWords = [
       "jasa","layanan","sewa","rental","produk","material","bahan",
-      "kontraktor","tukang","borongan","mandor","vendor","supplier",
+      "kontraktor","tukang","mandor","vendor","supplier",
       "pasang","bangun","renovasi","perbaikan","perawatan",
       "instalasi","pemasangan","pembongkaran","pembersihan",
       "coring","cutting","drilling","grouting","sandblasting",
@@ -2601,6 +2601,15 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       seen216[pword] = true;
       working = working.replace(new RegExp("\\b" + pword + "\\b", 'g'), ' ');
     }
+         // 🔥 FIX v17-L: Strip NOISE_WORDS (cara kerja — 0 layer)
+    // Tujuan: "borongan", "harian", "meteran" di-strip → tidak naik level
+    for (var nw = 0; nw < NOISE_WORDS.length; nw++) {
+      var noiseWord = NOISE_WORDS[nw];
+      working = working.replace(
+        new RegExp("\\b" + noiseWord.replace(/\s+/g, '\\s+') + "\\b", 'g'),
+        ' '
+      );
+    }
     working = working.replace(/\s+/g, ' ').trim();
 
     var count = 0;
@@ -3021,6 +3030,14 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
       coreText = coreText.replace(new RegExp("\\b" + moneyWords[i] + "\\b", 'g'), '');
     }
 
+    // 🔥 FIX v17-L: Strip NOISE_WORDS dari coreText juga
+    for (var nw2 = 0; nw2 < NOISE_WORDS.length; nw2++) {
+      coreText = coreText.replace(
+        new RegExp("\\b" + NOISE_WORDS[nw2].replace(/\s+/g, '\\s+') + "\\b", 'g'),
+        ' '
+      );
+    }
+     
     var entityOnlyWords = ENTITY_ONLY_WORDS[entityType] || [];
     for (var i = 0; i < entityOnlyWords.length; i++) {
       coreText = coreText.replace(new RegExp("\\b" + entityOnlyWords[i] + "\\b", 'g'), ' ');
