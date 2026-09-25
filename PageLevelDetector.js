@@ -275,6 +275,8 @@ log('📦 PLD v23.9.6 — DOMAIN-AWARE MODIFIER SYSTEM (FIX v16-A..G)', 'EXTERNA
 
     jasa: [
       // Pondasi & tiang
+      // 🔥 FIX #9: Sinonim "bore pile" — supaya MM, bukan MP
+      "pengeboran",
       "bore pile", "bor pile", "bored pile", "boring pile",
       "mini pile", "spun pile", "micropile",
       "bor strauss", "bor pancang", "strauss pile",
