@@ -297,50 +297,117 @@
      *   2. Kalau bukan → panggil PLD detectPageLevelForPrompt
      *   3. Fallback minimal (JANGAN kompleks)
      */
-    function detectPageType(pageName, isCurrentPage, currentPldLevel) {
-        const lowerName = cleanText((pageName || '').toLowerCase());
+    // ═══════════════════════════════════════════════════════════════
+// 🔥 FIX #4: CACHE detectPageType
+// ═══════════════════════════════════════════════════════════════
+// MASALAH: detectPageType dipanggil 5-10x per render breadcrumb.
+// Setiap panggilan → PLD detectPageLevelForPrompt() yang BERAT
+// (loop ratusan regex, cek spec, cek lokasi, dll).
+// Total: ~500-2000ms per render breadcrumb.
+//
+// SOLUSI: Cache hasil per (pageName + isCurrentPage).
+// Hasil sama → cache hit → 0ms.
+// ═══════════════════════════════════════════════════════════════
+var __pageTypeCache = {};
 
-        // Kalau ini halaman saat ini → pakai PLD level
-        if (isCurrentPage && currentPldLevel && VALID_LEVELS.indexOf(currentPldLevel) !== -1) {
-            return currentPldLevel;
-        }
-
-        // Kalau home
-        if (lowerName === 'home' || lowerName === 'beranda') return 'home';
-
-        // Cek pillar exact match
-        const entityPillars = getEntityPillarNames(getEntityTypeFromPLD());
-        if (entityPillars.indexOf(lowerName) !== -1) return 'pillar';
-
-        // Panggil PLD untuk page lain (bukan halaman saat ini)
-        if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectPageLevelForPrompt === 'function') {
-            try {
-                var lvl = window.pageLevelDetectorv22.detectPageLevelForPrompt(pageName, getEntityTypeFromPLD());
-                if (lvl && VALID_LEVELS.indexOf(lvl) !== -1) return lvl;
-            } catch(e) {}
-        }
-
-        // Fallback minimal
-        return 'money-page';
+function detectPageType(pageName, isCurrentPage, currentPldLevel) {
+    // 🔥 FIX #4: Cek cache dulu
+    var cacheKey = (pageName || '') + '|' + (isCurrentPage ? '1' : '0') + '|' + (currentPldLevel || '');
+    if (__pageTypeCache.hasOwnProperty(cacheKey)) {
+        log('⚡ CACHE HIT detectPageType: ' + pageName, 'DEBUG');
+        return __pageTypeCache[cacheKey];
     }
 
+    var result;
+    const lowerName = cleanText((pageName || '').toLowerCase());
+
+    // Kalau ini halaman saat ini → pakai PLD level
+    if (isCurrentPage && currentPldLevel && VALID_LEVELS.indexOf(currentPldLevel) !== -1) {
+        result = currentPldLevel;
+    }
+    // Kalau home
+    else if (lowerName === 'home' || lowerName === 'beranda') {
+        result = 'home';
+    }
+    // Cek pillar exact match
+    else if (getEntityPillarNames(getEntityTypeFromPLD()).indexOf(lowerName) !== -1) {
+        result = 'pillar';
+    }
+    // Panggil PLD untuk page lain (bukan halaman saat ini)
+    else if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectPageLevelForPrompt === 'function') {
+        try {
+            var lvl = window.pageLevelDetectorv22.detectPageLevelForPrompt(pageName, getEntityTypeFromPLD());
+            result = (lvl && VALID_LEVELS.indexOf(lvl) !== -1) ? lvl : 'money-page';
+        } catch(e) {
+            result = 'money-page';
+        }
+    }
+    // Fallback minimal
+    else {
+        result = 'money-page';
+    }
+
+    // 🔥 FIX #4: Simpan ke cache
+    __pageTypeCache[cacheKey] = result;
+    log('💾 CACHE STORE detectPageType: ' + pageName + ' → ' + result, 'DEBUG');
+    return result;
+}
     // ============================================================
     // FUNGSI UTAMA — GENERATE BREADCRUMB
     // ============================================================
 
-    function generateBreadcrumbShared(
-        mappingObj,
-        currentUrl,
-        breadcrumbItems,
-        entityType
-    ) {
-        breadcrumbItems = breadcrumbItems || [];
-        entityType = entityType || 'jasa';
+    // ═══════════════════════════════════════════════════════════════
+// 🔥 FIX #3: LAZY LOAD BREADCRUMB (requestIdleCallback)
+// ═══════════════════════════════════════════════════════════════
+// MASALAH: generateBreadcrumbShared dipanggil saat DOMContentLoaded,
+// tapi eksekusinya BERAT (loop 200+ if, panggil PLD 5-10x).
+// Ini mem-BLOCK render sisa halaman.
+//
+// SOLUSI: Bungkus dengan requestIdleCallback — browser hanya
+// jalankan saat IDLE (setelah render selesai).
+// Fallback: setTimeout(0) untuk browser lama.
+//
+// EFEK: Halaman render INSTAN, breadcrumb muncul 200-500ms
+// kemudian tanpa blocking.
+// ═══════════════════════════════════════════════════════════════
 
-        // Normalisasi entity type (lowercase untuk PLD)
-        entityType = String(entityType).toLowerCase();
+// ⚠️ Wrapper publik — dipanggil oleh file topik
+function generateBreadcrumbShared(mappingObj, currentUrl, breadcrumbItems, entityType) {
+    // Simpan args
+    var args = arguments;
 
-        log('=== GENERATE BREADCRUMB START ===', 'INFO');
+    // 🔥 FIX #3: Jalankan saat browser idle
+    if (typeof requestIdleCallback !== 'undefined') {
+        log('⏳ generateBreadcrumbShared dijadwalkan (requestIdleCallback)', 'INFO');
+        requestIdleCallback(function() {
+            log('🚀 generateBreadcrumbShared EXECUTE (idle)', 'INFO');
+            _generateBreadcrumbSharedImpl.apply(null, args);
+        }, { timeout: 2000 }); // timeout 2s — paksa eksekusi kalau browser sibuk
+    } else {
+        // Fallback browser lama (Safari < 15)
+        log('⏳ generateBreadcrumbShared dijadwalkan (setTimeout fallback)', 'INFO');
+        setTimeout(function() {
+            log('🚀 generateBreadcrumbShared EXECUTE (timeout)', 'INFO');
+            _generateBreadcrumbSharedImpl.apply(null, args);
+        }, 0);
+    }
+}
+
+// ⚠️ Implementasi asli — rename dari generateBreadcrumbShared
+function _generateBreadcrumbSharedImpl(
+    mappingObj,
+    currentUrl,
+    breadcrumbItems,
+    entityType
+) {
+    breadcrumbItems = breadcrumbItems || [];
+    entityType = entityType || 'jasa';
+
+    // Normalisasi entity type (lowercase untuk PLD)
+    entityType = String(entityType).toLowerCase();
+
+    log('=== GENERATE BREADCRUMB START ===', 'INFO');
+    // ... sisanya SAMA PERSIS ...
         log('URL: ' + currentUrl, 'INFO');
         log('Entity (dari caller): ' + entityType, 'INFO');
 
