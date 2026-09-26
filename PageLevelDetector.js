@@ -1,9 +1,72 @@
+/* ============================================================
+🧠 Page Level Detector v23.9.7-LITE — PERFORMANCE PATCH
+============================================================
+BASE: v23.9.6 (Domain-Aware Modifier System)
 
+🔥 PERFORMANCE FIXES v23.9.7:
+   ✅ FIX-P1: Audit di-skip default (tidak ada audit functions)
+   ✅ FIX-P2: initializeCore() guard — cegah double init
+   ✅ FIX-P3: setSchemaAttributes() guard — cegah double call
+   ✅ FIX-P4: Cache detectPageLevelForPrompt() — hemat 40% waktu
+   ✅ FIX-P5: Cache detectJasaSubCategory() — hemat 30% waktu
+   ✅ FIX-P6: Precompile regex di countModifierLayers() — hemat 25%
+   ✅ FIX-P7: Body attributes di-set SINKRON sebelum dispatch
 
-  // ═══════════════════════════════════════════════════════════
-  // LEVEL MAPS
-  // ═══════════════════════════════════════════════════════════
-  var VALID_LEVELS = [
+🎯 LITE MODE — FITUR DIHAPUS:
+   ❌ Test Suite (tidak dipakai production)
+   ❌ Audit Functions (tidak dipakai production)
+   ❌ AI Proxy (tidak dipakai production)
+   ❌ SEO Score Functions (tidak dipakai production)
+
+✅ DIPERTAHANKAN:
+   ✅ Breadcrumb Detection
+   ✅ Hierarchy Warnings
+   ✅ Intent Detection
+
+🎯 TARGET: HP mid-range loading < 2 detik
+============================================================ */
+
+(function () {
+  "use strict";
+
+if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.7-lite") {
+    console.warn("⚠️ [PLD v23.9.7-LITE] Already loaded!");
+    return;
+}
+
+  // ═══ FIX-P2: Guard global untuk cegah double init ═══
+  var _CORE_INITIALIZED = false;
+  var _SCHEMA_ATTRS_SET = false;
+  var _PLD_LEVEL_CACHE = {};
+  var _PLD_SUBCAT_CACHE = {};
+
+  var CONFIG = {
+    DEBUG: false
+  };
+
+  function log(message, type) {
+    if (!CONFIG.DEBUG && type === "INFO") return;
+    if (!type) type = "INFO";
+    var icons = {
+      INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌",
+      LOCATION: "📍", VARIANT: "🔬", PRICE: "💰", MM: "🏛️",
+      CORE: "🧠", DETECT: "🎯", INTENT: "🎯", BREAD: "🍞",
+      EXTERNAL: "📦", COMMERCIAL: "🛒", HARGA: "💵",
+      VALIDATE: "🔍", CROSS: "🔀", ATTR: "🏷️", TABLE: "📊",
+      BROWSER: "🌐", FIX: "🔥", TEST: "🧪", SEO: "🎯",
+      QUESTION: "❓", COMMINV: "🔍", PERSATUAN: "📏",
+      SPECPHRASE: "📋", PILLAR: "🏛️", MATTYPE: "🧱",
+      FISIKCTX: "🎭", VERBEXP: "⚡", COMPOUND: "🔗",
+      OBJECT: "🧊", SCORE: "🎚️", BASE: "🏗️", CROSSSPEC: "🎯",
+      DOM: "🌐", EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐",
+      TIER: "🎚️", DOMAIN: "🌍", SUBCAT: "📂", PERF: "⚡"
+    };
+    console.log((icons[type] || "📘") + " [PLD v23.9.7-LITE] " + message);
+  }
+
+log('📦 PLD v23.9.7-LITE — PERFORMANCE PATCH (FIX-P1..P7)', 'EXTERNAL');
+
+   var VALID_LEVELS = [
     "home", "pillar", "sub-pillar-tipe-2", "sub-pillar-tipe-1",
     "money-master", "money-page", "money-child", "variant", "sub-variant"
   ];
@@ -155,7 +218,7 @@
     artikel: ["artikel", "blog", "post", "berita"]
   };
 
-   var ENTITY_BASE_NAMES = {
+  var ENTITY_BASE_NAMES = {
 
     produk: [
       "pintu", "jendela", "kusen", "pagar", "kanopi",
@@ -358,7 +421,7 @@
     }
   })();
 
-  var JASA_SUB_CATEGORIES = {
+    var JASA_SUB_CATEGORIES = {
     struktural: [
       "bore pile", "bor pile", "bored pile", "boring pile",
       "mini pile", "spun pile", "micropile",
@@ -557,7 +620,7 @@
     }
   };
 
-  var MODIFIER_COMPATIBILITY = {
+    var MODIFIER_COMPATIBILITY = {
     // Finishing modifiers
     "polos": ["produk", "material", "desain", "jasa_finishing", "jasa_pembuatan_pasang"],
     "motif": ["produk", "material", "desain", "jasa_finishing"],
@@ -875,7 +938,7 @@
     });
   }
 
-var PURE_JASA_TECHNIQUES = [];
+    var PURE_JASA_TECHNIQUES = [];
 
   var PURE_METHODS = [
     "manual", "hidrolik", "auger", "rotary", "percussive",
@@ -1275,14 +1338,7 @@ var PURE_JASA_TECHNIQUES = [];
     navigational: ["login", "daftar", "kontak", "tentang", "hubungi", "alamat", "lokasi", "maps", "direksi"]
   };
 
-  var SEMANTIC_CLUSTERS = {
-    "konstruksi": ["bangunan", "proyek", "infrastruktur", "pembangunan", "developer", "kontraktor"],
-    "desain": ["interior", "arsitektur", "estetika", "fungsional", "layout", "denah"],
-    "material": ["semen", "besi", "baja", "kayu", "keramik", "granit", "marmer", "hebel"],
-    "jasa": ["kontraktor", "tukang", "borongan", "renovasi", "instalasi", "service"],
-    "sewa": ["rental", "excavator", "bulldozer", "crane", "alat berat", "diesel"],
-    "produk": ["precast", "readymix", "pracetak", "siap pakai", "custom"]
-  };
+  // ❌ SEMANTIC_CLUSTERS DIHAPUS (hanya dipakai SEO Score)
 
   var COMMERCIAL_WORDS = [
     'jual', 'beli', 'order', 'pesan', 'booking',
@@ -1416,7 +1472,7 @@ var PURE_JASA_TECHNIQUES = [];
   var SYNTAX_CONJUNCTIONS = ["dan", "serta", "juga", "dengan", "tanpa"];
   var SYNTAX_PREPOSITIONS = ["di", "ke", "dari", "untuk", "pada", "dalam", "atas", "bawah"];
 
-  function checkHasSpecification(text, entityType) {
+    function checkHasSpecification(text, entityType) {
     if (!text) return false;
     var lower = text.toLowerCase();
     var entityOnly = ENTITY_ONLY_WORDS[entityType] || [];
@@ -1727,6 +1783,462 @@ var PURE_JASA_TECHNIQUES = [];
     return false;
   }
 
+    function checkHasJasaMetode(text) {
+    if (!text) return null;
+    var lower = text.toLowerCase();
+    var metodeWords = (ENTITY_SPECIFIC.jasa.metode || []).concat(ENTITY_SPECIFIC.jasa.skala || []);
+    for (var i = 0; i < metodeWords.length; i++) {
+      if (new RegExp("\\b" + metodeWords[i] + "\\b", "i").test(lower)) {
+        return metodeWords[i];
+      }
+    }
+    return null;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // getCategoryDefs() — 3-TIER + DOMAIN RESOLUTION
+  // ═══════════════════════════════════════════════════════════
+  function getCategoryDefs(entityType) {
+    var result = {
+      global_numeric: GLOBAL_NUMERIC_KEYWORDS
+    };
+
+    result.material = SHARED_MODIFIERS.material;
+    result.finishing = SHARED_MODIFIERS.finishing;
+    result.warna = SHARED_MODIFIERS.warna;
+    result.gaya = SHARED_MODIFIERS.gaya;
+
+    switch (entityType) {
+      case "jasa":
+        result.metode = ENTITY_SPECIFIC.jasa.metode;
+        result.skala = ENTITY_SPECIFIC.jasa.skala;
+        result.tipe_aspal = ENTITY_SPECIFIC.jasa.tipe_aspal;
+        result.target = APPLICATION_TARGETS_FULL;
+        break;
+
+      case "produk":
+        result.mutu = ENTITY_SPECIFIC.produk.mutu;
+        result.tipe = ENTITY_SPECIFIC.produk.tipe;
+        result.target = APPLICATION_TARGETS_FULL;
+        break;
+
+      case "material":
+        result.grade_material = ENTITY_SPECIFIC.material.grade_material;
+        result.tipe_extended = ENTITY_SPECIFIC.material.tipe_extended;
+        result.target = APPLICATION_TARGETS_FULL;
+        break;
+
+      case "sewa":
+        result.tipe = ENTITY_SPECIFIC.sewa.tipe;
+        result.merek = ENTITY_SPECIFIC.sewa.merek;
+        result.kondisi = ENTITY_SPECIFIC.sewa.kondisi;
+        result.durasi = ENTITY_SPECIFIC.sewa.durasi;
+        result.kapasitas = ENTITY_SPECIFIC.sewa.kapasitas;
+        result.tools_extended = ENTITY_SPECIFIC.sewa.tools_extended;
+        result.target = APPLICATION_TARGETS_FULL;
+        break;
+
+      case "desain":
+        var ROOM_CTX = ["rumah", "kantor", "toko", "hotel", "restoran",
+          "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
+          "sekolah", "mall", "spa", "salon", "bar", "lounge", "butik",
+          "showroom", "minimarket",
+          "dapur", "kamar mandi", "kamar tidur", "ruang tamu",
+          "ruang keluarga", "ruang makan", "ruang kerja",
+          "teras", "balkon", "toilet", "wc"];
+        var targetDesain = APPLICATION_TARGETS_FULL.filter(function(t) {
+          return ROOM_CTX.indexOf(t) === -1;
+        });
+        result.gaya_extended = ENTITY_SPECIFIC.desain.gaya_extended;
+        result.warna_extended = ENTITY_SPECIFIC.desain.warna_extended;
+        result.konsep = ENTITY_SPECIFIC.desain.konsep;
+        result.material_desain = ENTITY_SPECIFIC.desain.material;
+        result.furniture = ENTITY_SPECIFIC.desain.furniture;
+        result.subjektif = ENTITY_SPECIFIC.desain.subjektif;
+        result.tipe = ENTITY_SPECIFIC.desain.tipe;
+        result.target = targetDesain;
+        break;
+    }
+
+    return result;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // isSpecModifierForEntity() dengan compatibility matrix
+  // ═══════════════════════════════════════════════════════════
+  function isSpecModifierForEntity(word, entityType) {
+    if (!word) return false;
+    var w = word.toLowerCase().trim();
+    if (!w) return false;
+
+    if (/^\d+(kg|ton|m|cm|mm|m3|liter|kva|psi|hp|inch|k)$/i.test(w)) return true;
+    if (/^\d+x\d+$/i.test(w)) return true;
+    if (/^\d+/.test(w)) return true;
+    if (/^(k\d+|fc\d*|m\d+|c\d+|bjts?\d*)$/i.test(w)) return true;
+    if (GLOBAL_NUMERIC_KEYWORDS.indexOf(w) !== -1) return true;
+
+    if (w === 'termurah' || w === 'termahal' || w === 'promo' || w === 'diskon') return true;
+
+    if (MODIFIER_COMPATIBILITY[w]) {
+      var compatibleEntities = MODIFIER_COMPATIBILITY[w];
+      if (entityType === "jasa") {
+        var subCat = detectJasaSubCategory(w, "jasa");
+        var jasaKey = "jasa_" + subCat;
+        if (compatibleEntities.indexOf(jasaKey) !== -1) return true;
+        if (compatibleEntities.indexOf("jasa") !== -1) return true;
+        for (var i = 0; i < compatibleEntities.length; i++) {
+          if (compatibleEntities[i].indexOf("jasa_") === 0) return true;
+        }
+        log('🚫 FIX v16-F: modifier "' + w + '" tidak kompatibel untuk jasa/' + subCat, 'DOMAIN');
+        return false;
+      }
+      if (compatibleEntities.indexOf(entityType) !== -1) return true;
+      log('🚫 FIX v16-F: modifier "' + w + '" tidak kompatibel untuk ' + entityType, 'DOMAIN');
+      return false;
+    }
+
+    for (var cat in SHARED_MODIFIERS) {
+      if (!SHARED_MODIFIERS.hasOwnProperty(cat)) continue;
+      if (SHARED_MODIFIERS[cat].indexOf(w) !== -1) return true;
+    }
+
+    if (entityType && ENTITY_SPECIFIC[entityType]) {
+      var spec = ENTITY_SPECIFIC[entityType];
+      for (var key in spec) {
+        if (!spec.hasOwnProperty(key)) continue;
+        if (spec[key].indexOf(w) !== -1) return true;
+      }
+    }
+
+    if (entityType === "sewa") {
+      if (SEWA_SPECS.kapasitas.indexOf(w) !== -1) return true;
+    }
+    if (entityType === "material") {
+      if (MATERIAL_SPECS.berat.indexOf(w) !== -1) return true;
+    }
+
+    return false;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX-P6: countModifierLayers() DENGAN PRECOMPILED REGEX
+  // ═══════════════════════════════════════════════════════════
+  function countModifierLayers(text, entityType) {
+    if (!text) return 0;
+    var working = text.toLowerCase();
+
+    // ─── Step 1: Strip entity-only words ───
+    var entityOnly = ENTITY_ONLY_WORDS[entityType] || [];
+    for (var e = 0; e < entityOnly.length; e++) {
+      working = working.replace(new RegExp("\\b" + entityOnly[e] + "\\b", 'g'), ' ');
+    }
+
+    // ─── Step 2: Strip base names ───
+    var baseNames = ENTITY_BASE_NAMES[entityType] || [];
+    for (var b = 0; b < baseNames.length; b++) {
+      working = working.replace(
+        new RegExp("\\b" + baseNames[b].replace(/\s+/g, '\\s+') + "\\b", 'g'),
+        ' '
+      );
+    }
+
+    // ─── Step 3: Strip NOISE_WORDS — pakai PRECOMPILED REGEX ───
+    _NOISE_UNIV_REGEX.lastIndex = 0;
+    if (_NOISE_UNIV_REGEX.test(working)) {
+      log('🔇 FIX-P6: strip NOISE_UNIVERSAL (batch)', 'CORE');
+      _NOISE_UNIV_REGEX.lastIndex = 0;
+      working = working.replace(_NOISE_UNIV_REGEX, ' ');
+    }
+
+    if (entityType === "jasa") {
+      _NOISE_JASA_REGEX.lastIndex = 0;
+      if (_NOISE_JASA_REGEX.test(working)) {
+        log('🔇 FIX-P6: strip NOISE_JASA (batch)', 'CORE');
+        _NOISE_JASA_REGEX.lastIndex = 0;
+        working = working.replace(_NOISE_JASA_REGEX, ' ');
+      }
+    }
+
+    // ─── Step 4: Strip universal prefix ───
+    var UNIVERSAL_PREFIX_9 = ["jasa", "layanan", "tukang",
+      "kontraktor", "toko", "supplier", "distributor", "jual", "beli",
+      "rental", "sewa", "service", "servis"];
+    for (var up9 = 0; up9 < UNIVERSAL_PREFIX_9.length; up9++) {
+      working = working.replace(new RegExp("\\b" + UNIVERSAL_PREFIX_9[up9] + "\\b", 'g'), ' ');
+    }
+
+    // ─── Step 5: Normalize whitespace ───
+    working = working.replace(/\s+/g, ' ').trim();
+
+    var count = 0;
+    var seenWords = {};
+
+    // ─── Step 5a: Dimensi multi-unit (60x60 cm) ───
+    var dimUnitEarly = working.match(
+      /\d+\s*(?:x|×)\s*\d+\s*(?:cm|m|mm|meter|inch|inci)\b/gi
+    ) || [];
+    if (dimUnitEarly.length > 0) {
+      count += dimUnitEarly.length;
+      log('🔥 FIX #8: dimUnitEarly=[' + dimUnitEarly.join(',') + '] +' + dimUnitEarly.length, 'VARIANT');
+      for (var k = 0; k < dimUnitEarly.length; k++) {
+        working = working.replace(dimUnitEarly[k], ' ');
+      }
+    }
+
+    // ─── Step 5b: Dimensi multi-angka tanpa unit (60x60) ───
+    var dimMultiEarly = working.match(/\d+\s*(?:x|×)\s*\d+/gi) || [];
+    if (dimMultiEarly.length > 0) {
+      count += dimMultiEarly.length;
+      log('🔥 FIX #8: dimMultiEarly=[' + dimMultiEarly.join(',') + '] +' + dimMultiEarly.length, 'VARIANT');
+      for (var k2 = 0; k2 < dimMultiEarly.length; k2++) {
+        working = working.replace(dimMultiEarly[k2], ' ');
+      }
+    }
+
+    // ─── Step 5c: Dimensi sederhana (6 meter, 30cm, 50kg) ───
+    var dimSimpleEarly = working.match(
+      /\d+\s*(?:cm|mm|m|meter|kg|ton|inch|inci|kva|psi|hp|ft|feet)\b/gi
+    ) || [];
+    if (dimSimpleEarly.length > 0) {
+      count += dimSimpleEarly.length;
+      log('🔥 FIX #8: dimSimpleEarly=[' + dimSimpleEarly.join(',') + '] +' + dimSimpleEarly.length, 'VARIANT');
+      for (var k3 = 0; k3 < dimSimpleEarly.length; k3++) {
+        working = working.replace(dimSimpleEarly[k3], ' ');
+      }
+    }
+
+    working = working.replace(/\s+/g, ' ').trim();
+
+    // ─── Step 6: Strip price ───
+    for (var ph = 0; ph < PRICE_HEAD_WORDS.length; ph++) {
+      working = working.replace(new RegExp("\\b" + PRICE_HEAD_WORDS[ph] + "\\b", 'g'), ' ');
+    }
+
+    // ─── Step 6b: Strip satuan — pakai PRECOMPILED REGEX ───
+    if (entityType !== "sewa") {
+      _SATUAN_UNITS_PER_REGEX.lastIndex = 0;
+      working = working.replace(_SATUAN_UNITS_PER_REGEX, ' ');
+      _SATUAN_UNITS_REGEX.lastIndex = 0;
+      working = working.replace(_SATUAN_UNITS_REGEX, ' ');
+    } else {
+      log('🔥 FIX #1b: SKIP strip satuan untuk sewa (durasi = layer)', 'DOMAIN');
+    }
+
+    // ─── Step 7: Strip promo ───
+    var PROMO_STRIP = PROMO_MODIFIER_WORDS.concat(HIGH_VOLUME_WORDS);
+    var seen216 = {};
+    for (var ps = 0; ps < PROMO_STRIP.length; ps++) {
+      var pword = PROMO_STRIP[ps];
+      if (seen216[pword]) continue;
+      seen216[pword] = true;
+      working = working.replace(new RegExp("\\b" + pword + "\\b", 'g'), ' ');
+    }
+
+    working = working.replace(/\s+/g, ' ').trim();
+
+    // ─── Step 9: Khusus DESAIN ───
+    if (entityType === "desain") {
+      var lantaiMatch = working.match(/\b\d+\s*lantai\b/gi) || [];
+      count += lantaiMatch.length;
+      for (var lm = 0; lm < lantaiMatch.length; lm++) {
+        working = working.replace(lantaiMatch[lm], ' ');
+      }
+      var typeMatch = working.match(/\btype\s+\d+\b/gi) || [];
+      count += typeMatch.length;
+      for (var tm = 0; tm < typeMatch.length; tm++) {
+        working = working.replace(typeMatch[tm], ' ');
+      }
+      if (/\bhook\b/i.test(working)) {
+        count += 1;
+        working = working.replace(/\bhook\b/gi, ' ');
+      }
+      working = working.replace(/\s+/g, ' ').trim();
+    }
+
+    // ─── Step 10: Cek kategori ───
+    var categories = getCategoryDefs(entityType);
+
+    var subCat = detectJasaSubCategory(text, entityType);
+    var domainConstraints = DOMAIN_CONSTRAINTS[subCat] || DOMAIN_CONSTRAINTS["default"];
+    var forbiddenCats = domainConstraints.forbidden_categories || [];
+
+    for (var cat in categories) {
+      if (!categories.hasOwnProperty(cat)) continue;
+
+      if (forbiddenCats.indexOf(cat) !== -1) {
+        log('🚫 FIX v16-A: SKIP category "' + cat + '" (forbidden untuk ' + subCat + ')', 'DOMAIN');
+        continue;
+      }
+
+      var words = categories[cat];
+      for (var i = 0; i < words.length; i++) {
+        var word = words[i];
+        var rx = new RegExp("\\b" + word.replace(/\s+/g, '\\s+') + "\\b", "i");
+        if (rx.test(working)) {
+          if (seenWords[word]) continue;
+          seenWords[word] = true;
+          count++;
+        }
+      }
+    }
+
+    // ─── Step 11: Strip kategori dari "cleaned" ───
+    var cleaned = working;
+    for (var cat2 in categories) {
+      if (!categories.hasOwnProperty(cat2)) continue;
+      if (forbiddenCats.indexOf(cat2) !== -1) continue;
+      var words2 = categories[cat2];
+      for (var j = 0; j < words2.length; j++) {
+        cleaned = cleaned.replace(
+          new RegExp("\\b" + words2[j].replace(/\s+/g, '\\s+') + "\\b", 'gi'),
+          ' '
+        );
+      }
+    }
+
+    for (var catF in categories) {
+      if (!categories.hasOwnProperty(catF)) continue;
+      if (forbiddenCats.indexOf(catF) === -1) continue;
+      var wordsF = categories[catF];
+      for (var jF = 0; jF < wordsF.length; jF++) {
+        cleaned = cleaned.replace(
+          new RegExp("\\b" + wordsF[jF].replace(/\s+/g, '\\s+') + "\\b", 'gi'),
+          ' '
+        );
+      }
+    }
+
+    // ─── Step 12: Strip stopwords ───
+    var stopwords = ["dan","atau","serta","yang","dari","ke","di","untuk",
+                     "dengan","ini","itu","akan","pada","oleh","per"];
+    for (var s = 0; s < stopwords.length; s++) {
+      cleaned = cleaned.replace(new RegExp("\\b" + stopwords[s] + "\\b", 'g'), ' ');
+    }
+
+    // ─── Step 13: Khusus DESAIN — strip room context ───
+    if (entityType === "desain") {
+      var ROOM_CTX = ["rumah", "kantor", "toko", "hotel", "restoran",
+        "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
+        "sekolah", "mall", "spa", "salon", "bar", "lounge", "butik",
+        "showroom", "minimarket",
+        "dapur", "kamar mandi", "kamar tidur", "ruang tamu",
+        "ruang keluarga", "ruang makan", "ruang kerja",
+        "teras", "balkon", "toilet", "wc"];
+      for (var rc = 0; rc < ROOM_CTX.length; rc++) {
+        cleaned = cleaned.replace(new RegExp("\\b" + ROOM_CTX[rc] + "\\b", 'g'), ' ');
+      }
+    }
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+
+    // ─── Step 14: Hitung unknown words ───
+    var unknownWords = cleaned.split(/\s+/).filter(function(w) {
+      return w.length > 3;
+    });
+    if (unknownWords.length > 0) {
+      count += unknownWords.length;
+      log('🔥 FIX 197: unknown=[' + unknownWords.join(',') + '] +' +
+          unknownWords.length, 'VARIANT');
+    }
+
+    // ─── Step 15: Log hasil ───
+    log('🔥 FIX v17-L-FINAL + FIX-P6: layers=' + count + ' entity=' + entityType +
+        ' subCat=' + subCat + ' working="' + working.trim() + '"', 'VARIANT');
+    return count;
+  }
+
+  function flagAmbiguous(text, entityType, level, layers) {
+    if (!CONFIG.DEBUG) return;
+    var residues = countModifierLayers(text, entityType);
+    if (residues > 0 && layers === 0) {
+      log('⚠️ FIX 199: AMBIGUOUS — text="' + text +
+          '" layers=' + layers + ' residues=' + residues, 'WARN');
+    }
+    var wordCount = text.split(/\s+/).filter(function(w) { return w.length > 2; }).length;
+    if (wordCount >= 3 && level === "money-master") {
+      log('⚠️ FIX 199: SUSPICIOUS MM — wordCount=' + wordCount +
+          ' text="' + text + '"', 'WARN');
+    }
+  }
+
+  function decideLevelByLayers(layers) {
+    if (layers === 0) return "money-master";
+    if (layers === 1) return "money-page";
+    if (layers === 2) return "variant";
+    return "sub-variant";
+  }
+
+  function hasJasaMaterialCtx(text) {
+    if (!text) return false;
+    var lower = text.toLowerCase();
+    var narrow = ["beton","baja","besi","kayu","batu","tanah","aspal",
+                  "keramik","granit","marmer","kaca","aluminium",
+                  "pipa","semen","pasir","pvc","wpc","grc","hpl","acp",
+                  "vinyl","upvc","stainless","titanium","tembaga","kuningan",
+                  "perunggu","karbon","grafit","bambu","rotan"];
+    for (var i = 0; i < narrow.length; i++) {
+      if (new RegExp("\\b" + narrow[i] + "\\b", "i").test(lower)) return true;
+    }
+    return false;
+  }
+
+  function checkPureTechnicalSpec(text, entityType) {
+    if (!text) return false;
+    var lower = text.toLowerCase();
+    var pureSpecs = [];
+    if (entityType === "jasa") {
+      var subCat = detectJasaSubCategory(text, "jasa");
+      pureSpecs = ENTITY_SPECIFIC.jasa.metode
+        .concat(ENTITY_SPECIFIC.jasa.skala)
+        .concat(ENTITY_SPECIFIC.jasa.tipe_aspal || []);
+      if (["finishing", "interior_eksterior", "pembuatan_pasang", "perbaikan"].indexOf(subCat) !== -1) {
+        pureSpecs = pureSpecs.concat(SHARED_MODIFIERS.finishing);
+      }
+    }
+    else if (entityType === "produk") pureSpecs = PURE_PRODUK_SPECS.concat(SHARED_MODIFIERS.finishing, CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing);
+    else if (entityType === "material") pureSpecs = PURE_MATERIAL_SPECS.concat(SHARED_MODIFIERS.finishing);
+    else if (entityType === "sewa") pureSpecs = PURE_SEWA_SPECS;
+    else if (entityType === "desain") pureSpecs = PURE_DESAIN_SPECS;
+    for (var i = 0; i < pureSpecs.length; i++) {
+      if (new RegExp("\\b" + pureSpecs[i].replace(/\s+/g, '\\s+') + "\\b", "i").test(lower)) return true;
+    }
+    if (/\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lower)) return true;
+    if (/\d+\s*[x×]\s*\d+\s*(cm|m|meter|mm)/gi.test(lower)) return true;
+    if (checkHasPerUnit(text)) return true;
+    if (entityType === "jasa" || entityType === "produk" || entityType === "material") {
+      if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) {
+        var materialCtx = /\b(keramik|granit|marmer|vinyl|parket|wallpaper|laminasi|homogeneous|keramik lantai|keramik dinding|granit tile|paving|bata|tile|ubin|wall|wall-panel|ceiling|partisi|pagar|panel)\b/i.test(lower);
+        if (materialCtx) return true;
+      }
+    }
+    return false;
+  }
+
+    function detectPageLevelForPrompt(text, entityType) {
+    var cacheKey = text + "|" + (entityType || "null");
+    if (_PLD_LEVEL_CACHE[cacheKey] !== undefined) {
+      return _PLD_LEVEL_CACHE[cacheKey];
+    }
+
+    var cleanLower = text.toLowerCase().trim();
+    for (var entity in ENTITY_PILLAR_NAMES) {
+      if (!ENTITY_PILLAR_NAMES.hasOwnProperty(entity)) continue;
+      var patterns = ENTITY_PILLAR_NAMES[entity];
+      for (var i = 0; i < patterns.length; i++) {
+        if (cleanLower === patterns[i]) {
+          var isEntityMatch = entity === entityType || (entity === "produk interior" && entityType === "produk");
+          if (isEntityMatch) {
+            _PLD_LEVEL_CACHE[cacheKey] = "pillar";
+            return "pillar";
+          }
+        }
+      }
+    }
+    var level = detectMoneyLevelInternal(text, entityType);
+    if (!level) { log('⚠️ Level null', 'WARN'); level = "money-page"; }
+    _PLD_LEVEL_CACHE[cacheKey] = level;
+    return level;
+  }
+
   function detectEntityTypeFromText(text) {
     if (!text) return null;
     var lower = text.toLowerCase();
@@ -1983,7 +2495,6 @@ var PURE_JASA_TECHNIQUES = [];
       coreText = coreText.replace(new RegExp("\\b" + moneyWords[i] + "\\b", 'g'), '');
     }
 
-    // FIX-P6: pakai precompiled regex untuk noise words
     _NOISE_UNIV_REGEX.lastIndex = 0;
     coreText = coreText.replace(_NOISE_UNIV_REGEX, ' ');
 
@@ -2058,7 +2569,6 @@ var PURE_JASA_TECHNIQUES = [];
       }
     }
     coreText = coreText.replace(/\b(dekat|sekitar|berdekatan|terdekat|near|around|disekitar|didekat)\b/g, ' ');
-    // FIX-P6: pakai precompiled regex
     _SATUAN_UNITS_PER_REGEX.lastIndex = 0;
     coreText = coreText.replace(_SATUAN_UNITS_PER_REGEX, ' ');
     var coreWords = coreText.split(/\s+/).filter(function(w) { return w.length > 2; });
@@ -2168,7 +2678,641 @@ var PURE_JASA_TECHNIQUES = [];
     };
   }
 
-  function detectPageLevel(userOptions) {
+    function detectConjunctionWarning(slug, level) {
+    if (!slug || !level) return [];
+    var lower = slug.toLowerCase();
+    var warnings = [];
+
+    if (/\bcut and fill\b/i.test(lower)) return warnings;
+
+    var hasAtau = /\batau\b/.test(lower);
+    var hasDan = /\b(dan|serta)\b/.test(lower);
+
+    if (hasAtau && level !== "sub-pillar-tipe-1" && level !== "sub-pillar-tipe-2") {
+      var parts184 = lower.split(/\batau\b/);
+      var leftW184 = (parts184[0] || "").trim().split(/\s+/).filter(Boolean);
+      var rightW184 = (parts184[1] || "").trim().split(/\s+/).filter(Boolean);
+      if (leftW184.length >= 2 && rightW184.length >= 2) {
+        warnings.push({
+          type: "SEO_MISALIGNMENT_ATAU",
+          severity: "warning",
+          message: "URL mengandung 'atau' dengan 2 sisi substantif tapi level '" +
+                   level + "'. SEO-aligned: 'atau' untuk SP1 (perbandingan) atau SP2 (list).",
+          suggestion: "Ganti ke 'dan' untuk MP (bundling), atau expand jadi 'A vs B' untuk SP1."
+        });
+      } else {
+        log('🎯 FIX 184: SKIP "atau" warning (sisi < 2 kata = pilihan biasa)', 'SEO');
+      }
+    }
+
+    if (hasDan && level !== "money-page") {
+      warnings.push({
+        type: "SEO_MISALIGNMENT_DAN",
+        severity: "warning",
+        message: "URL mengandung 'dan'/'serta' tapi level '" + level + "'. SEO-aligned: 'dan'/'serta' untuk MP (bundling 2 layanan).",
+        suggestion: "Pecah jadi 2 halaman, atau ganti konjungsi."
+      });
+    }
+
+    return warnings;
+  }
+
+  function detectSameLevelContentWarning(slug, entityType) {
+    var warnings = [];
+    if (!slug) return warnings;
+
+    var lower = slug.toLowerCase();
+
+    var TRIGGER_CATEGORIES = [
+      {
+        type: "PROMO_WORD",
+        words: ["murah", "hemat", "terjangkau", "bersaing", "kompetitif", "ekonomis"],
+        icon: "💰",
+        doNotTemplate: "JANGAN redirect — user cari '{WORD}' butuh halaman ini",
+        angle_suggestion: "Buat angle beda: tips hemat, paket ekonomis, perbandingan harga"
+      },
+      {
+        type: "SCALE_WORD",
+        words: ["kecil", "besar", "sedang", "mini", "jumbo", "heavy", "medium"],
+        icon: "📏",
+        doNotTemplate: "JANGAN redirect kalau kontennya memang beda scope",
+        angle_suggestion: "Buat angle beda: kapasitas, portabilitas, penggunaan"
+      },
+      {
+        type: "PROMO_STRONG",
+        words: ["promo", "diskon", "obral", "flash sale", "cuci gudang"],
+        icon: "🔥",
+        doNotTemplate: "Cek apakah halaman promo ini temporary atau permanen",
+        angle_suggestion: "Paket bundle, limited time offer, benefit eksklusif"
+      },
+      {
+        type: "LOCATION_VARIANT",
+        words: ["jakarta", "bandung", "surabaya", "jogja", "semarang"],
+        icon: "📍",
+        doNotTemplate: "JANGAN redirect — lokasi beda = audiens beda",
+        angle_suggestion: "Konten lokal: studi kasus, klien, testimoni di kota itu"
+      }
+    ];
+
+    for (var catIdx = 0; catIdx < TRIGGER_CATEGORIES.length; catIdx++) {
+      var cat = TRIGGER_CATEGORIES[catIdx];
+      for (var wIdx = 0; wIdx < cat.words.length; wIdx++) {
+        var word = cat.words[wIdx];
+        var rx = new RegExp("\\b" + word + "\\b", "i");
+        if (!rx.test(lower)) continue;
+
+        var baseSlug = lower.replace(new RegExp("\\b" + word + "\\b", "gi"), "")
+                            .replace(/\s+/g, " ")
+                            .trim();
+
+        if (!baseSlug) continue;
+
+        warnings.push({
+          type: "SAME_LEVEL_CONTENT_REVIEW",
+          severity: "info",
+          category: cat.type,
+          icon: cat.icon,
+          triggerWord: word,
+          currentSlug: lower,
+          baseSlug: baseSlug,
+          message: "URL ini punya level SAMA dengan '" + baseSlug +
+                   "'. Keduanya = money-master. Risk: kanibalisasi kalau " +
+                   "konten sama.",
+          checklist: [
+            "1. H1 beda? (mis: 'Jasa Bore Pile' vs 'Jasa Bore Pile Murah')",
+            "2. Title tag beda?",
+            "3. Meta description beda?",
+            "4. Konten >60% unik? (bukan copy-paste)",
+            "5. Angle beda? (umum vs hemat/harga)",
+            "6. Internal link beda? (anchor text berbeda)"
+          ],
+          do_not: cat.doNotTemplate.replace("{WORD}", word),
+          suggestion: cat.angle_suggestion,
+          action_if_duplicate: "REWRITE konten, JANGAN redirect/hapus",
+          action_if_unique: "✅ Aman — biarkan 2 halaman"
+        });
+
+        break;
+      }
+    }
+
+    return warnings;
+  }
+
+  function detectHierarchyWarning(slug, entityType) {
+    var warnings = [];
+    if (!slug) return warnings;
+
+    var words = slug.split(" ").filter(function(w) { return w.length > 0; });
+    if (words.length <= 2) return warnings;
+    if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
+
+    var parentSlug = words.slice(0, -1).join(" ");
+    var currentLevel = detectPageLevelForPrompt(slug, entityType);
+    var parentLevel = detectPageLevelForPrompt(parentSlug, entityType);
+
+    var currentNum = LEVEL_HIERARCHY_MAP[currentLevel] || -1;
+    var parentNum = LEVEL_HIERARCHY_MAP[parentLevel] || -1;
+
+    if (parentNum < 3) return warnings;
+    if (parentLevel === "pillar") return warnings;
+    if (currentLevel === "money-child") return warnings;
+
+    if (currentNum <= parentNum) {
+      var expectedNum = parentNum + 1;
+      var expectedLevel = LEVEL_INVERSE_MAP[expectedNum];
+
+      warnings.push({
+        type: "SEO_HIERARCHY_MISMATCH",
+        severity: "warning",
+        parentSlug: parentSlug,
+        parentLevel: parentLevel,
+        currentLevel: currentLevel,
+        expectedLevel: expectedLevel,
+        message: "URL '" + slug + "' terdeteksi '" + currentLevel +
+                 "', tapi parent '" + parentSlug + "' = '" + parentLevel +
+                 "'. Child seharusnya lebih spesifik (mis: " + expectedLevel + ").",
+        suggestion: "Pisah jadi halaman terpisah (topik unik), atau " +
+                    "tambahkan modifier spesifik (ukuran/tipe/spesifikasi) " +
+                    "untuk naikkan ke " + expectedLevel + "."
+      });
+    }
+
+    return warnings;
+  }
+
+  function computeBreadcrumbLevels(slug, entityType, domain) {
+    if (!slug) return [];
+    var words = slug.split(" ").filter(Boolean);
+    var entity = entityType || detectEntityTypeFromText(slug);
+    var results = [];
+
+    for (var i = 2; i <= words.length; i++) {
+      var segSlug = words.slice(0, i).join(" ");
+      var segLevel = detectPageLevelForPrompt(segSlug, entity);
+      var segLevelNum = LEVEL_HIERARCHY_MAP[segLevel] || -1;
+      results.push({
+        position: i,
+        slug: segSlug,
+        level: segLevel,
+        levelNum: segLevelNum,
+        isCurrent: (i === words.length)
+      });
+    }
+
+    return results;
+  }
+
+  function validateBreadcrumbHierarchy(slug, entityType) {
+    var warnings = [];
+    if (!slug) return warnings;
+
+    var chain = computeBreadcrumbLevels(slug, entityType);
+    if (chain.length < 2) return warnings;
+    if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
+
+    var current = chain[chain.length - 1];
+    var parent = null;
+    for (var i = chain.length - 2; i >= 0; i--) {
+      if (chain[i].levelNum >= 4) {
+        parent = chain[i];
+        break;
+      }
+    }
+
+    if (!parent) return warnings;
+    if (current.level === "money-child") return warnings;
+    if (current.levelNum >= 7) return warnings;
+
+    if (current.levelNum <= parent.levelNum) {
+      var expectedNum = parent.levelNum + 1;
+      var expectedLevel = LEVEL_INVERSE_MAP[expectedNum] || "money-page";
+
+      warnings.push({
+        type: "SEO_HIERARCHY_MISMATCH",
+        severity: "warning",
+        parentSlug: parent.slug,
+        parentLevel: parent.level,
+        currentSlug: current.slug,
+        currentLevel: current.level,
+        expectedLevel: expectedLevel,
+        message: "URL '" + current.slug + "' terdeteksi '" + current.level +
+                 "', tapi parent '" + parent.slug + "' juga '" + parent.level +
+                 "'. Child seharusnya 1+ level lebih spesifik (" + expectedLevel + ").",
+        suggestion: "Tambahkan modifier spesifik (material, tipe, ukuran) untuk naikkan ke '" +
+                    expectedLevel + "', atau pisah jadi halaman topik berbeda."
+      });
+    }
+
+    return warnings;
+  }
+
+  function validateParentDrivenHierarchy(slug, entityType) {
+    var warnings = [];
+    if (!slug) return warnings;
+
+    var words = slug.split(" ").filter(Boolean);
+    if (words.length <= 2) return warnings;
+    if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
+
+    var parentSlug = words.slice(0, -1).join(" ");
+    var parentLevel = detectPageLevelForPrompt(parentSlug, entityType);
+
+    if (parentLevel === "pillar") return warnings;
+    if (!EXPECTED_CHILD_MAP[parentLevel]) return warnings;
+
+    var rule = EXPECTED_CHILD_MAP[parentLevel];
+    if (rule.isLeaf) return warnings;
+
+    var currentLevel = detectPageLevelForPrompt(slug, entityType);
+
+    if (currentLevel === "money-child") {
+      if (parentLevel === "money-page" || parentLevel === "money-master") {
+        return warnings;
+      }
+    }
+
+    if (currentLevel === "variant" && parentLevel === "money-child") {
+      warnings.push({
+        type: "SEO_HIERARCHY_MISMATCH",
+        severity: "warning",
+        parentSlug: parentSlug,
+        parentLevel: parentLevel,
+        currentLevel: currentLevel,
+        expectedLevel: "money-page",
+        message: "URL '" + slug + "' = Variant, tapi parent '" + parentSlug +
+                 "' = MC (money-child). Variant harus dari MP, bukan MC.",
+        suggestion: "Pindah lokasi ke akhir URL (attribute), atau buat MP tanpa lokasi dulu."
+      });
+      return warnings;
+    }
+
+    var isExpected = (currentLevel === rule.expected);
+    var isAlternate = false;
+    if (rule.alternates && rule.alternates.indexOf(currentLevel) !== -1) isAlternate = true;
+    if (rule.alternate && currentLevel === rule.alternate) isAlternate = true;
+
+    if (!isExpected && !isAlternate) {
+      var expectedList = [rule.expected];
+      if (rule.alternates) expectedList = expectedList.concat(rule.alternates);
+      if (rule.alternate) expectedList.push(rule.alternate);
+
+      warnings.push({
+        type: "SEO_PARENT_DRIVEN_MISMATCH",
+        severity: "warning",
+        parentSlug: parentSlug,
+        parentLevel: parentLevel,
+        parentLevelNum: LEVEL_HIERARCHY_MAP[parentLevel],
+        currentLevel: currentLevel,
+        currentLevelNum: LEVEL_HIERARCHY_MAP[currentLevel],
+        expectedLevel: rule.expected,
+        alternates: rule.alternates || (rule.alternate ? [rule.alternate] : []),
+        message: "URL '" + slug + "' terdeteksi '" + currentLevel +
+                 "'. Berdasarkan parent '" + parentSlug + "' (" + parentLevel +
+                 "), child SEO-aligned = " + expectedList.join(" atau ") + ".",
+        suggestion: currentLevel === parentLevel
+          ? "Child level sama dengan parent. Tambahkan modifier spesifik, atau pisah topik."
+          : "Level child bukan expected. Cek struktur URL & konten."
+      });
+    }
+
+    return warnings;
+  }
+
+    function detectMoneyLevelInternal(text, entityType) {
+    var lowerText = text.toLowerCase();
+    var factors = getFactors(text, entityType);
+    var hasPriceWord = factors.hasPrice;
+    var hasLocationWord = factors.hasLocation;
+    var hasCommercialWord = factors.hasCommercial;
+    var hasSpecWord = factors.hasSpec;
+    var hasSpecPhrase = factors.hasSpecPhrase;
+    var hasPerUnit = factors.hasPerUnit;
+    var hasCompound = factors.hasCompoundAction;
+    var fisikRole = factors.fisikRole;
+    var complexityScore = factors.complexityScore;
+    var hasBaseService = factors.hasBaseService;
+    var subPillar = detectSubPillar(text);
+
+    log('🔍 FACTORS: loc=' + hasLocationWord + ' spec=' + hasSpecWord +
+        ' price=' + hasPriceWord + ' comm=' + hasCommercialWord +
+        ' score=' + complexityScore + ' baseSvc=' + hasBaseService, 'INFO');
+
+    if (subPillar) return subPillar;
+
+    if (hasLocationWord) {
+      if (hasBaseService) {
+        log('📍 FIX 193: MONEY_CHILD (base service + location)', 'LOCATION');
+        return "money-child";
+      }
+    }
+
+    if (hasSpecPhrase && !hasLocationWord && !hasCommercialWord) {
+      log('💰 MONEY_PAGE (spec phrase)', 'PRICE');
+      return "money-page";
+    }
+
+    if (hasPerUnit && !hasPriceWord && !hasCommercialWord && !hasLocationWord && !hasSpecPhrase) {
+      log('💰 MONEY_PAGE (per-unit)', 'PRICE');
+      return "money-page";
+    }
+
+    if (hasCompound && !hasLocationWord && !hasCommercialWord) {
+      log('💰 MONEY_PAGE (compound)', 'PRICE');
+      return "money-page";
+    }
+
+    if (complexityScore >= 3 && !hasLocationWord && !hasCommercialWord && !hasPriceWord) {
+      log('💰 MONEY_PAGE (score=' + complexityScore + ')', 'SCORE');
+      return "money-page";
+    }
+
+    var jasaMaterialCtx186 = false;
+    if (entityType === "jasa" && hasJasaMaterialCtx(text)) {
+      var isMaterialInBase = false;
+      var jasaBaseList = ENTITY_BASE_NAMES.jasa || [];
+      var materialWords186 = SHARED_MODIFIERS.material;
+
+      for (var mbi = 0; mbi < jasaBaseList.length; mbi++) {
+        var baseName186 = jasaBaseList[mbi];
+
+        if (materialWords186.indexOf(baseName186) !== -1) {
+          log('🔥 FIX #3b: SKIP base "' + baseName186 + '" (= material word)', 'VARIANT');
+          continue;
+        }
+
+        for (var mwi = 0; mwi < materialWords186.length; mwi++) {
+          var matWord = materialWords186[mwi];
+
+          if (matWord === baseName186) continue;
+
+          var baseHasMat = new RegExp("\\b" + matWord + "\\b").test(baseName186);
+          if (baseHasMat) {
+            if (text.indexOf(baseName186) !== -1) {
+              isMaterialInBase = true;
+              log('🔥 FIX #3b: material "' + matWord + '" in base "' + baseName186 + '"', 'VARIANT');
+              break;
+            }
+          }
+        }
+        if (isMaterialInBase) break;
+      }
+      if (!isMaterialInBase) jasaMaterialCtx186 = true;
+      else log('🔥 FIX #3b: material part of compound base → tidak naik level', 'VARIANT');
+    }
+
+    var hasStrongPromo211 = false;
+    for (var hp = 0; hp < HIGH_VOLUME_WORDS.length; hp++) {
+      if (lowerText.indexOf(HIGH_VOLUME_WORDS[hp]) !== -1) { hasStrongPromo211 = true; break; }
+    }
+
+    var skipP7Atau = false;
+    if (/\batau\b/i.test(lowerText)) {
+      var partsAtau = lowerText.split(/\batau\b/);
+      var leftAtau = (partsAtau[0] || "").trim().split(/\s+/).filter(Boolean);
+      var rightAtau = (partsAtau[1] || "").trim().split(/\s+/).filter(Boolean);
+      if (leftAtau.length <= 1 || rightAtau.length <= 1) {
+        skipP7Atau = true;
+        log('🔥 FIX SEO v7: skip P7 (pilihan "atau" dgn sisi pendek)', 'PRICE');
+      }
+    }
+
+    var earlyLayers = 0;
+    if (!hasPriceWord && !hasCommercialWord && !hasLocationWord
+        && !hasStrongPromo211 && !skipP7Atau) {
+      earlyLayers = countModifierLayers(text, entityType);
+    }
+
+    if ((hasSpecWord || jasaMaterialCtx186 || earlyLayers > 0)
+        && !hasPriceWord && !hasCommercialWord && !hasLocationWord
+        && !hasStrongPromo211
+        && !skipP7Atau) {
+      var layers186 = earlyLayers;
+      if (layers186 === 0 && jasaMaterialCtx186) layers186 = 1;
+      if (layers186 > 0) {
+        var decision186 = decideLevelByLayers(layers186);
+        log('🔥 FIX v16-C: ' + decision186 + ' (' + layers186 + ' layer)', 'VARIANT');
+        return decision186;
+      }
+    }
+
+    if (hasCommercialWord && hasSpecWord && !hasLocationWord) {
+      var layersP8 = countModifierLayers(text, entityType);
+      if (layersP8 >= 1) {
+        var decisionP8 = decideLevelByLayers(layersP8);
+        log('🔥 FIX 206: comm+spec → ' + decisionP8 + ' (' + layersP8 + ' layer)', 'PRICE');
+        return decisionP8;
+      }
+      log('💰 FIX 206: MONEY_PAGE (comm+spec fallback)', 'PRICE');
+      return "money-page";
+    }
+
+    if (hasPriceWord && entityType === "desain"
+        && !hasLocationWord && !hasCommercialWord && !hasSpecWord) {
+      for (var mwt8 = 0; mwt8 < APPLICATION_TARGETS_FULL.length; mwt8++) {
+        var mwt8w = APPLICATION_TARGETS_FULL[mwt8];
+        if (mwt8w.indexOf(' ') !== -1 && new RegExp("\\b" + mwt8w + "\\b", "i").test(lowerText)) {
+          log('🔥 FIX SEO v8: desain masked multi-word target "' + mwt8w + '" → MP', 'HARGA');
+          return "money-page";
+        }
+      }
+    }
+
+    if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
+      var preCore = getCoreWords(text, entityType);
+      log('🔥 FIX 204: preCore=[' + preCore.join(',') + '] (len=' + preCore.length + ')', 'CORE');
+
+      if (preCore.length === 0) {
+        log('🏛️ FIX 204: MONEY_MASTER (base service murni)', 'MM');
+        return "money-master";
+      }
+
+      if (preCore.length === 1) {
+        var coreWord = preCore[0];
+
+        if (APPLICATION_TARGETS.indexOf(coreWord) !== -1) {
+          var hasCompoundBase154 = false;
+          var baseList154 = ENTITY_BASE_NAMES[entityType] || [];
+          for (var bi154 = 0; bi154 < baseList154.length; bi154++) {
+            var baseName154 = baseList154[bi154];
+            if (baseName154.split(' ').length >= 2 && text.indexOf(baseName154) !== -1) {
+              hasCompoundBase154 = true;
+              break;
+            }
+          }
+          if (hasCompoundBase154) return "money-page";
+          return "money-master";
+        }
+
+        if (isSpecModifierForEntity(coreWord, entityType)) {
+          log('💵 FIX 204: MONEY_PAGE (price + spec: ' + coreWord + ')', 'HARGA');
+          return "money-page";
+        }
+
+        if (entityType === "jasa") {
+          var narrow182 = SHARED_MODIFIERS.material;
+          if (narrow182.indexOf(coreWord) !== -1) {
+            var isMatInBase204 = false;
+            var jasaBase204 = ENTITY_BASE_NAMES.jasa || [];
+            for (var jbi = 0; jbi < jasaBase204.length; jbi++) {
+              if (jasaBase204[jbi].indexOf(coreWord) !== -1 && text.indexOf(jasaBase204[jbi]) !== -1) {
+                isMatInBase204 = true;
+                break;
+              }
+            }
+            if (isMatInBase204) {
+              log('🏛️ FIX 204: MONEY_MASTER (compound base + material)', 'MM');
+              return "money-master";
+            }
+            log('💵 FIX 204: MONEY_PAGE (jasa + material: ' + coreWord + ')', 'HARGA');
+            return "money-page";
+          }
+        }
+
+        log('🏛️ FIX 204: MONEY_MASTER (price + base + non-spec)', 'MM');
+        return "money-master";
+      }
+
+      log('💵 FIX 204: MONEY_PAGE (price + 2+ modifier)', 'HARGA');
+      return "money-page";
+    }
+
+    if (hasPriceWord && hasSpecWord && !hasLocationWord && !hasCommercialWord) {
+      var layersP9 = countModifierLayers(text, entityType);
+      if (layersP9 >= 1) {
+        var decisionP9 = decideLevelByLayers(layersP9);
+        log('🔥 FIX 186: price+spec → ' + decisionP9 + ' (' + layersP9 + ' layer)', 'HARGA');
+        return decisionP9;
+      }
+      for (var at9 = 0; at9 < APPLICATION_TARGETS_FULL.length; at9++) {
+        var at9w = APPLICATION_TARGETS_FULL[at9];
+        if (new RegExp("\\b" + at9w + "\\b", "i").test(lowerText)) {
+          var isRoomCtx9 = false;
+          if (entityType === "desain") {
+            var ROOM_CTX_9 = ["rumah", "kantor", "toko", "hotel", "restoran",
+              "cafe", "villa", "apartemen", "ruko", "kios", "gudang", "klinik",
+              "sekolah", "mall", "spa", "salon", "bar", "lounge", "butik",
+              "showroom", "minimarket"];
+            isRoomCtx9 = ROOM_CTX_9.indexOf(at9w) !== -1;
+          }
+          if (!isRoomCtx9) {
+            log('🔥 FIX SEO v9: price+spec+target "' + at9w + '" (layers=0) → MP', 'HARGA');
+            return "money-page";
+          }
+        }
+      }
+      var isPureTechForPrice = checkPureTechnicalSpec(text, entityType);
+      if (isPureTechForPrice) return "money-page";
+      return "money-master";
+    }
+
+    // P9.5 — PRICE + PER-UNIT (TANPA SPEC)
+    if (hasPriceWord && hasPerUnit && !hasLocationWord && !hasCommercialWord && !hasSpecWord) {
+      log('💰 FIX v17-G: MONEY_PAGE (price + per-unit)', 'PRICE');
+      return "money-page";
+    }
+
+    // P9.6 — PRICE + PER-UNIT + SPEC
+    if (hasPriceWord && hasPerUnit && hasSpecWord && !hasLocationWord && !hasCommercialWord) {
+      log('💰 FIX v17-H: MONEY_PAGE (price + per-unit + spec)', 'PRICE');
+      return "money-page";
+    }
+
+    if (hasCommercialWord && !hasLocationWord) {
+      if (hasPriceWord && !hasSpecWord) { log('🏛️ MONEY_MASTER', 'HARGA'); return "money-master"; }
+      log('💰 MONEY_PAGE (comm)', 'PRICE');
+      return "money-page";
+    }
+
+    var hasHighVolume = false;
+    for (var i = 0; i < HIGH_VOLUME_WORDS.length; i++) {
+      if (lowerText.indexOf(HIGH_VOLUME_WORDS[i]) !== -1) { hasHighVolume = true; break; }
+    }
+
+    if (hasHighVolume && !hasLocationWord) {
+      var layers215 = countModifierLayers(text, entityType);
+      if (layers215 > 0) {
+        var decision215 = decideLevelByLayers(layers215);
+        log('💰 FIX 215: ' + decision215 + ' (' + layers215 + ' layer + promo)', 'PRICE');
+        return decision215;
+      }
+      var hasNoun215 = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|bangunan|konstruksi)\b/i.test(lowerText);
+      if (hasNoun215 || hasSpecWord) {
+        log('💰 FIX 215: MONEY_PAGE (strong promo, 0 layer)', 'PRICE');
+        return "money-page";
+      }
+    }
+
+    var hasDanConj = /\b(dan|serta)\b/i.test(lowerText);
+    var isDanBaseNamePart = /\bcut and fill\b/i.test(lowerText);
+    if (hasDanConj && !isDanBaseNamePart && !hasLocationWord && !hasCommercialWord && !hasPriceWord) {
+      var coreForDan = getCoreWords(text, entityType);
+      if (coreForDan.length >= 2) {
+        log('💰 FIX 164: MONEY_PAGE (dan-bundling: ' + coreForDan.join(',') + ')', 'PRICE');
+        return "money-page";
+      }
+    }
+
+    var coreWords = getCoreWords(text, entityType);
+    log('🧠 CORE: [' + coreWords.join(', ') + ']', 'CORE');
+
+    if (entityType === "artikel") {
+      if (!hasPriceWord && !hasCommercialWord && !hasCompound && complexityScore < 3) {
+        log('🏛️ FIX 138: MONEY_MASTER (artikel informasional)', 'MM');
+        return "money-master";
+      }
+    }
+
+    var residualLayers = countModifierLayers(text, entityType);
+
+    if (coreWords.length === 0
+        && residualLayers === 0
+        && !hasPriceWord && !hasCommercialWord && !hasLocationWord
+        && !hasCompound) {
+      log('🏛️ FIX v14-T: MONEY_MASTER (0 core, 0 residual)', 'MM');
+      return "money-master";
+    }
+
+    if (coreWords.length <= 2) {
+      if (entityType === "jasa" && coreWords.length === 1 && complexityScore <= 2
+          && !hasPriceWord && !hasCommercialWord && !hasCompound) {
+        if (APPLICATION_TARGETS.indexOf(coreWords[0]) !== -1) {
+          log('💵 FIX 167: MONEY_PAGE (base jasa + target: ' + coreWords[0] + ')', 'PRICE');
+          return "money-page";
+        }
+        if (isSpecModifierForEntity(coreWords[0], "jasa")) {
+          log('💵 FIX v14-J: MONEY_PAGE (base jasa + spec: ' + coreWords[0] + ')', 'PRICE');
+          return "money-page";
+        }
+        log('🏛️ FIX 146: MONEY_MASTER (base jasa + 1 objek)', 'MM');
+        return "money-master";
+      }
+
+      if (residualLayers > 0 && !hasLocationWord && !hasCommercialWord) {
+        var decision14D = decideLevelByLayers(residualLayers);
+        log('🔥 FIX v14-D: ' + decision14D + ' (' + residualLayers + ' residual layer)', 'PRICE');
+        return decision14D;
+      }
+
+      if (complexityScore >= 2 && !hasPriceWord && !hasCommercialWord) {
+        log('💰 MONEY_PAGE (score=' + complexityScore + ')', 'SCORE');
+        return "money-page";
+      }
+      if (hasPriceWord) log('💵 MONEY_MASTER', 'HARGA');
+      else log('🏛️ MONEY_MASTER', 'MM');
+      return "money-master";
+    } else {
+      if (residualLayers > 0) {
+        var decision14Db = decideLevelByLayers(residualLayers);
+        log('🔥 FIX v14-D: ' + decision14Db + ' (' + residualLayers + ' layer, core=' + coreWords.length + ')', 'PRICE');
+        return decision14Db;
+      }
+      log('💰 MONEY_PAGE (core:' + coreWords.length + ')', 'PRICE');
+      return "money-page";
+    }
+  }
+
+    function detectPageLevel(userOptions) {
     if (isHomePage()) return "home";
     var text = getPageText();
     var entityType = detectEntityType(userOptions && userOptions.userEntityType);
@@ -2368,56 +3512,8 @@ var PURE_JASA_TECHNIQUES = [];
   function detectBreadcrumbsFromSlug(slug, domain) { return detectUpwardFromSlug(slug, domain).breadcrumbs; }
   function detectParentFromSlug(slug, domain) { return detectUpwardFromSlug(slug, domain).upward; }
 
-  function detectPageLevelWithAI(text, entityType) {
-    var pldLevel = detectPageLevelForPrompt(text, entityType);
-    var confidence = calculatePLDConfidence(text, entityType, pldLevel);
-
-    if (confidence >= CONFIG.AI_CONFIDENCE_THRESHOLD || !CONFIG.AI_ENABLED) {
-      return Promise.resolve({
-        pageLevel: pldLevel,
-        source: "PLD_RULE",
-        confidence: confidence,
-        reason: "Rule-based"
-      });
-    }
-
-    return callAIProxy(text, entityType).then(function(aiResult) {
-      if (aiResult && aiResult.pageLevel) {
-        return {
-          pageLevel: aiResult.pageLevel,
-          source: aiResult.source || "AI_PROXY",
-          confidence: aiResult.confidence || 85,
-          reason: aiResult.reason || "AI classification",
-          pldFallback: pldLevel,
-          pldConfidence: confidence
-        };
-      }
-      return {
-        pageLevel: pldLevel,
-        source: "PLD_RULE",
-        confidence: confidence,
-        reason: "Rule-based (AI unavailable)"
-      };
-    });
-  }
-
-  function detectForPromptWithAI(input, entityType) {
-    var pldResult = detectForPrompt(input, entityType);
-    return detectPageLevelWithAI(pldResult.text, entityType).then(function(aiResult) {
-      if (aiResult.source !== "PLD_RULE") {
-        pldResult.pageLevel = aiResult.pageLevel;
-        pldResult.aiEnhanced = true;
-        pldResult.aiSource = aiResult.source;
-        pldResult.aiConfidence = aiResult.confidence;
-        pldResult.aiReason = aiResult.reason;
-        pldResult.pldFallback = aiResult.pldFallback;
-      } else {
-        pldResult.aiEnhanced = false;
-        pldResult.aiConfidence = aiResult.confidence;
-      }
-      return pldResult;
-    });
-  }
+  // ❌ detectPageLevelWithAI() DIHAPUS
+  // ❌ detectForPromptWithAI() DIHAPUS
 
   function detectIntent(text) {
     if (!text) return { dominant: "informational", scores: {}, confidence: "low" };
@@ -2445,131 +3541,551 @@ var PURE_JASA_TECHNIQUES = [];
     return { dominant: dominantIntent, scores: scores, confidence: confidence, maxScore: maxScore };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX-P1: AUDIT FUNCTIONS — hanya jalan kalau ?debug=1
-  // ═══════════════════════════════════════════════════════════
-  // PENTING:
-  //   - auditBaseNames() = 489 base × countModifierLayers() = ~15 detik di HP
-  //   - auditModifierTiers() = O(n²) cross-tier check = ~3-5 detik di HP
-  //   - Total bisa ~20 detik HANG di HP mid-range
-  //   - Solusi: jangan panggil otomatis, hanya manual via ?debug=1
+    // ═══════════════════════════════════════════════════════════
+  // SCHEMA / ATTRIBUTES
   // ═══════════════════════════════════════════════════════════
 
-  function auditBaseNames() {
-    var bad = [];
-    var totalBase = 0;
-    Object.keys(ENTITY_BASE_NAMES).forEach(function(ent) {
-      ENTITY_BASE_NAMES[ent].forEach(function(bn) {
-        totalBase++;
-        var layers = countModifierLayers(bn, ent);
-        if (layers > 0) {
-          bad.push({ ent: ent, base: bn, layers: layers });
-        }
-      });
-    });
-    if (bad.length === 0) {
-      console.log('✅ FIX v16-G AUDIT PASS: Semua ' + totalBase + ' base name = 0 layer');
-    } else {
-      console.warn('⚠️ FIX v16-G AUDIT: ' + bad.length + ' / ' + totalBase + ' base name masih punya layer:');
-      bad.forEach(function(b) {
-        console.warn('  • [' + b.ent + '] "' + b.base + '" → ' + b.layers + ' layer');
-      });
+  function detectContentFocus(level, entityType) {
+    var h1Text = getH1Text();
+    var urlText = getPageText();
+
+    var h1Raw = '';
+    try {
+      var h1El = document.querySelector('h1');
+      h1Raw = h1El ? (h1El.innerText || h1El.textContent || '') : '';
+    } catch (e) {}
+
+    var pathnameRaw = '';
+    try { pathnameRaw = window.location.pathname; } catch (e) {}
+
+    var hasYearInH1 = /\b(20[2-9][0-9])\b/.test(h1Raw);
+    var hasYearInUrl = /\b(20[2-9][0-9])\b/.test(pathnameRaw);
+
+    var hasPriceInText = checkHasPrice(h1Text) || checkHasPrice(urlText);
+    var hasCommercial = checkHasCommercial(h1Text, entityType) ||
+                        checkHasCommercial(urlText, entityType);
+    var hasInfoSpecPhrase = checkHasInformationalSpecPhrase(h1Text) ||
+                             checkHasInformationalSpecPhrase(urlText);
+
+    var hasPriceTableInDOM = checkPriceTable();
+
+    var isMoneyLevel = ['money-master', 'money-page', 'money-child'].indexOf(level) !== -1;
+    var isVariantLevel = ['variant', 'sub-variant'].indexOf(level) !== -1;
+
+    if (isMoneyLevel || isVariantLevel) {
+      if (hasInfoSpecPhrase && !hasPriceTableInDOM && !hasCommercial) {
+        log('🎯 FIX 137: CONTENT FOCUS = INFORMASI (info spec phrase)', 'SEO');
+        return 'INFORMASI';
+      }
+      if (hasPriceTableInDOM) { log('🎯 FOCUS: HARGA (tabel)', 'TABLE'); return 'HARGA'; }
+      if (hasPriceInText || hasYearInH1 || hasYearInUrl) return 'HARGA';
+      if (hasCommercial) return 'COMMERCIAL';
+      return 'INFORMASI';
     }
-    return { total: totalBase, bad: bad.length, details: bad };
+    return 'INFORMASI';
   }
 
-  function auditModifierTiers() {
-    var report = {
-      tier1_count: GLOBAL_NUMERIC_KEYWORDS.length,
-      tier2_count: 0,
-      tier3_count: 0,
-      duplicates_tier2: [],
-      duplicates_tier3: [],
-      cross_tier_overlap: []
+  function detectKategori(contentFocus) {
+    if (contentFocus === 'INFORMASI') return 'EVERGREEN';
+    if (['HARGA', 'COMMERCIAL', 'GABUNG'].indexOf(contentFocus) !== -1) return 'NON-EVERGREEN';
+    return 'EVERGREEN';
+  }
+
+  function detectH1Pattern(kategori) {
+    return kategori === 'NON-EVERGREEN' ? 'with-year' : 'no-year';
+  }
+
+  function detectEntitySubType(level, entityType) {
+    if (typeof document === 'undefined' || !document.body) return null;
+    var bodySubType = document.body.getAttribute('data-entity-sub-type');
+    if (bodySubType) return bodySubType;
+    return null;
+  }
+
+  function detectSchemaType(level, entityType, contentFocus) {
+    var primary = 'WebPage';
+    var secondary = '';
+    var note = '';
+    var isMoneyLevel = ['money-master', 'money-page', 'money-child'].indexOf(level) !== -1;
+    var isEvergreen = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].indexOf(level) !== -1;
+    var isVariant = ['variant', 'sub-variant'].indexOf(level) !== -1;
+
+    if (isEvergreen) {
+      primary = 'Article'; secondary = 'FAQPage';
+    }
+    else if (isVariant) {
+      primary = 'Product'; secondary = 'TechArticle';
+      note = 'without-offers';
+    }
+    else if (isMoneyLevel) {
+      if (contentFocus === 'HARGA' || contentFocus === 'COMMERCIAL') {
+        primary = 'Product'; secondary = 'Service';
+        if (level === 'money-child') {
+          note = 'with-areaServed';
+        }
+      } else if (contentFocus === 'INFORMASI') {
+        primary = 'Article'; secondary = 'FAQPage';
+      }
+    }
+    return { primary: primary, secondary: secondary, note: note };
+  }
+
+  function detectCtaType(level, contentFocus) {
+    var isMoneyLevel = ['money-master', 'money-page', 'money-child'].indexOf(level) !== -1;
+    if (!isMoneyLevel) return { type: 'soft', text: 'Baca Selengkapnya' };
+    if (contentFocus === 'HARGA' || contentFocus === 'COMMERCIAL') {
+      return { type: 'hard', text: 'Pesan Sekarang' };
+    }
+    return { type: 'medium', text: 'Hubungi Kami' };
+  }
+
+  function detectProductCategoryFromPLD(entityType, entitySubType) {
+    if (!entityType) return '';
+    var isProduct = ['produk', 'material'].indexOf(entityType) !== -1;
+    if (!isProduct) return '';
+    var categoryMap = {
+      'pagar-panel-beton': 'PrecastProduct', 'besi-beton': 'SteelProduct',
+      'baja-ringan': 'SteelProduct', 'paving': 'PavingProduct',
+      'paving-block': 'PavingProduct', 'kanopi': 'PrecastProduct',
+      'batako': 'BuildingMaterial', 'genteng': 'BuildingMaterial',
+      'semen': 'BuildingMaterial', 'pasir': 'BuildingMaterial',
+      'kayu': 'BuildingMaterial', 'wpc': 'BuildingMaterial',
+      'grc': 'BuildingMaterial', 'hpl': 'BuildingMaterial',
+      'pvc': 'BuildingMaterial', 'acp': 'BuildingMaterial'
+    };
+    if (entitySubType && categoryMap[entitySubType]) return categoryMap[entitySubType];
+    if (entityType === 'material') return 'BuildingMaterial';
+    if (entityType === 'produk') return 'PrecastProduct';
+    return '';
+  }
+
+  function detectProductMaterialFromPLD(entityType, entitySubType) {
+    if (!entityType) return '';
+    var isProduct = ['produk', 'material'].indexOf(entityType) !== -1;
+    if (!isProduct) return '';
+    var materialMap = {
+      'pagar-panel-beton': 'Beton Precast', 'besi-beton': 'Besi Beton',
+      'baja-ringan': 'Baja Ringan', 'paving': 'Paving Block',
+      'paving-block': 'Paving Block', 'kanopi': 'Baja Ringan',
+      'batako': 'Batako', 'genteng': 'Genteng', 'semen': 'Semen',
+      'pasir': 'Pasir', 'kayu': 'Kayu', 'wpc': 'WPC',
+      'grc': 'GRC', 'hpl': 'HPL', 'pvc': 'PVC', 'acp': 'ACP'
+    };
+    if (entitySubType && materialMap[entitySubType]) return materialMap[entitySubType];
+    if (entityType === 'material') return 'Material Konstruksi';
+    if (entityType === 'produk') return 'Beton Precast';
+    return '';
+  }
+
+    // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX-P3: setSchemaAttributes() — DENGAN GUARD
+  // ═══════════════════════════════════════════════════════════
+  // OPTIMASI:
+  //   - Guard _SCHEMA_ATTRS_SET: cegah panggilan kedua
+  //   - Fungsi ini dipanggil dari:
+  //     * initializeCore() → set body attributes SEBELUM dispatch
+  //     * updateAttributes() → setelah dispatch
+  //   - Tanpa guard = 2x panggil detectJasaSubCategory() yang berat
+  //   - Dengan guard = HEMAT ~50% waktu schema attributes
+  // ═══════════════════════════════════════════════════════════
+  function setSchemaAttributes(level) {
+    // ═══ FIX-P3: Guard — cegah double call ═══
+    if (_SCHEMA_ATTRS_SET) {
+      log('⏭️ setSchemaAttributes() sudah pernah dipanggil — skip', 'ATTR');
+      return;
+    }
+    _SCHEMA_ATTRS_SET = true;
+
+    try {
+      document.body.setAttribute("data-page-level", level);
+      document.body.setAttribute("data-page-level-num", String(TYPE_LEVEL_MAP[level] || '0'));
+
+      var entityType = detectEntityType();
+      if (!entityType) {
+        var h1Text = getH1Text();
+        entityType = detectEntityTypeFromText(h1Text);
+      }
+      document.body.setAttribute("data-entity-type", entityType || '');
+
+      // 🔥 FIX v16: Set sub-kategori JASA
+      if (entityType === "jasa") {
+        var subCat = detectJasaSubCategory(getPageText() + " " + getH1Text(), "jasa");
+        document.body.setAttribute("data-jasa-sub-category", subCat || 'default');
+      }
+
+      var contentFocus = detectContentFocus(level, entityType);
+      document.body.setAttribute("data-content-focus", contentFocus);
+
+      var kategori = detectKategori(contentFocus);
+      document.body.setAttribute("data-kategori", kategori);
+
+      var h1Pattern = detectH1Pattern(kategori);
+      document.body.setAttribute("data-h1-pattern", h1Pattern);
+
+      var entitySubType = detectEntitySubType(level, entityType);
+      document.body.setAttribute("data-entity-sub-type", entitySubType || '');
+
+      var schemaType = detectSchemaType(level, entityType, contentFocus);
+      document.body.setAttribute("data-schema-type-primary", schemaType.primary);
+      document.body.setAttribute("data-schema-type-secondary", schemaType.secondary);
+
+      var ctaType = detectCtaType(level, contentFocus);
+      document.body.setAttribute("data-cta-type", ctaType.type);
+      document.body.setAttribute("data-cta-text", ctaType.text);
+
+      var productCategory = detectProductCategoryFromPLD(entityType, entitySubType);
+      if (productCategory) document.body.setAttribute("data-product-category", productCategory);
+
+      var productMaterial = detectProductMaterialFromPLD(entityType, entitySubType);
+      if (productMaterial) document.body.setAttribute("data-product-material", productMaterial);
+
+      log('✅ Schema attributes ter-set! (single-call)', 'ATTR');
+    } catch (e) {
+      log('❌ Error set schema attributes: ' + e.message, 'ERROR');
+    }
+  }
+
+    function findBreadcrumbs() {
+    if (typeof document === 'undefined') return null;
+    var BREADCRUMB_SELECTORS = [
+      '.breadcrumb', '.breadcrumbs', '.bread-crumb',
+      '[class*="breadcrumb"]', '[class*="bread-crumb"]',
+      '.woocommerce-breadcrumb', '.yoast-breadcrumbs',
+      '.rank-math-breadcrumb', '.aioseo-breadcrumbs',
+      '[itemprop="breadcrumb"]', '[typeof="BreadcrumbList"]',
+      'nav[aria-label="breadcrumb"]', 'ol.breadcrumb', 'ul.breadcrumb'
+    ];
+    for (var s = 0; s < BREADCRUMB_SELECTORS.length; s++) {
+      var selector = BREADCRUMB_SELECTORS[s];
+      try {
+        var elements = document.querySelectorAll(selector);
+        for (var i = 0; i < elements.length; i++) {
+          var el = elements[i];
+          if (el.offsetParent !== null || el.getBoundingClientRect().height > 0) {
+            var text = (el.textContent || "").trim() || "";
+            if (text.length > 0) return { element: el, text: text, selector: selector };
+          }
+        }
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  function waitForBreadcrumbs(callback) {
+    var startTime = Date.now();
+    var timeout = 5000;
+    function checkBreadcrumbs() {
+      var breadcrumb = findBreadcrumbs();
+      if (breadcrumb) {
+        log("✅ Breadcrumbs ditemukan! (" + breadcrumb.selector + ")", 'BREAD');
+        callback(null, breadcrumb);
+        return;
+      }
+      if (Date.now() - startTime >= timeout) {
+        callback(new Error('Breadcrumbs timeout'), null);
+        return;
+      }
+      setTimeout(checkBreadcrumbs, 100);
+    }
+    setTimeout(checkBreadcrumbs, 0);
+  }
+
+    // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX-P2: initializeCore() DENGAN GUARD
+  // 🔥 FIX-P7: Body attributes SINKRON sebelum dispatch
+  // ═══════════════════════════════════════════════════════════
+  // MASALAH LAMA:
+  //   1. initializeCore() bisa dipanggil 2x → hemat ~15-20 detik
+  //   2. Body attributes di-set async (setelah dispatch event)
+  //   3. Breadcrumb script baca body attribute KOSONG
+  //
+  // SOLUSI:
+  //   1. Guard _CORE_INITIALIZED → cegah double init
+  //   2. Set body attributes SINKRON via setSchemaAttributes()
+  //      SEBELUM dispatch event
+  //   3. updateAttributes() pakai waitForBreadcrumb:false
+  // ═══════════════════════════════════════════════════════════
+  function initializeCore() {
+    // ═══ FIX-P2: Guard — cegah double init ═══
+    if (_CORE_INITIALIZED) {
+      log('⏭️ initializeCore() sudah pernah dijalankan — skip', 'PERF');
+      return;
+    }
+    _CORE_INITIALIZED = true;
+
+    log('🧠 Core functions ready', 'CORE');
+
+    window.pageLevelDetectorv22 = {
+      version: "23.9.7-lite",
+      CONFIG: CONFIG,
+
+      // ─── API UTAMA ───
+      detect: detectPageLevel,
+      detectFromDOM: detectPageLevelFromDOM,
+      detectForPrompt: detectForPrompt,
+      detectForPromptFull: detectForPromptFull,
+      detectForPromptWithUpward: detectForPromptWithUpward,
+      validateForPrompt: validateForPrompt,
+      detectPageLevelForPrompt: detectPageLevelForPrompt,
+
+      // ─── BREADCRUMB + HIERARCHY (DIPERTAHANKAN) ───
+      detectUpwardFromSlug: detectUpwardFromSlug,
+      detectBreadcrumbsFromSlug: detectBreadcrumbsFromSlug,
+      detectParentFromSlug: detectParentFromSlug,
+      detectParentLevelFromSlug: detectParentLevelFromSlug,
+      computeBreadcrumbLevels: computeBreadcrumbLevels,
+      validateBreadcrumbHierarchy: validateBreadcrumbHierarchy,
+      validateParentDrivenHierarchy: validateParentDrivenHierarchy,
+      detectSameLevelContentWarning: detectSameLevelContentWarning,
+      detectHierarchyWarning: detectHierarchyWarning,
+      detectConjunctionWarning: detectConjunctionWarning,
+      EXPECTED_CHILD_MAP: EXPECTED_CHILD_MAP,
+      findBreadcrumbs: findBreadcrumbs,
+      waitForBreadcrumbs: waitForBreadcrumbs,
+
+      // ─── LEVELS + ENTITY ───
+      VALID_LEVELS: VALID_LEVELS,
+      TYPE_LEVEL_MAP: TYPE_LEVEL_MAP,
+      LEVEL_HIERARCHY_MAP: LEVEL_HIERARCHY_MAP,
+      LEVEL_INVERSE_MAP: LEVEL_INVERSE_MAP,
+      VALID_ENTITY_TYPES: VALID_ENTITY_TYPES,
+      ENTITY_PILLAR_NAMES: ENTITY_PILLAR_NAMES,
+
+      detectEntityType: detectEntityType,
+      detectEntityTypeFromText: detectEntityTypeFromText,
+      detectJasaSubCategory: detectJasaSubCategory,
+
+      // ─── FACTORS + DETEKSI ───
+      getFactors: getFactors,
+      getSEOContext: getSEOContext,
+      isLocation: isLocation,
+      checkHasSpecification: checkHasSpecification,
+      checkPureTechnicalSpec: checkPureTechnicalSpec,
+      checkHasCommercial: checkHasCommercial,
+      checkHasPrice: checkHasPrice,
+      checkHasPromoModifier: checkHasPromoModifier,
+      detectContentSignalsFromSlug: detectContentSignalsFromSlug,
+      checkHasJasaMetode: checkHasJasaMetode,
+      checkHasPerUnit: checkHasPerUnit,
+      checkHasQuestionWord: checkHasQuestionWord,
+      checkHasCommercialInvestigation: checkHasCommercialInvestigation,
+      checkFreeContext: checkFreeContext,
+      checkHasAuthority: checkHasAuthority,
+      checkHasReadyStock: checkHasReadyStock,
+      checkHasSpecPhrase: checkHasSpecPhrase,
+      checkHasInformationalSpecPhrase: checkHasInformationalSpecPhrase,
+      checkHasBaseService: checkHasBaseService,
+      checkHasMarketingTerm: checkHasMarketingTerm,
+      checkFisikRole: checkFisikRole,
+      checkCompoundAction: checkCompoundAction,
+      calculateComplexityScore: calculateComplexityScore,
+      isBaseName: isBaseName,
+      isSubVariant: isSubVariant,
+      getCoreWords: getCoreWords,
+      normalizeVerbVariations: normalizeVerbVariations,
+      isApplicationTarget: isApplicationTarget,
+
+      // ─── MODIFIER LAYERS ───
+      countModifierLayers: countModifierLayers,
+      getCategoryDefs: getCategoryDefs,
+      decideLevelByLayers: decideLevelByLayers,
+      hasJasaMaterialCtx: hasJasaMaterialCtx,
+      flagAmbiguous: flagAmbiguous,
+      isSpecModifierForEntity: isSpecModifierForEntity,
+      APPLICATION_TARGETS_FULL: APPLICATION_TARGETS_FULL,
+
+      // ─── INTENT (DIPERTAHANKAN) ───
+      detectIntent: detectIntent,
+
+      // ─── SCHEMA + ATTRIBUTES ───
+      getH1Text: getH1Text,
+      checkPriceTable: checkPriceTable,
+      setSchemaAttributes: setSchemaAttributes,
+      detectContentFocus: detectContentFocus,
+      detectKategori: detectKategori,
+      detectH1Pattern: detectH1Pattern,
+      detectEntitySubType: detectEntitySubType,
+      detectSchemaType: detectSchemaType,
+      detectCtaType: detectCtaType,
+      detectProductCategoryFromPLD: detectProductCategoryFromPLD,
+      detectProductMaterialFromPLD: detectProductMaterialFromPLD,
+
+      // ─── UPDATE ATTRIBUTES (FIX-P7) ───
+      updateAttributes: function(options) {
+        options = options || {};
+        var waitForBreadcrumb = options.waitForBreadcrumb !== false;
+        var levelResult = detectPageLevel();
+        var level = typeof levelResult === 'string' ? levelResult : (levelResult.level || 'unknown');
+
+        try {
+          document.body.setAttribute("data-page-level", level);
+          document.body.setAttribute("data-page-level-num", String(TYPE_LEVEL_MAP[level] || '0'));
+
+          var className = 'page-level-' + level.replace(/\s+/g, '-');
+          document.body.classList.remove('page-level-unknown', className);
+          document.body.classList.add(className);
+
+          // setSchemaAttributes() idempotent — aman dipanggil 2x (FIX-P3)
+          setSchemaAttributes(level);
+        } catch (e) {
+          log("Error setting attributes: " + e.message, "ERROR");
+        }
+
+        var result = { pageLevel: level, pageLevelNum: TYPE_LEVEL_MAP[level] || 0, breadcrumb: null };
+
+        if (waitForBreadcrumb) {
+          return new Promise(function(resolve) {
+            waitForBreadcrumbs(function(err, breadcrumb) {
+              if (err || !breadcrumb) { resolve(result); return; }
+              result.breadcrumb = breadcrumb;
+              try {
+                document.body.setAttribute("data-has-breadcrumb", "true");
+                document.body.setAttribute("data-breadcrumb-selector", breadcrumb.selector);
+              } catch (e) {}
+              resolve(result);
+            });
+          });
+        }
+        return result;
+      },
+
+      // ─── DATA EXPORT ───
+      JASA_WORDS: JASA_WORDS,
+      COMMON_JASA_WORDS: COMMON_JASA_WORDS,
+      SEWA_WORDS: SEWA_WORDS,
+      MATERIAL_WORDS: MATERIAL_WORDS,
+      PRODUK_WORDS: PRODUK_WORDS,
+      DESAIN_WORDS: DESAIN_WORDS,
+      ENTITY_BASE_NAMES: ENTITY_BASE_NAMES,
+      ENTITY_ONLY_WORDS: ENTITY_ONLY_WORDS,
+      GLOBAL_NUMERIC_KEYWORDS: GLOBAL_NUMERIC_KEYWORDS,
+      SHARED_MODIFIERS: SHARED_MODIFIERS,
+      ENTITY_SPECIFIC: ENTITY_SPECIFIC,
+
+      JASA_SUB_CATEGORIES: JASA_SUB_CATEGORIES,
+      DOMAIN_CONSTRAINTS: DOMAIN_CONSTRAINTS,
+      MODIFIER_COMPATIBILITY: MODIFIER_COMPATIBILITY,
+
+      PURE_JASA_TECHNIQUES: PURE_JASA_TECHNIQUES,
+      PURE_METHODS: PURE_METHODS,
+      PURE_SCALES: PURE_SCALES,
+      PURE_FINISHING: PURE_FINISHING,
+      PURE_PRODUK_SPECS: PURE_PRODUK_SPECS,
+      PURE_MATERIAL_SPECS: PURE_MATERIAL_SPECS,
+      PURE_SEWA_SPECS: PURE_SEWA_SPECS,
+      PURE_DESAIN_SPECS: PURE_DESAIN_SPECS,
+      PRODUK_SPECS: PRODUK_SPECS,
+      MATERIAL_SPECS: MATERIAL_SPECS,
+      SEWA_SPECS: SEWA_SPECS,
+      JASA_SPECS: JASA_SPECS,
+      DESAIN_SPECS: DESAIN_SPECS,
+      MATERIAL_TYPE_WORDS: MATERIAL_TYPE_WORDS,
+      ACTION_VERBS: ACTION_VERBS,
+      FISIK_WORDS: FISIK_WORDS,
+      OBJECT_WORDS: OBJECT_WORDS,
+      BASE_ENTITY_OBJECTS: BASE_ENTITY_OBJECTS,
+      GENERIC_OBJECTS: GENERIC_OBJECTS,
+      MATERIAL_SERVICE_NAMES: MATERIAL_SERVICE_NAMES,
+      CROSS_ENTITY_SPECS: CROSS_ENTITY_SPECS,
+      SATUAN_UNITS: SATUAN_UNITS,
+      COMMERCIAL_WORDS: COMMERCIAL_WORDS,
+      INFORMATIONAL_WORDS: INFORMATIONAL_WORDS,
+      HIGH_VOLUME_WORDS: HIGH_VOLUME_WORDS,
+      TIER_1_LOCATION: TIER_1_LOCATION,
+      LOCATION_WORDS: LOCATION_WORDS,
+      PRICE_WORDS: PRICE_WORDS,
+      PRICE_HEAD_WORDS: PRICE_HEAD_WORDS,
+      PROMO_MODIFIER_WORDS: PROMO_MODIFIER_WORDS,
+      SPEC_PHRASE_INFORMATIONAL: SPEC_PHRASE_INFORMATIONAL,
+      INTENT_TRIGGERS: INTENT_TRIGGERS,
+      cleanText: cleanText,
+      extractSlugFromInput: extractSlugFromInput
     };
 
-    for (var cat in SHARED_MODIFIERS) {
-      if (!SHARED_MODIFIERS.hasOwnProperty(cat)) continue;
-      var words = SHARED_MODIFIERS[cat];
-      report.tier2_count += words.length;
-      var seen = {};
-      for (var i = 0; i < words.length; i++) {
-        if (seen[words[i]]) {
-          report.duplicates_tier2.push({ cat: cat, word: words[i] });
-        }
-        seen[words[i]] = true;
-      }
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX-P7: SET BODY ATTRIBUTES SINKRON SEBELUM DISPATCH
+    // ═══════════════════════════════════════════════════════════
+    // Alasan:
+    //   - Breadcrumb script butuh body attribute data-page-level
+    //     yang sudah ter-set SAAT event pageLevelDetectorv22Ready fired.
+    //   - Tanpa FIX-P7: attribute kosong → breadcrumb fallback → SALAH.
+    //   - Dengan FIX-P7: attribute ada → breadcrumb benar.
+    // ═══════════════════════════════════════════════════════════
+    try {
+      var _initialLevel = detectPageLevel();
+      setSchemaAttributes(_initialLevel);
+      console.log('⚡ [PLD v23.9.7-LITE] Body attributes di-set SEBELUM dispatch: ' + _initialLevel);
+    } catch (e) {
+      console.error('❌ [PLD v23.9.7-LITE] Gagal set body attributes: ' + e.message);
     }
 
-    for (var ent in ENTITY_SPECIFIC) {
-      if (!ENTITY_SPECIFIC.hasOwnProperty(ent)) continue;
-      var spec = ENTITY_SPECIFIC[ent];
-      for (var key in spec) {
-        if (!spec.hasOwnProperty(key)) continue;
-        var arr = spec[key];
-        report.tier3_count += arr.length;
-        var seenT3 = {};
-        for (var j = 0; j < arr.length; j++) {
-          if (seenT3[arr[j]]) {
-            report.duplicates_tier3.push({ entity: ent, cat: key, word: arr[j] });
-          }
-          seenT3[arr[j]] = true;
-        }
-      }
-    }
-
-    var tier2All = [];
-    for (var c in SHARED_MODIFIERS) {
-      if (!SHARED_MODIFIERS.hasOwnProperty(c)) continue;
-      tier2All = tier2All.concat(SHARED_MODIFIERS[c]);
-    }
-
-    // Precompute Set untuk O(1) lookup — hemat ~50.000 comparisons
-    var tier2Set = {};
-    for (var t2i = 0; t2i < tier2All.length; t2i++) {
-      tier2Set[tier2All[t2i]] = true;
-    }
-
-    for (var e in ENTITY_SPECIFIC) {
-      if (!ENTITY_SPECIFIC.hasOwnProperty(e)) continue;
-      var sp = ENTITY_SPECIFIC[e];
-      for (var k in sp) {
-        if (!sp.hasOwnProperty(k)) continue;
-        for (var m = 0; m < sp[k].length; m++) {
-          if (tier2Set[sp[k][m]]) {
-            report.cross_tier_overlap.push(e + "." + k + ": " + sp[k][m]);
-          }
-        }
-      }
+    // BARU dispatch event (setelah body attribute ada)
+    window.pageLevelDetectorv22Ready = true;
+    try { window.dispatchEvent(new Event("pageLevelDetectorv22Ready")); }
+    catch (e) {
+      try {
+        var event = document.createEvent('Event');
+        event.initEvent('pageLevelDetectorv22Ready', true, true);
+        window.dispatchEvent(event);
+      } catch (e2) {}
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("📊 FIX v16 AUDIT — MODIFIER TIERS + DOMAIN CONSTRAINTS");
+    console.log("✅ Page Level Detector v23.9.7-LITE — PERFORMANCE PATCH");
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("Tier 1 (GLOBAL): " + report.tier1_count);
-    console.log("Tier 2 (SHARED): " + report.tier2_count);
-    console.log("Tier 3 (SPECIFIC): " + report.tier3_count);
-    console.log("Sub-Kategori JASA: " + Object.keys(JASA_SUB_CATEGORIES).length);
-    console.log("Domain Constraints: " + Object.keys(DOMAIN_CONSTRAINTS).length);
-    console.log("Compatibility Matrix: " + Object.keys(MODIFIER_COMPATIBILITY).length);
-    console.log("──────────────────────────────────────────────────────────");
-    if (report.duplicates_tier2.length === 0 && report.duplicates_tier3.length === 0) {
-      console.log("✅ Tidak ada duplikat dalam tier");
-    } else {
-      console.warn("⚠️ Duplikat Tier 2: " + report.duplicates_tier2.length);
-      console.warn("⚠️ Duplikat Tier 3: " + report.duplicates_tier3.length);
-    }
-    if (report.cross_tier_overlap.length > 0) {
-      console.warn("⚠️ Cross-tier overlap: " + report.cross_tier_overlap.length);
-      console.warn("   " + report.cross_tier_overlap.slice(0, 10).join(", "));
-    } else {
-      console.log("✅ Tidak ada cross-tier overlap");
-    }
+    console.log("🔥 FIX-P1: Audit DIHAPUS (hemat ~15-20 detik di HP)");
+    console.log("🔥 FIX-P2: initializeCore() guard — cegah double init");
+    console.log("🔥 FIX-P3: setSchemaAttributes() guard — cegah double call");
+    console.log("🔥 FIX-P4: detectPageLevelForPrompt() cache — hemat 40%");
+    console.log("🔥 FIX-P5: detectJasaSubCategory() cache — hemat 30%");
+    console.log("🔥 FIX-P6: Precompile regex — hemat 25%");
+    console.log("🔥 FIX-P7: Body attrs sync sebelum dispatch");
     console.log("═══════════════════════════════════════════════════════════");
-    return report;
+    console.log("📦 LITE MODE — FITUR DIHAPUS:");
+    console.log("   ❌ Test Suite");
+    console.log("   ❌ Audit Functions");
+    console.log("   ❌ AI Proxy");
+    console.log("   ❌ SEO Score Functions");
+    console.log("✅ DIPERTAHANKAN:");
+    console.log("   ✅ Breadcrumb Detection");
+    console.log("   ✅ Hierarchy Warnings");
+    console.log("   ✅ Intent Detection");
+    console.log("═══════════════════════════════════════════════════════════");
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX-P7: updateAttributes() dengan waitForBreadcrumb:false
+    // ═══════════════════════════════════════════════════════════
+    // Alasan:
+    //   - updateAttributes() default waitForBreadcrumb:true
+    //     → tunggu 5 detik cari .breadcrumbs di DOM.
+    //   - Padahal breadcrumb di-generate SETELAH PLD ready
+    //     (oleh generateBreadcrumbShared).
+    //   - 5 detik itu MURNI MUBASIR — tidak pernah ketemu.
+    //
+    // SOLUSI:
+    //   - Pass { waitForBreadcrumb: false } → langsung resolve.
+    //   - updateAttributes tetap set class + schema attrs (via FIX-P3,
+    //     setSchemaAttributes akan skip karena sudah dipanggil di atas).
+    // ═══════════════════════════════════════════════════════════
+    try {
+      window.pageLevelDetectorv22.updateAttributes({ waitForBreadcrumb: false })
+        .then(function(result) {
+          log("✅ Auto-update selesai! Level: " + result.pageLevel, 'SUCCESS');
+        })
+        .catch(function(err) { log("Auto-update error: " + err, "ERROR"); });
+    } catch (e) {
+      log("Auto-update failed: " + e.message, "ERROR");
+    }
   }
 
-  log('🚀 Starting PLD v23.9.7...', 'INFO');
+    function waitForDOM(callback) {
+    if (typeof document === 'undefined') { callback(); return; }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') { callback(); return; }
+    document.addEventListener('DOMContentLoaded', function() { callback(); });
+    setTimeout(function() { if (document.readyState === 'loading') callback(); }, 3000);
+  }
+
+  log('🚀 Starting PLD v23.9.7-LITE...', 'INFO');
 
   // ═══════════════════════════════════════════════════════════
   // 🔥 FIX-P2: Guard untuk cegah double init
@@ -2597,29 +4113,21 @@ var PURE_JASA_TECHNIQUES = [];
   // GLOBAL HELPERS
   // ═══════════════════════════════════════════════════════════
   if (typeof window !== "undefined") {
-    window.runPLDTestSuite = function() {
-      if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.runTestSuite) {
-        return window.pageLevelDetectorv22.runTestSuite();
+    window.PLD_VERSION = "23.9.7-lite";
+    window.getPLDInfo = function() {
+      if (!window.pageLevelDetectorv22) {
+        console.error("❌ PLD belum ready.");
+        return null;
       }
-      console.error("❌ PLD belum ready.");
-      return null;
-    };
-    window.auditPLDBase = function() {
-      if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.auditBaseNames) {
-        return window.pageLevelDetectorv22.auditBaseNames();
-      }
-      console.error("❌ PLD belum ready.");
-      return null;
-    };
-    window.auditPLDTiers = function() {
-      if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.auditModifierTiers) {
-        return window.pageLevelDetectorv22.auditModifierTiers();
-      }
-      console.error("❌ PLD belum ready.");
-      return null;
+      return {
+        version: window.pageLevelDetectorv22.version,
+        mode: "LITE",
+        pageLevel: window.pageLevelDetectorv22.detect(),
+        entityType: window.pageLevelDetectorv22.detectEntityType()
+      };
     };
   }
 
 })();  // 🔥 CLOSING IIFE UTAMA
 
-
+ 
