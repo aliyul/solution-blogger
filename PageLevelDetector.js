@@ -5596,6 +5596,7 @@ var NOISE_WORDS_JASA = [
           document.body.classList.remove('page-level-unknown', className);
           document.body.classList.add(className);
 
+          // 🔥 FIX v23.9.6-PATCH: setSchemaAttributes idempotent — aman dipanggil 2x
           setSchemaAttributes(level);
         } catch (e) {
           log("Error setting attributes: " + e.message, "ERROR");
@@ -5675,6 +5676,30 @@ var NOISE_WORDS_JASA = [
       extractSlugFromInput: extractSlugFromInput
     };
 
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX v23.9.6-PATCH: SET BODY ATTRIBUTES SEBELUM DISPATCH
+    // ═══════════════════════════════════════════════════════════
+    // MASALAH LAMA:
+    //   - Body attributes (data-page-level, data-entity-type, dll)
+    //     di-set di dalam updateAttributes() yang async.
+    //   - Event "pageLevelDetectorv22Ready" di-dispatch SEBELUM itu.
+    //   - Akibat: breadcrumb script baca body attribute KOSONG
+    //     → fallback ke detect() → hasil bisa beda → breadcrumb salah.
+    //
+    // SOLUSI:
+    //   - Set body attributes SINKRON di sini, SEBELUM dispatch event.
+    //   - setSchemaAttributes() sudah set data-page-level, data-entity-type,
+    //     data-content-focus, data-kategori, data-h1-pattern, dll.
+    // ═══════════════════════════════════════════════════════════
+    try {
+      var _initialLevel = detectPageLevel();
+      setSchemaAttributes(_initialLevel);
+      console.log('⚡ [PLD v23.9.6-PATCH] Body attributes di-set SEBELUM dispatch: ' + _initialLevel);
+    } catch (e) {
+      console.error('❌ [PLD v23.9.6-PATCH] Gagal set body attributes: ' + e.message);
+    }
+
+    // BARU dispatch event (setelah body attribute ada)
     window.pageLevelDetectorv22Ready = true;
     try { window.dispatchEvent(new Event("pageLevelDetectorv22Ready")); }
     catch (e) {
@@ -5696,14 +5721,13 @@ var NOISE_WORDS_JASA = [
     console.log("🔥 FIX v16-F: isSpecModifierForEntity pakai compatibility matrix");
     console.log("🔥 FIX v16-G: 25 base name JASA baru");
     console.log("🔥 FIX v15-A..C: DIPERTAHANKAN SEMUA");
+    console.log("🔥 FIX v23.9.6-PATCH: body attrs set sebelum dispatch + waitForBreadcrumb:false");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🧪 Test: runPLDTestSuite()");
     console.log("🔍 Audit base: pageLevelDetectorv22.auditBaseNames()");
     console.log("🎚️ Audit tiers: pageLevelDetectorv22.auditModifierTiers()");
     console.log("═══════════════════════════════════════════════════════════");
 
-    //try { auditBaseNames(); } catch (e) {}
-    //try { auditModifierTiers(); } catch (e) {}
        // ═══════════════════════════════════════════════════════════
     // 🚀 PRODUCTION MODE: Audit DIMATIKAN
     // ═══════════════════════════════════════════════════════════
@@ -5728,8 +5752,22 @@ var NOISE_WORDS_JASA = [
         console.log('⚡ [PLD] PRODUCTION MODE — audit di-skip (hemat ~16.000ms di HP)');
     }
      
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX v23.9.6-PATCH: skip waitForBreadcrumb
+    // ═══════════════════════════════════════════════════════════
+    // MASALAH LAMA:
+    //   - updateAttributes() default waitForBreadcrumb:true
+    //     → tunggu 5 detik cari .breadcrumbs di DOM.
+    //   - Padahal breadcrumb di-generate SETELAH PLD ready
+    //     (oleh generateBreadcrumbShared dari file topik).
+    //   - 5 detik itu MURNI MUBASIR — tidak pernah ketemu.
+    //
+    // SOLUSI:
+    //   - Pass { waitForBreadcrumb: false } → langsung resolve.
+    //   - updateAttributes tetap set SEO score + class + schema attrs.
+    // ═══════════════════════════════════════════════════════════
     try {
-      window.pageLevelDetectorv22.updateAttributes()
+      window.pageLevelDetectorv22.updateAttributes({ waitForBreadcrumb: false })
         .then(function(result) {
           log("✅ Auto-update selesai! Level: " + result.pageLevel, 'SUCCESS');
         })
@@ -5738,7 +5776,7 @@ var NOISE_WORDS_JASA = [
       log("Auto-update failed: " + e.message, "ERROR");
     }
   }
-
+   
   function waitForDOM(callback) {
     if (typeof document === 'undefined') { callback(); return; }
     if (document.readyState === 'complete' || document.readyState === 'interactive') { callback(); return; }
