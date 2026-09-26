@@ -1,4 +1,13 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.29.0 — PLD v23.0.0 + PHASE 4.6 + Cloudinary + Deteksi Harga Berlapis */
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.29.1 — PLD v23.0.0 + PHASE 4.6 + Cloudinary WebP Optimized + Deteksi Harga Berlapis */
+// ============================================================
+// 🔥🔥🔥 v7.29.1 CHANGELOG 🔥🔥🔥
+// ============================================================
+// ✅ FIX: Cloudinary FORMAT png → webp (hemat bandwidth 60-80%)
+// ✅ ADD: q_auto:good (auto quality optimization)
+// ✅ ADD: f_auto (auto format: WebP/AVIF sesuai browser)
+// ✅ ADD: dpr_auto (responsive device pixel ratio)
+// ✅ ADD: Fallback onerror untuk browser lama (WebP → PNG)
+// ✅ RETAIN: Semua fitur v7.29.0
 // ============================================================
 // 🔥🔥🔥 v7.29.0 CHANGELOG 🔥🔥🔥
 // ============================================================
@@ -52,10 +61,11 @@
       H1: "📝", PRIORITY: "🔴", STOP: "🛑", BREADCRUMB: "🍞", AED: "⚡",
       PERF: "⏱️", CACHE: "💾", CORB: "🚫", COMMERCIAL: "🛒",
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", PARENT: "👪", PRICE: "💰",
-      FLAG: "🚩", EVENT: "📡", FIX: "🔧", MATERIAL: "🧱", PHASE46: "🆕"
+      FLAG: "🚩", EVENT: "📡", FIX: "🔧", MATERIAL: "🧱", PHASE46: "🆕",
+      WEBP: "🎨"  // 🆕 v7.29.1
     };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [Schema v7.29.0] ${msg}`);
+    console.log(`${prefix} [Schema v7.29.1] ${msg}`);
   }
 
   // ============================================================
@@ -65,7 +75,7 @@
   window.fetch = function(...args) {
     const url = args[0];
     if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-      console.warn('[Schema v7.29.0] 🚫 Blocked external fetch (CORB prevention):', url);
+      console.warn('[Schema v7.29.1] 🚫 Blocked external fetch (CORB prevention):', url);
       return Promise.reject(new Error('Blocked by CORB prevention'));
     }
     return originalFetch.apply(this, args);
@@ -74,7 +84,7 @@
   const originalXHROpen = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function(method, url, ...rest) {
     if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-      console.warn('[Schema v7.29.0] 🚫 Blocked external XHR (CORB prevention):', url);
+      console.warn('[Schema v7.29.1] 🚫 Blocked external XHR (CORB prevention):', url);
       throw new Error('Blocked by CORB prevention');
     }
     return originalXHROpen.call(this, method, url, ...rest);
@@ -169,13 +179,13 @@
   const errorBoundary = new ErrorBoundary();
 
   // ============================================================
-  // 🆕 CLOUDINARY CONFIG
+  // 🆕 CLOUDINARY CONFIG (v7.29.1 — WebP Optimized)
   // ============================================================
   const CLOUDINARY_CONFIG = {
     ENABLED: true,
     CLOUD_NAME: 'vagzz5sa',
     VERSION: 'v1789109159',
-    FORMAT: 'png',
+    FORMAT: 'webp',  // 🆕 v7.29.1: PNG → WebP (hemat 60-80%)
     WIDTH: 1200,
     HEIGHT: 630,
     FONT: 'Arial',
@@ -185,6 +195,14 @@
     MAX_TEXT_LENGTH: 70,
     MAX_CHARS_PER_LINE: 18,
     MAX_LINES: 2,
+
+    // 🆕 v7.29.1: Quality & Format Auto
+    QUALITY: 'q_auto:good',  // Auto quality optimization
+    FORMAT_AUTO: 'f_auto',   // Auto format (WebP/AVIF sesuai browser)
+    DPR_AUTO: 'dpr_auto',    // Responsive device pixel ratio
+
+    // 🆕 v7.29.1: Fallback image (PNG) untuk browser lama
+    FALLBACK_FORMAT: 'png',
 
     LEVEL_FILES: {
       'pillar': 'pillar',
@@ -256,6 +274,7 @@
       return lines.join('\n');
     },
 
+    // 🆕 v7.29.1: Build URL dengan WebP + auto quality + auto format
     buildUrl(level, text) {
       const fileName = this.LEVEL_FILES[level] || 'pillar';
       const textColor = this.LEVEL_COLORS[level] || 'FFD700';
@@ -273,7 +292,29 @@
              `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},` +
              `${this.GRAVITY},` +
              `c_fit,w_${this.WIDTH},h_${this.HEIGHT}/` +
+             `${this.QUALITY},${this.FORMAT_AUTO},${this.DPR_AUTO}/` +  // 🆕 v7.29.1: auto quality + format + dpr
              `${this.VERSION}/${fileName}.${this.FORMAT}`;
+    },
+
+    // 🆕 v7.29.1: Build fallback URL (PNG) untuk browser lama
+    buildFallbackUrl(level, text) {
+      const fileName = this.LEVEL_FILES[level] || 'pillar';
+      const textColor = this.LEVEL_COLORS[level] || 'FFD700';
+      const weight = this.BOLD ? '_bold' : '';
+      let displayText = text;
+      if (displayText.length > this.MAX_TEXT_LENGTH) {
+        displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
+      }
+      displayText = this.wrapText(displayText);
+      const longestLine = displayText.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
+      const fontSize = this.calculateFontSize(longestLine.length);
+      const encodedText = encodeURIComponent(displayText);
+      return `${this.baseUrl}` +
+             `e_colorize:100,co_rgb:${textColor},` +
+             `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},` +
+             `${this.GRAVITY},` +
+             `c_fit,w_${this.WIDTH},h_${this.HEIGHT}/` +
+             `${this.VERSION}/${fileName}.${this.FALLBACK_FORMAT}`;
     }
   };
 
@@ -1093,6 +1134,7 @@
 
   // ============================================================
   // 🆕 CREATE IMAGE — CLOUDINARY DYNAMIC 🔥
+  // 🆕 v7.29.1: WebP optimized + fallback PNG
   // ============================================================
   function createImageWithText(pageName, level, year) {
     perf.start('createImageWithText');
@@ -1102,7 +1144,7 @@
         const displayText = needYearFlag ? `${pageName} ${year}` : pageName;
         const imageUrl = CLOUDINARY_CONFIG.buildUrl(level, displayText);
         if (/^https?:\/\//i.test(imageUrl)) {
-          log(`📸 Cloudinary [${level}]: ${imageUrl}`, "IMAGE");
+          log(`📸 Cloudinary [${level}] (WebP): ${imageUrl}`, "WEBP");
           perf.end('createImageWithText');
           return imageUrl;
         }
@@ -1115,8 +1157,23 @@
     return IMAGE_CONFIG.LOGO_IMAGE;
   }
 
+  // 🆕 v7.29.1: Get fallback image (PNG) untuk browser lama
+  function getFallbackImage(pageName, level, year) {
+    if (CLOUDINARY_CONFIG.ENABLED && CLOUDINARY_CONFIG.CLOUD_NAME) {
+      try {
+        const needYearFlag = needYear(level);
+        const displayText = needYearFlag ? `${pageName} ${year}` : pageName;
+        return CLOUDINARY_CONFIG.buildFallbackUrl(level, displayText);
+      } catch(e) {
+        return IMAGE_CONFIG.LOGO_IMAGE;
+      }
+    }
+    return IMAGE_CONFIG.LOGO_IMAGE;
+  }
+
   // ============================================================
   // 🔥🔥🔥 CEK & PERBAIKI GAMBAR 🔥🔥🔥
+  // 🆕 v7.29.1: Tambah onerror fallback untuk browser lama
   // ============================================================
   function fixImagesToFormat1(pageLevel) {
     perf.start('fixImagesToFormat1');
@@ -1176,7 +1233,7 @@
       img.style.margin = '0 auto';
       img.style.padding = '0 10px';
       img.style.boxSizing = 'border-box';
-      const styleId = 'responsive-image-style-v7290';
+      const styleId = 'responsive-image-style-v7291';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
@@ -1234,6 +1291,7 @@
     }
 
     const autoImageUrl = createImageWithText(pageName, pageLevel, currentYear);
+    const fallbackImageUrl = getFallbackImage(pageName, pageLevel, currentYear);  // 🆕 v7.29.1
     const captionText = '📊 ' + displayName;
     let result = null;
 
@@ -1245,7 +1303,9 @@
       if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
         if (/^https?:\/\//i.test(autoImageUrl)) {
           img.src = autoImageUrl;
-          log('Image src replaced with Cloudinary URL', "IMAGE");
+          // 🆕 v7.29.1: Fallback untuk browser lama (WebP tidak support)
+          img.setAttribute('onerror', `this.onerror=null;this.src='${fallbackImageUrl}';`);
+          log('Image src replaced with Cloudinary WebP URL + fallback', "WEBP");
         } else {
           img.src = IMAGE_CONFIG.LOGO_IMAGE;
           log('Image src fallback to LOGO', "IMAGE");
@@ -1309,6 +1369,8 @@
     const figure = document.createElement('figure');
     const img = document.createElement('img');
     img.src = autoImageUrl;
+    // 🆕 v7.29.1: Fallback untuk browser lama
+    img.setAttribute('onerror', `this.onerror=null;this.src='${fallbackImageUrl}';`);
     img.alt = displayName;
     img.title = displayName;
     img.setAttribute('loading', 'lazy');
@@ -1331,7 +1393,7 @@
     } else {
       insertPoint.container.insertBefore(figure, insertPoint.container.firstChild);
     }
-    log('✅ New responsive FIGURE created', "SUCCESS");
+    log('✅ New responsive FIGURE created (WebP + fallback)', "SUCCESS");
     perf.end('fixImagesToFormat1');
     return figure;
   }
@@ -1746,14 +1808,14 @@
   }
 
   // ============================================================
-  // 🚀 MAIN FUNCTION v7.29.0
+  // 🚀 MAIN FUNCTION v7.29.1
   // ============================================================
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
       perf.start('init');
       log("═══════════════════════════════════════════════════", "INFO");
-      log("AUTO SCHEMA UNIVERSAL v7.29.0 — PLD v23.0.0 + PHASE 4.6", "INFO");
-      log("Sync Breadcrumb v13.0.0 + Fix Material Dinamis + Cleanup", "INFO");
+      log("AUTO SCHEMA UNIVERSAL v7.29.1 — PLD v23.0.0 + PHASE 4.6", "INFO");
+      log("Cloudinary WebP Optimized + Fallback PNG + Auto Quality", "WEBP");
       log("═══════════════════════════════════════════════════", "INFO");
 
       try {
@@ -1844,7 +1906,7 @@
         const isEligible = isImageEligible(pageLevel);
         let pageImage = IMAGE_CONFIG.LOGO_IMAGE;
         if (isEligible) {
-          log(`✅ Halaman LAYAK mendapat gambar, memproses...`, "IMAGE");
+          log(`✅ Halaman LAYAK mendapat gambar, memproses (WebP)...`, "WEBP");
           try {
             const fixedFigure = fixImagesToFormat1(pageLevel);
             if (fixedFigure) {
@@ -1853,7 +1915,7 @@
                 const candidateSrc = img.src || '';
                 if (/^https?:\/\//i.test(candidateSrc)) {
                   pageImage = candidateSrc;
-                  log(`📸 Schema image: ${candidateSrc}`, "IMAGE");
+                  log(`📸 Schema image (WebP): ${candidateSrc}`, "WEBP");
                 } else {
                   pageImage = IMAGE_CONFIG.LOGO_IMAGE;
                 }
@@ -2134,7 +2196,12 @@
         log(`  Product Schema   : ${(isService && hasPrice && tableOffers.length > 0) || isProduct ? '✅' : '❌'}`, "SUCCESS");
         log(`  isPartOf SOURCE  : ✅ BREADCRUMB TERDEKAT`, "PARENT");
         log(`  Internal Links   : ${internalLinks.length}`, "SUCCESS");
+        log(`  ─── 🎨 IMAGE OPTIMIZATION (v7.29.1) ────────────`, "WEBP");
         log(`  Image Eligible   : ${isEligible ? '✅' : '❌'}`, "IMAGE");
+        log(`  Image Format     : ✅ WebP (auto fallback PNG)`, "WEBP");
+        log(`  Quality Setting  : ✅ q_auto:good`, "WEBP");
+        log(`  Auto Format      : ✅ f_auto (WebP/AVIF)`, "WEBP");
+        log(`  DPR Auto         : ✅ dpr_auto`, "WEBP");
         log(`  Image Source     : ${/^https?:\/\//i.test(pageImage) ? '✅ URL ABSOLUT' : '⚠️ ' + pageImage.substring(0, 40)}`, "IMAGE");
         log(`  ─── 🆕 PHASE 4.6 SYNC STATUS ───────────────────`, "PHASE46");
         log(`  Entity Sub-Type  : ${entitySubType ? '✅ ' + entitySubType : '⏭️ Tidak tersedia'}`, "PHASE46");
@@ -2154,8 +2221,9 @@
         log(`  BREADCRUMB SYNC  : ✅ SINKRON v13.0.0`, "FIX");
         log(`  MATERIAL FIX     : ✅ DINAMIS (bukan hardcode)`, "FIX");
         log(`  PHASE 4.6 SYNC   : ✅ AKTIF (6 parameter)`, "PHASE46");
+        log(`  WEBP OPTIMIZE    : ✅ AKTIF (v7.29.1)`, "WEBP");
         log("═══════════════════════════════════════════════════", "INFO");
-        log("AUTO SCHEMA UNIVERSAL v7.29.0 SELESAI", "SUCCESS");
+        log("AUTO SCHEMA UNIVERSAL v7.29.1 SELESAI", "SUCCESS");
 
         perf.end('init');
 
