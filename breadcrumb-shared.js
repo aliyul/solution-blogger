@@ -1,27 +1,28 @@
 /**
  * ============================================================
- * generateBreadcrumbShared v15.0.0 — CLEAN VERSION (No PLD Duplication)
+ * generateBreadcrumbShared v15.1.0 — CLEAN + PERFORMANCE PATCH
  * 
  * PRINSIP: PLD = DETEKSI, BREADCRUMB = RENDER
  * ─────────────────────────────────────────────
- * Semua logika deteksi (page level, entity, location, spec, dll)
- * SUDAH DILAKUKAN oleh PLD v23.9.6.
  * Breadcrumb HANYA:
  *   1. BACA hasil dari body attributes (PLD sudah set)
  *   2. FALLBACK ke window.pageLevelDetectorv22 functions
  *   3. RENDER HTML breadcrumb
  *   4. Set flag + dispatch event
  * 
+ * v15.1.0 CHANGELOG (dari v15.0.0):
+ * ✅ FIX #3: Lazy Load — requestIdleCallback agar tidak blocking render
+ * ✅ FIX #4: Cache detectPageType — hemat ~500-2000ms per render
+ * 
  * v15.0.0 CHANGELOG:
- * - 🚀 HAPUS duplikasi: detectPageTypeFallback, isLocation, checkHasSpec, dll
- * - 🚀 HAPUS konstanta duplikat: LOCATION_WORDS, COMMERCIAL_WORDS, dll
- * - 🚀 PAKAI body attributes dari PLD (data-page-level, data-entity-type, dll)
- * - 🚀 FALLBACK ke PLD functions jika body attributes tidak ada
- * - 🚀 TUNGGU "pageLevelDetectorv22Ready" sebelum eksekusi
- * - 🚀 Estimasi: 1.000ms → 50ms di HP
+ * ✅ HAPUS duplikasi: detectPageTypeFallback, isLocation, checkHasSpec, dll
+ * ✅ HAPUS konstanta duplikat: LOCATION_WORDS, COMMERCIAL_WORDS, dll
+ * ✅ PAKAI body attributes dari PLD (data-page-level, data-entity-type, dll)
+ * ✅ FALLBACK ke PLD functions jika body attributes tidak ada
+ * ✅ TUNGGU "pageLevelDetectorv22Ready" sebelum eksekusi
  * 
  * CARA PAKAI:
- * 1. Load PLD dulu: <script src="pld-v23.9.6.js"></script>
+ * 1. Load PLD dulu: <script src="pld-v23.9.7-lite.js"></script>
  * 2. Load file ini: <script src="breadcrumb-shared.js"></script>
  * 3. Di file topik: window.generateBreadcrumbShared(...)
  * ============================================================
@@ -49,18 +50,18 @@
     const LOG_ICONS = Object.freeze({
         INFO: '📘', SUCCESS: '✅', WARN: '⚠️', ERROR: '❌',
         DEBUG: '🔍', PARENT: '👪', URL: '🔗', PLD: '🔍',
-        FLAG: '🚩', EVENT: '📣', RENDER: '🎨'
+        FLAG: '🚩', EVENT: '📣', RENDER: '🎨', PERF: '⚡'
     });
 
     const CONFIG_GLOBAL = {
         DOMAIN: 'https://www.betonjayareadymix.com',
         DEBUG: ENABLE_DEBUG,
-        PLD_WAIT_TIMEOUT: 2000  // max tunggu PLD ready
+        PLD_WAIT_TIMEOUT: 2000
     };
 
     function log(message, type) {
         if (!CONFIG_GLOBAL.DEBUG) return;
-        console.log((LOG_ICONS[type] || '📘') + ' [Breadcrumb v15.0.0] ' + message);
+        console.log((LOG_ICONS[type] || '📘') + ' [Breadcrumb v15.1.0] ' + message);
     }
 
     // ============================================================
@@ -290,124 +291,85 @@
     // ✅ DETEKSI PAGE TYPE — PAKAI PLD, BUKAN HITUNG ULANG
     // ============================================================
 
+    // ═══════════════════════════════════════════════════════════════
+    // 🔥 FIX #4: CACHE detectPageType
+    // ═══════════════════════════════════════════════════════════════
+    // MASALAH: detectPageType dipanggil 5-10x per render breadcrumb.
+    // Setiap panggilan → PLD detectPageLevelForPrompt() yang BERAT.
+    // Total: ~500-2000ms per render breadcrumb.
+    //
+    // SOLUSI: Cache hasil per (pageName + isCurrentPage + currentPldLevel).
+    // Hasil sama → cache hit → 0ms.
+    // ═══════════════════════════════════════════════════════════════
+    var __pageTypeCache = {};
+
     /**
      * Deteksi page type untuk sebuah nama halaman.
      * PRIORITAS:
      *   1. Kalau pageName === currentPageTitle → pakai PLD level
      *   2. Kalau bukan → panggil PLD detectPageLevelForPrompt
-     *   3. Fallback minimal (JANGAN kompleks)
+     *   3. Fallback minimal
      */
-    // ═══════════════════════════════════════════════════════════════
-// 🔥 FIX #4: CACHE detectPageType
-// ═══════════════════════════════════════════════════════════════
-// MASALAH: detectPageType dipanggil 5-10x per render breadcrumb.
-// Setiap panggilan → PLD detectPageLevelForPrompt() yang BERAT
-// (loop ratusan regex, cek spec, cek lokasi, dll).
-// Total: ~500-2000ms per render breadcrumb.
-//
-// SOLUSI: Cache hasil per (pageName + isCurrentPage).
-// Hasil sama → cache hit → 0ms.
-// ═══════════════════════════════════════════════════════════════
-var __pageTypeCache = {};
+    function detectPageType(pageName, isCurrentPage, currentPldLevel) {
+        // 🔥 FIX #4: Cek cache dulu
+        var cacheKey = (pageName || '') + '|' + (isCurrentPage ? '1' : '0') + '|' + (currentPldLevel || '');
+        if (__pageTypeCache.hasOwnProperty(cacheKey)) {
+            log('⚡ CACHE HIT detectPageType: ' + pageName, 'PERF');
+            return __pageTypeCache[cacheKey];
+        }
 
-function detectPageType(pageName, isCurrentPage, currentPldLevel) {
-    // 🔥 FIX #4: Cek cache dulu
-    var cacheKey = (pageName || '') + '|' + (isCurrentPage ? '1' : '0') + '|' + (currentPldLevel || '');
-    if (__pageTypeCache.hasOwnProperty(cacheKey)) {
-        log('⚡ CACHE HIT detectPageType: ' + pageName, 'DEBUG');
-        return __pageTypeCache[cacheKey];
-    }
+        var result;
+        const lowerName = cleanText((pageName || '').toLowerCase());
 
-    var result;
-    const lowerName = cleanText((pageName || '').toLowerCase());
-
-    // Kalau ini halaman saat ini → pakai PLD level
-    if (isCurrentPage && currentPldLevel && VALID_LEVELS.indexOf(currentPldLevel) !== -1) {
-        result = currentPldLevel;
-    }
-    // Kalau home
-    else if (lowerName === 'home' || lowerName === 'beranda') {
-        result = 'home';
-    }
-    // Cek pillar exact match
-    else if (getEntityPillarNames(getEntityTypeFromPLD()).indexOf(lowerName) !== -1) {
-        result = 'pillar';
-    }
-    // Panggil PLD untuk page lain (bukan halaman saat ini)
-    else if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectPageLevelForPrompt === 'function') {
-        try {
-            var lvl = window.pageLevelDetectorv22.detectPageLevelForPrompt(pageName, getEntityTypeFromPLD());
-            result = (lvl && VALID_LEVELS.indexOf(lvl) !== -1) ? lvl : 'money-page';
-        } catch(e) {
+        // Kalau ini halaman saat ini → pakai PLD level
+        if (isCurrentPage && currentPldLevel && VALID_LEVELS.indexOf(currentPldLevel) !== -1) {
+            result = currentPldLevel;
+        }
+        // Kalau home
+        else if (lowerName === 'home' || lowerName === 'beranda') {
+            result = 'home';
+        }
+        // Cek pillar exact match
+        else if (getEntityPillarNames(getEntityTypeFromPLD()).indexOf(lowerName) !== -1) {
+            result = 'pillar';
+        }
+        // Panggil PLD untuk page lain (bukan halaman saat ini)
+        else if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectPageLevelForPrompt === 'function') {
+            try {
+                var lvl = window.pageLevelDetectorv22.detectPageLevelForPrompt(pageName, getEntityTypeFromPLD());
+                result = (lvl && VALID_LEVELS.indexOf(lvl) !== -1) ? lvl : 'money-page';
+            } catch(e) {
+                result = 'money-page';
+            }
+        }
+        // Fallback minimal
+        else {
             result = 'money-page';
         }
-    }
-    // Fallback minimal
-    else {
-        result = 'money-page';
+
+        // 🔥 FIX #4: Simpan ke cache
+        __pageTypeCache[cacheKey] = result;
+        log('💾 CACHE STORE detectPageType: ' + pageName + ' → ' + result, 'PERF');
+        return result;
     }
 
-    // 🔥 FIX #4: Simpan ke cache
-    __pageTypeCache[cacheKey] = result;
-    log('💾 CACHE STORE detectPageType: ' + pageName + ' → ' + result, 'DEBUG');
-    return result;
-}
     // ============================================================
-    // FUNGSI UTAMA — GENERATE BREADCRUMB
+    // FUNGSI UTAMA — GENERATE BREADCRUMB (IMPLEMENTASI ASLI)
     // ============================================================
 
-    // ═══════════════════════════════════════════════════════════════
-// 🔥 FIX #3: LAZY LOAD BREADCRUMB (requestIdleCallback)
-// ═══════════════════════════════════════════════════════════════
-// MASALAH: generateBreadcrumbShared dipanggil saat DOMContentLoaded,
-// tapi eksekusinya BERAT (loop 200+ if, panggil PLD 5-10x).
-// Ini mem-BLOCK render sisa halaman.
-//
-// SOLUSI: Bungkus dengan requestIdleCallback — browser hanya
-// jalankan saat IDLE (setelah render selesai).
-// Fallback: setTimeout(0) untuk browser lama.
-//
-// EFEK: Halaman render INSTAN, breadcrumb muncul 200-500ms
-// kemudian tanpa blocking.
-// ═══════════════════════════════════════════════════════════════
+    function _generateBreadcrumbSharedImpl(
+        mappingObj,
+        currentUrl,
+        breadcrumbItems,
+        entityType
+    ) {
+        breadcrumbItems = breadcrumbItems || [];
+        entityType = entityType || 'jasa';
 
-// ⚠️ Wrapper publik — dipanggil oleh file topik
-function generateBreadcrumbShared(mappingObj, currentUrl, breadcrumbItems, entityType) {
-    // Simpan args
-    var args = arguments;
+        // Normalisasi entity type (lowercase untuk PLD)
+        entityType = String(entityType).toLowerCase();
 
-    // 🔥 FIX #3: Jalankan saat browser idle
-    if (typeof requestIdleCallback !== 'undefined') {
-        log('⏳ generateBreadcrumbShared dijadwalkan (requestIdleCallback)', 'INFO');
-        requestIdleCallback(function() {
-            log('🚀 generateBreadcrumbShared EXECUTE (idle)', 'INFO');
-            _generateBreadcrumbSharedImpl.apply(null, args);
-        }, { timeout: 2000 }); // timeout 2s — paksa eksekusi kalau browser sibuk
-    } else {
-        // Fallback browser lama (Safari < 15)
-        log('⏳ generateBreadcrumbShared dijadwalkan (setTimeout fallback)', 'INFO');
-        setTimeout(function() {
-            log('🚀 generateBreadcrumbShared EXECUTE (timeout)', 'INFO');
-            _generateBreadcrumbSharedImpl.apply(null, args);
-        }, 0);
-    }
-}
-
-// ⚠️ Implementasi asli — rename dari generateBreadcrumbShared
-function _generateBreadcrumbSharedImpl(
-    mappingObj,
-    currentUrl,
-    breadcrumbItems,
-    entityType
-) {
-    breadcrumbItems = breadcrumbItems || [];
-    entityType = entityType || 'jasa';
-
-    // Normalisasi entity type (lowercase untuk PLD)
-    entityType = String(entityType).toLowerCase();
-
-    log('=== GENERATE BREADCRUMB START ===', 'INFO');
-    // ... sisanya SAMA PERSIS ...
+        log('=== GENERATE BREADCRUMB START ===', 'INFO');
         log('URL: ' + currentUrl, 'INFO');
         log('Entity (dari caller): ' + entityType, 'INFO');
 
@@ -553,7 +515,6 @@ function _generateBreadcrumbSharedImpl(
                 return item.position === highestPosition;
             });
 
-            // Tambah SEMUA parent dari position terendah ke tertinggi (untuk hierarki lengkap)
             // Sort ascending
             finalParents.sort(function(a, b) { return a.position - b.position; });
 
@@ -566,7 +527,6 @@ function _generateBreadcrumbSharedImpl(
             const entityPillars = getEntityPillarNames(entityType);
             if (entityPillars.length > 0) {
                 const pillarName = entityPillars[0];
-                // Cek di uniqueItems
                 const pillarItem = uniqueItems.find(function(item) {
                     return item.name.toLowerCase() === pillarName;
                 });
@@ -722,7 +682,7 @@ function _generateBreadcrumbSharedImpl(
                 selectedLevels: uniqueLevels,
                 currentPageType: currentPageType,
                 entityType: entityType,
-                version: '15.0.0',
+                version: '15.1.0',
                 pldLevel: pldLevel,
                 pldContentFocus: pldContentFocus,
                 pldKategori: pldKategori,
@@ -743,7 +703,7 @@ function _generateBreadcrumbSharedImpl(
             selectedLevels: uniqueLevels,
             currentPageType: currentPageType,
             entityType: entityType,
-            version: '15.0.0',
+            version: '15.1.0',
             parentCount: finalParents.length,
             parents: finalParents,
             pldLevel: pldLevel,
@@ -760,6 +720,40 @@ function _generateBreadcrumbSharedImpl(
     }
 
     // ============================================================
+    // 🔥 FIX #3: LAZY LOAD BREADCRUMB (requestIdleCallback)
+    // ============================================================
+    // MASALAH: generateBreadcrumbShared dipanggil saat DOMContentLoaded,
+    // tapi eksekusinya BERAT (loop 200+ if, panggil PLD 5-10x).
+    // Ini mem-BLOCK render sisa halaman.
+    //
+    // SOLUSI: Bungkus dengan requestIdleCallback — browser hanya
+    // jalankan saat IDLE (setelah render selesai).
+    // Fallback: setTimeout(0) untuk browser lama.
+    //
+    // EFEK: Halaman render INSTAN, breadcrumb muncul 200-500ms
+    // kemudian tanpa blocking.
+    // ============================================================
+    function generateBreadcrumbShared(mappingObj, currentUrl, breadcrumbItems, entityType) {
+        var args = arguments;
+
+        // 🔥 FIX #3: Jalankan saat browser idle
+        if (typeof requestIdleCallback !== 'undefined') {
+            log('⏳ generateBreadcrumbShared dijadwalkan (requestIdleCallback)', 'PERF');
+            requestIdleCallback(function() {
+                log('🚀 generateBreadcrumbShared EXECUTE (idle)', 'PERF');
+                _generateBreadcrumbSharedImpl.apply(null, args);
+            }, { timeout: 2000 }); // timeout 2s — paksa eksekusi kalau browser sibuk
+        } else {
+            // Fallback browser lama (Safari < 15)
+            log('⏳ generateBreadcrumbShared dijadwalkan (setTimeout fallback)', 'PERF');
+            setTimeout(function() {
+                log('🚀 generateBreadcrumbShared EXECUTE (timeout)', 'PERF');
+                _generateBreadcrumbSharedImpl.apply(null, args);
+            }, 0);
+        }
+    }
+
+    // ============================================================
     // ✅ EXPOSE KE WINDOW
     // ============================================================
     window.generateBreadcrumbShared = generateBreadcrumbShared;
@@ -768,13 +762,15 @@ function _generateBreadcrumbSharedImpl(
     // LOG INFO DEVICE
     // ============================================================
     if (ENABLE_DEBUG) {
-        console.log('✅ [Breadcrumb Shared v15.0.0] Clean version siap dipakai');
+        console.log('✅ [Breadcrumb Shared v15.1.0] Clean + Performance Patch siap dipakai');
         console.log('   🖥️ Device: ' + (IS_MOBILE ? 'MOBILE' : 'DESKTOP'));
         console.log('   ⚡ Slow Device: ' + (IS_SLOW_DEVICE ? 'YES' : 'NO'));
         console.log('   🐛 Debug: ' + (ENABLE_DEBUG ? 'ON' : 'OFF'));
         console.log('   📌 Prinsip: PLD = DETEKSI, Breadcrumb = RENDER');
+        console.log('   🔥 FIX #3: Lazy Load (requestIdleCallback)');
+        console.log('   🔥 FIX #4: Cache detectPageType');
     } else {
-        console.log('✅ [Breadcrumb Shared v15.0.0] Loaded (silent mode — HP detected)');
+        console.log('✅ [Breadcrumb Shared v15.1.0] Loaded (silent mode — HP detected)');
     }
 
     // ============================================================
