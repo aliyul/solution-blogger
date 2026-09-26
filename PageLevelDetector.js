@@ -5702,9 +5702,32 @@ var NOISE_WORDS_JASA = [
     console.log("🎚️ Audit tiers: pageLevelDetectorv22.auditModifierTiers()");
     console.log("═══════════════════════════════════════════════════════════");
 
-    try { auditBaseNames(); } catch (e) {}
-    try { auditModifierTiers(); } catch (e) {}
-
+    //try { auditBaseNames(); } catch (e) {}
+    //try { auditModifierTiers(); } catch (e) {}
+       // ═══════════════════════════════════════════════════════════
+    // 🚀 PRODUCTION MODE: Audit DIMATIKAN
+    // ═══════════════════════════════════════════════════════════
+    // Audit (auditBaseNames + auditModifierTiers) memakan
+    // ~16.000ms di HP mid-range karena:
+    //   - auditBaseNames: 489 base names × countModifierLayers()
+    //   - auditModifierTiers: 498 entries × loop × regex test
+    //
+    // Di LAPTOP: 17 detik terasa cepat (CPU kuat)
+    // Di HP:     17 detik = HANG TOTAL → breadcrumb stuck
+    //
+    // Solusi: Jalankan audit HANYA kalau ada ?debug=1 di URL
+    // ═══════════════════════════════════════════════════════════
+    
+    var IS_DEBUG_MODE = window.location.search.indexOf('debug=1') !== -1;
+    
+    if (IS_DEBUG_MODE) {
+        console.log('🔍 [PLD] DEBUG MODE — audit dijalankan');
+        try { auditBaseNames(); } catch (e) {}
+        try { auditModifierTiers(); } catch (e) {}
+    } else {
+        console.log('⚡ [PLD] PRODUCTION MODE — audit di-skip (hemat ~16.000ms di HP)');
+    }
+     
     try {
       window.pageLevelDetectorv22.updateAttributes()
         .then(function(result) {
