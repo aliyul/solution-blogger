@@ -45,7 +45,8 @@ if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9
   };
 
   function log(message, type) {
-    if (!CONFIG.DEBUG && type === "INFO") return;
+    // ═══ FIX-P8: Skip SEMUA log kalau DEBUG=false (hemat I/O di HP) ═══
+    if (!CONFIG.DEBUG) return;
     if (!type) type = "INFO";
     var icons = {
       INFO: "📘", SUCCESS: "✅", WARN: "⚠️", ERROR: "❌",
@@ -4385,7 +4386,12 @@ function detectPageLevel(userOptions) {
       detectEntityType: detectEntityType,
       detectEntityTypeFromText: detectEntityTypeFromText,
       detectJasaSubCategory: detectJasaSubCategory,
-
+       
+      // 🔥 FIX-P8: Export fungsi variant yang sebelumnya hilang
+      detectVariantLevel: detectVariantLevel,
+      detectVariantByPattern: detectVariantByPattern,
+      hasTechnicalSpec: hasTechnicalSpec,
+      isSubVariant: isSubVariant,
       // ─── FACTORS + DETEKSI ───
       getFactors: getFactors,
       getSEOContext: getSEOContext,
