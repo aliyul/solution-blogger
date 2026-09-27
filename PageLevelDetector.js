@@ -3422,8 +3422,14 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       log('⏭️ initializeCore() sudah pernah dijalankan — skip', 'PERF');
       return;
     }
+    // 🔥 FIX-RACE: cek PLD sudah ada di window
+    if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.7-lite-perf") {
+      log('⏭️ PLD sudah ada di window — skip init', 'PERF');
+      _CORE_INITIALIZED = true;
+      return;
+    }
     _CORE_INITIALIZED = true;
-
+     
     log('🧠 Core functions ready', 'CORE');
 
     // 🔥 M1+M2: build master regexes SEKALI di awal
@@ -3763,24 +3769,103 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     }
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX-RACE: waitForDOM() aman untuk inject kapan saja
+  // ═══════════════════════════════════════════════════════════
+  // MASALAH LAMA:
+  //   - Kalau script di-inject SETELAH DOMContentLoaded fired,
+  //     listener 'DOMContentLoaded' TIDAK AKAN PERNAH trigger.
+  //   - Akibatnya: stuck sampai setTimeout(3000).
+  //   - Fix: cek readyState DULU, baru pasang listener.
+  //   - Tambah flag _DOM_READY_CALLED biar tidak double call.
+  // ═══════════════════════════════════════════════════════════
+  var _DOM_READY_CALLED = false;
+  
   function waitForDOM(callback) {
-    if (typeof document === 'undefined') { callback(); return; }
-    if (document.readyState === 'complete' || document.readyState === 'interactive') { callback(); return; }
-    document.addEventListener('DOMContentLoaded', function() { callback(); });
-    setTimeout(function() { if (document.readyState === 'loading') callback(); }, 3000);
+    if (_DOM_READY_CALLED) {
+      // Sudah pernah call — jangan double
+      return;
+    }
+    if (typeof document === 'undefined') {
+      _DOM_READY_CALLED = true;
+      callback();
+      return;
+    }
+    
+    // ✅ Cek readyState DULU (paling penting!)
+    var rs = document.readyState;
+    if (rs === 'complete' || rs === 'interactive') {
+      _DOM_READY_CALLED = true;
+      callback();
+      return;
+    }
+    
+    // Kalau masih loading, pasang listener
+    var _called = false;
+    function _once() {
+      if (_called) return;
+      _called = true;
+      _DOM_READY_CALLED = true;
+      callback();
+    }
+    
+    document.addEventListener('DOMContentLoaded', _once);
+    
+    // Fallback: cek readyState berkala (bukan cuma 1x)
+    var _fallbackCount = 0;
+    var _fallbackTimer = setInterval(function() {
+      _fallbackCount++;
+      var rs2 = document.readyState;
+      if (rs2 === 'complete' || rs2 === 'interactive') {
+        clearInterval(_fallbackTimer);
+        _once();
+      }
+      if (_fallbackCount >= 60) {  // max 6 detik (60 × 100ms)
+        clearInterval(_fallbackTimer);
+        _once();
+      }
+    }, 100);
   }
 
   log('🚀 Starting PLD v23.9.7-LITE-PERF...', 'INFO');
 
   function _safeInitializeCore() {
-    if (_CORE_INITIALIZED) return;
-    if (window.pageLevelDetectorv22) return;
-    initializeCore();
+    if (_CORE_INITIALIZED) {
+      log('⏭️ _safeInitializeCore: sudah init', 'PERF');
+      return;
+    }
+    if (window.pageLevelDetectorv22) {
+      log('⏭️ _safeInitializeCore: PLD sudah ada', 'PERF');
+      return;
+    }
+    try {
+      initializeCore();
+    } catch (e) {
+      console.error('❌ [PLD-PERF] initializeCore error: ' + e.message);
+      // Fallback: set default attributes
+      try {
+        if (document.body) {
+          document.body.setAttribute("data-page-level", "money-page");
+          document.body.setAttribute("data-page-level-num", "5");
+        }
+      } catch (e2) {}
+    }
   }
 
-  waitForDOM(function() { _safeInitializeCore(); });
-  if (typeof document !== 'undefined' && document.readyState === 'complete') {
+  // 🔥 FIX-RACE: panggil _safeInitializeCore dengan guard
+  waitForDOM(function() {
     _safeInitializeCore();
+  });
+  
+  // Fallback tambahan: kalau readyState sudah complete, langsung init
+  if (typeof document !== 'undefined') {
+    var _rs = document.readyState;
+    if (_rs === 'complete' || _rs === 'interactive') {
+      // Delay sedikit biar tidak bentrok dengan waitForDOM
+      setTimeout(function() {
+        _safeInitializeCore();
+      }, 0);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════
