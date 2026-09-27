@@ -1,27 +1,14 @@
 /**
  * ============================================================
- * 🍞 Breadcrumb Shared v12.3.3-LITE — MEGA MERGE
+ * 🍞 Breadcrumb Shared v12.3.3-LITE — MEGA MERGE (FINAL)
  * 
- * GABUNGAN TERBAIK:
- * ✅ LOGIKA LENGKAP dari v12.3.2:
- *    - detectPageTypeFallback (super detail)
- *    - injectCurrentPageAndParent (auto parent)
- *    - forceInjectDirectParent (4 strategi)
- *    - findNearestParentFromItems
- *    - findNearestParentsByHierarchy
- *    - validateAndFixHierarchy
- *    - detectJasaLevelAuto
- *    - cleanJasaText
- *    - COMMERCIAL INTENT OVERRIDE
- *    - isVariantPage per entity
- * 
- * ✅ PERFORMANCE dari v15.2-LITE:
- *    - Cache detectPageTypeFallback
- *    - Guard double init
- *    - Silent log di HP (auto-detect DEBUG)
- *    - requestIdleCallback lazy load
- *    - Batasi loop max 20
- *    - Manual Set dedupe
+ * FIX FINAL:
+ * ✅ TANPA LAZY LOAD — breadcrumb render INSTAN
+ * ✅ KALAHKAN breadcrumb LAMA
+ * ✅ Logika LENGKAP dari v12.3.2
+ * ✅ Cache detectPageTypeFallback
+ * ✅ Guard double init
+ * ✅ Silent log di HP
  * 
  * @version 12.3.3-lite
  * ============================================================
@@ -679,9 +666,8 @@
             if (!items || items.length === 0) return null;
 
             const currentLower = currentPageName.toLowerCase();
-            const maxItems = Math.min(items.length, 20); // Batasi
+            const maxItems = Math.min(items.length, 20);
 
-            // Ambil parent terakhir (posisi tertinggi)
             const reversedItems = [];
             for (let i = maxItems - 1; i >= 0; i--) reversedItems.push(items[i]);
 
@@ -1212,28 +1198,14 @@
     }
 
     // ============================================================
-    // LAZY LOAD WRAPPER
+    // EXPOSE TO WINDOW — LANGSUNG TANPA LAZY LOAD
     // ============================================================
-    function generateBreadcrumbSharedLazy(mappingObj, currentUrl, breadcrumbItems, entityType) {
-        var args = arguments;
-
-        if (typeof requestIdleCallback !== 'undefined') {
-            requestIdleCallback(function() {
-                generateBreadcrumbShared.apply(null, args);
-            }, { timeout: 1000 });
-        } else {
-            setTimeout(function() {
-                generateBreadcrumbShared.apply(null, args);
-            }, 0);
-        }
-    }
-
-    // ============================================================
-    // EXPOSE TO WINDOW
-    // ============================================================
-    window.generateBreadcrumbShared = generateBreadcrumbSharedLazy;
+    // FIX FINAL: Breadcrumb render INSTAN, tidak delay 1 detik
+    // Trade-off: blocking ~50-100ms, tapi UX jauh lebih bagus
+    // Alasan: Breadcrumb delay bikin UX jelek + kalah sama breadcrumb LAMA
+    window.generateBreadcrumbShared = generateBreadcrumbShared;
     window.generateBreadcrumbSharedSync = generateBreadcrumbShared;
 
-    console.log(`✅ [Breadcrumb v12.3.3-LITE] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'})`);
+    console.log(`✅ [Breadcrumb v12.3.3-LITE] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'}) — LANGSUNG TANPA LAZY LOAD`);
 
 })();
