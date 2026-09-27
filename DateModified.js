@@ -1,46 +1,103 @@
 /* ============================================================
- 🔥 Hybrid Date Modified v9.7 — UNTUK betonjayareadymix.com
-    ✅ FIX v9.7: KOMPATIBEL PLD v23.0.0 (Merged Final)
-    ✅ FIX v9.7: PRIORITAS PLD detectContentFocus() > internal
-    ✅ FIX v9.7: Gunakan detectKategori() dari PLD untuk kategori
-    ✅ FIX v9.7: Validasi versi PLD v23.0.0 (dengan fallback v22.x)
-    ✅ FIX v9.6: WAIT BREADCRUMB sebelum eksekusi
-    ✅ FIX v9.5: WAIT DOMContentLoaded sebelum eksekusi
-    ✅ FIX v9.4: Hapus getEventListeners (tidak tersedia di script normal)
-    ✅ SINKRON dengan Smart Evergreen Detector v15.2
-    ✅ SINKRON dengan V37 FULL SITE AUTO ARCHITECTURE
-    ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Non-Evergreen)
-    ✅ DETEKSI TAHUN di H1 → WAJIB NON-EVERGREEN
-    ✅ DETEKSI Rp di H1 → HARGA
-    ✅ DETEKSI TABEL HARGA → HARGA (prioritas tinggi)
-    ✅ FULL COMPATIBLE: PLD v23.0.0, v22.x, v20.x, v19.x, v18, v17
-    ✅ ENHANCED: Confidence score + strategies dari PLD
+ 🔥 Hybrid Date Modified v9.8 — PERFORMANCE PATCH
+    ✅ FIX v9.8-A: HAPUS loadExternalJS (PLD & AED sudah di HTML)
+    ✅ FIX v9.8-B: Timeout PLD 10s → 1s (deteksi langsung)
+    ✅ FIX v9.8-C: Timeout AED 5s → 1s (deteksi langsung)
+    ✅ FIX v9.8-D: Timeout Breadcrumb 3s → 1.5s
+    ✅ FIX v9.8-E: Skip halaman statis LEBIH AWAL (sebelum delay)
+    ✅ FIX v9.8-F: Guard _HYBRID_INITIALIZED — cegah double run
+    ✅ FIX v9.8-G: Skip updateMetaDateModified kalau tanggal sama
+    ✅ FIX v9.8-H: Hapus setTimeout 300ms yang tidak perlu
+
+    ✅ PRESERVED dari v9.7:
+    ✅ KOMPATIBEL PLD v23.9.7-LITE
+    ✅ PRIORITAS PLD detectContentFocus()
+    ✅ Gunakan detectKategori() dari PLD
+    ✅ WAIT BREADCRUMB (tapi lebih cepat)
+    ✅ WAIT DOMContentLoaded
+    ✅ SINKRON dengan AED v17.1-LITE
 ============================================================ */
 
 (function() {
   "use strict";
 
-  // ============================================================
-  // 🔥🔥🔥 TUNGGU DOM READY SEBELUM EKSEKUSI 🔥🔥🔥
-  // ============================================================
+  // ═══ FIX v9.8-F: Guard global — cegah double init ═══
+  if (window.__hybridDateModifiedVersion === "9.8") {
+    console.log("[HybridDateModified v9.8] ⏭️ Sudah dijalankan — skip");
+    return;
+  }
+  window.__hybridDateModifiedVersion = "9.8";
 
-  if (document.readyState === "loading") {
-    console.log("[HybridDateModified v9.7] ⏳ Menunggu DOMContentLoaded...");
+  // ============================================================
+  // 🔥🔥🔥 FIX v9.8-E: SKIP HALAMAN STATIS LEBIH AWAL 🔥🔥🔥
+  // Cek sebelum DOMContentLoaded — hemat waktu parsing
+  // ============================================================
+  (function checkSkipEarly() {
+    const CURRENT_DOMAIN = window.location.hostname;
+    if (CURRENT_DOMAIN !== 'www.betonjayareadymix.com' && !CURRENT_DOMAIN.includes('localhost')) {
+      window.__HYBRID_SKIP_REASON = 'domain-not-targeted';
+      return;
+    }
+
+    const currentPath = window.location.pathname;
+
+    const STATIC_PAGES = [
+      '/p/hubungi-kami.html',
+      '/p/portofolio.html',
+      '/p/disclaimer.html',
+      '/p/privacy-policy.html',
+      '/p/terms-of-service.html',
+      '/p/useful-links.html',
+      '/p/about.html',
+      '/p/sitemap.html'
+    ];
+
+    const isHomepage = currentPath === '/' || currentPath === '/index.html' || currentPath === '';
+    if (isHomepage) {
+      window.__HYBRID_SKIP_REASON = 'homepage';
+      return;
+    }
+
+    const isStaticPage = STATIC_PAGES.some(page => currentPath.includes(page));
+    if (isStaticPage) {
+      window.__HYBRID_SKIP_REASON = 'static-page';
+      return;
+    }
+
+    window.__HYBRID_SKIP_REASON = null;
+  })();
+
+  // ============================================================
+  // 🔥🔥🔥 TUNGGU DOM READY 🔥🔥🔥
+  // 🔥 FIX v9.8-H: Hapus setTimeout 300ms yang tidak perlu
+  // ============================================================
+  if (window.__HYBRID_SKIP_REASON) {
+    console.log(`⏸️ [HybridDateModified v9.8] Skip (${window.__HYBRID_SKIP_REASON}) — script tidak dijalankan.`);
+  } else if (document.readyState === "loading") {
+    console.log("[HybridDateModified v9.8] ⏳ Menunggu DOMContentLoaded...");
     document.addEventListener("DOMContentLoaded", function() {
-      console.log("[HybridDateModified v9.7] ✅ DOM siap, menjalankan script...");
-      setTimeout(runHybridDateModified, 300);
-    });
+      console.log("[HybridDateModified v9.8] ✅ DOM siap, menjalankan script...");
+      // 🔥 FIX v9.8-H: 300ms → 0ms (langsung jalankan)
+      runHybridDateModified();
+    }, { once: true });
   } else {
-    console.log("[HybridDateModified v9.7] ✅ DOM sudah siap, menjalankan script...");
-    setTimeout(runHybridDateModified, 300);
+    console.log("[HybridDateModified v9.8] ✅ DOM sudah siap, menjalankan script...");
+    // 🔥 FIX v9.8-H: 300ms → 0ms
+    runHybridDateModified();
   }
 
   // ============================================================
   // 🔥🔥🔥 FUNGSI UTAMA 🔥🔥🔥
   // ============================================================
-
   async function runHybridDateModified() {
     try {
+      // Guard double init
+      if (window.__HYBRID_RUNNING) {
+        console.log("[HybridDateModified v9.8] ⏭️ Sudah running — skip");
+        return;
+      }
+      window.__HYBRID_RUNNING = true;
+
       const CURRENT_DOMAIN = window.location.hostname;
 
       if (CURRENT_DOMAIN !== 'www.betonjayareadymix.com' && !CURRENT_DOMAIN.includes('localhost')) {
@@ -48,13 +105,11 @@
         return;
       }
 
+      const currentPath = window.location.pathname;
+
       // ============================================================
       // 🔥🔥🔥 SKIP LOGIC — HALAMAN STATIS & HOMEPAGE 🔥🔥🔥
       // ============================================================
-
-      const currentPath = window.location.pathname;
-      const currentUrl = window.location.href;
-
       const STATIC_PAGES = [
         '/p/hubungi-kami.html',
         '/p/portofolio.html',
@@ -75,41 +130,40 @@
       const isContentPage = hasMainContent && hasH1 && contentLength > 500;
 
       if (isHomepage) {
-        console.log(`⏸️ [HybridDateModified v9.7] HOMEPAGE terdeteksi (${currentPath}), skip script.`);
+        console.log(`⏸️ [HybridDateModified v9.8] HOMEPAGE terdeteksi (${currentPath}), skip script.`);
         return;
       }
 
       if (isStaticPage) {
-        console.log(`⏸️ [HybridDateModified v9.7] HALAMAN STATIS terdeteksi (${currentPath}), skip script.`);
+        console.log(`⏸️ [HybridDateModified v9.8] HALAMAN STATIS terdeteksi (${currentPath}), skip script.`);
         return;
       }
 
       if (!isContentPage) {
-        console.log(`⏸️ [HybridDateModified v9.7] HALAMAN TANPA KONTEN UTAMA (${currentPath}), skip script.`);
+        console.log(`⏸️ [HybridDateModified v9.8] HALAMAN TANPA KONTEN UTAMA (${currentPath}), skip script.`);
         return;
       }
 
-      console.log(`✅ [HybridDateModified v9.7] Halaman ${currentPath} LAYAK diproses.`);
+      console.log(`✅ [HybridDateModified v9.8] Halaman ${currentPath} LAYAK diproses.`);
 
       // ============================================================
       // 🔥🔥🔥 WAIT FOR BREADCRUMB 🔥🔥🔥
+      // 🔥 FIX v9.8-D: Timeout 3000ms → 1500ms
       // ============================================================
-
-      console.log("🍞 [HybridDateModified v9.7] Menunggu breadcrumb terbentuk...");
-      const breadcrumbReady = await waitForBreadcrumb(3000);
+      console.log("🍞 [HybridDateModified v9.8] Menunggu breadcrumb terbentuk...");
+      const breadcrumbReady = await waitForBreadcrumb(1500); // 🔥 FIX: 3000 → 1500
       if (breadcrumbReady) {
-        console.log(`✅ [HybridDateModified v9.7] Breadcrumb siap`);
+        console.log(`✅ [HybridDateModified v9.8] Breadcrumb siap`);
       } else {
-        console.log(`⏰ [HybridDateModified v9.7] Breadcrumb timeout, lanjutkan tanpa breadcrumb`);
+        console.log(`⏰ [HybridDateModified v9.8] Breadcrumb timeout, lanjutkan tanpa breadcrumb`);
       }
 
       // ============================================================
       // 🔥🔥🔥 MATIKAN SCRIPT VERSI LAMA 🔥🔥🔥
       // ============================================================
+      console.log("🛑 [HybridDateModified v9.8] Mencari dan mematikan script date modified versi lama...");
 
-      console.log("🛑 [HybridDateModified v9.7] Mencari dan mematikan script date modified versi lama...");
-
-      if (window.runHybridDateModified) {
+      if (window.runHybridDateModified && window.runHybridDateModified !== runHybridDateModified) {
         console.log("🛑 Mematikan window.runHybridDateModified (v8.x/v9.x)...");
         window.runHybridDateModified = null;
       }
@@ -119,7 +173,7 @@
         window.HybridDateModified = null;
       }
 
-      if (window.__hybridDateModifiedReady) {
+      if (window.__hybridDateModifiedReady && window.__hybridDateModifiedVersion !== "9.8") {
         window.__hybridDateModifiedReady = false;
       }
 
@@ -129,12 +183,12 @@
         script.remove();
       });
 
-      window.__hybridDateModifiedActive = 'v9.7';
+      window.__hybridDateModifiedActive = 'v9.8';
       window.__hybridDateModifiedReady = true;
       window.runHybridDateModified = runHybridDateModified;
 
-      console.log("✅ [HybridDateModified v9.7] Script versi lama telah dimatikan.");
-      console.log("🚀 [HybridDateModified v9.7] Memulai eksekusi...");
+      console.log("✅ [HybridDateModified v9.8] Script versi lama telah dimatikan.");
+      console.log("🚀 [HybridDateModified v9.8] Memulai eksekusi...");
 
       // ============================================================
       // 📌 KONSTANTA PAGE LEVELS (V37)
@@ -152,73 +206,55 @@
       const MONEY_LEVELS = ['money-master', 'money-child'];
 
       // ============================================================
-      // 📌 FUNGSI LOAD EXTERNAL JS
-      // ============================================================
-      function loadExternalJS(src) {
-        return new Promise((resolve) => {
-          if (document.querySelector(`script[src="${src}"]`)) {
-            resolve();
-            return;
-          }
-          const s = document.createElement("script");
-          s.src = src;
-          s.defer = true;
-          s.onload = resolve;
-          s.onerror = () => {
-            console.warn("[HybridDateModified] Gagal load:", src);
-            resolve();
-          };
-          document.head.appendChild(s);
-        });
-      }
-
-      // ============================================================
-      // 📌 TUNGGU PAGE LEVEL DETECTOR READY (v23 + backward compat)
+      // 🔥 FIX v9.8-A & B: HAPUS loadExternalJS + waitForPLD timeout 10s
+      // Sekarang: DETEKSI LANGSUNG (PLD & AED sudah di HTML)
       // ============================================================
       function waitForPageLevelDetector() {
         return new Promise((resolve) => {
-          // ✅ FIX v9.7: Deteksi versi PLD
+          // ✅ FIX v9.8-B: Deteksi versi PLD
           function checkPLDVersion() {
             if (!window.pageLevelDetectorv22) return null;
             var v = window.pageLevelDetectorv22.version || "unknown";
+            if (v.indexOf("23.9.7") === 0) return "v23.9.7-lite";
             if (v.indexOf("23.") === 0) return "v23.0.0";
             if (v.indexOf("22.") === 0) return "v22.x";
             return "v" + v;
           }
 
-          // Cek PLD v22/23 (nama variable sama untuk backward compat)
+          // ═══ FIX v9.8-B: Cek INSTAN — PLD sudah ready? ═══
           if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22Ready) {
             const ver = checkPLDVersion();
-            console.log(`✅ Page Level Detector ${ver} already ready`);
+            console.log(`✅ PLD ${ver} already ready (instan)`);
             resolve(true);
             return;
           }
           if (window.pageLevelDetectorv20 && window.pageLevelDetectorv20Ready) {
-            console.log("✅ Page Level Detector v20.x already ready");
+            console.log("✅ PLD v20.x already ready (instan)");
             resolve(true);
             return;
           }
           if (window.pageLevelDetectorv19 && window.pageLevelDetectorv19Ready) {
-            console.log("✅ Page Level Detector v19 already ready");
+            console.log("✅ PLD v19 already ready (instan)");
             resolve(true);
             return;
           }
           if (window.pageLevelDetectorV18 && window.pageLevelDetectorv18Ready) {
-            console.log("✅ Page Level Detector v18 already ready");
+            console.log("✅ PLD v18 already ready (instan)");
             resolve(true);
             return;
           }
           if (window.pageLevelDetectorV17 && window.pageLevelDetectorv17Ready) {
-            console.log("✅ Page Level Detector v17 already ready");
+            console.log("✅ PLD v17 already ready (instan)");
             resolve(true);
             return;
           }
           if (window.pageLevelDetector && window.__pageLevelDetectorReady) {
-            console.log("✅ Page Level Detector legacy already ready");
+            console.log("✅ PLD legacy already ready (instan)");
             resolve(true);
             return;
           }
 
+          // ═══ FIX v9.8-B: Kalau BELUM ready, tunggu event (max 1 detik) ═══
           const onReadyV22 = () => {
             const ver = checkPLDVersion();
             console.log(`✅ PLD ${ver} ready (event)`);
@@ -236,45 +272,58 @@
           window.addEventListener("pageLevelDetectorv18Ready", onReadyV18, { once: true });
           window.addEventListener("pageLevelDetectorReady", onReadyLegacy, { once: true });
 
+          // 🔥 FIX v9.8-B: Timeout 10s → 1s
           setTimeout(() => {
             if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 ||
                 window.pageLevelDetectorv19 || window.pageLevelDetectorV18 ||
                 window.pageLevelDetector) {
-              console.log("✅ PLD ready (timeout fallback)");
+              console.log("✅ PLD ready (timeout fallback 1s)");
               resolve(true);
             } else {
-              console.warn("⚠️ PageLevelDetector timeout, using defaults");
+              console.warn("⚠️ PLD tidak terdeteksi — pakai fallback");
               resolve(false);
             }
-          }, 10000);
+          }, 1000); // 🔥 FIX v9.8-B: 10000 → 1000
         });
       }
 
       // ============================================================
-      // 📌 TUNGGU DETECT EVERGREEN READY
+      // 🔥 FIX v9.8-C: waitForDetectEvergreen timeout 5s → 1s
       // ============================================================
       function waitForDetectEvergreen() {
         return new Promise((resolve) => {
+          // ═══ FIX v9.8-C: Cek INSTAN ═══
           if (window.__detectEvergreenReady && typeof window.detectEvergreen === "function") {
+            console.log("✅ AED already ready (instan)");
             resolve(true);
             return;
           }
-          window.addEventListener("detectEvergreenReady", () => resolve(true), { once: true });
+
+          const onReady = () => {
+            console.log("✅ AED ready (event)");
+            resolve(true);
+          };
+          window.addEventListener("detectEvergreenReady", onReady, { once: true });
+
+          // 🔥 FIX v9.8-C: Timeout 5000ms → 1000ms
           setTimeout(() => {
+            window.removeEventListener("detectEvergreenReady", onReady);
             if (typeof window.detectEvergreen === "function") {
+              console.log("✅ AED ready (timeout fallback 1s)");
               resolve(true);
             } else {
-              console.warn("⚠️ detectEvergreen timeout");
+              console.warn("⚠️ AED tidak terdeteksi — pakai fallback");
               resolve(false);
             }
-          }, 5000);
+          }, 1000); // 🔥 FIX v9.8-C: 5000 → 1000
         });
       }
 
       // ============================================================
       // 📌 WAIT FOR BREADCRUMB
+      // 🔥 FIX v9.8-D: Timeout default 3000ms → 1500ms
       // ============================================================
-      function waitForBreadcrumb(timeout = 3000) {
+      function waitForBreadcrumb(timeout = 1500) { // 🔥 FIX v9.8-D: 3000 → 1500
         return new Promise((resolve) => {
           const startTime = Date.now();
 
@@ -290,12 +339,12 @@
               if (element) {
                 const links = element.querySelectorAll('a');
                 if (links.length > 0) {
-                  console.log(`🍞 [HybridDateModified v9.7] Breadcrumb ditemukan (${selector}) — ${links.length} link`);
+                  console.log(`🍞 [HybridDateModified v9.8] Breadcrumb ditemukan (${selector}) — ${links.length} link`);
                   resolve(true);
                   return;
                 }
                 if (element.innerText.trim().length > 0) {
-                  console.log(`🍞 [HybridDateModified v9.7] Breadcrumb ditemukan (${selector}) — ada teks`);
+                  console.log(`🍞 [HybridDateModified v9.8] Breadcrumb ditemukan (${selector}) — ada teks`);
                   resolve(true);
                   return;
                 }
@@ -303,7 +352,7 @@
             }
 
             if (Date.now() - startTime > timeout) {
-              console.log(`⏰ [HybridDateModified v9.7] Breadcrumb timeout (${timeout}ms), lanjutkan`);
+              console.log(`⏰ [HybridDateModified v9.8] Breadcrumb timeout (${timeout}ms), lanjutkan`);
               resolve(false);
               return;
             }
@@ -316,11 +365,13 @@
       }
 
       // ============================================================
-      // 📌 LOAD ALL SCRIPTS
+      // 🔥🔥🔥 FIX v9.8-A: HAPUS loadAllScripts() SEPENUHNYA 🔥🔥🔥
+      // PLD & AED sudah di-load via <script> tag di HTML
       // ============================================================
       async function loadAllScripts() {
-        const PAGE_LEVEL_DETECTOR_URL = "https://raw.githack.com/aliyul/solution-blogger/main/PageLevelDetector.js";
-        const EVERGREEN_DETECTOR_URL = "https://raw.githack.com/aliyul/solution-blogger/main/SmartEvergreenDetector.js";
+        // ✅ FIX v9.8-A: Tidak ada lagi load dari raw.githack.com
+        // Cukup tunggu PLD & AED yang sudah ada di HTML
+        console.log("⏳ [HybridDateModified v9.8] Cek PLD & AED (sudah di HTML)...");
 
         if (typeof window.pageLevelDetectorv22 === "undefined" &&
             typeof window.pageLevelDetectorv20 === "undefined" &&
@@ -328,27 +379,30 @@
             typeof window.pageLevelDetectorV18 === "undefined" &&
             typeof window.pageLevelDetectorV17 === "undefined" &&
             typeof window.pageLevelDetector === "undefined") {
-          console.log("⏳ Loading Page Level Detector v23.0.0...");
-          await loadExternalJS(PAGE_LEVEL_DETECTOR_URL);
+          console.log("⏳ Menunggu PLD dari HTML...");
           await waitForPageLevelDetector();
           const ver = window.pageLevelDetectorv22?.version || "unknown";
-          console.log(`✅ Page Level Detector v${ver} READY`);
+          console.log(`✅ PLD v${ver} READY`);
+        } else {
+          const ver = window.pageLevelDetectorv22?.version || "unknown";
+          console.log(`✅ PLD v${ver} sudah ada di halaman — tidak perlu load`);
         }
 
         if (typeof window.detectEvergreen !== "function") {
-          console.log("⏳ Loading Smart Evergreen Detector...");
-          await loadExternalJS(EVERGREEN_DETECTOR_URL);
+          console.log("⏳ Menunggu AED dari HTML...");
           await waitForDetectEvergreen();
-          console.log("✅ Smart Evergreen Detector READY");
+          console.log("✅ AED READY");
+        } else {
+          console.log("✅ AED sudah ada di halaman — tidak perlu load");
         }
       }
 
       // ============================================================
-      // 📌 🆕 DETEKSI FOKUS KONTEN — V9.7
+      // 📌 DETEKSI FOKUS KONTEN — V9.8
       //     Prioritas: PLD detectContentFocus() > Internal
       // ============================================================
       function detectContentFocus() {
-        // ✅ FIX v9.7: Coba pakai PLD detectContentFocus() dulu
+        // Coba pakai PLD detectContentFocus() dulu
         if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectContentFocus === "function") {
           try {
             const pldLevel = window.pageLevelDetectorv22.detect();
@@ -359,7 +413,7 @@
               console.log(`🎯 [PLD v23] Content Focus: ${focus} (dari PLD detectContentFocus)`);
               return {
                 focus: focus,
-                reason: 'PLD v23.0.0 detectContentFocus()',
+                reason: 'PLD v23.9.7-LITE detectContentFocus()',
                 priority: 0,
                 source: 'PLD'
               };
@@ -496,6 +550,7 @@
 
       // ============================================================
       // 📌 UPDATE META DATE MODIFIED
+      // 🔥 FIX v9.8-G: Skip kalau tanggal sama
       // ============================================================
       function updateMetaDateModified(isoDate) {
         const selectors = [
@@ -510,6 +565,12 @@
             meta = document.createElement("meta");
             meta.setAttribute(attr, val);
             document.head.appendChild(meta);
+          }
+          // 🔥 FIX v9.8-G: Skip kalau content sudah sama
+          const currentContent = meta.getAttribute("content");
+          if (currentContent === isoDate) {
+            console.log(`⏭️ [HybridDateModified v9.8] Meta ${val} sudah up-to-date — skip`);
+            return;
           }
           meta.setAttribute("content", isoDate);
         });
@@ -595,9 +656,11 @@
 
       // ============================================================
       // 📌 GET PAGE LEVEL FROM DETECTOR (v23 + backward compat)
+      // 🔥 FIX v9.8-H: Hapus setTimeout 300ms
       // ============================================================
       async function getPageLevelFromDetector() {
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // 🔥 FIX v9.8-H: Hapus setTimeout 300ms
+        // await new Promise(resolve => setTimeout(resolve, 300));
 
         let pageLevel = 'pillar';
         let entityType = 'produk';
@@ -611,9 +674,9 @@
             pageLevel = window.pageLevelDetectorv22.detect();
             entityType = window.pageLevelDetectorv22.detectEntityType();
 
-            // ✅ FIX v9.7: Deteksi versi aktual
             const ver = window.pageLevelDetectorv22.version || "unknown";
-            detectorVersion = (ver.indexOf("23.") === 0) ? "v23.0.0" :
+            detectorVersion = (ver.indexOf("23.9.7") === 0) ? "v23.9.7-lite" :
+                              (ver.indexOf("23.") === 0) ? "v23.0.0" :
                               (ver.indexOf("22.") === 0) ? "v22.x" : "v" + ver;
 
             if (typeof window.pageLevelDetectorv22.getConfidenceScore === 'function') {
@@ -652,16 +715,17 @@
       // 📌 EKSEKUSI UTAMA
       // ============================================================
 
-      console.log("🔥 Hybrid Date Modified v9.7 - Starting...");
-      console.log("📋 V37 COMPLIANT: SP1 → EVERGREEN, MP Informasi → EVERGREEN");
-      console.log("📋 FIX v9.2: MM Informasi → EVERGREEN, MM Harga → NON-EVERGREEN");
-      console.log("📋 FIX v9.2: MC Informasi → EVERGREEN, MC Harga → NON-EVERGREEN");
-      console.log("📋 FIX v9.3: SKIP LOGIC untuk halaman statis & homepage");
-      console.log("📋 FIX v9.4: Hapus getEventListeners (fix error)");
-      console.log("📋 FIX v9.5: DOMContentLoaded waiter sebelum eksekusi");
-      console.log("📋 FIX v9.6: WAIT BREADCRUMB sebelum eksekusi");
-      console.log("📋 FIX v9.7: KOMPATIBEL PLD v23.0.0 (Merged Final)");
+      console.log("🔥 Hybrid Date Modified v9.8 - Starting...");
+      console.log("📋 FIX v9.8-A: HAPUS loadExternalJS (PLD & AED sudah di HTML)");
+      console.log("📋 FIX v9.8-B: Timeout PLD 10s → 1s");
+      console.log("📋 FIX v9.8-C: Timeout AED 5s → 1s");
+      console.log("📋 FIX v9.8-D: Timeout Breadcrumb 3s → 1.5s");
+      console.log("📋 FIX v9.8-E: Skip halaman statis LEBIH AWAL");
+      console.log("📋 FIX v9.8-F: Guard _HYBRID_INITIALIZED");
+      console.log("📋 FIX v9.8-G: Skip updateMetaDateModified kalau tanggal sama");
+      console.log("📋 FIX v9.8-H: Hapus setTimeout 300ms");
 
+      // 🔥 FIX v9.8-A: loadAllScripts() sekarang cuma tunggu PLD & AED yang sudah ada
       await loadAllScripts();
 
       const { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount } = await getPageLevelFromDetector();
@@ -707,7 +771,7 @@
       }
 
       if (!window.AEDMetaDates || !window.AEDMetaDates.dateModified) {
-        console.warn("[HybridDateModified] AEDMetaDates tidak ditemukan, skip update.");
+        console.warn("[HybridDateModified v9.8] AEDMetaDates tidak ditemukan, skip update.");
         return;
       }
 
@@ -750,7 +814,7 @@
 
       updateMetaDateModified(isoDate);
 
-      // ✅ FIX v9.7: Tambahan info dari PLD v23 (kategori, h1Pattern, dll)
+      // Tambahan info dari PLD v23 (kategori, h1Pattern, dll)
       let pldKategori = null;
       let pldH1Pattern = null;
       let pldSchemaType = null;
@@ -789,15 +853,13 @@
         focusSource: focusSource,
         mode: manualMode ? 'MANUAL' : 'AUTO',
         originalDateModified: dateModified,
-        hybridVersion: '9.7',
+        hybridVersion: '9.8',
 
-        // ✅ Deteksi info
         detectionConfidence: confidence,
         detectionStrategies: strategies,
         detectionStrategyCount: strategyCount,
         breadcrumbReady: breadcrumbReady,
 
-        // 🆕 PHASE 4.6 info (dari PLD v23)
         pldKategori: pldKategori,
         pldH1Pattern: pldH1Pattern,
         pldSchemaType: pldSchemaType,
@@ -817,7 +879,7 @@
         }
       };
 
-      console.log(`✅ [HybridDateModified v9.7] ${uniquePageIdentifier}`);
+      console.log(`✅ [HybridDateModified v9.8] ${uniquePageIdentifier}`);
       console.log(`   → Final Date Modified: ${isoDate}`);
       console.log(`   → Offset: ${offsetSeconds} detik (${Math.floor(offsetSeconds / 3600)} jam ${Math.floor((offsetSeconds % 3600) / 60)} menit)`);
       console.log(`   → Mode: ${manualMode ? 'MANUAL' : 'AUTO'}`);
@@ -829,10 +891,10 @@
       if (pldH1Pattern) console.log(`   → PLD H1 Pattern: ${pldH1Pattern}`);
       if (pldSchemaType) console.log(`   → PLD Schema: ${pldSchemaType.primary} + ${pldSchemaType.secondary}`);
       if (pldCtaType) console.log(`   → PLD CTA: ${pldCtaType.type} → ${pldCtaType.text}`);
-      console.log(`📋 Hybrid Date Modified v9.7 applied successfully ✅ (PLD v23 + V37 COMPLIANT)`);
+      console.log(`📋 Hybrid Date Modified v9.8 applied successfully ✅`);
 
     } catch (err) {
-      console.error("[HybridDateModified] Fatal error:", err);
+      console.error("[HybridDateModified v9.8] Fatal error:", err);
     }
   }
 
