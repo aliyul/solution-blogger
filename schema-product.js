@@ -1,7 +1,13 @@
 /**
- * ⚡ AutoSchema Hybrid v5.2-LITE — PRODUCT SCHEMA (ENHANCED)
+ * ⚡ AutoSchema Hybrid v5.3-LITE — PRODUCT SCHEMA (PERF MAX)
  *
- * 🔥 v5.2-LITE CHANGELOG (10 PATCH):
+ * 🔥 v5.3-LITE CHANGELOG (4 OPTIMASI AMAN):
+ * ✅ P13: Early return breadcrumb (skip wait kalau flag sudah ada)
+ * ✅ P14: Cache getPageLevelFromPLD() di variable global
+ * ✅ P15: querySelector langsung untuk 1x pakai (hindari domCache overhead)
+ * ✅ P16: Pretty-print hanya saat DEBUG (production minified)
+ *
+ * ✅ PRESERVED dari v5.2-LITE (10 PATCH):
  * ✅ P1 : WebP + fallback PNG (Cloudinary f_auto, q_auto, dpr_auto)
  * ✅ P2 : AggregateOffer + nested Offer[] (rich result harga)
  * ✅ P3 : ErrorBoundary + try/catch/finally di init()
@@ -13,14 +19,19 @@
  * ✅ P11: Cache container.innerText konsisten (FIX-S7)
  * ✅ P12: Cleanup kode + konsistensi versi
  *
- * ⏭️ DIBATALKAN (sudah disesuaikan per halaman):
- * ❌ P6 : dateModified dari AED
- * ❌ P9 : Guard silang dengan Universal v7.30
+ * ✅ PRESERVED dari v5.1-LITE (FIX-S1 s/d S9):
+ * ✅ FIX-S1: DEBUG auto-detect (HP = silent)
+ * ✅ FIX-S2: Timeout turun drastis
+ * ✅ FIX-S3: Hapus MutationObserver di DOMCache
+ * ✅ FIX-S4: Selector dipersempit
+ * ✅ FIX-S5: Early exit non-money level
+ * ✅ FIX-S6: Batasi max 100 elemen
+ * ✅ FIX-S7: Cache container.innerText sekali
+ * ✅ FIX-S8: Guard _AUTOSCHEMA_HYBRID_INITIALIZED
+ * ✅ FIX-S9: SKIP kalau content-focus = INFORMASI
  *
- * ✅ PRESERVED dari v5.1:
- * ✅ FIX-S1 s/d S9
- * ✅ Cloudinary dynamic image (sekarang WebP)
- * ✅ Deteksi Harga 4 layer
+ * ✅ Cloudinary WebP + fallback PNG
+ * ✅ Deteksi Harga Berlapis (4 layers)
  * ✅ isPartOf HANYA di WebPage
  * ✅ CORB Blocker
  */
@@ -29,11 +40,11 @@
   "use strict";
 
   // ═══ FIX-S8: Guard global ═══
-  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.2-lite") {
-    console.log("[AutoSchema Hybrid v5.2-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.3-lite") {
+    console.log("[AutoSchema Hybrid v5.3-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_HYBRID_VERSION = "5.2-lite";
+  window.__AUTOSCHEMA_HYBRID_VERSION = "5.3-lite";
 
   // ============================================================
   // 🔥 FIX-S1: AUTO-DETECT DEBUG 🔥
@@ -55,7 +66,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.2-LITE] 🚫 Blocked external fetch:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.3-LITE] 🚫 Blocked external fetch:', url);
       return Promise.reject(new Error('Blocked by CORB prevention'));
     }
     return originalFetch.apply(this, args);
@@ -68,14 +79,14 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.2-LITE] 🚫 Blocked external XHR:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.3-LITE] 🚫 Blocked external XHR:', url);
       throw new Error('Blocked by CORB prevention');
     }
     return originalXHROpen.call(this, method, url, ...rest);
   };
 
   // ============================================================
-  // 🔥 FIX-S2: KONFIGURASI DENGAN TIMEOUT TURUN 🔥
+  // 🔥 FIX-S2: KONFIGURASI 🔥
   // ============================================================
   const CONFIG = {
     DEBUG: DEBUG_MODE,
@@ -100,8 +111,8 @@
     ENABLED: true,
     CLOUD_NAME: 'vagzz5sa',
     VERSION: 'v1789109159',
-    FORMAT: 'webp',                    // P1: PNG → WebP
-    FALLBACK_FORMAT: 'png',            // P1: fallback
+    FORMAT: 'webp',
+    FALLBACK_FORMAT: 'png',
     WIDTH: 1200,
     HEIGHT: 630,
     FONT: 'Arial',
@@ -111,9 +122,9 @@
     MAX_TEXT_LENGTH: 70,
     MAX_CHARS_PER_LINE: 18,
     MAX_LINES: 2,
-    QUALITY: 'q_auto:good',            // P1
-    FORMAT_AUTO: 'f_auto',             // P1
-    DPR_AUTO: 'dpr_auto',              // P1
+    QUALITY: 'q_auto:good',
+    FORMAT_AUTO: 'f_auto',
+    DPR_AUTO: 'dpr_auto',
     LEVEL_FILES: {
       'pillar': 'pillar', 'sub-pillar-tipe-2': 'sp2', 'sub-pillar-tipe-1': 'sp1',
       'money-master': 'mm', 'money-page': 'mp', 'money-child': 'mc',
@@ -189,7 +200,6 @@
              `${this.QUALITY},${this.FORMAT_AUTO},${this.DPR_AUTO}/` +
              `${this.VERSION}/${fileName}.${this.FORMAT}`;
     },
-    // P1: Fallback URL (PNG murni, tanpa q_auto/f_auto)
     buildFallbackUrl(level, text) {
       const fileName = this.LEVEL_FILES[level] || 'pillar';
       const textColor = this.LEVEL_COLORS[level] || 'FFD700';
@@ -229,7 +239,7 @@
       } catch (error) {
         const fallback = this.fallbacks.get(fnName);
         if (CONFIG.DEBUG) {
-          console.error(`❌ [Hybrid v5.2] Error in ${fnName}:`, error);
+          console.error(`❌ [Hybrid v5.3] Error in ${fnName}:`, error);
         }
         if (fallback) return typeof fallback === 'function'
           ? fallback(...args) : fallback;
@@ -255,7 +265,7 @@
     end(label) {
       if (!CONFIG.DEBUG || !this.marks[label]) return 0;
       const duration = performance.now() - this.marks[label];
-      console.log(`⏱️ [PERF v5.2-LITE] ${label}: ${duration.toFixed(2)}ms`);
+      console.log(`⏱️ [PERF v5.3-LITE] ${label}: ${duration.toFixed(2)}ms`);
       delete this.marks[label];
       return duration;
     }
@@ -263,6 +273,7 @@
 
   // ============================================================
   // 🔥 FIX-S3: DOM CACHE TANPA MUTATIONOBSERVER 🔥
+  // (Dipakai hanya untuk selector yang dipanggil >1x)
   // ============================================================
   class DOMCache {
     constructor() {
@@ -305,7 +316,7 @@
       FLAG: "🚩", EVENT: "📡", FIX: "🔧", MATERIAL: "🧱",
       PHASE46: "🆕", CTA: "🔘", H1PAT: "📝", VERSION: "🔖", WEBP: "🎨"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.2-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.3-LITE] ${msg}`);
   }
 
   // ============================================================
@@ -344,19 +355,19 @@
 
     if (!isMoneyLevel) {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'not-money-level';
-      console.log(`⏸️ [AutoSchema Hybrid v5.2-LITE] SKIP: level "${pageLevel}" bukan money level`);
+      console.log(`⏸️ [AutoSchema Hybrid v5.3-LITE] SKIP: level "${pageLevel}" bukan money level`);
       return;
     }
 
     if (contentFocus === 'INFORMASI') {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'money-informasi';
-      console.log(`⏸️ [AutoSchema Hybrid v5.2-LITE] SKIP: money level + INFORMASI`);
+      console.log(`⏸️ [AutoSchema Hybrid v5.3-LITE] SKIP: money level + INFORMASI`);
       return;
     }
 
     window.__AUTOSCHEMA_HYBRID_SKIP_REASON = null;
     if (CONFIG.DEBUG) {
-      console.log(`✅ [AutoSchema Hybrid v5.2-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
+      console.log(`✅ [AutoSchema Hybrid v5.3-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
     }
   })();
 
@@ -410,23 +421,25 @@
     return best;
   }
 
-  // 🔥 P4: waitForBreadcrumbGenerated dengan AbortController
+  // ============================================================
+  // 🔥 P13: EARLY RETURN BREADCRUMB (SKIP WAIT KALAU FLAG ADA) 🔥
+  // ============================================================
   function waitForBreadcrumbGenerated(timeout = CONFIG.BREADCRUMB_GENERATED_TIMEOUT) {
-    return new Promise((resolve) => {
-      const flagReady = document.body.getAttribute('data-breadcrumb-ready');
-      if (flagReady === 'true') {
-        const parentName = document.body.getAttribute('data-breadcrumb-parent');
-        const parentUrl = document.body.getAttribute('data-breadcrumb-parent-url');
-        log(`🚩 Breadcrumb READY (flag): parent="${parentName}"`, "FLAG");
-        resolve({
-          parentName: cleanBreadcrumbText(parentName) || 'Home',
-          parentUrl: parentUrl || location.origin,
-          source: 'breadcrumb-flag',
-          allParents: []
-        });
-        return;
-      }
+    // 🔥 P13: EARLY RETURN — kalau flag sudah ready, langsung resolve tanpa Promise/interval
+    const flagReady = document.body.getAttribute('data-breadcrumb-ready');
+    if (flagReady === 'true') {
+      const parentName = document.body.getAttribute('data-breadcrumb-parent');
+      const parentUrl = document.body.getAttribute('data-breadcrumb-parent-url');
+      log(`🚩 Breadcrumb READY (flag, instant): parent="${parentName}"`, "FLAG");
+      return Promise.resolve({
+        parentName: cleanBreadcrumbText(parentName) || 'Home',
+        parentUrl: parentUrl || location.origin,
+        source: 'breadcrumb-flag-instant',
+        allParents: []
+      });
+    }
 
+    return new Promise((resolve) => {
       const controller = new AbortController();
       let resolved = false;
       let interval = null;
@@ -535,25 +548,57 @@
   }
 
   // ============================================================
-  // PLD DATA READERS
+  // 🔥 P14: PLD DATA READERS DENGAN CACHE GLOBAL 🔥
   // ============================================================
+  let _cachedPageLevel = null;
+  let _cachedPageLevelResolved = false;
+
   function getPageLevelFromPLD() {
+    // 🔥 P14: Return cache kalau sudah pernah resolve
+    if (_cachedPageLevelResolved) return _cachedPageLevel;
+
     const bodyLevel = document.body.getAttribute('data-page-level');
     if (bodyLevel) {
+      _cachedPageLevel = bodyLevel;
+      _cachedPageLevelResolved = true;
       log(`📌 Page Level dari body: ${bodyLevel}`, "PLD");
       return bodyLevel;
     }
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
-      try { return window.pageLevelDetectorv22.detect(); } catch(e) {}
+      try {
+        const result = window.pageLevelDetectorv22.detect();
+        if (result) {
+          _cachedPageLevel = result;
+          _cachedPageLevelResolved = true;
+          return result;
+        }
+      } catch(e) {}
     }
     return null;
   }
 
+  let _cachedEntityType = null;
+  let _cachedEntityTypeResolved = false;
+
   function getEntityTypeFromPLD() {
+    // 🔥 P14: Return cache
+    if (_cachedEntityTypeResolved) return _cachedEntityType;
+
     const bodyEntity = document.body.getAttribute('data-entity-type');
-    if (bodyEntity) return bodyEntity;
+    if (bodyEntity) {
+      _cachedEntityType = bodyEntity;
+      _cachedEntityTypeResolved = true;
+      return bodyEntity;
+    }
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectEntityType === 'function') {
-      try { return window.pageLevelDetectorv22.detectEntityType(); } catch(e) {}
+      try {
+        const result = window.pageLevelDetectorv22.detectEntityType();
+        if (result) {
+          _cachedEntityType = result;
+          _cachedEntityTypeResolved = true;
+          return result;
+        }
+      } catch(e) {}
     }
     return null;
   }
@@ -678,7 +723,6 @@
     return Math.round(value);
   }
 
-  // 🔥 P5: isNotPrice() DIPERKETAT 🔥
   function isNotPrice(text, value) {
     if (value < CONFIG.MIN_PRICE || value > CONFIG.MAX_PRICE) return true;
 
@@ -691,7 +735,6 @@
     if (/^\d{5}$/.test(text.trim())) return true;
     if (/^\d{16}$/.test(text.trim())) return true;
 
-    // P5 #1: angka panjang tanpa kata harga
     if (/^\d{10,16}$/.test(text.trim()) &&
         !/(harga|biaya|tarif|price)/i.test(text)) return true;
 
@@ -701,12 +744,9 @@
     if (/\d+\s*[x×]\s*\d+/.test(text)) {
       if (!/(harga|biaya|tarif|price)/i.test(text)) return true;
     }
-
-    // P5 #2: angka + kata non-harga
     if (/\d[\d.,]*\s*(proyek|klien|pelanggan|orang|karyawan|tahun|bulan|hari)\b/i.test(text)) {
       if (!/(harga|biaya|tarif|price|cost|rp)/i.test(text)) return true;
     }
-
     if (/\d[\d.,]*\s*%/i.test(text)) return true;
     if (/20\d{2}\s*[-–]\s*20\d{2}/.test(text)) return true;
     if (/\d{1,4}[\/\-]\d{1,2}[\/\-]\d{1,4}/.test(text)) return true;
@@ -714,7 +754,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-S4 & S6: DETEKSI HARGA (SELECTOR SEMPIT + MAX 100) 🔥
+  // 🔥 FIX-S4 & S6: DETEKSI HARGA 🔥
   // ============================================================
   const MONEY_LEVELS = ['money-master', 'money-page', 'money-child'];
 
@@ -804,13 +844,11 @@
     return { hasPrice: false, source: null, value: null, offers: [] };
   }
 
-  // 🔥 FIX-S4 & S6 + P11: Selector sempit + max 100 + cache innerText
   function detectPriceFromKeywordElements(container) {
     const candidates = container.querySelectorAll(
       'table td, table th, [class*="price"], [class*="harga"], [class*="biaya"], ' +
       '.price, .harga, .biaya, strong, b, .post-body p'
     );
-    // P11: Cache container text sekali
     const containerText = container.innerText || '';
     if (!/(harga|biaya|tarif|price|cost)/i.test(containerText)) {
       return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-price-keyword' };
@@ -837,9 +875,7 @@
     return { hasPrice: false, source: null, value: null, offers: [] };
   }
 
-  // 🔥 P11: Cache container.innerText konsisten
   function detectPriceFromLooseRegex(container) {
-    // P11: Cache container text sekali
     const containerText = container.innerText || '';
     if (!/(harga|biaya|tarif|price|cost)/i.test(containerText)) {
       return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-price-keyword' };
@@ -915,7 +951,6 @@
     return LOGO_IMAGE;
   }
 
-  // 🔥 P1: Fallback image helper
   function getFallbackImage(pageName, level, year) {
     if (CLOUDINARY_CONFIG.ENABLED && CLOUDINARY_CONFIG.CLOUD_NAME) {
       try {
@@ -958,7 +993,8 @@
     let targetImage = null;
     let targetFigure = null;
 
-    const h1Element = domCache ? domCache.get('h1') : document.querySelector('h1');
+    // 🔥 P15: querySelector langsung (1x pakai)
+    const h1Element = document.querySelector('h1');
     if (h1Element) {
       const article = h1Element.closest('article, .post-body, main, section, div');
       if (article) {
@@ -981,7 +1017,8 @@
     if (!targetImage) {
       const contentAreas = ['article', 'section', '.post-body', 'main', '.content', '.entry-content'];
       for (const areaSelector of contentAreas) {
-        const area = domCache ? domCache.get(areaSelector) : document.querySelector(areaSelector);
+        // 🔥 P15: querySelector langsung (1x pakai per iterasi)
+        const area = document.querySelector(areaSelector);
         if (area) {
           const img = area.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
           if (img) { targetImage = img; targetFigure = img.closest('figure'); break; }
@@ -990,7 +1027,7 @@
     }
 
     const autoImageUrl = createImageWithText(pageName, pageLevel, currentYear);
-    const fallbackImageUrl = getFallbackImage(pageName, pageLevel, currentYear); // P1
+    const fallbackImageUrl = getFallbackImage(pageName, pageLevel, currentYear);
     const captionText = '📊 ' + displayName;
 
     if (targetImage) {
@@ -999,7 +1036,6 @@
       const currentSrc = img.src || '';
       if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
         img.src = autoImageUrl;
-        // P1: onerror fallback ke PNG
         img.setAttribute('onerror',
           `this.onerror=null;this.src='${fallbackImageUrl}';`);
       }
@@ -1015,12 +1051,12 @@
       return figure || img;
     }
 
-    const article = domCache ? domCache.get('article') : document.querySelector('article');
+    // 🔥 P15: querySelector langsung
+    const article = document.querySelector('article');
     const container = article || document.body;
     const figure = document.createElement('figure');
     const img = document.createElement('img');
     img.src = autoImageUrl;
-    // P1: onerror fallback ke PNG
     img.setAttribute('onerror',
       `this.onerror=null;this.src='${fallbackImageUrl}';`);
     img.alt = displayName;
@@ -1059,7 +1095,9 @@
   }
 
   function detectProductName() {
-    const h1 = domCache ? domCache.get('h1')?.innerText?.trim() : document.querySelector('h1')?.innerText?.trim();
+    // 🔥 P15: querySelector langsung
+    const h1El = document.querySelector('h1');
+    const h1 = h1El?.innerText?.trim();
     if (h1 && h1.length < 120 && h1.length > 3) {
       return h1.replace(/\b(20[2-9][0-9])\b/g, '').replace(/\s{2,}/g, ' ').trim();
     }
@@ -1093,9 +1131,8 @@
   }
 
   function extractVariantSpec() {
-    const content = domCache
-      ? domCache.get(".post-body.entry-content") || domCache.get(".post-body") || domCache.get("article")
-      : document.querySelector(".post-body.entry-content, .post-body, article");
+    // 🔥 P15: querySelector langsung (dipanggil 1x)
+    const content = document.querySelector(".post-body.entry-content, .post-body, article");
     if (!content) return null;
     const text = content.innerText;
     const spec = {};
@@ -1189,12 +1226,12 @@
   }
 
   // ============================================================
-  // 🚀 MAIN INIT v5.2-LITE
+  // 🚀 MAIN INIT v5.3-LITE
   // ============================================================
   async function init() {
     perf.start('init');
     log("═══════════════════════════════════════════════════");
-    log("AutoSchema Hybrid v5.2-LITE — PRODUCT SCHEMA (ENHANCED)");
+    log("AutoSchema Hybrid v5.3-LITE — PRODUCT SCHEMA (PERF MAX)");
     log(`DEBUG Mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("═══════════════════════════════════════════════════");
 
@@ -1202,7 +1239,7 @@
       // Wait PLD
       await waitForPLD();
 
-      // Wait breadcrumb
+      // Wait breadcrumb (P13: instant kalau flag sudah ada)
       let parentData = await waitForBreadcrumbGenerated(CONFIG.BREADCRUMB_GENERATED_TIMEOUT);
       if (!parentData || parentData.parentName === 'Home') {
         const currentUrl = getCleanUrl();
@@ -1212,7 +1249,7 @@
       // Wait AED
       const aed = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
 
-      // Get data
+      // Get data (P14: cached)
       const pldVer = getPLDVersion();
       const pageLevel = getPageLevelFromPLD();
       const entityType = getEntityTypeFromPLD();
@@ -1225,14 +1262,12 @@
       log(`📌 Content Focus: ${contentFocus}`, "FOCUS");
       log(`📌 Kategori: ${kategori}`, "KATEGORI");
 
-      // Skip Product schema kalau perlu
       if (shouldSkipProductSchema(pageLevel, entityType)) {
         log(`⏭️ Product schema SKIPPED untuk halaman ini`, "SKIP");
         perf.end('init');
         return;
       }
 
-      // Detect price
       const priceResult = detectPriceLayered(pageLevel);
       const detectedOffers = priceResult.offers || [];
       const hasPrice = priceResult.hasPrice;
@@ -1243,7 +1278,6 @@
         log(`⏭️ Tidak ada harga terdeteksi`, "PRICE");
       }
 
-      // Fix image
       let imageUrl = LOGO_IMAGE;
       const isEligible = isImageEligible(pageLevel);
       if (isEligible) {
@@ -1261,7 +1295,6 @@
         }
       }
 
-      // P8: cleanUrl dari og:url/canonical
       const currentUrl = getCleanUrl();
       const productName = detectProductName();
       const desc = document.querySelector('meta[name="description"]')?.content?.trim() ||
@@ -1271,7 +1304,6 @@
       const areaServed = getAreaServed();
       const productCategory = detectProductCategory();
 
-      // Build offers array
       const offers = detectedOffers.map(o => ({
         "@type": "Offer",
         name: sanitizeText(o.name),
@@ -1284,7 +1316,6 @@
         seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" }
       }));
 
-      // P7: LocalBusiness dengan knowsAbout + telephone + address + sameAs
       const business = {
         "@type": ["LocalBusiness", "GeneralContractor"],
         "@id": "https://www.betonjayareadymix.com/#localbusiness",
@@ -1340,11 +1371,9 @@
         product.material = detectProductMaterial();
         product.manufacturer = { "@type": "Organization", name: "Beton Jaya Readymix" };
 
-        // P10: size dari data-product-size
         const sizeEl = document.querySelector('[data-product-size]');
         if (sizeEl) product.size = sizeEl.getAttribute('data-product-size');
 
-        // P10: weight dari data-product-weight
         const weightEl = document.querySelector('[data-product-weight]');
         if (weightEl) {
           product.weight = {
@@ -1354,7 +1383,6 @@
           };
         }
 
-        // P10: SKU dari URL
         const skuMatch = window.location.pathname.match(/-([a-z0-9]+)\.html$/);
         if (skuMatch) product.sku = skuMatch[1].toUpperCase();
 
@@ -1389,19 +1417,21 @@
         document.head.appendChild(existingScript);
       }
 
+      // 🔥 P16: Pretty-print hanya saat DEBUG (production minified)
+      const indent = CONFIG.DEBUG ? 2 : 0;
       existingScript.textContent = JSON.stringify({
         "@context": "https://schema.org",
         "@graph": graph
-      }, null, 2);
+      }, null, indent);
 
       log("✅ PRODUCT SCHEMA INJECTED", "SUCCESS");
       log(`   Product: ${productName}`, "SUCCESS");
       log(`   Offers: ${offers.length}`, "PRICE");
       log(`   Parent: ${parentData.parentName}`, "PARENT");
+      log(`   JSON format: ${CONFIG.DEBUG ? 'PRETTY (debug)' : 'MINIFIED (production)'}`, "FIX");
       log("═══════════════════════════════════════════════════");
     } catch (error) {
-      // P3: Error boundary
-      console.error('❌ [Hybrid v5.2] Fatal error in init:', error);
+      console.error('❌ [Hybrid v5.3] Fatal error in init:', error);
       log(`Fatal error: ${error.message}`, "ERROR");
     } finally {
       perf.end('init');
@@ -1422,6 +1452,6 @@
 
   window.addEventListener('beforeunload', cleanup);
 
-  console.log(`✅ [AutoSchema Hybrid v5.2-LITE] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`✅ [AutoSchema Hybrid v5.3-LITE] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
 
 })();
