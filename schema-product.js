@@ -1,21 +1,26 @@
 /**
- * ⚡ AutoSchema Hybrid v5.1-LITE — PRODUCT SCHEMA (MONEY LEVELS)
- * 
- * 🔥 v5.1-LITE CHANGELOG (PERFORMANCE PATCH):
- * ✅ FIX-S1: DEBUG auto-detect (HP = silent)
- * ✅ FIX-S2: Timeout turun drastis (10s → 1-3s)
- * ✅ FIX-S3: Hapus MutationObserver di DOMCache
- * ✅ FIX-S4: Selector dipersempit (bukan p, div, span, li, td)
- * ✅ FIX-S5: SKIP kalau BUKAN money level (early exit)
- * ✅ FIX-S6: Batasi max 100 elemen diproses
- * ✅ FIX-S7: Cache container.innerText sekali
- * ✅ FIX-S8: Guard _AUTOSCHEMA_HYBRID_INITIALIZED
- * ✅ FIX-S9: SKIP kalau content-focus = INFORMASI (bukan product)
- * 
- * ✅ PRESERVED:
- * ✅ Cloudinary PNG
- * ✅ Deteksi Harga Berlapis (4 layers)
- * ✅ PHASE 4.6 sync
+ * ⚡ AutoSchema Hybrid v5.2-LITE — PRODUCT SCHEMA (ENHANCED)
+ *
+ * 🔥 v5.2-LITE CHANGELOG (10 PATCH):
+ * ✅ P1 : WebP + fallback PNG (Cloudinary f_auto, q_auto, dpr_auto)
+ * ✅ P2 : AggregateOffer + nested Offer[] (rich result harga)
+ * ✅ P3 : ErrorBoundary + try/catch/finally di init()
+ * ✅ P4 : AbortController di wait functions (anti memory leak)
+ * ✅ P5 : isNotPrice() diperketat (akurasi harga)
+ * ✅ P7 : knowsAbout + telephone + address + sameAs di LocalBusiness
+ * ✅ P8 : cleanUrl dari og:url/canonical (canonical fix)
+ * ✅ P10: productType + material + sku + size + weight lengkap
+ * ✅ P11: Cache container.innerText konsisten (FIX-S7)
+ * ✅ P12: Cleanup kode + konsistensi versi
+ *
+ * ⏭️ DIBATALKAN (sudah disesuaikan per halaman):
+ * ❌ P6 : dateModified dari AED
+ * ❌ P9 : Guard silang dengan Universal v7.30
+ *
+ * ✅ PRESERVED dari v5.1:
+ * ✅ FIX-S1 s/d S9
+ * ✅ Cloudinary dynamic image (sekarang WebP)
+ * ✅ Deteksi Harga 4 layer
  * ✅ isPartOf HANYA di WebPage
  * ✅ CORB Blocker
  */
@@ -24,11 +29,11 @@
   "use strict";
 
   // ═══ FIX-S8: Guard global ═══
-  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.1-lite") {
-    console.log("[AutoSchema Hybrid v5.1-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.2-lite") {
+    console.log("[AutoSchema Hybrid v5.2-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_HYBRID_VERSION = "5.1-lite";
+  window.__AUTOSCHEMA_HYBRID_VERSION = "5.2-lite";
 
   // ============================================================
   // 🔥 FIX-S1: AUTO-DETECT DEBUG 🔥
@@ -50,7 +55,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Schema v5.1-LITE] 🚫 Blocked external fetch:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.2-LITE] 🚫 Blocked external fetch:', url);
       return Promise.reject(new Error('Blocked by CORB prevention'));
     }
     return originalFetch.apply(this, args);
@@ -63,7 +68,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Schema v5.1-LITE] 🚫 Blocked external XHR:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.2-LITE] 🚫 Blocked external XHR:', url);
       throw new Error('Blocked by CORB prevention');
     }
     return originalXHROpen.call(this, method, url, ...rest);
@@ -74,26 +79,29 @@
   // ============================================================
   const CONFIG = {
     DEBUG: DEBUG_MODE,
-    DELAY_MS: 200,                            // FIX-S2: 500 → 200
+    DELAY_MS: 200,
     MAX_OFFERS: 8,
     MIN_PRICE: 10000,
     MAX_PRICE: 100000000,
-    PLD_TIMEOUT: 1000,                        // FIX-S2: 5000 → 1000
-    AED_TIMEOUT: 2000,                        // FIX-S2: 10000 → 2000
-    BREADCRUMB_TIMEOUT: 1000,                 // FIX-S2: 3000 → 1000
-    BREADCRUMB_READY_TIMEOUT: 1500,           // FIX-S2: 5000 → 1500
-    BREADCRUMB_GENERATED_TIMEOUT: 2000,       // FIX-S2: 10000 → 2000
+    PLD_TIMEOUT: 1000,
+    AED_TIMEOUT: 2000,
+    BREADCRUMB_TIMEOUT: 1000,
+    BREADCRUMB_READY_TIMEOUT: 1500,
+    BREADCRUMB_GENERATED_TIMEOUT: 2000,
     MIN_YEAR_TO_UPDATE: 2026,
     CACHE_DOM_ELEMENTS: true,
-    MAX_ELEMENTS_TO_SCAN: 100                 // FIX-S6
+    MAX_ELEMENTS_TO_SCAN: 100
   };
 
-  // Cloudinary config
+  // ============================================================
+  // 🔥 P1: CLOUDINARY CONFIG — WEBP + FALLBACK PNG 🔥
+  // ============================================================
   const CLOUDINARY_CONFIG = {
     ENABLED: true,
     CLOUD_NAME: 'vagzz5sa',
     VERSION: 'v1789109159',
-    FORMAT: 'png',
+    FORMAT: 'webp',                    // P1: PNG → WebP
+    FALLBACK_FORMAT: 'png',            // P1: fallback
     WIDTH: 1200,
     HEIGHT: 630,
     FONT: 'Arial',
@@ -103,6 +111,9 @@
     MAX_TEXT_LENGTH: 70,
     MAX_CHARS_PER_LINE: 18,
     MAX_LINES: 2,
+    QUALITY: 'q_auto:good',            // P1
+    FORMAT_AUTO: 'f_auto',             // P1
+    DPR_AUTO: 'dpr_auto',              // P1
     LEVEL_FILES: {
       'pillar': 'pillar', 'sub-pillar-tipe-2': 'sp2', 'sub-pillar-tipe-1': 'sp1',
       'money-master': 'mm', 'money-page': 'mp', 'money-child': 'mc',
@@ -175,11 +186,62 @@
              `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},` +
              `${this.GRAVITY},` +
              `c_fit,w_${this.WIDTH},h_${this.HEIGHT}/` +
+             `${this.QUALITY},${this.FORMAT_AUTO},${this.DPR_AUTO}/` +
              `${this.VERSION}/${fileName}.${this.FORMAT}`;
+    },
+    // P1: Fallback URL (PNG murni, tanpa q_auto/f_auto)
+    buildFallbackUrl(level, text) {
+      const fileName = this.LEVEL_FILES[level] || 'pillar';
+      const textColor = this.LEVEL_COLORS[level] || 'FFD700';
+      const weight = this.BOLD ? '_bold' : '';
+      let displayText = text;
+      if (displayText.length > this.MAX_TEXT_LENGTH) {
+        displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
+      }
+      displayText = this.wrapText(displayText);
+      const longestLine = displayText.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
+      const fontSize = this.calculateFontSize(longestLine.length);
+      const encodedText = encodeURIComponent(displayText);
+      return `${this.baseUrl}` +
+             `e_colorize:100,co_rgb:${textColor},` +
+             `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},` +
+             `${this.GRAVITY},` +
+             `c_fit,w_${this.WIDTH},h_${this.HEIGHT}/` +
+             `${this.VERSION}/${fileName}.${this.FALLBACK_FORMAT}`;
     }
   };
 
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+
+  // ============================================================
+  // 🔥 P3: ERRORBOUNDARY CLASS 🔥
+  // ============================================================
+  class ErrorBoundary {
+    constructor() {
+      this.fallbacks = new Map();
+    }
+    register(fnName, fallback) {
+      this.fallbacks.set(fnName, fallback);
+    }
+    async execute(fnName, fn, ...args) {
+      try {
+        return await fn(...args);
+      } catch (error) {
+        const fallback = this.fallbacks.get(fnName);
+        if (CONFIG.DEBUG) {
+          console.error(`❌ [Hybrid v5.2] Error in ${fnName}:`, error);
+        }
+        if (fallback) return typeof fallback === 'function'
+          ? fallback(...args) : fallback;
+        return null;
+      }
+    }
+    safeWrap(fn, fnName) {
+      return (...args) => this.execute(fnName, fn, ...args);
+    }
+  }
+
+  const errorBoundary = new ErrorBoundary();
 
   // ============================================================
   // PERF MONITORING
@@ -193,7 +255,7 @@
     end(label) {
       if (!CONFIG.DEBUG || !this.marks[label]) return 0;
       const duration = performance.now() - this.marks[label];
-      console.log(`⏱️ [PERF v5.1-LITE] ${label}: ${duration.toFixed(2)}ms`);
+      console.log(`⏱️ [PERF v5.2-LITE] ${label}: ${duration.toFixed(2)}ms`);
       delete this.marks[label];
       return duration;
     }
@@ -241,9 +303,9 @@
       COMMERCIAL: "🛒", GABUNG: "📚", PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗",
       PARENT: "👪", PERF: "⏱️", CACHE: "💾", CORB: "🚫", PRICE: "💰",
       FLAG: "🚩", EVENT: "📡", FIX: "🔧", MATERIAL: "🧱",
-      PHASE46: "🆕", CTA: "🔘", H1PAT: "📝", VERSION: "🔖"
+      PHASE46: "🆕", CTA: "🔘", H1PAT: "📝", VERSION: "🔖", WEBP: "🎨"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.1-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.2-LITE] ${msg}`);
   }
 
   // ============================================================
@@ -266,18 +328,12 @@
   }
 
   // ============================================================
-  // 🔥 FIX-S5 & FIX-S9: EARLY EXIT — CEK PAGE LEVEL & FOCUS 🔥
-  // ============================================================
-  // File ini HANYA untuk money level + HARGA/COMMERCIAL focus
-  // Kalau BUKAN money level → skip (biarkan Article schema handle)
-  // Kalau money level + INFORMASI → skip (Article schema handle)
+  // 🔥 FIX-S5 & FIX-S9: EARLY EXIT 🔥
   // ============================================================
   (function earlyExitCheck() {
-    // Cek body attribute (PLD sudah set sebelum event dispatch)
     const pageLevel = document.body && document.body.getAttribute('data-page-level');
     const contentFocus = document.body && document.body.getAttribute('data-content-focus');
 
-    // Kalau body attribute BELUM ada, tunggu — tidak skip (biar di init)
     if (!pageLevel) {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = null;
       return;
@@ -286,29 +342,36 @@
     const MONEY_LEVELS = ['money-master', 'money-page', 'money-child'];
     const isMoneyLevel = MONEY_LEVELS.indexOf(pageLevel) !== -1;
 
-    // FIX-S5: Skip kalau BUKAN money level → Article schema yang handle
     if (!isMoneyLevel) {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'not-money-level';
-      console.log(`⏸️ [AutoSchema Hybrid v5.1-LITE] SKIP: level "${pageLevel}" bukan money level (Article schema handle)`);
+      console.log(`⏸️ [AutoSchema Hybrid v5.2-LITE] SKIP: level "${pageLevel}" bukan money level`);
       return;
     }
 
-    // FIX-S9: Skip kalau money level + INFORMASI → Article schema yang handle
     if (contentFocus === 'INFORMASI') {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'money-informasi';
-      console.log(`⏸️ [AutoSchema Hybrid v5.1-LITE] SKIP: money level + INFORMASI (Article schema handle)`);
+      console.log(`⏸️ [AutoSchema Hybrid v5.2-LITE] SKIP: money level + INFORMASI`);
       return;
     }
 
     window.__AUTOSCHEMA_HYBRID_SKIP_REASON = null;
     if (CONFIG.DEBUG) {
-      console.log(`✅ [AutoSchema Hybrid v5.1-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
+      console.log(`✅ [AutoSchema Hybrid v5.2-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
     }
   })();
 
-  // Kalau skip, STOP di sini — hemat ~20-40 detik
   if (window.__AUTOSCHEMA_HYBRID_SKIP_REASON) {
     return;
+  }
+
+  // ============================================================
+  // 🔥 P8: CLEAN URL DARI OG:URL / CANONICAL 🔥
+  // ============================================================
+  function getCleanUrl() {
+    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
+    const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
+    const baseUrl = ogUrl || canonical || location.href;
+    return baseUrl.replace(/[?&]m=1/, "").replace(/\/$/, "");
   }
 
   // ============================================================
@@ -347,6 +410,7 @@
     return best;
   }
 
+  // 🔥 P4: waitForBreadcrumbGenerated dengan AbortController
   function waitForBreadcrumbGenerated(timeout = CONFIG.BREADCRUMB_GENERATED_TIMEOUT) {
     return new Promise((resolve) => {
       const flagReady = document.body.getAttribute('data-breadcrumb-ready');
@@ -363,10 +427,19 @@
         return;
       }
 
+      const controller = new AbortController();
       let resolved = false;
+      let interval = null;
+
+      const cleanup = () => {
+        if (interval) { clearInterval(interval); interval = null; }
+        controller.abort();
+      };
+
       const onReady = (e) => {
         if (resolved) return;
         resolved = true;
+        cleanup();
         const parentName = document.body.getAttribute('data-breadcrumb-parent');
         const parentUrl = document.body.getAttribute('data-breadcrumb-parent-url');
         log(`📡 Breadcrumb GENERATED: parent="${parentName}"`, "EVENT");
@@ -379,19 +452,19 @@
         });
       };
 
-      window.addEventListener('breadcrumbGenerated', onReady, { once: true });
+      window.addEventListener('breadcrumbGenerated', onReady,
+        { once: true, signal: controller.signal });
 
       const startTime = Date.now();
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
+        if (controller.signal.aborted) return;
         const flag = document.body.getAttribute('data-breadcrumb-ready');
         if (flag === 'true') {
-          clearInterval(interval);
           onReady({ detail: null });
           return;
         }
         if (Date.now() - startTime > timeout) {
-          clearInterval(interval);
-          window.removeEventListener('breadcrumbGenerated', onReady);
+          cleanup();
           if (!resolved) {
             resolved = true;
             log(`⏰ Breadcrumb timeout (${timeout}ms)`, "WARN");
@@ -548,6 +621,28 @@
   }
 
   // ============================================================
+  // 🔥 P7: DETECT KNOWS ABOUT 🔥
+  // ============================================================
+  function detectKnowsAbout(entityType) {
+    const bodyKnowsAbout = document.body.getAttribute('data-knows-about');
+    if (bodyKnowsAbout) {
+      return bodyKnowsAbout.split(',').map(s => s.trim())
+        .filter(s => s.length > 0).slice(0, 10);
+    }
+    const base = ['Material Bangunan', 'Beton Ready Mix', 'Precast', 'Beton Cor'];
+    if (entityType === 'material') base.push('Agregat', 'Bahan Konstruksi');
+    if (entityType === 'produk') base.push('Produk Konstruksi', 'Precast Product');
+
+    document.querySelectorAll('.breadcrumbs a, .breadcrumb a, .nav-trail a').forEach(link => {
+      const name = link.innerText?.trim();
+      if (name && name.length > 2 && name.length < 50) {
+        if (!/^(home|beranda|blog)$/i.test(name)) base.push(name);
+      }
+    });
+    return [...new Set(base)].slice(0, 10);
+  }
+
+  // ============================================================
   // PRICE PARSER
   // ============================================================
   function parsePriceFromText(text) {
@@ -583,21 +678,35 @@
     return Math.round(value);
   }
 
+  // 🔥 P5: isNotPrice() DIPERKETAT 🔥
   function isNotPrice(text, value) {
     if (value < CONFIG.MIN_PRICE || value > CONFIG.MAX_PRICE) return true;
+
     if (value >= 1900 && value <= 2099) {
       if (!/(harga|biaya|tarif|price|cost)/i.test(text)) return true;
     }
+
     const cleanText = text.replace(/[\s\-\.]/g, '');
     if (/^(\+?62|0)\d{8,12}$/.test(cleanText)) return true;
     if (/^\d{5}$/.test(text.trim())) return true;
     if (/^\d{16}$/.test(text.trim())) return true;
+
+    // P5 #1: angka panjang tanpa kata harga
+    if (/^\d{10,16}$/.test(text.trim()) &&
+        !/(harga|biaya|tarif|price)/i.test(text)) return true;
+
     if (/\d+\s*(cm|mm|m|kg|ton|gr|gram|liter|ml|%|unit|buah|lembar|pcs|box|dus|rim)\b/i.test(text)) {
       if (!/(harga|biaya|tarif|price|cost|rp)/i.test(text)) return true;
     }
     if (/\d+\s*[x×]\s*\d+/.test(text)) {
       if (!/(harga|biaya|tarif|price)/i.test(text)) return true;
     }
+
+    // P5 #2: angka + kata non-harga
+    if (/\d[\d.,]*\s*(proyek|klien|pelanggan|orang|karyawan|tahun|bulan|hari)\b/i.test(text)) {
+      if (!/(harga|biaya|tarif|price|cost|rp)/i.test(text)) return true;
+    }
+
     if (/\d[\d.,]*\s*%/i.test(text)) return true;
     if (/20\d{2}\s*[-–]\s*20\d{2}/.test(text)) return true;
     if (/\d{1,4}[\/\-]\d{1,2}[\/\-]\d{1,4}/.test(text)) return true;
@@ -695,15 +804,16 @@
     return { hasPrice: false, source: null, value: null, offers: [] };
   }
 
-  // 🔥 FIX-S4 & S6: Selector dipersempit + max 100 elemen 🔥
+  // 🔥 FIX-S4 & S6 + P11: Selector sempit + max 100 + cache innerText
   function detectPriceFromKeywordElements(container) {
     const candidates = container.querySelectorAll(
       'table td, table th, [class*="price"], [class*="harga"], [class*="biaya"], ' +
       '.price, .harga, .biaya, strong, b, .post-body p'
     );
+    // P11: Cache container text sekali
     const containerText = container.innerText || '';
     if (!/(harga|biaya|tarif|price|cost)/i.test(containerText)) {
-      return { hasPrice: false, source: null, value: null, offers: [] };
+      return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-price-keyword' };
     }
     const keywordRegex = /(harga|biaya|tarif|price|cost|rate|mulai dari|per\s+(m|m²|m2|unit|buah|lembar|meter))/i;
     let processed = 0;
@@ -727,7 +837,14 @@
     return { hasPrice: false, source: null, value: null, offers: [] };
   }
 
+  // 🔥 P11: Cache container.innerText konsisten
   function detectPriceFromLooseRegex(container) {
+    // P11: Cache container text sekali
+    const containerText = container.innerText || '';
+    if (!/(harga|biaya|tarif|price|cost)/i.test(containerText)) {
+      return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-price-keyword' };
+    }
+
     const keywordRegex = /(harga|biaya|tarif|price|cost|rate|mulai dari|per\s+(m|m²|m2|unit|buah|lembar|meter))/i;
     const contextEls = [];
     const allEls = container.querySelectorAll(
@@ -741,7 +858,9 @@
       if (!text || text.length > 500) continue;
       if (keywordRegex.test(text)) contextEls.push(el);
     }
-    if (contextEls.length === 0) return { hasPrice: false, source: null, value: null, offers: [] };
+    if (contextEls.length === 0) {
+      return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-context' };
+    }
     for (const el of contextEls) {
       const text = el.innerText;
       const patterns = [
@@ -792,6 +911,20 @@
         const imageUrl = CLOUDINARY_CONFIG.buildUrl(level, displayText);
         if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
       } catch(e) {}
+    }
+    return LOGO_IMAGE;
+  }
+
+  // 🔥 P1: Fallback image helper
+  function getFallbackImage(pageName, level, year) {
+    if (CLOUDINARY_CONFIG.ENABLED && CLOUDINARY_CONFIG.CLOUD_NAME) {
+      try {
+        const needYearFlag = needYear(level);
+        const displayText = needYearFlag ? `${pageName} ${year}` : pageName;
+        return CLOUDINARY_CONFIG.buildFallbackUrl(level, displayText);
+      } catch(e) {
+        return LOGO_IMAGE;
+      }
     }
     return LOGO_IMAGE;
   }
@@ -857,6 +990,7 @@
     }
 
     const autoImageUrl = createImageWithText(pageName, pageLevel, currentYear);
+    const fallbackImageUrl = getFallbackImage(pageName, pageLevel, currentYear); // P1
     const captionText = '📊 ' + displayName;
 
     if (targetImage) {
@@ -865,6 +999,9 @@
       const currentSrc = img.src || '';
       if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
         img.src = autoImageUrl;
+        // P1: onerror fallback ke PNG
+        img.setAttribute('onerror',
+          `this.onerror=null;this.src='${fallbackImageUrl}';`);
       }
       img.alt = displayName;
       img.title = displayName;
@@ -883,6 +1020,9 @@
     const figure = document.createElement('figure');
     const img = document.createElement('img');
     img.src = autoImageUrl;
+    // P1: onerror fallback ke PNG
+    img.setAttribute('onerror',
+      `this.onerror=null;this.src='${fallbackImageUrl}';`);
     img.alt = displayName;
     img.title = displayName;
     img.setAttribute('loading', 'lazy');
@@ -975,29 +1115,48 @@
     return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
   }
 
+  // 🔥 P4: waitForAEDMetaDates dengan AbortController
   function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
     return new Promise((resolve) => {
+      const controller = new AbortController();
+      let intervalId = null;
+      let resolved = false;
+
+      const cleanup = () => {
+        if (intervalId) { clearInterval(intervalId); intervalId = null; }
+        controller.abort();
+      };
+
       if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
         resolve(window.AEDMetaDates);
         return;
       }
+
       const onReady = () => {
+        if (resolved) return;
+        resolved = true;
+        cleanup();
         if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
           resolve(window.AEDMetaDates);
         } else {
           resolve(null);
         }
       };
-      window.addEventListener("detectEvergreenReady", onReady, { once: true });
+
+      window.addEventListener("detectEvergreenReady", onReady,
+        { once: true, signal: controller.signal });
+
       const startTime = Date.now();
-      const interval = setInterval(() => {
+      intervalId = setInterval(() => {
+        if (controller.signal.aborted) return;
         if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
-          clearInterval(interval);
-          resolve(window.AEDMetaDates);
+          onReady();
           return;
         }
         if (Date.now() - startTime > timeout) {
-          clearInterval(interval);
+          if (resolved) return;
+          resolved = true;
+          cleanup();
           resolve({
             dateModified: new Date().toISOString(),
             nextUpdate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -1008,179 +1167,245 @@
     });
   }
 
+  // 🔥 P4: waitForPLD dengan AbortController
   function waitForPLD() {
     return new Promise((resolve) => {
       if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || window.pageLevelDetector) {
         resolve(true);
         return;
       }
-      const onReady = () => resolve(true);
-      window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
-      setTimeout(() => resolve(!!window.pageLevelDetectorv22), CONFIG.PLD_TIMEOUT);
+      const controller = new AbortController();
+      const onReady = () => {
+        controller.abort();
+        resolve(true);
+      };
+      window.addEventListener("pageLevelDetectorv22Ready", onReady,
+        { once: true, signal: controller.signal });
+      setTimeout(() => {
+        controller.abort();
+        resolve(!!window.pageLevelDetectorv22);
+      }, CONFIG.PLD_TIMEOUT);
     });
   }
 
   // ============================================================
-  // 🚀 MAIN INIT v5.1-LITE
+  // 🚀 MAIN INIT v5.2-LITE
   // ============================================================
   async function init() {
     perf.start('init');
     log("═══════════════════════════════════════════════════");
-    log("AutoSchema Hybrid v5.1-LITE — PRODUCT SCHEMA");
+    log("AutoSchema Hybrid v5.2-LITE — PRODUCT SCHEMA (ENHANCED)");
     log(`DEBUG Mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("═══════════════════════════════════════════════════");
 
-    // Wait PLD
-    await waitForPLD();
+    try {
+      // Wait PLD
+      await waitForPLD();
 
-    // Wait breadcrumb
-    let parentData = await waitForBreadcrumbGenerated(CONFIG.BREADCRUMB_GENERATED_TIMEOUT);
-    if (!parentData || parentData.parentName === 'Home') {
-      const currentUrl = location.href.replace(/[?&]m=1/, "");
-      parentData = getParentFromBreadcrumbReady(null, currentUrl);
-    }
-
-    // Wait AED
-    const aed = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
-
-    // Get data
-    const pldVer = getPLDVersion();
-    const pageLevel = getPageLevelFromPLD();
-    const entityType = getEntityTypeFromPLD();
-    const contentFocus = detectContentFocus();
-    const kategori = getKategori();
-
-    log(`🔷 PLD Version: ${pldVer.label}`, "VERSION");
-    log(`📌 Page Level: ${pageLevel}`, "PLD");
-    log(`📌 Entity Type: ${entityType}`, "PLD");
-    log(`📌 Content Focus: ${contentFocus}`, "FOCUS");
-    log(`📌 Kategori: ${kategori}`, "KATEGORI");
-
-    // Skip Product schema kalau perlu
-    if (shouldSkipProductSchema(pageLevel, entityType)) {
-      log(`⏭️ Product schema SKIPPED untuk halaman ini`, "SKIP");
-      perf.end('init');
-      return;
-    }
-
-    // Detect price
-    const priceResult = detectPriceLayered(pageLevel);
-    const detectedOffers = priceResult.offers || [];
-    const hasPrice = priceResult.hasPrice;
-
-    if (hasPrice) {
-      log(`✅ Harga TERDETEKSI via Layer ${priceResult.layer} (${detectedOffers.length} offers)`, "PRICE");
-    } else {
-      log(`⏭️ Tidak ada harga terdeteksi`, "PRICE");
-    }
-
-    // Fix image
-    let imageUrl = LOGO_IMAGE;
-    const isEligible = isImageEligible(pageLevel);
-    if (isEligible) {
-      try {
-        const fixedFigure = fixImagesToFormat1();
-        if (fixedFigure) {
-          const img = fixedFigure.querySelector ? fixedFigure.querySelector('img') : fixedFigure;
-          if (img) {
-            const candidateSrc = img.src || '';
-            if (/^https?:\/\//i.test(candidateSrc)) imageUrl = candidateSrc;
-          }
-        }
-      } catch(e) {
-        log(`Error processing images: ${e.message}`, "ERROR");
+      // Wait breadcrumb
+      let parentData = await waitForBreadcrumbGenerated(CONFIG.BREADCRUMB_GENERATED_TIMEOUT);
+      if (!parentData || parentData.parentName === 'Home') {
+        const currentUrl = getCleanUrl();
+        parentData = getParentFromBreadcrumbReady(null, currentUrl);
       }
+
+      // Wait AED
+      const aed = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
+
+      // Get data
+      const pldVer = getPLDVersion();
+      const pageLevel = getPageLevelFromPLD();
+      const entityType = getEntityTypeFromPLD();
+      const contentFocus = detectContentFocus();
+      const kategori = getKategori();
+
+      log(`🔷 PLD Version: ${pldVer.label}`, "VERSION");
+      log(`📌 Page Level: ${pageLevel}`, "PLD");
+      log(`📌 Entity Type: ${entityType}`, "PLD");
+      log(`📌 Content Focus: ${contentFocus}`, "FOCUS");
+      log(`📌 Kategori: ${kategori}`, "KATEGORI");
+
+      // Skip Product schema kalau perlu
+      if (shouldSkipProductSchema(pageLevel, entityType)) {
+        log(`⏭️ Product schema SKIPPED untuk halaman ini`, "SKIP");
+        perf.end('init');
+        return;
+      }
+
+      // Detect price
+      const priceResult = detectPriceLayered(pageLevel);
+      const detectedOffers = priceResult.offers || [];
+      const hasPrice = priceResult.hasPrice;
+
+      if (hasPrice) {
+        log(`✅ Harga TERDETEKSI via Layer ${priceResult.layer} (${detectedOffers.length} offers)`, "PRICE");
+      } else {
+        log(`⏭️ Tidak ada harga terdeteksi`, "PRICE");
+      }
+
+      // Fix image
+      let imageUrl = LOGO_IMAGE;
+      const isEligible = isImageEligible(pageLevel);
+      if (isEligible) {
+        try {
+          const fixedFigure = fixImagesToFormat1();
+          if (fixedFigure) {
+            const img = fixedFigure.querySelector ? fixedFigure.querySelector('img') : fixedFigure;
+            if (img) {
+              const candidateSrc = img.src || '';
+              if (/^https?:\/\//i.test(candidateSrc)) imageUrl = candidateSrc;
+            }
+          }
+        } catch(e) {
+          log(`Error processing images: ${e.message}`, "ERROR");
+        }
+      }
+
+      // P8: cleanUrl dari og:url/canonical
+      const currentUrl = getCleanUrl();
+      const productName = detectProductName();
+      const desc = document.querySelector('meta[name="description"]')?.content?.trim() ||
+                   document.querySelector("article p, main p, section p")?.innerText?.trim()?.substring(0, 300) ||
+                   `Produk ${productName} berkualitas dari Beton Jaya Readymix`;
+
+      const areaServed = getAreaServed();
+      const productCategory = detectProductCategory();
+
+      // Build offers array
+      const offers = detectedOffers.map(o => ({
+        "@type": "Offer",
+        name: sanitizeText(o.name),
+        url: currentUrl,
+        priceCurrency: "IDR",
+        price: o.price,
+        priceValidUntil: getAEDPriceValidUntil(),
+        availability: "https://schema.org/InStock",
+        itemCondition: "https://schema.org/NewCondition",
+        seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" }
+      }));
+
+      // P7: LocalBusiness dengan knowsAbout + telephone + address + sameAs
+      const business = {
+        "@type": ["LocalBusiness", "GeneralContractor"],
+        "@id": "https://www.betonjayareadymix.com/#localbusiness",
+        name: "Beton Jaya Readymix",
+        url: "https://www.betonjayareadymix.com",
+        logo: LOGO_IMAGE,
+        telephone: "+6283839000968",
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: "Bogor",
+          addressRegion: "Jawa Barat",
+          addressCountry: "ID"
+        },
+        openingHours: "Mo-Sa 08:00-17:00",
+        sameAs: [
+          "https://www.facebook.com/betonjayareadymix",
+          "https://www.instagram.com/betonjayareadymix"
+        ],
+        knowsAbout: detectKnowsAbout(entityType)
+      };
+
+      const product = {
+        "@type": "Product",
+        "@id": currentUrl + "#product",
+        name: productName,
+        image: [imageUrl || LOGO_IMAGE],
+        description: desc,
+        brand: { "@type": "Brand", name: "Beton Jaya Readymix" },
+        category: productCategory,
+        areaServed: areaServed
+      };
+
+      // P2: AggregateOffer + nested Offer[]
+      if (offers.length > 0) {
+        const prices = offers.map(o => o.price);
+        const lowPrice = Math.min(...prices);
+        const highPrice = Math.max(...prices);
+        product.offers = {
+          "@type": "AggregateOffer",
+          lowPrice: lowPrice,
+          highPrice: highPrice,
+          offerCount: offers.length,
+          priceCurrency: "IDR",
+          priceValidUntil: getAEDPriceValidUntil(),
+          availability: "https://schema.org/InStock",
+          offers: offers
+        };
+      }
+
+      // P10: productType + material + sku + size + weight lengkap
+      if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
+        product.productType = pageLevel === 'variant' ? "Variant" : "Sub-Variant";
+        product.material = detectProductMaterial();
+        product.manufacturer = { "@type": "Organization", name: "Beton Jaya Readymix" };
+
+        // P10: size dari data-product-size
+        const sizeEl = document.querySelector('[data-product-size]');
+        if (sizeEl) product.size = sizeEl.getAttribute('data-product-size');
+
+        // P10: weight dari data-product-weight
+        const weightEl = document.querySelector('[data-product-weight]');
+        if (weightEl) {
+          product.weight = {
+            "@type": "QuantitativeValue",
+            value: weightEl.getAttribute('data-product-weight'),
+            unitCode: "KGM"
+          };
+        }
+
+        // P10: SKU dari URL
+        const skuMatch = window.location.pathname.match(/-([a-z0-9]+)\.html$/);
+        if (skuMatch) product.sku = skuMatch[1].toUpperCase();
+
+        const variantSpec = extractVariantSpec();
+        if (variantSpec) product.variant = variantSpec;
+      }
+
+      const parentUrls = [{
+        "@type": "WebPage",
+        "@id": parentData.parentUrl,
+        name: parentData.parentName
+      }];
+
+      const webpage = {
+        "@type": "WebPage",
+        "@id": currentUrl + "#webpage",
+        url: currentUrl,
+        name: productName,
+        description: desc,
+        image: imageUrl,
+        mainEntity: { "@id": product["@id"] },
+        isPartOf: parentUrls
+      };
+
+      const graph = [webpage, business, product];
+
+      let existingScript = document.querySelector("#auto-schema-product");
+      if (!existingScript) {
+        existingScript = document.createElement("script");
+        existingScript.type = "application/ld+json";
+        existingScript.id = "auto-schema-product";
+        document.head.appendChild(existingScript);
+      }
+
+      existingScript.textContent = JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": graph
+      }, null, 2);
+
+      log("✅ PRODUCT SCHEMA INJECTED", "SUCCESS");
+      log(`   Product: ${productName}`, "SUCCESS");
+      log(`   Offers: ${offers.length}`, "PRICE");
+      log(`   Parent: ${parentData.parentName}`, "PARENT");
+      log("═══════════════════════════════════════════════════");
+    } catch (error) {
+      // P3: Error boundary
+      console.error('❌ [Hybrid v5.2] Fatal error in init:', error);
+      log(`Fatal error: ${error.message}`, "ERROR");
+    } finally {
+      perf.end('init');
     }
-
-    // Build schema
-    const currentUrl = location.href.replace(/[?&]m=1/, "");
-    const productName = detectProductName();
-    const desc = document.querySelector('meta[name="description"]')?.content?.trim() ||
-                 document.querySelector("article p, main p, section p")?.innerText?.trim()?.substring(0, 300) ||
-                 `Produk ${productName} berkualitas dari Beton Jaya Readymix`;
-
-    const areaServed = getAreaServed();
-    const productCategory = detectProductCategory();
-
-    const offers = detectedOffers.map(o => ({
-      "@type": "Offer",
-      name: sanitizeText(o.name),
-      url: currentUrl,
-      priceCurrency: "IDR",
-      price: o.price,
-      priceValidUntil: getAEDPriceValidUntil(),
-      availability: "https://schema.org/InStock",
-      itemCondition: "https://schema.org/NewCondition",
-      seller: { "@id": "https://www.betonjayareadymix.com/#localbusiness" }
-    }));
-
-    const business = {
-      "@type": "LocalBusiness",
-      "@id": "https://www.betonjayareadymix.com/#localbusiness",
-      name: "Beton Jaya Readymix",
-      url: "https://www.betonjayareadymix.com",
-      logo: LOGO_IMAGE
-    };
-
-    const product = {
-      "@type": "Product",
-      "@id": currentUrl + "#product",
-      name: productName,
-      image: [imageUrl || LOGO_IMAGE],
-      description: desc,
-      brand: { "@type": "Brand", name: "Beton Jaya Readymix" },
-      category: productCategory,
-      areaServed: areaServed
-    };
-
-    if (offers.length > 0) product.offers = offers;
-
-    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
-      product.productType = pageLevel === 'variant' ? "Variant" : "Sub-Variant";
-      product.material = detectProductMaterial();
-      product.manufacturer = { "@type": "Organization", name: "Beton Jaya Readymix" };
-      const variantSpec = extractVariantSpec();
-      if (variantSpec) product.variant = variantSpec;
-    }
-
-    const parentUrls = [{
-      "@type": "WebPage",
-      "@id": parentData.parentUrl,
-      name: parentData.parentName
-    }];
-
-    const webpage = {
-      "@type": "WebPage",
-      "@id": currentUrl + "#webpage",
-      url: currentUrl,
-      name: productName,
-      description: desc,
-      image: imageUrl,
-      mainEntity: { "@id": product["@id"] },
-      isPartOf: parentUrls
-    };
-
-    const graph = [webpage, business, product];
-
-    let existingScript = document.querySelector("#auto-schema-product");
-    if (!existingScript) {
-      existingScript = document.createElement("script");
-      existingScript.type = "application/ld+json";
-      existingScript.id = "auto-schema-product";
-      document.head.appendChild(existingScript);
-    }
-
-    existingScript.textContent = JSON.stringify({
-      "@context": "https://schema.org",
-      "@graph": graph
-    }, null, 2);
-
-    log("✅ PRODUCT SCHEMA INJECTED", "SUCCESS");
-    log(`   Product: ${productName}`, "SUCCESS");
-    log(`   Offers: ${offers.length}`, "PRICE");
-    log(`   Parent: ${parentData.parentName}`, "PARENT");
-    log("═══════════════════════════════════════════════════");
-    perf.end('init');
   }
 
   if (document.readyState === "loading") {
@@ -1197,6 +1422,6 @@
 
   window.addEventListener('beforeunload', cleanup);
 
-  console.log(`✅ [AutoSchema Hybrid v5.1-LITE] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`✅ [AutoSchema Hybrid v5.2-LITE] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
 
 })();
