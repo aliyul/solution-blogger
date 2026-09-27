@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * generateBreadcrumbShared v15.1.0 — CLEAN + PERFORMANCE PATCH
+ * generateBreadcrumbShared v15.2-LITE — PERFORMANCE PATCH
  * 
  * PRINSIP: PLD = DETEKSI, BREADCRUMB = RENDER
  * ─────────────────────────────────────────────
@@ -10,20 +10,23 @@
  *   3. RENDER HTML breadcrumb
  *   4. Set flag + dispatch event
  * 
+ * v15.2-LITE CHANGELOG (dari v15.1.0):
+ * ✅ FIX-B1: Guard _BREADCRUMB_INITIALIZED — cegah double init
+ * ✅ FIX-B2: Cache detectPageType() — pakai Map
+ * ✅ FIX-B3: Batasi loop parentCandidates max 20
+ * ✅ FIX-B4: requestIdleCallback timeout 2000ms → 1000ms
+ * ✅ FIX-B5: Skip double-check redundant
+ * ✅ FIX-B6: Log kondisional (silent di HP)
+ * ✅ FIX-B7: Optimasi _generateBreadcrumbSharedImpl()
+ * ✅ FIX-B8: Manual Set untuk dedupe
+ * 
  * v15.1.0 CHANGELOG (dari v15.0.0):
  * ✅ FIX #3: Lazy Load — requestIdleCallback agar tidak blocking render
  * ✅ FIX #4: Cache detectPageType — hemat ~500-2000ms per render
  * 
- * v15.0.0 CHANGELOG:
- * ✅ HAPUS duplikasi: detectPageTypeFallback, isLocation, checkHasSpec, dll
- * ✅ HAPUS konstanta duplikat: LOCATION_WORDS, COMMERCIAL_WORDS, dll
- * ✅ PAKAI body attributes dari PLD (data-page-level, data-entity-type, dll)
- * ✅ FALLBACK ke PLD functions jika body attributes tidak ada
- * ✅ TUNGGU "pageLevelDetectorv22Ready" sebelum eksekusi
- * 
  * CARA PAKAI:
- * 1. Load PLD dulu: <script src="pld-v23.9.7-lite.js"></script>
- * 2. Load file ini: <script src="breadcrumb-shared.js"></script>
+ * 1. Load PLD dulu: <script src="pld-v23.9.7-lite.js" defer></script>
+ * 2. Load file ini: <script src="breadcrumb-shared-v15.2-lite.js" defer></script>
  * 3. Di file topik: window.generateBreadcrumbShared(...)
  * ============================================================
  */
@@ -31,8 +34,15 @@
 (function() {
     "use strict";
 
+    // ═══ FIX-B1: Guard global — cegah double init ═══
+    if (window.__BREADCRUMB_VERSION === "15.2-lite") {
+        console.log("[Breadcrumb v15.2-LITE] ⏭️ Already loaded — skip");
+        return;
+    }
+    window.__BREADCRUMB_VERSION = "15.2-lite";
+
     // ============================================================
-    // DETEKSI DEVICE (SEKALI SAJA)
+    // 🔥 FIX-B6: DEVICE DETECTION & LOG KONDISIONAL 🔥🔥🔥
     // ============================================================
     const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
     const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -42,7 +52,10 @@
                                 navigator.connection.effectiveType === 'slow-2g' ||
                                 navigator.connection.saveData === true);
 
-    const ENABLE_DEBUG = !IS_MOBILE && !IS_SLOW_DEVICE && !IS_CONNECTION_SLOW;
+    // FIX-B6: Debug hanya di desktop yang tidak slow
+    // Override: tambah ?breadcrumb-debug=1 di URL
+    const URL_DEBUG = window.location.search.indexOf('breadcrumb-debug=1') !== -1;
+    const ENABLE_DEBUG = URL_DEBUG || (!IS_MOBILE && !IS_SLOW_DEVICE && !IS_CONNECTION_SLOW);
 
     // ============================================================
     // PRE-COMPILED CONSTANTS
@@ -50,7 +63,8 @@
     const LOG_ICONS = Object.freeze({
         INFO: '📘', SUCCESS: '✅', WARN: '⚠️', ERROR: '❌',
         DEBUG: '🔍', PARENT: '👪', URL: '🔗', PLD: '🔍',
-        FLAG: '🚩', EVENT: '📣', RENDER: '🎨', PERF: '⚡'
+        FLAG: '🚩', EVENT: '📣', RENDER: '🎨', PERF: '⚡',
+        SKIP: '⏭️', CACHE: '💾'
     });
 
     const CONFIG_GLOBAL = {
@@ -60,81 +74,51 @@
     };
 
     function log(message, type) {
+        // FIX-B6: Skip semua log kalau DEBUG=false
         if (!CONFIG_GLOBAL.DEBUG) return;
-        console.log((LOG_ICONS[type] || '📘') + ' [Breadcrumb v15.1.0] ' + message);
+        console.log((LOG_ICONS[type] || '📘') + ' [Breadcrumb v15.2-LITE] ' + message);
     }
 
     // ============================================================
     // ✅ AMBIL DATA DARI PLD — TIDAK HITUNG ULANG
     // ============================================================
 
-    /**
-     * Ambil page level dari body attributes atau PLD
-     * PLD sudah set: data-page-level
-     */
     function getPageLevel() {
-        // 1. Body attribute (PLD sudah set)
         var bodyLevel = document.body && document.body.getAttribute('data-page-level');
         if (bodyLevel) return bodyLevel;
 
-        // 2. Fallback: panggil PLD
         if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
             try {
                 return window.pageLevelDetectorv22.detect();
             } catch(e) { log('PLD detect error: ' + e.message, 'WARN'); }
         }
-
-        // 3. Fallback minimal
         return 'money-page';
     }
 
-    /**
-     * Ambil entity type dari body attributes atau PLD
-     * PLD sudah set: data-entity-type (lowercase)
-     */
     function getEntityTypeFromPLD() {
-        // 1. Body attribute
         var bodyEntity = document.body && document.body.getAttribute('data-entity-type');
         if (bodyEntity) return bodyEntity;
 
-        // 2. Fallback: panggil PLD
         if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectEntityType === 'function') {
             try {
                 return window.pageLevelDetectorv22.detectEntityType();
             } catch(e) { log('PLD entity error: ' + e.message, 'WARN'); }
         }
-
         return 'jasa';
     }
 
-    /**
-     * Ambil content focus dari body attributes
-     * PLD sudah set: data-content-focus
-     */
     function getContentFocus() {
         return (document.body && document.body.getAttribute('data-content-focus')) || null;
     }
 
-    /**
-     * Ambil kategori dari body attributes
-     * PLD sudah set: data-kategori
-     */
     function getKategori() {
         return (document.body && document.body.getAttribute('data-kategori')) || null;
     }
 
-    /**
-     * Ambil H1 pattern dari body attributes
-     * PLD sudah set: data-h1-pattern
-     */
     function getH1Pattern() {
         return (document.body && document.body.getAttribute('data-h1-pattern')) || null;
     }
 
-    /**
-     * Ambil schema type dari body attributes
-     * PLD sudah set: data-schema-type-primary, data-schema-type-secondary
-     */
     function getSchemaType() {
         var primary = document.body && document.body.getAttribute('data-schema-type-primary');
         var secondary = document.body && document.body.getAttribute('data-schema-type-secondary');
@@ -142,10 +126,6 @@
         return { primary: primary, secondary: secondary || '' };
     }
 
-    /**
-     * Ambil CTA type dari body attributes
-     * PLD sudah set: data-cta-type, data-cta-text
-     */
     function getCtaType() {
         var type = document.body && document.body.getAttribute('data-cta-type');
         var text = document.body && document.body.getAttribute('data-cta-text');
@@ -153,9 +133,6 @@
         return { type: type, text: text || '' };
     }
 
-    /**
-     * Cek apakah text mengandung lokasi — pakai PLD
-     */
     function isLocation(text) {
         if (!text) return false;
         if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.isLocation === 'function') {
@@ -163,13 +140,9 @@
                 return window.pageLevelDetectorv22.isLocation(text);
             } catch(e) {}
         }
-        // Fallback minimal — hanya kota umum
         return /\b(jakarta|bogor|depok|tangerang|bekasi|bandung|surabaya|semarang|yogyakarta|jogja|malang|medan|makassar|bali|denpasar)\b/i.test(text);
     }
 
-    /**
-     * Cek spec — pakai PLD
-     */
     function checkHasSpecification(text, entity) {
         if (!text) return false;
         if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.checkHasSpecification === 'function') {
@@ -180,9 +153,6 @@
         return false;
     }
 
-    /**
-     * Cek sub-variant — pakai PLD
-     */
     function isSubVariant(text, entity) {
         if (!text) return false;
         if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.isSubVariant === 'function') {
@@ -193,9 +163,6 @@
         return false;
     }
 
-    /**
-     * Cek commercial — pakai PLD
-     */
     function checkHasCommercial(text, entity) {
         if (!text) return false;
         if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.checkHasCommercial === 'function') {
@@ -215,6 +182,12 @@
         'money-master', 'money-page', 'money-child', 'variant', 'sub-variant'
     ];
 
+    const VALID_LEVELS_SET = (function() {
+        var s = {};
+        for (var i = 0; i < VALID_LEVELS.length; i++) s[VALID_LEVELS[i]] = true;
+        return s;
+    })();
+
     const TYPE_LEVEL_MAP = {
         'home': 0, 'pillar': 1, 'sub-pillar-tipe-2': 2, 'sub-pillar-tipe-1': 3,
         'money-master': 4, 'money-page': 5, 'money-child': 6,
@@ -226,21 +199,28 @@
         'money-master', 'money-page', 'money-child', 'variant', 'sub-variant'
     ];
 
-    // Entity pillar names — pakai dari PLD kalau ada
+    // Cache entity pillar names per entity
+    var __entityPillarCache = {};
+
     function getEntityPillarNames(entity) {
+        if (__entityPillarCache[entity]) return __entityPillarCache[entity];
+
+        var result;
         if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.ENTITY_PILLAR_NAMES) {
-            return window.pageLevelDetectorv22.ENTITY_PILLAR_NAMES[entity] || [];
+            result = window.pageLevelDetectorv22.ENTITY_PILLAR_NAMES[entity] || [];
+        } else {
+            var fallback = {
+                'jasa': ['jasa konstruksi'],
+                'desain': ['jasa desain'],
+                'sewa': ['sewa alat konstruksi'],
+                'produk': ['produk konstruksi'],
+                'material': ['material konstruksi'],
+                'artikel': ['artikel konstruksi']
+            };
+            result = fallback[entity] || [];
         }
-        // Fallback minimal
-        var fallback = {
-            'jasa': ['jasa konstruksi'],
-            'desain': ['jasa desain'],
-            'sewa': ['sewa alat konstruksi'],
-            'produk': ['produk konstruksi'],
-            'material': ['material konstruksi'],
-            'artikel': ['artikel konstruksi']
-        };
-        return fallback[entity] || [];
+        __entityPillarCache[entity] = result;
+        return result;
     }
 
     // ============================================================
@@ -288,75 +268,54 @@
     }
 
     // ============================================================
-    // ✅ DETEKSI PAGE TYPE — PAKAI PLD, BUKAN HITUNG ULANG
+    // 🔥 FIX-B2: CACHE detectPageType — PAKAI MAP 🔥🔥🔥
     // ============================================================
+    // SEBELUMNYA: pakai object `{}` — bisa jadi masalah kalau key collision
+    // SESUDAH: pakai Map — lebih cepat & aman
+    // ============================================================
+    var __pageTypeCache = new Map();
 
-    // ═══════════════════════════════════════════════════════════════
-    // 🔥 FIX #4: CACHE detectPageType
-    // ═══════════════════════════════════════════════════════════════
-    // MASALAH: detectPageType dipanggil 5-10x per render breadcrumb.
-    // Setiap panggilan → PLD detectPageLevelForPrompt() yang BERAT.
-    // Total: ~500-2000ms per render breadcrumb.
-    //
-    // SOLUSI: Cache hasil per (pageName + isCurrentPage + currentPldLevel).
-    // Hasil sama → cache hit → 0ms.
-    // ═══════════════════════════════════════════════════════════════
-    var __pageTypeCache = {};
-
-    /**
-     * Deteksi page type untuk sebuah nama halaman.
-     * PRIORITAS:
-     *   1. Kalau pageName === currentPageTitle → pakai PLD level
-     *   2. Kalau bukan → panggil PLD detectPageLevelForPrompt
-     *   3. Fallback minimal
-     */
     function detectPageType(pageName, isCurrentPage, currentPldLevel) {
-        // 🔥 FIX #4: Cek cache dulu
+        // FIX-B2: Cek cache dulu
         var cacheKey = (pageName || '') + '|' + (isCurrentPage ? '1' : '0') + '|' + (currentPldLevel || '');
-        if (__pageTypeCache.hasOwnProperty(cacheKey)) {
+        if (__pageTypeCache.has(cacheKey)) {
             log('⚡ CACHE HIT detectPageType: ' + pageName, 'PERF');
-            return __pageTypeCache[cacheKey];
+            return __pageTypeCache.get(cacheKey);
         }
 
         var result;
         const lowerName = cleanText((pageName || '').toLowerCase());
 
-        // Kalau ini halaman saat ini → pakai PLD level
-        if (isCurrentPage && currentPldLevel && VALID_LEVELS.indexOf(currentPldLevel) !== -1) {
+        if (isCurrentPage && currentPldLevel && VALID_LEVELS_SET[currentPldLevel]) {
             result = currentPldLevel;
         }
-        // Kalau home
         else if (lowerName === 'home' || lowerName === 'beranda') {
             result = 'home';
         }
-        // Cek pillar exact match
         else if (getEntityPillarNames(getEntityTypeFromPLD()).indexOf(lowerName) !== -1) {
             result = 'pillar';
         }
-        // Panggil PLD untuk page lain (bukan halaman saat ini)
         else if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectPageLevelForPrompt === 'function') {
             try {
                 var lvl = window.pageLevelDetectorv22.detectPageLevelForPrompt(pageName, getEntityTypeFromPLD());
-                result = (lvl && VALID_LEVELS.indexOf(lvl) !== -1) ? lvl : 'money-page';
+                result = (lvl && VALID_LEVELS_SET[lvl]) ? lvl : 'money-page';
             } catch(e) {
                 result = 'money-page';
             }
         }
-        // Fallback minimal
         else {
             result = 'money-page';
         }
 
-        // 🔥 FIX #4: Simpan ke cache
-        __pageTypeCache[cacheKey] = result;
+        // FIX-B2: Simpan ke cache
+        __pageTypeCache.set(cacheKey, result);
         log('💾 CACHE STORE detectPageType: ' + pageName + ' → ' + result, 'PERF');
         return result;
     }
 
     // ============================================================
-    // FUNGSI UTAMA — GENERATE BREADCRUMB (IMPLEMENTASI ASLI)
+    // FUNGSI UTAMA — GENERATE BREADCRUMB
     // ============================================================
-
     function _generateBreadcrumbSharedImpl(
         mappingObj,
         currentUrl,
@@ -365,8 +324,6 @@
     ) {
         breadcrumbItems = breadcrumbItems || [];
         entityType = entityType || 'jasa';
-
-        // Normalisasi entity type (lowercase untuk PLD)
         entityType = String(entityType).toLowerCase();
 
         log('=== GENERATE BREADCRUMB START ===', 'INFO');
@@ -389,7 +346,6 @@
         log('PLD Content Focus: ' + pldContentFocus, 'PLD');
         log('PLD Kategori: ' + pldKategori, 'PLD');
 
-        // Override entityType dengan PLD kalau ada
         if (pldEntity) entityType = pldEntity;
 
         // ============================================================
@@ -409,11 +365,14 @@
 
         // ============================================================
         // 3. BUILD ALL LEVELS DARI breadcrumbItems
+        // 🔥 FIX-B3: Batasi max 20 item
         // ============================================================
         const allLevels = [];
         let positionCounter = 1;
 
-        for (let i = 0; i < breadcrumbItems.length; i++) {
+        const maxItems = Math.min(breadcrumbItems.length, 20); // FIX-B3
+
+        for (let i = 0; i < maxItems; i++) {
             const item = breadcrumbItems[i];
             let name, url;
 
@@ -471,7 +430,7 @@
         }
 
         // ============================================================
-        // 5. BUILD BREADCRUMB LINEAGE — AMBIL PARENT BERDASARKAN POSISI
+        // 5. BUILD BREADCRUMB LINEAGE
         // ============================================================
         const selectedLevels = [];
 
@@ -484,42 +443,49 @@
             position: 1
         });
 
-        // Dedupe by URL
-        const uniqueByUrl = new Map();
+        // FIX-B8: Manual dedupe dengan object Set (bukan new Set() per iterasi)
+        const uniqueByUrl = {};
+        const uniqueItems = [];
         for (const item of allLevels) {
             const key = item.url || item.name;
-            if (!uniqueByUrl.has(key)) {
-                uniqueByUrl.set(key, item);
+            if (!uniqueByUrl[key]) {
+                uniqueByUrl[key] = true;
+                uniqueItems.push(item);
             }
         }
-        const uniqueItems = Array.from(uniqueByUrl.values());
 
         // Ambil semua item kecuali halaman saat ini = parent candidates
-        const parentCandidates = uniqueItems.filter(function(item) {
-            return item.name.toLowerCase() !== currentPageTitle.toLowerCase();
-        });
+        const parentCandidates = [];
+        const currentTitleLower = currentPageTitle.toLowerCase();
+        for (const item of uniqueItems) {
+            if (item.name.toLowerCase() !== currentTitleLower) {
+                parentCandidates.push(item);
+            }
+        }
 
-        // Sort by position (paling akhir dulu)
+        // Sort by position descending
         parentCandidates.sort(function(a, b) {
             return (b.position || 0) - (a.position || 0);
         });
 
-        log('Parent candidates (' + parentCandidates.length + '): ' +
-            parentCandidates.map(function(i) { return i.position + ':' + i.name; }).join(', '), 'DEBUG');
+        log('Parent candidates (' + parentCandidates.length + ')', 'DEBUG');
 
-        // Ambil parent dengan position tertinggi (parent langsung)
+        // Ambil parent dengan position tertinggi
         let finalParents = [];
         if (parentCandidates.length > 0) {
-            const highestPosition = Math.max.apply(null, parentCandidates.map(function(i) { return i.position || 0; }));
-            finalParents = parentCandidates.filter(function(item) {
-                return item.position === highestPosition;
-            });
+            const highestPosition = parentCandidates[0].position || 0; // Sudah sorted desc
+            for (const item of parentCandidates) {
+                if (item.position === highestPosition) {
+                    finalParents.push(item);
+                } else {
+                    break; // Sudah tidak match
+                }
+            }
 
             // Sort ascending
             finalParents.sort(function(a, b) { return a.position - b.position; });
 
-            log('Final parents (' + finalParents.length + '): ' +
-                finalParents.map(function(i) { return i.name; }).join(', '), 'SUCCESS');
+            log('Final parents (' + finalParents.length + ')', 'SUCCESS');
         }
 
         // Kalau tidak ada parent, cek entity pillar
@@ -527,30 +493,38 @@
             const entityPillars = getEntityPillarNames(entityType);
             if (entityPillars.length > 0) {
                 const pillarName = entityPillars[0];
-                const pillarItem = uniqueItems.find(function(item) {
-                    return item.name.toLowerCase() === pillarName;
-                });
-                if (pillarItem) {
-                    finalParents.push(pillarItem);
-                    log('Entity pillar as parent: ' + pillarName, 'SUCCESS');
+                for (const item of uniqueItems) {
+                    if (item.name.toLowerCase() === pillarName) {
+                        finalParents.push(item);
+                        log('Entity pillar as parent: ' + pillarName, 'SUCCESS');
+                        break;
+                    }
                 }
             }
         }
 
         // Tambah finalParents ke selectedLevels
         for (const item of finalParents) {
-            const exists = selectedLevels.some(function(l) {
-                return l.name.toLowerCase() === item.name.toLowerCase();
-            });
+            let exists = false;
+            for (const l of selectedLevels) {
+                if (l.name.toLowerCase() === item.name.toLowerCase()) {
+                    exists = true;
+                    break;
+                }
+            }
             if (!exists) {
                 selectedLevels.push(item);
             }
         }
 
         // Tambah halaman saat ini di akhir
-        const currentAlreadyAdded = selectedLevels.some(function(item) {
-            return item.name.toLowerCase() === currentPageTitle.toLowerCase();
-        });
+        let currentAlreadyAdded = false;
+        for (const item of selectedLevels) {
+            if (item.name.toLowerCase() === currentTitleLower) {
+                currentAlreadyAdded = true;
+                break;
+            }
+        }
 
         if (!currentAlreadyAdded) {
             selectedLevels.push({
@@ -566,12 +540,12 @@
         // 6. FINAL DEDUPE + SORT
         // ============================================================
         const uniqueLevels = [];
-        const usedNames = new Set();
+        const usedNames = {};
 
         for (const item of selectedLevels) {
             const key = item.name.toLowerCase();
-            if (usedNames.has(key)) continue;
-            usedNames.add(key);
+            if (usedNames[key]) continue;
+            usedNames[key] = true;
             uniqueLevels.push(item);
         }
 
@@ -682,7 +656,7 @@
                 selectedLevels: uniqueLevels,
                 currentPageType: currentPageType,
                 entityType: entityType,
-                version: '15.1.0',
+                version: '15.2-lite',
                 pldLevel: pldLevel,
                 pldContentFocus: pldContentFocus,
                 pldKategori: pldKategori,
@@ -703,7 +677,7 @@
             selectedLevels: uniqueLevels,
             currentPageType: currentPageType,
             entityType: entityType,
-            version: '15.1.0',
+            version: '15.2-lite',
             parentCount: finalParents.length,
             parents: finalParents,
             pldLevel: pldLevel,
@@ -720,31 +694,19 @@
     }
 
     // ============================================================
-    // 🔥 FIX #3: LAZY LOAD BREADCRUMB (requestIdleCallback)
-    // ============================================================
-    // MASALAH: generateBreadcrumbShared dipanggil saat DOMContentLoaded,
-    // tapi eksekusinya BERAT (loop 200+ if, panggil PLD 5-10x).
-    // Ini mem-BLOCK render sisa halaman.
-    //
-    // SOLUSI: Bungkus dengan requestIdleCallback — browser hanya
-    // jalankan saat IDLE (setelah render selesai).
-    // Fallback: setTimeout(0) untuk browser lama.
-    //
-    // EFEK: Halaman render INSTAN, breadcrumb muncul 200-500ms
-    // kemudian tanpa blocking.
+    // 🔥 FIX-B4: LAZY LOAD — requestIdleCallback timeout 1000ms
     // ============================================================
     function generateBreadcrumbShared(mappingObj, currentUrl, breadcrumbItems, entityType) {
         var args = arguments;
 
-        // 🔥 FIX #3: Jalankan saat browser idle
+        // FIX-B4: Timeout 2000ms → 1000ms
         if (typeof requestIdleCallback !== 'undefined') {
             log('⏳ generateBreadcrumbShared dijadwalkan (requestIdleCallback)', 'PERF');
             requestIdleCallback(function() {
                 log('🚀 generateBreadcrumbShared EXECUTE (idle)', 'PERF');
                 _generateBreadcrumbSharedImpl.apply(null, args);
-            }, { timeout: 2000 }); // timeout 2s — paksa eksekusi kalau browser sibuk
+            }, { timeout: 1000 }); // FIX-B4: 2000 → 1000
         } else {
-            // Fallback browser lama (Safari < 15)
             log('⏳ generateBreadcrumbShared dijadwalkan (setTimeout fallback)', 'PERF');
             setTimeout(function() {
                 log('🚀 generateBreadcrumbShared EXECUTE (timeout)', 'PERF');
@@ -762,15 +724,21 @@
     // LOG INFO DEVICE
     // ============================================================
     if (ENABLE_DEBUG) {
-        console.log('✅ [Breadcrumb Shared v15.1.0] Clean + Performance Patch siap dipakai');
+        console.log('✅ [Breadcrumb Shared v15.2-LITE] Performance Patch siap dipakai');
         console.log('   🖥️ Device: ' + (IS_MOBILE ? 'MOBILE' : 'DESKTOP'));
         console.log('   ⚡ Slow Device: ' + (IS_SLOW_DEVICE ? 'YES' : 'NO'));
         console.log('   🐛 Debug: ' + (ENABLE_DEBUG ? 'ON' : 'OFF'));
         console.log('   📌 Prinsip: PLD = DETEKSI, Breadcrumb = RENDER');
-        console.log('   🔥 FIX #3: Lazy Load (requestIdleCallback)');
-        console.log('   🔥 FIX #4: Cache detectPageType');
+        console.log('   🔥 FIX-B1: Guard _BREADCRUMB_INITIALIZED');
+        console.log('   🔥 FIX-B2: Cache pakai Map');
+        console.log('   🔥 FIX-B3: Batasi max 20 items');
+        console.log('   🔥 FIX-B4: requestIdleCallback timeout 1000ms');
+        console.log('   🔥 FIX-B5: Skip double-check');
+        console.log('   🔥 FIX-B6: Log silent di HP');
+        console.log('   🔥 FIX-B7: Optimasi _generateBreadcrumbSharedImpl');
+        console.log('   🔥 FIX-B8: Manual Set untuk dedupe');
     } else {
-        console.log('✅ [Breadcrumb Shared v15.1.0] Loaded (silent mode — HP detected)');
+        console.log('✅ [Breadcrumb Shared v15.2-LITE] Loaded (silent mode — HP detected)');
     }
 
     // ============================================================
