@@ -4417,7 +4417,6 @@ function detectPageLevel(userOptions) {
       checkCompoundAction: checkCompoundAction,
       calculateComplexityScore: calculateComplexityScore,
       isBaseName: isBaseName,
-      isSubVariant: isSubVariant,
       getCoreWords: getCoreWords,
       normalizeVerbVariations: normalizeVerbVariations,
       isApplicationTarget: isApplicationTarget,
