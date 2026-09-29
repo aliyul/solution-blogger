@@ -1043,27 +1043,31 @@ function insertFigureAfterH1(container, figure) {
     let targetImage = null;
     let targetFigure = null;
 
-    // 🔥 P15: querySelector langsung (1x pakai)
+   // ✅ SESUDAH (P17: lebih robust + log):
     const h1Element = document.querySelector('h1');
     if (h1Element) {
       const article = h1Element.closest('article, .post-body, main, section, div');
       if (article) {
         const siblings = article.children;
         let foundH1 = false;
+        let scannedAfterH1 = 0;
         for (let i = 0; i < siblings.length; i++) {
           if (siblings[i] === h1Element) { foundH1 = true; continue; }
           if (foundH1) {
-            const img = siblings[i].querySelector('img');
+            scannedAfterH1++;
+            // Batasi scan maksimal 5 elemen setelah H1 (perf + akurasi)
+            if (scannedAfterH1 > 5) break;
+            const img = siblings[i].querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
             if (img) {
               targetImage = img;
               targetFigure = siblings[i].tagName === 'FIGURE' ? siblings[i] : siblings[i].closest('figure');
+              log(`📸 Reuse image existing setelah H1 (pos ${scannedAfterH1})`, "IMAGE");
               break;
             }
           }
         }
       }
     }
-
     if (!targetImage) {
       const contentAreas = ['article', 'section', '.post-body', 'main', '.content', '.entry-content'];
       for (const areaSelector of contentAreas) {
