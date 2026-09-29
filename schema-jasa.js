@@ -1845,7 +1845,7 @@
           business: {
             name: "Beton Jaya Readymix",
             url: "https://www.betonjayareadymix.com",
-            telephone: "+6283839000968",
+            telephone: "+6281299842508",
             openingHours: "Mo-Sa 08:00-17:00",
             description: "Beton Jaya Readymix melayani jasa konstruksi, beton cor, precast, dan sewa alat berat di seluruh Indonesia.",
             address: { "@type": "PostalAddress", addressLocality: "Bogor", addressRegion: "Jawa Barat", addressCountry: "ID" },
