@@ -969,54 +969,65 @@
   }
 
   // ============================================================
-// 🔥 P17: INSERT FIGURE SETELAH H1 (SEO FIX) 🔥
-// ============================================================
-/**
- * Insert figure DIBAWAH H1, bukan di firstChild container.
- * Strategi:
- *   1. Cari H1 di dalam container
- *   2. Insert setelah H1 (sibling)
- *   3. Fallback: kalau H1 tidak ada, baru pakai firstChild
- *   4. Fallback terakhir: appendChild
- */
-function insertFigureAfterH1(container, figure) {
-  // Prioritas 1: H1 di dalam container
-  const h1Inside = container.querySelector('h1');
-  if (h1Inside && h1Inside.parentNode === container) {
-    // Cek nextSibling — kalau ada <p> atau <figure> pertama, sisipkan sebelum itu
-    const nextSibling = h1Inside.nextElementSibling;
-    if (nextSibling && (nextSibling.tagName === 'P' || nextSibling.tagName === 'FIGURE')) {
-      container.insertBefore(figure, nextSibling);
-    } else {
-      // Sisipkan tepat setelah H1
-      h1Inside.parentNode.insertBefore(figure, h1Inside.nextSibling);
-    }
-    log("📸 Figure di-insert SETELAH H1 (SEO optimal)", "FIX");
-    return figure;
-  }
+  // 🔥 P18: INSERT FIGURE DI DALAM KONTEN BLOGGER (SEO FIX) 🔥
+  // ============================================================
+  /**
+   * Strategi Blogger-aware:
+   *   1. Container = .post-body → firstChild = TEPAT DIBAWAH H1 visual
+   *      (H1 Blogger ada di luar .post-body, sibling-nya)
+   *   2. H1 di dalam container → insert setelah H1
+   *   3. H1 di luar container → cek .post-outer → firstChild
+   *   4. Fallback: firstChild
+   */
+  function insertFigureAfterH1(container, figure) {
+    // ⭐ PRIORITAS 1: Container adalah .post-body / .entry-content (Blogger)
+    const isPostBody = container.classList && (
+      container.classList.contains('post-body') ||
+      container.classList.contains('entry-content')
+    );
 
-  // Prioritas 2: H1 ada tapi parent-nya di luar container (mis. H1 di header)
-  const h1Global = document.querySelector('h1');
-  if (h1Global) {
-    // Coba cari wrapper terdekat yang sama dengan container
-    const commonParent = h1Global.closest('article, main, section, .post-body, .entry-content');
-    if (commonParent && commonParent.contains(container)) {
-      h1Global.parentNode.insertBefore(figure, h1Global.nextSibling);
-      log("📸 Figure di-insert SETELAH H1 global (fallback)", "FIX");
+    if (isPostBody) {
+      if (container.firstChild) {
+        container.insertBefore(figure, container.firstChild);
+      } else {
+        container.appendChild(figure);
+      }
+      log("📸 Figure di AWAL .post-body (DIBAWAH H1 visual) ✅", "FIX");
       return figure;
     }
-  }
 
-  // Prioritas 3: Tidak ada H1 → firstChild (perilaku lama)
-  if (container.firstChild) {
-    container.insertBefore(figure, container.firstChild);
-    log("⚠️ Figure di-insert di firstChild (H1 tidak ditemukan)", "WARN");
-  } else {
-    container.appendChild(figure);
-    log("⚠️ Figure di-append (container kosong)", "WARN");
+    // PRIORITAS 2: H1 di dalam container
+    const h1Inside = container.querySelector('h1');
+    if (h1Inside && h1Inside.parentNode === container) {
+      h1Inside.parentNode.insertBefore(figure, h1Inside.nextSibling);
+      log("📸 Figure SETELAH H1 (dalam container)", "FIX");
+      return figure;
+    }
+
+    // PRIORITAS 3: H1 di luar container → cek .post-outer
+    const h1Global = document.querySelector('h1');
+    if (h1Global) {
+      const commonParent = h1Global.closest('.post-outer, article, main');
+      if (commonParent && commonParent.contains(container)) {
+        if (container.firstChild) {
+          container.insertBefore(figure, container.firstChild);
+        } else {
+          container.appendChild(figure);
+        }
+        log("📸 Figure di firstChild container (H1 di luar, fallback)", "FIX");
+        return figure;
+      }
+    }
+
+    // FALLBACK: firstChild
+    if (container.firstChild) {
+      container.insertBefore(figure, container.firstChild);
+    } else {
+      container.appendChild(figure);
+    }
+    log("⚠️ Figure di-insert (fallback)", "WARN");
+    return figure;
   }
-  return figure;
-}
   
   function fixImagesToFormat1() {
     perf.start('fixImagesToFormat1');
@@ -1044,29 +1055,43 @@ function insertFigureAfterH1(container, figure) {
       figure.setAttribute('data-auto-figure', 'true');
     }
 
-    let targetImage = null;
+        let targetImage = null;
     let targetFigure = null;
 
-   // ✅ SESUDAH (P17: lebih robust + log):
-    const h1Element = document.querySelector('h1');
-    if (h1Element) {
-      const article = h1Element.closest('article, .post-body, main, section, div');
-      if (article) {
-        const siblings = article.children;
-        let foundH1 = false;
-        let scannedAfterH1 = 0;
-        for (let i = 0; i < siblings.length; i++) {
-          if (siblings[i] === h1Element) { foundH1 = true; continue; }
-          if (foundH1) {
-            scannedAfterH1++;
-            // Batasi scan maksimal 5 elemen setelah H1 (perf + akurasi)
-            if (scannedAfterH1 > 5) break;
-            const img = siblings[i].querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
-            if (img) {
-              targetImage = img;
-              targetFigure = siblings[i].tagName === 'FIGURE' ? siblings[i] : siblings[i].closest('figure');
-              log(`📸 Reuse image existing setelah H1 (pos ${scannedAfterH1})`, "IMAGE");
-              break;
+    // 🔥 P18: Prioritas cari gambar existing di dalam .post-body (Blogger)
+    const postBodyEl = document.querySelector('.post-body.entry-content, .post-body, .entry-content');
+    if (postBodyEl) {
+      const existingImg = postBodyEl.querySelector(
+        'img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])'
+      );
+      if (existingImg) {
+        targetImage = existingImg;
+        targetFigure = existingImg.closest('figure');
+        log("📸 Reuse image existing di .post-body", "IMAGE");
+      }
+    }
+
+    // Fallback: scan setelah H1 (layout non-Blogger)
+    if (!targetImage) {
+      const h1Element = document.querySelector('h1');
+      if (h1Element) {
+        const article = h1Element.closest('.post-outer, article, main, section');
+        if (article) {
+          const siblings = article.children;
+          let foundH1 = false;
+          let scannedAfterH1 = 0;
+          for (let i = 0; i < siblings.length; i++) {
+            if (siblings[i] === h1Element) { foundH1 = true; continue; }
+            if (foundH1) {
+              scannedAfterH1++;
+              if (scannedAfterH1 > 5) break;
+              const img = siblings[i].querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
+              if (img) {
+                targetImage = img;
+                targetFigure = siblings[i].tagName === 'FIGURE' ? siblings[i] : siblings[i].closest('figure');
+                log(`📸 Reuse image existing setelah H1 (pos ${scannedAfterH1})`, "IMAGE");
+                break;
+              }
             }
           }
         }
@@ -1109,9 +1134,17 @@ function insertFigureAfterH1(container, figure) {
       return figure || img;
     }
 
-    // 🔥 P15: querySelector langsung
-    const article = document.querySelector('article');
-    const container = article || document.body;
+        // 🔥 P18: Prioritas container Blogger dulu
+    const container = 
+      document.querySelector('.post-body.entry-content') ||
+      document.querySelector('.post-body') ||
+      document.querySelector('.entry-content') ||
+      document.querySelector('article') ||
+      document.querySelector('main') ||
+      document.body;
+
+    log(`📦 Container: ${container.className || container.tagName}`, "IMAGE");
+
     const figure = document.createElement('figure');
     const img = document.createElement('img');
     img.src = autoImageUrl;
