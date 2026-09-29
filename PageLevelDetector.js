@@ -125,7 +125,8 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     jasa: ["jasa", "kontraktor", "tukang", "borongan", "renovasi", "bangun", "perbaikan", "perawatan", "instalasi", "pemasangan", "pembongkaran", "pembersihan", "coring", "cutting", "grouting", "sandblasting", "pengeboran", "pemancangan", "pengecoran", "pengelasan", "pondasi", "bored pile", "bor pile", "strauss", "pancang", "waterproofing", "epoxy", "coating", "poles", "service", "servis", "layanan", "relief", "profil beton", "interior", "eksterior", "konsultan", "pembuatan", "pasang", "finishing", "uji tanah", "perkuatan tanah", "pembatas pengaman", "buang puing", "saluran drainase", "jalan perkerasan", "pematangan lahan", "lapangan olahraga"],
     desain: ["desain", "interior", "eksterior", "arsitektur", "konsep", "rencana", "gambar kerja", "denah", "render", "visualisasi", "3d design", "shop drawing"],
     sewa: ["sewa", "rental", "rent"],
-    material: ["material", "bahan", "semen", "pasir", "besi", "baja", "kayu", "keramik", "granit", "marmer", "bata", "batako", "hebel", "genteng", "pipa", "cat", "kabel", "paku", "baut", "kaca", "aluminium", "tembaga"],
+        // 🔥 OPSIONAL FIX: Lengkapi material triggers
+    material: ["material", "bahan", "semen", "mortar", "pasir", "batu", "besi", "baja", "kayu", "beton", "keramik", "granit", "marmer", "gypsum", "plafon", "paving", "bata", "batako", "hebel", "genteng", "asbes", "atap", "baja ringan", "galvalum", "readymix", "ready mix", "pipa", "cat", "kabel", "paku", "baut", "kaca", "aluminium", "tembaga", "kuningan", "perunggu", "titanium", "bambu", "rotan", "spandek", "alderon", "bekisting", "bondex", "waterproofing", "perancah", "grc", "hpl", "acp", "vinyl", "wpc", "upvc"],
         // 🔥 FIX: Tambah "precast", "pracetak"
     produk: ["produk", "jual", "beli", "supplier", "distributor", "toko", "pintu", "jendela", "pagar", "kanopi", "railing", "gerbang", "wastafel", "closet", "kitchen set", "wardrobe", "precast", "pracetak"],
     artikel: ["artikel", "blog", "tips", "panduan", "cara", "tutorial", "review", "ulasan", "berita", "informasi", "update"]
@@ -894,8 +895,9 @@ material: [
     .concat(PRODUK_SPECS.finishing)
     .concat(PRODUK_SPECS.gaya);
 
-  var MATERIAL_SPECS = {
-    grade: ["grade a","grade b","grade c","sni","standar","kualitas 1","kualitas 2","kualitas 3","kelas 1","kelas 2","kelas 3"],
+    var MATERIAL_SPECS = {
+    // 🔥 FIX B: Tambah varian grade (TANPA "fiber" & "structural" — riskan)
+    grade: ["grade a","grade b","grade c","sni","standar","kualitas 1","kualitas 2","kualitas 3","kelas 1","kelas 2","kelas 3","non shrink","fiber reinforced","thin bed","thick bed","refraktori","tahan api","tahan asam"],
     finishing: ["ulir","polos","galvanis","berlapis","cat","coating","anyaman","anti karat","anti korosi","anti air","diamon","rough","smooth","textured","zincalume"],
     dimensi: ["tebal","panjang","lebar","diameter","radius","ukuran","dimensi","ketebalan","kedalaman","tinggi"],
     berat: ["kg","ton","m3","liter","gram","ons"],
