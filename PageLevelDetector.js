@@ -978,7 +978,9 @@ material: [
 
   var PRICE_WORDS = PRICE_HEAD_WORDS;
 
-  var NOISE_WORDS_UNIVERSAL = ['borongan','sistem borongan','borongan penuh','borongan sebagian','paket borongan','sistem paket','sistem paket borongan','all in','all-in','all in one','cash','kredit','cicilan','tunai','transfer','dp','lunas','termin','kontan','installment','debit','cod','cash on delivery','paylater','pay later','bayar di tempat','bayar di awal','bayar di akhir','pembayaran','ready','preorder','pre-order','indent','po'];
+    // 🔥 FIX 4: Tambah kata umum yang bukan spec
+  // "bangunan", "konstruksi", "proyek" adalah noise — bukan spec teknis
+  var NOISE_WORDS_UNIVERSAL = ['borongan','sistem borongan','borongan penuh','borongan sebagian','paket borongan','sistem paket','sistem paket borongan','all in','all-in','all in one','cash','kredit','cicilan','tunai','transfer','dp','lunas','termin','kontan','installment','debit','cod','cash on delivery','paylater','pay later','bayar di tempat','bayar di awal','bayar di akhir','pembayaran','ready','preorder','pre-order','indent','po','bangunan','konstruksi','proyek'];
 
   var NOISE_WORDS_JASA = ['meteran','sistem meteran','sistem harian','sistem mingguan','sistem bulanan','sistem tahunan','per proyek','per paket','per pekerjaan','short term','long term','per area','per zona','per ruangan','per lantai','per hari kerja','per jam kerja','per shift','per tongkang','per rit','per ritase'];
 
@@ -2409,7 +2411,7 @@ material: [
     return level;
   }
 
-    function detectEntityTypeFromText(text) {
+function detectEntityTypeFromText(text) {
     if (!text) return null;
     var lower = text.toLowerCase();
 
@@ -2429,17 +2431,21 @@ material: [
       return "artikel";
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // Loop ENTITY_PRIORITY triggers
+        // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX: Loop ENTITY_PRIORITY triggers — pakai WORD BOUNDARY
+    // Bukan indexOf, supaya "bangunan" TIDAK match "bangun"
     // ═══════════════════════════════════════════════════════════
     for (var i = 0; i < ENTITY_PRIORITY.length; i++) {
       var entity = ENTITY_PRIORITY[i];
       var triggers = ENTITY_TRIGGERS[entity] || [];
       for (var j = 0; j < triggers.length; j++) {
-        if (lower.indexOf(triggers[j]) !== -1) return entity;
+        // 🔥 Pakai rx() = word boundary regex
+        if (rx(triggers[j]).test(lower)) {
+          log('🎯 ENTITY_PRIORITY match: "' + triggers[j] + '" → ' + entity, 'DETECT');
+          return entity;
+        }
       }
     }
-
     // ═══════════════════════════════════════════════════════════
     // Direct keyword check
     // ═══════════════════════════════════════════════════════════
