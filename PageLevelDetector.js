@@ -897,7 +897,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     navigational: ["login","daftar","kontak","tentang","hubungi","alamat","lokasi","maps","direksi"]
   };
 
-  var COMMERCIAL_WORDS = ['jual','beli','order','pesan','booking','supplier','distributor','toko','shop','dapatkan','pesan sekarang','order sekarang','beli sekarang','checkout','cara order','cara pesan','cara beli','cara booking','resmi','authorized','official','distributor resmi','dealer resmi','agen resmi','mitra resmi','sertifikat resmi','ready stock','ready stok','siap pakai','siap kirim','stok tersedia','fast respon','same day','instan'];
+  var COMMERCIAL_WORDS = ['jual','beli','order','pesan','booking','supplier','distributor','toko','shop','dapatkan','pesan sekarang','order sekarang','beli sekarang','checkout','cara order','cara pesan','cara beli','cara booking','resmi','authorized','official','distributor resmi','dealer resmi','agen resmi','mitra resmi','sertifikat resmi','ready stock','ready stok','siap pakai','siap kirim','stok tersedia','fast respon','same day'];
 
   var INFORMATIONAL_WORDS = ['butuh','cari','mau','ingin','panduan','cara','tips','tutorial','pengertian','definisi','penjelasan','kenapa','mengapa','bagaimana','berapa','apa itu','apa yang','kapan','dimana','siapa','yang mana','apakah','adakah','apa beda','apa perbedaan','update terbaru','informasi terbaru','kabar terbaru','update'];
 
