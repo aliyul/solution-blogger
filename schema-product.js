@@ -1,6 +1,10 @@
 /**
  * ⚡ AutoSchema Hybrid v5.3-LITE — PRODUCT SCHEMA (PERF MAX)
- *
+ ** ✅ P17: Gambar SELALU di-insert DIBAWAH H1 (post-title), bukan firstChild
+ *         - Helper baru: insertFigureAfterH1() dengan 3-level fallback
+ *         - Fix: figure tidak lagi muncul DI ATAS H1
+ *         - Fix: extra closing brace di fixImagesToFormat1()
+
  * 🔥 v5.3-LITE CHANGELOG (4 OPTIMASI AMAN):
  * ✅ P13: Early return breadcrumb (skip wait kalau flag sudah ada)
  * ✅ P14: Cache getPageLevelFromPLD() di variable global
