@@ -1322,7 +1322,7 @@
         name: "Beton Jaya Readymix",
         url: "https://www.betonjayareadymix.com",
         logo: LOGO_IMAGE,
-        telephone: "+6283839000968",
+        telephone: "+6281299842508",
         address: {
           "@type": "PostalAddress",
           addressLocality: "Bogor",
