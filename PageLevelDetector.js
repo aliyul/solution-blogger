@@ -220,12 +220,16 @@ material: [
       
       // ═══ BESI & BAJA (multi-word) ═══
       "besi beton","besi hollow","besi kanal","besi unp","besi cnp","besi wf","besi hbeam","besi iwf","besi ulir","besi polos","besi cor","besi tempa","besi putih","besi galvanis","besi tuang","besi baja","besi stainless","besi tembaga","besi kuningan","besi as","besi plat","besi strip","besi siku","besi nako","besi begel","besi ring","besi spiral","besi wiremesh","besi ulir sirip","besi hollow galvanis","besi hollow hitam","besi hollow kotak","besi beton ulir","besi beton polos","besi beton sni",
-      
-      "baja ringan","baja konvensional","baja wf","baja hbeam","baja iwf","baja gunung garuda","baja krakatau","baja import","baja lokal","baja hitam","baja putih","baja galvanis","baja stainless","baja tulangan","baja profil","baja plat","baja strip","baja siku","baja canal","baja unp","baja cnp","baja hollow","baja pipe","baja sch","baja seamless","baja welded",
-// 🔥 FIX: Tambah varian "baja ringan [kata]" sebagai base name
-"baja ringan struktur","baja ringan non struktural","baja ringan rangka atap","baja ringan rangka dinding","baja ringan rangka baja","baja ringan kanopi","baja ringan plafon","baja ringan partisi","baja ringan gording","baja ringan reng","baja ringan usuk","baja ringan kaso","baja ringan talang","baja ringan struktur bangunan","baja ringan struktur rangka","baja ringan struktur atap","baja ringan struktur dinding","baja ringan atap","baja ringan dinding","baja ringan kanopi atap",
-"baja ringan c75","baja ringan c100","baja ringan c125","baja ringan taso","baja ringan kencana","baja ringan brc","baja ringan galvanis","baja ringan zincalume",
-      
+         
+   "baja ringan","baja konvensional","baja wf","baja hbeam","baja iwf","baja gunung garuda","baja krakatau","baja import","baja lokal","baja hitam","baja putih","baja galvanis","baja stainless","baja tulangan","baja profil","baja plat","baja strip","baja siku","baja canal","baja unp","baja cnp","baja hollow","baja pipe","baja sch","baja seamless","baja welded",
+   // 🔥 REVISI SEO ALIGN: HANYA varian profil & ukuran standar yang jadi money-master
+   // ❌ DIHAPUS (aplikasi → money-page): "baja ringan rangka atap", "baja ringan kanopi", "baja ringan plafon", "baja ringan partisi", "baja ringan talang", "baja ringan atap", "baja ringan dinding", "baja ringan kanopi atap", "baja ringan rangka dinding", "baja ringan rangka baja", "baja ringan struktur atap", "baja ringan struktur dinding"
+   // ❌ DIHAPUS (merek bukan base): "baja ringan taso", "baja ringan kencana", "baja ringan brc"
+   "baja ringan c75","baja ringan c100","baja ringan c125",
+   "baja ringan gording","baja ringan reng","baja ringan usuk","baja ringan kaso",
+   "baja ringan galvanis","baja ringan zincalume",
+   "baja ringan struktur","baja ringan non struktural","baja ringan struktur bangunan","baja ringan struktur rangka",
+         
       // ═══ BATU & PASIR (multi-word) ═══
       "batu split","batu kali","batu belah","batu gunung","batu alam","batu apung","batu andesit","batu candi","batu palimanan","batu paras","batu koral","batu kerikil","batu pecah","batu screening","batu sikat","batu templek","batu bronjong","batu bata","batu alam andesit","batu alam palimanan","batu alam paras",
       
@@ -315,12 +319,81 @@ material: [
       // 🔥 REVISI: Hapus "scaffolding" dan "steger" — sudah ada di entity sewa
       "perancah","scaffolding pipe","main frame","cross brace",
       
-      // ═══ LAIN-LAIN (TANPA DUPLIKAT) ═══
-      // 🔥 REVISI: Hapus semua duplikat — sudah ada di kategori masing-masing di atas
-      // Yang dihapus: wiremesh, beton precast, beton pracetak, beton ready mix,
-      //               beton instan, semen instan, semen mortar,
-      //               waterproofing membran, waterproofing coating
       "bondex","besi tulangan","tulangan beton","mortar instan",
+      
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 PATCH MATERIAL MULTI-WORD BASE NAMES (v23.9.7-LITE-PERF-FINAL)
+      // HANYA varian bentuk/jenis/merek/tipe/standar/finishing alami
+      // YANG BENAR-BENAR money-master menurut SEO Align
+      // ═══════════════════════════════════════════════════════════
+      
+            // ═══════════════════════════════════════════════════════════
+      // 🔥 PATCH MATERIAL MULTI-WORD BASE NAMES (v23.9.7-LITE-PERF-FINAL-CLEAN)
+      // HANYA varian bentuk/jenis/tipe/standar/finishing alami
+      // YANG BENAR-BENAR money-master menurut SEO Align
+      // 
+      // ⚠️ CATATAN: Beberapa item di bawah SUDAH ADA di bagian EXISTING
+      //    di atas (line ~360-480). Yang duplikat DIHAPUS dari sini
+      //    untuk hindari pemborosan memori. Sorting otomatis + rx cache
+      //    sudah handle duplikat, tapi best practice = bersih.
+      // ═══════════════════════════════════════════════════════════
+      
+      // ═══ BAJA — varian profil (belum ada di existing) ═══
+      "baja profil wf","baja profil hbeam","baja profil iwf","baja profil unp","baja profil cnp",
+      "baja tulangan ulir","baja tulangan polos",
+      // ❌ TIDAK MASUK: "baja struktur" (terlalu umum), "baja berat" (kategori, bukan produk)
+      // ❌ TIDAK MASUK (aplikasi): "baja ringan kanopi", "baja ringan rangka atap", dll
+      // ❌ TIDAK MASUK (merek): "baja ringan taso", "baja ringan kencana", "baja ringan brc"
+      
+      // ═══ BESI — varian bentuk (belum ada di existing) ═══
+      "besi hollow bulat",
+      "besi kanal c","besi kanal u",
+      "besi plat strip","besi plat hitam","besi plat putih",
+      "besi siku lubang","besi siku polos",
+      "besi tulangan ulir","besi tulangan polos",
+      "besi wiremesh m6","besi wiremesh m8","besi wiremesh m10","besi wiremesh m12",
+      // ✅ SUDAH ADA di existing: "besi beton ulir sirip", "besi beton ulir", "besi beton polos", "besi beton sni",
+      //    "besi hollow galvanis", "besi hollow hitam", "besi hollow kotak", "besi ulir sirip"
+      
+      // ═══ KAYU — varian jenis & finishing alami (belum ada di existing) ═══
+      "kayu jati solid","kayu jati belanda",
+      "kayu meranti merah","kayu meranti putih",
+      "kayu mahoni solid","kayu sengon solid","kayu pinus solid",
+      "kayu kamper solid","kayu kruing solid",
+      // ❌ TIDAK MASUK (aplikasi): "kayu balok struktur", "kayu papan cor", "kayu reng atap", "kayu usuk atap", "kayu kaso atap"
+      
+      // ═══ BATU — varian bentuk alami & jenis batu alam (belum ada di existing) ═══
+      "batu kali bulat","batu kali belah","batu gunung belah",
+      "batu alam templek","batu alam sikat",
+      // ✅ SUDAH ADA di existing: "batu alam andesit", "batu alam palimanan", "batu alam paras"
+      // ❌ TIDAK MASUK (aplikasi): "batu split cor", "batu split beton", "batu belah cor", "batu gunung cor"
+      
+      // ═══ PASIR — varian asal daerah (belum ada di existing) ═══
+      "pasir putih bangka",
+      // ❌ TIDAK MASUK (aplikasi): "pasir beton cor", "pasir beton struktur", "pasir pasang bata", "pasir pasang keramik",
+      //    "pasir urug pondasi", "pasir urug lahan", "pasir halus plester", "pasir kasar cor", "pasir hitam cor"
+      
+      // ═══ SEMEN — varian tipe standar (belum ada di existing) ═══
+      "semen portland putih","semen portland abu",
+      "semen portland tipe 1","semen portland tipe 2","semen portland tipe 3","semen portland tipe 4","semen portland tipe 5",
+      "semen gresik portland","semen holcim portland","semen tiga roda portland",
+      // ✅ SUDAH ADA di existing: "semen portland pozzolan", "semen portland composite"
+      
+      // ═══ CAT — varian fitur produk & jenis (belum ada di existing) ═══
+      "cat tembok weathershield","cat besi anti karat","cat lantai epoxy",
+      // ❌ TIDAK MASUK (aplikasi): "cat tembok interior", "cat tembok eksterior", "cat kayu interior", "cat kayu eksterior",
+      //    "cat dinding interior", "cat dinding eksterior", "cat plafon interior"
+      
+      // ═══ KERAMIK — varian motif & finishing (belum ada di existing) ═══
+      "keramik motif kayu","keramik motif marmer",
+      "keramik polos putih","keramik polos hitam",
+      // ❌ TIDAK MASUK (ukuran = variant): "keramik lantai 60x60", "keramik lantai 40x40", "keramik lantai 30x30",
+      //    "keramik dinding 25x40", "keramik dinding 30x60", "keramik kamar mandi 25x25", "keramik dapur 30x30", "keramik teras 40x40"
+      
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 END PATCH MATERIAL MULTI-WORD FINAL-CLEAN
+      // ═══════════════════════════════════════════════════════════
+      
       "perekat beton","perekat keramik","lem beton"
     ],
     
@@ -834,7 +907,67 @@ material: [
     "mortar instan perekat","mortar instan keramik","mortar thin bed","mortar thick bed",
     "mortar grouting non shrink","mortar grouting structural","mortar repair",
     "mortar perbaikan struktural","mortar structural repair","mortar tahan api",
-    "mortar refraktori","mortar tahan asam","mortar waterproofing","mortar anti bocor"
+    "mortar refraktori","mortar tahan asam","mortar waterproofing","mortar anti bocor",
+        // ═══════════════════════════════════════════════════════════
+    // 🔥 PATCH SINKRON: Material multi-word varian
+    // SINKRON dengan ENTITY_BASE_NAMES.material
+    // 
+    // PRINSIP SEO ALIGN:
+    //   - Base name (money-master) → BOLEH di MATERIAL_TYPE_WORDS? TIDAK
+    //     (base name bukan "tipe", dia produk utuh)
+    //   - Varian yang jadi money-master → BOLEH di sini sebagai "tipe"
+    //   - Aplikasi (kanopi, rangka atap, interior) → TIDAK BOLEH di sini
+    //   - Merek tanpa jenis → TIDAK BOLEH di sini
+    // ═══════════════════════════════════════════════════════════
+    
+    // ═══ BAJA RINGAN — HANYA varian profil & ukuran standar ═══
+    "baja ringan c75","baja ringan c100","baja ringan c125",
+    "baja ringan gording","baja ringan reng","baja ringan usuk","baja ringan kaso",
+    "baja ringan galvanis","baja ringan zincalume",
+    "baja ringan struktur","baja ringan non struktural",
+    "baja ringan struktur bangunan","baja ringan struktur rangka",
+    // ❌ TIDAK MASUK (aplikasi): "baja ringan rangka atap", "baja ringan kanopi", "baja ringan plafon", "baja ringan partisi", "baja ringan talang", "baja ringan atap", "baja ringan dinding", "baja ringan kanopi atap", "baja ringan rangka dinding", "baja ringan rangka baja", "baja ringan struktur atap", "baja ringan struktur dinding"
+    // ❌ TIDAK MASUK (merek): "baja ringan taso", "baja ringan kencana", "baja ringan brc"
+    
+    // ═══ BAJA — varian profil ═══
+    "baja profil wf","baja profil hbeam","baja profil iwf","baja profil unp","baja profil cnp",
+    "baja tulangan ulir","baja tulangan polos",
+    
+    // ═══ BESI — varian bentuk & ukuran standar ═══
+    "besi beton ulir sirip","besi beton ulir","besi beton polos","besi beton sni",
+    "besi hollow galvanis","besi hollow hitam","besi hollow kotak","besi hollow bulat",
+    "besi kanal c","besi kanal u",
+    "besi plat strip","besi plat hitam","besi plat putih",
+    "besi siku lubang","besi siku polos",
+    "besi ulir sirip","besi tulangan ulir","besi tulangan polos",
+    "besi wiremesh m6","besi wiremesh m8","besi wiremesh m10","besi wiremesh m12",
+    
+    // ═══ KAYU — varian jenis & finishing alami ═══
+    "kayu jati solid","kayu jati belanda",
+    "kayu meranti merah","kayu meranti putih",
+    "kayu mahoni solid","kayu sengon solid","kayu pinus solid",
+    "kayu kamper solid","kayu kruing solid",
+    
+    // ═══ BATU — varian bentuk alami & jenis batu alam ═══
+    "batu kali bulat","batu kali belah","batu gunung belah",
+    "batu alam andesit","batu alam palimanan","batu alam paras",
+    "batu alam templek","batu alam sikat",
+    
+    // ═══ PASIR — varian asal daerah ═══
+    "pasir putih bangka",
+    
+    // ═══ SEMEN — varian tipe standar ═══
+    "semen portland pozzolan","semen portland composite",
+    "semen portland putih","semen portland abu",
+    "semen portland tipe 1","semen portland tipe 2","semen portland tipe 3","semen portland tipe 4","semen portland tipe 5",
+    "semen gresik portland","semen holcim portland","semen tiga roda portland",
+    
+    // ═══ CAT — varian fitur produk ═══
+    "cat tembok weathershield","cat besi anti karat","cat lantai epoxy",
+    
+    // ═══ KERAMIK — varian motif & finishing ═══
+    "keramik motif kayu","keramik motif marmer",
+    "keramik polos putih","keramik polos hitam"
   ];
 
   var OBJECT_WORDS = ["tanah","lahan","badan","permukaan","dasar","area","bidang","tapak","kavling","petak","drainase","geotekstil","pondasi","saluran","gorong","aspal","pipa","kabel","tiang","dinding","gorong-gorong","jembatan","tanggul","embung","waduk","bendungan","beton","cor","besi","baja","kayu","batu","bata","keramik","granit","marmer","paving","genteng","rumah","gedung","ruko","gudang","pabrik","jalan","trotoar","selokan","bukit","gunung","sungai","rawa","gambut","lereng","tebing","jurang","lembah","pile","pancang","strauss","bore","kolom","balok","plat","slab","pelat","lantai","plafon","atap","kusen","septic","septic tank","resapan","sumur","tangga","kamar","kamar mandi","kamar tidur","dapur","toilet","wc","ruang","ruang tamu","ruang makan","ruang keluarga","ruang kerja","ruang tidur","teras","balkon","fasad","halaman","carport","garasi","taman","halaman depan","halaman belakang","kantor","toko","cafe","restoran","hotel","apartemen","showroom","klinik","mall","sekolah","rukan","kios","warung","pujasera","wallpaper","parket","laminasi","vinyl","wpc","hpl","grc","acp","pagar","pintu","jendela","railing","rolling door","shower box","tralis","jeruji","kanopi","awning","spandek","alderon","genteng metal","wall","wallpanel","wall-panel","moulding","wall-moulding","cornice","plinth","skirting","wainscoting","backdrop","feature-wall","feature wall","ceiling","drop-ceiling","partisi","sekat","cladding","facade","facade-panel","panel-dinding","dinding-panel","ac","air conditioner","cctv","listrik","instalasi listrik","air","pipa air","plumbing","gas","panel-listrik","travo","trafo","internet","jaringan","alarm","kamera","sensor","detector","detektor","antena","parabola","wifi","router","cctv-kamera","signage","logo","spanduk","banner","billboard","neonbox","neon box","letter timbul","huruf timbul","papan nama","plang","reklame","papan reklame","kaca tempered","kaca-polos","kaca-bermotif","kaca-buram","kaca-es","kaca-panasap","aluminium-composite","aluminium foil","kaca-film","kaca-jendela"];
