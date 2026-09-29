@@ -156,7 +156,8 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   var ENTITY_BASE_NAMES = {
     produk: [
       // ═══ KATEGORI DASAR (1 kata) ═══
-      "pintu","jendela","kusen","pagar","kanopi","plafon","wallpaper","atap","paving","kitchen set","wardrobe","sofa","meja","kursi","lemari","nakas","tempat tidur","bed frame","gazebo","kolam","taman","lampu","cctv","saklar listrik","stop kontak","panel listrik","railing","tangga","gerbang","wastafel","closet","tandon air","tangki air","water heater","gorden","blind","kasa nyamuk","tralis","rak dinding","rak tv","rak buku","gantungan baju","kunci pintu","handle pintu","engsel pintu","gagang pintu",
+      // 🔥 REVISI: Hapus "plafon", "atap", "paving" — pindah ke material
+      "pintu","jendela","kusen","pagar","kanopi","wallpaper","kitchen set","wardrobe","sofa","meja","kursi","lemari","nakas","tempat tidur","bed frame","gazebo","kolam","taman","lampu","cctv","saklar listrik","stop kontak","panel listrik","railing","tangga","gerbang","wastafel","closet","tandon air","tangki air","water heater","gorden","blind","kasa nyamuk","tralis","rak dinding","rak tv","rak buku","gantungan baju","kunci pintu","handle pintu","engsel pintu","gagang pintu",
       
       // ═══ PINTU (multi-word) ═══
       "pintu besi","pintu kayu","pintu aluminium","pintu kaca","pintu geser","pintu lipat","pintu swing","pintu sliding","pintu rolling door","pintu folding gate","pintu harmonika","pintu ayun","pintu kupu-kupu","pintu revolving","pintu otomatis","pintu manual","pintu knockdown","pintu prefab","pintu precast","pintu panel","pintu utama","pintu kamar","pintu kamar mandi","pintu dapur","pintu garasi","pintu belakang","pintu besi hollow","pintu besi tempa","pintu besi minimalis","pintu kayu jati","pintu kayu meranti","pintu kayu mahoni","pintu aluminium kaca","pintu aluminium putih",
@@ -201,7 +202,8 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     ],
         material: [
       // ═══ KATEGORI DASAR (1 kata) ═══
-      "semen","pasir","batu","besi","baja","kayu","beton","pipa","kabel","fitting","kaca","valve","kran","cat","vernis","politur","plamir","lem","waterproofing","keramik","granit","marmer","gypsum","bata","batako","hebel","genteng","asbes","galvalum","precast","pracetak","aluminium","kerikil","paku","baut","sekrup","mur","kawat","wiremesh","tembaga","kuningan","perunggu","titanium","bambu","rotan","spandek","alderon","ready mix","readymix",
+      // 🔥 REVISI: Tambah "atap", "plafon", "paving" — pindah dari produk
+      "semen","pasir","batu","besi","baja","kayu","beton","pipa","kabel","fitting","kaca","valve","kran","cat","vernis","politur","plamir","lem","waterproofing","keramik","granit","marmer","gypsum","bata","batako","hebel","genteng","asbes","galvalum","precast","pracetak","aluminium","kerikil","paku","baut","sekrup","mur","kawat","wiremesh","tembaga","kuningan","perunggu","titanium","bambu","rotan","spandek","alderon","ready mix","readymix","atap","plafon","paving",
       
       // ═══ BESI & BAJA (multi-word) ═══
       "besi beton","besi hollow","besi kanal","besi unp","besi cnp","besi wf","besi hbeam","besi iwf","besi ulir","besi polos","besi cor","besi tempa","besi putih","besi galvanis","besi tuang","besi baja","besi stainless","besi tembaga","besi kuningan","besi as","besi plat","besi strip","besi siku","besi nako","besi begel","besi ring","besi spiral","besi wiremesh","besi ulir sirip","besi hollow galvanis","besi hollow hitam","besi hollow kotak","besi beton ulir","besi beton polos","besi beton sni",
@@ -272,9 +274,30 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       // ═══ LEM & WATERPROOFING (multi-word) ═══
       "lem fox","lem pvc","lem kayu","lem besi","lem kaca","lem beton","lem keramik","lem granit","lem marmer","lem epoxy","lem pu","lem silikon","lem sealant","lem konstruksi","lem instant","lem super",
       
-      "waterproofing membran","waterproofing coating","waterproofing semen","waterproofing beton","waterproofing basement","waterproofing atap","waterproofing kamar mandi","waterproofing lantai","waterproofing aquaproof","waterproofing no drop","waterproofing sika","waterproofing fosroc"
+      "waterproofing membran","waterproofing coating","waterproofing semen","waterproofing beton","waterproofing basement","waterproofing atap","waterproofing kamar mandi","waterproofing lantai","waterproofing aquaproof","waterproofing no drop","waterproofing sika","waterproofing fosroc",
+      
+      // ═══ BEKISTING (multi-word) ═══
+      "bekisting kayu","bekisting baja","bekisting aluminium","bekisting konvensional",
+      "bekisting kolom","bekisting balok","bekisting sloof","bekisting plat","bekisting dak",
+      "bekisting jalan","bekisting beton","bekisting panel","bekisting multiplek",
+      "bekisting plywood","kayu bekisting","papan bekisting","multiplek bekisting",
+      "plywood bekisting",
+      
+      // ═══ PERANCAH (non-sewa) ═══
+      // 🔥 REVISI: Hapus "scaffolding" dan "steger" — sudah ada di entity sewa
+      "perancah","scaffolding pipe","main frame","cross brace",
+      
+      // ═══ LAIN-LAIN (TANPA DUPLIKAT) ═══
+      // 🔥 REVISI: Hapus semua duplikat — sudah ada di kategori masing-masing di atas
+      // Yang dihapus: wiremesh, beton precast, beton pracetak, beton ready mix,
+      //               beton instan, semen instan, semen mortar,
+      //               waterproofing membran, waterproofing coating
+      "bondex","besi tulangan","tulangan beton","mortar instan",
+      "perekat beton","perekat keramik","lem beton"
     ],
-        // ENTITY: JASA
+    
+    // ═══════════════════════════════════════════════════════════
+    // ENTITY: JASA
     // ═══════════════════════════════════════════════════════════
     jasa: [
       // ═══ JASA STRUKTURAL ═══
