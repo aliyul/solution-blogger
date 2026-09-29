@@ -126,7 +126,8 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     desain: ["desain", "interior", "eksterior", "arsitektur", "konsep", "rencana", "gambar kerja", "denah", "render", "visualisasi", "3d design", "shop drawing"],
     sewa: ["sewa", "rental", "rent"],
     material: ["material", "bahan", "semen", "pasir", "besi", "baja", "kayu", "keramik", "granit", "marmer", "bata", "batako", "hebel", "genteng", "pipa", "cat", "kabel", "paku", "baut", "kaca", "aluminium", "tembaga"],
-    produk: ["produk", "jual", "beli", "supplier", "distributor", "toko", "pintu", "jendela", "pagar", "kanopi", "railing", "gerbang", "wastafel", "closet", "kitchen set", "wardrobe"],
+        // 🔥 FIX: Tambah "precast", "pracetak"
+    produk: ["produk", "jual", "beli", "supplier", "distributor", "toko", "pintu", "jendela", "pagar", "kanopi", "railing", "gerbang", "wastafel", "closet", "kitchen set", "wardrobe", "precast", "pracetak"],
     artikel: ["artikel", "blog", "tips", "panduan", "cara", "tutorial", "review", "ulasan", "berita", "informasi", "update"]
   };
 
@@ -138,9 +139,11 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
 
   var SEWA_WORDS = ['sewa','rental','rent','alat','mesin','heavy equipment','excavator','bulldozer','crane','backhoe','dozer','vibro','roller','compactor','diesel','hydraulic','mini','besar','kecil','sedang','medium','extra','scaffolding','steger','tenda','terpal','portacamp','toilet portable','tower lamp'];
 
-  var MATERIAL_WORDS = ['material','bahan','semen','mortar','pasir','batu split','kerikil','besi','baja','kayu','keramik','granit','marmer','gypsum','plafon','paving','bata','batako','hebel','genteng','asbes','atap','baja ringan','galvalum','precast','pracetak','readymix','ready mix','paku','baut','mur','sekrup','kawat','wiremesh','cat','vernis','politur','plamir','lem','pipa','kabel','fitting','kran','kaca','aluminium','tembaga'];
+    // 🔥 FIX: Hapus "precast" dan "pracetak" — pindah ke produk
+  var MATERIAL_WORDS = ['material','bahan','semen','mortar','pasir','batu split','kerikil','besi','baja','kayu','keramik','granit','marmer','gypsum','plafon','paving','bata','batako','hebel','genteng','asbes','atap','baja ringan','galvalum','readymix','ready mix','paku','baut','mur','sekrup','kawat','wiremesh','cat','vernis','politur','plamir','lem','pipa','kabel','fitting','kran','kaca','aluminium','tembaga'];
 
-  var PRODUK_WORDS = ['produk','jual','beli','supplier','distributor','toko','shop','pagar panel','panel beton','pagar beton','pagar panel beton','kanopi','paving block','u ditch','box culvert','bata ringan','atap baja ringan','besi beton','pintu','jendela','kusen','pagar','railing','gerbang','wastafel','closet','kitchen set','wardrobe','lemari'];
+  // 🔥 FIX: Tambah "precast", "pracetak"
+  var PRODUK_WORDS = ['produk','jual','beli','supplier','distributor','toko','shop','pagar panel','panel beton','pagar beton','pagar panel beton','kanopi','paving block','u ditch','box culvert','pintu','jendela','kusen','pagar','railing','gerbang','wastafel','closet','kitchen set','wardrobe','lemari','precast','pracetak','beton precast','beton pracetak'];
 
   var DESAIN_WORDS = ['desain','interior','eksterior','arsitektur','layout','denah','gambar','konsep','rencana','modern','minimalis','klasik','tradisional','kontemporer','elegan','luxury','industrial','scandinavian','jepang','rustic','vintage','render','visualisasi','3d','shop drawing','tata ruang'];
 
@@ -186,24 +189,33 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       
       "taman kering","taman vertikal","taman minimalis","taman tropis","taman jepang","taman bali",
       
-      // ═══ PRECAST & PAVING (multi-word) ═══
+            // ═══ PRECAST & PAVING (multi-word) 🔥 FIX ═══
+      // 🔥 FIX: Tambah "precast", "pracetak" + varian
+      "precast","pracetak","precast beton","pracetak beton",
+      "beton precast","beton pracetak","precast concrete","precast panel",
+      "precast pile","pracetak pile","precast slab","pracetak slab",
+      "precast kanstin","pracetak kanstin","precast paving","pracetak paving",
+      "precast u ditch","pracetak u ditch","precast box culvert","pracetak box culvert",
+      "precast half slab","pracetak half slab","precast kolom","pracetak kolom",
+      "precast balok","pracetak balok","precast tiang","pracetak tiang",
+      
       "u ditch","u ditch cover","tutup u ditch","box culvert","buis beton","gorong gorong","sumuran","sumur resapan","kanstin beton","kanstin","curb stone","grass block",
       
       "paving block","paving block beton","paving block hexagonal","paving block persegi","paving block warna",
       
       "rooster beton","roster beton","roster beton minimalis",
       
-      "spun pile","mini pile","micropile","sheet pile","tiang pancang","half slab","sloof beton","kolom praktis",
-      
+      "spun pile","mini pile","micropile","sheet pile","tiang pancang","half slab","sloof beton","kolom praktis",     
+       
       // ═══ WALLPAPER & DINDING (multi-word) ═══
       "wallpaper dinding","wallpaper motif","wallpaper custom","wallpaper vinyl","wallpaper korea","wallpaper 3d","wallpaper kamar","wallpaper ruang tamu","wallpaper kantor",
       
       "wall panel","wallpanel","wall moulding","wall-moulding","wainscoting","wallpaper sticker","wallpaper roll"
     ],
-        material: [
-      // ═══ KATEGORI DASAR (1 kata) ═══
-      // 🔥 REVISI: Tambah "atap", "plafon", "paving" — pindah dari produk
-      "semen","pasir","batu","besi","baja","kayu","beton","pipa","kabel","fitting","kaca","valve","kran","cat","vernis","politur","plamir","lem","waterproofing","keramik","granit","marmer","gypsum","bata","batako","hebel","genteng","asbes","galvalum","precast","pracetak","aluminium","kerikil","paku","baut","sekrup","mur","kawat","wiremesh","tembaga","kuningan","perunggu","titanium","bambu","rotan","spandek","alderon","ready mix","readymix","atap","plafon","paving",
+     
+material: [
+  // 🔥 FIX: Hapus "precast", "pracetak" — pindah ke produk
+  "semen","pasir","batu","besi","baja","kayu","beton","pipa","kabel","fitting","kaca","valve","kran","cat","vernis","politur","plamir","lem","waterproofing","keramik","granit","marmer","gypsum","bata","batako","hebel","genteng","asbes","galvalum","aluminium","kerikil","paku","baut","sekrup","mur","kawat","wiremesh","tembaga","kuningan","perunggu","titanium","bambu","rotan","spandek","alderon","ready mix","readymix","atap","plafon","paving",
       
       // ═══ BESI & BAJA (multi-word) ═══
       "besi beton","besi hollow","besi kanal","besi unp","besi cnp","besi wf","besi hbeam","besi iwf","besi ulir","besi polos","besi cor","besi tempa","besi putih","besi galvanis","besi tuang","besi baja","besi stainless","besi tembaga","besi kuningan","besi as","besi plat","besi strip","besi siku","besi nako","besi begel","besi ring","besi spiral","besi wiremesh","besi ulir sirip","besi hollow galvanis","besi hollow hitam","besi hollow kotak","besi beton ulir","besi beton polos","besi beton sni",
@@ -268,10 +280,9 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       
       "kaca tempered","kaca polos","kaca bermotif","kaca buram","kaca es","kaca panasap","kaca film","kaca jendela","kaca patri","kaca laminated","kaca clear","kaca rayben","kaca 5mm","kaca 8mm","kaca 10mm","kaca 12mm",
       
-      // ═══ PRECAST & BETON (multi-word) ═══
-      "precast beton","precast pile","precast slab","precast panel","precast u ditch","precast box culvert","precast kanstin","precast paving","precast concrete",
-      
-      "beton ready mix","beton cor","beton precast","beton pracetak","beton bertulang","beton prategang","beton cor jayamix","beton cor minimix","beton instan","beton mortar","beton siklop","beton ringan","beton berat","beton massa","beton ekspos","beton struktural","beton non struktural","beton k225","beton k250","beton k300","beton k350","beton k400","beton k450","beton k500",
+            // ═══ BETON (multi-word) ═══
+      // 🔥 FIX: Hapus "precast X" — pindah ke produk
+      "beton ready mix","beton cor","beton bertulang","beton prategang","beton cor jayamix","beton cor minimix","beton instan","beton mortar","beton siklop","beton ringan","beton berat","beton massa","beton ekspos","beton struktural","beton non struktural","beton k225","beton k250","beton k300","beton k350","beton k400","beton k450","beton k500",
       
       // ═══ WIREMESH & BAUT (multi-word) ═══
       "wiremesh m6","wiremesh m8","wiremesh m10","wiremesh m12","wiremesh m5","wiremesh m7","wiremesh m9","wiremesh lembaran","wiremesh roll",
@@ -842,7 +853,9 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     }
   })();
 
-  var MATERIAL_SERVICE_NAMES = ["semen","pasir","batu split","kerikil","besi","baja","kayu","keramik","granit","marmer","gypsum","plafon","paving","bata","batako","hebel","genteng","asbes","atap","baja ringan","galvalum","precast","pracetak","readymix","beton","cor","kaca","aluminium","pipa"];
+    // 🔥 FIX: Hapus "precast", "pracetak", "paving", "plafon", "atap" — pindah ke produk
+  // Tapi tetap sertakan "mortar" yang sudah ditambah sebelumnya
+  var MATERIAL_SERVICE_NAMES = ["semen","mortar","pasir","batu split","kerikil","besi","baja","kayu","beton","keramik","granit","marmer","gypsum","bata","batako","hebel","genteng","asbes","baja ringan","galvalum","readymix","cor","kaca","aluminium","pipa"];
 
   var CROSS_ENTITY_SPECS = {
     jasa: {
