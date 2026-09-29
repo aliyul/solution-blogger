@@ -154,11 +154,479 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   };
 
   var ENTITY_BASE_NAMES = {
-    produk: ["pintu","jendela","kusen","pagar","kanopi","plafon","wallpaper","atap","paving","kitchen set","wardrobe","sofa","meja","kursi","lemari","nakas","tempat tidur","bed frame","gazebo","kolam","taman","lampu","cctv","saklar listrik","stop kontak","panel listrik","railing","tangga","gerbang","wastafel","closet","tandon air","tangki air","water heater","gorden","blind","kasa nyamuk","tralis","rak dinding","rak tv","rak buku","gantungan baju","pagar panel","pagar beton","pagar brc","u ditch","u ditch cover","tutup u ditch","box culvert","buis beton","gorong gorong","sumuran","sumur resapan","kanstin beton","kanstin","curb stone","grass block","paving block","rooster beton","roster beton","spun pile","mini pile","micropile","sheet pile","tiang pancang","half slab","sloof beton","kolom praktis","kolam renang","taman kering","taman vertikal","walk in closet"],
-    material: ["semen","pasir","batu","besi","baja","kayu","beton","pipa","kabel","fitting","kaca","valve","kran","cat","vernis","politur","plamir","lem","waterproofing","keramik","granit","marmer","gypsum","bata","batako","hebel","genteng","asbes","galvalum","precast","pracetak","aluminium","kerikil","ready mix","readymix","baja ringan","besi beton","bata ringan","batu split","batu kali","batu belah","paku","baut","sekrup","mur","kawat","wiremesh","besi wiremesh","kabel twisted","kabel nyy","kabel nym"],
-    jasa: ["pengeboran","bore pile","bor pile","bored pile","boring pile","mini pile","spun pile","micropile","bor strauss","bor pancang","strauss pile","tiang pancang","pancang","turap","sheet pile","jet grouting","stabilisasi tanah","soil improvement","sumur bor","bor sumur","cor","cor dak","cor lantai","cor jalan","cor kolom","cor sloof","cor balok","cor plat","cor pondasi","cor tiang","cor dinding","cor pagar","pasang dinding","pasang keramik","pasang granit","pasang marmer","pasang parket","pasang vinyl","pasang ubin","pasang wallpaper","pasang wpc","pasang grc","pasang hpl","pasang partisi","pasang pagar","pasang kanopi","pasang awning","pasang railing","pasang tangga","pasang gerbang","pasang baja ringan","pasang rangka atap","pasang atap","pasang genteng","pasang plafon","pasang gypsum","pasang pintu","pasang jendela","pasang kusen","pasang kaca","pasang shower box","pasang instalasi listrik","pasang instalasi air","pasang instalasi gas","pasang instalasi ac","pasang pipa","pasang kabel listrik","pasang panel listrik","pasang ac","pasang cctv","pasang alarm","bongkar dinding","bongkar lantai","bongkar plat","bongkar gedung","bongkar rumah","bongkar ruko","bongkar gudang","bongkar atap","bongkar keramik","bongkar granit","bongkar marmer","bongkar plafon","bongkar kusen","bongkar pintu","bongkar jendela","bongkar pagar","bongkar partisi","gali tanah","gali pondasi","gali basement","gali saluran","penggalian tanah","penggalian pondasi","urug tanah","urug lahan","urug pondasi","urug jalan","pengurugan tanah","pengurugan lahan","angkut tanah","angkut puing","angkut material","pemadatan tanah","pemadatan lahan","pengerukan sungai","pengerukan kolam","pengerukan saluran","pemotongan bukit","cut and fill","renovasi rumah","renovasi gedung","renovasi kantor","renovasi toko","renovasi ruko","renovasi gudang","renovasi pabrik","renovasi apartemen","renovasi dapur","renovasi kamar mandi","renovasi kamar tidur","renovasi ruang tamu","renovasi teras","renovasi balkon","renovasi atap","renovasi lantai","renovasi dinding","renovasi plafon","renovasi pagar","renovasi taman","cat dinding","cat tembok","cat plafon","cat kayu","cat besi","cat pagar","pengecatan dinding","pengecatan tembok","waterproofing","poles marmer","poles granit","poles keramik","poles lantai","grinding","grinding beton","grinding lantai","epoxy lantai","coating","coating lantai","coating beton","instalasi listrik","instalasi air","instalasi plumbing","instalasi ac","instalasi cctv","instalasi alarm","service ac","service pompa air","service genset","service lift","perbaikan atap","perbaikan dinding","perbaikan lantai","perbaikan plafon","perbaikan pondasi","perbaikan struktur","perbaikan pipa","perbaikan saluran air","perawatan gedung","perawatan kolam","coring","cutting","bor","drilling","boring","grouting","las","welding","sandblasting","las besi","las pagar","las kanopi","las rangka baja","las tiang","welding besi","welding konstruksi","sandblasting besi","sandblasting beton","sandblasting dinding","bangun rumah","bangun gedung","bangun ruko","bangun gudang","bangun kantor","bangun pabrik","bangun sekolah","borongan rumah","borongan gedung","borongan interior","pembersihan lahan","land clearing","pengaspalan","aspal jalan","pemasangan wifi","instalasi internet","instalasi antena","pemasangan parabola","pembuatan kanopi","pembuatan pagar","pembuatan railing","relief","relief beton","profil beton","interior","eksterior","konsultan","konsultan konstruksi","pembuatan","pasang","alat konstruksi","konstruksi bangunan","konstruksi struktur","struktur khusus","struktur konstruksi","lapangan olahraga","pondasi","saluran drainase","jalan perkerasan","pematangan lahan","pekerjaan galian tanah","uji tanah","soil test","cutting beton","bongkar bangunan","buang puing","perkuatan tanah","pembatas pengaman","finishing","perbaikan bangunan","perbaikan infrastruktur"],
-    sewa: ["alat berat","heavy equipment","excavator","bulldozer","backhoe","dozer","vibro","crane","truck crane","mobile crane","crawler crane","tower crane","dump truck","motor grader","wheel loader","asphalt finisher","asphalt paver","tandem roller","pneumatic tire roller","cold milling","batching plant","concrete pump","pompa beton","pompa air","jack hammer","forklift","genset","boom lift","skylift","scissor lift","man lift","articulated boom lift","telescopic boom lift","concrete mixer","molen beton","vibrator beton","chain block","hoist crane","overhead crane","gantry crane","winch","cable puller","vibratory plate","stamper kodok","tamper","wacker plate","vibro plate","soil compactor","trowel beton","power trowel","mesin plester","mesin acian","mesin cat","spray gun","airless sprayer","mesin potong","chainsaw","gergaji mesin","pompa celup","pompa submersible","pompa sentrifugal","pompa transfer","kompresor angin","compressor","scaffolding","steger","tenda","terpal","toilet portable","portacamp","tower lamp","lampu sorot"],
-    desain: ["desain interior","desain eksterior","desain rumah","desain arsitektur","desain 3d","desain denah","desain layout","desain bangunan","desain struktur","desain kantor","desain toko","desain ruko","desain villa","desain apartemen","desain showroom","desain kos","desain guest house","desain pujasera","desain warung","desain bengkel","desain gudang","desain foodcourt","desain kedai","desain kafe","desain cafe","desain restoran","desain hotel","desain bar","desain lounge","desain spa","desain salon","desain minimarket","desain butik","desain sekolah","desain klinik","desain dapur","desain kamar mandi","desain kamar tidur","desain ruang tamu","desain ruang keluarga","desain ruang makan","desain ruang kerja","desain teras","desain balkon","desain carport","desain fasad","desain taman","desain kolam renang","desain gazebo","desain walk in closet","desain kamar anak","gambar arsitektur","gambar kerja","gambar teknik"]
+    produk: [
+      // ═══ KATEGORI DASAR (1 kata) ═══
+      "pintu","jendela","kusen","pagar","kanopi","plafon","wallpaper","atap","paving","kitchen set","wardrobe","sofa","meja","kursi","lemari","nakas","tempat tidur","bed frame","gazebo","kolam","taman","lampu","cctv","saklar listrik","stop kontak","panel listrik","railing","tangga","gerbang","wastafel","closet","tandon air","tangki air","water heater","gorden","blind","kasa nyamuk","tralis","rak dinding","rak tv","rak buku","gantungan baju","kunci pintu","handle pintu","engsel pintu","gagang pintu",
+      
+      // ═══ PINTU (multi-word) ═══
+      "pintu besi","pintu kayu","pintu aluminium","pintu kaca","pintu geser","pintu lipat","pintu swing","pintu sliding","pintu rolling door","pintu folding gate","pintu harmonika","pintu ayun","pintu kupu-kupu","pintu revolving","pintu otomatis","pintu manual","pintu knockdown","pintu prefab","pintu precast","pintu panel","pintu utama","pintu kamar","pintu kamar mandi","pintu dapur","pintu garasi","pintu belakang","pintu besi hollow","pintu besi tempa","pintu besi minimalis","pintu kayu jati","pintu kayu meranti","pintu kayu mahoni","pintu aluminium kaca","pintu aluminium putih",
+      
+      // ═══ JENDELA (multi-word) ═══
+      "jendela aluminium","jendela kayu","jendela kaca","jendela geser","jendela casement","jendela swing","jendela sliding","jendela awning","jendela fixed","jendela jungkit","jendela sorong","jendela nako","jendela bouven","jendela roster","jendela kaca mati","jendela aluminium hitam","jendela aluminium putih","jendela kayu jati","jendela kayu meranti","jendela upvc","jendela pvc","jendela besi",
+      
+      // ═══ KANOPI (multi-word) ═══
+      "kanopi baja ringan","kanopi alderon","kanopi spandek","kanopi solarflat","kanopi kaca","kanopi polycarbonate","kanopi besi","kanopi galvanis","kanopi hollow","kanopi minimalis","kanopi modern","kanopi teras","kanopi carport","kanopi garasi","kanopi rumah","kanopi toko","kanopi kantor","kanopi cafe","kanopi membrane","kanopi kain","kanopi awning","kanopi gulung","kanopi lipat","kanopi permanen",
+      
+      // ═══ PAGAR (multi-word) ═══
+      "pagar panel","pagar beton","pagar brc","pagar panel beton","pagar brc galvanis","pagar besi","pagar kayu","pagar aluminium","pagar stainless","pagar hollow","pagar minimalis","pagar modern","pagar klasik","pagar tembok","pagar rumah","pagar kantor","pagar toko","pagar gudang","pagar pabrik","pagar balkon","pagar tangga","pagar teras","pagar besi tempa","pagar besi hollow","pagar besi ulir","pagar wpc","pagar pvc","pagar grc","pagar kawat","pagar harmonika","pagar elektrik","pagar otomatis",
+      
+      // ═══ RAILING & TANGGA (multi-word) ═══
+      "railing tangga","railing balkon","railing besi","railing stainless","railing aluminium","railing kaca","railing minimalis","railing modern","railing klasik","railing hollow","railing besi tempa","railing besi ulir",
+      
+      "tangga besi","tangga kayu","tangga beton","tangga aluminium","tangga putar","tangga lurus","tangga minimalis","tangga monyet","tangga rebah","tangga darurat",
+      
+      // ═══ KITCHEN SET & WARDROBE (multi-word) ═══
+      "kitchen set minimalis","kitchen set modern","kitchen set klasik","kitchen set aluminium","kitchen set kayu","kitchen set hpl","kitchen set custom","kitchen set murah",
+      
+      "wardrobe minimalis","wardrobe modern","wardrobe sliding","wardrobe swing","wardrobe aluminium","wardrobe kayu","wardrobe hpl","wardrobe custom","wardrobe built in","walk in closet","lemari pakaian","lemari baju",
+      
+      // ═══ KOLAM & TAMAN (multi-word) ═══
+      "kolam renang","kolam ikan","kolam minimalis","kolam beton","kolam fiber","kolam kaca",
+      
+      "taman kering","taman vertikal","taman minimalis","taman tropis","taman jepang","taman bali",
+      
+      // ═══ PRECAST & PAVING (multi-word) ═══
+      "u ditch","u ditch cover","tutup u ditch","box culvert","buis beton","gorong gorong","sumuran","sumur resapan","kanstin beton","kanstin","curb stone","grass block",
+      
+      "paving block","paving block beton","paving block hexagonal","paving block persegi","paving block warna",
+      
+      "rooster beton","roster beton","roster beton minimalis",
+      
+      "spun pile","mini pile","micropile","sheet pile","tiang pancang","half slab","sloof beton","kolom praktis",
+      
+      // ═══ WALLPAPER & DINDING (multi-word) ═══
+      "wallpaper dinding","wallpaper motif","wallpaper custom","wallpaper vinyl","wallpaper korea","wallpaper 3d","wallpaper kamar","wallpaper ruang tamu","wallpaper kantor",
+      
+      "wall panel","wallpanel","wall moulding","wall-moulding","wainscoting","wallpaper sticker","wallpaper roll"
+    ],
+        material: [
+      // ═══ KATEGORI DASAR (1 kata) ═══
+      "semen","pasir","batu","besi","baja","kayu","beton","pipa","kabel","fitting","kaca","valve","kran","cat","vernis","politur","plamir","lem","waterproofing","keramik","granit","marmer","gypsum","bata","batako","hebel","genteng","asbes","galvalum","precast","pracetak","aluminium","kerikil","paku","baut","sekrup","mur","kawat","wiremesh","tembaga","kuningan","perunggu","titanium","bambu","rotan","spandek","alderon","ready mix","readymix",
+      
+      // ═══ BESI & BAJA (multi-word) ═══
+      "besi beton","besi hollow","besi kanal","besi unp","besi cnp","besi wf","besi hbeam","besi iwf","besi ulir","besi polos","besi cor","besi tempa","besi putih","besi galvanis","besi tuang","besi baja","besi stainless","besi tembaga","besi kuningan","besi as","besi plat","besi strip","besi siku","besi nako","besi begel","besi ring","besi spiral","besi wiremesh","besi ulir sirip","besi hollow galvanis","besi hollow hitam","besi hollow kotak","besi beton ulir","besi beton polos","besi beton sni",
+      
+      "baja ringan","baja konvensional","baja wf","baja hbeam","baja iwf","baja gunung garuda","baja krakatau","baja import","baja lokal","baja hitam","baja putih","baja galvanis","baja stainless","baja tulangan","baja profil","baja plat","baja strip","baja siku","baja canal","baja unp","baja cnp","baja hollow","baja pipe","baja sch","baja seamless","baja welded","baja ringan c75","baja ringan c100","baja ringan c125","baja ringan taso","baja ringan kencana","baja ringan brc","baja ringan galvanis","baja ringan zincalume",
+      
+      // ═══ BATU & PASIR (multi-word) ═══
+      "batu split","batu kali","batu belah","batu gunung","batu alam","batu apung","batu andesit","batu candi","batu palimanan","batu paras","batu koral","batu kerikil","batu pecah","batu screening","batu sikat","batu templek","batu bronjong","batu bata","batu alam andesit","batu alam palimanan","batu alam paras",
+      
+      "pasir beton","pasir pasang","pasir urug","pasir halus","pasir kasar","pasir putih","pasir hitam","pasir ayak","pasir silika","pasir bangka","pasir lumajang","pasir muntilan","pasir mundu","pasir cimangkok","pasir kediri","pasir malang","pasir merah","pasir elod","pasir sungai","pasir gunung",
+      
+      // ═══ KAYU (multi-word) ═══
+      "kayu jati","kayu meranti","kayu mahoni","kayu sengon","kayu pinus","kayu randu","kayu kamper","kayu kruing","kayu merbau","kayu sonokeling","kayu trembesi","kayu glugu","kayu bengkirai","kayu ulin","kayu lapis","kayu balok","kayu papan","kayu reng","kayu usuk","kayu kaso","kayu albasia","kayu balsa","kayu damar","kayu keras","kayu lunak","kayu olahan","kayu solid","kayu plywood","kayu multiplek","kayu blockboard","kayu mdf","kayu hdf","kayu particle board",
+      
+      // ═══ BATU BATA & HEBEL (multi-word) ═══
+      "bata ringan","bata merah","bata putih","bata tempel","bata ekspos","bata hebel","bata interlock","bata beton","bata jumbo","bata standar","bata press","bata oven","hebel aac","hebel putih","hebel grade a","hebel grade b","hebel interlock","hebel jumbo",
+      
+      // ═══ SEMEN (multi-word) ═══
+      "semen portland","semen putih","semen abu","semen warna","semen instan","semen mortar","semen grouting","semen api","semen cepat","semen tahan api","semen portland pozzolan","semen portland composite","semen tiga roda","semen gresik","semen holcim","semen scg","semen padang","semen merah putih","semen cibinong","semen baturaja","semen bosowa","semen tonasa",
+      
+      // ═══ CAT (multi-word) ═══
+      "cat tembok","cat kayu","cat besi","cat dinding","cat plafon","cat lantai","cat pagar","cat baja","cat zincromate","cat epoxy","cat polyurethane","cat waterproof","cat anti bocor","cat anti jamur","cat anti karat","cat dasar","cat finish","cat dulux","cat jotun","cat nippon","cat mowilex","cat avian","cat decolith","cat propan","cat falcon","cat vinilex","cat catylac",
+      
+      // ═══ PIPA (multi-word) ═══
+      "pipa pvc","pipa galvanis","pipa besi","pipa tembaga","pipa hdpe","pipa pp-r","pipa ppr","pipa conduit","pipa udara","pipa gas","pipa air","pipa saluran","pipa pembuangan","pipa beton","pipa paralon","pipa pralon","pipa msp","pipa wavin","pipa rucika","pipa vinilon","pipa maspion","pipa sch 40","pipa sch 80","pipa seamless",
+      
+      // ═══ KABEL (multi-word) ═══
+      "kabel listrik","kabel tanah","kabel udara","kabel fiber","kabel coaxial","kabel telepon","kabel data","kabel power","kabel serabut","kabel tunggal","kabel twisted","kabel nyy","kabel nym","kabel nya","kabel nyaf","kabel nyyhy","kabel eterna","kabel supreme","kabel kabelindo","kabel tranka","kabel rucika",
+      
+      // ═══ KERAMIK & GRANIT (multi-word) ═══
+      "keramik lantai","keramik dinding","keramik kamar mandi","keramik dapur","keramik teras","keramik motif","keramik polos","keramik granit","keramik porselen","keramik mosaic","keramik mozaik","keramik 60x60","keramik 40x40","keramik 30x30","keramik 25x25","keramik 20x20",
+      
+      "granit tile","granit hitam","granit putih","granit coklat","granit import","granit lokal","granit alam","granit bakar","granit poles","granit 60x60","granit 80x80","granit 100x100",
+      
+      "marmer italy","marmer lokal","marmer import","marmer hitam","marmer putih","marmer cream","marmer beige","marmer travertine",
+      
+      // ═══ GENTENG & ATAP (multi-word) ═══
+      "genteng keramik","genteng metal","genteng beton","genteng tanah","genteng kaca","genteng flat","genteng gelombang","genteng spandek","genteng alderon","genteng aspal","genteng bitumen","genteng sokka","genteng kodok","genteng garuda","genteng kanmuri","genteng mclass","genteng kia","genteng m-class",
+      
+      "atap spandek","atap metal","atap seng","atap zincalume","atap galvalum","atap alderon","atap aspal","atap bitumen","atap genteng","atap beton","atap polycarbonate","atap solartuff","atap kaca","atap transparan","atap membrane","atap tegola","atap owens corning","atap spandek pasir","atap spandek warna","atap spandek transparan",
+      
+      // ═══ GYPSUM & PLAFON (multi-word) ═══
+      "gypsum board","gypsum jayaboard","gypsum knauf","gypsum aplus","gypsum elephant","gypsum lion","gypsum shera","gypsum kalsiboard","gypsum grc","gypsum 9mm","gypsum 12mm",
+      
+      "plafon gypsum","plafon pvc","plafon grc","plafon akustik","plafon metal","plafon kalsiboard","plafon shunda","plafon triplek","plafon beton","plafon eterna",
+      
+      // ═══ ALUMINIUM & KACA (multi-word) ═══
+      "aluminium foil","aluminium composite","aluminium panel","aluminium kusen","aluminium jendela","aluminium pintu","aluminium profil","aluminium extrude","aluminium anodize","aluminium powder coating","aluminium acp","aluminium seven",
+      
+      "kaca tempered","kaca polos","kaca bermotif","kaca buram","kaca es","kaca panasap","kaca film","kaca jendela","kaca patri","kaca laminated","kaca clear","kaca rayben","kaca 5mm","kaca 8mm","kaca 10mm","kaca 12mm",
+      
+      // ═══ PRECAST & BETON (multi-word) ═══
+      "precast beton","precast pile","precast slab","precast panel","precast u ditch","precast box culvert","precast kanstin","precast paving","precast concrete",
+      
+      "beton ready mix","beton cor","beton precast","beton pracetak","beton bertulang","beton prategang","beton cor jayamix","beton cor minimix","beton instan","beton mortar","beton siklop","beton ringan","beton berat","beton massa","beton ekspos","beton struktural","beton non struktural","beton k225","beton k250","beton k300","beton k350","beton k400","beton k450","beton k500",
+      
+      // ═══ WIREMESH & BAUT (multi-word) ═══
+      "wiremesh m6","wiremesh m8","wiremesh m10","wiremesh m12","wiremesh m5","wiremesh m7","wiremesh m9","wiremesh lembaran","wiremesh roll",
+      
+      "paku beton","paku kayu","paku payung","paku seng","paku baja","paku sekrup","paku tembak",
+      
+      "sekrup gypsum","sekrup baja","sekrup kayu","sekrup beton","sekrup roofing","sekrup self drilling",
+      
+      "mur baut","baut beton","baut baja","baut mur","baut roof","baut dynabolt","baut fisher","baut anchor","baut hitam","baut galvanis","baut stainless",
+      
+      "kawat beton","kawat bendrat","kawat bronjong","kawat harmonika","kawat duri","kawat nyamuk","kawat las","kawat loket","kawat ayam","kawat jaring",
+      
+      // ═══ LEM & WATERPROOFING (multi-word) ═══
+      "lem fox","lem pvc","lem kayu","lem besi","lem kaca","lem beton","lem keramik","lem granit","lem marmer","lem epoxy","lem pu","lem silikon","lem sealant","lem konstruksi","lem instant","lem super",
+      
+      "waterproofing membran","waterproofing coating","waterproofing semen","waterproofing beton","waterproofing basement","waterproofing atap","waterproofing kamar mandi","waterproofing lantai","waterproofing aquaproof","waterproofing no drop","waterproofing sika","waterproofing fosroc"
+    ],
+        // ENTITY: JASA
+    // ═══════════════════════════════════════════════════════════
+    jasa: [
+      // ═══ JASA STRUKTURAL ═══
+      "pengeboran","bore pile","bor pile","bored pile","boring pile",
+      "mini pile","spun pile","micropile","bor strauss","bor pancang",
+      "strauss pile","tiang pancang","pancang","turap","sheet pile",
+      "jet grouting","stabilisasi tanah","soil improvement",
+      "sumur bor","bor sumur","pondasi","perkuatan tanah",
+      "uji tanah","soil test","sondir","sondir test","cross hole",
+      "bore pile test","pancang mini","pancang beton","pancang baja",
+      "bor","drilling","boring","coring","cutting","cutting beton",
+      
+      // ═══ JASA COR ═══
+      "cor","cor dak","cor lantai","cor jalan","cor kolom",
+      "cor sloof","cor balok","cor plat","cor pondasi","cor tiang",
+      "cor dinding","cor pagar","cor beton","cor ready mix",
+      "cor minimix","cor jayamix","cor manual","cor mesin",
+      "pengecoran","pengecoran beton","pengecoran dak",
+      "pengecoran lantai","pengecoran jalan","pengecoran kolom",
+      
+      // ═══ JASA PASANG ═══
+      "pasang dinding","pasang keramik","pasang granit",
+      "pasang marmer","pasang parket","pasang vinyl","pasang ubin",
+      "pasang wallpaper","pasang wpc","pasang grc","pasang hpl",
+      "pasang partisi","pasang pagar","pasang kanopi",
+      "pasang awning","pasang railing","pasang tangga",
+      "pasang gerbang","pasang baja ringan","pasang rangka atap",
+      "pasang atap","pasang genteng","pasang plafon",
+      "pasang gypsum","pasang pintu","pasang jendela",
+      "pasang kusen","pasang kaca","pasang shower box",
+      "pasang instalasi listrik","pasang instalasi air",
+      "pasang instalasi gas","pasang instalasi ac",
+      "pasang pipa","pasang kabel listrik","pasang panel listrik",
+      "pasang ac","pasang cctv","pasang alarm",
+      "pemasangan","pemasangan keramik","pemasangan granit",
+      "pemasangan marmer","pemasangan parket","pemasangan vinyl",
+      "pemasangan wallpaper","pemasangan wpc","pemasangan grc",
+      "pemasangan hpl","pemasangan partisi","pemasangan pagar",
+      "pemasangan kanopi","pemasangan awning","pemasangan railing",
+      "pemasangan tangga","pemasangan gerbang",
+      "pemasangan baja ringan","pemasangan rangka atap",
+      "pemasangan atap","pemasangan genteng","pemasangan plafon",
+      "pemasangan gypsum","pemasangan pintu","pemasangan jendela",
+      "pemasangan kusen","pemasangan kaca",
+      "pemasangan shower box","pemasangan instalasi listrik",
+      "pemasangan instalasi air","pemasangan instalasi gas",
+      "pemasangan instalasi ac","pemasangan pipa",
+      "pemasangan kabel listrik","pemasangan panel listrik",
+      "pemasangan ac","pemasangan cctv","pemasangan alarm",
+      "pemasangan wifi","pemasangan parabola","pemasangan antena",
+      
+      // ═══ JASA BONGKAR ═══
+      "bongkar dinding","bongkar lantai","bongkar plat",
+      "bongkar gedung","bongkar rumah","bongkar ruko",
+      "bongkar gudang","bongkar atap","bongkar keramik",
+      "bongkar granit","bongkar marmer","bongkar plafon",
+      "bongkar kusen","bongkar pintu","bongkar jendela",
+      "bongkar pagar","bongkar partisi","bongkar bangunan",
+      "pembongkaran","pembongkaran dinding","pembongkaran lantai",
+      "pembongkaran gedung","pembongkaran rumah",
+      "pembongkaran ruko","pembongkaran gudang",
+      "pembongkaran atap","pembongkaran keramik",
+      "pembongkaran granit","pembongkaran marmer",
+      "pembongkaran plafon","pembongkaran kusen",
+      "pembongkaran pintu","pembongkaran jendela",
+      "pembongkaran pagar","pembongkaran partisi",
+      "buang puing","angkut puing","angkut tanah","angkut material",
+      
+      // ═══ JASA GALI & URUG ═══
+      "gali tanah","gali pondasi","gali basement","gali saluran",
+      "penggalian","penggalian tanah","penggalian pondasi",
+      "penggalian basement","penggalian saluran",
+      "urug tanah","urug lahan","urug pondasi","urug jalan",
+      "pengurugan","pengurugan tanah","pengurugan lahan",
+      "pengurugan pondasi","pengurugan jalan",
+      "pemadatan tanah","pemadatan lahan","pemotongan bukit",
+      "cut and fill","pembersihan lahan","land clearing",
+      "pematangan lahan","pekerjaan galian tanah",
+      
+      // ═══ JASA RENOVASI ═══
+      "renovasi rumah","renovasi gedung","renovasi kantor",
+      "renovasi toko","renovasi ruko","renovasi gudang",
+      "renovasi pabrik","renovasi apartemen","renovasi dapur",
+      "renovasi kamar mandi","renovasi kamar tidur",
+      "renovasi ruang tamu","renovasi teras","renovasi balkon",
+      "renovasi atap","renovasi lantai","renovasi dinding",
+      "renovasi plafon","renovasi pagar","renovasi taman",
+      "perbaikan","perbaikan atap","perbaikan dinding",
+      "perbaikan lantai","perbaikan plafon","perbaikan pondasi",
+      "perbaikan struktur","perbaikan pipa","perbaikan saluran air",
+      "perbaikan bangunan","perbaikan infrastruktur",
+      "perawatan gedung","perawatan kolam","perawatan bangunan",
+      "perawatan atap","perawatan dinding","perawatan lantai",
+      
+      // ═══ JASA FINISHING ═══
+      "cat dinding","cat tembok","cat plafon","cat kayu",
+      "cat besi","cat pagar","cat lantai","cat baja",
+      "pengecatan","pengecatan dinding","pengecatan tembok",
+      "pengecatan plafon","pengecatan kayu","pengecatan besi",
+      "pengecatan pagar","pengecatan lantai","pengecatan baja",
+      "waterproofing","waterproofing membran",
+      "waterproofing coating","waterproofing beton",
+      "waterproofing basement","waterproofing atap",
+      "waterproofing kamar mandi","waterproofing lantai",
+      "poles marmer","poles granit","poles keramik","poles lantai",
+      "poles beton","poles teraso","poles ubin",
+      "grinding","grinding beton","grinding lantai",
+      "grinding dinding","grinding marmer","grinding granit",
+      "epoxy lantai","epoxy coating","epoxy beton",
+      "coating","coating lantai","coating beton","coating dinding",
+      "relief","relief beton","profil beton","finishing",
+      "finishing beton","finishing kayu","finishing besi",
+      "finishing dinding","finishing lantai",
+      
+      // ═══ JASA INSTALASI ═══
+      "instalasi listrik","instalasi air","instalasi plumbing",
+      "instalasi ac","instalasi cctv","instalasi alarm",
+      "instalasi gas","instalasi internet","instalasi antena",
+      "instalasi panel listrik","instalasi pipa","instalasi kabel",
+      "service ac","service pompa air","service genset",
+      "service lift","service listrik","service air",
+      "perawatan ac","perawatan lift","perawatan genset",
+      "perawatan pompa","perawatan listrik",
+      
+      // ═══ JASA LAS & WELDING ═══
+      "las","welding","las besi","las pagar","las kanopi",
+      "las rangka baja","las tiang","las konstruksi",
+      "las besi hollow","las besi tempa","las stainless",
+      "welding besi","welding konstruksi","welding pipa",
+      "welding baja","welding stainless",
+      "sandblasting","sandblasting besi","sandblasting beton",
+      "sandblasting dinding","sandblasting logam",
+      
+      // ═══ JASA KONSTRUKSI ═══
+      "bangun rumah","bangun gedung","bangun ruko",
+      "bangun gudang","bangun kantor","bangun pabrik",
+      "bangun sekolah","bangun masjid","bangun gereja",
+      "borongan","borongan rumah","borongan gedung",
+      "borongan interior","borongan konstruksi",
+      "konstruksi","konstruksi bangunan","konstruksi struktur",
+      "struktur khusus","struktur konstruksi","struktur baja",
+      "struktur beton","struktur kayu","lapangan olahraga",
+      "pembatas pengaman","pembuatan kanopi","pembuatan pagar",
+      "pembuatan railing","pembuatan tangga","pembuatan gerbang",
+      "pembuatan wastafel","pembuatan meja","pembuatan kursi",
+      "pembuatan lemari","pembuatan kitchen set",
+      "pembuatan wardrobe","pembuatan backdrop",
+      
+      // ═══ JASA INFRASTRUKTUR ═══
+      "saluran drainase","jalan perkerasan","pengaspalan",
+      "aspal jalan","pengerukan sungai","pengerukan kolam",
+      "pengerukan saluran","pembuatan jalan","pembuatan drainase",
+      "pembuatan saluran","pembuatan gorong gorong",
+      
+      // ═══ JASA KONSULTASI ═══
+      "konsultan","konsultan konstruksi","konsultan bangunan",
+      "konsultan struktur","konsultan sipil","konsultan arsitektur",
+      "konsultan mep","konsultan pengawas","konsultan proyek",
+      
+      // ═══ JASA LAIN-LAIN ═══
+      "interior","eksterior","pembuatan","pasang","alat konstruksi",
+      "grouting","coring","cutting"
+    ],
+    
+    // ═══════════════════════════════════════════════════════════
+    // ENTITY: SEWA
+    // ═══════════════════════════════════════════════════════════
+    sewa: [
+      // ═══ ALAT BERAT (existing) ═══
+      "alat berat","heavy equipment","excavator","bulldozer",
+      "backhoe","dozer","vibro","crane","truck crane",
+      "mobile crane","crawler crane","tower crane","dump truck",
+      "motor grader","wheel loader","asphalt finisher",
+      "asphalt paver","tandem roller","pneumatic tire roller",
+      "cold milling","batching plant","concrete pump",
+      "pompa beton","pompa air","jack hammer","forklift",
+      "genset","boom lift","skylift","scissor lift","man lift",
+      "articulated boom lift","telescopic boom lift",
+      "concrete mixer","molen beton","vibrator beton",
+      "chain block","hoist crane","overhead crane","gantry crane",
+      "winch","cable puller","vibratory plate","stamper kodok",
+      "tamper","wacker plate","vibro plate","soil compactor",
+      "trowel beton","power trowel","mesin plester",
+      "mesin acian","mesin cat","spray gun","airless sprayer",
+      "mesin potong","chainsaw","gergaji mesin",
+      "pompa celup","pompa submersible","pompa sentrifugal",
+      "pompa transfer","kompresor angin","compressor",
+      "scaffolding","steger","tenda","terpal",
+      "toilet portable","portacamp","tower lamp","lampu sorot",
+      
+      // ═══ SEWA SPESIFIK (multi-word) ═══
+      "sewa excavator","sewa bulldozer","sewa crane",
+      "sewa genset","sewa scaffolding","sewa molen",
+      "sewa pompa beton","sewa concrete pump",
+      "sewa alat berat","sewa mesin konstruksi",
+      "sewa forklift","sewa truck crane","sewa mobile crane",
+      "sewa tower crane","sewa dump truck","sewa backhoe",
+      "sewa vibro","sewa compactor","sewa stamper",
+      "sewa jack hammer","sewa concrete mixer",
+      "sewa vibrator beton","sewa boom lift",
+      "sewa skylift","sewa scissor lift","sewa man lift",
+      "sewa pompa air","sewa pompa celup","sewa kompresor",
+      "sewa tenda","sewa terpal","sewa toilet portable",
+      "sewa portacamp","sewa tower lamp","sewa lampu sorot",
+      "sewa chainsaw","sewa mesin potong","sewa trowel beton",
+      "sewa power trowel","sewa mesin plester","sewa mesin acian",
+      "sewa mesin cat","sewa spray gun","sewa airless sprayer",
+      
+      "rental excavator","rental bulldozer","rental crane",
+      "rental genset","rental scaffolding","rental molen",
+      "rental alat berat","rental mesin konstruksi",
+      "rental forklift","rental truck crane","rental mobile crane",
+      "rental tower crane","rental dump truck","rental backhoe",
+      "rental pompa beton","rental concrete pump",
+      "rental tenda","rental terpal","rental toilet portable",
+      
+      // ═══ ALAT BERAT + SPESIFIKASI ═══
+      "excavator mini","excavator besar","excavator pc75",
+      "excavator pc200","excavator pc300","excavator pc400",
+      "bulldozer d6","bulldozer d7","bulldozer d8",
+      "backhoe loader","wheel loader","motor grader",
+      "vibro roller","tandem roller","pneumatic tire roller",
+      "baby roller","compactor","soil compactor",
+      "dump truck","tronton","fuso","engkel","pickup",
+      "truck crane","mobile crane","crawler crane","tower crane",
+      "forklift","reach truck","hand pallet",
+      "genset silent","genset open","genset 10 kva",
+      "genset 20 kva","genset 50 kva","genset 100 kva",
+      "concrete mixer","molen beton","molen cor",
+      "concrete pump","pompa beton","pompa concrete",
+      "vibrator beton","vibrator listrik","vibrator diesel",
+      "jack hammer","breaker","demolition hammer",
+      "asphalt finisher","asphalt paver","cold milling",
+      "batching plant","stone crusher","crusher",
+      "kompresor angin","compressor","air compressor",
+      "boom lift","skylift","scissor lift","man lift",
+      "articulated boom lift","telescopic boom lift",
+      "chain block","hoist crane","overhead crane","gantry crane",
+      "winch","cable puller",
+      "scaffolding","steger","scaffolding pipe",
+      "tenda","terpal","toilet portable","portacamp",
+      "tower lamp","lampu sorot","lampu tower",
+      "trowel beton","power trowel","mesin plester",
+      "mesin acian","mesin cat","spray gun","airless sprayer",
+      "mesin potong","chainsaw","gergaji mesin",
+      "pompa celup","pompa submersible","pompa sentrifugal",
+      "pompa transfer","pompa air","pompa banjir",
+      "vibratory plate","stamper kodok","tamper",
+      "wacker plate","vibro plate"
+    ],
+    
+    // ═══════════════════════════════════════════════════════════
+    // ENTITY: DESAIN
+    // ═══════════════════════════════════════════════════════════
+    desain: [
+      // ═══ DESAIN INTERIOR (existing) ═══
+      "desain interior","desain eksterior","desain rumah",
+      "desain arsitektur","desain 3d","desain denah",
+      "desain layout","desain bangunan","desain struktur",
+      "desain kantor","desain toko","desain ruko",
+      "desain villa","desain apartemen","desain showroom",
+      "desain kos","desain guest house","desain pujasera",
+      "desain warung","desain bengkel","desain gudang",
+      "desain foodcourt","desain kedai","desain kafe",
+      "desain cafe","desain restoran","desain hotel",
+      "desain bar","desain lounge","desain spa",
+      "desain salon","desain minimarket","desain butik",
+      "desain sekolah","desain klinik","desain dapur",
+      "desain kamar mandi","desain kamar tidur",
+      "desain ruang tamu","desain ruang keluarga",
+      "desain ruang makan","desain ruang kerja",
+      "desain teras","desain balkon","desain carport",
+      "desain fasad","desain taman","desain kolam renang",
+      "desain gazebo","desain walk in closet","desain kamar anak",
+      
+      // ═══ DESAIN INTERIOR SPESIFIK (tambahan) ═══
+      "desain interior rumah","desain interior kantor",
+      "desain interior toko","desain interior cafe",
+      "desain interior restoran","desain interior hotel",
+      "desain interior apartemen","desain interior villa",
+      "desain interior kamar","desain interior dapur",
+      "desain interior kamar mandi","desain interior ruang tamu",
+      "desain interior ruang keluarga","desain interior ruang makan",
+      "desain interior ruang kerja","desain interior minimarket",
+      "desain interior butik","desain interior salon",
+      "desain interior spa","desain interior klinik",
+      
+      // ═══ DESAIN EKSTERIOR SPESIFIK (tambahan) ═══
+      "desain eksterior rumah","desain eksterior kantor",
+      "desain eksterior toko","desain eksterior cafe",
+      "desain eksterior restoran","desain eksterior hotel",
+      "desain eksterior apartemen","desain eksterior villa",
+      "desain eksterior taman","desain eksterior kolam",
+      "desain eksterior fasad","desain eksterior carport",
+      "desain eksterior teras","desain eksterior balkon",
+      
+      // ═══ DESAIN BANGUNAN (tambahan) ═══
+      "desain rumah minimalis","desain rumah modern",
+      "desain rumah klasik","desain rumah tropis",
+      "desain rumah 2 lantai","desain rumah 3 lantai",
+      "desain rumah mewah","desain rumah sederhana",
+      "desain gedung kantor","desain gedung hotel",
+      "desain gedung sekolah","desain gedung rumah sakit",
+      "desain ruko 2 lantai","desain ruko 3 lantai",
+      "desain gudang","desain pabrik","desain showroom",
+      
+      // ═══ DESAIN 3D & VISUALISASI (tambahan) ═══
+      "desain 3d interior","desain 3d eksterior",
+      "desain 3d rumah","desain 3d bangunan",
+      "desain 2d","desain 2d rumah","desain 2d interior",
+      "desain animasi","desain walkthrough","desain virtual tour",
+      "desain vr","desain ar","desain render",
+      "render 3d","render interior","render eksterior",
+      "visualisasi 3d","visualisasi interior",
+      
+      // ═══ GAMBAR TEKNIK (existing + tambahan) ═══
+      "gambar arsitektur","gambar kerja","gambar teknik",
+      "gambar denah","gambar tampak","gambar potongan",
+      "gambar detail","gambar struktur","gambar mep",
+      "shop drawing","as built drawing",
+      
+      // ═══ DESAIN STRUKTUR (tambahan) ═══
+      "desain struktur bangunan","desain struktur beton",
+      "desain struktur baja","desain struktur kayu",
+      "desain pondasi","desain sloof","desain kolom",
+      "desain balok","desain plat","desain tangga",
+      "perhitungan struktur","analisa struktur",
+      
+      // ═══ DESAIN MEP (tambahan) ═══
+      "desain mep","desain mekanikal","desain elektrikal",
+      "desain plumbing","desain listrik","desain air",
+      "desain tata udara","desain ac","desain ventilasi",
+      "desain pemadam kebakaran","desain fire fighting",
+      
+      // ═══ DESAIN TAMAN (tambahan) ═══
+      "desain taman minimalis","desain taman kering",
+      "desain taman vertikal","desain taman tropis",
+      "desain taman jepang","desain taman bali",
+      "desain kolam renang","desain kolam ikan",
+      "desain gazebo","desain carport","desain pagar",
+      
+      // ═══ DESAIN KHUSUS (tambahan) ═══
+      "desain dapur","desain kamar mandi","desain kamar tidur",
+      "desain ruang tamu","desain ruang keluarga",
+      "desain ruang makan","desain ruang kerja",
+      "desain walk in closet","desain kamar anak",
+      "desain kitchen set","desain wardrobe",
+      "desain lemari","desain meja","desain kursi",
+      "desain backdrop tv","desain plafon","desain lantai",
+      "desain wallpaper","desain lampu","desain furniture"
+    ]
+
   };
 
   // Sort base names DESC by word count
@@ -1397,11 +1865,36 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       if (_matchList(ENTITY_SPECIFIC.desain.tipe)) return true;
     }
 
-    // ═══ UNIVERSAL FALLBACK ═══
+        // ═══ UNIVERSAL FALLBACK ═══
     var textNoBase = lower;
     var baseList212 = ENTITY_BASE_NAMES[entityType] || [];
-    for (var bi212 = 0; bi212 < baseList212.length; bi212++) {
-      textNoBase = textNoBase.replace(rx(baseList212[bi212], 'g'), ' ');
+    var sortedBaseList212 = baseList212.slice().sort(function(a, b) {
+      return b.split(' ').length - a.split(' ').length;
+    });
+    
+    var _skipBase212 = {};
+    for (var b1_212 = 0; b1_212 < sortedBaseList212.length; b1_212++) {
+      var bn1_212 = sortedBaseList212[b1_212];
+      for (var b2_212 = 0; b2_212 < sortedBaseList212.length; b2_212++) {
+        if (b1_212 === b2_212) continue;
+        var bn2_212 = sortedBaseList212[b2_212];
+        if (bn2_212.length > bn1_212.length) {
+          var bn1Regex212 = new RegExp("\\b" + _escapeRegex(bn1_212) + "\\b", "i");
+          if (bn1Regex212.test(bn2_212)) {
+            var bn2Regex212 = new RegExp("\\b" + _escapeRegex(bn2_212) + "\\b", "i");
+            if (bn2Regex212.test(textNoBase)) {
+              _skipBase212[bn1_212] = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    for (var bi212 = 0; bi212 < sortedBaseList212.length; bi212++) {
+      var bn212 = sortedBaseList212[bi212];
+      if (_skipBase212[bn212]) continue;
+      textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
     }
     _buildMasterRegexes();
     if (_MASTER.appTargets && _MASTER.appTargets.test(textNoBase)) {
@@ -1549,12 +2042,38 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       working = working.replace(rx(entityOnly[e], 'g'), ' ');
     }
 
-    // Step 2: Strip base names
+       // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX-MULTIWORD: Skip substring of longer base name
+    // ═══════════════════════════════════════════════════════════
     var baseNames = ENTITY_BASE_NAMES[entityType] || [];
-    for (var b = 0; b < baseNames.length; b++) {
-      working = working.replace(rx(baseNames[b], 'g'), ' ');
+    var sortedBaseNames = baseNames.slice().sort(function(a, b) {
+      return b.split(' ').length - a.split(' ').length;
+    });
+    
+    var _baseNamesToSkip = {};
+    for (var b1 = 0; b1 < sortedBaseNames.length; b1++) {
+      var bn1 = sortedBaseNames[b1];
+      for (var b2 = 0; b2 < sortedBaseNames.length; b2++) {
+        if (b1 === b2) continue;
+        var bn2 = sortedBaseNames[b2];
+        if (bn2.length > bn1.length) {
+          var bn1Regex = new RegExp("\\b" + _escapeRegex(bn1) + "\\b", "i");
+          if (bn1Regex.test(bn2)) {
+            var bn2Regex = new RegExp("\\b" + _escapeRegex(bn2) + "\\b", "i");
+            if (bn2Regex.test(working)) {
+              _baseNamesToSkip[bn1] = true;
+              break;
+            }
+          }
+        }
+      }
     }
-
+    
+    for (var b = 0; b < sortedBaseNames.length; b++) {
+      var bn = sortedBaseNames[b];
+      if (_baseNamesToSkip[bn]) continue;
+      working = working.replace(rx(bn, 'g'), ' ');
+    }
     // Step 3: Strip NOISE
     if (_MASTER.noiseUniv) {
       _MASTER.noiseUniv.lastIndex = 0;
@@ -1825,20 +2344,29 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     return level;
   }
 
-  function detectEntityTypeFromText(text) {
+    function detectEntityTypeFromText(text) {
     if (!text) return null;
     var lower = text.toLowerCase();
 
+    // ═══════════════════════════════════════════════════════════
+    // FIX 134: "jasa desain" → entity=desain
+    // ═══════════════════════════════════════════════════════════
     if (/\bjasa\s+(desain|interior|arsitektur|eksterior)\b/i.test(lower)) {
       log('🎯 FIX 134: "jasa desain" → entity=desain', 'DETECT');
       return "desain";
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // FIX 132: Artikel priority (how-to prefix)
+    // ═══════════════════════════════════════════════════════════
     if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|perbandingan|review)/i.test(lower.trim())) {
       log('🎯 FIX 132: Artikel priority (how-to prefix)', 'DETECT');
       return "artikel";
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // Loop ENTITY_PRIORITY triggers
+    // ═══════════════════════════════════════════════════════════
     for (var i = 0; i < ENTITY_PRIORITY.length; i++) {
       var entity = ENTITY_PRIORITY[i];
       var triggers = ENTITY_TRIGGERS[entity] || [];
@@ -1847,30 +2375,84 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // Direct keyword check
+    // ═══════════════════════════════════════════════════════════
     if (lower.indexOf("jasa") !== -1 || lower.indexOf("kontraktor") !== -1 || lower.indexOf("tukang") !== -1) return "jasa";
     if (lower.indexOf("sewa") !== -1 || lower.indexOf("rental") !== -1) return "sewa";
     if (lower.indexOf("desain") !== -1 || lower.indexOf("interior") !== -1) return "desain";
     if (lower.indexOf("material") !== -1 || lower.indexOf("bahan") !== -1) return "material";
     if (lower.indexOf("produk") !== -1 || lower.indexOf("jual") !== -1) return "produk";
 
+    // ═══════════════════════════════════════════════════════════
+    // Word list check — MATERIAL first
+    // ═══════════════════════════════════════════════════════════
     for (var m = 0; m < MATERIAL_WORDS.length; m++) {
       if (rx(MATERIAL_WORDS[m]).test(lower)) {
         log('🎯 FIX 202: entity=material via word: ' + MATERIAL_WORDS[m], 'DETECT');
         return "material";
       }
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX-VERB-DRIVEN: SEWA vs PRODUK untuk alat berat
+    // ═══════════════════════════════════════════════════════════
+    var hasSewaWord = false;
+    var matchedSewaWord = null;
     for (var s = 0; s < SEWA_WORDS.length; s++) {
       if (rx(SEWA_WORDS[s]).test(lower)) {
-        log('🎯 FIX 202: entity=sewa via word: ' + SEWA_WORDS[s], 'DETECT');
-        return "sewa";
+        hasSewaWord = true;
+        matchedSewaWord = SEWA_WORDS[s];
+        log('🎯 FIX-VERB-DRIVEN: SEWA_WORDS match: ' + SEWA_WORDS[s], 'DETECT');
+        break;
       }
     }
+
+    if (hasSewaWord) {
+      // Cek PRODUK context (harga, jual, beli, supplier, kondisi)
+      var hasProdukContext = /\b(harga|jual|beli|supplier|distributor|toko|shop|dijual|dibeli|unit|stok|stock|baru|bekas|second|import|ekspor|kredit|cicilan)\b/i.test(lower);
+      
+      // Cek SEWA context (sewa, rental, rent, durasi, operator)
+      var hasSewaContext = /\b(sewa|rental|rent|harian|mingguan|bulanan|tahunan|per hari|per jam|per minggu|per bulan|operator|self drive|lepas kunci|include operator|tanpa operator)\b/i.test(lower);
+
+      // Cek JASA context (jasa, layanan, service)
+      var hasJasaContext = /\b(jasa|layanan|service|servis)\b/i.test(lower);
+
+      log('🔀 FIX-VERB-DRIVEN: ctx → produk=' + hasProdukContext + ' sewa=' + hasSewaContext + ' jasa=' + hasJasaContext, 'DETECT');
+
+      if (hasJasaContext) {
+        log('🎯 FIX-VERB-DRIVEN: entity=jasa (jasa context + alat berat)', 'DETECT');
+        return "jasa";
+      }
+
+      if (hasProdukContext && !hasSewaContext) {
+        log('🎯 FIX-VERB-DRIVEN: entity=produk (harga/jual/beli context)', 'DETECT');
+        return "produk";
+      }
+
+      if (hasSewaContext) {
+        log('🎯 FIX-VERB-DRIVEN: entity=sewa (sewa/rental context)', 'DETECT');
+        return "sewa";
+      }
+
+      // Default: alat berat tanpa context → sewa (lebih umum disewa)
+      log('🎯 FIX-VERB-DRIVEN: entity=sewa (default untuk alat berat: "' + matchedSewaWord + '")', 'DETECT');
+      return "sewa";
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // Word list check — PRODUK
+    // ═══════════════════════════════════════════════════════════
     for (var p = 0; p < PRODUK_WORDS.length; p++) {
       if (rx(PRODUK_WORDS[p]).test(lower)) {
         log('🎯 FIX 202: entity=produk via word: ' + PRODUK_WORDS[p], 'DETECT');
         return "produk";
       }
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // Word list check — DESAIN
+    // ═══════════════════════════════════════════════════════════
     for (var d = 0; d < DESAIN_WORDS.length; d++) {
       if (rx(DESAIN_WORDS[d]).test(lower)) {
         log('🎯 FIX 202: entity=desain via word: ' + DESAIN_WORDS[d], 'DETECT');
@@ -1878,6 +2460,9 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // Jasa verb signal resolver
+    // ═══════════════════════════════════════════════════════════
     var hasJasaVerbSignal = /\b(jasa|pasang|borongan|tukang|bongkar|gali|urug|cor|bor|coring|renovasi|perbaikan|instalasi|service|servis|bangun|las|grouting|cutting|drilling|sandblasting|pancang|pemancangan|pengecoran|pengeboran)\b/i.test(lower);
     var hasProdukTxSignal = /\b(harga|jual|beli|supplier|distributor|ready|stok|stock|unit|batang|lembar|keping)\b/i.test(lower);
 
@@ -1891,6 +2476,9 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // Longest match resolver (fallback)
+    // ═══════════════════════════════════════════════════════════
     var bestMatchRL = { entity: null, length: 0, name: null, priority: 99 };
     for (var epRL = 0; epRL < ENTITY_PRIORITY.length; epRL++) {
       var entRL = ENTITY_PRIORITY[epRL];
@@ -1971,7 +2559,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
 
     return null;
   }
-
+   
   function detectEntityType(userEntityType) {
     if (userEntityType && VALID_ENTITY_TYPES.indexOf(userEntityType) !== -1) return userEntityType;
     return detectEntityTypeFromText(getPageText() + " " + getH1Text());
@@ -2077,15 +2665,43 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       coreText = coreText.replace(rx(entityOnlyWords[i], 'g'), ' ');
     }
 
-    var hasConjunction = /\b(atau|dan|serta)\b/i.test(coreText);
+        var hasConjunction = /\b(atau|dan|serta)\b/i.test(coreText);
     if (entityType && ENTITY_BASE_NAMES[entityType] && !hasConjunction) {
       var baseNamesEarly = ENTITY_BASE_NAMES[entityType] || [];
+      var sortedBaseNamesEarly = baseNamesEarly.slice().sort(function(a, b) {
+        return b.split(' ').length - a.split(' ').length;
+      });
+      
       var baseNamesSet = {};
-      for (var k = 0; k < baseNamesEarly.length; k++) {
-        baseNamesSet[baseNamesEarly[k]] = true;
+      for (var k = 0; k < sortedBaseNamesEarly.length; k++) {
+        baseNamesSet[sortedBaseNamesEarly[k]] = true;
       }
-      for (var i = 0; i < baseNamesEarly.length; i++) {
-        var bn = baseNamesEarly[i];
+      
+      var _baseNamesToSkipEarly = {};
+      for (var b1e = 0; b1e < sortedBaseNamesEarly.length; b1e++) {
+        var bn1e = sortedBaseNamesEarly[b1e];
+        for (var b2e = 0; b2e < sortedBaseNamesEarly.length; b2e++) {
+          if (b1e === b2e) continue;
+          var bn2e = sortedBaseNamesEarly[b2e];
+          if (bn2e.length > bn1e.length) {
+            var bn1eRegex = new RegExp("\\b" + _escapeRegex(bn1e) + "\\b", "i");
+            if (bn1eRegex.test(bn2e)) {
+              var bn2eRegex = new RegExp("\\b" + _escapeRegex(bn2e) + "\\b", "i");
+              if (bn2eRegex.test(coreText)) {
+                _baseNamesToSkipEarly[bn1e] = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      for (var i = 0; i < sortedBaseNamesEarly.length; i++) {
+        var bn = sortedBaseNamesEarly[i];
+        if (_baseNamesToSkipEarly[bn]) {
+          log('🔥 FIX-MULTIWORD: SKIP substring "' + bn + '"', 'CORE');
+          continue;
+        }
         var bnWords = bn.split(' ');
         var lastWord = bnWords[bnWords.length - 1];
         if (bnWords.length >= 2 && APPLICATION_TARGETS.indexOf(lastWord) !== -1) {
@@ -2146,13 +2762,37 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     }
     // Catatan: _MASTER.satuanUnits tidak dipakai di sini (sesuai aslinya)
 
-    var coreWords = coreText.split(/\s+/).filter(function(w) { return w.length > 2; });
+        var coreWords = coreText.split(/\s+/).filter(function(w) { return w.length > 2; });
     var uniqueWords = [];
     var seen = {};
     for (var i = 0; i < coreWords.length; i++) {
       var w = coreWords[i];
       if (!seen[w]) { seen[w] = true; uniqueWords.push(w); }
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 PATCH 5: Fallback kalau coreWords kosong tapi ada base service
+    // ═══════════════════════════════════════════════════════════
+    if (uniqueWords.length === 0 && checkHasBaseService(text)) {
+      var fallbackBaseNames = ENTITY_BASE_NAMES[entityType] || [];
+      var fallbackSorted = fallbackBaseNames.slice().sort(function(a, b) {
+        return b.split(' ').length - a.split(' ').length;
+      });
+      for (var fb = 0; fb < fallbackSorted.length; fb++) {
+        var fbName = fallbackSorted[fb];
+        var fbRegex = new RegExp("\\b" + _escapeRegex(fbName) + "\\b", "i");
+        if (fbRegex.test(text)) {
+          var fbWords = fbName.split(' ');
+          var fbLast = fbWords[fbWords.length - 1];
+          if (fbLast.length > 2) {
+            uniqueWords.push(fbLast);
+            log('🔥 PATCH-5: fallback core word = "' + fbLast + '"', 'CORE');
+          }
+          break;
+        }
+      }
+    }
+
     return uniqueWords;
   }
 
@@ -2511,7 +3151,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   // detectMoneyLevelInternal() — dengan memoize
   // ═══════════════════════════════════════════════════════════
 
-  function detectMoneyLevelInternal(text, entityType) {
+    function detectMoneyLevelInternal(text, entityType) {
     var lowerText = text.toLowerCase();
     var factors = _memoGetFactors
       ? _memoGetFactors(text, entityType)
@@ -2645,6 +3285,9 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX 204: PRICE + BASE SERVICE + NON-SPEC
+    // ═══════════════════════════════════════════════════════════
     if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
       var preCore = _memoGetCoreWords
         ? _memoGetCoreWords(text, entityType)
@@ -2659,6 +3302,35 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
 
       if (preCore.length === 1) {
         var coreWord = preCore[0];
+        
+        // ═══════════════════════════════════════════════════════════
+        // 🔥 PATCH 6: Cek apakah coreWord adalah bagian dari base name
+        // ═══════════════════════════════════════════════════════════
+        var isPartOfBaseName = false;
+        var checkBaseList = ENTITY_BASE_NAMES[entityType] || [];
+        for (var cb = 0; cb < checkBaseList.length; cb++) {
+          var cbName = checkBaseList[cb];
+          var cbRegex = new RegExp("\\b" + _escapeRegex(cbName) + "\\b", "i");
+          if (cbRegex.test(text)) {
+            if (cbName.indexOf(coreWord) !== -1) {
+              isPartOfBaseName = true;
+              log('🔥 PATCH-6: coreWord "' + coreWord + '" adalah bagian dari base "' + cbName + '"', 'CORE');
+              break;
+            }
+          }
+        }
+        
+        // ═══════════════════════════════════════════════════════════
+        // 🔥 PATCH D — FIX v3: HARUS SEBELUM APPLICATION_TARGETS
+        // Kalau coreWord adalah bagian dari base name + ada price
+        // → money-master (konsisten dengan jasa)
+        // ═══════════════════════════════════════════════════════════
+        if (isPartOfBaseName && hasPriceWord) {
+          log('💵 PATCH-D-v3: MONEY_MASTER (price + base name part: "' + coreWord + '")', 'HARGA');
+          return "money-master";
+        }
+
+        // Cek 1: APPLICATION_TARGETS
         if (APPLICATION_TARGETS.indexOf(coreWord) !== -1) {
           var hasCompoundBase154 = false;
           var baseList154 = ENTITY_BASE_NAMES[entityType] || [];
@@ -2673,11 +3345,13 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
           return "money-master";
         }
 
+        // Cek 2: Spec modifier
         if (isSpecModifierForEntity(coreWord, entityType)) {
           log('💵 FIX 204: MONEY_PAGE (price + spec: ' + coreWord + ')', 'HARGA');
           return "money-page";
         }
-
+         
+        // Cek 3: Jasa + material context
         if (entityType === "jasa") {
           var narrow182 = SHARED_MODIFIERS.material;
           if (narrow182.indexOf(coreWord) !== -1) {
