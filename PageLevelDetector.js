@@ -762,7 +762,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   var FREE_INFO_WORDS = ["panduan gratis","ebook gratis","template gratis","download gratis","pdf gratis"];
   var FREE_COMM_WORDS = ["konsultasi gratis","survey gratis","sample gratis","demo gratis","trial gratis","estimasi gratis","penawaran gratis"];
   var AUTHORITY_WORDS = ["resmi","authorized","official","distributor resmi","dealer resmi","agen resmi","mitra resmi","sertifikat resmi"];
-  var READY_STOCK_WORDS = ["ready stock","ready stok","siap pakai","siap kirim","stok tersedia","fast respon","same day","instan","ready"];
+  var READY_STOCK_WORDS = ["ready stock","ready stok","siap pakai","siap kirim","stok tersedia","fast respon","same day","ready"];
 
   var SPEC_PHRASE_WORDS = ["berdasarkan","berdasar","faktor penentu","faktor yang mempengaruhi","faktor utama","penyebab","sebab","dampak","pengaruh","efek","per kedalaman","per ukuran","per tipe","per jenis","langkah-langkah","langkah demi langkah","tahapan lengkap","tahap demi tahap","panduan lengkap","tutorial lengkap","analisis lengkap","review lengkap","perbandingan lengkap","perbedaan lengkap","jenis-jenis lengkap","macam-macam lengkap","spesifikasi","mutu","metode","cara kerja","panduan","fungsi"];
 
