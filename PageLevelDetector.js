@@ -2561,9 +2561,23 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   }
    
   function detectEntityType(userEntityType) {
-    if (userEntityType && VALID_ENTITY_TYPES.indexOf(userEntityType) !== -1) return userEntityType;
-    return detectEntityTypeFromText(getPageText() + " " + getH1Text());
+  if (userEntityType && VALID_ENTITY_TYPES.indexOf(userEntityType) !== -1) return userEntityType;
+  
+  // 🔥 FIX: Entity detection HANYA dari SLUG URL (bukan H1)
+  // H1 hanya untuk FOKUS KONTEN, bukan untuk entity/level
+  var slugText = getPageText();
+  
+  // Fallback ke H1 HANYA kalau slug generic/kosong
+  if (!slugText || slugText.length < 3 || /^(blog|post|artikel|produk|layanan|service|item|page|p|home|index|\d+)(\s+\d+)?\s*$/i.test(slugText.trim())) {
+    var h1Text = getH1Text();
+    if (h1Text && h1Text.length > 3) {
+      log('🎯 FIX: entity detection via H1 (slug generic)', 'DETECT');
+      return detectEntityTypeFromText(h1Text);
+    }
   }
+  
+  return detectEntityTypeFromText(slugText);
+}
 
   function detectSubPillar(text) {
     var lower = text.toLowerCase();
@@ -3556,23 +3570,33 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   }
 
   function detectPageLevelFromDOM(entityType) {
-    if (typeof window === 'undefined' || !window.location) return null;
-    if (isHomePage()) return "home";
-    var urlText = getPageText();
+  if (typeof window === 'undefined' || !window.location) return null;
+  if (isHomePage()) return "home";
+  
+  // 🔥 FIX: Level detection HANYA dari SLUG URL
+  var urlText = getPageText();
+  
+  // Fallback ke H1 HANYA kalau slug generic/kosong
+  var urlIsGeneric = /^(blog|post|artikel|produk|layanan|service|item|page|p|home|index|\d+)(\s+\d+)?\s*$/i.test(urlText.trim());
+  var text;
+  if (urlIsGeneric || !urlText || urlText.length < 3) {
     var h1Text = getH1Text();
-    var urlIsGeneric = /^(blog|post|artikel|produk|layanan|service|item|page|p|home|index|\d+)(\s+\d+)?\s*$/i.test(urlText.trim());
-    var text;
-    if (urlIsGeneric && h1Text && h1Text.length > 3) text = h1Text;
-    else if (!urlText || urlText.length < 3) text = h1Text;
-    else if (h1Text && h1Text.length > 3) text = urlText + " " + h1Text;
-    else text = urlText;
-    var entity = entityType || detectEntityType();
-    if (detectPillar(text, entity)) return "pillar";
-    var level = detectMoneyLevelInternal(text, entity);
-    if (!level) level = "money-page";
-    return level;
+    if (h1Text && h1Text.length > 3) {
+      text = h1Text;
+      log('🎯 FIX: level detection via H1 (slug generic)', 'DETECT');
+    } else {
+      text = urlText;
+    }
+  } else {
+    text = urlText;  // ← HANYA SLUG URL ✅
   }
-
+  
+  var entity = entityType || detectEntityType();
+  if (detectPillar(text, entity)) return "pillar";
+  var level = detectMoneyLevelInternal(text, entity);
+  if (!level) level = "money-page";
+  return level;
+}
   function validateForPrompt(input, entityType, options) {
     options = options || {};
     var strictMode = options.strict !== false;
