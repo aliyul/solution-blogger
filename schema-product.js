@@ -964,6 +964,56 @@
     return LOGO_IMAGE;
   }
 
+  // ============================================================
+// 🔥 P17: INSERT FIGURE SETELAH H1 (SEO FIX) 🔥
+// ============================================================
+/**
+ * Insert figure DIBAWAH H1, bukan di firstChild container.
+ * Strategi:
+ *   1. Cari H1 di dalam container
+ *   2. Insert setelah H1 (sibling)
+ *   3. Fallback: kalau H1 tidak ada, baru pakai firstChild
+ *   4. Fallback terakhir: appendChild
+ */
+function insertFigureAfterH1(container, figure) {
+  // Prioritas 1: H1 di dalam container
+  const h1Inside = container.querySelector('h1');
+  if (h1Inside && h1Inside.parentNode === container) {
+    // Cek nextSibling — kalau ada <p> atau <figure> pertama, sisipkan sebelum itu
+    const nextSibling = h1Inside.nextElementSibling;
+    if (nextSibling && (nextSibling.tagName === 'P' || nextSibling.tagName === 'FIGURE')) {
+      container.insertBefore(figure, nextSibling);
+    } else {
+      // Sisipkan tepat setelah H1
+      h1Inside.parentNode.insertBefore(figure, h1Inside.nextSibling);
+    }
+    log("📸 Figure di-insert SETELAH H1 (SEO optimal)", "FIX");
+    return figure;
+  }
+
+  // Prioritas 2: H1 ada tapi parent-nya di luar container (mis. H1 di header)
+  const h1Global = document.querySelector('h1');
+  if (h1Global) {
+    // Coba cari wrapper terdekat yang sama dengan container
+    const commonParent = h1Global.closest('article, main, section, .post-body, .entry-content');
+    if (commonParent && commonParent.contains(container)) {
+      h1Global.parentNode.insertBefore(figure, h1Global.nextSibling);
+      log("📸 Figure di-insert SETELAH H1 global (fallback)", "FIX");
+      return figure;
+    }
+  }
+
+  // Prioritas 3: Tidak ada H1 → firstChild (perilaku lama)
+  if (container.firstChild) {
+    container.insertBefore(figure, container.firstChild);
+    log("⚠️ Figure di-insert di firstChild (H1 tidak ditemukan)", "WARN");
+  } else {
+    container.appendChild(figure);
+    log("⚠️ Figure di-append (container kosong)", "WARN");
+  }
+  return figure;
+}
+  
   function fixImagesToFormat1() {
     perf.start('fixImagesToFormat1');
     const pageLevel = getPageLevelFromPLD();
@@ -1069,12 +1119,15 @@
     figcaption.style.marginTop = '10px';
     figcaption.style.textAlign = 'center';
     figcaption.textContent = captionText;
+    // ✅ SESUDAH:
     figure.appendChild(img);
     figure.appendChild(figcaption);
     applyResponsiveStyles(figure, img);
-    container.insertBefore(figure, container.firstChild);
+    // 🔥 P17: Insert SETELAH H1 (SEO optimal), bukan firstChild
+    insertFigureAfterH1(container, figure);
     perf.end('fixImagesToFormat1');
     return figure;
+  }
   }
 
   function sanitizeText(text) {
