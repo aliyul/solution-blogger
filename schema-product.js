@@ -1132,7 +1132,6 @@ function insertFigureAfterH1(container, figure) {
     perf.end('fixImagesToFormat1');
     return figure;
   }
-  }
 
   function sanitizeText(text) {
     if (!text) return "";
