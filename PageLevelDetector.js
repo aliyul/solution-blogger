@@ -866,7 +866,7 @@ material: [
 
   var PURE_FINISHING = ["polos","motif","bermotif","bercorak","tekstur","serat","halus","kasar","matte","glossy","doff","gloss","satin","anyaman","natural","ekspos","custom","polosan","cat","coating","lapisan","vernis"];
 
-  var APPLICATION_TARGETS = ["dinding","tembok","lantai","plafon","atap","partisi","kolom","balok","plat","slab","pelat","pondasi","tiang","tangga","railing","kusen","pagar","pintu","jendela","rolling door","kanopi","awning","fasad","facade","teras","balkon","halaman","carport","garasi","kamar mandi","kamar tidur","ruang tamu","ruang keluarga","ruang makan","ruang kerja","dapur","toilet","wc","kantor","toko","gudang","pabrik","sekolah","rumah","gedung","ruko","villa","apartemen","cafe","restoran","hotel","kios","rukan","jalan","trotoar","saluran","drainase","taman","kolam","sawah","lahan"];
+  var APPLICATION_TARGETS = ["mini","dinding","tembok","lantai","plafon","atap","partisi","kolom","balok","plat","slab","pelat","pondasi","tiang","tangga","railing","kusen","pagar","pintu","jendela","rolling door","kanopi","awning","fasad","facade","teras","balkon","halaman","carport","garasi","kamar mandi","kamar tidur","ruang tamu","ruang keluarga","ruang makan","ruang kerja","dapur","toilet","wc","kantor","toko","gudang","pabrik","sekolah","rumah","gedung","ruko","villa","apartemen","cafe","restoran","hotel","kios","rukan","jalan","trotoar","saluran","drainase","taman","kolam","sawah","lahan"];
 
   var APPLICATION_TARGETS_FULL = ["dinding","tembok","lantai","plafon","atap","partisi","kolom","balok","plat","slab","pelat","pondasi","tiang","tangga","railing","kusen","pagar","pintu","jendela","kanopi","awning","fasad","facade","teras","balkon","halaman","carport","garasi","kamar mandi","kamar tidur","ruang tamu","ruang keluarga","ruang makan","ruang kerja","dapur","toilet","wc","kantor","toko","gudang","pabrik","sekolah","rumah","gedung","ruko","villa","apartemen","cafe","restoran","hotel","kios","rukan","jalan","trotoar","saluran","drainase","taman","kolam","sawah","lahan","tambang","proyek","site","area kerja","basement","custom","modern","minimalis","klasik"];
 
@@ -2187,7 +2187,7 @@ material: [
     if (/^(k\d+|fc\d*|m\d+|c\d+|bjts?\d*)$/i.test(w)) return true;
     if (GLOBAL_NUMERIC_KEYWORDS.indexOf(w) !== -1) return true;
 
-    if (w === 'termurah' || w === 'termahal' || w === 'promo' || w === 'diskon') return true;
+   if (w === 'termurah' || w === 'termahal' || w === 'promo' || w === 'diskon' || w === 'mini') return true;
 
     if (MODIFIER_COMPATIBILITY[w]) {
       var compatibleEntities = MODIFIER_COMPATIBILITY[w];
