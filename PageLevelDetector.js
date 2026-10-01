@@ -2099,18 +2099,24 @@ material: [
   
   // 🔥 FIX-REVISI-v2: Handle base name yang juga app target
   if (APPLICATION_TARGETS_FULL.indexOf(bn212) !== -1) {
-  // 🔥 FIX-REVISI-v2: Hitung total base name di text asli
+  // 🔥 FIX-REVISI-v3: Hitung base name LAIN (bukan app target) di text
   var _bnCount212 = 0;
   for (var _bnc = 0; _bnc < sortedBaseList212.length; _bnc++) {
-    if (rx(sortedBaseList212[_bnc]).test(lower)) _bnCount212++;
+    var _otherBn = sortedBaseList212[_bnc];
+    // Skip kalau ini bn212 sendiri atau sesama app target
+    if (_otherBn === bn212) continue;
+    if (APPLICATION_TARGETS_FULL.indexOf(_otherBn) !== -1) continue;
+    // Skip kalau substring dari bn212
+    if (bn212.indexOf(_otherBn) !== -1) continue;
+    if (rx(_otherBn).test(lower)) _bnCount212++;
   }
   
-  if (_bnCount212 >= 2) {
-    log('🎯 FIX-REVISI-v2: "' + bn212 + '" + ' + _bnCount212 + ' base names → JANGAN strip', 'CROSSSPEC');
+  if (_bnCount212 >= 1) {
+    log('🎯 FIX-REVISI-v3: "' + bn212 + '" + ' + _bnCount212 + ' base lain → JANGAN strip', 'CROSSSPEC');
     continue;
   }
   
-  log('🎯 FIX-REVISI-v2: "' + bn212 + '" base tunggal → strip', 'CROSSSPEC');
+  log('🎯 FIX-REVISI-v3: "' + bn212 + '" base tunggal → strip', 'CROSSSPEC');
   textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
   continue;
 }
@@ -2297,18 +2303,22 @@ material: [
   
   // 🔥 FIX-REVISI-v2: Handle base name yang juga app target
   if (APPLICATION_TARGETS_FULL.indexOf(bn) !== -1) {
-  // 🔥 FIX-REVISI-v2: Hitung total base name di text asli
+  // 🔥 FIX-REVISI-v3: Hitung base name LAIN (bukan app target)
   var _bnCountB = 0;
   for (var _bncb = 0; _bncb < sortedBaseNames.length; _bncb++) {
-    if (rx(sortedBaseNames[_bncb]).test(working)) _bnCountB++;
+    var _otherB = sortedBaseNames[_bncb];
+    if (_otherB === bn) continue;
+    if (APPLICATION_TARGETS_FULL.indexOf(_otherB) !== -1) continue;
+    if (bn.indexOf(_otherB) !== -1) continue;
+    if (rx(_otherB).test(working)) _bnCountB++;
   }
   
-  if (_bnCountB >= 2) {
-    log('🔥 FIX-REVISI-v2: "' + bn + '" + ' + _bnCountB + ' base names → JANGAN strip', 'VARIANT');
+  if (_bnCountB >= 1) {
+    log('🔥 FIX-REVISI-v3: "' + bn + '" + ' + _bnCountB + ' base lain → JANGAN strip', 'VARIANT');
     continue;
   }
   
-  log('🔥 FIX-REVISI-v2: "' + bn + '" base tunggal → strip', 'VARIANT');
+  log('🔥 FIX-REVISI-v3: "' + bn + '" base tunggal → strip', 'VARIANT');
   working = working.replace(rx(bn, 'g'), ' ');
   continue;
 }
