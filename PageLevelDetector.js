@@ -3509,16 +3509,57 @@ function detectEntityTypeFromText(text) {
     // 🔥 FIX 204: PRICE + BASE SERVICE + NON-SPEC
     // ═══════════════════════════════════════════════════════════
     if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
-      var preCore = _memoGetCoreWords
-        ? _memoGetCoreWords(text, entityType)
-        : getCoreWords(text, entityType);
+  var preCore = _memoGetCoreWords
+    ? _memoGetCoreWords(text, entityType)
+    : getCoreWords(text, entityType);
 
-      log('🔥 FIX 204: preCore=[' + preCore.join(',') + '] (len=' + preCore.length + ')', 'CORE');
+  log('🔥 FIX 204: preCore=[' + preCore.join(',') + '] (len=' + preCore.length + ')', 'CORE');
 
-      if (preCore.length === 0) {
-        log('🏛️ FIX 204: MONEY_MASTER (base service murni)', 'MM');
-        return "money-master";
+  // 🔥 FIX BARU: Cek dulu apakah text mengandung multi-word base name
+  // Kalau ya, naikkan ke money-page (karena ada modifier spesifik di dalam base)
+  var _hasMultiWordBase = false;
+  var _baseListCheck = ENTITY_BASE_NAMES[entityType] || [];
+  for (var _bci = 0; _bci < _baseListCheck.length; _bci++) {
+    var _bcn = _baseListCheck[_bci];
+    if (_bcn.split(' ').length >= 2) {
+      var _bcnRegex = new RegExp("\\b" + _escapeRegex(_bcn) + "\\b", "i");
+      if (_bcnRegex.test(text)) {
+        _hasMultiWordBase = true;
+        log('🔥 FIX-NEW: multi-word base ditemukan: "' + _bcn + '"', 'CORE');
+        break;
       }
+    }
+  }
+  
+  // 🔥 FIX BARU: Cek apakah ada application target di dalam text
+  var _hasAppTarget = false;
+  _buildMasterRegexes();
+  if (_MASTER.appTargets && _MASTER.appTargets.test(text)) {
+    _hasAppTarget = true;
+    log('🔥 FIX-NEW: application target ditemukan', 'CORE');
+  }
+  
+  // 🔥 FIX BARU: Cek apakah ada spec modifier (tanpa mark hasSpec)
+  var _hasSpecModifier = false;
+  var _specTestWords = ["pondasi","tiang","pancang","kolom","balok","plat","slab","pelat"];
+  for (var _sti = 0; _sti < _specTestWords.length; _sti++) {
+    if (rx(_specTestWords[_sti]).test(text)) {
+      _hasSpecModifier = true;
+      log('🔥 FIX-NEW: spec modifier ditemukan: "' + _specTestWords[_sti] + '"', 'CORE');
+      break;
+    }
+  }
+  
+  // 🔥 FIX-NEW: Kalau ada multi-word base / app target / spec modifier → money-page
+  if (_hasMultiWordBase || _hasAppTarget || _hasSpecModifier) {
+    log('💵 FIX-NEW: MONEY_PAGE (price + base service + modifier)', 'HARGA');
+    return "money-page";
+  }
+
+  if (preCore.length === 0) {
+    log('🏛️ FIX 204: MONEY_MASTER (base service murni)', 'MM');
+    return "money-master";
+  }
 
       if (preCore.length === 1) {
         var coreWord = preCore[0];
