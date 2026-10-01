@@ -3630,11 +3630,23 @@ function detectEntityTypeFromText(text) {
         // Kalau coreWord adalah bagian dari base name + ada price
         // → money-master (konsisten dengan jasa)
         // ═══════════════════════════════════════════════════════════
-        if (isPartOfBaseName && hasPriceWord) {
-          log('💵 PATCH-D-v3: MONEY_MASTER (price + base name part: "' + coreWord + '")', 'HARGA');
-          return "money-master";
+                if (isPartOfBaseName && hasPriceWord) {
+          // 🔥 FIX-PATCH-D-v4: Cek 2+ base names di text
+          var _bnCountP = 0;
+          var _baseListP = ENTITY_BASE_NAMES[entityType] || [];
+          for (var _bpi = 0; _bpi < _baseListP.length; _bpi++) {
+            if (rx(_baseListP[_bpi]).test(lowerText)) _bnCountP++;
+          }
+          
+          if (_bnCountP >= 2) {
+            log('💵 FIX-PATCH-D-v4: SKIP MM (2+ base names: ' + _bnCountP + ')', 'HARGA');
+            // Lanjut ke logika berikutnya (kandidat MP)
+          } else {
+            log('💵 PATCH-D-v3: MONEY_MASTER (price + base name tunggal)', 'HARGA');
+            return "money-master";
+          }
         }
-
+         
         // Cek 1: APPLICATION_TARGETS
         if (APPLICATION_TARGETS.indexOf(coreWord) !== -1) {
           var hasCompoundBase154 = false;
