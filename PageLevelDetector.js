@@ -2099,24 +2099,22 @@ material: [
   
   // 🔥 FIX-REVISI-v2: Handle base name yang juga app target
   if (APPLICATION_TARGETS_FULL.indexOf(bn212) !== -1) {
-    // Hitung jumlah base name di text asli
-    var _bnCount212 = 0;
-    for (var _bnc = 0; _bnc < sortedBaseList212.length; _bnc++) {
-      if (rx(sortedBaseList212[_bnc]).test(lower)) _bnCount212++;
-    }
-    
-    if (_bnCount212 >= 2) {
-      // 2+ base names → ada modifier spesifik → JANGAN strip
-      log('🎯 FIX-REVISI-v2: "' + bn212 + '" + ' + _bnCount212 + ' base names → JANGAN strip', 'CROSSSPEC');
-      continue;
-    }
-    
-    // 1 base name → base service murni → strip
-    log('🎯 FIX-REVISI-v2: "' + bn212 + '" base tunggal → strip', 'CROSSSPEC');
-    textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
+  // 🔥 FIX-REVISI-v2: Hitung total base name di text asli
+  var _bnCount212 = 0;
+  for (var _bnc = 0; _bnc < sortedBaseList212.length; _bnc++) {
+    if (rx(sortedBaseList212[_bnc]).test(lower)) _bnCount212++;
+  }
+  
+  if (_bnCount212 >= 2) {
+    log('🎯 FIX-REVISI-v2: "' + bn212 + '" + ' + _bnCount212 + ' base names → JANGAN strip', 'CROSSSPEC');
     continue;
   }
   
+  log('🎯 FIX-REVISI-v2: "' + bn212 + '" base tunggal → strip', 'CROSSSPEC');
+  textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
+  continue;
+}
+       
   textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
 }
      
@@ -2299,21 +2297,21 @@ material: [
   
   // 🔥 FIX-REVISI-v2: Handle base name yang juga app target
   if (APPLICATION_TARGETS_FULL.indexOf(bn) !== -1) {
-    // Hitung jumlah base name di text asli
-    var _bnCountB = 0;
-    for (var _bncb = 0; _bncb < sortedBaseNames.length; _bncb++) {
-      if (rx(sortedBaseNames[_bncb]).test(working)) _bnCountB++;
-    }
-    
-    if (_bnCountB >= 2) {
-      log('🔥 FIX-REVISI-v2: "' + bn + '" + ' + _bnCountB + ' base names → JANGAN strip', 'VARIANT');
-      continue;
-    }
-    
-    log('🔥 FIX-REVISI-v2: "' + bn + '" base tunggal → strip', 'VARIANT');
-    working = working.replace(rx(bn, 'g'), ' ');
+  // 🔥 FIX-REVISI-v2: Hitung total base name di text asli
+  var _bnCountB = 0;
+  for (var _bncb = 0; _bncb < sortedBaseNames.length; _bncb++) {
+    if (rx(sortedBaseNames[_bncb]).test(working)) _bnCountB++;
+  }
+  
+  if (_bnCountB >= 2) {
+    log('🔥 FIX-REVISI-v2: "' + bn + '" + ' + _bnCountB + ' base names → JANGAN strip', 'VARIANT');
     continue;
   }
+  
+  log('🔥 FIX-REVISI-v2: "' + bn + '" base tunggal → strip', 'VARIANT');
+  working = working.replace(rx(bn, 'g'), ' ');
+  continue;
+}
   
   working = working.replace(rx(bn, 'g'), ' ');
 }
