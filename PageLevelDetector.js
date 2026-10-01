@@ -2094,11 +2094,48 @@ material: [
     }
     
     for (var bi212 = 0; bi212 < sortedBaseList212.length; bi212++) {
-      var bn212 = sortedBaseList212[bi212];
-      if (_skipBase212[bn212]) continue;
-      textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
+  var bn212 = sortedBaseList212[bi212];
+  if (_skipBase212[bn212]) continue;
+  
+  // 🔥 FIX-REVISI: Handle base name yang juga app target
+  if (APPLICATION_TARGETS_FULL.indexOf(bn212) !== -1) {
+    var tempText = lower;
+    // Strip base name multi-word lain
+    for (var otherBi = 0; otherBi < sortedBaseList212.length; otherBi++) {
+      var otherBn = sortedBaseList212[otherBi];
+      if (otherBn !== bn212 && otherBn.split(' ').length >= 2) {
+        tempText = tempText.replace(rx(otherBn, 'g'), ' ');
+      }
     }
-    _buildMasterRegexes();
+    // Strip entity only
+    var entityOnly212 = ENTITY_ONLY_WORDS[entityType] || [];
+    for (var eo212 = 0; eo212 < entityOnly212.length; eo212++) {
+      tempText = tempText.replace(rx(entityOnly212[eo212], 'g'), ' ');
+    }
+    // Strip bn212 sendiri
+    tempText = tempText.replace(rx(bn212, 'g'), ' ');
+    // Strip promo/noise
+    tempText = tempText.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal)\b/gi, ' ');
+    tempText = tempText.trim();
+    
+    var sisaKata = tempText.split(/\s+/).filter(function(w) { return w.length > 2; });
+    
+    if (sisaKata.length === 0) {
+      // Base service murni → strip aja
+      log('🎯 FIX-REVISI: "' + bn212 + '" base murni → strip', 'CROSSSPEC');
+      textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
+      continue;
+    }
+    
+    // Ada sisa kata → jangan strip (biar dihitung sebagai spec)
+    log('🎯 FIX-REVISI: "' + bn212 + '" + sisa=[' + sisaKata.join(',') + '] → JANGAN strip', 'CROSSSPEC');
+    continue;
+  }
+  
+  textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
+}
+     
+     _buildMasterRegexes();
     if (_MASTER.appTargets && _MASTER.appTargets.test(textNoBase)) {
       log('🎯 FIX 212: application target = spec', 'CROSSSPEC');
       return true;
@@ -2272,10 +2309,45 @@ material: [
     }
     
     for (var b = 0; b < sortedBaseNames.length; b++) {
-      var bn = sortedBaseNames[b];
-      if (_baseNamesToSkip[bn]) continue;
-      working = working.replace(rx(bn, 'g'), ' ');
+  var bn = sortedBaseNames[b];
+  if (_baseNamesToSkip[bn]) continue;
+  
+  // 🔥 FIX-REVISI: Handle base name yang juga app target
+  if (APPLICATION_TARGETS_FULL.indexOf(bn) !== -1) {
+    var tempWorking = working;
+    // Strip base multi-word lain
+    for (var ob = 0; ob < sortedBaseNames.length; ob++) {
+      var obName = sortedBaseNames[ob];
+      if (obName !== bn && obName.split(' ').length >= 2) {
+        tempWorking = tempWorking.replace(rx(obName, 'g'), ' ');
+      }
     }
+    // Strip entity only
+    var entityOnly2 = ENTITY_ONLY_WORDS[entityType] || [];
+    for (var eo2 = 0; eo2 < entityOnly2.length; eo2++) {
+      tempWorking = tempWorking.replace(rx(entityOnly2[eo2], 'g'), ' ');
+    }
+    // Strip bn
+    tempWorking = tempWorking.replace(rx(bn, 'g'), ' ');
+    // Strip promo
+    tempWorking = tempWorking.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal)\b/gi, ' ');
+    tempWorking = tempWorking.trim();
+    
+    var sisa2 = tempWorking.split(/\s+/).filter(function(w) { return w.length > 2; });
+    
+    if (sisa2.length === 0) {
+      log('🔥 FIX-REVISI: "' + bn + '" base murni → strip', 'VARIANT');
+      working = working.replace(rx(bn, 'g'), ' ');
+      continue;
+    }
+    
+    log('🔥 FIX-REVISI: "' + bn + '" + sisa=[' + sisa2.join(',') + '] → JANGAN strip', 'VARIANT');
+    continue;
+  }
+  
+  working = working.replace(rx(bn, 'g'), ' ');
+}
+     
     // Step 3: Strip NOISE
     if (_MASTER.noiseUniv) {
       _MASTER.noiseUniv.lastIndex = 0;
@@ -3508,58 +3580,17 @@ function detectEntityTypeFromText(text) {
     // ═══════════════════════════════════════════════════════════
     // 🔥 FIX 204: PRICE + BASE SERVICE + NON-SPEC
     // ═══════════════════════════════════════════════════════════
-    if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
-  var preCore = _memoGetCoreWords
-    ? _memoGetCoreWords(text, entityType)
-    : getCoreWords(text, entityType);
-
-  log('🔥 FIX 204: preCore=[' + preCore.join(',') + '] (len=' + preCore.length + ')', 'CORE');
-
-  // 🔥 FIX BARU: Cek dulu apakah text mengandung multi-word base name
-  // Kalau ya, naikkan ke money-page (karena ada modifier spesifik di dalam base)
-  var _hasMultiWordBase = false;
-  var _baseListCheck = ENTITY_BASE_NAMES[entityType] || [];
-  for (var _bci = 0; _bci < _baseListCheck.length; _bci++) {
-    var _bcn = _baseListCheck[_bci];
-    if (_bcn.split(' ').length >= 2) {
-      var _bcnRegex = new RegExp("\\b" + _escapeRegex(_bcn) + "\\b", "i");
-      if (_bcnRegex.test(text)) {
-        _hasMultiWordBase = true;
-        log('🔥 FIX-NEW: multi-word base ditemukan: "' + _bcn + '"', 'CORE');
-        break;
-      }
-    }
-  }
-  
-  // 🔥 FIX BARU: Cek apakah ada application target di dalam text
-  var _hasAppTarget = false;
-  _buildMasterRegexes();
-  if (_MASTER.appTargets && _MASTER.appTargets.test(text)) {
-    _hasAppTarget = true;
-    log('🔥 FIX-NEW: application target ditemukan', 'CORE');
-  }
-  
-  // 🔥 FIX BARU: Cek apakah ada spec modifier (tanpa mark hasSpec)
-  var _hasSpecModifier = false;
-  var _specTestWords = ["pondasi","tiang","pancang","kolom","balok","plat","slab","pelat"];
-  for (var _sti = 0; _sti < _specTestWords.length; _sti++) {
-    if (rx(_specTestWords[_sti]).test(text)) {
-      _hasSpecModifier = true;
-      log('🔥 FIX-NEW: spec modifier ditemukan: "' + _specTestWords[_sti] + '"', 'CORE');
-      break;
-    }
-  }
-  
-  // 🔥 FIX-NEW: Kalau ada multi-word base / app target / spec modifier → money-page
-  if (_hasMultiWordBase || _hasAppTarget || _hasSpecModifier) {
-    log('💵 FIX-NEW: MONEY_PAGE (price + base service + modifier)', 'HARGA');
-    return "money-page";
-  }
-
-  if (preCore.length === 0) {
-    log('🏛️ FIX 204: MONEY_MASTER (base service murni)', 'MM');
-    return "money-master";
-  }
+   if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
+        var preCore = _memoGetCoreWords
+          ? _memoGetCoreWords(text, entityType)
+          : getCoreWords(text, entityType);
+      
+        log('🔥 FIX 204: preCore=[' + preCore.join(',') + '] (len=' + preCore.length + ')', 'CORE');
+      
+        if (preCore.length === 0) {
+          log('🏛️ FIX 204: MONEY_MASTER (base service murni)', 'MM');
+          return "money-master";     
+        }
 
       if (preCore.length === 1) {
         var coreWord = preCore[0];
