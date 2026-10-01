@@ -3423,6 +3423,41 @@ function detectEntityTypeFromText(text) {
 
     function detectMoneyLevelInternal(text, entityType) {
     var lowerText = text.toLowerCase();
+     // 🔥 FIX-MM-v4: EARLY RETURN — single base name → MM
+  var _baseListEarly = ENTITY_BASE_NAMES[entityType] || [];
+  var _sortedBaseEarly = _baseListEarly.slice().sort(function(a, b) {
+    return b.length - a.length;
+  });
+  
+  var _matchedBaseEarly = [];
+  for (var _bei = 0; _bei < _sortedBaseEarly.length; _bei++) {
+    var _bnEarly = _sortedBaseEarly[_bei];
+    if (!rx(_bnEarly).test(lowerText)) continue;
+    var _isSubEarly = false;
+    for (var _mbi = 0; _mbi < _matchedBaseEarly.length; _mbi++) {
+      if (_matchedBaseEarly[_mbi].indexOf(_bnEarly) !== -1) {
+        _isSubEarly = true;
+        break;
+      }
+    }
+    if (_isSubEarly) continue;
+    _matchedBaseEarly.push(_bnEarly);
+  }
+  
+  if (_matchedBaseEarly.length === 1) {
+    var _hasSubPillarEarly = detectSubPillar(text);
+    var _hasLocEarly = isLocation(text);
+    var _hasDimEarly = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
+      || /\d+\s*[x×]\s*\d+/i.test(lowerText)
+      || checkHasPerUnit(text)
+      || hasTechnicalSpec(text);
+    
+    if (!_hasSubPillarEarly && !_hasLocEarly && !_hasDimEarly) {
+      log('🏛️ FIX-MM-v4: MONEY_MASTER (single base: ' + _matchedBaseEarly[0] + ')', 'MM');
+      return "money-master";
+    }
+  }
+
     var factors = _memoGetFactors
       ? _memoGetFactors(text, entityType)
       : getFactors(text, entityType);
