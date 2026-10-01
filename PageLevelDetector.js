@@ -2097,38 +2097,23 @@ material: [
   var bn212 = sortedBaseList212[bi212];
   if (_skipBase212[bn212]) continue;
   
-  // 🔥 FIX-REVISI: Handle base name yang juga app target
+  // 🔥 FIX-REVISI-v2: Handle base name yang juga app target
   if (APPLICATION_TARGETS_FULL.indexOf(bn212) !== -1) {
-    var tempText = lower;
-    // Strip base name multi-word lain
-    for (var otherBi = 0; otherBi < sortedBaseList212.length; otherBi++) {
-      var otherBn = sortedBaseList212[otherBi];
-      if (otherBn !== bn212 && otherBn.split(' ').length >= 2) {
-        tempText = tempText.replace(rx(otherBn, 'g'), ' ');
-      }
+    // Hitung jumlah base name di text asli
+    var _bnCount212 = 0;
+    for (var _bnc = 0; _bnc < sortedBaseList212.length; _bnc++) {
+      if (rx(sortedBaseList212[_bnc]).test(lower)) _bnCount212++;
     }
-    // Strip entity only
-    var entityOnly212 = ENTITY_ONLY_WORDS[entityType] || [];
-    for (var eo212 = 0; eo212 < entityOnly212.length; eo212++) {
-      tempText = tempText.replace(rx(entityOnly212[eo212], 'g'), ' ');
-    }
-    // Strip bn212 sendiri
-    tempText = tempText.replace(rx(bn212, 'g'), ' ');
-    // Strip promo/noise
-    tempText = tempText.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal)\b/gi, ' ');
-    tempText = tempText.trim();
     
-    var sisaKata = tempText.split(/\s+/).filter(function(w) { return w.length > 2; });
-    
-    if (sisaKata.length === 0) {
-      // Base service murni → strip aja
-      log('🎯 FIX-REVISI: "' + bn212 + '" base murni → strip', 'CROSSSPEC');
-      textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
+    if (_bnCount212 >= 2) {
+      // 2+ base names → ada modifier spesifik → JANGAN strip
+      log('🎯 FIX-REVISI-v2: "' + bn212 + '" + ' + _bnCount212 + ' base names → JANGAN strip', 'CROSSSPEC');
       continue;
     }
     
-    // Ada sisa kata → jangan strip (biar dihitung sebagai spec)
-    log('🎯 FIX-REVISI: "' + bn212 + '" + sisa=[' + sisaKata.join(',') + '] → JANGAN strip', 'CROSSSPEC');
+    // 1 base name → base service murni → strip
+    log('🎯 FIX-REVISI-v2: "' + bn212 + '" base tunggal → strip', 'CROSSSPEC');
+    textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
     continue;
   }
   
@@ -2308,40 +2293,25 @@ material: [
       }
     }
     
-    for (var b = 0; b < sortedBaseNames.length; b++) {
+   for (var b = 0; b < sortedBaseNames.length; b++) {
   var bn = sortedBaseNames[b];
   if (_baseNamesToSkip[bn]) continue;
   
-  // 🔥 FIX-REVISI: Handle base name yang juga app target
+  // 🔥 FIX-REVISI-v2: Handle base name yang juga app target
   if (APPLICATION_TARGETS_FULL.indexOf(bn) !== -1) {
-    var tempWorking = working;
-    // Strip base multi-word lain
-    for (var ob = 0; ob < sortedBaseNames.length; ob++) {
-      var obName = sortedBaseNames[ob];
-      if (obName !== bn && obName.split(' ').length >= 2) {
-        tempWorking = tempWorking.replace(rx(obName, 'g'), ' ');
-      }
+    // Hitung jumlah base name di text asli
+    var _bnCountB = 0;
+    for (var _bncb = 0; _bncb < sortedBaseNames.length; _bncb++) {
+      if (rx(sortedBaseNames[_bncb]).test(working)) _bnCountB++;
     }
-    // Strip entity only
-    var entityOnly2 = ENTITY_ONLY_WORDS[entityType] || [];
-    for (var eo2 = 0; eo2 < entityOnly2.length; eo2++) {
-      tempWorking = tempWorking.replace(rx(entityOnly2[eo2], 'g'), ' ');
-    }
-    // Strip bn
-    tempWorking = tempWorking.replace(rx(bn, 'g'), ' ');
-    // Strip promo
-    tempWorking = tempWorking.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal)\b/gi, ' ');
-    tempWorking = tempWorking.trim();
     
-    var sisa2 = tempWorking.split(/\s+/).filter(function(w) { return w.length > 2; });
-    
-    if (sisa2.length === 0) {
-      log('🔥 FIX-REVISI: "' + bn + '" base murni → strip', 'VARIANT');
-      working = working.replace(rx(bn, 'g'), ' ');
+    if (_bnCountB >= 2) {
+      log('🔥 FIX-REVISI-v2: "' + bn + '" + ' + _bnCountB + ' base names → JANGAN strip', 'VARIANT');
       continue;
     }
     
-    log('🔥 FIX-REVISI: "' + bn + '" + sisa=[' + sisa2.join(',') + '] → JANGAN strip', 'VARIANT');
+    log('🔥 FIX-REVISI-v2: "' + bn + '" base tunggal → strip', 'VARIANT');
+    working = working.replace(rx(bn, 'g'), ' ');
     continue;
   }
   
