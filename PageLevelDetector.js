@@ -3455,56 +3455,88 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
     }
     // ═══════════════════════════════════════════════════════════
    
-    // 🔥 FIX-MINIMAL-v1: KHUSUS JASA — Handle 2 kasus edge
-  // Tujuan: 
-  //   1. jasa pondasi → MM (bukan MP)
-  //   2. jasa bore pile murah pondasi → MP (bukan MM)
-  // Berlaku hanya untuk entity "jasa" agar tidak ganggu entity lain
-  if (entityType === "jasa") {
-    // Hitung base names
-    var _baseListMin = ENTITY_BASE_NAMES.jasa || [];
-    var _sortedBaseMin = _baseListMin.slice().sort(function(a, b) {
-      return b.split(' ').length - a.split(' ').length;
-    });
-    var _matchedBaseMin = [];
-    for (var _bmi = 0; _bmi < _sortedBaseMin.length; _bmi++) {
-      var _bnMin = _sortedBaseMin[_bmi];
-      if (!rx(_bnMin).test(lowerText)) continue;
-      var _isSubMin = false;
-      for (var _mbi2 = 0; _mbi2 < _matchedBaseMin.length; _mbi2++) {
-        if (_matchedBaseMin[_mbi2].indexOf(_bnMin) !== -1) {
-          _isSubMin = true;
-          break;
+      // 🔥 FIX-MINIMAL-v2: KHUSUS JASA — Handle 3 kasus edge
+    // Tujuan: 
+    //   1. jasa pondasi → MM (single base = app target, no extra)
+    //   2. jasa bore pile proyek → MP (single base + spec modifier)
+    //   3. jasa bore pile pondasi → MP (2+ base names)
+    // Berlaku hanya untuk entity "jasa" agar tidak ganggu entity lain
+    if (entityType === "jasa") {
+      // Hitung base names
+      var _baseListMin = ENTITY_BASE_NAMES.jasa || [];
+      var _sortedBaseMin = _baseListMin.slice().sort(function(a, b) {
+        return b.split(' ').length - a.split(' ').length;
+      });
+      var _matchedBaseMin = [];
+      for (var _bmi = 0; _bmi < _sortedBaseMin.length; _bmi++) {
+        var _bnMin = _sortedBaseMin[_bmi];
+        if (!rx(_bnMin).test(lowerText)) continue;
+        var _isSubMin = false;
+        for (var _mbi2 = 0; _mbi2 < _matchedBaseMin.length; _mbi2++) {
+          if (_matchedBaseMin[_mbi2].indexOf(_bnMin) !== -1) {
+            _isSubMin = true;
+            break;
+          }
+        }
+        if (_isSubMin) continue;
+        _matchedBaseMin.push(_bnMin);
+      }
+      
+      // ─── KASUS 1: Single base = app target + no extra → MM
+      // Contoh: "jasa pondasi", "jasa pondasi murah" → MM
+      if (_matchedBaseMin.length === 1 && 
+          APPLICATION_TARGETS_FULL.indexOf(_matchedBaseMin[0]) !== -1) {
+        var _tempMin = lowerText;
+        var _entityOnlyMin = ENTITY_ONLY_WORDS.jasa || [];
+        for (var _eoi = 0; _eoi < _entityOnlyMin.length; _eoi++) {
+          _tempMin = _tempMin.replace(rx(_entityOnlyMin[_eoi], 'g'), ' ');
+        }
+        _tempMin = _tempMin.replace(rx(_matchedBaseMin[0], 'g'), ' ');
+        // Strip promo juga (murah/hemat/dll)
+        _tempMin = _tempMin.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal)\b/gi, ' ');
+        _tempMin = _tempMin.trim();
+        
+        var _sisaMin = _tempMin.split(/\s+/).filter(function(w) { return w.length > 2; });
+        if (_sisaMin.length === 0) {
+          log('🏛️ FIX-MINIMAL-v2: MONEY_MASTER (single base=apptarget, no extra)', 'MM');
+          return "money-master";
         }
       }
-      if (_isSubMin) continue;
-      _matchedBaseMin.push(_bnMin);
-    }
-    
-    // ─── KASUS 1: Single base = app target + no extra → MM
-    // Contoh: "jasa pondasi", "jasa pondasi murah" → MM
-    if (_matchedBaseMin.length === 1 && 
-        APPLICATION_TARGETS_FULL.indexOf(_matchedBaseMin[0]) !== -1) {
-      var _tempMin = lowerText;
-      var _entityOnlyMin = ENTITY_ONLY_WORDS.jasa || [];
-      for (var _eoi = 0; _eoi < _entityOnlyMin.length; _eoi++) {
-        _tempMin = _tempMin.replace(rx(_entityOnlyMin[_eoi], 'g'), ' ');
-      }
-      _tempMin = _tempMin.replace(rx(_matchedBaseMin[0], 'g'), ' ');
-      // Strip promo juga (murah/hemat/dll)
-      _tempMin = _tempMin.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal)\b/gi, ' ');
-      _tempMin = _tempMin.trim();
       
-      var _sisaMin = _tempMin.split(/\s+/).filter(function(w) { return w.length > 2; });
-      if (_sisaMin.length === 0) {
-        log('🏛️ FIX-MINIMAL-v1: MONEY_MASTER (single base=apptarget, no extra)', 'MM');
-        return "money-master";
+      // ─── KASUS 1.5: Single base + spec modifier → MP
+      // Contoh: "jasa bore pile proyek" → MP, "jasa bore pile perumahan" → MP
+      if (_matchedBaseMin.length === 1) {
+        var _specModsMin = [
+          // METODE
+          "manual","hidrolik","rotary","auger","percussive","basah","kering","mesin",
+          "dalam","dangkal","artesis","jet pump",
+          // APLIKASI
+          "gedung","rumah","ruko","gudang","pabrik","kantor","sekolah","villa",
+          "apartemen","hotel","masjid","gereja","kios","rukan","cafe","restoran",
+          // SKALA (dari ENTITY_SPECIFIC.jasa.skala)
+          "rumahan","komersial","industri","residential","commercial","industrial",
+          "kecil","sedang","besar","menengah","proyek","perumahan","perkantoran",
+          // UKURAN
+          "mini","jumbo"
+        ];
+        var _hasSpecModMin = false;
+        for (var _smi = 0; _smi < _specModsMin.length; _smi++) {
+          if (rx(_specModsMin[_smi]).test(lowerText)) {
+            // Skip kalau spec modifier ini = bagian dari base name
+            if (_matchedBaseMin[0].indexOf(_specModsMin[_smi]) !== -1) continue;
+            _hasSpecModMin = true;
+            log('🔥 FIX-MINIMAL-v2: spec mod "' + _specModsMin[_smi] + '" → MP', 'MM');
+            break;
+          }
+        }
+        if (_hasSpecModMin) {
+          return "money-page";
+        }
       }
-    }
-    
-    // ─── KASUS 2: 2+ base names + no price/loc/dim → MP
-    // Contoh: "jasa bore pile murah pondasi" → MP
-    if (_matchedBaseMin.length >= 2) {
+      
+      // ─── KASUS 2: 2+ base names + no price/loc/dim → MP
+      // Contoh: "jasa bore pile murah pondasi" → MP
+      if (_matchedBaseMin.length >= 2) {
         // 🔥 FIX: Filter "borongan" (noise) — bukan spec
         var _matchedFiltered = _matchedBaseMin.filter(function(b) {
           if (b === "borongan") return false;
@@ -3520,13 +3552,12 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
             || /\d+\s*[x×]\s*\d+/i.test(lowerText);
           
           if (!_hasLocMin && !_hasPriceMin && !_hasDimMin) {
-            log('🔥 FIX-MINIMAL-v1: MONEY_PAGE (2+ base: ' + _matchedFiltered.join(' + ') + ')', 'MM');
+            log('🔥 FIX-MINIMAL-v2: MONEY_PAGE (2+ base: ' + _matchedFiltered.join(' + ') + ')', 'MM');
             return "money-page";
           }
         }
-        // Kalau setelah filter < 2 base → biarkan logika asli handle
+      }
     }
-  }
    
    var factors = _memoGetFactors
       ? _memoGetFactors(text, entityType)
