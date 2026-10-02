@@ -3422,91 +3422,9 @@ function detectEntityTypeFromText(text) {
   // ═══════════════════════════════════════════════════════════
 
     function detectMoneyLevelInternal(text, entityType) {
-    var lowerText = text.toLowerCase();
-     // 🔥 FIX-MM-v4: EARLY RETURN — single base name → MM
-  var _baseListEarly = ENTITY_BASE_NAMES[entityType] || [];
-  var _sortedBaseEarly = _baseListEarly.slice().sort(function(a, b) {
-    return b.length - a.length;
-  });
-  
-  var _matchedBaseEarly = [];
-  for (var _bei = 0; _bei < _sortedBaseEarly.length; _bei++) {
-    var _bnEarly = _sortedBaseEarly[_bei];
-    if (!rx(_bnEarly).test(lowerText)) continue;
-    var _isSubEarly = false;
-    for (var _mbi = 0; _mbi < _matchedBaseEarly.length; _mbi++) {
-      if (_matchedBaseEarly[_mbi].indexOf(_bnEarly) !== -1) {
-        _isSubEarly = true;
-        break;
-      }
-    }
-    if (_isSubEarly) continue;
-    _matchedBaseEarly.push(_bnEarly);
-  }
-  
-  if (_matchedBaseEarly.length === 1) {
-  var _hasSubPillarEarly = detectSubPillar(text);
-  var _hasLocEarly = isLocation(text);
-  var _hasDimEarly = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
-    || /\d+\s*[x×]\s*\d+/i.test(lowerText)
-    || checkHasPerUnit(text)
-    || hasTechnicalSpec(text);
-  
-  // 🔥 FIX-MM-v6: Spec modifier — KHUSUS JASA saja
-  var _hasSpecModV6 = false;
-  var _matchedSpecV6 = null;
-  
-  if (entityType === "jasa") {
-    var _specModifiersJasa = [
-      "manual","hidrolik","rotary","auger","percussive","basah","kering","mesin",
-      "dalam","dangkal","artesis","jet pump",
-      "gedung","rumah","ruko","gudang","pabrik","kantor","sekolah","villa",
-      "apartemen","hotel","masjid","gereja","kios","rukan","cafe","restoran",
-      "komersial","industri","rumahan","residential","commercial","industrial",
-      "kecil","sedang","besar","menengah",
-      "pondasi","tiang","pancang","sloof","kolom","balok","plat","slab","pelat"
-    ];
-    
-    for (var _smv = 0; _smv < _specModifiersJasa.length; _smv++) {
-      if (rx(_specModifiersJasa[_smv]).test(lowerText)) {
-        var _isBaseNameV6 = false;
-        for (var _bnv6 = 0; _bnv6 < _matchedBaseEarly.length; _bnv6++) {
-          if (_matchedBaseEarly[_bnv6].indexOf(_specModifiersJasa[_smv]) !== -1) {
-            _isBaseNameV6 = true;
-            break;
-          }
-        }
-        if (_isBaseNameV6) continue;
-        
-        _hasSpecModV6 = true;
-        _matchedSpecV6 = _specModifiersJasa[_smv];
-        log('🔥 FIX-MM-v6: jasa spec modifier "' + _matchedSpecV6 + '"', 'MM');
-        break;
-      }
-    }
-  }
-  
-  if (!_hasSubPillarEarly && !_hasLocEarly && !_hasDimEarly && !_hasSpecModV6) {
-    log('🏛️ FIX-MM-v6: MONEY_MASTER (single base, no spec) entity=' + entityType, 'MM');
-    return "money-master";
-  }
-}
-       
-// 🔥 FIX-MM-v5: 2+ base names → money-page (kecuali ada sub-pillar/lokasi/dimensi)
-if (_matchedBaseEarly.length >= 2) {
-  var _hasSubPillarV5 = detectSubPillar(text);
-  var _hasLocV5 = isLocation(text);
-  var _hasDimV5 = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
-    || /\d+\s*[x×]\s*\d+/i.test(lowerText)
-    || checkHasPerUnit(text)
-    || hasTechnicalSpec(text);
-  
-  if (!_hasSubPillarV5 && !_hasLocV5 && !_hasDimV5) {
-    log('🔥 FIX-MM-v5: MONEY_PAGE (2+ base: ' + _matchedBaseEarly.join(' + ') + ')', 'MM');
-    return "money-page";
-  }
-}
-    var factors = _memoGetFactors
+    var lowerText = text.toLowerCase();    
+
+   var factors = _memoGetFactors
       ? _memoGetFactors(text, entityType)
       : getFactors(text, entityType);
 
