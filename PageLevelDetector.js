@@ -3525,7 +3525,6 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
           }
         }
         // Kalau setelah filter < 2 base → biarkan logika asli handle
-      }
     }
   }
    
