@@ -3421,9 +3421,71 @@ function detectEntityTypeFromText(text) {
   // detectMoneyLevelInternal() — dengan memoize
   // ═══════════════════════════════════════════════════════════
 
-    function detectMoneyLevelInternal(text, entityType) {
+function detectMoneyLevelInternal(text, entityType) {
     var lowerText = text.toLowerCase();    
 
+    // 🔥 FIX-MINIMAL-v1: KHUSUS JASA — Handle 2 kasus edge
+  // Tujuan: 
+  //   1. jasa pondasi → MM (bukan MP)
+  //   2. jasa bore pile murah pondasi → MP (bukan MM)
+  // Berlaku hanya untuk entity "jasa" agar tidak ganggu entity lain
+  if (entityType === "jasa") {
+    // Hitung base names
+    var _baseListMin = ENTITY_BASE_NAMES.jasa || [];
+    var _sortedBaseMin = _baseListMin.slice().sort(function(a, b) {
+      return b.split(' ').length - a.split(' ').length;
+    });
+    var _matchedBaseMin = [];
+    for (var _bmi = 0; _bmi < _sortedBaseMin.length; _bmi++) {
+      var _bnMin = _sortedBaseMin[_bmi];
+      if (!rx(_bnMin).test(lowerText)) continue;
+      var _isSubMin = false;
+      for (var _mbi2 = 0; _mbi2 < _matchedBaseMin.length; _mbi2++) {
+        if (_matchedBaseMin[_mbi2].indexOf(_bnMin) !== -1) {
+          _isSubMin = true;
+          break;
+        }
+      }
+      if (_isSubMin) continue;
+      _matchedBaseMin.push(_bnMin);
+    }
+    
+    // ─── KASUS 1: Single base = app target + no extra → MM
+    // Contoh: "jasa pondasi", "jasa pondasi murah" → MM
+    if (_matchedBaseMin.length === 1 && 
+        APPLICATION_TARGETS_FULL.indexOf(_matchedBaseMin[0]) !== -1) {
+      var _tempMin = lowerText;
+      var _entityOnlyMin = ENTITY_ONLY_WORDS.jasa || [];
+      for (var _eoi = 0; _eoi < _entityOnlyMin.length; _eoi++) {
+        _tempMin = _tempMin.replace(rx(_entityOnlyMin[_eoi], 'g'), ' ');
+      }
+      _tempMin = _tempMin.replace(rx(_matchedBaseMin[0], 'g'), ' ');
+      // Strip promo juga (murah/hemat/dll)
+      _tempMin = _tempMin.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal)\b/gi, ' ');
+      _tempMin = _tempMin.trim();
+      
+      var _sisaMin = _tempMin.split(/\s+/).filter(function(w) { return w.length > 2; });
+      if (_sisaMin.length === 0) {
+        log('🏛️ FIX-MINIMAL-v1: MONEY_MASTER (single base=apptarget, no extra)', 'MM');
+        return "money-master";
+      }
+    }
+    
+    // ─── KASUS 2: 2+ base names + no price/loc/dim → MP
+    // Contoh: "jasa bore pile murah pondasi" → MP
+    if (_matchedBaseMin.length >= 2) {
+      var _hasLocMin = isLocation(text);
+      var _hasPriceMin = checkHasPrice(text);
+      var _hasDimMin = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
+        || /\d+\s*[x×]\s*\d+/i.test(lowerText);
+      
+      if (!_hasLocMin && !_hasPriceMin && !_hasDimMin) {
+        log('🔥 FIX-MINIMAL-v1: MONEY_PAGE (2+ base: ' + _matchedBaseMin.join(' + ') + ')', 'MM');
+        return "money-page";
+      }
+    }
+  }
+   
    var factors = _memoGetFactors
       ? _memoGetFactors(text, entityType)
       : getFactors(text, entityType);
