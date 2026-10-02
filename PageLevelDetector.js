@@ -3452,12 +3452,46 @@ function detectEntityTypeFromText(text) {
     || checkHasPerUnit(text)
     || hasTechnicalSpec(text);
   
-  if (!_hasSubPillarEarly && !_hasLocEarly && !_hasDimEarly) {
-    log('🏛️ FIX-MM-v4: MONEY_MASTER (single base: ' + _matchedBaseEarly[0] + ')', 'MM');
+  // 🔥 FIX-MM-v6: Spec modifier — KHUSUS JASA saja
+  var _hasSpecModV6 = false;
+  var _matchedSpecV6 = null;
+  
+  if (entityType === "jasa") {
+    var _specModifiersJasa = [
+      "manual","hidrolik","rotary","auger","percussive","basah","kering","mesin",
+      "dalam","dangkal","artesis","jet pump",
+      "gedung","rumah","ruko","gudang","pabrik","kantor","sekolah","villa",
+      "apartemen","hotel","masjid","gereja","kios","rukan","cafe","restoran",
+      "komersial","industri","rumahan","residential","commercial","industrial",
+      "kecil","sedang","besar","menengah",
+      "pondasi","tiang","pancang","sloof","kolom","balok","plat","slab","pelat"
+    ];
+    
+    for (var _smv = 0; _smv < _specModifiersJasa.length; _smv++) {
+      if (rx(_specModifiersJasa[_smv]).test(lowerText)) {
+        var _isBaseNameV6 = false;
+        for (var _bnv6 = 0; _bnv6 < _matchedBaseEarly.length; _bnv6++) {
+          if (_matchedBaseEarly[_bnv6].indexOf(_specModifiersJasa[_smv]) !== -1) {
+            _isBaseNameV6 = true;
+            break;
+          }
+        }
+        if (_isBaseNameV6) continue;
+        
+        _hasSpecModV6 = true;
+        _matchedSpecV6 = _specModifiersJasa[_smv];
+        log('🔥 FIX-MM-v6: jasa spec modifier "' + _matchedSpecV6 + '"', 'MM');
+        break;
+      }
+    }
+  }
+  
+  if (!_hasSubPillarEarly && !_hasLocEarly && !_hasDimEarly && !_hasSpecModV6) {
+    log('🏛️ FIX-MM-v6: MONEY_MASTER (single base, no spec) entity=' + entityType, 'MM');
     return "money-master";
   }
 }
-
+       
 // 🔥 FIX-MM-v5: 2+ base names → money-page (kecuali ada sub-pillar/lokasi/dimensi)
 if (_matchedBaseEarly.length >= 2) {
   var _hasSubPillarV5 = detectSubPillar(text);
