@@ -3505,14 +3505,26 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
     // ─── KASUS 2: 2+ base names + no price/loc/dim → MP
     // Contoh: "jasa bore pile murah pondasi" → MP
     if (_matchedBaseMin.length >= 2) {
-      var _hasLocMin = isLocation(text);
-      var _hasPriceMin = checkHasPrice(text);
-      var _hasDimMin = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
-        || /\d+\s*[x×]\s*\d+/i.test(lowerText);
-      
-      if (!_hasLocMin && !_hasPriceMin && !_hasDimMin) {
-        log('🔥 FIX-MINIMAL-v1: MONEY_PAGE (2+ base: ' + _matchedBaseMin.join(' + ') + ')', 'MM');
-        return "money-page";
+        // 🔥 FIX: Filter "borongan" (noise) — bukan spec
+        var _matchedFiltered = _matchedBaseMin.filter(function(b) {
+          if (b === "borongan") return false;
+          if (/^borongan\b/i.test(b)) return false;
+          return true;
+        });
+        
+        // Hanya return MP kalau setelah filter MASIH 2+ base
+        if (_matchedFiltered.length >= 2) {
+          var _hasLocMin = isLocation(text);
+          var _hasPriceMin = checkHasPrice(text);
+          var _hasDimMin = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
+            || /\d+\s*[x×]\s*\d+/i.test(lowerText);
+          
+          if (!_hasLocMin && !_hasPriceMin && !_hasDimMin) {
+            log('🔥 FIX-MINIMAL-v1: MONEY_PAGE (2+ base: ' + _matchedFiltered.join(' + ') + ')', 'MM');
+            return "money-page";
+          }
+        }
+        // Kalau setelah filter < 2 base → biarkan logika asli handle
       }
     }
   }
