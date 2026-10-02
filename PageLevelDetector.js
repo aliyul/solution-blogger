@@ -3445,19 +3445,33 @@ function detectEntityTypeFromText(text) {
   }
   
   if (_matchedBaseEarly.length === 1) {
-    var _hasSubPillarEarly = detectSubPillar(text);
-    var _hasLocEarly = isLocation(text);
-    var _hasDimEarly = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
-      || /\d+\s*[x×]\s*\d+/i.test(lowerText)
-      || checkHasPerUnit(text)
-      || hasTechnicalSpec(text);
-    
-    if (!_hasSubPillarEarly && !_hasLocEarly && !_hasDimEarly) {
-      log('🏛️ FIX-MM-v4: MONEY_MASTER (single base: ' + _matchedBaseEarly[0] + ')', 'MM');
-      return "money-master";
-    }
+  var _hasSubPillarEarly = detectSubPillar(text);
+  var _hasLocEarly = isLocation(text);
+  var _hasDimEarly = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
+    || /\d+\s*[x×]\s*\d+/i.test(lowerText)
+    || checkHasPerUnit(text)
+    || hasTechnicalSpec(text);
+  
+  if (!_hasSubPillarEarly && !_hasLocEarly && !_hasDimEarly) {
+    log('🏛️ FIX-MM-v4: MONEY_MASTER (single base: ' + _matchedBaseEarly[0] + ')', 'MM');
+    return "money-master";
   }
+}
 
+// 🔥 FIX-MM-v5: 2+ base names → money-page (kecuali ada sub-pillar/lokasi/dimensi)
+if (_matchedBaseEarly.length >= 2) {
+  var _hasSubPillarV5 = detectSubPillar(text);
+  var _hasLocV5 = isLocation(text);
+  var _hasDimV5 = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
+    || /\d+\s*[x×]\s*\d+/i.test(lowerText)
+    || checkHasPerUnit(text)
+    || hasTechnicalSpec(text);
+  
+  if (!_hasSubPillarV5 && !_hasLocV5 && !_hasDimV5) {
+    log('🔥 FIX-MM-v5: MONEY_PAGE (2+ base: ' + _matchedBaseEarly.join(' + ') + ')', 'MM');
+    return "money-page";
+  }
+}
     var factors = _memoGetFactors
       ? _memoGetFactors(text, entityType)
       : getFactors(text, entityType);
