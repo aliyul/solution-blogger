@@ -3424,6 +3424,69 @@ function detectEntityTypeFromText(text) {
 function detectMoneyLevelInternal(text, entityType) {
     var lowerText = text.toLowerCase();    
 
+      // 🔥 FIX-HARGA-JASA-v2: Handle pola "harga + jasa + [base only]"
+  // Tujuan:
+  //   - "harga jasa bor" → MM
+  //   - "harga jasa bore pile" → MM
+  //   - "harga jasa bor sumur" → MM
+  //   - "harga jasa coring" → MM
+  //   - "harga jasa borongan strauss pile" → MM
+  //   - "harga jasa pengeboran bore pile" → MM
+  // Prinsip: strip harga, entity, base, noise, promo → kalau kosong → MM
+  // KHUSUS JASA saja (tidak ganggu entity lain)
+  if (entityType === "jasa" && checkHasPrice(text) && !isLocation(text)) {
+    var _tempHJ = lowerText;
+    
+    // Strip harga
+    for (var _phj = 0; _phj < PRICE_HEAD_WORDS.length; _phj++) {
+      _tempHJ = _tempHJ.replace(rx(PRICE_HEAD_WORDS[_phj], 'g'), ' ');
+    }
+    
+    // Strip entity only (jasa, layanan, service, servis)
+    var _eoHJ = ENTITY_ONLY_WORDS.jasa || [];
+    for (var _eoj = 0; _eoj < _eoHJ.length; _eoj++) {
+      _tempHJ = _tempHJ.replace(rx(_eoHJ[_eoj], 'g'), ' ');
+    }
+    
+    // Strip noise universal (borongan, sistem paket, dll)
+    if (_MASTER.noiseUniv) {
+      _MASTER.noiseUniv.lastIndex = 0;
+      _tempHJ = _tempHJ.replace(_MASTER.noiseUniv, ' ');
+    }
+    
+    // Strip noise jasa (per meter, sistem harian, dll)
+    if (_MASTER.noiseJasa) {
+      _MASTER.noiseJasa.lastIndex = 0;
+      _tempHJ = _tempHJ.replace(_MASTER.noiseJasa, ' ');
+    }
+    
+    // Strip base names (sorted by length DESC biar multi-word dulu)
+    var _baseListHJ = ENTITY_BASE_NAMES.jasa || [];
+    var _sortedHJ = _baseListHJ.slice().sort(function(a, b) {
+      return b.split(' ').length - a.split(' ').length;
+    });
+    for (var _biHJ = 0; _biHJ < _sortedHJ.length; _biHJ++) {
+      _tempHJ = _tempHJ.replace(rx(_sortedHJ[_biHJ], 'g'), ' ');
+    }
+    
+    // Strip promo modifier
+    _tempHJ = _tempHJ.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|bersaing|kompetitif|ekonomis|sale)\b/gi, ' ');
+    
+    // Strip stopwords
+    _tempHJ = _tempHJ.replace(/\b(dan|atau|serta|yang|dari|ke|di|untuk|dengan|ini|itu)\b/gi, ' ');
+    
+    _tempHJ = _tempHJ.replace(/\s+/g, ' ').trim();
+    
+    var _sisaHJ = _tempHJ.split(/\s+/).filter(function(w) { return w.length > 2; });
+    
+    // Kalau sisa kosong → MM (base service murni)
+    if (_sisaHJ.length === 0) {
+      log('🏛️ FIX-HARGA-JASA-v2: MONEY_MASTER (base only, no spec)', 'MM');
+      return "money-master";
+    }
+    // Kalau ada sisa → biarkan logika asli handle (MP/Variant/MC)
+  }
+   
     // 🔥 FIX-MINIMAL-v1: KHUSUS JASA — Handle 2 kasus edge
   // Tujuan: 
   //   1. jasa pondasi → MM (bukan MP)
