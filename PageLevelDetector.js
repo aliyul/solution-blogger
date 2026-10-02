@@ -3421,115 +3421,39 @@ function detectEntityTypeFromText(text) {
   // detectMoneyLevelInternal() — dengan memoize
   // ═══════════════════════════════════════════════════════════
 
-function detectMoneyLevelInternal(text, entityType) {
+function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
     var lowerText = text.toLowerCase();    
 
-     // 🔥 FIX-HARGA-JASA-v3: Handle pola "harga + jasa + base"
-  // Tujuan:
-  //   - "harga jasa bor" → MM
-  //   - "harga jasa bore pile" → MM
-  //   - "harga jasa bor sumur" → MM
-  //   - "harga jasa coring" → MM
-  //   - "harga jasa borongan strauss pile" → MM
-  //   - "harga jasa pengeboran bore pile" → MM
-  //   - "harga jasa bore pile pondasi" → MP (karena pondasi = spec)
-  // KHUSUS JASA, hanya jika TIDAK ada lokasi/dimensi
-  if (entityType === "jasa" && checkHasPrice(text)) {
-    var _hasDimHJ = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
-      || /\d+\s*[x×]\s*\d+/i.test(lowerText);
-    var _hasLocHJ = isLocation(text);
-    
-    if (!_hasDimHJ && !_hasLocHJ) {
-      var _tempHJ = lowerText;
-      
-      // Strip harga
-      for (var _phj = 0; _phj < PRICE_HEAD_WORDS.length; _phj++) {
-        _tempHJ = _tempHJ.replace(rx(PRICE_HEAD_WORDS[_phj], 'g'), ' ');
+       // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX-HARGA-FOLLOW-v1: Jika ada "harga", follow level tanpa "harga"
+    // Berlaku SEMUA entity. "harga" = modifier FOKUS KONTEN, bukan level.
+    // ═══════════════════════════════════════════════════════════
+    if (!_skipHargaFollow) {
+      var _hasHargaWord = false;
+      for (var _phv = 0; _phv < PRICE_HEAD_WORDS.length; _phv++) {
+        if (rx(PRICE_HEAD_WORDS[_phv]).test(lowerText)) {
+          _hasHargaWord = true;
+          break;
+        }
       }
       
-      // Strip entity only
-      var _eoHJ = ENTITY_ONLY_WORDS.jasa || [];
-      for (var _eoj = 0; _eoj < _eoHJ.length; _eoj++) {
-        _tempHJ = _tempHJ.replace(rx(_eoHJ[_eoj], 'g'), ' ');
-      }
-      
-      // Strip noise universal (borongan, dll)
-      if (_MASTER.noiseUniv) {
-        _MASTER.noiseUniv.lastIndex = 0;
-        _tempHJ = _tempHJ.replace(_MASTER.noiseUniv, ' ');
-      }
-      // Strip noise jasa
-      if (_MASTER.noiseJasa) {
-        _MASTER.noiseJasa.lastIndex = 0;
-        _tempHJ = _tempHJ.replace(_MASTER.noiseJasa, ' ');
-      }
-      
-      // Strip promo
-      _tempHJ = _tempHJ.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|bersaing|kompetitif|ekonomis|sale)\b/gi, ' ');
-      
-      // Strip stopwords
-      _tempHJ = _tempHJ.replace(/\b(dan|atau|serta|yang|dari|ke|di|untuk|dengan|ini|itu)\b/gi, ' ');
-      
-      _tempHJ = _tempHJ.replace(/\s+/g, ' ').trim();
-      
-      // Find matched base names (longest first, dedup substring)
-      var _baseListHJ = ENTITY_BASE_NAMES.jasa || [];
-      var _sortedHJ = _baseListHJ.slice().sort(function(a, b) {
-        return b.split(' ').length - a.split(' ').length;
-      });
-      
-      var _matchedHJ = [];
-      for (var _biHJ = 0; _biHJ < _sortedHJ.length; _biHJ++) {
-        var _bnHJ = _sortedHJ[_biHJ];
-        if (!rx(_bnHJ).test(_tempHJ)) continue;
-        var _isSubHJ = false;
-        for (var _msi = 0; _msi < _matchedHJ.length; _msi++) {
-          if (_matchedHJ[_msi].indexOf(_bnHJ) !== -1) {
-            _isSubHJ = true;
-            break;
+      if (_hasHargaWord) {
+        var _textNoHarga = lowerText;
+        for (var _phr = 0; _phr < PRICE_HEAD_WORDS.length; _phr++) {
+          _textNoHarga = _textNoHarga.replace(rx(PRICE_HEAD_WORDS[_phr], 'g'), ' ');
+        }
+        _textNoHarga = _textNoHarga.replace(/\s+/g, ' ').trim();
+        
+        if (_textNoHarga && _textNoHarga !== lowerText) {
+          var _levelNoHarga = detectMoneyLevelInternal(_textNoHarga, entityType, true);
+          if (_levelNoHarga) {
+            log('💰 FIX-HARGA-FOLLOW-v1: harga → follow "' + _textNoHarga + '" = ' + _levelNoHarga, 'MM');
+            return _levelNoHarga;
           }
         }
-        if (_isSubHJ) continue;
-        _matchedHJ.push(_bnHJ);
-      }
-      
-      // 🔥 Filter: base name yang juga app target → skip KALAU ada base lain
-      // (karena dalam konteks itu, dia berperan sebagai spec modifier)
-      var _finalBaseHJ = [];
-      for (var _fb = 0; _fb < _matchedHJ.length; _fb++) {
-        var _curr = _matchedHJ[_fb];
-        var _isApp = APPLICATION_TARGETS_FULL.indexOf(_curr) !== -1;
-        var _hasOther = false;
-        for (var _ob = 0; _ob < _matchedHJ.length; _ob++) {
-          if (_ob !== _fb && 
-              _matchedHJ[_ob] !== _curr &&
-              _matchedHJ[_ob].indexOf(_curr) === -1 && 
-              _curr.indexOf(_matchedHJ[_ob]) === -1) {
-            _hasOther = true;
-            break;
-          }
-        }
-        if (!_isApp || !_hasOther) {
-          _finalBaseHJ.push(_curr);
-        }
-      }
-      
-      // Strip final base names dari temp
-      var _tempAfterBase = _tempHJ;
-      for (var _ab = 0; _ab < _finalBaseHJ.length; _ab++) {
-        _tempAfterBase = _tempAfterBase.replace(rx(_finalBaseHJ[_ab], 'g'), ' ');
-      }
-      _tempAfterBase = _tempAfterBase.replace(/\s+/g, ' ').trim();
-      
-      // Kalau base names match semua + sisa kosong → MM
-      // Kalau ada sisa (spec) → biarkan logika asli
-      if (_tempAfterBase.length === 0 && _finalBaseHJ.length > 0) {
-        log('🏛️ FIX-HARGA-JASA-v3: MM (base only: ' + _finalBaseHJ.join('+') + ')', 'MM');
-        return "money-master";
       }
     }
-  }
-  // ⬇️ LANJUT logika asli di bawah (tidak diubah)
+    // ═══════════════════════════════════════════════════════════
    
     // 🔥 FIX-MINIMAL-v1: KHUSUS JASA — Handle 2 kasus edge
   // Tujuan: 
