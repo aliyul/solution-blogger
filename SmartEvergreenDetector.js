@@ -8,11 +8,19 @@
     ✅ AUTO-UPDATE TANPA BATAS: nextUpdate → dateModified → nextUpdate
 
     🔥🔥🔥 v17.2-LITE CHANGELOG 🔥🔥🔥
-    ✅ FIX-A1 s/d FIX-A8 (semua dari v17.1)
+    ✅ FIX-A1: Timeout waitForPageLevelDetector 10s → 3s
+    ✅ FIX-A2: processMetaDates() tidak dipanggil 2x
+    ✅ FIX-A3: Guard _AED_INITIALIZED — cegah double init
+    ✅ FIX-A4: Event listener { once: true } semua
+    ✅ FIX-A5: updateContentByLevelAndFocus() — optimasi scope
+    ✅ FIX-A6: queryByKeyword() — batasi maxLength & skip script
+    ✅ FIX-A7: Cache hasil PLD (kategori, h1Pattern, schema, cta)
+    ✅ FIX-A8: Skip auto-update kalau nextUpdate belum lewat (early return)
     ✅ FIX-A9:  updateJsonLdDates() — update dateModified di JSON-LD
     ✅ FIX-A10: Hapus datePublished HANYA di FAQPage/Question/Answer
     ✅ FIX-A11: Hapus upvoteCount: 0 yang tidak relevan
     ✅ FIX-A12: Update priceValidUntil di JSON-LD offers (kalau ada)
+    ✅ OPSI A+B: JSON-LD diupdate di processMetaDates() DAN autoUpdateDates()
 
     ✅ PRESERVED (semua FIX v16.1):
     ✅ P1 — Deteksi dari PLD dulu (data-content-focus), baru fallback H1
@@ -399,6 +407,10 @@
   //   2. datePublished    → HAPUS hanya di FAQPage/Question/Answer
   //   3. upvoteCount: 0   → HAPUS (tidak relevan untuk FAQPage)
   //   4. priceValidUntil  → UPDATE di offers (kalau ada)
+  //
+  // IDEMPOTENT: aman dipanggil berkali-kali
+  //   - Cek dulu sebelum tulis/delete
+  //   - Kalau sudah sesuai, tidak ada perubahan → tidak rewrite
   // ============================================================
   function updateJsonLdDates(dateModified, nextUpdate) {
     var updated = 0;
@@ -1032,7 +1044,7 @@
 
   // ============================================================
   // 📌 AUTO-UPDATE DATE BERKELANJUTAN
-  // 🔥 FIX-A9/A10/A11/A12: Update JSON-LD juga
+  // 🔥 OPSI B: JSON-LD diupdate di sini juga (saat nextUpdate lewat)
   // ============================================================
   function autoUpdateDates(pageLevel, contentFocus) {
     console.log("🔄 AUTO-UPDATE: Memeriksa tanggal...");
@@ -1110,12 +1122,10 @@
     });
     console.log(`✅ Schema Offer priceValidUntil diupdate`);
 
-    // ═══ 🆕 FIX-A9/A10/A11/A12: Update JSON-LD schema ═══
+    // ═══ 🆕 OPSI B: Update JSON-LD schema saat auto-update lewat ═══
     var jsonLdResult = updateJsonLdDates(newModifiedStr, newNextStr);
     if (jsonLdResult.updated > 0) {
-      console.log(`✅ JSON-LD diupdate: ${jsonLdResult.updated} blok, ${jsonLdResult.cleaned} field dibersihkan`);
-    } else {
-      console.log(`⏭️ Tidak ada JSON-LD yang perlu diupdate`);
+      console.log(`✅ [Opsi B] JSON-LD diupdate: ${jsonLdResult.updated} blok, ${jsonLdResult.cleaned} field dibersihkan`);
     }
 
     if (window.AEDMetaDates) {
@@ -1155,6 +1165,7 @@
 
   // ============================================================
   // 📌 FUNGSI PROSES META DATES
+  // 🔥 OPSI A: JSON-LD diupdate di sini (SELALU, setiap AED jalan)
   // ============================================================
   async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus) {
 
@@ -1195,6 +1206,18 @@
       document.head.appendChild(metaNext);
     }
     metaNext.setAttribute("content", nextUpdate);
+
+    // ═══ 🆕 OPSI A: Update JSON-LD schema SELALU ═══
+    // Dijalankan setiap kali processMetaDates() dipanggil (setiap AED jalan).
+    // Tujuan: JSON-LD langsung sinkron sejak kunjungan pertama,
+    //         meskipun nextUpdate belum lewat.
+    // Idempotent: kalau sudah sesuai, tidak rewrite.
+    var jsonLdResultA = updateJsonLdDates(dateModified, nextUpdate);
+    if (jsonLdResultA.updated > 0) {
+      console.log(`✅ [Opsi A] JSON-LD diupdate: ${jsonLdResultA.updated} blok, ${jsonLdResultA.cleaned} field dibersihkan`);
+    } else {
+      console.log(`⏭️ [Opsi A] JSON-LD sudah sinkron, tidak ada perubahan`);
+    }
 
     if (usePriceValidUntil && h1Detection && h1Detection.isPrice) {
       document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
@@ -1594,7 +1617,7 @@
       console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
     }
 
-    // STEP 1: Auto-update DULU
+    // STEP 1: Auto-update DULU (kalau nextUpdate sudah lewat)
     console.log("🔄 MEMERIKSA AUTO-UPDATE...");
     const autoUpdated = autoUpdateDates(pageLevel, contentFocus);
     if (autoUpdated) {
@@ -1604,6 +1627,7 @@
     }
 
     // STEP 2: Process meta dates SEKALI
+    // (Opsi A: updateJsonLdDates dipanggil di dalam processMetaDates)
     await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus);
 
     console.log(`🧩 detectEvergreen() v17.2-LITE — FINISHED ✅`);
@@ -1629,5 +1653,7 @@
   console.log("   🔥 FIX-A10: Hapus datePublished HANYA FAQPage/Question/Answer");
   console.log("   🔥 FIX-A11: Hapus upvoteCount: 0");
   console.log("   🔥 FIX-A12: Update priceValidUntil di JSON-LD offers");
+  console.log("   🔥 OPSI A: JSON-LD update di processMetaDates() (SELALU)");
+  console.log("   🔥 OPSI B: JSON-LD update di autoUpdateDates() (saat lewat)");
 
 })();
