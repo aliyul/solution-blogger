@@ -1,5 +1,5 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.2-LITE — PERFORMANCE + JSON-LD PATCH
+ 🧠 Smart Evergreen Detector v17.3.1-LITE — FULL PATCH
     ✅ SINKRON dengan PLD v23.9.7-LITE
     ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Cek Tabel)
     ✅ ATURAN TAHUN: H1 mengandung tahun → NON-EVERGREEN
@@ -7,20 +7,25 @@
     ✅ ATURAN INFORMASI: H1 informatif tanpa harga → EVERGREEN
     ✅ AUTO-UPDATE TANPA BATAS: nextUpdate → dateModified → nextUpdate
 
-    🔥🔥🔥 v17.2-LITE CHANGELOG 🔥🔥🔥
-    ✅ FIX-A1: Timeout waitForPageLevelDetector 10s → 3s
-    ✅ FIX-A2: processMetaDates() tidak dipanggil 2x
-    ✅ FIX-A3: Guard _AED_INITIALIZED — cegah double init
-    ✅ FIX-A4: Event listener { once: true } semua
-    ✅ FIX-A5: updateContentByLevelAndFocus() — optimasi scope
-    ✅ FIX-A6: queryByKeyword() — batasi maxLength & skip script
-    ✅ FIX-A7: Cache hasil PLD (kategori, h1Pattern, schema, cta)
-    ✅ FIX-A8: Skip auto-update kalau nextUpdate belum lewat (early return)
+    🔥🔥🔥 v17.3.1-LITE CHANGELOG 🔥🔥🔥
+    ✅ FIX-A1:  Timeout waitForPageLevelDetector 10s → 3s
+    ✅ FIX-A2:  processMetaDates() tidak dipanggil 2x
+    ✅ FIX-A3:  Guard _AED_INITIALIZED — cegah double init
+    ✅ FIX-A4:  Event listener { once: true } semua
+    ✅ FIX-A5:  updateContentByLevelAndFocus() — optimasi scope
+    ✅ FIX-A6:  queryByKeyword() — batasi maxLength & skip script
+    ✅ FIX-A7:  Cache hasil PLD (kategori, h1Pattern, schema, cta)
+    ✅ FIX-A8:  Skip auto-update kalau nextUpdate belum lewat
     ✅ FIX-A9:  updateJsonLdDates() — update dateModified di JSON-LD
     ✅ FIX-A10: Hapus datePublished HANYA di FAQPage/Question/Answer
     ✅ FIX-A11: Hapus upvoteCount: 0 yang tidak relevan
-    ✅ FIX-A12: Update priceValidUntil di JSON-LD offers (kalau ada)
-    ✅ OPSI A+B: JSON-LD diupdate di processMetaDates() DAN autoUpdateDates()
+    ✅ FIX-A12: Update priceValidUntil di JSON-LD offers
+    ✅ FIX-A13: updateJsonLdFaqYears() — update TAHUN di FAQ name/text
+    ✅ FIX-A14: isHistoricalContext() — deteksi frasa historis/future
+    ✅ FIX-A15: replaceYearWithContext() — replace aman + proteksi SNI/UU
+    ✅ FIX-A16: 🆕 EARLY EXIT — skip parse JSON kalau tidak ada tahun lama
+    ✅ FIX-A17: 🆕 SKIPPED COUNTER — log blok yang di-skip
+    ✅ OPSI A+B: JSON-LD & FAQ years diupdate di processMetaDates() DAN autoUpdateDates()
 
     ✅ PRESERVED (semua FIX v16.1):
     ✅ P1 — Deteksi dari PLD dulu (data-content-focus), baru fallback H1
@@ -31,13 +36,12 @@
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.2-lite") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.3.1-lite") return;
 
-  // ═══ FIX-A3: Guard global untuk cegah double init ═══
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.2-lite";
+  window.__AED_VERSION = "17.3.1-lite";
 
   // ============================================================
   // 📌 ATURAN V37 — BASE RULES
@@ -88,14 +92,11 @@
 
   const DEFAULT_RULE = { type: 'evergreen', validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft' };
 
-  // ============================================================
-  // 📌 KONSTANTA LEVEL
-  // ============================================================
   const MONEY_LEVELS = ['money-master', 'money-page', 'money-child'];
   const EVERGREEN_LEVELS = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2', 'variant', 'sub-variant'];
 
   // ============================================================
-  // 📌 FUNGSI TO ISO WITH TIMEZONE LOCAL
+  // 📌 TO ISO WITH TIMEZONE LOCAL
   // ============================================================
   function toISOWithTimezoneLocal(date, offset = "+07:00") {
     if (!date) return null;
@@ -112,7 +113,7 @@
   }
 
   // ============================================================
-  // 🆕 v17.1: Helper deteksi versi PLD
+  // 🆕 Helper deteksi versi PLD
   // ============================================================
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
@@ -131,7 +132,7 @@
   }
 
   // ============================================================
-  // 🆕 v17.1: FIX-A7 — Cache hasil PLD
+  // 🆕 FIX-A7: Cache hasil PLD
   // ============================================================
   function _cachePLD(key, fn) {
     if (_AED_PLD_CACHE[key] !== undefined) {
@@ -142,9 +143,6 @@
     return result;
   }
 
-  // ============================================================
-  // 🆕 v17.1: getPLDKategori()
-  // ============================================================
   function getPLDKategori(contentFocus) {
     if (!window.pageLevelDetectorv22) return null;
     if (typeof window.pageLevelDetectorv22.detectKategori !== "function") return null;
@@ -165,9 +163,6 @@
     });
   }
 
-  // ============================================================
-  // 🆕 v17.1: getPLDH1Pattern()
-  // ============================================================
   function getPLDH1Pattern(kategori) {
     if (!window.pageLevelDetectorv22) return null;
     if (typeof window.pageLevelDetectorv22.detectH1Pattern !== "function") return null;
@@ -188,9 +183,6 @@
     });
   }
 
-  // ============================================================
-  // 🆕 v17.1: getPLDSchemaType()
-  // ============================================================
   function getPLDSchemaType(pageLevel, entityType, contentFocus) {
     if (!window.pageLevelDetectorv22) return null;
     if (typeof window.pageLevelDetectorv22.detectSchemaType !== "function") return null;
@@ -212,9 +204,6 @@
     });
   }
 
-  // ============================================================
-  // 🆕 v17.1: getPLDCtaType()
-  // ============================================================
   function getPLDCtaType(pageLevel, contentFocus) {
     if (!window.pageLevelDetectorv22) return null;
     if (typeof window.pageLevelDetectorv22.detectCtaType !== "function") return null;
@@ -236,9 +225,6 @@
     });
   }
 
-  // ============================================================
-  // 🆕 v17.1: getPLDContentFocus()
-  // ============================================================
   function getPLDContentFocus(pageLevel, entityType) {
     if (!window.pageLevelDetectorv22) return null;
     if (typeof window.pageLevelDetectorv22.detectContentFocus !== "function") return null;
@@ -258,9 +244,6 @@
     });
   }
 
-  // ============================================================
-  // 🆕 v17.1: getKategori()
-  // ============================================================
   function getKategori(pageLevel, contentFocus) {
     const pldKategori = getPLDKategori(contentFocus);
     if (pldKategori) return pldKategori;
@@ -276,9 +259,6 @@
     return 'EVERGREEN';
   }
 
-  // ============================================================
-  // 🆕 v17.1: getContentFocus()
-  // ============================================================
   function getContentFocus(h1Detection, pageLevel, entityType) {
     if (pageLevel && entityType) {
       const pldFocus = getPLDContentFocus(pageLevel, entityType);
@@ -317,9 +297,6 @@
     return 'INFORMASI';
   }
 
-  // ============================================================
-  // 🆕 v17.1: queryByKeyword() — FIX-A6
-  // ============================================================
   function queryByKeyword(container, keywords, requireYear = true) {
     const results = [];
     if (!container) return results;
@@ -348,9 +325,6 @@
     return results;
   }
 
-  // ============================================================
-  // P4: hasPriceTable()
-  // ============================================================
   function hasPriceTable() {
     const tables = document.querySelectorAll('table');
     let priceTableFound = false;
@@ -400,17 +374,7 @@
   }
 
   // ============================================================
-  // 🆕 v17.2: FIX-A9/A10/A11/A12 — Update + cleanup JSON-LD
-  // ============================================================
-  // Aturan:
-  //   1. dateModified     → UPDATE (kalau ada)
-  //   2. datePublished    → HAPUS hanya di FAQPage/Question/Answer
-  //   3. upvoteCount: 0   → HAPUS (tidak relevan untuk FAQPage)
-  //   4. priceValidUntil  → UPDATE di offers (kalau ada)
-  //
-  // IDEMPOTENT: aman dipanggil berkali-kali
-  //   - Cek dulu sebelum tulis/delete
-  //   - Kalau sudah sesuai, tidak ada perubahan → tidak rewrite
+  // 🆕 FIX-A9/A10/A11/A12: Update + cleanup JSON-LD dates
   // ============================================================
   function updateJsonLdDates(dateModified, nextUpdate) {
     var updated = 0;
@@ -420,7 +384,6 @@
     scripts.forEach(function (script) {
       var raw = script.textContent;
       if (!raw) return;
-      // Skip kalau tidak ada field yang relevan
       if (raw.indexOf('"date') === -1 &&
           raw.indexOf('upvoteCount') === -1 &&
           raw.indexOf('priceValidUntil') === -1) return;
@@ -433,7 +396,6 @@
         return;
       }
 
-      // Handle @graph array atau single object
       var nodes = [];
       if (Array.isArray(json)) {
         nodes = json;
@@ -448,14 +410,12 @@
       nodes.forEach(function (node) {
         if (!node || typeof node !== 'object') return;
 
-        // ── Deteksi apakah node ini FAQ-related ──
         var typeStr = (node['@type'] || '').toString();
         var isFaqRelated = (typeStr.indexOf('FAQPage') !== -1 ||
                             typeStr.indexOf('Question') !== -1 ||
                             typeStr.indexOf('Answer') !== -1 ||
                             typeStr.indexOf('QAPage') !== -1);
 
-        // ── 1. HAPUS datePublished HANYA untuk FAQPage/Question/Answer ──
         if (isFaqRelated && node.datePublished !== undefined) {
           delete node.datePublished;
           changed = true;
@@ -463,15 +423,12 @@
           console.log('🗑️ Hapus datePublished dari ' + typeStr);
         }
 
-        // ── 2. UPDATE dateModified (kalau ada) ──
-        if (node.dateModified !== undefined &&
-            node.dateModified !== dateModified) {
+        if (node.dateModified !== undefined && node.dateModified !== dateModified) {
           node.dateModified = dateModified;
           changed = true;
           console.log('✅ Update dateModified JSON-LD → ' + dateModified);
         }
 
-        // ── 3. HAPUS upvoteCount: 0 ──
         if (node.upvoteCount !== undefined && Number(node.upvoteCount) === 0) {
           delete node.upvoteCount;
           changed = true;
@@ -479,7 +436,6 @@
           console.log('🗑️ Hapus upvoteCount: 0 dari ' + (typeStr || 'node'));
         }
 
-        // ── 4. UPDATE priceValidUntil di offers ──
         if (node.offers) {
           var offers = Array.isArray(node.offers) ? node.offers : [node.offers];
           offers.forEach(function (offer) {
@@ -490,33 +446,25 @@
           });
         }
 
-        // ── 5. Handle mainEntity (FAQPage) ──
         if (Array.isArray(node.mainEntity)) {
           node.mainEntity.forEach(function (q) {
             if (!q || typeof q !== 'object') return;
 
-            // Hapus upvoteCount: 0 di level Question
             if (q.upvoteCount !== undefined && Number(q.upvoteCount) === 0) {
               delete q.upvoteCount;
               changed = true;
               cleaned++;
             }
-
-            // Hapus datePublished di level Question (FAQ only)
             if (q.datePublished !== undefined) {
               delete q.datePublished;
               changed = true;
               cleaned++;
             }
-
-            // Update dateModified di level Question
-            if (q.dateModified !== undefined &&
-                q.dateModified !== dateModified) {
+            if (q.dateModified !== undefined && q.dateModified !== dateModified) {
               q.dateModified = dateModified;
               changed = true;
             }
 
-            // Handle acceptedAnswer
             if (q.acceptedAnswer && typeof q.acceptedAnswer === 'object') {
               if (q.acceptedAnswer.upvoteCount !== undefined &&
                   Number(q.acceptedAnswer.upvoteCount) === 0) {
@@ -546,10 +494,225 @@
     });
 
     if (updated > 0) {
-      console.log('✅ JSON-LD diupdate: ' + updated + ' blok, ' + cleaned + ' field dibersihkan');
+      console.log('✅ [JSON-LD Dates] ' + updated + ' blok, ' + cleaned + ' field dibersihkan');
     }
 
     return { updated: updated, cleaned: cleaned };
+  }
+
+  // ============================================================
+  // 🆕 FIX-A14: Cek apakah tahun berada di konteks historis/future
+  // ============================================================
+  function isHistoricalContext(fullText, yearPos, yearLength) {
+    var beforeStart = Math.max(0, yearPos - 60);
+    var before = fullText.substring(beforeStart, yearPos).toLowerCase();
+
+    var afterEnd = Math.min(fullText.length, yearPos + yearLength + 60);
+    var after = fullText.substring(yearPos + yearLength, afterEnd).toLowerCase();
+
+    var historicalWords = [
+      'lalu', 'yang lalu', 'sebelumnya', 'silam', 'dahulu', 'lampau',
+      'terdahulu', 'saat itu', 'ketika itu', 'waktu itu', 'dulu',
+      'masa lalu', 'tahun lalu', 'bulan lalu', 'yang telah lewat'
+    ];
+
+    var futureWords = [
+      'mendatang', 'yang akan datang', 'akan datang', 'yang akan',
+      'masa depan', 'berikutnya', 'nanti', 'tahun depan', 'bulan depan',
+      'di masa depan'
+    ];
+
+    for (var i = 0; i < historicalWords.length; i++) {
+      if (after.indexOf(historicalWords[i]) !== -1) {
+        return { skip: true, reason: 'historical-after', word: historicalWords[i] };
+      }
+    }
+    for (var j = 0; j < futureWords.length; j++) {
+      if (after.indexOf(futureWords[j]) !== -1) {
+        return { skip: true, reason: 'future-after', word: futureWords[j] };
+      }
+    }
+    for (var k = 0; k < historicalWords.length; k++) {
+      if (before.indexOf(historicalWords[k]) !== -1) {
+        return { skip: true, reason: 'historical-before', word: historicalWords[k] };
+      }
+    }
+
+    return { skip: false };
+  }
+
+  // ============================================================
+  // 🆕 FIX-A15: Replace tahun dengan proteksi KONTEKS PENUH
+  // ============================================================
+  function replaceYearWithContext(text, oldYears, newYear) {
+    if (!text) return text;
+
+    // Step 1: Lindungi referensi standar/regulasi
+    var protectedRefs = [];
+    text = text.replace(
+      /\b(SNI|ISO|UU|PP|Permen|Kepmen|ASTM|JIS|EN|DIN|IEC|BS|GB)\s*[\d.:\-\/]+\b/gi,
+      function (m) {
+        protectedRefs.push(m);
+        return '\x00PROT' + (protectedRefs.length - 1) + '\x00';
+      }
+    );
+
+    // Step 2: Map oldYears untuk lookup cepat
+    var oldYearMap = {};
+    oldYears.forEach(function (y) { oldYearMap[y] = true; });
+
+    // Step 3: Replace dengan callback (dapat offset & fullText)
+    var re = /\b(di|tahun|pada|dari|hingga|sampai)\s+(\d{4})\b/gi;
+
+    text = text.replace(re, function (match, prefix, yearStr, offset, fullText) {
+      var y = parseInt(yearStr, 10);
+      if (!oldYearMap[y]) return match;
+
+      var yearPos = offset + prefix.length + 1;
+      var ctxCheck = isHistoricalContext(fullText, yearPos, 4);
+
+      if (ctxCheck.skip) {
+        console.log('🛡️ [FAQ Years] Skip: "' + match + '" — konteks ' +
+                    ctxCheck.reason + ' ("' + ctxCheck.word + '")');
+        return match;
+      }
+
+      return prefix + ' ' + newYear;
+    });
+
+    // Step 4: Pattern khusus "20XX?" di akhir pertanyaan (FAQ name)
+    var reEnd = /\b(\d{4})(?=\s*\?)/g;
+    text = text.replace(reEnd, function (match, yearStr, offset, fullText) {
+      var y = parseInt(yearStr, 10);
+      if (!oldYearMap[y]) return match;
+
+      var before = fullText.substring(Math.max(0, offset - 60), offset).toLowerCase();
+      var historicalWords = ['lalu', 'sebelumnya', 'silam', 'dahulu', 'saat itu', 'ketika itu', 'waktu itu'];
+      for (var i = 0; i < historicalWords.length; i++) {
+        if (before.indexOf(historicalWords[i]) !== -1) {
+          console.log('🛡️ [FAQ Years] Skip (?) — konteks historis "' + historicalWords[i] + '"');
+          return match;
+        }
+      }
+
+      return String(newYear);
+    });
+
+    // Step 5: Kembalikan referensi standar
+    text = text.replace(/\x00PROT(\d+)\x00/g, function (m, idx) {
+      return protectedRefs[parseInt(idx, 10)];
+    });
+
+    return text;
+  }
+
+  // ============================================================
+  // 🆕 v17.3.1: FIX-A13 + A16 + A17 — Update TAHUN di FAQ JSON-LD
+  // 🔥 OPTIMASI: Early exit regex — skip parse JSON kalau tidak ada tahun
+  // 🔥 LOG: Skipped counter untuk monitoring
+  // ============================================================
+  function updateJsonLdFaqYears(newYear) {
+    var updated = 0;
+    var replacedCount = 0;
+    var skippedCount = 0;
+    var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+
+    var currentYear = new Date().getFullYear();
+    var oldYears = [];
+    for (var y = Math.max(currentYear - 3, 2024); y < currentYear; y++) {
+      oldYears.push(y);
+    }
+
+    if (oldYears.length === 0) {
+      console.log('⏭️ [FAQ Years] Tidak ada tahun lama untuk diupdate');
+      return { updated: 0, replaced: 0, skipped: 0 };
+    }
+
+    // ═══ FIX-A16: EARLY EXIT regex untuk cek cepat tanpa parse JSON ═══
+    var oldYearsPattern = oldYears.join('|');
+    var oldYearRegex = new RegExp('\\b(?:' + oldYearsPattern + ')\\b');
+
+    scripts.forEach(function (script) {
+      var raw = script.textContent;
+      if (!raw) { skippedCount++; return; }
+
+      // Filter 1: harus FAQPage/QAPage
+      if (raw.indexOf('"FAQPage"') === -1 && raw.indexOf('"QAPage"') === -1) {
+        skippedCount++;
+        return;
+      }
+
+      // ═══ FIX-A16: Filter 2 — skip kalau tidak ada tahun di range oldYears ═══
+      if (!oldYearRegex.test(raw)) {
+        skippedCount++;
+        return;
+      }
+
+      if (!/\b20\d{2}\b/.test(raw)) {
+        skippedCount++;
+        return;
+      }
+
+      var json;
+      try {
+        json = JSON.parse(raw);
+      } catch (e) {
+        skippedCount++;
+        return;
+      }
+
+      var nodes = [];
+      if (Array.isArray(json)) nodes = json;
+      else if (json['@graph'] && Array.isArray(json['@graph'])) nodes = json['@graph'];
+      else nodes = [json];
+
+      var changed = false;
+
+      nodes.forEach(function (node) {
+        if (!node || typeof node !== 'object') return;
+        if (!Array.isArray(node.mainEntity)) return;
+
+        node.mainEntity.forEach(function (q) {
+          if (!q || typeof q !== 'object') return;
+
+          if (typeof q.name === 'string') {
+            var newName = replaceYearWithContext(q.name, oldYears, newYear);
+            if (newName !== q.name) {
+              console.log('📝 [FAQ Years] name: "' + q.name + '" → "' + newName + '"');
+              q.name = newName;
+              changed = true;
+              replacedCount++;
+            }
+          }
+
+          if (q.acceptedAnswer && typeof q.acceptedAnswer.text === 'string') {
+            var newText = replaceYearWithContext(q.acceptedAnswer.text, oldYears, newYear);
+            if (newText !== q.acceptedAnswer.text) {
+              console.log('📝 [FAQ Years] text: diupdate (' + oldYears.join('/') + ' → ' + newYear + ')');
+              q.acceptedAnswer.text = newText;
+              changed = true;
+              replacedCount++;
+            }
+          }
+        });
+      });
+
+      if (changed) {
+        script.textContent = JSON.stringify(json, null, 2);
+        updated++;
+      }
+    });
+
+    // ═══ FIX-A17: Log SELALU tampilkan status (termasuk skipped) ═══
+    if (updated > 0) {
+      console.log('✅ [FAQ Years] ' + updated + ' blok diupdate, ' +
+                  replacedCount + ' field diubah, ' + skippedCount + ' blok di-skip');
+    } else {
+      console.log('⏭️ [FAQ Years] Tidak ada perubahan (' + skippedCount +
+                  ' blok di-skip, tahun lama: [' + oldYears.join(', ') + '])');
+    }
+
+    return { updated: updated, replaced: replacedCount, skipped: skippedCount };
   }
 
   // ============================================================
@@ -560,19 +723,14 @@
     if (!h1) {
       console.warn('⚠️ H1 tidak ditemukan, menggunakan fallback konten');
       return {
-        isInformational: false,
-        isPrice: false,
-        hasYear: false,
-        h1Text: '',
-        confidence: 'low',
-        reason: 'H1 tidak ditemukan',
-        source: 'fallback'
+        isInformational: false, isPrice: false, hasYear: false, h1Text: '',
+        confidence: 'low', reason: 'H1 tidak ditemukan', source: 'fallback'
       };
     }
 
     const h1Text = h1.innerText.toLowerCase();
-
     const pldVersion = getPLDVersion();
+
     if (pldVersion.family === "v23-lite" || pldVersion.family === "v23" || pldVersion.family === "v22") {
       try {
         const pldLevel = window.pageLevelDetectorv22.detect();
@@ -582,39 +740,22 @@
         if (pldFocus) {
           const normalized = String(pldFocus).toUpperCase();
           const hasYear = /\b(19|20)\d{2}\b/.test(h1Text);
-
           console.log(`🎯 Content Focus dari PLD ${pldVersion.label}: ${normalized}`);
 
           if (normalized === 'INFORMASI') {
             return {
-              isInformational: true,
-              isPrice: false,
-              hasYear: hasYear,
-              h1Text: h1Text,
-              infoScore: 0,
-              priceScore: 0,
-              hasRpFormat: false,
-              hasNumberWithUnit: false,
-              hasPriceNumber: false,
+              isInformational: true, isPrice: false, hasYear: hasYear, h1Text: h1Text,
+              infoScore: 0, priceScore: 0, hasRpFormat: false, hasNumberWithUnit: false, hasPriceNumber: false,
               reason: `PLD ${pldVersion.label} detectContentFocus = INFORMASI`,
-              confidence: 'high',
-              source: 'pld-' + pldVersion.family
+              confidence: 'high', source: 'pld-' + pldVersion.family
             };
           }
           if (['HARGA', 'COMMERCIAL', 'GABUNG'].includes(normalized)) {
             return {
-              isInformational: false,
-              isPrice: true,
-              hasYear: hasYear,
-              h1Text: h1Text,
-              infoScore: 0,
-              priceScore: 0,
-              hasRpFormat: false,
-              hasNumberWithUnit: false,
-              hasPriceNumber: false,
+              isInformational: false, isPrice: true, hasYear: hasYear, h1Text: h1Text,
+              infoScore: 0, priceScore: 0, hasRpFormat: false, hasNumberWithUnit: false, hasPriceNumber: false,
               reason: `PLD ${pldVersion.label} detectContentFocus = ${normalized}`,
-              confidence: 'high',
-              source: 'pld-' + pldVersion.family
+              confidence: 'high', source: 'pld-' + pldVersion.family
             };
           }
         }
@@ -627,39 +768,20 @@
     if (bodyFocus) {
       const normalized = bodyFocus.toUpperCase();
       console.log(`🎯 Content Focus dari PLD (attribute): ${normalized}`);
-
       const hasYear = /\b(19|20)\d{2}\b/.test(h1Text);
 
       if (normalized === 'INFORMASI') {
         return {
-          isInformational: true,
-          isPrice: false,
-          hasYear: hasYear,
-          h1Text: h1Text,
-          infoScore: 0,
-          priceScore: 0,
-          hasRpFormat: false,
-          hasNumberWithUnit: false,
-          hasPriceNumber: false,
-          reason: `PLD data-content-focus = INFORMASI`,
-          confidence: 'high',
-          source: 'pld'
+          isInformational: true, isPrice: false, hasYear: hasYear, h1Text: h1Text,
+          infoScore: 0, priceScore: 0, hasRpFormat: false, hasNumberWithUnit: false, hasPriceNumber: false,
+          reason: `PLD data-content-focus = INFORMASI`, confidence: 'high', source: 'pld'
         };
       }
       if (['HARGA', 'COMMERCIAL', 'GABUNG'].includes(normalized)) {
         return {
-          isInformational: false,
-          isPrice: true,
-          hasYear: hasYear,
-          h1Text: h1Text,
-          infoScore: 0,
-          priceScore: 0,
-          hasRpFormat: false,
-          hasNumberWithUnit: false,
-          hasPriceNumber: false,
-          reason: `PLD data-content-focus = ${normalized}`,
-          confidence: 'high',
-          source: 'pld'
+          isInformational: false, isPrice: true, hasYear: hasYear, h1Text: h1Text,
+          infoScore: 0, priceScore: 0, hasRpFormat: false, hasNumberWithUnit: false, hasPriceNumber: false,
+          reason: `PLD data-content-focus = ${normalized}`, confidence: 'high', source: 'pld'
         };
       }
     }
@@ -667,29 +789,18 @@
     if (window.V379A && window.V379A.focusKonten) {
       const normalized = String(window.V379A.focusKonten).toUpperCase();
       console.log(`🎯 Content Focus dari V379A: ${normalized}`);
-
       const hasYear = /\b(19|20)\d{2}\b/.test(h1Text);
 
       if (normalized === 'INFORMASI') {
         return {
-          isInformational: true,
-          isPrice: false,
-          hasYear: hasYear,
-          h1Text: h1Text,
-          reason: `V379A focusKonten = INFORMASI`,
-          confidence: 'high',
-          source: 'v379a'
+          isInformational: true, isPrice: false, hasYear: hasYear, h1Text: h1Text,
+          reason: `V379A focusKonten = INFORMASI`, confidence: 'high', source: 'v379a'
         };
       }
       if (['HARGA', 'COMMERCIAL', 'GABUNG'].includes(normalized)) {
         return {
-          isInformational: false,
-          isPrice: true,
-          hasYear: hasYear,
-          h1Text: h1Text,
-          reason: `V379A focusKonten = ${normalized}`,
-          confidence: 'high',
-          source: 'v379a'
+          isInformational: false, isPrice: true, hasYear: hasYear, h1Text: h1Text,
+          reason: `V379A focusKonten = ${normalized}`, confidence: 'high', source: 'v379a'
         };
       }
     }
@@ -702,18 +813,9 @@
     if (hasYear) {
       console.log(`📅 H1 mengandung tahun → NON-EVERGREEN (wajib)`);
       return {
-        isInformational: false,
-        isPrice: true,
-        hasYear: true,
-        h1Text: h1Text,
-        infoScore: 0,
-        priceScore: 0,
-        hasRpFormat: false,
-        hasNumberWithUnit: false,
-        hasPriceNumber: false,
-        reason: 'H1 mengandung tahun (wajib non-evergreen)',
-        confidence: 'high',
-        source: 'h1-fallback'
+        isInformational: false, isPrice: true, hasYear: true, h1Text: h1Text,
+        infoScore: 0, priceScore: 0, hasRpFormat: false, hasNumberWithUnit: false, hasPriceNumber: false,
+        reason: 'H1 mengandung tahun (wajib non-evergreen)', confidence: 'high', source: 'h1-fallback'
       };
     }
 
@@ -732,44 +834,30 @@
       'uang', 'pembayaran', 'cicilan', 'kredit'
     ];
 
-    let infoScore = 0;
-    let priceScore = 0;
-
-    informationalKeywords.forEach(keyword => {
-      if (h1Text.includes(keyword)) infoScore++;
-    });
-
-    priceKeywords.forEach(keyword => {
-      if (h1Text.includes(keyword)) priceScore++;
-    });
+    let infoScore = 0, priceScore = 0;
+    informationalKeywords.forEach(keyword => { if (h1Text.includes(keyword)) infoScore++; });
+    priceKeywords.forEach(keyword => { if (h1Text.includes(keyword)) priceScore++; });
 
     const hasRpFormat = /Rp\s*[\d.,]+/.test(h1Text);
     const hasNumberWithUnit = /[\d.,]+\s*(per|meter|lembar|batang|kubik|m2|m²|cm|mm|kg|ton)/.test(h1Text);
     const hasPriceNumber = /[\d.,]+\s*(juta|ribu|rb|jt|k|juta-an|jutaan)/.test(h1Text);
 
-    let isInformational = false;
-    let isPrice = false;
-    let reason = '';
+    let isInformational = false, isPrice = false, reason = '';
 
     if (infoScore >= 2 && priceScore === 0 && !hasRpFormat && !hasNumberWithUnit) {
       isInformational = true;
       reason = `H1 mengandung kata informatif tanpa harga (score: ${infoScore})`;
-    }
-    else if (priceScore >= 2 || hasRpFormat || hasNumberWithUnit || hasPriceNumber) {
+    } else if (priceScore >= 2 || hasRpFormat || hasNumberWithUnit || hasPriceNumber) {
       isPrice = true;
       reason = `H1 mengandung kata harga (score: ${priceScore})`;
-    }
-    else if (h1Text.includes('panduan') || h1Text.includes('spesifikasi') || h1Text.includes('keunggulan')) {
+    } else if (h1Text.includes('panduan') || h1Text.includes('spesifikasi') || h1Text.includes('keunggulan')) {
       isInformational = true;
       reason = `H1 mengandung kata 'panduan/spesifikasi/keunggulan'`;
-    }
-    else {
+    } else {
       const bodyText = document.body.innerText.toLowerCase();
       const eduKeywords = ['panduan', 'spesifikasi', 'keunggulan', 'cara memilih', 'tips', 'perbedaan', 'jenis', 'apa itu'];
       let eduScore = 0;
-      eduKeywords.forEach(k => {
-        if (bodyText.includes(k)) eduScore++;
-      });
+      eduKeywords.forEach(k => { if (bodyText.includes(k)) eduScore++; });
       if (eduScore >= 3 && !bodyText.includes('harga') && !bodyText.includes('biaya')) {
         isInformational = true;
         reason = `Fallback: konten edukatif (score: ${eduScore})`;
@@ -783,15 +871,8 @@
     }
 
     return {
-      isInformational,
-      isPrice,
-      hasYear,
-      h1Text: h1Text,
-      infoScore,
-      priceScore,
-      hasRpFormat,
-      hasNumberWithUnit,
-      hasPriceNumber,
+      isInformational, isPrice, hasYear, h1Text: h1Text,
+      infoScore, priceScore, hasRpFormat, hasNumberWithUnit, hasPriceNumber,
       reason,
       confidence: infoScore >= 2 || priceScore >= 2 || hasYear ? 'high' : 'medium',
       source: 'h1-fallback'
@@ -902,14 +983,12 @@
 
       if (updateMode === 'month-year') {
         newText = newText
-          .replace(
-            /(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi,
+          .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi,
             (match, month, year) => {
               const y = parseInt(year);
               if (y > 2025 && y < newYear) return newDateText;
               return match;
-            }
-          )
+            })
           .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
             const yearNum = parseInt(y);
             if (yearNum > 2025 && yearNum < newYear) {
@@ -949,14 +1028,12 @@
 
         if (updateMode === 'month-year') {
           newTextNode = newTextNode
-            .replace(
-              /(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi,
+            .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi,
               (match, month, year) => {
                 const y = parseInt(year);
                 if (y > 2025 && y < newYear) return newDateText;
                 return match;
-              }
-            )
+              })
             .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
               const yearNum = parseInt(y);
               if (yearNum > 2025 && yearNum < newYear) {
@@ -1043,8 +1120,7 @@
   }
 
   // ============================================================
-  // 📌 AUTO-UPDATE DATE BERKELANJUTAN
-  // 🔥 OPSI B: JSON-LD diupdate di sini juga (saat nextUpdate lewat)
+  // 📌 AUTO-UPDATE (OPSI B)
   // ============================================================
   function autoUpdateDates(pageLevel, contentFocus) {
     console.log("🔄 AUTO-UPDATE: Memeriksa tanggal...");
@@ -1116,16 +1192,24 @@
       document.head.appendChild(metaPublished);
     }
 
-    // ═══ Update priceValidUntil di microdata ═══
+    // Update microdata Offer
     document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
       el.setAttribute('priceValidUntil', newNextStr);
     });
     console.log(`✅ Schema Offer priceValidUntil diupdate`);
 
-    // ═══ 🆕 OPSI B: Update JSON-LD schema saat auto-update lewat ═══
+    // OPSI B: Update JSON-LD dates
     var jsonLdResult = updateJsonLdDates(newModifiedStr, newNextStr);
     if (jsonLdResult.updated > 0) {
-      console.log(`✅ [Opsi B] JSON-LD diupdate: ${jsonLdResult.updated} blok, ${jsonLdResult.cleaned} field dibersihkan`);
+      console.log(`✅ [Opsi B] JSON-LD Dates: ${jsonLdResult.updated} blok, ${jsonLdResult.cleaned} field dibersihkan`);
+    }
+
+    // OPSI B: Update FAQ years
+    var faqYearsResult = updateJsonLdFaqYears(now.getFullYear());
+    if (faqYearsResult.replaced > 0) {
+      console.log(`✅ [Opsi B] FAQ Years: ${faqYearsResult.replaced} field tahun diupdate`);
+    } else {
+      console.log(`⏭️ [Opsi B] FAQ Years: tidak ada perubahan (${faqYearsResult.skipped} blok di-skip)`);
     }
 
     if (window.AEDMetaDates) {
@@ -1164,8 +1248,7 @@
   }
 
   // ============================================================
-  // 📌 FUNGSI PROSES META DATES
-  // 🔥 OPSI A: JSON-LD diupdate di sini (SELALU, setiap AED jalan)
+  // 📌 PROCESS META DATES (OPSI A)
   // ============================================================
   async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus) {
 
@@ -1207,16 +1290,20 @@
     }
     metaNext.setAttribute("content", nextUpdate);
 
-    // ═══ 🆕 OPSI A: Update JSON-LD schema SELALU ═══
-    // Dijalankan setiap kali processMetaDates() dipanggil (setiap AED jalan).
-    // Tujuan: JSON-LD langsung sinkron sejak kunjungan pertama,
-    //         meskipun nextUpdate belum lewat.
-    // Idempotent: kalau sudah sesuai, tidak rewrite.
+    // OPSI A: Update JSON-LD dates SELALU
     var jsonLdResultA = updateJsonLdDates(dateModified, nextUpdate);
     if (jsonLdResultA.updated > 0) {
-      console.log(`✅ [Opsi A] JSON-LD diupdate: ${jsonLdResultA.updated} blok, ${jsonLdResultA.cleaned} field dibersihkan`);
+      console.log(`✅ [Opsi A] JSON-LD Dates: ${jsonLdResultA.updated} blok, ${jsonLdResultA.cleaned} field dibersihkan`);
     } else {
-      console.log(`⏭️ [Opsi A] JSON-LD sudah sinkron, tidak ada perubahan`);
+      console.log(`⏭️ [Opsi A] JSON-LD dates sudah sinkron, tidak ada perubahan`);
+    }
+
+    // OPSI A: Update FAQ years SELALU
+    var faqYearsResultA = updateJsonLdFaqYears(new Date().getFullYear());
+    if (faqYearsResultA.replaced > 0) {
+      console.log(`✅ [Opsi A] FAQ Years: ${faqYearsResultA.replaced} field diupdate, ${faqYearsResultA.skipped} blok di-skip`);
+    } else {
+      console.log(`⏭️ [Opsi A] FAQ Years: tidak ada perubahan (${faqYearsResultA.skipped} blok di-skip)`);
     }
 
     if (usePriceValidUntil && h1Detection && h1Detection.isPrice) {
@@ -1236,25 +1323,15 @@
     document.body.classList.add(`content-type-${finalType}`);
     document.body.classList.add(`cta-intensity-${ctaIntensity}`);
 
-    if (allowPriceRange) {
-      document.body.classList.add(`allow-price-range`);
-    }
+    if (allowPriceRange) document.body.classList.add(`allow-price-range`);
 
     if (h1Detection) {
-      if (h1Detection.isInformational) {
-        document.body.classList.add('h1-informational');
-      }
-      if (h1Detection.isPrice) {
-        document.body.classList.add('h1-price');
-      }
-      if (h1Detection.hasYear) {
-        document.body.classList.add('h1-has-year');
-      }
+      if (h1Detection.isInformational) document.body.classList.add('h1-informational');
+      if (h1Detection.isPrice) document.body.classList.add('h1-price');
+      if (h1Detection.hasYear) document.body.classList.add('h1-has-year');
     }
 
-    if (isOverridden) {
-      document.body.classList.add('overridden-evergreen');
-    }
+    if (isOverridden) document.body.classList.add('overridden-evergreen');
 
     let validityLabel = '';
     const validityDays = validityMs / 86400000;
@@ -1262,14 +1339,14 @@
     if (isOverridden) {
       validityLabel = `EVERGREEN (OVERRIDE) — ${validityDays} hari — ${entityType} / ${pageLevel}`;
     } else if (finalType === 'evergreen') {
-        if (validityDays >= 1095) validityLabel = 'EVERGREEN (3 tahun) — V37';
-        else if (validityDays >= 730) validityLabel = 'EVERGREEN (2 tahun) — V37';
-        else if (validityDays >= 365) validityLabel = 'EVERGREEN (1 tahun) — V37';
-        else validityLabel = `EVERGREEN (${validityDays} hari) — V37`;
+      if (validityDays >= 1095) validityLabel = 'EVERGREEN (3 tahun) — V37';
+      else if (validityDays >= 730) validityLabel = 'EVERGREEN (2 tahun) — V37';
+      else if (validityDays >= 365) validityLabel = 'EVERGREEN (1 tahun) — V37';
+      else validityLabel = `EVERGREEN (${validityDays} hari) — V37`;
     } else if (finalType === 'non-evergreen') {
-        validityLabel = `NON-EVERGREEN (${validityDays} hari) — ${entityType}/${pageLevel}`;
+      validityLabel = `NON-EVERGREEN (${validityDays} hari) — ${entityType}/${pageLevel}`;
     } else {
-        validityLabel = `${finalType.toUpperCase()} (${validityDays} hari)`;
+      validityLabel = `${finalType.toUpperCase()} (${validityDays} hari)`;
     }
 
     const kategori = getKategori(pageLevel, contentFocus);
@@ -1278,30 +1355,22 @@
     const pldCtaType = getPLDCtaType(pageLevel, contentFocus);
 
     window.AEDMetaDates = {
-      type: finalType,
-      entityType: entityType,
-      pageLevel: pageLevel,
-      datePublished,
-      dateModified,
-      nextUpdate,
+      type: finalType, entityType, pageLevel,
+      datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
-      usePriceValidUntil,
-      ctaIntensity,
-      allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.2',
+      usePriceValidUntil, ctaIntensity, allowPriceRange,
+      detectorVersion: detectorVersion || 'v17.3.1',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
       isOverridden: isOverridden || false,
       overrideReason: overrideReason || null,
       h1Detection: h1Detection || null,
-
       contentFocus: contentFocus || null,
       pldKategori: kategori,
       pldH1Pattern: h1Pattern,
       pldSchemaType: schemaType,
       pldCtaType: pldCtaType,
-
       lastAutoUpdate: null,
       updateCount: 0
     };
@@ -1323,41 +1392,33 @@
     if (h1Pattern) console.log(`   - H1 Pattern (PLD): ${h1Pattern}`);
     if (schemaType) console.log(`   - Schema (PLD): ${schemaType.primary} + ${schemaType.secondary}`);
     if (pldCtaType) console.log(`   - CTA (PLD): ${pldCtaType.type} → ${pldCtaType.text}`);
-    if (isOverridden) {
-      console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
-    }
-    console.log(`🧩 processMetaDates() v17.2 — FINISHED ✅`);
+    if (isOverridden) console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
+    console.log(`🧩 processMetaDates() v17.3.1 — FINISHED ✅`);
   }
 
   // ============================================================
-  // 📌 GET PAGE LEVEL DARI DETECTOR
+  // 📌 GET PAGE LEVEL
   // ============================================================
   function getPageLevelAndEntityType() {
     let pageLevel = 'pillar';
     let entityType = 'produk';
     let detectorVersion = 'unknown';
-    let confidence = null;
-    let strategies = null;
-    let strategyCount = null;
+    let confidence = null, strategies = null, strategyCount = null;
 
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
       try {
         pageLevel = window.pageLevelDetectorv22.detect();
         entityType = window.pageLevelDetectorv22.detectEntityType();
-
         const pldVer = getPLDVersion();
         detectorVersion = pldVer.label;
-
         if (typeof window.pageLevelDetectorv22.getConfidenceScore === 'function') {
-          const confidenceScore = window.pageLevelDetectorv22.getConfidenceScore();
-          confidence = confidenceScore.confidence;
-          strategies = confidenceScore.strategies;
-          strategyCount = confidenceScore.strategyCount;
+          const cs = window.pageLevelDetectorv22.getConfidenceScore();
+          confidence = cs.confidence;
+          strategies = cs.strategies;
+          strategyCount = cs.strategyCount;
         }
         console.log(`📌 [${detectorVersion}] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
-        if (confidence) {
-          console.log(`   🎯 Confidence: ${confidence}% (${strategyCount} strategies: ${strategies?.join(", ")})`);
-        }
+        if (confidence) console.log(`   🎯 Confidence: ${confidence}% (${strategyCount} strategies)`);
         return { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount };
       } catch(e) { console.warn("v22/23 error:", e); }
     }
@@ -1367,7 +1428,6 @@
         pageLevel = window.pageLevelDetectorv20.detect();
         entityType = window.pageLevelDetectorv20.detectEntityType();
         detectorVersion = 'v20.x';
-        console.log(`📌 [${detectorVersion}] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
         return { pageLevel, entityType, detectorVersion };
       } catch(e) { console.warn("v20.x error:", e); }
     }
@@ -1377,7 +1437,6 @@
         pageLevel = window.pageLevelDetectorv19.detect();
         entityType = window.pageLevelDetectorv19.detectEntityType();
         detectorVersion = 'v19';
-        console.log(`📌 [${detectorVersion}] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
         return { pageLevel, entityType, detectorVersion };
       } catch(e) { console.warn("v19 error:", e); }
     }
@@ -1387,7 +1446,6 @@
         pageLevel = window.pageLevelDetectorV18.detect();
         entityType = window.pageLevelDetectorV18.detectEntityType();
         detectorVersion = 'v18';
-        console.log(`📌 [${detectorVersion}] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
         return { pageLevel, entityType, detectorVersion };
       } catch(e) { console.warn("v18 error:", e); }
     }
@@ -1397,7 +1455,6 @@
         pageLevel = window.pageLevelDetectorV17.detect();
         entityType = window.pageLevelDetectorV17.detectEntityType();
         detectorVersion = 'v17';
-        console.log(`📌 [${detectorVersion}] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
         return { pageLevel, entityType, detectorVersion };
       } catch(e) { console.warn("v17 error:", e); }
     }
@@ -1407,7 +1464,6 @@
         pageLevel = window.pageLevelDetector.detect();
         entityType = window.pageLevelDetector.detectEntityType();
         detectorVersion = 'legacy';
-        console.log(`📌 [${detectorVersion}] Detected: pageLevel=${pageLevel}, entityType=${entityType}`);
         return { pageLevel, entityType, detectorVersion };
       } catch(e) { console.warn("legacy error:", e); }
     }
@@ -1417,7 +1473,7 @@
   }
 
   // ============================================================
-  // 📌 TUNGGU PAGE LEVEL DETECTOR READY (FIX-A1: 3s)
+  // 📌 WAIT FOR PLD (FIX-A1: 3s)
   // ============================================================
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
@@ -1425,40 +1481,25 @@
 
       if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
         console.log(`✅ Page Level Detector ${pldVer.label} already ready`);
-        resolve();
-        return;
+        resolve(); return;
       }
       if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
-        console.log("✅ Page Level Detector v20.x already ready");
-        resolve();
-        return;
+        console.log("✅ Page Level Detector v20.x already ready"); resolve(); return;
       }
       if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
-        console.log("✅ Page Level Detector v19 already ready");
-        resolve();
-        return;
+        console.log("✅ Page Level Detector v19 already ready"); resolve(); return;
       }
       if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
-        console.log("✅ Page Level Detector v18 already ready");
-        resolve();
-        return;
+        console.log("✅ Page Level Detector v18 already ready"); resolve(); return;
       }
       if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
-        console.log("✅ Page Level Detector v17 already ready");
-        resolve();
-        return;
+        console.log("✅ Page Level Detector v17 already ready"); resolve(); return;
       }
       if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
-        console.log("✅ Page Level Detector legacy already ready");
-        resolve();
-        return;
+        console.log("✅ Page Level Detector legacy already ready"); resolve(); return;
       }
 
-      const onReadyV22 = () => {
-        const v = getPLDVersion();
-        console.log(`✅ PLD ${v.label} ready (event)`);
-        resolve();
-      };
+      const onReadyV22 = () => { const v = getPLDVersion(); console.log(`✅ PLD ${v.label} ready (event)`); resolve(); };
       const onReadyV20 = () => { console.log("✅ PLD v20.x ready (event)"); resolve(); };
       const onReadyV19 = () => { console.log("✅ PLD v19 ready (event)"); resolve(); };
       const onReadyV18 = () => { console.log("✅ PLD v18 ready (event fallback)"); resolve(); };
@@ -1479,10 +1520,7 @@
           resolve();
         } else {
           console.error("❌ Page Level Detector not available, using fallback defaults");
-          window.pageLevelDetector = {
-            detect: () => 'pillar',
-            detectEntityType: () => 'produk'
-          };
+          window.pageLevelDetector = { detect: () => 'pillar', detectEntityType: () => 'produk' };
           resolve();
         }
       }, 3000);
@@ -1512,11 +1550,8 @@
       document.body.classList.add('warning-h1-informational');
 
       return {
-        type: 'evergreen',
-        validityDays: 1095,
-        usePriceValidUntil: false,
-        allowPriceRange: false,
-        ctaIntensity: 'soft-medium',
+        type: 'evergreen', validityDays: 1095,
+        usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft-medium',
         overridden: true,
         overrideReason: `H1 informatif tanpa harga: "${h1Detection.h1Text}" — ${h1Detection.reason}`
       };
@@ -1524,21 +1559,15 @@
 
     if (isMoneyLevel && h1Detection.isPrice) {
       const priceTableResult = hasPriceTable();
-
       if (priceTableResult.found) {
         console.log(`✅ H1 mengandung harga DAN ada tabel harga → NON-EVERGREEN`);
       } else {
         console.warn(`⚠️ H1 mengandung harga TAPI TIDAK ADA TABEL HARGA!`);
         console.warn(`   → Override ke EVERGREEN (konten informatif)`);
-
         document.body.classList.add('warning-h1-price-no-table');
-
         return {
-          type: 'evergreen',
-          validityDays: 1095,
-          usePriceValidUntil: false,
-          allowPriceRange: false,
-          ctaIntensity: 'soft-medium',
+          type: 'evergreen', validityDays: 1095,
+          usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft-medium',
           overridden: true,
           overrideReason: `H1 mengandung harga tapi tidak ada tabel harga: "${h1Detection.h1Text}"`
         };
@@ -1550,19 +1579,16 @@
       if (rule) return rule;
       return DEFAULT_RULE;
     }
-
     if (entityType === 'sewa') {
       const rule = SEWA_RULES[pageLevel];
       if (rule) return rule;
       return BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
     }
-
     if (entityType === 'produk') {
       const rule = PRODUK_MATERIAL_RULES[pageLevel];
       if (rule) return rule;
       return BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
     }
-
     if (entityType === 'material') {
       const rule = PRODUK_MATERIAL_RULES[pageLevel];
       if (rule) return rule;
@@ -1573,7 +1599,7 @@
   }
 
   // ============================================================
-  // 📌 FUNGSI UTAMA DETECT EVERGREEN
+  // 📌 FUNGSI UTAMA
   // ============================================================
   async function detectEvergreen({ customDateModified = null } = {}) {
     if (_AED_INITIALIZED) {
@@ -1582,16 +1608,14 @@
     }
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.2-LITE — Loading...");
+    console.log("🧩 detectEvergreen() v17.3.1-LITE — Loading...");
 
     await waitForPageLevelDetector();
 
     const { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount } = getPageLevelAndEntityType();
 
     console.log(`📌 Raw detection: pageLevel=${pageLevel}, entityType=${entityType}, detector=${detectorVersion}`);
-    if (confidence) {
-      console.log(`   🎯 Detection Confidence: ${confidence}% (${strategyCount} strategies)`);
-    }
+    if (confidence) console.log(`   🎯 Detection Confidence: ${confidence}% (${strategyCount} strategies)`);
 
     const h1Detection = detectContentTypeByH1();
     console.log(`📊 Content Detection Result: informational=${h1Detection.isInformational}, price=${h1Detection.isPrice}, hasYear=${h1Detection.hasYear}`);
@@ -1613,11 +1637,9 @@
     const overrideReason = rule.overrideReason || null;
 
     console.log(`📌 Final Rule: pageLevel=${pageLevel}, type=${finalType}, validityDays=${validityDays}`);
-    if (isOverridden) {
-      console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
-    }
+    if (isOverridden) console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
 
-    // STEP 1: Auto-update DULU (kalau nextUpdate sudah lewat)
+    // STEP 1: Auto-update DULU (Opsi B kalau nextUpdate lewat)
     console.log("🔄 MEMERIKSA AUTO-UPDATE...");
     const autoUpdated = autoUpdateDates(pageLevel, contentFocus);
     if (autoUpdated) {
@@ -1626,11 +1648,10 @@
       console.log("⏭️ Tidak perlu auto-update (masih dalam periode valid)");
     }
 
-    // STEP 2: Process meta dates SEKALI
-    // (Opsi A: updateJsonLdDates dipanggil di dalam processMetaDates)
+    // STEP 2: Process meta dates (Opsi A)
     await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus);
 
-    console.log(`🧩 detectEvergreen() v17.2-LITE — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.3.1-LITE — FINISHED ✅`);
   }
 
   // ============================================================
@@ -1640,20 +1661,24 @@
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
 
-  console.log("✅ Smart Evergreen Detector v17.2-LITE ready");
-  console.log("   🔥 FIX-A1: Timeout 3s");
-  console.log("   🔥 FIX-A2: processMetaDates() 1x");
-  console.log("   🔥 FIX-A3: Guard _AED_INITIALIZED");
-  console.log("   🔥 FIX-A4: Event listener { once: true }");
-  console.log("   🔥 FIX-A5: Early exit + limit elements");
-  console.log("   🔥 FIX-A6: queryByKeyword() scope dipersempit");
-  console.log("   🔥 FIX-A7: Cache hasil PLD");
-  console.log("   🔥 FIX-A8: Early return nextUpdate");
+  console.log("✅ Smart Evergreen Detector v17.3.1-LITE ready");
+  console.log("   🔥 FIX-A1:  Timeout 3s");
+  console.log("   🔥 FIX-A2:  processMetaDates() 1x");
+  console.log("   🔥 FIX-A3:  Guard _AED_INITIALIZED");
+  console.log("   🔥 FIX-A4:  Event listener { once: true }");
+  console.log("   🔥 FIX-A5:  Early exit + limit elements");
+  console.log("   🔥 FIX-A6:  queryByKeyword() scope dipersempit");
+  console.log("   🔥 FIX-A7:  Cache hasil PLD");
+  console.log("   🔥 FIX-A8:  Early return nextUpdate");
   console.log("   🔥 FIX-A9:  Update dateModified di JSON-LD");
   console.log("   🔥 FIX-A10: Hapus datePublished HANYA FAQPage/Question/Answer");
   console.log("   🔥 FIX-A11: Hapus upvoteCount: 0");
   console.log("   🔥 FIX-A12: Update priceValidUntil di JSON-LD offers");
-  console.log("   🔥 OPSI A: JSON-LD update di processMetaDates() (SELALU)");
-  console.log("   🔥 OPSI B: JSON-LD update di autoUpdateDates() (saat lewat)");
+  console.log("   🔥 FIX-A13: Update TAHUN di FAQ name/text");
+  console.log("   🔥 FIX-A14: isHistoricalContext() — deteksi historis/future");
+  console.log("   🔥 FIX-A15: replaceYearWithContext() — proteksi SNI/UU");
+  console.log("   🔥 FIX-A16: EARLY EXIT — skip parse JSON kalau tidak ada tahun lama");
+  console.log("   🔥 FIX-A17: SKIPPED COUNTER — log blok yang di-skip");
+  console.log("   🔥 OPSI A+B: JSON-LD & FAQ years update di processMetaDates + autoUpdateDates");
 
 })();
