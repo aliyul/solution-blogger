@@ -1,5 +1,5 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.1-LITE — PERFORMANCE PATCH
+ 🧠 Smart Evergreen Detector v17.2-LITE — PERFORMANCE + JSON-LD PATCH
     ✅ SINKRON dengan PLD v23.9.7-LITE
     ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Cek Tabel)
     ✅ ATURAN TAHUN: H1 mengandung tahun → NON-EVERGREEN
@@ -7,15 +7,12 @@
     ✅ ATURAN INFORMASI: H1 informatif tanpa harga → EVERGREEN
     ✅ AUTO-UPDATE TANPA BATAS: nextUpdate → dateModified → nextUpdate
 
-    🔥🔥🔥 v17.1-LITE CHANGELOG 🔥🔥🔥
-    ✅ FIX-A1: Timeout waitForPageLevelDetector 10s → 3s
-    ✅ FIX-A2: processMetaDates() tidak dipanggil 2x
-    ✅ FIX-A3: Guard _AED_INITIALIZED — cegah double init
-    ✅ FIX-A4: Event listener { once: true } semua
-    ✅ FIX-A5: updateContentByLevelAndFocus() — optimasi scope
-    ✅ FIX-A6: queryByKeyword() — batasi maxLength & skip script
-    ✅ FIX-A7: Cache hasil PLD (kategori, h1Pattern, schema, cta)
-    ✅ FIX-A8: Skip auto-update kalau nextUpdate belum lewat (early return)
+    🔥🔥🔥 v17.2-LITE CHANGELOG 🔥🔥🔥
+    ✅ FIX-A1 s/d FIX-A8 (semua dari v17.1)
+    ✅ FIX-A9:  updateJsonLdDates() — update dateModified di JSON-LD
+    ✅ FIX-A10: Hapus datePublished HANYA di FAQPage/Question/Answer
+    ✅ FIX-A11: Hapus upvoteCount: 0 yang tidak relevan
+    ✅ FIX-A12: Update priceValidUntil di JSON-LD offers (kalau ada)
 
     ✅ PRESERVED (semua FIX v16.1):
     ✅ P1 — Deteksi dari PLD dulu (data-content-focus), baru fallback H1
@@ -26,13 +23,13 @@
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.1-lite") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.2-lite") return;
 
   // ═══ FIX-A3: Guard global untuk cegah double init ═══
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.1-lite";
+  window.__AED_VERSION = "17.2-lite";
 
   // ============================================================
   // 📌 ATURAN V37 — BASE RULES
@@ -128,14 +125,6 @@
   // ============================================================
   // 🆕 v17.1: FIX-A7 — Cache hasil PLD
   // ============================================================
-  // Fungsi-fungsi ini dipanggil berkali-kali dari:
-  //   - processMetaDates()
-  //   - autoUpdateDates() → updateContentByLevelAndFocus()
-  //   - updateH1WithRules()
-  //
-  // Tanpa cache = panggil PLD berkali-kali = berat.
-  // Dengan cache = HEMAT ~20% waktu AED.
-  // ============================================================
   function _cachePLD(key, fn) {
     if (_AED_PLD_CACHE[key] !== undefined) {
       return _AED_PLD_CACHE[key];
@@ -146,7 +135,7 @@
   }
 
   // ============================================================
-  // 🆕 v17.1: getPLDKategori() — Kategori dari PLD v23
+  // 🆕 v17.1: getPLDKategori()
   // ============================================================
   function getPLDKategori(contentFocus) {
     if (!window.pageLevelDetectorv22) return null;
@@ -169,7 +158,7 @@
   }
 
   // ============================================================
-  // 🆕 v17.1: getPLDH1Pattern() — H1 Pattern dari PLD v23
+  // 🆕 v17.1: getPLDH1Pattern()
   // ============================================================
   function getPLDH1Pattern(kategori) {
     if (!window.pageLevelDetectorv22) return null;
@@ -240,7 +229,7 @@
   }
 
   // ============================================================
-  // 🆕 v17.1: getPLDContentFocus() — Prioritas PLD detectContentFocus
+  // 🆕 v17.1: getPLDContentFocus()
   // ============================================================
   function getPLDContentFocus(pageLevel, entityType) {
     if (!window.pageLevelDetectorv22) return null;
@@ -262,14 +251,12 @@
   }
 
   // ============================================================
-  // 🆕 v17.1: getKategori() — EVERGREEN/NON-EVERGREEN/FLEXIBLE
+  // 🆕 v17.1: getKategori()
   // ============================================================
   function getKategori(pageLevel, contentFocus) {
-    // Prioritas 1: PLD v23
     const pldKategori = getPLDKategori(contentFocus);
     if (pldKategori) return pldKategori;
 
-    // Fallback: internal logic
     const isEvergreenLevel = EVERGREEN_LEVELS.includes(pageLevel);
     const isMoneyLevel = MONEY_LEVELS.includes(pageLevel);
 
@@ -282,10 +269,9 @@
   }
 
   // ============================================================
-  // 🆕 v17.1: getContentFocus() — AMBIL DARI PLD ATAU H1
+  // 🆕 v17.1: getContentFocus()
   // ============================================================
   function getContentFocus(h1Detection, pageLevel, entityType) {
-    // PRIORITAS 0 — PLD v23 detectContentFocus()
     if (pageLevel && entityType) {
       const pldFocus = getPLDContentFocus(pageLevel, entityType);
       if (pldFocus) {
@@ -295,7 +281,6 @@
       }
     }
 
-    // PRIORITAS 1: PLD data-content-focus attribute
     const bodyFocus = document.body.getAttribute('data-content-focus');
     if (bodyFocus) {
       const normalized = bodyFocus.toUpperCase();
@@ -303,14 +288,12 @@
       return normalized;
     }
 
-    // PRIORITAS 2: V379A
     if (window.V379A && window.V379A.focusKonten) {
       const normalized = String(window.V379A.focusKonten).toUpperCase();
       console.log(`🎯 Content Focus dari V379A: ${normalized}`);
       return normalized;
     }
 
-    // PRIORITAS 3: Fallback dari h1Detection
     if (h1Detection) {
       if (h1Detection.hasYear || h1Detection.isPrice) {
         console.log(`🎯 Content Focus: HARGA (dari H1 fallback)`);
@@ -327,34 +310,20 @@
   }
 
   // ============================================================
-  // 🆕 v17.1: queryByKeyword() — FIX-A6: batasi scope
-  // ============================================================
-  // SEBELUMNYA:
-  //   container.querySelectorAll('p, span, div, time, li, td')
-  //   → scan SEMUA elemen di body = ratusan/ribuan iterasi
-  //
-  // SESUDAH (FIX-A6):
-  //   - Batasi maxLength ke 500 char (skip elemen besar)
-  //   - Skip SCRIPT, STYLE, NOSCRIPT
-  //   - Gunakan TreeWalker untuk skip text node yang tidak relevan
-  //   - Cek keyword dulu sebelum cek year
+  // 🆕 v17.1: queryByKeyword() — FIX-A6
   // ============================================================
   function queryByKeyword(container, keywords, requireYear = true) {
     const results = [];
     if (!container) return results;
 
-    // FIX-A6: Batasi scope — hanya elemen teks kecil
     const elements = container.querySelectorAll('p, span, time, li, td, .update-badge, .last-updated, .date-modified');
     elements.forEach(el => {
-      // FIX-A6: Skip elemen script/style
       const tag = el.tagName;
       if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return;
 
       const text = el.innerText?.toLowerCase() || '';
-      // FIX-A6: Skip teks panjang (> 500 char) — biasanya artikel, bukan badge tanggal
       if (!text || text.length > 500) return;
 
-      // FIX-A6: Cek keyword dulu (lebih murah) sebelum cek year (regex)
       const hasKeyword = keywords.some(kw => text.includes(kw.toLowerCase()));
       if (!hasKeyword) return;
 
@@ -363,7 +332,6 @@
         return;
       }
 
-      // Baru cek year
       const hasYear = /\b(19|20)\d{2}\b/.test(text);
       if (hasYear) {
         results.push(el);
@@ -372,8 +340,8 @@
     return results;
   }
 
-   // ============================================================
-  // P4: hasPriceTable() — CEK HEADER SPESIFIK (<th>)
+  // ============================================================
+  // P4: hasPriceTable()
   // ============================================================
   function hasPriceTable() {
     const tables = document.querySelectorAll('table');
@@ -424,8 +392,156 @@
   }
 
   // ============================================================
-  // P1: FUNGSI DETEKSI KONTEN — PLD DULU, BARU H1
-  // 🆕 v17.1: Support PLD v23.9.7-LITE + cache
+  // 🆕 v17.2: FIX-A9/A10/A11/A12 — Update + cleanup JSON-LD
+  // ============================================================
+  // Aturan:
+  //   1. dateModified     → UPDATE (kalau ada)
+  //   2. datePublished    → HAPUS hanya di FAQPage/Question/Answer
+  //   3. upvoteCount: 0   → HAPUS (tidak relevan untuk FAQPage)
+  //   4. priceValidUntil  → UPDATE di offers (kalau ada)
+  // ============================================================
+  function updateJsonLdDates(dateModified, nextUpdate) {
+    var updated = 0;
+    var cleaned = 0;
+    var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+
+    scripts.forEach(function (script) {
+      var raw = script.textContent;
+      if (!raw) return;
+      // Skip kalau tidak ada field yang relevan
+      if (raw.indexOf('"date') === -1 &&
+          raw.indexOf('upvoteCount') === -1 &&
+          raw.indexOf('priceValidUntil') === -1) return;
+
+      var json;
+      try {
+        json = JSON.parse(raw);
+      } catch (e) {
+        console.warn('⚠️ JSON-LD parse error, skip:', e.message);
+        return;
+      }
+
+      // Handle @graph array atau single object
+      var nodes = [];
+      if (Array.isArray(json)) {
+        nodes = json;
+      } else if (json['@graph'] && Array.isArray(json['@graph'])) {
+        nodes = json['@graph'];
+      } else {
+        nodes = [json];
+      }
+
+      var changed = false;
+
+      nodes.forEach(function (node) {
+        if (!node || typeof node !== 'object') return;
+
+        // ── Deteksi apakah node ini FAQ-related ──
+        var typeStr = (node['@type'] || '').toString();
+        var isFaqRelated = (typeStr.indexOf('FAQPage') !== -1 ||
+                            typeStr.indexOf('Question') !== -1 ||
+                            typeStr.indexOf('Answer') !== -1 ||
+                            typeStr.indexOf('QAPage') !== -1);
+
+        // ── 1. HAPUS datePublished HANYA untuk FAQPage/Question/Answer ──
+        if (isFaqRelated && node.datePublished !== undefined) {
+          delete node.datePublished;
+          changed = true;
+          cleaned++;
+          console.log('🗑️ Hapus datePublished dari ' + typeStr);
+        }
+
+        // ── 2. UPDATE dateModified (kalau ada) ──
+        if (node.dateModified !== undefined &&
+            node.dateModified !== dateModified) {
+          node.dateModified = dateModified;
+          changed = true;
+          console.log('✅ Update dateModified JSON-LD → ' + dateModified);
+        }
+
+        // ── 3. HAPUS upvoteCount: 0 ──
+        if (node.upvoteCount !== undefined && Number(node.upvoteCount) === 0) {
+          delete node.upvoteCount;
+          changed = true;
+          cleaned++;
+          console.log('🗑️ Hapus upvoteCount: 0 dari ' + (typeStr || 'node'));
+        }
+
+        // ── 4. UPDATE priceValidUntil di offers ──
+        if (node.offers) {
+          var offers = Array.isArray(node.offers) ? node.offers : [node.offers];
+          offers.forEach(function (offer) {
+            if (offer && offer.priceValidUntil !== undefined) {
+              offer.priceValidUntil = nextUpdate;
+              changed = true;
+            }
+          });
+        }
+
+        // ── 5. Handle mainEntity (FAQPage) ──
+        if (Array.isArray(node.mainEntity)) {
+          node.mainEntity.forEach(function (q) {
+            if (!q || typeof q !== 'object') return;
+
+            // Hapus upvoteCount: 0 di level Question
+            if (q.upvoteCount !== undefined && Number(q.upvoteCount) === 0) {
+              delete q.upvoteCount;
+              changed = true;
+              cleaned++;
+            }
+
+            // Hapus datePublished di level Question (FAQ only)
+            if (q.datePublished !== undefined) {
+              delete q.datePublished;
+              changed = true;
+              cleaned++;
+            }
+
+            // Update dateModified di level Question
+            if (q.dateModified !== undefined &&
+                q.dateModified !== dateModified) {
+              q.dateModified = dateModified;
+              changed = true;
+            }
+
+            // Handle acceptedAnswer
+            if (q.acceptedAnswer && typeof q.acceptedAnswer === 'object') {
+              if (q.acceptedAnswer.upvoteCount !== undefined &&
+                  Number(q.acceptedAnswer.upvoteCount) === 0) {
+                delete q.acceptedAnswer.upvoteCount;
+                changed = true;
+                cleaned++;
+              }
+              if (q.acceptedAnswer.datePublished !== undefined) {
+                delete q.acceptedAnswer.datePublished;
+                changed = true;
+                cleaned++;
+              }
+              if (q.acceptedAnswer.dateModified !== undefined &&
+                  q.acceptedAnswer.dateModified !== dateModified) {
+                q.acceptedAnswer.dateModified = dateModified;
+                changed = true;
+              }
+            }
+          });
+        }
+      });
+
+      if (changed) {
+        script.textContent = JSON.stringify(json, null, 2);
+        updated++;
+      }
+    });
+
+    if (updated > 0) {
+      console.log('✅ JSON-LD diupdate: ' + updated + ' blok, ' + cleaned + ' field dibersihkan');
+    }
+
+    return { updated: updated, cleaned: cleaned };
+  }
+
+  // ============================================================
+  // P1: FUNGSI DETEKSI KONTEN
   // ============================================================
   function detectContentTypeByH1() {
     const h1 = document.querySelector('h1');
@@ -444,9 +560,6 @@
 
     const h1Text = h1.innerText.toLowerCase();
 
-    // ============================================================
-    // 🆕 v17.1: PRIORITAS 0 — PLD v23 detectContentFocus()
-    // ============================================================
     const pldVersion = getPLDVersion();
     if (pldVersion.family === "v23-lite" || pldVersion.family === "v23" || pldVersion.family === "v22") {
       try {
@@ -498,9 +611,6 @@
       }
     }
 
-    // ============================================================
-    // P1: PRIORITAS 1 — PLD (data-content-focus)
-    // ============================================================
     const bodyFocus = document.body.getAttribute('data-content-focus');
     if (bodyFocus) {
       const normalized = bodyFocus.toUpperCase();
@@ -542,9 +652,6 @@
       }
     }
 
-    // ============================================================
-    // P1: PRIORITAS 2 — V379A
-    // ============================================================
     if (window.V379A && window.V379A.focusKonten) {
       const normalized = String(window.V379A.focusKonten).toUpperCase();
       console.log(`🎯 Content Focus dari V379A: ${normalized}`);
@@ -575,9 +682,6 @@
       }
     }
 
-    // ============================================================
-    // P1: PRIORITAS 3 — Fallback ke H1
-    // ============================================================
     console.log(`⚠️ PLD/V379A tidak tersedia, fallback ke H1 detection`);
 
     const yearPattern = /\b(19|20)\d{2}\b/;
@@ -682,16 +786,8 @@
     };
   }
 
-   // ============================================================
-  // P3: UPDATE KONTEN SESUAI LEVEL + CONTENT FOCUS
-  // 🔥 FIX-A5: Optimasi scope loop — batasi elemen yang dicek
   // ============================================================
-  // OPTIMASI FIX-A5:
-  //   1. Sebelumnya: cek SEMUA elemen dari 12 selector + queryByKeyword()
-  //   2. Sekarang: cek DULU apakah ada tahun "lama" di halaman
-  //      → kalau TIDAK ADA, langsung return (early exit)
-  //   3. Batasi elemen max 50 (biasanya cukup untuk update badge)
-  //   4. Cache hasil getElementsByTagName('body') sekali pakai
+  // P3: UPDATE KONTEN SESUAI LEVEL + CONTENT FOCUS
   // ============================================================
   function updateContentByLevelAndFocus(pageLevel, contentFocus, now) {
     const monthNames = [
@@ -726,9 +822,6 @@
     console.log(`   📍 Alasan: ${modeReason}`);
     console.log(`   📅 Target: ${updateMode === 'month-year' ? newDateText : newYear}`);
 
-    // ═══ FIX-A5: EARLY EXIT — cek apakah ada tahun "lama" di halaman ═══
-    // Kalau TIDAK ada tahun lama (≤ 2025 atau < newYear), langsung return
-    // tanpa harus loop semua selector.
     var bodyInnerText = document.body.innerText || '';
     var allYearsInBody = bodyInnerText.match(/\b(19|20)\d{2}\b/g) || [];
     var hasOldYear = false;
@@ -770,9 +863,6 @@
 
     let elements = Array.from(elementsSet);
 
-    // ═══ FIX-A5: Batasi elemen max 50 ═══
-    // Kalau sampai > 50 elemen, berarti selector terlalu luas — potong saja.
-    // Biasanya update badge hanya 1-3 elemen per halaman.
     if (elements.length > 50) {
       console.log(`⚠️ FIX-A5: elements=${elements.length} > 50 — dipotong ke 50`);
       elements = elements.slice(0, 50);
@@ -834,7 +924,6 @@
 
       if (newText === originalText) continue;
 
-      // ═══ FIX-A5: Optimasi — pakai TreeWalker per elemen (tidak scan semua) ═══
       const textNodes = [];
       const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
       let node;
@@ -891,7 +980,7 @@
     return { updated: contentUpdated, mode: updateMode, target: updateMode === 'month-year' ? newDateText : newYear };
   }
 
-   // ============================================================
+  // ============================================================
   // P2: UPDATE H1 DENGAN SYARAT
   // ============================================================
   function updateH1WithRules(pageLevel, now) {
@@ -943,8 +1032,7 @@
 
   // ============================================================
   // 📌 AUTO-UPDATE DATE BERKELANJUTAN
-  // 🔥 FIX-A8: Early return kalau nextUpdate belum lewat (sudah ada di v17.0)
-  // 🔥 FIX-A5: Pakai updateContentByLevelAndFocus() versi optimasi
+  // 🔥 FIX-A9/A10/A11/A12: Update JSON-LD juga
   // ============================================================
   function autoUpdateDates(pageLevel, contentFocus) {
     console.log("🔄 AUTO-UPDATE: Memeriksa tanggal...");
@@ -965,12 +1053,6 @@
     const nextDate = new Date(currentNext);
     const currentModifiedDate = currentModified ? new Date(currentModified) : now;
 
-    // ═══ FIX-A8: Early return — belum lewat nextUpdate ═══
-    // Ini HEMAT ~500-1500ms karena:
-    //   - Tidak panggil updateContentByLevelAndFocus()
-    //   - Tidak panggil updateH1WithRules()
-    //   - Tidak modif DOM
-    // Kalau halaman masih valid, tidak perlu apa-apa.
     if (now < nextDate) {
       console.log(`⏭️ Belum lewat nextUpdate (${currentNext}), tidak perlu update`);
       return false;
@@ -1022,10 +1104,19 @@
       document.head.appendChild(metaPublished);
     }
 
+    // ═══ Update priceValidUntil di microdata ═══
     document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
       el.setAttribute('priceValidUntil', newNextStr);
     });
     console.log(`✅ Schema Offer priceValidUntil diupdate`);
+
+    // ═══ 🆕 FIX-A9/A10/A11/A12: Update JSON-LD schema ═══
+    var jsonLdResult = updateJsonLdDates(newModifiedStr, newNextStr);
+    if (jsonLdResult.updated > 0) {
+      console.log(`✅ JSON-LD diupdate: ${jsonLdResult.updated} blok, ${jsonLdResult.cleaned} field dibersihkan`);
+    } else {
+      console.log(`⏭️ Tidak ada JSON-LD yang perlu diupdate`);
+    }
 
     if (window.AEDMetaDates) {
       window.AEDMetaDates.dateModified = newModifiedStr;
@@ -1062,9 +1153,8 @@
     return true;
   }
 
-   // ============================================================
+  // ============================================================
   // 📌 FUNGSI PROSES META DATES
-  // 🆕 v17.1: Tambah cache — hemat panggilan PLD berulang
   // ============================================================
   async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus) {
 
@@ -1159,7 +1249,6 @@
         validityLabel = `${finalType.toUpperCase()} (${validityDays} hari)`;
     }
 
-    // 🆕 v17.1: Ambil kategori & h1Pattern dari PLD (dengan cache FIX-A7)
     const kategori = getKategori(pageLevel, contentFocus);
     const h1Pattern = getPLDH1Pattern(kategori);
     const schemaType = getPLDSchemaType(pageLevel, entityType, contentFocus);
@@ -1176,7 +1265,7 @@
       usePriceValidUntil,
       ctaIntensity,
       allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.1',
+      detectorVersion: detectorVersion || 'v17.2',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
@@ -1184,7 +1273,6 @@
       overrideReason: overrideReason || null,
       h1Detection: h1Detection || null,
 
-      // 🆕 v17.1: Info dari PLD
       contentFocus: contentFocus || null,
       pldKategori: kategori,
       pldH1Pattern: h1Pattern,
@@ -1215,12 +1303,11 @@
     if (isOverridden) {
       console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
     }
-    console.log(`🧩 processMetaDates() v17.1 — FINISHED ✅`);
+    console.log(`🧩 processMetaDates() v17.2 — FINISHED ✅`);
   }
 
-   // ============================================================
+  // ============================================================
   // 📌 GET PAGE LEVEL DARI DETECTOR
-  // 🆕 v17.1: Support PLD v23.9.7-LITE
   // ============================================================
   function getPageLevelAndEntityType() {
     let pageLevel = 'pillar';
@@ -1307,25 +1394,12 @@
   }
 
   // ============================================================
-  // 📌 TUNGGU PAGE LEVEL DETECTOR READY
-  // 🔥 FIX-A1: Timeout 10 detik → 3 detik
-  // ============================================================
-  // SEBELUMNYA:
-  //   setTimeout(() => { ... }, 10000);  // 10 DETIK BLOCKING
-  //
-  // SESUDAH (FIX-A1):
-  //   setTimeout(() => { ... }, 3000);   // 3 DETIK (cukup)
-  //
-  // Alasan:
-  //   - PLD di-load SEBELUM AED via script tag
-  //   - Kalau PLD belum ready dalam 3 detik → ada masalah lain
-  //   - 10 detik hanya buang waktu user tanpa manfaat
+  // 📌 TUNGGU PAGE LEVEL DETECTOR READY (FIX-A1: 3s)
   // ============================================================
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
       const pldVer = getPLDVersion();
 
-      // Cek langsung — kalau PLD sudah ready, langsung resolve
       if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
         console.log(`✅ Page Level Detector ${pldVer.label} already ready`);
         resolve();
@@ -1357,7 +1431,6 @@
         return;
       }
 
-      // FIX-A4: Event listener dengan { once: true } — cegah multiple trigger
       const onReadyV22 = () => {
         const v = getPLDVersion();
         console.log(`✅ PLD ${v.label} ready (event)`);
@@ -1375,7 +1448,6 @@
       window.addEventListener("pageLevelDetectorv18Ready", onReadyV18, { once: true });
       window.addEventListener("pageLevelDetectorReady", onReadyLegacy, { once: true });
 
-      // 🔥 FIX-A1: Timeout 10 detik → 3 detik
       setTimeout(() => {
         if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 ||
             window.pageLevelDetectorv19 || window.pageLevelDetectorV18 ||
@@ -1390,12 +1462,12 @@
           };
           resolve();
         }
-      }, 3000); // 🔥 FIX-A1: 10s → 3s
+      }, 3000);
     });
   }
 
   // ============================================================
-  // 📌 GET RULES BERDASARKAN ENTITY TYPE, PAGE LEVEL, DAN JENIS KONTEN
+  // 📌 GET RULES
   // ============================================================
   function getRulesByEntityType(entityType, pageLevel, h1Detection) {
     console.log(`📌 Getting rules for entityType=${entityType}, pageLevel=${pageLevel}`);
@@ -1479,40 +1551,15 @@
 
   // ============================================================
   // 📌 FUNGSI UTAMA DETECT EVERGREEN
-  // 🔥 FIX-A2: processMetaDates() TIDAK dipanggil 2x
-  // 🔥 FIX-A3: Guard _AED_INITIALIZED — cegah double init
-  // ============================================================
-  // SEBELUMNYA (v17.0):
-  //   await processMetaDates(...);              // ⚠️ Panggilan #1
-  //   const autoUpdated = autoUpdateDates(...);
-  //   if (autoUpdated) {
-  //     await processMetaDates(...);            // ⚠️ Panggilan #2 (DOUBLE!)
-  //   }
-  //
-  // SESUDAH (FIX-A2):
-  //   // Panggil autoUpdateDates DULU
-  //   const autoUpdated = autoUpdateDates(...);
-  //   // Panggil processMetaDates SEKALI SAJA (setelah auto-update)
-  //   await processMetaDates(...);
-  //
-  // Logika:
-  //   - autoUpdateDates() hanya ubah meta dateModified/nextUpdate KALAU
-  //     nextUpdate sudah lewat.
-  //   - processMetaDates() SET meta dari awal (dengan customDateModified).
-  //   - Kalau autoUpdateDates() sukses, processMetaDates() tetap perlu
-  //     dipanggil untuk set body class + AEDMetaDates.
-  //   - Cukup 1x panggil SETELAH autoUpdateDates — 
-  //     karena processMetaDates akan baca ulang meta yang sudah diupdate.
   // ============================================================
   async function detectEvergreen({ customDateModified = null } = {}) {
-    // ═══ FIX-A3: Guard — cegah double init ═══
     if (_AED_INITIALIZED) {
       console.log("⏭️ [AED] detectEvergreen() sudah pernah dijalankan — skip");
       return;
     }
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.1-LITE — Loading...");
+    console.log("🧩 detectEvergreen() v17.2-LITE — Loading...");
 
     await waitForPageLevelDetector();
 
@@ -1523,14 +1570,12 @@
       console.log(`   🎯 Detection Confidence: ${confidence}% (${strategyCount} strategies)`);
     }
 
-    // P1: Deteksi konten (PLD dulu, baru H1)
     const h1Detection = detectContentTypeByH1();
     console.log(`📊 Content Detection Result: informational=${h1Detection.isInformational}, price=${h1Detection.isPrice}, hasYear=${h1Detection.hasYear}`);
     console.log(`   📝 H1: "${h1Detection.h1Text}"`);
     console.log(`   📌 Source: ${h1Detection.source || 'N/A'}`);
     console.log(`   📌 Reason: ${h1Detection.reason}`);
 
-    // P3: Ambil content focus (dengan PLD prioritas)
     const contentFocus = getContentFocus(h1Detection, pageLevel, entityType);
     console.log(`🎯 Content Focus Final: ${contentFocus}`);
 
@@ -1549,23 +1594,7 @@
       console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // 🔥 FIX-A2: URUTAN BARU — autoUpdateDates() DULU
-    // ═══════════════════════════════════════════════════════════
-    // Alasan:
-    //   - autoUpdateDates() hanya jalan kalau nextUpdate sudah lewat
-    //   - Kalau belum lewat: autoUpdateDates() = no-op (return false)
-    //   - Kalau sudah lewat: autoUpdateDates() update meta, konten, H1
-    //   - processMetaDates() dipanggil SEKALI untuk set body class + AEDMetaDates
-    //
-    // Logika:
-    //   - Sebelumnya processMetaDates() dipanggil 2x → berat
-    //   - Sekarang: autoUpdateDates() DULU, processMetaDates() SEKALI
-    //   - processMetaDates() akan baca meta yang sudah di-update
-    //     oleh autoUpdateDates (kalau ada)
-    // ═══════════════════════════════════════════════════════════
-
-    // STEP 1: Auto-update DULU (kalau nextUpdate sudah lewat)
+    // STEP 1: Auto-update DULU
     console.log("🔄 MEMERIKSA AUTO-UPDATE...");
     const autoUpdated = autoUpdateDates(pageLevel, contentFocus);
     if (autoUpdated) {
@@ -1574,10 +1603,10 @@
       console.log("⏭️ Tidak perlu auto-update (masih dalam periode valid)");
     }
 
-    // STEP 2: Process meta dates SEKALI (set body class + AEDMetaDates)
+    // STEP 2: Process meta dates SEKALI
     await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus);
 
-    console.log(`🧩 detectEvergreen() v17.1-LITE — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.2-LITE — FINISHED ✅`);
   }
 
   // ============================================================
@@ -1587,18 +1616,18 @@
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
 
-  console.log("✅ Smart Evergreen Detector v17.1-LITE ready");
-  console.log("   🔥 FIX-A1: Timeout 3s (dari 10s)");
-  console.log("   🔥 FIX-A2: processMetaDates() 1x (dari 2x)");
+  console.log("✅ Smart Evergreen Detector v17.2-LITE ready");
+  console.log("   🔥 FIX-A1: Timeout 3s");
+  console.log("   🔥 FIX-A2: processMetaDates() 1x");
   console.log("   🔥 FIX-A3: Guard _AED_INITIALIZED");
   console.log("   🔥 FIX-A4: Event listener { once: true }");
   console.log("   🔥 FIX-A5: Early exit + limit elements");
   console.log("   🔥 FIX-A6: queryByKeyword() scope dipersempit");
   console.log("   🔥 FIX-A7: Cache hasil PLD");
   console.log("   🔥 FIX-A8: Early return nextUpdate");
+  console.log("   🔥 FIX-A9:  Update dateModified di JSON-LD");
+  console.log("   🔥 FIX-A10: Hapus datePublished HANYA FAQPage/Question/Answer");
+  console.log("   🔥 FIX-A11: Hapus upvoteCount: 0");
+  console.log("   🔥 FIX-A12: Update priceValidUntil di JSON-LD offers");
 
 })();
-
-
-
- 
