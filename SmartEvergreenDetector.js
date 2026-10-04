@@ -1,5 +1,5 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.3.1-LITE — FULL PATCH
+ 🧠 Smart Evergreen Detector v17.3.1-LITE — FULL PATCH (STRICT + OPTION 1)
     ✅ SINKRON dengan PLD v23.9.7-LITE
     ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Cek Tabel)
     ✅ ATURAN TAHUN: H1 mengandung tahun → NON-EVERGREEN
@@ -23,9 +23,13 @@
     ✅ FIX-A13: updateJsonLdFaqYears() — update TAHUN di FAQ name/text
     ✅ FIX-A14: isHistoricalContext() — deteksi frasa historis/future
     ✅ FIX-A15: replaceYearWithContext() — replace aman + proteksi SNI/UU
-    ✅ FIX-A16: 🆕 EARLY EXIT — skip parse JSON kalau tidak ada tahun lama
-    ✅ FIX-A17: 🆕 SKIPPED COUNTER — log blok yang di-skip
-    ✅ OPSI A+B: JSON-LD & FAQ years diupdate di processMetaDates() DAN autoUpdateDates()
+    ✅ FIX-A16: EARLY EXIT — skip parse JSON kalau tidak ada tahun lama
+    ✅ FIX-A17: SKIPPED COUNTER — log blok yang di-skip
+    ✅ FIX-A18: LOOSE REGEX — replace tahun di posisi manapun
+    ✅ FIX-A19: LOCK bulan+tahun & range tahun
+    ✅ FIX-A20: STRICT MODE — guard historis diperluas
+    ✅ FIX-A21: 🆕 OPTION 1 — JSON-LD & FAQ years hanya refresh saat nextUpdate lewat
+    ✅ OPSI A+B: sinkron & konsisten (semua tunggu nextUpdate)
 
     ✅ PRESERVED (semua FIX v16.1):
     ✅ P1 — Deteksi dari PLD dulu (data-content-focus), baru fallback H1
@@ -501,27 +505,31 @@
   }
 
   // ============================================================
-  // 🆕 FIX-A14: Cek apakah tahun berada di konteks historis/future
+  // 🆕 FIX-A14 + A18 + A20 (STRICT): Cek konteks historis/future
   // ============================================================
   function isHistoricalContext(fullText, yearPos, yearLength) {
-    var beforeStart = Math.max(0, yearPos - 60);
+    var beforeStart = Math.max(0, yearPos - 80);
     var before = fullText.substring(beforeStart, yearPos).toLowerCase();
 
-    var afterEnd = Math.min(fullText.length, yearPos + yearLength + 60);
+    var afterEnd = Math.min(fullText.length, yearPos + yearLength + 80);
     var after = fullText.substring(yearPos + yearLength, afterEnd).toLowerCase();
 
     var historicalWords = [
       'lalu', 'yang lalu', 'sebelumnya', 'silam', 'dahulu', 'lampau',
       'terdahulu', 'saat itu', 'ketika itu', 'waktu itu', 'dulu',
-      'masa lalu', 'tahun lalu', 'bulan lalu', 'yang telah lewat'
+      'masa lalu', 'tahun lalu', 'bulan lalu', 'yang telah lewat',
+      'sejak', 'sepanjang',
+      'periode', 'era', 'zaman'
     ];
 
     var futureWords = [
       'mendatang', 'yang akan datang', 'akan datang', 'yang akan',
       'masa depan', 'berikutnya', 'nanti', 'tahun depan', 'bulan depan',
-      'di masa depan'
+      'di masa depan', 'proyeksi', 'prediksi',
+      'target', 'rencana'
     ];
 
+    // Cek AFTER dulu
     for (var i = 0; i < historicalWords.length; i++) {
       if (after.indexOf(historicalWords[i]) !== -1) {
         return { skip: true, reason: 'historical-after', word: historicalWords[i] };
@@ -532,9 +540,18 @@
         return { skip: true, reason: 'future-after', word: futureWords[j] };
       }
     }
-    for (var k = 0; k < historicalWords.length; k++) {
-      if (before.indexOf(historicalWords[k]) !== -1) {
-        return { skip: true, reason: 'historical-before', word: historicalWords[k] };
+
+    // Cek BEFORE — STRICT
+    var strongHistoricalBefore = [
+      'tahun lalu', 'sebelumnya', 'silam', 'dahulu', 'masa lalu',
+      'saat itu', 'ketika itu', 'waktu itu', 'yang lalu',
+      'sejak', 'periode', 'era', 'zaman', 'sepanjang',
+      'sejarah', 'awal mula', 'berdiri sejak', 'didirikan',
+      'pertama kali', 'mulai dari'
+    ];
+    for (var k = 0; k < strongHistoricalBefore.length; k++) {
+      if (before.indexOf(strongHistoricalBefore[k]) !== -1) {
+        return { skip: true, reason: 'historical-before', word: strongHistoricalBefore[k] };
       }
     }
 
@@ -542,7 +559,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-A15: Replace tahun dengan proteksi KONTEKS PENUH
+  // 🆕 FIX-A15 + A18 + A19: Replace tahun (LOOSE REGEX + guard)
   // ============================================================
   function replaceYearWithContext(text, oldYears, newYear) {
     if (!text) return text;
@@ -557,48 +574,55 @@
       }
     );
 
-    // Step 2: Map oldYears untuk lookup cepat
+    // Step 2: Map oldYears
     var oldYearMap = {};
     oldYears.forEach(function (y) { oldYearMap[y] = true; });
 
-    // Step 3: Replace dengan callback (dapat offset & fullText)
-    var re = /\b(di|tahun|pada|dari|hingga|sampai)\s+(\d{4})\b/gi;
+    // Step 3: LOCK bulan+tahun
+    var monthYearRefs = [];
+    text = text.replace(
+      /\b(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})\b/gi,
+      function (m) {
+        monthYearRefs.push(m);
+        return '\x00MONTH' + (monthYearRefs.length - 1) + '\x00';
+      }
+    );
 
-    text = text.replace(re, function (match, prefix, yearStr, offset, fullText) {
+    // Step 4: LOCK range tahun
+    var rangeRefs = [];
+    text = text.replace(
+      /\b(\d{4})\s*(?:\-|–|—|s\/d|sd|sampai|hingga|to)\s*(\d{4})\b/gi,
+      function (m) {
+        rangeRefs.push(m);
+        return '\x00RANGE' + (rangeRefs.length - 1) + '\x00';
+      }
+    );
+
+    // Step 5: LOOSE REGEX + historical guard
+    text = text.replace(/\b(\d{4})\b/g, function (match, yearStr, offset, fullText) {
       var y = parseInt(yearStr, 10);
       if (!oldYearMap[y]) return match;
 
-      var yearPos = offset + prefix.length + 1;
-      var ctxCheck = isHistoricalContext(fullText, yearPos, 4);
-
+      var ctxCheck = isHistoricalContext(fullText, offset, 4);
       if (ctxCheck.skip) {
         console.log('🛡️ [FAQ Years] Skip: "' + match + '" — konteks ' +
                     ctxCheck.reason + ' ("' + ctxCheck.word + '")');
         return match;
       }
-
-      return prefix + ' ' + newYear;
-    });
-
-    // Step 4: Pattern khusus "20XX?" di akhir pertanyaan (FAQ name)
-    var reEnd = /\b(\d{4})(?=\s*\?)/g;
-    text = text.replace(reEnd, function (match, yearStr, offset, fullText) {
-      var y = parseInt(yearStr, 10);
-      if (!oldYearMap[y]) return match;
-
-      var before = fullText.substring(Math.max(0, offset - 60), offset).toLowerCase();
-      var historicalWords = ['lalu', 'sebelumnya', 'silam', 'dahulu', 'saat itu', 'ketika itu', 'waktu itu'];
-      for (var i = 0; i < historicalWords.length; i++) {
-        if (before.indexOf(historicalWords[i]) !== -1) {
-          console.log('🛡️ [FAQ Years] Skip (?) — konteks historis "' + historicalWords[i] + '"');
-          return match;
-        }
-      }
-
       return String(newYear);
     });
 
-    // Step 5: Kembalikan referensi standar
+    // Step 6: Kembalikan lock range
+    text = text.replace(/\x00RANGE(\d+)\x00/g, function (m, idx) {
+      return rangeRefs[parseInt(idx, 10)];
+    });
+
+    // Step 7: Kembalikan lock bulan+tahun
+    text = text.replace(/\x00MONTH(\d+)\x00/g, function (m, idx) {
+      return monthYearRefs[parseInt(idx, 10)];
+    });
+
+    // Step 8: Kembalikan referensi standar
     text = text.replace(/\x00PROT(\d+)\x00/g, function (m, idx) {
       return protectedRefs[parseInt(idx, 10)];
     });
@@ -607,9 +631,7 @@
   }
 
   // ============================================================
-  // 🆕 v17.3.1: FIX-A13 + A16 + A17 — Update TAHUN di FAQ JSON-LD
-  // 🔥 OPTIMASI: Early exit regex — skip parse JSON kalau tidak ada tahun
-  // 🔥 LOG: Skipped counter untuk monitoring
+  // 🆕 FIX-A13 + A16 + A17: Update TAHUN di FAQ JSON-LD
   // ============================================================
   function updateJsonLdFaqYears(newYear) {
     var updated = 0;
@@ -628,7 +650,6 @@
       return { updated: 0, replaced: 0, skipped: 0 };
     }
 
-    // ═══ FIX-A16: EARLY EXIT regex untuk cek cepat tanpa parse JSON ═══
     var oldYearsPattern = oldYears.join('|');
     var oldYearRegex = new RegExp('\\b(?:' + oldYearsPattern + ')\\b');
 
@@ -636,13 +657,11 @@
       var raw = script.textContent;
       if (!raw) { skippedCount++; return; }
 
-      // Filter 1: harus FAQPage/QAPage
       if (raw.indexOf('"FAQPage"') === -1 && raw.indexOf('"QAPage"') === -1) {
         skippedCount++;
         return;
       }
 
-      // ═══ FIX-A16: Filter 2 — skip kalau tidak ada tahun di range oldYears ═══
       if (!oldYearRegex.test(raw)) {
         skippedCount++;
         return;
@@ -703,7 +722,6 @@
       }
     });
 
-    // ═══ FIX-A17: Log SELALU tampilkan status (termasuk skipped) ═══
     if (updated > 0) {
       console.log('✅ [FAQ Years] ' + updated + ' blok diupdate, ' +
                   replacedCount + ' field diubah, ' + skippedCount + ' blok di-skip');
@@ -1248,13 +1266,21 @@
   }
 
   // ============================================================
-  // 📌 PROCESS META DATES (OPSI A)
+  // 📌 PROCESS META DATES (OPSI A) — FIX-A21: Guard nextUpdate
   // ============================================================
-  async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus) {
+  async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated) {
 
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
     let metaNext = document.querySelector('meta[name="nextUpdate"]');
+
+    // 🆕 FIX-A21: Cek kondisi SEBELUM overwrite meta
+    const hadDateModifiedBefore = !!(metaModified && metaModified.getAttribute('content'));
+    const isFirstInit = !hadDateModifiedBefore;
+    const hasCustomDate = customDateModified !== null && customDateModified !== undefined;
+    const shouldRefreshJsonLd = autoUpdated === true || isFirstInit || hasCustomDate;
+
+    console.log(`🔍 [Opsi A] Refresh check: autoUpdated=${autoUpdated}, isFirstInit=${isFirstInit}, hasCustomDate=${hasCustomDate} → shouldRefresh=${shouldRefreshJsonLd}`);
 
     const nowISO = new Date().toISOString();
 
@@ -1290,20 +1316,28 @@
     }
     metaNext.setAttribute("content", nextUpdate);
 
-    // OPSI A: Update JSON-LD dates SELALU
-    var jsonLdResultA = updateJsonLdDates(dateModified, nextUpdate);
-    if (jsonLdResultA.updated > 0) {
-      console.log(`✅ [Opsi A] JSON-LD Dates: ${jsonLdResultA.updated} blok, ${jsonLdResultA.cleaned} field dibersihkan`);
+    // 🆕 FIX-A21: JSON-LD dates — hanya refresh kalau nextUpdate lewat / first init / customDate
+    if (shouldRefreshJsonLd) {
+      var jsonLdResultA = updateJsonLdDates(dateModified, nextUpdate);
+      if (jsonLdResultA.updated > 0) {
+        console.log(`✅ [Opsi A] JSON-LD Dates: ${jsonLdResultA.updated} blok, ${jsonLdResultA.cleaned} field dibersihkan`);
+      } else {
+        console.log(`⏭️ [Opsi A] JSON-LD dates sudah sinkron, tidak ada perubahan`);
+      }
     } else {
-      console.log(`⏭️ [Opsi A] JSON-LD dates sudah sinkron, tidak ada perubahan`);
+      console.log(`⏭️ [Opsi A] JSON-LD Dates: skip — nextUpdate belum lewat (konsisten dengan body)`);
     }
 
-    // OPSI A: Update FAQ years SELALU
-    var faqYearsResultA = updateJsonLdFaqYears(new Date().getFullYear());
-    if (faqYearsResultA.replaced > 0) {
-      console.log(`✅ [Opsi A] FAQ Years: ${faqYearsResultA.replaced} field diupdate, ${faqYearsResultA.skipped} blok di-skip`);
+    // 🆕 FIX-A21: FAQ years — hanya refresh kalau nextUpdate lewat / first init / customDate
+    if (shouldRefreshJsonLd) {
+      var faqYearsResultA = updateJsonLdFaqYears(new Date().getFullYear());
+      if (faqYearsResultA.replaced > 0) {
+        console.log(`✅ [Opsi A] FAQ Years: ${faqYearsResultA.replaced} field diupdate, ${faqYearsResultA.skipped} blok di-skip`);
+      } else {
+        console.log(`⏭️ [Opsi A] FAQ Years: tidak ada perubahan (${faqYearsResultA.skipped} blok di-skip)`);
+      }
     } else {
-      console.log(`⏭️ [Opsi A] FAQ Years: tidak ada perubahan (${faqYearsResultA.skipped} blok di-skip)`);
+      console.log(`⏭️ [Opsi A] FAQ Years: skip — nextUpdate belum lewat (konsisten dengan body)`);
     }
 
     if (usePriceValidUntil && h1Detection && h1Detection.isPrice) {
@@ -1648,8 +1682,8 @@
       console.log("⏭️ Tidak perlu auto-update (masih dalam periode valid)");
     }
 
-    // STEP 2: Process meta dates (Opsi A)
-    await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus);
+    // STEP 2: Process meta dates (Opsi A) — pass autoUpdated
+    await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated);
 
     console.log(`🧩 detectEvergreen() v17.3.1-LITE — FINISHED ✅`);
   }
@@ -1661,7 +1695,7 @@
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
 
-  console.log("✅ Smart Evergreen Detector v17.3.1-LITE ready");
+  console.log("✅ Smart Evergreen Detector v17.3.1-LITE (STRICT + OPTION 1) ready");
   console.log("   🔥 FIX-A1:  Timeout 3s");
   console.log("   🔥 FIX-A2:  processMetaDates() 1x");
   console.log("   🔥 FIX-A3:  Guard _AED_INITIALIZED");
@@ -1679,6 +1713,10 @@
   console.log("   🔥 FIX-A15: replaceYearWithContext() — proteksi SNI/UU");
   console.log("   🔥 FIX-A16: EARLY EXIT — skip parse JSON kalau tidak ada tahun lama");
   console.log("   🔥 FIX-A17: SKIPPED COUNTER — log blok yang di-skip");
-  console.log("   🔥 OPSI A+B: JSON-LD & FAQ years update di processMetaDates + autoUpdateDates");
+  console.log("   🔥 FIX-A18: LOOSE REGEX — replace tahun di posisi manapun");
+  console.log("   🔥 FIX-A19: LOCK bulan+tahun & range tahun");
+  console.log("   🔥 FIX-A20: STRICT MODE — guard historis diperluas");
+  console.log("   🔥 FIX-A21: OPTION 1 — JSON-LD & FAQ years hanya refresh saat nextUpdate lewat");
+  console.log("   🔥 OPSI A+B: sinkron & konsisten (semua tunggu nextUpdate)");
 
 })();
