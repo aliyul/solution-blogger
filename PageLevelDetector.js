@@ -3916,9 +3916,8 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
         }
       }
       
-      if (_matchedBaseSw.length >= 2) {
+            if (_matchedBaseSw.length >= 2) {
         // 2+ base names → cek apakah salah satu adalah sub-dari yang lain
-        // Kalau ya → tetap 1 topik → MM
         var _isNested = false;
         for (var _ni = 0; _ni < _matchedBaseSw.length; _ni++) {
           for (var _nj = 0; _nj < _matchedBaseSw.length; _nj++) {
@@ -3939,14 +3938,17 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
         _temp2Sw = _temp2Sw.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal)\b/gi, ' ');
         _temp2Sw = _temp2Sw.replace(/\s+/g, ' ').trim();
         
-        // Kalau semua base + sisa masih "1 topik", return MM
-        if (_temp2Sw && _matchedBaseSw.length >= 2 && !_isNested) {
+        // ✅ BUG-FIX #3: JANGAN return MP kalau ada location → biar general logic handle MC
+        var _hasLoc2Sw = isLocation(text);
+        if (_hasLoc2Sw) {
+          log('🚜 BUG-FIX #3: 2+ base + location → fall through ke MC', 'LOCATION');
+          // Fall through
+        } else if (_temp2Sw && _matchedBaseSw.length >= 2 && !_isNested) {
           log('🚜 PATCH-SEWA-v2: MONEY_PAGE (2+ base: ' + _matchedBaseSw.join(' + ') + ')', 'MP');
           return "money-page";
         }
       }
     }
-   
    var factors = _memoGetFactors
       ? _memoGetFactors(text, entityType)
       : getFactors(text, entityType);
@@ -3966,13 +3968,26 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
 
     if (subPillar) return subPillar;
 
-    if (hasLocationWord) {
-      if (hasBaseService) {
-        log('📍 FIX 193: MONEY_CHILD', 'LOCATION');
+        if (hasLocationWord) {
+      // ✅ BUG-FIX #2: Cek base service ATAU ada base name untuk entity ini
+      // Solusi untuk "pintu jakarta", "wallpaper bandung" dst yang
+      // tidak ke-cover checkHasBaseService
+      var _hasAnyBaseName = false;
+      if (!hasBaseService && entityType && ENTITY_BASE_NAMES[entityType]) {
+        var _baseListMC = ENTITY_BASE_NAMES[entityType];
+        for (var _bmc = 0; _bmc < _baseListMC.length; _bmc++) {
+          if (rx(_baseListMC[_bmc]).test(lowerText)) {
+            _hasAnyBaseName = true;
+            break;
+          }
+        }
+      }
+      if (hasBaseService || _hasAnyBaseName) {
+        log('📍 FIX 193: MONEY_CHILD (baseService=' + hasBaseService +
+            ' baseName=' + _hasAnyBaseName + ')', 'LOCATION');
         return "money-child";
       }
     }
-
     if (hasSpecPhrase && !hasLocationWord && !hasCommercialWord) {
       log('💰 MONEY_PAGE (spec phrase)', 'PRICE');
       return "money-page";
@@ -4041,7 +4056,10 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
         : countModifierLayers(text, entityType);
     }
 
-    if ((hasSpecWord || jasaMaterialCtx186 || earlyLayers > 0)
+        // ✅ BUG-FIX #1: Skip early-return untuk artikel
+    // Artikel entity pakai FIX 138 (informational → MM)
+    if (entityType !== "artikel"
+        && (hasSpecWord || jasaMaterialCtx186 || earlyLayers > 0)
         && !hasPriceWord && !hasCommercialWord && !hasLocationWord
         && !hasStrongPromo211 && !skipP7Atau) {
       var layers186 = earlyLayers;
