@@ -622,7 +622,7 @@ material: [
       "bar cutter","bar bender","mesin tekuk besi","mesin potong besi",
       "truck mixer","mixer truck","transit mixer",
       "trailer","lowbed","low bed","flatbed","flat bed",
-       
+      /*  
       "rental excavator","rental bulldozer","rental crane",
       "rental genset","rental scaffolding","rental molen",
       "rental alat berat","rental mesin konstruksi",
@@ -630,7 +630,8 @@ material: [
       "rental tower crane","rental dump truck","rental backhoe",
       "rental pompa beton","rental concrete pump",
       "rental tenda","rental terpal","rental toilet portable",
-      
+      */
+       
       // ═══ ALAT BERAT + SPESIFIKASI ═══
       "excavator mini","excavator besar","excavator pc75",
       "excavator pc200","excavator pc300","excavator pc400",
@@ -2666,6 +2667,24 @@ function detectEntityTypeFromText(text) {
       log('🎯 FIX 132: Artikel priority (how-to prefix)', 'DETECT');
       return "artikel";
     }
+
+          // ═══════════════════════════════════════════════════════════
+          // 🔥 FIX-SEWA-PRIORITY-v2: "sewa"/"rental" = dominant signal
+          // TAPI dengan guard untuk jasa & desain eksplisit
+          // ═══════════════════════════════════════════════════════════
+          if (/\b(sewa|rental)\b/i.test(lower)) {
+            var _hasJasaExplicit = /\b(jasa|layanan|kontraktor|tukang|borongan)\b/i.test(lower);
+            var _hasDesainExplicit = /\b(desain|arsitektur|render|gambar kerja|shop drawing|visualisasi)\b/i.test(lower);
+            
+            // Guard: kalau ada jasa ATAU desain eksplisit → fall through
+            // (biar ENTITY_PRIORITY & FIX 134 yang handle)
+            if (!_hasJasaExplicit && !_hasDesainExplicit) {
+              log('🎯 FIX-SEWA-PRIORITY-v2: "sewa"/"rental" → entity=sewa', 'DETECT');
+              return "sewa";
+            }
+            
+            log('🎯 FIX-SEWA-PRIORITY-v2: ada jasa/desain eksplisit → fall through', 'DETECT');
+          }
 
         // ═══════════════════════════════════════════════════════════
     // 🔥 FIX: Loop ENTITY_PRIORITY triggers — pakai WORD BOUNDARY
