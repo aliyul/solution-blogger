@@ -39,8 +39,34 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   // ═══ FIX-P2: Guard global ═══
   var _CORE_INITIALIZED = false;
   var _SCHEMA_ATTRS_SET = false;
+  // ✅ PATCH #7: batas ukuran cache (cegah memory leak di batch processing)
   var _PLD_LEVEL_CACHE = {};
+  var _PLD_LEVEL_CACHE_KEYS = [];
+  var _PLD_LEVEL_CACHE_MAX = 500;
+
   var _PLD_SUBCAT_CACHE = {};
+  var _PLD_SUBCAT_CACHE_KEYS = [];
+  var _PLD_SUBCAT_CACHE_MAX = 200;
+
+  function _cacheLevelSet(key, value) {
+    if (_PLD_LEVEL_CACHE[key] === undefined) {
+      _PLD_LEVEL_CACHE_KEYS.push(key);
+      if (_PLD_LEVEL_CACHE_KEYS.length > _PLD_LEVEL_CACHE_MAX) {
+        delete _PLD_LEVEL_CACHE[_PLD_LEVEL_CACHE_KEYS.shift()];
+      }
+    }
+    _PLD_LEVEL_CACHE[key] = value;
+  }
+
+  function _cacheSubCatSet(key, value) {
+    if (_PLD_SUBCAT_CACHE[key] === undefined) {
+      _PLD_SUBCAT_CACHE_KEYS.push(key);
+      if (_PLD_SUBCAT_CACHE_KEYS.length > _PLD_SUBCAT_CACHE_MAX) {
+        delete _PLD_SUBCAT_CACHE[_PLD_SUBCAT_CACHE_KEYS.shift()];
+      }
+    }
+    _PLD_SUBCAT_CACHE[key] = value;
+  }
 
   var CONFIG = {
     DEBUG: false
@@ -733,7 +759,7 @@ material: [
       "mesin acian","mesin cat","spray gun","airless sprayer",
       "mesin potong","chainsaw","gergaji mesin",
       "pompa celup","pompa submersible","pompa sentrifugal",
-      "pompa transfer","pompa air","pompa banjir", 
+      "pompa transfer","pompa air",
       "pompa air banjir","pompa banjir air","pompa air untuk banjir",
       "vibratory plate","stamper kodok","tamper",
       "wacker plate","vibro plate"
@@ -1632,17 +1658,19 @@ material: [
     var lower = text.length > 200 ? text.toLowerCase().substring(0, 200) : text.toLowerCase();
     _buildMasterRegexes();
 
-    if (_MASTER.actionObject) {
+   if (_MASTER.actionObject) {
       var m = _MASTER.actionObject.exec(lower);
       if (m) {
-        log('🎭 OBJECT role: "' + m[1] + '"', 'OBJECT');
+        // ✅ PATCH #6: pakai m[0] (semua group non-capturing)
+        log('🎭 OBJECT role: "' + m[0] + '"', 'OBJECT');
         return "object";
       }
     }
     if (_MASTER.actionFisik) {
       var mf = _MASTER.actionFisik.exec(lower);
       if (mf) {
-        log('🎭 OBJECT role: "' + mf[1] + '"', 'FISIKCTX');
+        // ✅ PATCH #6: pakai mf[0]
+        log('🎭 OBJECT role: "' + mf[0] + '"', 'FISIKCTX');
         return "object";
       }
     }
@@ -2007,14 +2035,14 @@ material: [
         if (w.length < 3) continue;
         if (rx(w).test(lower)) {
           log('📂 SUBCAT: ' + cat + ' (match: "' + w + '")', 'SUBCAT');
-          _PLD_SUBCAT_CACHE[cacheKey] = cat;
+         _cacheSubCatSet(cacheKey, cat);
           return cat;
         }
       }
     }
 
     log('📂 SUBCAT: default', 'SUBCAT');
-    _PLD_SUBCAT_CACHE[cacheKey] = "default";
+        _cacheSubCatSet(cacheKey, "default");
     return "default";
   }
 
@@ -2181,18 +2209,16 @@ material: [
     var sortedBaseList212 = baseList212.slice().sort(function(a, b) {
       return b.split(' ').length - a.split(' ').length;
     });
-    
-    var _skipBase212 = {};
+        var _skipBase212 = {};
     for (var b1_212 = 0; b1_212 < sortedBaseList212.length; b1_212++) {
       var bn1_212 = sortedBaseList212[b1_212];
       for (var b2_212 = 0; b2_212 < sortedBaseList212.length; b2_212++) {
         if (b1_212 === b2_212) continue;
         var bn2_212 = sortedBaseList212[b2_212];
         if (bn2_212.length > bn1_212.length) {
-          var bn1Regex212 = new RegExp("\\b" + _escapeRegex(bn1_212) + "\\b", "i");
-          if (bn1Regex212.test(bn2_212)) {
-            var bn2Regex212 = new RegExp("\\b" + _escapeRegex(bn2_212) + "\\b", "i");
-            if (bn2Regex212.test(textNoBase)) {
+          // ✅ PATCH #2A: pakai rx() — cached + handle multi-space
+          if (rx(bn1_212).test(bn2_212)) {
+            if (rx(bn2_212).test(textNoBase)) {
               _skipBase212[bn1_212] = true;
               break;
             }
@@ -2386,17 +2412,16 @@ material: [
       return b.split(' ').length - a.split(' ').length;
     });
     
-    var _baseNamesToSkip = {};
+        var _baseNamesToSkip = {};
     for (var b1 = 0; b1 < sortedBaseNames.length; b1++) {
       var bn1 = sortedBaseNames[b1];
       for (var b2 = 0; b2 < sortedBaseNames.length; b2++) {
         if (b1 === b2) continue;
         var bn2 = sortedBaseNames[b2];
         if (bn2.length > bn1.length) {
-          var bn1Regex = new RegExp("\\b" + _escapeRegex(bn1) + "\\b", "i");
-          if (bn1Regex.test(bn2)) {
-            var bn2Regex = new RegExp("\\b" + _escapeRegex(bn2) + "\\b", "i");
-            if (bn2Regex.test(working)) {
+          // ✅ PATCH #2B: pakai rx() — cached
+          if (rx(bn1).test(bn2)) {
+            if (rx(bn2).test(working)) {
               _baseNamesToSkip[bn1] = true;
               break;
             }
@@ -2694,8 +2719,11 @@ material: [
   // ═══════════════════════════════════════════════════════════
   // detectPageLevelForPrompt() — dengan cache (FIX-P4)
   // ═══════════════════════════════════════════════════════════
-  function detectPageLevelForPrompt(text, entityType) {
-    var cacheKey = text + "|" + (entityType || "null");
+    function detectPageLevelForPrompt(text, entityType) {
+    // ✅ PATCH #3: guard null + auto-detect entity
+    if (!text) return "money-page";
+    var _resolvedEntity = entityType || detectEntityTypeFromText(text);
+    var cacheKey = text + "|" + (_resolvedEntity || "null");
     if (_PLD_LEVEL_CACHE[cacheKey] !== undefined) {
       return _PLD_LEVEL_CACHE[cacheKey];
     }
@@ -2708,15 +2736,15 @@ material: [
         if (cleanLower === patterns[i]) {
           var isEntityMatch = entity === entityType || (entity === "produk interior" && entityType === "produk");
           if (isEntityMatch) {
-            _PLD_LEVEL_CACHE[cacheKey] = "pillar";
+             _cacheLevelSet(cacheKey, "pillar");
             return "pillar";
           }
         }
       }
     }
-    var level = detectMoneyLevelInternal(text, entityType);
+   var level = detectMoneyLevelInternal(text, _resolvedEntity);
     if (!level) { log('⚠️ Level null', 'WARN'); level = "money-page"; }
-    _PLD_LEVEL_CACHE[cacheKey] = level;
+    _cacheLevelSet(cacheKey, level);
     return level;
   }
 
@@ -3091,17 +3119,16 @@ function detectEntityTypeFromText(text) {
         baseNamesSet[sortedBaseNamesEarly[k]] = true;
       }
       
-      var _baseNamesToSkipEarly = {};
+            var _baseNamesToSkipEarly = {};
       for (var b1e = 0; b1e < sortedBaseNamesEarly.length; b1e++) {
         var bn1e = sortedBaseNamesEarly[b1e];
         for (var b2e = 0; b2e < sortedBaseNamesEarly.length; b2e++) {
           if (b1e === b2e) continue;
           var bn2e = sortedBaseNamesEarly[b2e];
           if (bn2e.length > bn1e.length) {
-            var bn1eRegex = new RegExp("\\b" + _escapeRegex(bn1e) + "\\b", "i");
-            if (bn1eRegex.test(bn2e)) {
-              var bn2eRegex = new RegExp("\\b" + _escapeRegex(bn2e) + "\\b", "i");
-              if (bn2eRegex.test(coreText)) {
+            // ✅ PATCH #2C-1: pakai rx() — cached
+            if (rx(bn1e).test(bn2e)) {
+              if (rx(bn2e).test(coreText)) {
                 _baseNamesToSkipEarly[bn1e] = true;
                 break;
               }
@@ -3194,8 +3221,8 @@ function detectEntityTypeFromText(text) {
       });
       for (var fb = 0; fb < fallbackSorted.length; fb++) {
         var fbName = fallbackSorted[fb];
-        var fbRegex = new RegExp("\\b" + _escapeRegex(fbName) + "\\b", "i");
-        if (fbRegex.test(text)) {
+        // ✅ PATCH #2C-2: pakai rx() — cached
+        if (rx(fbName).test(text)) {
           var fbWords = fbName.split(' ');
           var fbLast = fbWords[fbWords.length - 1];
           if (fbLast.length > 2) {
@@ -3210,9 +3237,8 @@ function detectEntityTypeFromText(text) {
     return uniqueWords;
   }
 
-  function detectVariantByPattern(text, entityType) {
+ function detectVariantByPattern(text, entityType) {
     if (!text) return { isVariant: false, score: 0, reasons: [] };
-    var score = 0;
     var reasons = [];
     var specResult = _memoCheckHasSpecification
       ? _memoCheckHasSpecification(text, entityType)
@@ -3244,7 +3270,8 @@ function detectEntityTypeFromText(text) {
         return { isVariant: false, score: 3, reasons: reasons };
       }
     }
-    return { isVariant: score >= 3, score: score, reasons: reasons };
+        // ✅ PATCH #8: score selalu 0 di jalur ini → langsung false
+    return { isVariant: false, score: 0, reasons: reasons };
   }
 
   function detectVariantLevel(text, entityType) {
@@ -3649,35 +3676,45 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
       
       // ─── KASUS 1.5: Single base + spec modifier → MP
       // Contoh: "jasa bore pile proyek" → MP, "jasa bore pile perumahan" → MP
+            // ─── KASUS 1.5: Single base + spec modifier → MP
+      // Contoh: "jasa bore pile proyek" → MP, "jasa bore pile perumahan" → MP
+      // ✅ PATCH #4: JANGAN return MP kalau ada location → biar money-child
+            // ─── KASUS 1.5: Single base + spec modifier → MP
+      // Contoh: "jasa bore pile proyek" → MP, "jasa bore pile perumahan" → MP
+      // ✅ PATCH #4: JANGAN return MP kalau ada location → biar money-child
       if (_matchedBaseMin.length === 1) {
-        var _specModsMin = [
-          // METODE
-          "manual","hidrolik","rotary","auger","percussive","basah","kering","mesin",
-          "dalam","dangkal","artesis","jet pump",
-          // APLIKASI
-          "gedung","rumah","ruko","gudang","pabrik","kantor","sekolah","villa",
-          "apartemen","hotel","masjid","gereja","kios","rukan","cafe","restoran",
-          // SKALA (dari ENTITY_SPECIFIC.jasa.skala)
-          "rumahan","komersial","industri","residential","commercial","industrial",
-          "kecil","sedang","besar","menengah","proyek","perumahan","perkantoran",
-          // UKURAN
-          "mini","jumbo"
-        ];
-        var _hasSpecModMin = false;
-        for (var _smi = 0; _smi < _specModsMin.length; _smi++) {
-          if (rx(_specModsMin[_smi]).test(lowerText)) {
-            // Skip kalau spec modifier ini = bagian dari base name
-            if (_matchedBaseMin[0].indexOf(_specModsMin[_smi]) !== -1) continue;
-            _hasSpecModMin = true;
-            log('🔥 FIX-MINIMAL-v2: spec mod "' + _specModsMin[_smi] + '" → MP', 'MM');
-            break;
+        var _hasLocMin15 = isLocation(text);
+        if (!_hasLocMin15) {
+          var _specModsMin = [
+            // METODE
+            "manual","hidrolik","rotary","auger","percussive","basah","kering","mesin",
+            "dalam","dangkal","artesis","jet pump",
+            // APLIKASI
+            "gedung","rumah","ruko","gudang","pabrik","kantor","sekolah","villa",
+            "apartemen","hotel","masjid","gereja","kios","rukan","cafe","restoran",
+            // SKALA
+            "rumahan","komersial","industri","residential","commercial","industrial",
+            "kecil","sedang","besar","menengah","proyek","perumahan","perkantoran",
+            // UKURAN
+            "mini","jumbo"
+          ];
+          var _hasSpecModMin = false;
+          for (var _smi = 0; _smi < _specModsMin.length; _smi++) {
+            if (rx(_specModsMin[_smi]).test(lowerText)) {
+              if (_matchedBaseMin[0].indexOf(_specModsMin[_smi]) !== -1) continue;
+              _hasSpecModMin = true;
+              log('🔥 FIX-MINIMAL-v2: spec mod "' + _specModsMin[_smi] + '" → MP', 'MM');
+              break;
+            }
           }
-        }
-        if (_hasSpecModMin) {
-          return "money-page";
+          if (_hasSpecModMin) {
+            return "money-page";
+          }
+        } else {
+          log('📍 PATCH #4: spec mod ada location → fall through', 'LOCATION');
         }
       }
-      
+       
       // ─── KASUS 2: 2+ base names + no price/loc/dim → MP
       // Contoh: "jasa bore pile murah pondasi" → MP
       if (_matchedBaseMin.length >= 2) {
@@ -3822,7 +3859,7 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
           // ─── PREFIX & APLIKASI UMUM ───
           "mesin",
           "cor","jalan","kolom","balok","plat","lantai",
-           "per"  // ← TAMBAH INI
+          "per"  
         ];
         for (var _dn = 0; _dn < _durasiNoise.length; _dn++) {
           _tempSw = _tempSw.replace(rx(_durasiNoise[_dn], 'g'), ' ');
@@ -3847,18 +3884,8 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
           log('🚜 PATCH-SEWA-v2: MONEY_MASTER (1 base, 0 spec)', 'MM');
           return "money-master";
         }
-        
-        if (_specCountSw === 1 && _sisaSw.length === 1) {
-          log('🚜 PATCH-SEWA-v2: VARIANT (1 base + 1 spec: ' + _sisaSw[0] + ')', 'VARIANT');
-          return "variant";
-        }
-        
-                if (_specCountSw >= 2 || _sisaSw.length >= 2) {
-          log('🚜 PATCH-SEWA-v2: SUB-VARIANT (1 base + 2+ spec)', 'VARIANT');
-          return "sub-variant";
-        }
-        
-        // 🔥 FIX-SEWA-LOC-v1: cek dulu apakah sisa = location
+
+                        // 🔥 FIX-SEWA-LOC-v1: cek dulu apakah sisa = location
         // Kalau ya → JANGAN return variant, biarkan general logic handle (money-child)
         var _sisaIsLocation = false;
         for (var _sli = 0; _sli < _sisaSw.length; _sli++) {
@@ -3875,10 +3902,15 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
         }
         
         if (_sisaIsLocation) {
-          log('🚜 FIX-SEWA-LOC-v1: ada location → biarkan general logic handle', 'LOCATION');
-          // Fall through — JANGAN return, biarkan lanjut ke cek location di bawah
+          log('🚜 PATCH #1: ada location → fall through ke general logic', 'LOCATION');
+          // Fall through — JANGAN return, biarkan cek location di general logic
+        } else if (_specCountSw === 1 && _sisaSw.length === 1) {
+          log('🚜 PATCH-SEWA-v2: VARIANT (1 base + 1 spec: ' + _sisaSw[0] + ')', 'VARIANT');
+          return "variant";
+        } else if (_specCountSw >= 2 || _sisaSw.length >= 2) {
+          log('🚜 PATCH-SEWA-v2: SUB-VARIANT (1 base + 2+ spec)', 'VARIANT');
+          return "sub-variant";
         } else {
-          // Sisanya (1 spec non-standar) → variant
           log('🚜 PATCH-SEWA-v2: VARIANT (fallback)', 'VARIANT');
           return "variant";
         }
@@ -4068,12 +4100,12 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
         // ═══════════════════════════════════════════════════════════
         // 🔥 PATCH 6: Cek apakah coreWord adalah bagian dari base name
         // ═══════════════════════════════════════════════════════════
-        var isPartOfBaseName = false;
+                var isPartOfBaseName = false;
         var checkBaseList = ENTITY_BASE_NAMES[entityType] || [];
         for (var cb = 0; cb < checkBaseList.length; cb++) {
           var cbName = checkBaseList[cb];
-          var cbRegex = new RegExp("\\b" + _escapeRegex(cbName) + "\\b", "i");
-          if (cbRegex.test(text)) {
+          // ✅ PATCH #2D: pakai rx() — cached
+          if (rx(cbName).test(text)) {
             if (cbName.indexOf(coreWord) !== -1) {
               isPartOfBaseName = true;
               log('🔥 PATCH-6: coreWord "' + coreWord + '" adalah bagian dari base "' + cbName + '"', 'CORE');
@@ -5161,21 +5193,25 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
     // 🔥 PATCH M1+M2: auto regression test (hanya di DEBUG)
     if (CONFIG.DEBUG) {
       try {
-        var _testCases = [
-          ["jasa bore pile", "money-master"],
-          ["jasa bore pile jakarta", "money-child"],
-          ["jasa bore pile 30 meter", "variant"],
-          ["harga bore pile", "money-master"],
-          ["jasa bore pile murah", "money-page"],
-          ["jasa cor dak lantai 2", "money-page"],
-          ["daftar jenis pagar", "sub-pillar-tipe-2"],
-          ["pagar vs kanopi", "sub-pillar-tipe-1"]
+                var _testCases = [
+          // [input, expected, entityType]
+          ["jasa bore pile",              "money-master",      "jasa"],
+          ["jasa bore pile jakarta",      "money-child",       "jasa"],
+          ["jasa bore pile 30 meter",     "variant",           "jasa"],
+          ["harga bore pile",             "money-master",      "jasa"],
+          ["jasa bore pile murah",        "money-page",        "jasa"],
+          ["jasa cor dak lantai 2",       "money-page",        "jasa"],
+          ["daftar jenis pagar",          "sub-pillar-tipe-2", null],
+          ["pagar vs kanopi",             "sub-pillar-tipe-1", null]
         ];
         var _fails = 0;
         for (var _ti = 0; _ti < _testCases.length; _ti++) {
-          var _got = detectPageLevelForPrompt(_testCases[_ti][0], null);
+          // ✅ PATCH #5: pass entityType (baik explicit atau null)
+          var _got = detectPageLevelForPrompt(_testCases[_ti][0], _testCases[_ti][2]);
           if (_got !== _testCases[_ti][1]) {
-            console.error("❌ REGRESSION FAIL:", _testCases[_ti][0], "expected", _testCases[_ti][1], "got", _got);
+            console.error("❌ REGRESSION FAIL:", _testCases[_ti][0],
+                          "expected", _testCases[_ti][1], "got", _got,
+                          "(entity=" + _testCases[_ti][2] + ")");
             _fails++;
           }
         }
