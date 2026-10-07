@@ -639,7 +639,28 @@ material: [
       "alat bor beton","alat bor tanah","alat bor sumur",
       "alat bor pancang","alat bor pile","alat bor ground work",
       "alat bor mini","alat bor besar","alat bor hidrolik",
-            // ═══════════════════════════════════════════════════════════
+
+             // ═══════════════════════════════════════════════════════════
+      // 🔥 PATCH SEWA v7: ALAT SURVEY, LAMPU & POMPA SPESIFIK
+      // ═══════════════════════════════════════════════════════════
+      
+      // ═══ ALAT SURVEY & PENGUKURAN ═══
+      "waterpass","waterpass otomatis","waterpass digital",
+      "theodolite","teodolit","theodolite digital",
+      "total station","total station digital",
+      "laser level","laser distance","laser meter",
+      "auto level","automatic level",
+      "gps survey","gps geodetik","gnss",
+      "kompas survey","meteran laser","meteran digital",
+      
+      // ═══ LAMPU & PENCAHAYAAN ═══
+      "lampu proyek","lampu tembak","lampu sorot proyek",
+      "lampu halogen","lampu led proyek","lampu kerja",
+      
+      // ═══ POMPA SPESIFIK ═══
+      "pompa sedot lumpur","pompa isap lumpur","pompa hisap lumpur",
+       
+      // ═══════════════════════════════════════════════════════════
       // 🔥 PATCH SEWA v1: ALAT BERAT INDONESIA + ALAT PANCANG
       // Fix: beko, trencher, wales stom, self loader, concrete paver,
       //      pile driver, diesel hammer, alat pancang
@@ -712,7 +733,8 @@ material: [
       "mesin acian","mesin cat","spray gun","airless sprayer",
       "mesin potong","chainsaw","gergaji mesin",
       "pompa celup","pompa submersible","pompa sentrifugal",
-      "pompa transfer","pompa air","pompa banjir",
+      "pompa transfer","pompa air","pompa banjir", 
+      "pompa air banjir","pompa banjir air","pompa air untuk banjir",
       "vibratory plate","stamper kodok","tamper",
       "wacker plate","vibro plate"
     ],
@@ -2957,12 +2979,14 @@ function detectEntityTypeFromText(text) {
 
   function detectSubPillar(text) {
     var lower = text.toLowerCase();
+    // 🔥 FIX: word boundary — "list" tidak match "listrik"
     for (var i = 0; i < SUB_PILLAR_2_KEYWORDS.length; i++) {
-      if (lower.indexOf(SUB_PILLAR_2_KEYWORDS[i]) !== -1) return "sub-pillar-tipe-2";
+      if (rx(SUB_PILLAR_2_KEYWORDS[i]).test(lower)) return "sub-pillar-tipe-2";
     }
     for (var i = 0; i < SUB_PILLAR_1_STRONG.length; i++) {
-      if (lower.indexOf(SUB_PILLAR_1_STRONG[i]) !== -1) return "sub-pillar-tipe-1";
+      if (rx(SUB_PILLAR_1_STRONG[i]).test(lower)) return "sub-pillar-tipe-1";
     }
+     
     for (var i = 0; i < SUB_PILLAR_1_WEAK.length; i++) {
       var weakWord = SUB_PILLAR_1_WEAK[i];
       if (lower.indexOf(weakWord) !== -1) {
@@ -3711,6 +3735,32 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
       
       log('🚜 PATCH-SEWA-v2: matchedBase=[' + _matchedBaseSw.join(' | ') + ']', 'DETECT');
       
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 PATCH SEWA v8-EXPANDED: per-unit → MP
+      // 
+      // Alasan SEO:
+      //   "sewa-X-per-Y" = halaman informasi harga satuan (MP).
+      //   Bukan halaman utama (MM), bukan sub-produk (variant).
+      //   Konsisten dengan rule general: hasPerUnit → MP.
+      // 
+      // Kategori unit yang ditangani:
+      //   1. Panjang/dimensi: meter, cm, mm, km, inch, feet
+      //   2. Berat/massa: kg, ton, gram, kuintal, lbs
+      //   3. Volume: m3, liter, galon, kubik, cc
+      //   4. Luas: m2, hektar, are
+      //   5. Waktu: jam, hari, minggu, bulan, tahun
+      //   6. Jumlah: unit, buah, set, paket, piece, pcs, box, dus
+      //   7. Material: batang, lembar, keping, roll, papan, sak, karung
+      //   8. Ritase: rit, ritase, tonase, trip, truck
+      //   9. Pengukuran: titik, batch, kontainer, lot
+      //   10. Konteks proyek: proyek, project, titik
+      // ═══════════════════════════════════════════════════════════
+      if (/\bper\s+(?:meter|m|cm|mm|km|inch|inchi|ft|feet|yard|mile|kg|ton|gram|ons|kuintal|lbs|pound|m3|liter|galon|kubik|cc|dm3|m2|hektar|ha|are|jam|hari|minggu|bulan|tahun|harian|mingguan|bulanan|tahunan|shift|unit|buah|set|paket|piece|pcs|box|dus|titik|batch|kontainer|container|lot|batang|lembar|keping|roll|papan|sak|karung|kodi|lusin|rit|ritase|tonase|trip|truk|pickup|colt|proyek|project|hari kerja|jam kerja|meter kubik|meter persegi)\b/i.test(lowerText)) {
+        log('🚜 PATCH-SEWA-v8-EXPANDED: per-unit → MP', 'PRICE');
+        return "money-page";
+      }
+      // ═══════════════════════════════════════════════════════════
+      
       if (_matchedBaseSw.length === 1) {
         // ─── Hitung spec modifier di luar base name ───
         var _tempSw = lowerText;
@@ -3724,23 +3774,55 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
         // Strip base name itu sendiri
         _tempSw = _tempSw.replace(rx(_matchedBaseSw[0], 'g'), ' ');
         
-                // 🔥 PATCH SEWA v6: Strip durasi + noise + skala
+                // ═══════════════════════════════════════════════════════════
+        // 🔥 PATCH SEWA v7-AGGRESSIVE: Strip durasi + noise + skala
+        //                              + kondisi alat + aplikasi
+        // 
         // Semua kategori di bawah = NOISE, bukan spec.
         // Kalau dianggap spec → base + noise jadi "variant" (SALAH).
+        // 
+        // ⚠️ URUTAN PENTING:
+        //   1. Strip entity-only ("sewa", "rental")
+        //   2. Strip BASE NAME  ← sudah terjadi SEBELUM blok ini
+        //   3. Strip _durasiNoise  ← ini
+        // 
+        // Karena base name di-strip SEBELUM _durasiNoise, kata seperti
+        // "diesel" di "diesel hammer" TIDAK akan merusak base name.
+        // ═══════════════════════════════════════════════════════════
         var _durasiNoise = [
-          // DURASI
+          // ─── DURASI ───
           "harian","mingguan","bulanan","tahunan",
           "per jam","per hari","per minggu","per bulan",
           "short term","long term",
-          // 🔥 PATCH v6: PROYEK CONTEXT (bukan spec)
+          
+          // ─── PROYEK CONTEXT ───
           "proyek","project","site","area kerja","lapangan",
-          // 🔥 PATCH v6: SKALA (bukan spec)
+          
+          // ─── SKALA ───
           "industri","komersial","rumahan",
           "residential","commercial","industrial",
           "kecil","sedang","besar","menengah","skala",
-          // 🔥 PATCH v6: PROMO (bukan spec)
+          
+          // ─── PROMO ───
           "murah","hemat","terjangkau","promo","diskon","obral",
-          "termurah","termahal","bersaing","kompetitif","ekonomis"
+          "termurah","termahal","bersaing","kompetitif","ekonomis",
+          
+          // ─── KONDISI ALAT ───
+          "diesel","bensin","solar","listrik","hidrolik","hydraulic",
+          
+          // ─── APLIKASI / CONTEXT ───
+          "tambang","pertambangan","basement","banjir","irigasi",
+          
+          // ─── KAPASITAS ───
+          "kapasitas",
+          
+          // ─── PENGUKURAN (aplikasi) ───
+          "pengukuran",
+          
+          // ─── PREFIX & APLIKASI UMUM ───
+          "mesin",
+          "cor","jalan","kolom","balok","plat","lantai",
+           "per"  // ← TAMBAH INI
         ];
         for (var _dn = 0; _dn < _durasiNoise.length; _dn++) {
           _tempSw = _tempSw.replace(rx(_durasiNoise[_dn], 'g'), ' ');
