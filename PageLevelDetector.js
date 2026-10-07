@@ -3724,14 +3724,27 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
         // Strip base name itu sendiri
         _tempSw = _tempSw.replace(rx(_matchedBaseSw[0], 'g'), ' ');
         
-        // Strip durasi (harian, mingguan, dll) — ini noise, bukan spec
-        var _durasiNoise = ["harian","mingguan","bulanan","tahunan","per jam","per hari","per minggu","per bulan","short term","long term"];
+                // 🔥 PATCH SEWA v6: Strip durasi + noise + skala
+        // Semua kategori di bawah = NOISE, bukan spec.
+        // Kalau dianggap spec → base + noise jadi "variant" (SALAH).
+        var _durasiNoise = [
+          // DURASI
+          "harian","mingguan","bulanan","tahunan",
+          "per jam","per hari","per minggu","per bulan",
+          "short term","long term",
+          // 🔥 PATCH v6: PROYEK CONTEXT (bukan spec)
+          "proyek","project","site","area kerja","lapangan",
+          // 🔥 PATCH v6: SKALA (bukan spec)
+          "industri","komersial","rumahan",
+          "residential","commercial","industrial",
+          "kecil","sedang","besar","menengah","skala",
+          // 🔥 PATCH v6: PROMO (bukan spec)
+          "murah","hemat","terjangkau","promo","diskon","obral",
+          "termurah","termahal","bersaing","kompetitif","ekonomis"
+        ];
         for (var _dn = 0; _dn < _durasiNoise.length; _dn++) {
           _tempSw = _tempSw.replace(rx(_durasiNoise[_dn], 'g'), ' ');
         }
-        
-        // Strip promo
-        _tempSw = _tempSw.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|bersaing|kompetitif)\b/gi, ' ');
         
         _tempSw = _tempSw.replace(/\s+/g, ' ').trim();
         var _sisaSw = _tempSw.split(/\s+/).filter(function(w) { return w.length > 2; });
