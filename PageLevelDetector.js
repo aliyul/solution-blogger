@@ -627,6 +627,25 @@ material: [
       // ═══ KATEGORI UMUM SEWA ═══
       "alat ringan","alat pendukung","alat survey","alat cleaning",
       "akses keamanan","pencahayaan proyek","pencahayaan utilitas",
+
+             // ═══ PANEL LISTRIK & DISTRIBUSI DAYA ═══
+      "panel listrik","panel distribusi","panel listrik proyek",
+      "panel listrik konstruksi","panel listrik genset",
+      "panel listrik sementara","panel listrik portable",
+      "panel listrik outdoor","panel listrik indoor",
+      "panel listrik 1 phase","panel listrik 3 phase",
+      "box panel listrik","panel listrik utama",
+      "panel listrik sub","panel listrik kontrol",
+      "panel listrik ATS","panel listrik AMF",
+      "panel listrik LVMDP","panel listrik SDP",
+      "panel listrik MDP","panel listrik SDP",
+      "panel listrik distribusi utama",
+      
+      // ═══ PERALATAN KELISTRIKAN PROYEK ═══
+      "kabel listrik proyek","trafo proyek","stabilizer proyek",
+      "inverter proyek","ups proyek","mcb box","kwh meter",
+      "kabel power proyek","kabel extension proyek",
+      "stop kontak proyek","saklar proyek","fitting lampu proyek",
       
       // ═══ PERALATAN UTILITAS ═══
       "tangki air","selang proyek","selang air","pipa proyek",
