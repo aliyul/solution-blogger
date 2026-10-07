@@ -590,6 +590,29 @@ material: [
       "toilet portable","portacamp","tower lamp","lampu sorot",
 
             // ═══════════════════════════════════════════════════════════
+      // 🔥 PATCH SEWA v5: ALAT BANTU & KATEGORI TAMBAHAN
+      // ═══════════════════════════════════════════════════════════
+      
+      // ═══ ALAT BANTU KONSTRUKSI ═══
+      "bekisting","screed","mesin screed","trowel","mesin trowel",
+      "stamper","mesin stamper","stamper kodok",
+      "alat bor","mesin bor","mesin bor beton","bor beton",
+      
+      // ═══ KATEGORI UMUM SEWA ═══
+      "alat ringan","alat pendukung","alat survey","alat cleaning",
+      "akses keamanan","pencahayaan proyek","pencahayaan utilitas",
+      
+      // ═══ PERALATAN UTILITAS ═══
+      "tangki air","selang proyek","selang air","pipa proyek",
+      
+      // ═══ MESIN SPESIFIK ═══
+      "mesin polisher","polisher","concrete cutter","mesin concrete cutter",
+      "mesin molen","mesin compressor","cutting beton","mesin cutting beton",
+      "mesin rumput","mesin potong rumput",
+      
+      // ═══ POMPA TAMBAHAN ═══
+      "pompa dewatering","pompa lumpur","pompa sludge",
+            // ═══════════════════════════════════════════════════════════
       // 🔥 PATCH SEWA v1: ALAT BERAT INDONESIA + ALAT PANCANG
       // Fix: beko, trencher, wales stom, self loader, concrete paver,
       //      pile driver, diesel hammer, alat pancang
