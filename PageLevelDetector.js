@@ -612,6 +612,33 @@ material: [
       
       // ═══ POMPA TAMBAHAN ═══
       "pompa dewatering","pompa lumpur","pompa sludge",
+
+             // ═══════════════════════════════════════════════════════════
+      // 🔥 PATCH SEWA v6: ALAT PROYEK, SAFETY & SELANG
+      // ═══════════════════════════════════════════════════════════
+      
+      // ═══ ALAT BANTU PROYEK ═══
+      "tangga proyek","tangga aluminium proyek","tangga lipat proyek",
+      "barrier proyek","traffic barrier","road barrier",
+      "pagar proyek","pagar sementara","pagar pengaman proyek",
+      "gerbang proyek","gerbang sementara",
+      "pos keamanan","pos jaga","pos security","pos keamanan proyek",
+      "tandon air","bak air","bak air proyek","tangki air proyek",
+      
+      // ═══ SAFETY EQUIPMENT ═══
+      "safety barrier","mobile scaffold","scaffold mobile",
+      "traffic cone","traffic light","rambu proyek","rambu keselamatan",
+      "jaring pengaman","safety net","jaring proyek",
+      
+      // ═══ SELANG & PERALATAN ALIRAN ═══
+      "selang pompa","selang lumpur","selang industrial","selang industri",
+      "selang hisap","selang buang","selang suction","selang discharge",
+      "selang hydraulic","selang hidrolik","selang air proyek",
+      
+      // ═══ ALAT BOR SPESIFIK ═══
+      "alat bor beton","alat bor tanah","alat bor sumur",
+      "alat bor pancang","alat bor pile","alat bor ground work",
+      "alat bor mini","alat bor besar","alat bor hidrolik",
             // ═══════════════════════════════════════════════════════════
       // 🔥 PATCH SEWA v1: ALAT BERAT INDONESIA + ALAT PANCANG
       // Fix: beko, trencher, wales stom, self loader, concrete paver,
