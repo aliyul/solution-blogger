@@ -588,24 +588,6 @@ material: [
       "pompa transfer","kompresor angin","compressor",
       "scaffolding","steger","tenda","terpal",
       "toilet portable","portacamp","tower lamp","lampu sorot",
-      
-      // ═══ SEWA SPESIFIK (multi-word) ═══
-      "sewa excavator","sewa bulldozer","sewa crane",
-      "sewa genset","sewa scaffolding","sewa molen",
-      "sewa pompa beton","sewa concrete pump",
-      "sewa alat berat","sewa mesin konstruksi",
-      "sewa forklift","sewa truck crane","sewa mobile crane",
-      "sewa tower crane","sewa dump truck","sewa backhoe",
-      "sewa vibro","sewa compactor","sewa stamper",
-      "sewa jack hammer","sewa concrete mixer",
-      "sewa vibrator beton","sewa boom lift",
-      "sewa skylift","sewa scissor lift","sewa man lift",
-      "sewa pompa air","sewa pompa celup","sewa kompresor",
-      "sewa tenda","sewa terpal","sewa toilet portable",
-      "sewa portacamp","sewa tower lamp","sewa lampu sorot",
-      "sewa chainsaw","sewa mesin potong","sewa trowel beton",
-      "sewa power trowel","sewa mesin plester","sewa mesin acian",
-      "sewa mesin cat","sewa spray gun","sewa airless sprayer",
 
             // ═══════════════════════════════════════════════════════════
       // 🔥 PATCH SEWA v1: ALAT BERAT INDONESIA + ALAT PANCANG
