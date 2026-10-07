@@ -606,7 +606,41 @@ material: [
       "sewa chainsaw","sewa mesin potong","sewa trowel beton",
       "sewa power trowel","sewa mesin plester","sewa mesin acian",
       "sewa mesin cat","sewa spray gun","sewa airless sprayer",
+
+            // ═══════════════════════════════════════════════════════════
+      // 🔥 PATCH SEWA v1: ALAT BERAT INDONESIA + ALAT PANCANG
+      // Fix: beko, trencher, wales stom, self loader, concrete paver,
+      //      pile driver, diesel hammer, alat pancang
+      // ═══════════════════════════════════════════════════════════
       
+      // ═══ SINONIM & NAMA LOKAL ═══
+      "beko","bego","beko excavator","bego excavator",
+      "trencher","trencher machine","mesin trencher",
+      "wales stom","wales stom mini","wales stom besar","wales stom double","wales stom triple",
+      "wales stoom","wales stomp","stoom wales",
+      "self loader","self loading","self loading truck","self loader truck",
+      "concrete paver","concrete paver machine","mesin concrete paver",
+      "pile driver","piledriver","pile driving","mesin pile driver",
+      "diesel hammer","drop hammer","hydraulic hammer","vibro hammer",
+      "hidrolik hammer","hammer pile","pile hammer",
+      
+      // ═══ ALAT PANCANG (base utuh) ═══
+      "alat pancang","mesin pancang","alat pemancang","mesin pemancang",
+      "alat pancang hidrolik","alat pancang diesel","alat pancang drop",
+      "alat pancang hspd","alat pancang diesel hammer","alat pancang drop hammer",
+      "alat pancang mini","alat pancang besar","alat pancang mini pile",
+      "alat pancang sheet pile","alat pancang spun pile",
+      
+      // ═══ ALAT BERAT LAIN YANG SERING DISEWA ═══
+      "mini excavator","mini crane","mini loader","mini dump truck",
+      "skid steer","skid loader","bobcat","backhoe mini",
+      "road roller","tire roller","baby vibrator","plate compactor",
+      "rammer","jumping jack","pneumatic breaker","electric breaker",
+      "core drill","diamond drill","wall saw","wire saw",
+      "bar cutter","bar bender","mesin tekuk besi","mesin potong besi",
+      "truck mixer","mixer truck","transit mixer",
+      "trailer","lowbed","low bed","flatbed","flat bed",
+       
       "rental excavator","rental bulldozer","rental crane",
       "rental genset","rental scaffolding","rental molen",
       "rental alat berat","rental mesin konstruksi",
@@ -2016,8 +2050,27 @@ material: [
       if (unitsAlt && rxRaw("\\d+\\s*(?:" + unitsAlt + ")\\b").test(lower)) return true;
       var kapAlt = _buildAltPattern(SEWA_SPECS.kapasitas);
       if (kapAlt && rxRaw("\\d+\\s*(?:" + kapAlt + ")\\b").test(lower)) return true;
-    }
 
+            // 🔥 PATCH SEWA v4: alat pancang + jenis = spec (variant)
+      if (/\balat\s+pancang\s+(hidrolik|diesel|drop|hspd|mini|besar)\b/i.test(lower)) {
+        log('🚜 PATCH-SEWA-v4: alat pancang + jenis → spec', 'VARIANT');
+        return true;
+      }
+      
+      // 🔥 PATCH SEWA v4b: pile driver / diesel hammer = base utuh
+      // Tapi TETAP cek spec lain (angka, dimensi, dll) di bawahnya
+      // Kalau TIDAK ADA spec lain → return false (biar tidak dianggap variant)
+      var _isHammerDriverBase = /\b(pile\s+driver|diesel\s+hammer|drop\s+hammer|hydraulic\s+hammer|vibro\s+hammer)\b/i.test(lower);
+      if (_isHammerDriverBase) {
+        var _hasOtherSpec = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet|ton|m3|kva|psi|hp)\b/i.test(lower)
+          || /\d+\s*[x×]\s*\d+/i.test(lower);
+        if (!_hasOtherSpec) {
+          log('🚜 PATCH-SEWA-v4b: hammer/driver = base utuh, tidak ada spec lain', 'VARIANT');
+          return false;
+        }
+        // Kalau ada spec lain, lanjut ke cek di bawah
+      }
+    }
     // ═══ JASA ═══
     if (entityType === "jasa") {
       var subCat = detectJasaSubCategory(text, "jasa");
@@ -2344,6 +2397,22 @@ material: [
       }
     }
 
+        // 🔥 PATCH SEWA v3: Strip base name sewa SEBELUM action verb dihitung
+    // Supaya "pancang" di "alat pancang" tidak dianggap action verb
+    if (entityType === "sewa") {
+      var _sewaBaseEarly = ENTITY_BASE_NAMES.sewa || [];
+      var _sewaSortedEarly = _sewaBaseEarly.slice().sort(function(a, b) {
+        return b.split(' ').length - a.split(' ').length;
+      });
+      for (var _sbe = 0; _sbe < _sewaSortedEarly.length; _sbe++) {
+        var _bnSbe = _sewaSortedEarly[_sbe];
+        if (rx(_bnSbe).test(working)) {
+          working = working.replace(rx(_bnSbe, 'g'), ' ');
+        }
+      }
+      working = working.replace(/\s+/g, ' ').trim();
+    }
+     
     // Step 4: Strip universal prefix
     var UNIVERSAL_PREFIX_9 = ["jasa","layanan","tukang","kontraktor","toko","supplier","distributor","jual","beli","rental","sewa","service","servis"];
     for (var up9 = 0; up9 < UNIVERSAL_PREFIX_9.length; up9++) {
@@ -3555,6 +3624,147 @@ function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
             log('🔥 FIX-MINIMAL-v2: MONEY_PAGE (2+ base: ' + _matchedFiltered.join(' + ') + ')', 'MM');
             return "money-page";
           }
+        }
+      }
+    }
+
+        // ═══════════════════════════════════════════════════════════
+    // 🔥 PATCH SEWA v2: Aturan level untuk entity sewa
+    // Tujuan:
+    //   1. sewa + 1 base + 0 spec → MM
+    //   2. sewa + 1 base + 1 spec → variant
+    //   3. sewa + 1 base + 2+ spec → sub-variant
+    //   4. sewa + 2+ base → money-page
+    // ═══════════════════════════════════════════════════════════
+    if (entityType === "sewa") {
+      var _baseListSw = ENTITY_BASE_NAMES.sewa || [];
+      var _sortedBaseSw = _baseListSw.slice().sort(function(a, b) {
+        return b.split(' ').length - a.split(' ').length;
+      });
+      
+      // Kumpulkan base names yang match (longest-first, skip substring)
+      var _matchedBaseSw = [];
+      for (var _bsi = 0; _bsi < _sortedBaseSw.length; _bsi++) {
+        var _bnSw = _sortedBaseSw[_bsi];
+        if (!rx(_bnSw).test(lowerText)) continue;
+        var _isSubSw = false;
+        for (var _mbi = 0; _mbi < _matchedBaseSw.length; _mbi++) {
+          if (_matchedBaseSw[_mbi].indexOf(_bnSw) !== -1) {
+            _isSubSw = true;
+            break;
+          }
+        }
+        if (_isSubSw) continue;
+        _matchedBaseSw.push(_bnSw);
+      }
+      
+      log('🚜 PATCH-SEWA-v2: matchedBase=[' + _matchedBaseSw.join(' | ') + ']', 'DETECT');
+      
+      if (_matchedBaseSw.length === 1) {
+        // ─── Hitung spec modifier di luar base name ───
+        var _tempSw = lowerText;
+        
+        // Strip entity-only ("sewa", "rental")
+        var _entityOnlySw = ENTITY_ONLY_WORDS.sewa || [];
+        for (var _eos = 0; _eos < _entityOnlySw.length; _eos++) {
+          _tempSw = _tempSw.replace(rx(_entityOnlySw[_eos], 'g'), ' ');
+        }
+        
+        // Strip base name itu sendiri
+        _tempSw = _tempSw.replace(rx(_matchedBaseSw[0], 'g'), ' ');
+        
+        // Strip durasi (harian, mingguan, dll) — ini noise, bukan spec
+        var _durasiNoise = ["harian","mingguan","bulanan","tahunan","per jam","per hari","per minggu","per bulan","short term","long term"];
+        for (var _dn = 0; _dn < _durasiNoise.length; _dn++) {
+          _tempSw = _tempSw.replace(rx(_durasiNoise[_dn], 'g'), ' ');
+        }
+        
+        // Strip promo
+        _tempSw = _tempSw.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|bersaing|kompetitif)\b/gi, ' ');
+        
+        _tempSw = _tempSw.replace(/\s+/g, ' ').trim();
+        var _sisaSw = _tempSw.split(/\s+/).filter(function(w) { return w.length > 2; });
+        
+        log('🚜 PATCH-SEWA-v2: sisa setelah strip = [' + _sisaSw.join(',') + ']', 'DETECT');
+        
+        // Hitung berapa spec yang tersisa
+        var _specCountSw = 0;
+        for (var _ssi = 0; _ssi < _sisaSw.length; _ssi++) {
+          var _swWord = _sisaSw[_ssi];
+          if (isSpecModifierForEntity(_swWord, "sewa")) {
+            _specCountSw++;
+          }
+        }
+        
+        // ─── Keputusan ───
+        if (_sisaSw.length === 0) {
+          log('🚜 PATCH-SEWA-v2: MONEY_MASTER (1 base, 0 spec)', 'MM');
+          return "money-master";
+        }
+        
+        if (_specCountSw === 1 && _sisaSw.length === 1) {
+          log('🚜 PATCH-SEWA-v2: VARIANT (1 base + 1 spec: ' + _sisaSw[0] + ')', 'VARIANT');
+          return "variant";
+        }
+        
+                if (_specCountSw >= 2 || _sisaSw.length >= 2) {
+          log('🚜 PATCH-SEWA-v2: SUB-VARIANT (1 base + 2+ spec)', 'VARIANT');
+          return "sub-variant";
+        }
+        
+        // 🔥 FIX-SEWA-LOC-v1: cek dulu apakah sisa = location
+        // Kalau ya → JANGAN return variant, biarkan general logic handle (money-child)
+        var _sisaIsLocation = false;
+        for (var _sli = 0; _sli < _sisaSw.length; _sli++) {
+          // Cek per kata + cek multi-word combination
+          if (TIER_1_LOCATION.indexOf(_sisaSw[_sli]) !== -1) {
+            _sisaIsLocation = true;
+            break;
+          }
+          // Cek juga substring (untuk "jakarta pusat" dsb kalau terpisah)
+          if (/\b(jakarta|bogor|depok|tangerang|bekasi|bandung|semarang|surabaya|jogja|yogyakarta|malang|medan|palembang|makassar|denpasar|bali)\b/i.test(_sisaSw[_sli])) {
+            _sisaIsLocation = true;
+            break;
+          }
+        }
+        
+        if (_sisaIsLocation) {
+          log('🚜 FIX-SEWA-LOC-v1: ada location → biarkan general logic handle', 'LOCATION');
+          // Fall through — JANGAN return, biarkan lanjut ke cek location di bawah
+        } else {
+          // Sisanya (1 spec non-standar) → variant
+          log('🚜 PATCH-SEWA-v2: VARIANT (fallback)', 'VARIANT');
+          return "variant";
+        }
+      }
+      
+      if (_matchedBaseSw.length >= 2) {
+        // 2+ base names → cek apakah salah satu adalah sub-dari yang lain
+        // Kalau ya → tetap 1 topik → MM
+        var _isNested = false;
+        for (var _ni = 0; _ni < _matchedBaseSw.length; _ni++) {
+          for (var _nj = 0; _nj < _matchedBaseSw.length; _nj++) {
+            if (_ni === _nj) continue;
+            if (_matchedBaseSw[_nj].indexOf(_matchedBaseSw[_ni]) !== -1) {
+              _isNested = true;
+              break;
+            }
+          }
+          if (_isNested) break;
+        }
+        
+        // Strip noise dulu untuk lihat sisa
+        var _temp2Sw = lowerText;
+        for (var _eos2 = 0; _eos2 < (ENTITY_ONLY_WORDS.sewa || []).length; _eos2++) {
+          _temp2Sw = _temp2Sw.replace(rx(ENTITY_ONLY_WORDS.sewa[_eos2], 'g'), ' ');
+        }
+        _temp2Sw = _temp2Sw.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal)\b/gi, ' ');
+        _temp2Sw = _temp2Sw.replace(/\s+/g, ' ').trim();
+        
+        // Kalau semua base + sisa masih "1 topik", return MM
+        if (_temp2Sw && _matchedBaseSw.length >= 2 && !_isNested) {
+          log('🚜 PATCH-SEWA-v2: MONEY_PAGE (2+ base: ' + _matchedBaseSw.join(' + ') + ')', 'MP');
+          return "money-page";
         }
       }
     }
