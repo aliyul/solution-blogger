@@ -1,5 +1,5 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.3.2-LITE — FULL PATCH (FINAL)
+ 🧠 Smart Evergreen Detector v17.3.3-LITE — FULL PATCH (FINAL)
     ✅ SINKRON dengan PLD v23.9.7-LITE
     ✅ SINKRON dengan Prompt V37.9-B v8.5 (Schema FAQ VALID)
     ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Cek Tabel)
@@ -8,45 +8,32 @@
     ✅ ATURAN INFORMASI: H1 informatif tanpa harga → EVERGREEN
     ✅ AUTO-UPDATE TANPA BATAS: nextUpdate → dateModified → nextUpdate
 
-    🔥🔥🔥 v17.3.2-LITE CHANGELOG 🔥🔥🔥
-    ✅ FIX-B1:  cleanupFaqSchema() — BARU
-               → Hapus author di Question & Answer
-               → Hapus datePublished/dateModified di FAQPage/Question/Answer
-               → Hapus upvoteCount di semua level FAQ
-               → PERTAHANKAN author di level FAQPage
-               → INJECT author di FAQPage kalau belum ada
-    ✅ FIX-B2:  resolveBrandName() — BARU
-               → Resolve brand dari 5 sumber prioritas
-               → Fallback: DEFAULT_BRAND_NAME
-    ✅ FIX-B3:  updateJsonLdDates() — REVISI
-               → SKIP FAQ node (di-handle cleanupFaqSchema)
-               → Update dateModified HANYA di non-FAQ (Article/Product)
-    ✅ FIX-B4:  hasLastUpdatedAnchor() — BARU (OPSI B)
-               → 16 selector sinkron dengan updateContentByLevelAndFocus()
-               → Fallback: keyword match via queryByKeyword()
-    ✅ FIX-B5:  Reorder eksekusi autoUpdateDates()
-               → Body sync dulu → CLEANUP FAQ → FAQ years
-    ✅ FIX-B6:  updateJsonLdFaqYears() — guard SNI/UU/historis/range
-    ✅ FIX-B7:  Version bump: 17.3.1-lite → 17.3.2-lite
-    ✅ FIX-B8:  normalizeBrandCase() — BARU
-               → Auto-normalize ALL CAPS → Title Case
-               → Berlaku untuk author.name di FAQPage
-               → Contoh: "BETON JAYA READYMIX" → "Beton Jaya Readymix"
+    🔥🔥🔥 v17.3.3-LITE CHANGELOG 🔥🔥🔥
+    ✅ FIX-B9:  detectIllegalFaqProps() — BARU
+               → Deteksi properti ilegal di FAQ schema:
+                 • author di Question/Answer
+                 • datePublished di FAQPage/Question/Answer
+                 • dateModified di FAQPage/Question/Answer
+                 • upvoteCount di semua level
+               → Kalau terdeteksi → FORCE REFRESH
+               → Tidak peduli isFirstInit / nextUpdate
+               → Solusi untuk halaman lama yang sudah terlanjur ada
+                 properti ilegal
 
-    ✅ PRESERVED (semua FIX v17.3.1):
-    ✅ FIX-A1 s/d A21 tetap aktif
-    ✅ P1 s/d P6 tetap aktif
+    ✅ FIX-B1 s/d B8: TETAP AKTIF
+    ✅ FIX-A1 s/d A21: TETAP AKTIF
+    ✅ P1 s/d P6: TETAP AKTIF
 
     📌 BRAND DEFAULT: "Beton Jaya Readymix"
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.3.2-lite") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.3.3-lite") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.3.2-lite";
+  window.__AED_VERSION = "17.3.3-lite";
 
   // ============================================================
   // 📌 BRAND CONFIG
@@ -123,10 +110,125 @@
   }
 
   // ============================================================
+  // 🆕 FIX-B9: Deteksi properti ilegal di FAQ schema
+  //   → Return true kalau ada properti ilegal
+  //   → Properti ilegal yang dideteksi:
+  //     • author di Question/Answer
+  //     • datePublished di FAQPage/Question/Answer
+  //     • dateModified di FAQPage/Question/Answer
+  //     • upvoteCount di semua level
+  // ============================================================
+  function detectIllegalFaqProps() {
+    var hasIllegal = false;
+    var details = [];
+    var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+
+    scripts.forEach(function (script) {
+      var raw = script.textContent;
+      if (!raw) return;
+      if (raw.indexOf('"FAQPage"') === -1 && raw.indexOf('"QAPage"') === -1) return;
+
+      var json;
+      try {
+        json = JSON.parse(raw);
+      } catch (e) {
+        return;
+      }
+
+      var nodes = [];
+      if (Array.isArray(json)) nodes = json;
+      else if (json['@graph'] && Array.isArray(json['@graph'])) nodes = json['@graph'];
+      else nodes = [json];
+
+      nodes.forEach(function (node) {
+        if (!node || typeof node !== 'object') return;
+
+        var typeStr = (node['@type'] || '').toString();
+        var isFaqPage = (typeStr.indexOf('FAQPage') !== -1);
+        var isQaPage = (typeStr.indexOf('QAPage') !== -1);
+
+        if (!isFaqPage && !isQaPage) return;
+
+        // ==== Cek level FAQPage ====
+        if (isFaqPage) {
+          if (node.datePublished !== undefined) {
+            hasIllegal = true;
+            details.push('datePublished di FAQPage');
+          }
+          if (node.dateModified !== undefined) {
+            hasIllegal = true;
+            details.push('dateModified di FAQPage');
+          }
+        }
+
+        // ==== Cek level Question + Answer ====
+        if (Array.isArray(node.mainEntity)) {
+          node.mainEntity.forEach(function (q, idx) {
+            if (!q || typeof q !== 'object') return;
+
+            if (q.author !== undefined) {
+              hasIllegal = true;
+              details.push('author di Q' + (idx + 1));
+            }
+            if (q.datePublished !== undefined) {
+              hasIllegal = true;
+              details.push('datePublished di Q' + (idx + 1));
+            }
+            if (q.dateModified !== undefined) {
+              hasIllegal = true;
+              details.push('dateModified di Q' + (idx + 1));
+            }
+            if (q.upvoteCount !== undefined) {
+              hasIllegal = true;
+              details.push('upvoteCount di Q' + (idx + 1));
+            }
+
+            if (q.acceptedAnswer && typeof q.acceptedAnswer === 'object') {
+              var a = q.acceptedAnswer;
+              if (a.author !== undefined) {
+                hasIllegal = true;
+                details.push('author di A' + (idx + 1));
+              }
+              if (a.datePublished !== undefined) {
+                hasIllegal = true;
+                details.push('datePublished di A' + (idx + 1));
+              }
+              if (a.dateModified !== undefined) {
+                hasIllegal = true;
+                details.push('dateModified di A' + (idx + 1));
+              }
+              if (a.upvoteCount !== undefined) {
+                hasIllegal = true;
+                details.push('upvoteCount di A' + (idx + 1));
+              }
+            }
+
+            if (Array.isArray(q.suggestedAnswer)) {
+              q.suggestedAnswer.forEach(function (s, sIdx) {
+                if (!s || typeof s !== 'object') return;
+                if (s.author !== undefined || s.datePublished !== undefined ||
+                    s.dateModified !== undefined || s.upvoteCount !== undefined) {
+                  hasIllegal = true;
+                  details.push('properti ilegal di suggestedAnswer Q' + (idx + 1) + '[' + sIdx + ']');
+                }
+              });
+            }
+          });
+        }
+      });
+    });
+
+    if (hasIllegal) {
+      console.log('🔍 [FIX-B9] Properti ilegal terdeteksi di FAQ:', details.join(', '));
+    } else {
+      console.log('✅ [FIX-B9] FAQ schema bersih — tidak ada properti ilegal');
+    }
+
+    return hasIllegal;
+  }
+
+  // ============================================================
   // 🆕 FIX-B8: Auto-Normalize Brand Case
-  //   → ALL CAPS ("BETON JAYA READYMIX") → Title Case ("Beton Jaya Readymix")
-  //   → Skip kalau mengandung akronim yang sah (NASA, BMW, IBM, dll.)
-  //   → Skip kalau mixed-case (sudah benar)
   // ============================================================
   function normalizeBrandCase(str) {
     if (!str || typeof str !== 'string') return str;
@@ -134,23 +236,17 @@
     var trimmed = str.trim();
     if (trimmed.length < 3) return str;
 
-    // Cek apakah ALL CAPS (semua huruf besar)
     if (trimmed !== trimmed.toUpperCase()) {
-      // Bukan ALL CAPS → biarkan
       return str;
     }
 
-    // Ada angka atau simbol? Kalau ada, hati-hati
-    // Contoh: "K-300" → biarkan
     if (/[\d]/.test(trimmed)) {
       console.log('🔧 [Normalize] Skip — mengandung angka: "' + trimmed + '"');
       return str;
     }
 
-    // Split per kata
     var words = trimmed.split(/\s+/);
 
-    // Daftar akronim yang SAH dalam ALL CAPS (jangan di-normalize)
     var validAcronyms = [
       'PT', 'CV', 'UD', 'TBK', 'LTD', 'INC', 'LLC', 'CORP', 'GMBH',
       'NASA', 'BMW', 'IBM', 'AMD', 'HP', 'LG', '3M', 'KFC', 'BBC',
@@ -158,7 +254,6 @@
       'MEP', 'AC', 'WC', 'TV', 'IT', 'HR', 'GA', 'QC', 'QA'
     ];
 
-    // Cek apakah SEMUA kata adalah akronim yang sah
     var allAcronyms = words.every(function (w) {
       return validAcronyms.indexOf(w) !== -1;
     });
@@ -168,12 +263,10 @@
       return str;
     }
 
-    // Normalize: Title Case untuk kata biasa, keep akronim
     var normalized = words.map(function (w) {
       if (validAcronyms.indexOf(w) !== -1) {
-        return w; // Keep akronim
+        return w;
       }
-      // Title Case: huruf pertama besar, sisanya kecil
       return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
     }).join(' ');
 
@@ -283,7 +376,6 @@
 
         if (!isFaqPage && !isQaPage) return;
 
-        // ==== LEVEL FAQPage ====
         if (isFaqPage) {
           if (node.datePublished !== undefined) {
             delete node.datePublished;
@@ -299,7 +391,6 @@
             console.log('🗑️ [FAQ Cleanup] Hapus dateModified dari FAQPage');
           }
 
-          // author: PERTAHANKAN + NORMALIZE, atau INJECT
           if (node.author === undefined || node.author === null) {
             if (brandName) {
               node.author = {
@@ -313,7 +404,6 @@
               console.warn('⚠️ [FAQ Cleanup] Brand tidak ter-resolve — skip inject author');
             }
           } else {
-            // Author sudah ada → cek apakah ALL CAPS, normalize
             if (node.author.name) {
               var originalName = node.author.name;
               var normalizedName = normalizeBrandCase(originalName);
@@ -329,7 +419,6 @@
           }
         }
 
-        // ==== LEVEL Question ====
         if (Array.isArray(node.mainEntity)) {
           node.mainEntity.forEach(function (q) {
             if (!q || typeof q !== 'object') return;
@@ -672,8 +761,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B4: Cek anchor last-updated — SINKRON dengan
-  //           updateContentByLevelAndFocus() selector
+  // 🆕 FIX-B4: Cek anchor last-updated
   // ============================================================
   function hasLastUpdatedAnchor() {
     var selectors = [
@@ -711,9 +799,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B3: Update JSON-LD dates
-  //   → SKIP FAQ node (di-handle cleanupFaqSchema)
-  //   → UPDATE dateModified HANYA di non-FAQ (Article/Product)
+  // 🆕 FIX-B3: Update JSON-LD dates (non-FAQ only)
   // ============================================================
   function updateJsonLdDates(dateModified, nextUpdate) {
     var updated = 0;
@@ -753,20 +839,17 @@
                             typeStr.indexOf('Answer') !== -1 ||
                             typeStr.indexOf('QAPage') !== -1);
 
-        // FAQ node di-handle oleh cleanupFaqSchema() — SKIP di sini
         if (isFaqRelated) {
           console.log('⏭️ [JSON-LD] Skip FAQ node (' + typeStr + ') — di-handle cleanupFaqSchema()');
           return;
         }
 
-        // Non-FAQ node: UPDATE dateModified
         if (node.dateModified !== undefined && node.dateModified !== dateModified) {
           node.dateModified = dateModified;
           changed = true;
           console.log('✅ [JSON-LD] Update dateModified ' + typeStr + ' → ' + dateModified);
         }
 
-        // UPDATE priceValidUntil
         if (node.offers) {
           var offers = Array.isArray(node.offers) ? node.offers : [node.offers];
           offers.forEach(function (offer) {
@@ -844,7 +927,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-A15 + A18 + A19: Replace tahun (LOOSE REGEX + guard)
+  // 🆕 FIX-A15 + A18 + A19: Replace tahun
   // ============================================================
   function replaceYearWithContext(text, oldYears, newYear) {
     if (!text) return text;
@@ -908,7 +991,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B6: Update TAHUN di FAQ JSON-LD (guard diperkuat)
+  // 🆕 FIX-B6: Update TAHUN di FAQ JSON-LD
   // ============================================================
   function updateJsonLdFaqYears(newYear) {
     var updated = 0;
@@ -1175,7 +1258,7 @@
   }
 
   // ============================================================
-  // P3 + FIX-B4: UPDATE KONTEN SESUAI LEVEL + CONTENT FOCUS
+  // P3: UPDATE KONTEN SESUAI LEVEL + CONTENT FOCUS
   // ============================================================
   function updateContentByLevelAndFocus(pageLevel, contentFocus, now) {
     const monthNames = [
@@ -1462,7 +1545,6 @@
     console.log(`📅 New dateModified: ${newModifiedStr}`);
     console.log(`📅 New nextUpdate: ${newNextStr}`);
 
-    // ==== UPDATE META ====
     if (metaModified) {
       metaModified.setAttribute('content', newModifiedStr);
     } else {
@@ -1488,13 +1570,11 @@
       document.head.appendChild(metaPublished);
     }
 
-    // ==== UPDATE MICRODATA OFFER ====
     document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
       el.setAttribute('priceValidUntil', newNextStr);
     });
     console.log(`✅ Schema Offer priceValidUntil diupdate`);
 
-    // ==== FIX-B4: GUARD anchor ====
     var hasAnchor = hasLastUpdatedAnchor();
 
     if (!hasAnchor) {
@@ -1515,14 +1595,11 @@
       return true;
     }
 
-    // ==== UPDATE JSON-LD DATE (non-FAQ only) ====
     var jsonLdResult = updateJsonLdDates(newModifiedStr, newNextStr);
     if (jsonLdResult.updated > 0) {
       console.log(`✅ [Opsi B] JSON-LD Dates: ${jsonLdResult.updated} blok`);
     }
 
-    // ==== FIX-B5: URUTAN EKSEKUSI ====
-    // 1. Update body content (H1 + body text)
     const contentResult = updateContentByLevelAndFocus(pageLevel, contentFocus, now);
     if (contentResult.updated) {
       console.log(`✅ Konten body diupdate: mode=${contentResult.mode}, target=${contentResult.target}`);
@@ -1537,14 +1614,12 @@
       console.log(`⏭️ H1 tidak diupdate: ${h1Result.reason}`);
     }
 
-    // 2. CLEANUP FAQ (hapus ilegal + inject author + normalize case)
     var brandName = resolveBrandName();
     var cleanupResult = cleanupFaqSchema(brandName);
     if (cleanupResult.cleaned > 0 || cleanupResult.injected > 0 || cleanupResult.normalized > 0) {
       console.log(`✅ [FIX-B1 + B8] FAQ Cleanup: ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject, ${cleanupResult.normalized} di-normalize`);
     }
 
-    // 3. UPDATE TAHUN FAQ (setelah body sync)
     var faqYearsResult = updateJsonLdFaqYears(now.getFullYear());
     if (faqYearsResult.replaced > 0) {
       console.log(`✅ [FIX-B6] FAQ Years: ${faqYearsResult.replaced} field tahun diupdate`);
@@ -1552,7 +1627,6 @@
       console.log(`⏭️ [FIX-B6] FAQ Years: tidak ada perubahan (${faqYearsResult.skipped} blok di-skip)`);
     }
 
-    // ==== UPDATE AEDMetaDates ====
     if (window.AEDMetaDates) {
       window.AEDMetaDates.dateModified = newModifiedStr;
       window.AEDMetaDates.nextUpdate = newNextStr;
@@ -1574,7 +1648,7 @@
   }
 
   // ============================================================
-  // 📌 PROCESS META DATES (OPSI A)
+  // 📌 PROCESS META DATES (OPSI A) — FIX-B9: Force refresh kalau ada ilegal
   // ============================================================
   async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated) {
 
@@ -1585,9 +1659,17 @@
     const hadDateModifiedBefore = !!(metaModified && metaModified.getAttribute('content'));
     const isFirstInit = !hadDateModifiedBefore;
     const hasCustomDate = customDateModified !== null && customDateModified !== undefined;
-    const shouldRefreshJsonLd = autoUpdated === true || isFirstInit || hasCustomDate;
 
-    console.log(`🔍 [Opsi A] Refresh check: autoUpdated=${autoUpdated}, isFirstInit=${isFirstInit}, hasCustomDate=${hasCustomDate} → shouldRefresh=${shouldRefreshJsonLd}`);
+    // 🆕 FIX-B9: Deteksi properti ilegal di FAQ
+    const hasIllegalFaqProps = detectIllegalFaqProps();
+
+    const shouldRefreshJsonLd = autoUpdated === true || isFirstInit || hasCustomDate || hasIllegalFaqProps;
+
+    console.log(`🔍 [Opsi A] Refresh check: autoUpdated=${autoUpdated}, isFirstInit=${isFirstInit}, hasCustomDate=${hasCustomDate}, hasIllegalFaqProps=${hasIllegalFaqProps} → shouldRefresh=${shouldRefreshJsonLd}`);
+
+    if (hasIllegalFaqProps && !isFirstInit && !autoUpdated && !hasCustomDate) {
+      console.log('🔧 [FIX-B9] Force refresh karena ada properti ilegal di FAQ');
+    }
 
     const nowISO = new Date().toISOString();
 
@@ -1623,7 +1705,6 @@
     }
     metaNext.setAttribute("content", nextUpdate);
 
-    // ==== JSON-LD dates (non-FAQ) ====
     if (shouldRefreshJsonLd) {
       var jsonLdResultA = updateJsonLdDates(dateModified, nextUpdate);
       if (jsonLdResultA.updated > 0) {
@@ -1635,14 +1716,12 @@
       console.log(`⏭️ [Opsi A] JSON-LD Dates: skip — nextUpdate belum lewat`);
     }
 
-    // ==== FIX-B1 + B8: CLEANUP FAQ (selalu jalan di first init) ====
     if (shouldRefreshJsonLd) {
       var brandName = resolveBrandName();
       var cleanupResult = cleanupFaqSchema(brandName);
-      console.log(`✅ [FIX-B1 + B8] FAQ Cleanup (first init): ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject, ${cleanupResult.normalized} di-normalize`);
+      console.log(`✅ [FIX-B1 + B8] FAQ Cleanup: ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject, ${cleanupResult.normalized} di-normalize`);
     }
 
-    // ==== FAQ YEARS ====
     if (shouldRefreshJsonLd) {
       var faqYearsResultA = updateJsonLdFaqYears(new Date().getFullYear());
       if (faqYearsResultA.replaced > 0) {
@@ -1654,7 +1733,6 @@
       console.log(`⏭️ [Opsi A] FAQ Years: skip — nextUpdate belum lewat`);
     }
 
-    // ==== priceValidUntil ====
     if (usePriceValidUntil && h1Detection && h1Detection.isPrice) {
       document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
         el.setAttribute("priceValidUntil", nextUpdate);
@@ -1708,7 +1786,7 @@
       datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.3.2',
+      detectorVersion: detectorVersion || 'v17.3.3',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
@@ -1743,7 +1821,7 @@
     if (schemaType) console.log(`   - Schema (PLD): ${schemaType.primary} + ${schemaType.secondary}`);
     if (pldCtaType) console.log(`   - CTA (PLD): ${pldCtaType.type} → ${pldCtaType.text}`);
     if (isOverridden) console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
-    console.log(`🧩 processMetaDates() v17.3.2 — FINISHED ✅`);
+    console.log(`🧩 processMetaDates() v17.3.3 — FINISHED ✅`);
   }
 
   // ============================================================
@@ -1958,7 +2036,7 @@
     }
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.3.2-LITE — Loading...");
+    console.log("🧩 detectEvergreen() v17.3.3-LITE — Loading...");
 
     await waitForPageLevelDetector();
 
@@ -1989,7 +2067,6 @@
     console.log(`📌 Final Rule: pageLevel=${pageLevel}, type=${finalType}, validityDays=${validityDays}`);
     if (isOverridden) console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
 
-    // STEP 1: Auto-update DULU (Opsi B kalau nextUpdate lewat)
     console.log("🔄 MEMERIKSA AUTO-UPDATE...");
     const autoUpdated = autoUpdateDates(pageLevel, contentFocus);
     if (autoUpdated) {
@@ -1998,10 +2075,9 @@
       console.log("⏭️ Tidak perlu auto-update (masih dalam periode valid)");
     }
 
-    // STEP 2: Process meta dates (Opsi A) — pass autoUpdated
     await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated);
 
-    console.log(`🧩 detectEvergreen() v17.3.2-LITE — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.3.3-LITE — FINISHED ✅`);
   }
 
   // ============================================================
@@ -2011,7 +2087,7 @@
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
 
-  console.log("✅ Smart Evergreen Detector v17.3.2-LITE (Schema FAQ VALID + Opsi B + Auto-Normalize) ready");
+  console.log("✅ Smart Evergreen Detector v17.3.3-LITE (Schema FAQ VALID + Opsi B + Auto-Normalize + FIX-B9) ready");
   console.log("   🔥 FIX-B1: Cleanup FAQ + inject author di FAQPage");
   console.log("   🔥 FIX-B2: resolveBrandName() — 5 sumber prioritas");
   console.log("   🔥 FIX-B3: updateJsonLdDates() SKIP FAQ — di-handle cleanupFaqSchema()");
@@ -2020,6 +2096,7 @@
   console.log("   🔥 FIX-B6: FAQ years guard diperkuat (SNI/UU/historis)");
   console.log("   🔥 FIX-B7: Version bump 17.3.1 → 17.3.2");
   console.log("   🔥 FIX-B8: normalizeBrandCase() — ALL CAPS → Title Case");
+  console.log("   🔥 FIX-B9: detectIllegalFaqProps() — FORCE REFRESH kalau ada properti ilegal");
   console.log("   🔥 PRESERVED: FIX-A1 s/d A21 tetap aktif");
   console.log("   🏢 BRAND default: " + DEFAULT_BRAND_NAME);
 
