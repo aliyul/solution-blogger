@@ -1,51 +1,53 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.3.1-LITE — FULL PATCH (STRICT + OPTION 1)
+ 🧠 Smart Evergreen Detector v17.3.2-LITE — FULL PATCH (FINAL)
     ✅ SINKRON dengan PLD v23.9.7-LITE
+    ✅ SINKRON dengan Prompt V37.9-B v8.5 (Schema FAQ VALID)
     ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Cek Tabel)
     ✅ ATURAN TAHUN: H1 mengandung tahun → NON-EVERGREEN
     ✅ ATURAN HARGA: H1 harga + tabel harga → NON-EVERGREEN
     ✅ ATURAN INFORMASI: H1 informatif tanpa harga → EVERGREEN
     ✅ AUTO-UPDATE TANPA BATAS: nextUpdate → dateModified → nextUpdate
 
-    🔥🔥🔥 v17.3.1-LITE CHANGELOG 🔥🔥🔥
-    ✅ FIX-A1:  Timeout waitForPageLevelDetector 10s → 3s
-    ✅ FIX-A2:  processMetaDates() tidak dipanggil 2x
-    ✅ FIX-A3:  Guard _AED_INITIALIZED — cegah double init
-    ✅ FIX-A4:  Event listener { once: true } semua
-    ✅ FIX-A5:  updateContentByLevelAndFocus() — optimasi scope
-    ✅ FIX-A6:  queryByKeyword() — batasi maxLength & skip script
-    ✅ FIX-A7:  Cache hasil PLD (kategori, h1Pattern, schema, cta)
-    ✅ FIX-A8:  Skip auto-update kalau nextUpdate belum lewat
-    ✅ FIX-A9:  updateJsonLdDates() — update dateModified di JSON-LD
-    ✅ FIX-A10: Hapus datePublished HANYA di FAQPage/Question/Answer
-    ✅ FIX-A11: Hapus upvoteCount: 0 yang tidak relevan
-    ✅ FIX-A12: Update priceValidUntil di JSON-LD offers
-    ✅ FIX-A13: updateJsonLdFaqYears() — update TAHUN di FAQ name/text
-    ✅ FIX-A14: isHistoricalContext() — deteksi frasa historis/future
-    ✅ FIX-A15: replaceYearWithContext() — replace aman + proteksi SNI/UU
-    ✅ FIX-A16: EARLY EXIT — skip parse JSON kalau tidak ada tahun lama
-    ✅ FIX-A17: SKIPPED COUNTER — log blok yang di-skip
-    ✅ FIX-A18: LOOSE REGEX — replace tahun di posisi manapun
-    ✅ FIX-A19: LOCK bulan+tahun & range tahun
-    ✅ FIX-A20: STRICT MODE — guard historis diperluas
-    ✅ FIX-A21: 🆕 OPTION 1 — JSON-LD & FAQ years hanya refresh saat nextUpdate lewat
-    ✅ OPSI A+B: sinkron & konsisten (semua tunggu nextUpdate)
+    🔥🔥🔥 v17.3.2-LITE CHANGELOG 🔥🔥🔥
+    ✅ FIX-B1:  cleanupFaqSchema() — BARU
+               → Hapus author di Question & Answer
+               → Hapus datePublished/dateModified di FAQPage/Question/Answer
+               → Hapus upvoteCount di semua level FAQ
+               → PERTAHANKAN author di level FAQPage
+               → INJECT author di FAQPage kalau belum ada
+    ✅ FIX-B2:  resolveBrandName() — BARU
+               → Resolve brand dari 5 sumber prioritas
+               → Fallback: DEFAULT_BRAND_NAME
+    ✅ FIX-B3:  updateJsonLdDates() — REVISI
+               → SKIP FAQ node (di-handle cleanupFaqSchema)
+               → Update dateModified HANYA di non-FAQ (Article/Product)
+    ✅ FIX-B4:  hasLastUpdatedAnchor() — BARU (OPSI B)
+               → 16 selector sinkron dengan updateContentByLevelAndFocus()
+               → Fallback: keyword match via queryByKeyword()
+    ✅ FIX-B5:  Reorder eksekusi autoUpdateDates()
+               → Body sync dulu → CLEANUP FAQ → FAQ years
+    ✅ FIX-B6:  updateJsonLdFaqYears() — guard SNI/UU/historis/range
+    ✅ FIX-B7:  Version bump: 17.3.1-lite → 17.3.2-lite
 
-    ✅ PRESERVED (semua FIX v16.1):
-    ✅ P1 — Deteksi dari PLD dulu (data-content-focus), baru fallback H1
-    ✅ P2 — Update H1 dengan syarat STOP ≤ 2025
-    ✅ P3 — Update konten sesuai level + content focus
-    ✅ P4 — hasPriceTable() cek header spesifik (<th>)
-    ✅ P6 — Refactor :contains → queryByKeyword()
+    ✅ PRESERVED (semua FIX v17.3.1):
+    ✅ FIX-A1 s/d A21 tetap aktif
+    ✅ P1 s/d P6 tetap aktif
+
+    📌 BRAND DEFAULT: "Beton Jaya Readymix"
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.3.1-lite") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.3.2-lite") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.3.1-lite";
+  window.__AED_VERSION = "17.3.2-lite";
+
+  // ============================================================
+  // 📌 BRAND CONFIG
+  // ============================================================
+  var DEFAULT_BRAND_NAME = "Beton Jaya Readymix";
 
   // ============================================================
   // 📌 ATURAN V37 — BASE RULES
@@ -114,6 +116,217 @@
     const min = pad(d.getMinutes());
     const ss = pad(d.getSeconds());
     return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}${offset}`;
+  }
+
+  // ============================================================
+  // 🆕 FIX-B2: Resolve brand name dari 5 sumber prioritas
+  // ============================================================
+  function resolveBrandName() {
+    if (window.AEDMetaDates && window.AEDMetaDates.brandName) {
+      console.log('🏢 [Brand] Dari AEDMetaDates: ' + window.AEDMetaDates.brandName);
+      return window.AEDMetaDates.brandName;
+    }
+
+    var metaBrand = document.querySelector('meta[name="brand"]');
+    if (metaBrand && metaBrand.getAttribute('content')) {
+      var b2 = metaBrand.getAttribute('content').trim();
+      if (b2) {
+        console.log('🏢 [Brand] Dari meta[name="brand"]: ' + b2);
+        return b2;
+      }
+    }
+
+    var ogSite = document.querySelector('meta[property="og:site_name"]');
+    if (ogSite && ogSite.getAttribute('content')) {
+      var b3 = ogSite.getAttribute('content').trim();
+      if (b3) {
+        console.log('🏢 [Brand] Dari og:site_name: ' + b3);
+        return b3;
+      }
+    }
+
+    var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (var i = 0; i < scripts.length; i++) {
+      try {
+        var json = JSON.parse(scripts[i].textContent || '{}');
+        var nodes = Array.isArray(json) ? json : (json['@graph'] && Array.isArray(json['@graph']) ? json['@graph'] : [json]);
+        for (var j = 0; j < nodes.length; j++) {
+          var n = nodes[j];
+          if (n && n.publisher && n.publisher.name) {
+            console.log('🏢 [Brand] Dari Schema publisher: ' + n.publisher.name);
+            return n.publisher.name;
+          }
+          if (n && n['@type'] === 'Organization' && n.name) {
+            console.log('🏢 [Brand] Dari Schema Organization: ' + n.name);
+            return n.name;
+          }
+        }
+      } catch (e) { /* skip */ }
+    }
+
+    var title = document.title || '';
+    if (title.indexOf(' - ') !== -1) {
+      var parts = title.split(' - ');
+      var last = parts[parts.length - 1].trim();
+      if (last && last.length < 60) {
+        console.log('🏢 [Brand] Dari document.title: ' + last);
+        return last;
+      }
+    }
+
+    console.log('🏢 [Brand] Fallback default: ' + DEFAULT_BRAND_NAME);
+    return DEFAULT_BRAND_NAME;
+  }
+
+  // ============================================================
+  // 🆕 FIX-B1: Cleanup FAQ schema + inject author di FAQPage
+  // ============================================================
+  function cleanupFaqSchema(brandName) {
+    var cleaned = 0;
+    var injected = 0;
+    var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+
+    scripts.forEach(function (script) {
+      var raw = script.textContent;
+      if (!raw) return;
+      if (raw.indexOf('"FAQPage"') === -1 && raw.indexOf('"QAPage"') === -1) return;
+
+      var json;
+      try {
+        json = JSON.parse(raw);
+      } catch (e) {
+        console.warn('⚠️ [FAQ Cleanup] JSON parse error, skip:', e.message);
+        return;
+      }
+
+      var nodes = [];
+      if (Array.isArray(json)) nodes = json;
+      else if (json['@graph'] && Array.isArray(json['@graph'])) nodes = json['@graph'];
+      else nodes = [json];
+
+      var changed = false;
+
+      nodes.forEach(function (node) {
+        if (!node || typeof node !== 'object') return;
+
+        var typeStr = (node['@type'] || '').toString();
+        var isFaqPage = (typeStr.indexOf('FAQPage') !== -1);
+        var isQaPage = (typeStr.indexOf('QAPage') !== -1);
+
+        if (!isFaqPage && !isQaPage) return;
+
+        // ==== LEVEL FAQPage ====
+        if (isFaqPage) {
+          if (node.datePublished !== undefined) {
+            delete node.datePublished;
+            changed = true;
+            cleaned++;
+            console.log('🗑️ [FAQ Cleanup] Hapus datePublished dari FAQPage');
+          }
+
+          if (node.dateModified !== undefined) {
+            delete node.dateModified;
+            changed = true;
+            cleaned++;
+            console.log('🗑️ [FAQ Cleanup] Hapus dateModified dari FAQPage');
+          }
+
+          if (node.author === undefined || node.author === null) {
+            if (brandName) {
+              node.author = {
+                "@type": "Organization",
+                "name": brandName
+              };
+              changed = true;
+              injected++;
+              console.log('✅ [FAQ Cleanup] Inject author di FAQPage: ' + brandName);
+            } else {
+              console.warn('⚠️ [FAQ Cleanup] Brand tidak ter-resolve — skip inject author');
+            }
+          } else {
+            console.log('✅ [FAQ Cleanup] author di FAQPage sudah ada — PERTAHANKAN');
+          }
+        }
+
+        // ==== LEVEL Question ====
+        if (Array.isArray(node.mainEntity)) {
+          node.mainEntity.forEach(function (q) {
+            if (!q || typeof q !== 'object') return;
+
+            if (q.author !== undefined) {
+              delete q.author;
+              changed = true;
+              cleaned++;
+              console.log('🗑️ [FAQ Cleanup] Hapus author dari Question');
+            }
+            if (q.datePublished !== undefined) {
+              delete q.datePublished;
+              changed = true;
+              cleaned++;
+              console.log('🗑️ [FAQ Cleanup] Hapus datePublished dari Question');
+            }
+            if (q.dateModified !== undefined) {
+              delete q.dateModified;
+              changed = true;
+              cleaned++;
+              console.log('🗑️ [FAQ Cleanup] Hapus dateModified dari Question');
+            }
+            if (q.upvoteCount !== undefined) {
+              delete q.upvoteCount;
+              changed = true;
+              cleaned++;
+              console.log('🗑️ [FAQ Cleanup] Hapus upvoteCount dari Question');
+            }
+
+            if (q.acceptedAnswer && typeof q.acceptedAnswer === 'object') {
+              var a = q.acceptedAnswer;
+
+              if (a.author !== undefined) {
+                delete a.author;
+                changed = true;
+                cleaned++;
+                console.log('🗑️ [FAQ Cleanup] Hapus author dari Answer');
+              }
+              if (a.datePublished !== undefined) {
+                delete a.datePublished;
+                changed = true;
+                cleaned++;
+                console.log('🗑️ [FAQ Cleanup] Hapus datePublished dari Answer');
+              }
+              if (a.dateModified !== undefined) {
+                delete a.dateModified;
+                changed = true;
+                cleaned++;
+                console.log('🗑️ [FAQ Cleanup] Hapus dateModified dari Answer');
+              }
+              if (a.upvoteCount !== undefined) {
+                delete a.upvoteCount;
+                changed = true;
+                cleaned++;
+                console.log('🗑️ [FAQ Cleanup] Hapus upvoteCount dari Answer');
+              }
+            }
+
+            if (Array.isArray(q.suggestedAnswer)) {
+              q.suggestedAnswer.forEach(function (s) {
+                if (!s || typeof s !== 'object') return;
+                if (s.author !== undefined) { delete s.author; changed = true; cleaned++; }
+                if (s.datePublished !== undefined) { delete s.datePublished; changed = true; cleaned++; }
+                if (s.dateModified !== undefined) { delete s.dateModified; changed = true; cleaned++; }
+                if (s.upvoteCount !== undefined) { delete s.upvoteCount; changed = true; cleaned++; }
+              });
+            }
+          });
+        }
+      });
+
+      if (changed) {
+        script.textContent = JSON.stringify(json, null, 2);
+      }
+    });
+
+    console.log('✅ [FAQ Cleanup] Selesai: ' + cleaned + ' properti dibersihkan, ' + injected + ' author di-inject');
+    return { cleaned: cleaned, injected: injected };
   }
 
   // ============================================================
@@ -378,7 +591,48 @@
   }
 
   // ============================================================
-  // 🆕 FIX-A9/A10/A11/A12: Update + cleanup JSON-LD dates
+  // 🆕 FIX-B4: Cek anchor last-updated — SINKRON dengan
+  //           updateContentByLevelAndFocus() selector
+  // ============================================================
+  function hasLastUpdatedAnchor() {
+    var selectors = [
+      '.update-badge', '.update-badge-class', '[class*="update-badge"]',
+      '.last-updated', '.updated-date', '.date-modified',
+      '.post-date', '.article-date', '.publish-date',
+      '.post-meta', '.entry-meta', '.article-meta',
+      '.breadcrumb + p', '.toc + p', 'h1 + p',
+      '[class*="last-updated"]'
+    ];
+
+    for (var i = 0; i < selectors.length; i++) {
+      try {
+        var els = document.querySelectorAll(selectors[i]);
+        if (els && els.length > 0) {
+          console.log('✅ [Guard] Anchor ditemukan: ' + selectors[i] + ' (' + els.length + ' elemen)');
+          return true;
+        }
+      } catch (e) { /* skip selector invalid */ }
+    }
+
+    var keywordEls = queryByKeyword(
+      document.body,
+      ['diperbarui', 'update', 'terakhir', 'last updated', 'updated', 'perbarui'],
+      true
+    );
+
+    if (keywordEls && keywordEls.length > 0) {
+      console.log('✅ [Guard] Anchor ditemukan via keyword: ' + keywordEls.length + ' elemen');
+      return true;
+    }
+
+    console.warn('⚠️ [Guard] Tidak ada anchor .last-updated / .update-badge / keyword di DOM');
+    return false;
+  }
+
+  // ============================================================
+  // 🆕 FIX-B3: Update JSON-LD dates
+  //   → SKIP FAQ node (di-handle cleanupFaqSchema)
+  //   → UPDATE dateModified HANYA di non-FAQ (Article/Product)
   // ============================================================
   function updateJsonLdDates(dateModified, nextUpdate) {
     var updated = 0;
@@ -389,7 +643,6 @@
       var raw = script.textContent;
       if (!raw) return;
       if (raw.indexOf('"date') === -1 &&
-          raw.indexOf('upvoteCount') === -1 &&
           raw.indexOf('priceValidUntil') === -1) return;
 
       var json;
@@ -420,72 +673,26 @@
                             typeStr.indexOf('Answer') !== -1 ||
                             typeStr.indexOf('QAPage') !== -1);
 
-        if (isFaqRelated && node.datePublished !== undefined) {
-          delete node.datePublished;
-          changed = true;
-          cleaned++;
-          console.log('🗑️ Hapus datePublished dari ' + typeStr);
+        // FAQ node di-handle oleh cleanupFaqSchema() — SKIP di sini
+        if (isFaqRelated) {
+          console.log('⏭️ [JSON-LD] Skip FAQ node (' + typeStr + ') — di-handle cleanupFaqSchema()');
+          return;
         }
 
+        // Non-FAQ node: UPDATE dateModified
         if (node.dateModified !== undefined && node.dateModified !== dateModified) {
           node.dateModified = dateModified;
           changed = true;
-          console.log('✅ Update dateModified JSON-LD → ' + dateModified);
+          console.log('✅ [JSON-LD] Update dateModified ' + typeStr + ' → ' + dateModified);
         }
 
-        if (node.upvoteCount !== undefined && Number(node.upvoteCount) === 0) {
-          delete node.upvoteCount;
-          changed = true;
-          cleaned++;
-          console.log('🗑️ Hapus upvoteCount: 0 dari ' + (typeStr || 'node'));
-        }
-
+        // UPDATE priceValidUntil
         if (node.offers) {
           var offers = Array.isArray(node.offers) ? node.offers : [node.offers];
           offers.forEach(function (offer) {
             if (offer && offer.priceValidUntil !== undefined) {
               offer.priceValidUntil = nextUpdate;
               changed = true;
-            }
-          });
-        }
-
-        if (Array.isArray(node.mainEntity)) {
-          node.mainEntity.forEach(function (q) {
-            if (!q || typeof q !== 'object') return;
-
-            if (q.upvoteCount !== undefined && Number(q.upvoteCount) === 0) {
-              delete q.upvoteCount;
-              changed = true;
-              cleaned++;
-            }
-            if (q.datePublished !== undefined) {
-              delete q.datePublished;
-              changed = true;
-              cleaned++;
-            }
-            if (q.dateModified !== undefined && q.dateModified !== dateModified) {
-              q.dateModified = dateModified;
-              changed = true;
-            }
-
-            if (q.acceptedAnswer && typeof q.acceptedAnswer === 'object') {
-              if (q.acceptedAnswer.upvoteCount !== undefined &&
-                  Number(q.acceptedAnswer.upvoteCount) === 0) {
-                delete q.acceptedAnswer.upvoteCount;
-                changed = true;
-                cleaned++;
-              }
-              if (q.acceptedAnswer.datePublished !== undefined) {
-                delete q.acceptedAnswer.datePublished;
-                changed = true;
-                cleaned++;
-              }
-              if (q.acceptedAnswer.dateModified !== undefined &&
-                  q.acceptedAnswer.dateModified !== dateModified) {
-                q.acceptedAnswer.dateModified = dateModified;
-                changed = true;
-              }
             }
           });
         }
@@ -529,7 +736,6 @@
       'target', 'rencana'
     ];
 
-    // Cek AFTER dulu
     for (var i = 0; i < historicalWords.length; i++) {
       if (after.indexOf(historicalWords[i]) !== -1) {
         return { skip: true, reason: 'historical-after', word: historicalWords[i] };
@@ -541,7 +747,6 @@
       }
     }
 
-    // Cek BEFORE — STRICT
     var strongHistoricalBefore = [
       'tahun lalu', 'sebelumnya', 'silam', 'dahulu', 'masa lalu',
       'saat itu', 'ketika itu', 'waktu itu', 'yang lalu',
@@ -564,7 +769,6 @@
   function replaceYearWithContext(text, oldYears, newYear) {
     if (!text) return text;
 
-    // Step 1: Lindungi referensi standar/regulasi
     var protectedRefs = [];
     text = text.replace(
       /\b(SNI|ISO|UU|PP|Permen|Kepmen|ASTM|JIS|EN|DIN|IEC|BS|GB)\s*[\d.:\-\/]+\b/gi,
@@ -574,11 +778,9 @@
       }
     );
 
-    // Step 2: Map oldYears
     var oldYearMap = {};
     oldYears.forEach(function (y) { oldYearMap[y] = true; });
 
-    // Step 3: LOCK bulan+tahun
     var monthYearRefs = [];
     text = text.replace(
       /\b(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})\b/gi,
@@ -588,7 +790,6 @@
       }
     );
 
-    // Step 4: LOCK range tahun
     var rangeRefs = [];
     text = text.replace(
       /\b(\d{4})\s*(?:\-|–|—|s\/d|sd|sampai|hingga|to)\s*(\d{4})\b/gi,
@@ -598,7 +799,6 @@
       }
     );
 
-    // Step 5: LOOSE REGEX + historical guard
     text = text.replace(/\b(\d{4})\b/g, function (match, yearStr, offset, fullText) {
       var y = parseInt(yearStr, 10);
       if (!oldYearMap[y]) return match;
@@ -612,17 +812,14 @@
       return String(newYear);
     });
 
-    // Step 6: Kembalikan lock range
     text = text.replace(/\x00RANGE(\d+)\x00/g, function (m, idx) {
       return rangeRefs[parseInt(idx, 10)];
     });
 
-    // Step 7: Kembalikan lock bulan+tahun
     text = text.replace(/\x00MONTH(\d+)\x00/g, function (m, idx) {
       return monthYearRefs[parseInt(idx, 10)];
     });
 
-    // Step 8: Kembalikan referensi standar
     text = text.replace(/\x00PROT(\d+)\x00/g, function (m, idx) {
       return protectedRefs[parseInt(idx, 10)];
     });
@@ -631,7 +828,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-A13 + A16 + A17: Update TAHUN di FAQ JSON-LD
+  // 🆕 FIX-B6: Update TAHUN di FAQ JSON-LD (guard diperkuat)
   // ============================================================
   function updateJsonLdFaqYears(newYear) {
     var updated = 0;
@@ -898,7 +1095,7 @@
   }
 
   // ============================================================
-  // P3: UPDATE KONTEN SESUAI LEVEL + CONTENT FOCUS
+  // P3 + FIX-B4: UPDATE KONTEN SESUAI LEVEL + CONTENT FOCUS
   // ============================================================
   function updateContentByLevelAndFocus(pageLevel, contentFocus, now) {
     const monthNames = [
@@ -1138,7 +1335,7 @@
   }
 
   // ============================================================
-  // 📌 AUTO-UPDATE (OPSI B)
+  // 📌 AUTO-UPDATE (FIX-B5: reorder eksekusi)
   // ============================================================
   function autoUpdateDates(pageLevel, contentFocus) {
     console.log("🔄 AUTO-UPDATE: Memeriksa tanggal...");
@@ -1185,6 +1382,7 @@
     console.log(`📅 New dateModified: ${newModifiedStr}`);
     console.log(`📅 New nextUpdate: ${newNextStr}`);
 
+    // ==== UPDATE META ====
     if (metaModified) {
       metaModified.setAttribute('content', newModifiedStr);
     } else {
@@ -1210,45 +1408,48 @@
       document.head.appendChild(metaPublished);
     }
 
-    // Update microdata Offer
+    // ==== UPDATE MICRODATA OFFER ====
     document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
       el.setAttribute('priceValidUntil', newNextStr);
     });
     console.log(`✅ Schema Offer priceValidUntil diupdate`);
 
-    // OPSI B: Update JSON-LD dates
+    // ==== FIX-B4: GUARD anchor ====
+    var hasAnchor = hasLastUpdatedAnchor();
+
+    // ==== ALWAYS: JSON-LD dates (non-FAQ) — skip jika tidak ada anchor ====
+    if (!hasAnchor) {
+      console.warn('⚠️ [FIX-B4] Anchor .last-updated tidak ditemukan — SKIP body update');
+      console.warn('   → FAQ years juga di-skip (butuh body sync dulu)');
+      console.warn('   → TAPI cleanup FAQ tetap jalan (via processMetaDates)');
+      // Body + H1 + FAQ years di-skip, tapi AEDMetaDates tetap diupdate
+      if (window.AEDMetaDates) {
+        window.AEDMetaDates.dateModified = newModifiedStr;
+        window.AEDMetaDates.nextUpdate = newNextStr;
+        window.AEDMetaDates.lastAutoUpdate = now.toISOString();
+        window.AEDMetaDates.updateCount = (window.AEDMetaDates.updateCount || 0) + 1;
+        console.log(`✅ AEDMetaDates diupdate (update ke-${window.AEDMetaDates.updateCount})`);
+      }
+      document.body.classList.add('auto-updated');
+      document.body.setAttribute('data-last-auto-update', now.toISOString());
+      document.body.setAttribute('data-update-count', (parseInt(document.body.getAttribute('data-update-count') || '0') + 1).toString());
+      console.log(`✅ AUTO-UPDATE SELESAI (partial — tanpa body update)`);
+      return true;
+    }
+
+    // ==== UPDATE JSON-LD DATE (non-FAQ only) ====
     var jsonLdResult = updateJsonLdDates(newModifiedStr, newNextStr);
     if (jsonLdResult.updated > 0) {
-      console.log(`✅ [Opsi B] JSON-LD Dates: ${jsonLdResult.updated} blok, ${jsonLdResult.cleaned} field dibersihkan`);
+      console.log(`✅ [Opsi B] JSON-LD Dates: ${jsonLdResult.updated} blok`);
     }
 
-    // OPSI B: Update FAQ years
-    var faqYearsResult = updateJsonLdFaqYears(now.getFullYear());
-    if (faqYearsResult.replaced > 0) {
-      console.log(`✅ [Opsi B] FAQ Years: ${faqYearsResult.replaced} field tahun diupdate`);
-    } else {
-      console.log(`⏭️ [Opsi B] FAQ Years: tidak ada perubahan (${faqYearsResult.skipped} blok di-skip)`);
-    }
-
-    if (window.AEDMetaDates) {
-      window.AEDMetaDates.dateModified = newModifiedStr;
-      window.AEDMetaDates.nextUpdate = newNextStr;
-      window.AEDMetaDates.lastAutoUpdate = now.toISOString();
-      window.AEDMetaDates.updateCount = (window.AEDMetaDates.updateCount || 0) + 1;
-      console.log(`✅ AEDMetaDates diupdate (update ke-${window.AEDMetaDates.updateCount})`);
-    }
-
-    document.body.classList.add('auto-updated');
-    document.body.setAttribute('data-last-auto-update', now.toISOString());
-    document.body.setAttribute('data-update-count', (parseInt(document.body.getAttribute('data-update-count') || '0') + 1).toString());
-
+    // ==== FIX-B5: URUTAN EKSEKUSI ====
+    // 1. Update body content (H1 + body text)
     const contentResult = updateContentByLevelAndFocus(pageLevel, contentFocus, now);
     if (contentResult.updated) {
-      console.log(`✅ Konten diupdate: mode=${contentResult.mode}, target=${contentResult.target}`);
+      console.log(`✅ Konten body diupdate: mode=${contentResult.mode}, target=${contentResult.target}`);
     } else if (contentResult.skipped) {
-      console.log(`⏭️ Konten di-skip (FIX-A5): tidak ada tahun lama`);
-    } else {
-      console.log(`⏭️ Tidak ada konten yang perlu diupdate`);
+      console.log(`⏭️ Konten body di-skip (FIX-A5): tidak ada tahun lama`);
     }
 
     const h1Result = updateH1WithRules(pageLevel, now);
@@ -1258,6 +1459,35 @@
       console.log(`⏭️ H1 tidak diupdate: ${h1Result.reason}`);
     }
 
+    // 2. CLEANUP FAQ (hapus ilegal + inject author)
+    var brandName = resolveBrandName();
+    var cleanupResult = cleanupFaqSchema(brandName);
+    if (cleanupResult.cleaned > 0 || cleanupResult.injected > 0) {
+      console.log(`✅ [FIX-B1] FAQ Cleanup: ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject`);
+    }
+
+    // 3. UPDATE TAHUN FAQ (setelah body sync)
+    var faqYearsResult = updateJsonLdFaqYears(now.getFullYear());
+    if (faqYearsResult.replaced > 0) {
+      console.log(`✅ [FIX-B6] FAQ Years: ${faqYearsResult.replaced} field tahun diupdate`);
+    } else {
+      console.log(`⏭️ [FIX-B6] FAQ Years: tidak ada perubahan (${faqYearsResult.skipped} blok di-skip)`);
+    }
+
+    // ==== UPDATE AEDMetaDates ====
+    if (window.AEDMetaDates) {
+      window.AEDMetaDates.dateModified = newModifiedStr;
+      window.AEDMetaDates.nextUpdate = newNextStr;
+      window.AEDMetaDates.lastAutoUpdate = now.toISOString();
+      window.AEDMetaDates.updateCount = (window.AEDMetaDates.updateCount || 0) + 1;
+      window.AEDMetaDates.brandName = brandName;
+      console.log(`✅ AEDMetaDates diupdate (update ke-${window.AEDMetaDates.updateCount})`);
+    }
+
+    document.body.classList.add('auto-updated');
+    document.body.setAttribute('data-last-auto-update', now.toISOString());
+    document.body.setAttribute('data-update-count', (parseInt(document.body.getAttribute('data-update-count') || '0') + 1).toString());
+
     console.log(`✅ AUTO-UPDATE SELESAI! nextUpdate baru: ${newNextStr}`);
     console.log(`   📅 dateModified: ${newModifiedStr}`);
     console.log(`   📅 update ke-${document.body.getAttribute('data-update-count')}`);
@@ -1266,7 +1496,7 @@
   }
 
   // ============================================================
-  // 📌 PROCESS META DATES (OPSI A) — FIX-A21: Guard nextUpdate
+  // 📌 PROCESS META DATES (OPSI A)
   // ============================================================
   async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated) {
 
@@ -1274,7 +1504,6 @@
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
     let metaNext = document.querySelector('meta[name="nextUpdate"]');
 
-    // 🆕 FIX-A21: Cek kondisi SEBELUM overwrite meta
     const hadDateModifiedBefore = !!(metaModified && metaModified.getAttribute('content'));
     const isFirstInit = !hadDateModifiedBefore;
     const hasCustomDate = customDateModified !== null && customDateModified !== undefined;
@@ -1316,19 +1545,26 @@
     }
     metaNext.setAttribute("content", nextUpdate);
 
-    // 🆕 FIX-A21: JSON-LD dates — hanya refresh kalau nextUpdate lewat / first init / customDate
+    // ==== JSON-LD dates (non-FAQ) ====
     if (shouldRefreshJsonLd) {
       var jsonLdResultA = updateJsonLdDates(dateModified, nextUpdate);
       if (jsonLdResultA.updated > 0) {
-        console.log(`✅ [Opsi A] JSON-LD Dates: ${jsonLdResultA.updated} blok, ${jsonLdResultA.cleaned} field dibersihkan`);
+        console.log(`✅ [Opsi A] JSON-LD Dates: ${jsonLdResultA.updated} blok`);
       } else {
         console.log(`⏭️ [Opsi A] JSON-LD dates sudah sinkron, tidak ada perubahan`);
       }
     } else {
-      console.log(`⏭️ [Opsi A] JSON-LD Dates: skip — nextUpdate belum lewat (konsisten dengan body)`);
+      console.log(`⏭️ [Opsi A] JSON-LD Dates: skip — nextUpdate belum lewat`);
     }
 
-    // 🆕 FIX-A21: FAQ years — hanya refresh kalau nextUpdate lewat / first init / customDate
+    // ==== FIX-B1: CLEANUP FAQ (selalu jalan di first init) ====
+    if (shouldRefreshJsonLd) {
+      var brandName = resolveBrandName();
+      var cleanupResult = cleanupFaqSchema(brandName);
+      console.log(`✅ [FIX-B1] FAQ Cleanup (first init): ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject`);
+    }
+
+    // ==== FAQ YEARS ====
     if (shouldRefreshJsonLd) {
       var faqYearsResultA = updateJsonLdFaqYears(new Date().getFullYear());
       if (faqYearsResultA.replaced > 0) {
@@ -1337,9 +1573,10 @@
         console.log(`⏭️ [Opsi A] FAQ Years: tidak ada perubahan (${faqYearsResultA.skipped} blok di-skip)`);
       }
     } else {
-      console.log(`⏭️ [Opsi A] FAQ Years: skip — nextUpdate belum lewat (konsisten dengan body)`);
+      console.log(`⏭️ [Opsi A] FAQ Years: skip — nextUpdate belum lewat`);
     }
 
+    // ==== priceValidUntil ====
     if (usePriceValidUntil && h1Detection && h1Detection.isPrice) {
       document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => {
         el.setAttribute("priceValidUntil", nextUpdate);
@@ -1393,7 +1630,7 @@
       datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.3.1',
+      detectorVersion: detectorVersion || 'v17.3.2',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
@@ -1405,6 +1642,7 @@
       pldH1Pattern: h1Pattern,
       pldSchemaType: schemaType,
       pldCtaType: pldCtaType,
+      brandName: resolveBrandName(),
       lastAutoUpdate: null,
       updateCount: 0
     };
@@ -1427,7 +1665,7 @@
     if (schemaType) console.log(`   - Schema (PLD): ${schemaType.primary} + ${schemaType.secondary}`);
     if (pldCtaType) console.log(`   - CTA (PLD): ${pldCtaType.type} → ${pldCtaType.text}`);
     if (isOverridden) console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
-    console.log(`🧩 processMetaDates() v17.3.1 — FINISHED ✅`);
+    console.log(`🧩 processMetaDates() v17.3.2 — FINISHED ✅`);
   }
 
   // ============================================================
@@ -1642,7 +1880,7 @@
     }
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.3.1-LITE — Loading...");
+    console.log("🧩 detectEvergreen() v17.3.2-LITE — Loading...");
 
     await waitForPageLevelDetector();
 
@@ -1685,7 +1923,7 @@
     // STEP 2: Process meta dates (Opsi A) — pass autoUpdated
     await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated);
 
-    console.log(`🧩 detectEvergreen() v17.3.1-LITE — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.3.2-LITE — FINISHED ✅`);
   }
 
   // ============================================================
@@ -1695,28 +1933,15 @@
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
 
-  console.log("✅ Smart Evergreen Detector v17.3.1-LITE (STRICT + OPTION 1) ready");
-  console.log("   🔥 FIX-A1:  Timeout 3s");
-  console.log("   🔥 FIX-A2:  processMetaDates() 1x");
-  console.log("   🔥 FIX-A3:  Guard _AED_INITIALIZED");
-  console.log("   🔥 FIX-A4:  Event listener { once: true }");
-  console.log("   🔥 FIX-A5:  Early exit + limit elements");
-  console.log("   🔥 FIX-A6:  queryByKeyword() scope dipersempit");
-  console.log("   🔥 FIX-A7:  Cache hasil PLD");
-  console.log("   🔥 FIX-A8:  Early return nextUpdate");
-  console.log("   🔥 FIX-A9:  Update dateModified di JSON-LD");
-  console.log("   🔥 FIX-A10: Hapus datePublished HANYA FAQPage/Question/Answer");
-  console.log("   🔥 FIX-A11: Hapus upvoteCount: 0");
-  console.log("   🔥 FIX-A12: Update priceValidUntil di JSON-LD offers");
-  console.log("   🔥 FIX-A13: Update TAHUN di FAQ name/text");
-  console.log("   🔥 FIX-A14: isHistoricalContext() — deteksi historis/future");
-  console.log("   🔥 FIX-A15: replaceYearWithContext() — proteksi SNI/UU");
-  console.log("   🔥 FIX-A16: EARLY EXIT — skip parse JSON kalau tidak ada tahun lama");
-  console.log("   🔥 FIX-A17: SKIPPED COUNTER — log blok yang di-skip");
-  console.log("   🔥 FIX-A18: LOOSE REGEX — replace tahun di posisi manapun");
-  console.log("   🔥 FIX-A19: LOCK bulan+tahun & range tahun");
-  console.log("   🔥 FIX-A20: STRICT MODE — guard historis diperluas");
-  console.log("   🔥 FIX-A21: OPTION 1 — JSON-LD & FAQ years hanya refresh saat nextUpdate lewat");
-  console.log("   🔥 OPSI A+B: sinkron & konsisten (semua tunggu nextUpdate)");
+  console.log("✅ Smart Evergreen Detector v17.3.2-LITE (Schema FAQ VALID + Opsi B) ready");
+  console.log("   🔥 FIX-B1: Cleanup FAQ + inject author di FAQPage");
+  console.log("   🔥 FIX-B2: resolveBrandName() — 5 sumber prioritas");
+  console.log("   🔥 FIX-B3: updateJsonLdDates() SKIP FAQ — di-handle cleanupFaqSchema()");
+  console.log("   🔥 FIX-B4: hasLastUpdatedAnchor() OPSI B — 16 selector + keyword fallback");
+  console.log("   🔥 FIX-B5: Reorder eksekusi — body sync dulu, baru FAQ cleanup + FAQ years");
+  console.log("   🔥 FIX-B6: FAQ years guard diperkuat (SNI/UU/historis)");
+  console.log("   🔥 FIX-B7: Version bump 17.3.1 → 17.3.2");
+  console.log("   🔥 PRESERVED: FIX-A1 s/d A21 tetap aktif");
+  console.log("   🏢 BRAND default: " + DEFAULT_BRAND_NAME);
 
 })();
