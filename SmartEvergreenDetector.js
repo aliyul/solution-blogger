@@ -28,6 +28,10 @@
                → Body sync dulu → CLEANUP FAQ → FAQ years
     ✅ FIX-B6:  updateJsonLdFaqYears() — guard SNI/UU/historis/range
     ✅ FIX-B7:  Version bump: 17.3.1-lite → 17.3.2-lite
+    ✅ FIX-B8:  normalizeBrandCase() — BARU
+               → Auto-normalize ALL CAPS → Title Case
+               → Berlaku untuk author.name di FAQPage
+               → Contoh: "BETON JAYA READYMIX" → "Beton Jaya Readymix"
 
     ✅ PRESERVED (semua FIX v17.3.1):
     ✅ FIX-A1 s/d A21 tetap aktif
@@ -119,6 +123,69 @@
   }
 
   // ============================================================
+  // 🆕 FIX-B8: Auto-Normalize Brand Case
+  //   → ALL CAPS ("BETON JAYA READYMIX") → Title Case ("Beton Jaya Readymix")
+  //   → Skip kalau mengandung akronim yang sah (NASA, BMW, IBM, dll.)
+  //   → Skip kalau mixed-case (sudah benar)
+  // ============================================================
+  function normalizeBrandCase(str) {
+    if (!str || typeof str !== 'string') return str;
+
+    var trimmed = str.trim();
+    if (trimmed.length < 3) return str;
+
+    // Cek apakah ALL CAPS (semua huruf besar)
+    if (trimmed !== trimmed.toUpperCase()) {
+      // Bukan ALL CAPS → biarkan
+      return str;
+    }
+
+    // Ada angka atau simbol? Kalau ada, hati-hati
+    // Contoh: "K-300" → biarkan
+    if (/[\d]/.test(trimmed)) {
+      console.log('🔧 [Normalize] Skip — mengandung angka: "' + trimmed + '"');
+      return str;
+    }
+
+    // Split per kata
+    var words = trimmed.split(/\s+/);
+
+    // Daftar akronim yang SAH dalam ALL CAPS (jangan di-normalize)
+    var validAcronyms = [
+      'PT', 'CV', 'UD', 'TBK', 'LTD', 'INC', 'LLC', 'CORP', 'GMBH',
+      'NASA', 'BMW', 'IBM', 'AMD', 'HP', 'LG', '3M', 'KFC', 'BBC',
+      'SNI', 'ASTM', 'JIS', 'DIN', 'ISO', 'PUPR', 'K3', 'SMK3',
+      'MEP', 'AC', 'WC', 'TV', 'IT', 'HR', 'GA', 'QC', 'QA'
+    ];
+
+    // Cek apakah SEMUA kata adalah akronim yang sah
+    var allAcronyms = words.every(function (w) {
+      return validAcronyms.indexOf(w) !== -1;
+    });
+
+    if (allAcronyms) {
+      console.log('🔧 [Normalize] Skip — semua kata adalah akronim sah: "' + trimmed + '"');
+      return str;
+    }
+
+    // Normalize: Title Case untuk kata biasa, keep akronim
+    var normalized = words.map(function (w) {
+      if (validAcronyms.indexOf(w) !== -1) {
+        return w; // Keep akronim
+      }
+      // Title Case: huruf pertama besar, sisanya kecil
+      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    }).join(' ');
+
+    if (normalized !== trimmed) {
+      console.log('🔧 [Normalize] "' + trimmed + '" → "' + normalized + '"');
+      return normalized;
+    }
+
+    return str;
+  }
+
+  // ============================================================
   // 🆕 FIX-B2: Resolve brand name dari 5 sumber prioritas
   // ============================================================
   function resolveBrandName() {
@@ -179,11 +246,12 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B1: Cleanup FAQ schema + inject author di FAQPage
+  // 🆕 FIX-B1 + FIX-B8: Cleanup FAQ schema + inject + normalize
   // ============================================================
   function cleanupFaqSchema(brandName) {
     var cleaned = 0;
     var injected = 0;
+    var normalized = 0;
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
 
     scripts.forEach(function (script) {
@@ -231,6 +299,7 @@
             console.log('🗑️ [FAQ Cleanup] Hapus dateModified dari FAQPage');
           }
 
+          // author: PERTAHANKAN + NORMALIZE, atau INJECT
           if (node.author === undefined || node.author === null) {
             if (brandName) {
               node.author = {
@@ -244,7 +313,19 @@
               console.warn('⚠️ [FAQ Cleanup] Brand tidak ter-resolve — skip inject author');
             }
           } else {
-            console.log('✅ [FAQ Cleanup] author di FAQPage sudah ada — PERTAHANKAN');
+            // Author sudah ada → cek apakah ALL CAPS, normalize
+            if (node.author.name) {
+              var originalName = node.author.name;
+              var normalizedName = normalizeBrandCase(originalName);
+              if (normalizedName !== originalName) {
+                node.author.name = normalizedName;
+                changed = true;
+                normalized++;
+                console.log('🔧 [FAQ Cleanup] Normalize author.name: "' + originalName + '" → "' + normalizedName + '"');
+              } else {
+                console.log('✅ [FAQ Cleanup] author di FAQPage sudah ada — PERTAHANKAN: "' + originalName + '"');
+              }
+            }
           }
         }
 
@@ -325,8 +406,8 @@
       }
     });
 
-    console.log('✅ [FAQ Cleanup] Selesai: ' + cleaned + ' properti dibersihkan, ' + injected + ' author di-inject');
-    return { cleaned: cleaned, injected: injected };
+    console.log('✅ [FAQ Cleanup] Selesai: ' + cleaned + ' properti dibersihkan, ' + injected + ' author di-inject, ' + normalized + ' author di-normalize');
+    return { cleaned: cleaned, injected: injected, normalized: normalized };
   }
 
   // ============================================================
@@ -636,7 +717,6 @@
   // ============================================================
   function updateJsonLdDates(dateModified, nextUpdate) {
     var updated = 0;
-    var cleaned = 0;
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
 
     scripts.forEach(function (script) {
@@ -705,10 +785,10 @@
     });
 
     if (updated > 0) {
-      console.log('✅ [JSON-LD Dates] ' + updated + ' blok, ' + cleaned + ' field dibersihkan');
+      console.log('✅ [JSON-LD Dates] ' + updated + ' blok diupdate (non-FAQ only)');
     }
 
-    return { updated: updated, cleaned: cleaned };
+    return { updated: updated };
   }
 
   // ============================================================
@@ -1417,12 +1497,10 @@
     // ==== FIX-B4: GUARD anchor ====
     var hasAnchor = hasLastUpdatedAnchor();
 
-    // ==== ALWAYS: JSON-LD dates (non-FAQ) — skip jika tidak ada anchor ====
     if (!hasAnchor) {
       console.warn('⚠️ [FIX-B4] Anchor .last-updated tidak ditemukan — SKIP body update');
       console.warn('   → FAQ years juga di-skip (butuh body sync dulu)');
       console.warn('   → TAPI cleanup FAQ tetap jalan (via processMetaDates)');
-      // Body + H1 + FAQ years di-skip, tapi AEDMetaDates tetap diupdate
       if (window.AEDMetaDates) {
         window.AEDMetaDates.dateModified = newModifiedStr;
         window.AEDMetaDates.nextUpdate = newNextStr;
@@ -1459,11 +1537,11 @@
       console.log(`⏭️ H1 tidak diupdate: ${h1Result.reason}`);
     }
 
-    // 2. CLEANUP FAQ (hapus ilegal + inject author)
+    // 2. CLEANUP FAQ (hapus ilegal + inject author + normalize case)
     var brandName = resolveBrandName();
     var cleanupResult = cleanupFaqSchema(brandName);
-    if (cleanupResult.cleaned > 0 || cleanupResult.injected > 0) {
-      console.log(`✅ [FIX-B1] FAQ Cleanup: ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject`);
+    if (cleanupResult.cleaned > 0 || cleanupResult.injected > 0 || cleanupResult.normalized > 0) {
+      console.log(`✅ [FIX-B1 + B8] FAQ Cleanup: ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject, ${cleanupResult.normalized} di-normalize`);
     }
 
     // 3. UPDATE TAHUN FAQ (setelah body sync)
@@ -1557,11 +1635,11 @@
       console.log(`⏭️ [Opsi A] JSON-LD Dates: skip — nextUpdate belum lewat`);
     }
 
-    // ==== FIX-B1: CLEANUP FAQ (selalu jalan di first init) ====
+    // ==== FIX-B1 + B8: CLEANUP FAQ (selalu jalan di first init) ====
     if (shouldRefreshJsonLd) {
       var brandName = resolveBrandName();
       var cleanupResult = cleanupFaqSchema(brandName);
-      console.log(`✅ [FIX-B1] FAQ Cleanup (first init): ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject`);
+      console.log(`✅ [FIX-B1 + B8] FAQ Cleanup (first init): ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject, ${cleanupResult.normalized} di-normalize`);
     }
 
     // ==== FAQ YEARS ====
@@ -1933,7 +2011,7 @@
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
 
-  console.log("✅ Smart Evergreen Detector v17.3.2-LITE (Schema FAQ VALID + Opsi B) ready");
+  console.log("✅ Smart Evergreen Detector v17.3.2-LITE (Schema FAQ VALID + Opsi B + Auto-Normalize) ready");
   console.log("   🔥 FIX-B1: Cleanup FAQ + inject author di FAQPage");
   console.log("   🔥 FIX-B2: resolveBrandName() — 5 sumber prioritas");
   console.log("   🔥 FIX-B3: updateJsonLdDates() SKIP FAQ — di-handle cleanupFaqSchema()");
@@ -1941,6 +2019,7 @@
   console.log("   🔥 FIX-B5: Reorder eksekusi — body sync dulu, baru FAQ cleanup + FAQ years");
   console.log("   🔥 FIX-B6: FAQ years guard diperkuat (SNI/UU/historis)");
   console.log("   🔥 FIX-B7: Version bump 17.3.1 → 17.3.2");
+  console.log("   🔥 FIX-B8: normalizeBrandCase() — ALL CAPS → Title Case");
   console.log("   🔥 PRESERVED: FIX-A1 s/d A21 tetap aktif");
   console.log("   🏢 BRAND default: " + DEFAULT_BRAND_NAME);
 
