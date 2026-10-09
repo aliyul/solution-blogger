@@ -1,5 +1,5 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.3.3-LITE — FULL PATCH (FINAL)
+ 🧠 Smart Evergreen Detector v17.3.4-LITE — FULL PATCH (FINAL)
     ✅ SINKRON dengan PLD v23.9.7-LITE
     ✅ SINKRON dengan Prompt V37.9-B v8.5 (Schema FAQ VALID)
     ✅ PATOKAN UTAMA: H1 (Informasi → Evergreen, Harga → Cek Tabel)
@@ -8,17 +8,23 @@
     ✅ ATURAN INFORMASI: H1 informatif tanpa harga → EVERGREEN
     ✅ AUTO-UPDATE TANPA BATAS: nextUpdate → dateModified → nextUpdate
 
-    🔥🔥🔥 v17.3.3-LITE CHANGELOG 🔥🔥🔥
-    ✅ FIX-B9:  detectIllegalFaqProps() — BARU
-               → Deteksi properti ilegal di FAQ schema:
-                 • author di Question/Answer
-                 • datePublished di FAQPage/Question/Answer
-                 • dateModified di FAQPage/Question/Answer
-                 • upvoteCount di semua level
-               → Kalau terdeteksi → FORCE REFRESH
-               → Tidak peduli isFirstInit / nextUpdate
-               → Solusi untuk halaman lama yang sudah terlanjur ada
-                 properti ilegal
+    🔥🔥🔥 v17.3.4-LITE CHANGELOG 🔥🔥🔥
+    ✅ FIX-B10: decodeHtmlEntities() + deepDecodeHtmlEntities() + hasHtmlEntities()
+               → Auto-decode entities di FAQ JSON-LD:
+                 • &#8211; → –
+                 • &#8212; → —
+                 • &amp; → &
+                 • &quot; / &#39; → " / '
+               → Detect entities sebagai "illegal" → FORCE REFRESH
+               → Bersihkan halaman lama yang terlanjur ada entities
+               → Alasan: <script type="application/ld+json"> = raw text
+                 → Browser TIDAK decode entities
+                 → AI Overview baca literal → TIDAK PROFESIONAL
+
+    ✅ FIX-B9:  detectIllegalFaqProps() — TETAP AKTIF
+               → Deteksi properti ilegal: author/datePublished/dateModified
+                 di Question/Answer + upvoteCount
+               → Diperluas: deteksi HTML entities (via FIX-B10)
 
     ✅ FIX-B1 s/d B8: TETAP AKTIF
     ✅ FIX-A1 s/d A21: TETAP AKTIF
@@ -28,12 +34,12 @@
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.3.3-lite") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.3.4-lite") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.3.3-lite";
+  window.__AED_VERSION = "17.3.4-lite";
 
   // ============================================================
   // 📌 BRAND CONFIG
@@ -110,13 +116,81 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B9: Deteksi properti ilegal di FAQ schema
-  //   → Return true kalau ada properti ilegal
-  //   → Properti ilegal yang dideteksi:
+  // 🆕 FIX-B10: Decode HTML Entities di JSON-LD
+  //   → <script type="application/ld+json"> adalah raw text
+  //   → Browser TIDAK decode entities → AI Overview baca literal
+  //   → Fungsi ini decode &#8211;, &amp;, dll → karakter asli
+  // ============================================================
+  function decodeHtmlEntities(str) {
+    if (typeof str !== 'string') return str;
+    if (str.indexOf('&') === -1) return str; // skip kalau tidak ada entity
+
+    // Pakai textarea untuk decode (aman, tidak eksekusi script)
+    var textarea = document.createElement('textarea');
+    textarea.innerHTML = str;
+    var decoded = textarea.value;
+
+    if (decoded !== str) {
+      var preview = str.substring(0, 60).replace(/\n/g, ' ');
+      console.log('🔧 [FIX-B10] Decode: "' + preview + '..."');
+    }
+    return decoded;
+  }
+
+  // ============================================================
+  // 🆕 FIX-B10: Recursive decode semua string di object
+  //   → Handle nested object, array, primitive
+  // ============================================================
+  function deepDecodeHtmlEntities(obj) {
+    if (typeof obj === 'string') return decodeHtmlEntities(obj);
+    if (Array.isArray(obj)) {
+      for (var i = 0; i < obj.length; i++) {
+        obj[i] = deepDecodeHtmlEntities(obj[i]);
+      }
+      return obj;
+    }
+    if (obj && typeof obj === 'object') {
+      for (var key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          obj[key] = deepDecodeHtmlEntities(obj[key]);
+        }
+      }
+      return obj;
+    }
+    return obj;
+  }
+
+  // ============================================================
+  // 🆕 FIX-B10: Cek apakah ada entities di object (untuk log + trigger)
+  // ============================================================
+  function hasHtmlEntities(obj) {
+    var found = [];
+    function scan(node) {
+      if (typeof node === 'string') {
+        var matches = node.match(/&#\d+;|&[a-zA-Z]+;/g);
+        if (matches) found = found.concat(matches);
+      } else if (Array.isArray(node)) {
+        node.forEach(scan);
+      } else if (node && typeof node === 'object') {
+        for (var k in node) {
+          if (Object.prototype.hasOwnProperty.call(node, k)) scan(node[k]);
+        }
+      }
+    }
+    scan(obj);
+    return found;
+  }
+
+  // ============================================================
+  // 🆕 FIX-B9 + B10: Deteksi properti ilegal + entities di FAQ schema
+  //   → Return true kalau ada properti ilegal ATAU entities
+  //   → Properti ilegal:
   //     • author di Question/Answer
   //     • datePublished di FAQPage/Question/Answer
   //     • dateModified di FAQPage/Question/Answer
   //     • upvoteCount di semua level
+  //   → Entities:
+  //     • &#8211;, &#8212;, &amp;, dll di string manapun
   // ============================================================
   function detectIllegalFaqProps() {
     var hasIllegal = false;
@@ -215,13 +289,23 @@
             }
           });
         }
+
+        // 🆕 FIX-B10: Cek HTML entities di seluruh node FAQ
+        var entitiesFound = hasHtmlEntities(node);
+        if (entitiesFound.length > 0) {
+          hasIllegal = true;
+          var uniqueEntities = entitiesFound.filter(function (v, i, arr) {
+            return arr.indexOf(v) === i;
+          }).slice(0, 5);
+          details.push('entities: ' + uniqueEntities.join(', '));
+        }
       });
     });
 
     if (hasIllegal) {
-      console.log('🔍 [FIX-B9] Properti ilegal terdeteksi di FAQ:', details.join(', '));
+      console.log('🔍 [FIX-B9 + B10] Properti ilegal / entities terdeteksi di FAQ:', details.join(', '));
     } else {
-      console.log('✅ [FIX-B9] FAQ schema bersih — tidak ada properti ilegal');
+      console.log('✅ [FIX-B9 + B10] FAQ schema bersih — tidak ada properti ilegal / entities');
     }
 
     return hasIllegal;
@@ -339,12 +423,13 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B1 + FIX-B8: Cleanup FAQ schema + inject + normalize
+  // 🆕 FIX-B1 + B8 + B10: Cleanup FAQ schema + inject + normalize + decode
   // ============================================================
   function cleanupFaqSchema(brandName) {
     var cleaned = 0;
     var injected = 0;
     var normalized = 0;
+    var entitiesDecoded = 0;
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
 
     scripts.forEach(function (script) {
@@ -490,13 +575,42 @@
         }
       });
 
+      // ============================================================
+      // 🆕 FIX-B10: Decode HTML entities sebelum stringify
+      //   → Jalankan SELALU (tidak hanya kalau changed)
+      //   → Halaman lama yang sudah terlanjur ada entities
+      //     akan dibersihkan otomatis saat refresh
+      // ============================================================
+      var entitiesBefore = hasHtmlEntities(json);
+      if (entitiesBefore.length > 0) {
+        var uniqueBefore = entitiesBefore.filter(function (v, i, arr) {
+          return arr.indexOf(v) === i;
+        });
+        console.log('🔍 [FIX-B10] Entities terdeteksi di FAQ JSON-LD: ' +
+                    uniqueBefore.slice(0, 5).join(', ') +
+                    (uniqueBefore.length > 5 ? ' (+' + (uniqueBefore.length - 5) + ' lagi)' : ''));
+      }
+
+      json = deepDecodeHtmlEntities(json);
+
+      var entitiesAfter = hasHtmlEntities(json);
+      var decodedCount = entitiesBefore.length - entitiesAfter.length;
+      if (decodedCount > 0) {
+        entitiesDecoded += decodedCount;
+        cleaned += decodedCount;
+        changed = true;
+        console.log('✅ [FIX-B10] ' + decodedCount + ' entities di-decode ke karakter asli');
+      }
+
       if (changed) {
         script.textContent = JSON.stringify(json, null, 2);
       }
     });
 
-    console.log('✅ [FAQ Cleanup] Selesai: ' + cleaned + ' properti dibersihkan, ' + injected + ' author di-inject, ' + normalized + ' author di-normalize');
-    return { cleaned: cleaned, injected: injected, normalized: normalized };
+    console.log('✅ [FAQ Cleanup] Selesai: ' + cleaned + ' properti dibersihkan, ' +
+                injected + ' author di-inject, ' + normalized + ' author di-normalize, ' +
+                entitiesDecoded + ' entities di-decode');
+    return { cleaned: cleaned, injected: injected, normalized: normalized, entitiesDecoded: entitiesDecoded };
   }
 
   // ============================================================
@@ -1616,8 +1730,8 @@
 
     var brandName = resolveBrandName();
     var cleanupResult = cleanupFaqSchema(brandName);
-    if (cleanupResult.cleaned > 0 || cleanupResult.injected > 0 || cleanupResult.normalized > 0) {
-      console.log(`✅ [FIX-B1 + B8] FAQ Cleanup: ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject, ${cleanupResult.normalized} di-normalize`);
+    if (cleanupResult.cleaned > 0 || cleanupResult.injected > 0 || cleanupResult.normalized > 0 || cleanupResult.entitiesDecoded > 0) {
+      console.log(`✅ [FIX-B1 + B8 + B10] FAQ Cleanup: ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject, ${cleanupResult.normalized} di-normalize, ${cleanupResult.entitiesDecoded} entities di-decode`);
     }
 
     var faqYearsResult = updateJsonLdFaqYears(now.getFullYear());
@@ -1648,7 +1762,7 @@
   }
 
   // ============================================================
-  // 📌 PROCESS META DATES (OPSI A) — FIX-B9: Force refresh kalau ada ilegal
+  // 📌 PROCESS META DATES (OPSI A) — FIX-B9 + B10: Force refresh
   // ============================================================
   async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated) {
 
@@ -1660,7 +1774,7 @@
     const isFirstInit = !hadDateModifiedBefore;
     const hasCustomDate = customDateModified !== null && customDateModified !== undefined;
 
-    // 🆕 FIX-B9: Deteksi properti ilegal di FAQ
+    // 🆕 FIX-B9 + B10: Deteksi properti ilegal + entities di FAQ
     const hasIllegalFaqProps = detectIllegalFaqProps();
 
     const shouldRefreshJsonLd = autoUpdated === true || isFirstInit || hasCustomDate || hasIllegalFaqProps;
@@ -1668,7 +1782,7 @@
     console.log(`🔍 [Opsi A] Refresh check: autoUpdated=${autoUpdated}, isFirstInit=${isFirstInit}, hasCustomDate=${hasCustomDate}, hasIllegalFaqProps=${hasIllegalFaqProps} → shouldRefresh=${shouldRefreshJsonLd}`);
 
     if (hasIllegalFaqProps && !isFirstInit && !autoUpdated && !hasCustomDate) {
-      console.log('🔧 [FIX-B9] Force refresh karena ada properti ilegal di FAQ');
+      console.log('🔧 [FIX-B9 + B10] Force refresh karena ada properti ilegal / entities di FAQ');
     }
 
     const nowISO = new Date().toISOString();
@@ -1719,7 +1833,7 @@
     if (shouldRefreshJsonLd) {
       var brandName = resolveBrandName();
       var cleanupResult = cleanupFaqSchema(brandName);
-      console.log(`✅ [FIX-B1 + B8] FAQ Cleanup: ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject, ${cleanupResult.normalized} di-normalize`);
+      console.log(`✅ [FIX-B1 + B8 + B10] FAQ Cleanup: ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} di-inject, ${cleanupResult.normalized} di-normalize, ${cleanupResult.entitiesDecoded} entities di-decode`);
     }
 
     if (shouldRefreshJsonLd) {
@@ -1786,7 +1900,7 @@
       datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.3.3',
+      detectorVersion: detectorVersion || 'v17.3.4',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
@@ -1821,7 +1935,7 @@
     if (schemaType) console.log(`   - Schema (PLD): ${schemaType.primary} + ${schemaType.secondary}`);
     if (pldCtaType) console.log(`   - CTA (PLD): ${pldCtaType.type} → ${pldCtaType.text}`);
     if (isOverridden) console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
-    console.log(`🧩 processMetaDates() v17.3.3 — FINISHED ✅`);
+    console.log(`🧩 processMetaDates() v17.3.4 — FINISHED ✅`);
   }
 
   // ============================================================
@@ -2036,7 +2150,7 @@
     }
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.3.3-LITE — Loading...");
+    console.log("🧩 detectEvergreen() v17.3.4-LITE — Loading...");
 
     await waitForPageLevelDetector();
 
@@ -2077,7 +2191,7 @@
 
     await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated);
 
-    console.log(`🧩 detectEvergreen() v17.3.3-LITE — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.3.4-LITE — FINISHED ✅`);
   }
 
   // ============================================================
@@ -2087,7 +2201,7 @@
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
 
-  console.log("✅ Smart Evergreen Detector v17.3.3-LITE (Schema FAQ VALID + Opsi B + Auto-Normalize + FIX-B9) ready");
+  console.log("✅ Smart Evergreen Detector v17.3.4-LITE (Schema FAQ VALID + Opsi B + Auto-Normalize + FIX-B9 + FIX-B10) ready");
   console.log("   🔥 FIX-B1: Cleanup FAQ + inject author di FAQPage");
   console.log("   🔥 FIX-B2: resolveBrandName() — 5 sumber prioritas");
   console.log("   🔥 FIX-B3: updateJsonLdDates() SKIP FAQ — di-handle cleanupFaqSchema()");
@@ -2097,6 +2211,9 @@
   console.log("   🔥 FIX-B7: Version bump 17.3.1 → 17.3.2");
   console.log("   🔥 FIX-B8: normalizeBrandCase() — ALL CAPS → Title Case");
   console.log("   🔥 FIX-B9: detectIllegalFaqProps() — FORCE REFRESH kalau ada properti ilegal");
+  console.log("   🔥 FIX-B10: decodeHtmlEntities() + deepDecodeHtmlEntities() + hasHtmlEntities()");
+  console.log("               → Auto-decode entities di FAQ JSON-LD");
+  console.log("               → Bersihkan halaman lama yang terlanjur ada entities");
   console.log("   🔥 PRESERVED: FIX-A1 s/d A21 tetap aktif");
   console.log("   🏢 BRAND default: " + DEFAULT_BRAND_NAME);
 
