@@ -2933,11 +2933,16 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
           } else {
             return "money-master";
           }
-        } else if (!_hasLocMin) {
+       } else if (!_hasLocMin) {
           // Ada sisa spec → MP/variant/sub-variant
           var _levelMin = decideLevelByLayers(_specCountMin);
+          // 🔥 FIX-SV-v1: cek dimensi numeric pakai isSubVariant
+          // Word count bisa miss unit pendek (m, cm, mm) → naikkan ke SV
+          if (_levelMin === "variant" && isSubVariant(text, "jasa")) {
+            return "sub-variant";
+          }
           return _levelMin;
-        }
+       }
         // Kalau ada loc + sisa spec → fall through ke general logic (location check)
       }
 
@@ -3623,11 +3628,29 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
     var hasPriceTableInDOM = checkPriceTable();
     var isMoneyLevel = ['money-master','money-page','money-child'].indexOf(level) !== -1;
     var isVariantLevel = ['variant','sub-variant'].indexOf(level) !== -1;
-    if (isMoneyLevel || isVariantLevel) {
-      if (hasInfoSpecPhrase && !hasPriceTableInDOM && !hasCommercial) return 'INFORMASI';
-      if (hasPriceTableInDOM) return 'HARGA';
-      if (hasPriceInText || hasYearInH1 || hasYearInUrl) return 'HARGA';
-      if (hasCommercial) return 'COMMERCIAL';
+   if (isMoneyLevel || isVariantLevel) {
+      // 🔥 FIX-GABUNG-v1: cek GABUNG dulu (info + harga/commercial)
+      var _hasInfoSignal = hasInfoSpecPhrase;
+      var _hasPriceSignal = hasPriceTableInDOM || hasPriceInText || hasYearInH1 || hasYearInUrl;
+      var _hasCommSignal = hasCommercial;
+
+      // GABUNG = info + (harga ATAU commercial)
+      if (_hasInfoSignal && (_hasPriceSignal || _hasCommSignal)) {
+        return 'GABUNG';
+      }
+      // Info only
+      if (_hasInfoSignal && !_hasPriceSignal && !_hasCommSignal) {
+        return 'INFORMASI';
+      }
+      // Harga (tabel atau text)
+      if (_hasPriceSignal) {
+        return 'HARGA';
+      }
+      // Commercial only
+      if (_hasCommSignal) {
+        return 'COMMERCIAL';
+      }
+      // Default
       return 'INFORMASI';
     }
     return 'INFORMASI';
