@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * 🍞 Breadcrumb Shared v12.3.3-LITE — MEGA MERGE (FINAL + GABUNG SYNC)
+ * 🍞 Breadcrumb Shared v12.3.4-LITE — MEGA MERGE (FINAL + GABUNG SYNC + AED SYNC)
  * 
  * FIX FINAL:
  * ✅ TANPA LAZY LOAD — breadcrumb render INSTAN
@@ -10,12 +10,17 @@
  * ✅ Guard double init
  * ✅ Silent log di HP
  * 
- * 🔥 FIX-GABUNG-v1 (NEW):
+ * 🔥 FIX-GABUNG-v1 (dari v12.3.3):
  * ✅ PATCH A: VARIANT_KEYWORDS_JASA + spec phrase words
  * ✅ PATCH B: Pre-compile LOCATION_REGEXES (perf)
  * ✅ PATCH C: Sync contentFocus + pldKategori dari PLD
  * 
- * @version 12.3.3-lite
+ * 🔥 FIX-SYNC-v1 (BARU di v12.3.4):
+ * ✅ PATCH D: getPageLevelFromPLD() prefer detectFromDOM() (H1 fallback)
+ * ✅ PATCH E: EVERGREEN_LEVELS + MONEY_LEVELS konstanta (sinkron AED v17.4.0)
+ * ✅ PATCH F: getLevelCategory() helper + emit di event & return value
+ * 
+ * @version 12.3.4-lite
  * ============================================================
  */
 
@@ -23,10 +28,10 @@
     "use strict";
 
     // ═══ GUARD DOUBLE INIT ═══
-    if (window.__BREADCRUMB_VERSION === "12.3.3-lite") {
+    if (window.__BREADCRUMB_VERSION === "12.3.4-lite") {
         return;
     }
-    window.__BREADCRUMB_VERSION = "12.3.3-lite";
+    window.__BREADCRUMB_VERSION = "12.3.4-lite";
 
     // ============================================================
     // DEVICE DETECTION — Silent log di HP
@@ -71,9 +76,9 @@
                 DEBUG: '🔍', VARIANT: '🔬', PARENT: '👪', URL: '🔗',
                 SCORE: '🎯', CLEAN: '🧹', SKIP: '⏭️', PLD: '🔄',
                 HIERARCHY: '🏛️', COMMERCIAL: '🛒', PARENT_FIX: '🔧',
-                CACHE: '💾', PERF: '⚡'
+                CACHE: '💾', PERF: '⚡', SYNC: '🔗'
             };
-            console.log(`${icons[type] || '📘'} [Breadcrumb v12.3.3-LITE] ${message}`);
+            console.log(`${icons[type] || '📘'} [Breadcrumb v12.3.4-LITE] ${message}`);
         }
 
         // ============================================================
@@ -122,6 +127,29 @@
         for (let i = 0; i < VALID_LEVELS.length; i++) VALID_LEVELS_SET[VALID_LEVELS[i]] = true;
 
         // ============================================================
+        // 🔥 FIX-SYNC-v1 (PATCH E): KONSTANTA SINKRON AED v17.4.0
+        // ============================================================
+        const EVERGREEN_LEVELS = [
+            'pillar',
+            'sub-pillar-tipe-2',
+            'sub-pillar-tipe-1'
+        ];
+
+        const MONEY_LEVELS = [
+            'money-master',
+            'money-page',
+            'money-child',
+            'variant',
+            'sub-variant'
+        ];
+
+        const EVERGREEN_LEVELS_SET = {};
+        for (let i = 0; i < EVERGREEN_LEVELS.length; i++) EVERGREEN_LEVELS_SET[EVERGREEN_LEVELS[i]] = true;
+
+        const MONEY_LEVELS_SET = {};
+        for (let i = 0; i < MONEY_LEVELS.length; i++) MONEY_LEVELS_SET[MONEY_LEVELS[i]] = true;
+
+        // ============================================================
         // 6. HIERARCHY ORDER
         // ============================================================
         const HIERARCHY_ORDER = [
@@ -163,6 +191,7 @@
         // ============================================================
         // 9. PLD READERS
         // ============================================================
+        // 🔥 FIX-SYNC-v1 (PATCH D): prefer detectFromDOM() (H1 fallback)
         function getPageLevelFromPLD() {
             const pldVersions = [
                 'pageLevelDetectorv22', 'pageLevelDetectorv20',
@@ -171,15 +200,32 @@
             ];
 
             for (const pldName of pldVersions) {
-                if (window[pldName] && typeof window[pldName].detect === 'function') {
+                const pld = window[pldName];
+                if (!pld) continue;
+
+                // 🔥 FIX-SYNC-v1: prefer detectFromDOM (dapat H1 fallback)
+                if (typeof pld.detectFromDOM === 'function') {
                     try {
-                        const level = window[pldName].detect();
+                        const domLevel = pld.detectFromDOM();
+                        if (domLevel && VALID_LEVELS_SET[domLevel]) {
+                            log(`PLD ${pldName}.detectFromDOM(): "${domLevel}" (${TYPE_LEVEL_MAP[domLevel]})`, 'PLD');
+                            return domLevel;
+                        }
+                    } catch (e) {
+                        log(`detectFromDOM error di ${pldName}: ${e.message}`, 'WARN');
+                    }
+                }
+
+                // Fallback ke detect() kalau detectFromDOM tidak ada / kosong
+                if (typeof pld.detect === 'function') {
+                    try {
+                        const level = pld.detect();
                         if (level && VALID_LEVELS_SET[level]) {
-                            log(`PLD ${pldName}: "${level}" (${TYPE_LEVEL_MAP[level]})`, 'PLD');
+                            log(`PLD ${pldName}.detect(): "${level}" (${TYPE_LEVEL_MAP[level]})`, 'PLD');
                             return level;
                         }
-                    } catch(e) {
-                        log(`Error calling ${pldName}: ${e.message}`, 'WARN');
+                    } catch (e) {
+                        log(`detect error di ${pldName}: ${e.message}`, 'WARN');
                     }
                 }
             }
@@ -226,8 +272,6 @@
         }
 
         // 🔥 FIX-C: Helper ambil contentFocus dari PLD
-        // Konsisten dengan PLD v23.9.7-LITE-PERF-B2N detectContentFocus()
-        // Support: INFORMASI / HARGA / COMMERCIAL / GABUNG
         function getContentFocusFromPLD() {
             const pldVersions = [
                 'pageLevelDetectorv22', 'pageLevelDetectorv20',
@@ -252,7 +296,6 @@
                 }
             }
 
-            // Fallback: baca dari body attribute (di-set oleh PLD setSchemaAttributes)
             const bodyFocus = document.body.getAttribute('data-content-focus');
             if (bodyFocus) {
                 const normalized = String(bodyFocus).toUpperCase();
@@ -275,6 +318,18 @@
             } catch (e) {
                 return null;
             }
+        }
+
+        // ============================================================
+        // 🔥 FIX-SYNC-v1 (PATCH F): Helper baru — cek level kategori
+        // Konsisten dengan AED v17.4.0 & Hybrid v10.0
+        // ============================================================
+        function getLevelCategory(level) {
+            if (!level) return 'unknown';
+            if (EVERGREEN_LEVELS_SET[level]) return 'evergreen';
+            if (MONEY_LEVELS_SET[level]) return 'non-evergreen';
+            if (level === 'home') return 'home';
+            return 'unknown';
         }
 
         // ============================================================
@@ -376,9 +431,7 @@
             'terdekat'
         ]);
 
-        // 🔥 FIX-B: Pre-compile regex untuk LOCATION_WORDS (perf optimization)
-        // Sebelumnya: 80 regex creation per panggilan isLocation()
-        // Sesudah: regex di-cache sekali, reuse terus
+        // 🔥 FIX-B: Pre-compile regex untuk LOCATION_WORDS
         const LOCATION_REGEXES = [];
         (function _buildLocationRegexes() {
             for (const city of LOCATION_WORDS) {
@@ -389,7 +442,7 @@
                 }
             }
             if (ENABLE_DEBUG) {
-                console.log(`⚡ [Breadcrumb v12.3.3-LITE] Pre-compiled ${LOCATION_REGEXES.length} location regexes`);
+                console.log(`⚡ [Breadcrumb v12.3.4-LITE] Pre-compiled ${LOCATION_REGEXES.length} location regexes`);
             }
         })();
 
@@ -402,12 +455,11 @@
             'standar', 'merk', 'brand', 'seri'
         ];
 
-        // 🔥 FIX-A: Tambah spec phrase words (konsisten dengan PLD)
+        // 🔥 FIX-A: Tambah spec phrase words
         const VARIANT_KEYWORDS_JASA = [
             'standar pelayanan', 'sop', 'metode kerja',
             'prosedur', 'tahapan', 'cara kerja',
             'durasi', 'waktu pengerjaan', 'garansi', 'standar pengerjaan',
-            // 🔥 FIX-A: Spec phrase words (konsisten dengan PLD)
             'spesifikasi', 'spec', 'ukuran', 'mutu', 'dimensi',
             'tipe', 'jenis', 'varian', 'kualitas', 'standar'
         ];
@@ -567,7 +619,7 @@
         function isLocation(text) {
             if (!text) return false;
             const lower = text.toLowerCase();
-            // 🔥 FIX-B: Pakai pre-compiled regexes (jauh lebih cepat)
+            // 🔥 FIX-B: Pakai pre-compiled regexes
             for (let i = 0; i < LOCATION_REGEXES.length; i++) {
                 if (LOCATION_REGEXES[i].test(lower)) return true;
             }
@@ -951,6 +1003,12 @@
         const isPLDSynced = !!pldLevel;
         log(`PLD Sync: ${isPLDSynced ? '✅ SINKRON' : '❌ FALLBACK'}`, 'PLD');
 
+        // 🔥 FIX-SYNC-v1: Log kategori level
+        if (pldLevel) {
+            const levelCat = getLevelCategory(pldLevel);
+            log(`Level Category: ${levelCat} (level="${pldLevel}")`, 'SYNC');
+        }
+
         // ============================================================
         // 27. INJECT CURRENT PAGE & AUTO PARENT
         // ============================================================
@@ -1228,6 +1286,26 @@
         const contentFocusFromPLD = getContentFocusFromPLD();
         const kategoriFromPLD = getKategoriFromPLD(contentFocusFromPLD);
 
+        // 🔥 FIX-SYNC-v1: Kategori level (sinkron AED v17.4.0)
+        const _levelForCategory = pldLevel || currentPageType;
+        const levelCategory = getLevelCategory(_levelForCategory);
+        const isEvergreenLevel = EVERGREEN_LEVELS_SET[_levelForCategory] === true;
+        const isMoneyLevel = MONEY_LEVELS_SET[_levelForCategory] === true;
+
+        // 🔥 FIX-SYNC-v1: Sync contentFocus/kategori ke body attribute
+        // agar script lain bisa baca tanpa akses PLD
+        try {
+            if (contentFocusFromPLD) {
+                document.body.setAttribute('data-content-focus', contentFocusFromPLD);
+            }
+            if (levelCategory) {
+                document.body.setAttribute('data-level-category', levelCategory);
+            }
+            if (pldLevel) {
+                document.body.setAttribute('data-page-level', pldLevel);
+            }
+        } catch (e) { /* silent */ }
+
         window.dispatchEvent(new CustomEvent('breadcrumbGenerated', {
             detail: {
                 parentName: nearestParent ? nearestParent.name : null,
@@ -1235,12 +1313,16 @@
                 selectedLevels: uniqueLevels,
                 currentPageType: currentPageType,
                 entityType: entityType,
-                version: '12.3.3-lite',
+                version: '12.3.4-lite',
                 pldLevel: pldLevel,
                 pldSync: isPLDSynced,
-                // 🔥 FIX-C: New fields
+                // 🔥 FIX-C: Content focus fields
                 contentFocus: contentFocusFromPLD,
-                pldKategori: kategoriFromPLD
+                pldKategori: kategoriFromPLD,
+                // 🔥 FIX-SYNC-v1: Kategori level fields
+                levelCategory: levelCategory,
+                isEvergreenLevel: isEvergreenLevel,
+                isMoneyLevel: isMoneyLevel
             }
         }));
 
@@ -1249,11 +1331,12 @@
         // ============================================================
         if (CONFIG.DEBUG) {
             const commercialDetected = COMMERCIAL_WORDS.some(w => currentPageTitle.startsWith(w));
-            console.log('📊 BREADCRUMB SUMMARY (v12.3.3-LITE):');
+            console.log('📊 BREADCRUMB SUMMARY (v12.3.4-LITE):');
             console.log(`   Page: "${currentPageTitle}"`);
             console.log(`   Type: ${currentPageType} (level ${TYPE_LEVEL_MAP[currentPageType]})`);
             console.log(`   Entity: ${entityType}`);
             console.log(`   PLD Sync: ${isPLDSynced ? '✅' : '❌'}`);
+            console.log(`   Level Category: ${levelCategory} (isMoney=${isMoneyLevel}, isEvergreen=${isEvergreenLevel})`);
             console.log(`   Content Focus: ${contentFocusFromPLD || 'N/A'}`);
             console.log(`   PLD Kategori: ${kategoriFromPLD || 'N/A'}`);
             console.log(`   Parents found: ${finalParents.length}`);
@@ -1270,7 +1353,7 @@
             selectedLevels: uniqueLevels,
             currentPageType,
             entityType,
-            version: '12.3.3-lite',
+            version: '12.3.4-lite',
             parentCount: finalParents.length,
             parents: finalParents,
             isVariant: currentPageType === 'variant',
@@ -1282,21 +1365,22 @@
             commercialIntent: COMMERCIAL_WORDS.some(w => currentPageTitle.startsWith(w)),
             parentNoSkip: true,
             parentByPosition: true,
-            // 🔥 FIX-C: New fields
+            // 🔥 FIX-C: Content focus fields
             contentFocus: contentFocusFromPLD,
-            pldKategori: kategoriFromPLD
+            pldKategori: kategoriFromPLD,
+            // 🔥 FIX-SYNC-v1: Kategori level fields
+            levelCategory: levelCategory,
+            isEvergreenLevel: isEvergreenLevel,
+            isMoneyLevel: isMoneyLevel
         };
     }
 
     // ============================================================
     // EXPOSE TO WINDOW — LANGSUNG TANPA LAZY LOAD
     // ============================================================
-    // FIX FINAL: Breadcrumb render INSTAN, tidak delay 1 detik
-    // Trade-off: blocking ~50-100ms, tapi UX jauh lebih bagus
-    // Alasan: Breadcrumb delay bikin UX jelek + kalah sama breadcrumb LAMA
     window.generateBreadcrumbShared = generateBreadcrumbShared;
     window.generateBreadcrumbSharedSync = generateBreadcrumbShared;
 
-    console.log(`✅ [Breadcrumb v12.3.3-LITE] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'}) — LANGSUNG TANPA LAZY LOAD + GABUNG SYNC`);
+    console.log(`✅ [Breadcrumb v12.3.4-LITE] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'}) — LANGSUNG TANPA LAZY LOAD + AED SYNC`);
 
 })();
