@@ -1,9 +1,13 @@
 /* ============================================================
- 🔥 Hybrid Date Modified v9.9 — PERFORMANCE PATCH
+ 🔥 Hybrid Date Modified v9.9 — PERFORMANCE PATCH + GABUNG SUPPORT
     ✅ FIX v9.9-A: Timeout PLD 1s → 3s (aman di HP)
     ✅ FIX v9.9-B: Timeout AED 1s → 3s (aman di HP)
     ✅ FIX v9.9-C: Timeout Breadcrumb 1.5s → 2s
     ✅ FIX v9.9-D: Version bump dari 9.8
+
+    ✅ FIX-GABUNG-v1: Hash source handle GABUNG/COMMERCIAL
+    ✅ FIX-GABUNG-v1: v37Rules handle GABUNG/COMMERCIAL
+    ✅ FIX-GABUNG-v1: getCategoryLabel handle GABUNG/COMMERCIAL
 
     ✅ PRESERVED dari v9.8:
     ✅ HAPUS loadExternalJS (PLD & AED sudah di HTML)
@@ -598,7 +602,7 @@
             console.log(`📌 [${pageLevel}] MONEY_PAGE INFORMASI → EVERGREEN`);
             return "2026-01-01T00:00:00+07:00";
           } else {
-            console.log(`📌 [${pageLevel}] MONEY_PAGE HARGA → NON-EVERGREEN (WAJIB update berkala)`);
+            console.log(`📌 [${pageLevel}] MONEY_PAGE ${contentFocus.toUpperCase()} → NON-EVERGREEN (WAJIB update berkala)`);
             return null;
           }
         }
@@ -608,7 +612,7 @@
             console.log(`📌 [${pageLevel}] MONEY_MASTER INFORMASI → EVERGREEN`);
             return "2026-01-01T00:00:00+07:00";
           } else {
-            console.log(`📌 [${pageLevel}] MONEY_MASTER HARGA → NON-EVERGREEN`);
+            console.log(`📌 [${pageLevel}] MONEY_MASTER ${contentFocus.toUpperCase()} → NON-EVERGREEN`);
             return null;
           }
         }
@@ -618,7 +622,7 @@
             console.log(`📌 [${pageLevel}] MONEY_CHILD INFORMASI → EVERGREEN`);
             return "2026-01-01T00:00:00+07:00";
           } else {
-            console.log(`📌 [${pageLevel}] MONEY_CHILD HARGA → NON-EVERGREEN`);
+            console.log(`📌 [${pageLevel}] MONEY_CHILD ${contentFocus.toUpperCase()} → NON-EVERGREEN`);
             return null;
           }
         }
@@ -629,6 +633,7 @@
 
       // ============================================================
       // 📌 FUNGSI GET CATEGORY LABEL
+      // 🔥 FIX-LABEL-GABUNG-v1: Handle GABUNG/COMMERCIAL
       // ============================================================
       function getCategoryLabel(pageLevel, contentFocus) {
         if (pageLevel === 'home') return 'HOMEPAGE (EVERGREEN — V37)';
@@ -637,16 +642,22 @@
 
         if (pageLevel === 'money-page') {
           if (contentFocus === 'informasi') return 'MONEY_PAGE_INFORMASI (EVERGREEN — V37)';
+          if (contentFocus === 'gabung') return 'MONEY_PAGE_GABUNG (NON-EVERGREEN — V37)';
+          if (contentFocus === 'commercial') return 'MONEY_PAGE_COMMERCIAL (NON-EVERGREEN — V37)';
           return 'MONEY_PAGE_HARGA (NON-EVERGREEN — V37)';
         }
 
         if (pageLevel === 'money-master') {
           if (contentFocus === 'informasi') return 'MONEY_MASTER_INFORMASI (EVERGREEN — V37)';
+          if (contentFocus === 'gabung') return 'MONEY_MASTER_GABUNG (NON-EVERGREEN — V37)';
+          if (contentFocus === 'commercial') return 'MONEY_MASTER_COMMERCIAL (NON-EVERGREEN — V37)';
           return 'MONEY_MASTER_HARGA (NON-EVERGREEN — V37)';
         }
 
         if (pageLevel === 'money-child') {
           if (contentFocus === 'informasi') return 'MONEY_CHILD_INFORMASI (EVERGREEN — V37)';
+          if (contentFocus === 'gabung') return 'MONEY_CHILD_GABUNG (NON-EVERGREEN — V37)';
+          if (contentFocus === 'commercial') return 'MONEY_CHILD_COMMERCIAL (NON-EVERGREEN — V37)';
           return 'MONEY_CHILD_HARGA (NON-EVERGREEN — V37)';
         }
 
@@ -715,6 +726,7 @@
       console.log("📋 FIX v9.9-B: Timeout AED 1s → 3s (aman di HP)");
       console.log("📋 FIX v9.9-C: Timeout Breadcrumb 1.5s → 2s");
       console.log("📋 FIX v9.9-D: Version bump dari 9.8");
+      console.log("📋 FIX-GABUNG-v1: Hash + v37Rules + Label handle GABUNG/COMMERCIAL");
 
       await loadAllScripts();
 
@@ -777,21 +789,27 @@
       const uniquePageIdentifier = window.location.pathname;
       let hashSource = uniquePageIdentifier;
 
+      // 🔥 FIX-HASH-GABUNG-v1: helper deteksi non-evergreen
+      // GABUNG/COMMERCIAL sama-sama non-evergreen seperti HARGA
+      var _isNonEvergreenFocus = (contentFocus === 'harga' ||
+                                   contentFocus === 'gabung' ||
+                                   contentFocus === 'commercial');
+
       if (EVERGREEN_LEVELS.includes(detectedPageLevel)) {
         hashSource = 'evergreen-' + hashSource;
       } else if (FLEXIBLE_LEVELS.includes(detectedPageLevel)) {
         hashSource = 'flexible-' + hashSource;
       } else if (detectedPageLevel === 'money-page' && contentFocus === 'informasi') {
         hashSource = 'money-page-informasi-evergreen-' + hashSource;
-      } else if (detectedPageLevel === 'money-page' && contentFocus === 'harga') {
+      } else if (detectedPageLevel === 'money-page' && _isNonEvergreenFocus) {
         hashSource = 'money-page-harga-' + hashSource;
       } else if (detectedPageLevel === 'money-master' && contentFocus === 'informasi') {
         hashSource = 'money-master-informasi-evergreen-' + hashSource;
-      } else if (detectedPageLevel === 'money-master' && contentFocus === 'harga') {
+      } else if (detectedPageLevel === 'money-master' && _isNonEvergreenFocus) {
         hashSource = 'money-master-harga-' + hashSource;
       } else if (detectedPageLevel === 'money-child' && contentFocus === 'informasi') {
         hashSource = 'money-child-informasi-evergreen-' + hashSource;
-      } else if (detectedPageLevel === 'money-child' && contentFocus === 'harga') {
+      } else if (detectedPageLevel === 'money-child' && _isNonEvergreenFocus) {
         hashSource = 'money-child-harga-' + hashSource;
       } else if (detectedPageLevel === 'home') {
         hashSource = 'home-evergreen-' + hashSource;
@@ -855,14 +873,40 @@
         pldSchemaType: pldSchemaType,
         pldCtaType: pldCtaType,
 
+        // 🔥 FIX-v37Rules-GABUNG-v1: Handle GABUNG/COMMERCIAL
         v37Rules: {
           sp1Evergreen: true,
+
+          // Informasi (evergreen)
           moneyPageInformasiEvergreen: contentFocus === 'informasi',
-          moneyPageHargaNonEvergreen: contentFocus === 'harga',
           moneyMasterInformasiEvergreen: contentFocus === 'informasi',
-          moneyMasterHargaNonEvergreen: contentFocus === 'harga',
           moneyChildInformasiEvergreen: contentFocus === 'informasi',
+
+          // Harga (backward compatible)
+          moneyPageHargaNonEvergreen: contentFocus === 'harga',
+          moneyMasterHargaNonEvergreen: contentFocus === 'harga',
           moneyChildHargaNonEvergreen: contentFocus === 'harga',
+
+          // GABUNG (baru)
+          moneyPageGabungNonEvergreen: contentFocus === 'gabung',
+          moneyMasterGabungNonEvergreen: contentFocus === 'gabung',
+          moneyChildGabungNonEvergreen: contentFocus === 'gabung',
+
+          // COMMERCIAL (baru)
+          moneyPageCommercialNonEvergreen: contentFocus === 'commercial',
+          moneyMasterCommercialNonEvergreen: contentFocus === 'commercial',
+          moneyChildCommercialNonEvergreen: contentFocus === 'commercial',
+
+          // Aggregated flags
+          moneyPageNonEvergreen: _isNonEvergreenFocus,
+          moneyMasterNonEvergreen: _isNonEvergreenFocus,
+          moneyChildNonEvergreen: _isNonEvergreenFocus,
+
+          // Context
+          currentContentFocus: contentFocus,
+          isNonEvergreen: _isNonEvergreenFocus,
+
+          // Config
           flexibleRemoved: true,
           skipHomepage: true,
           skipStaticPages: true
