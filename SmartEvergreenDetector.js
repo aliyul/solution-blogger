@@ -2072,8 +2072,8 @@
   // ============================================================
   // 📌 GET RULES
   // ============================================================
-  function getRulesByEntityType(entityType, pageLevel, h1Detection) {
-    console.log(`📌 Getting rules for entityType=${entityType}, pageLevel=${pageLevel}`);
+    function getRulesByEntityType(entityType, pageLevel, h1Detection, contentFocus) {
+    console.log(`📌 Getting rules for entityType=${entityType}, pageLevel=${pageLevel}, contentFocus=${contentFocus || 'N/A'}`);
     console.log(`   📊 H1 Detection: informational=${h1Detection.isInformational}, price=${h1Detection.isPrice}, hasYear=${h1Detection.hasYear}`);
 
     const isMoneyLevel = MONEY_LEVELS.includes(pageLevel);
@@ -2099,20 +2099,39 @@
       };
     }
 
-    if (isMoneyLevel && h1Detection.isPrice) {
-      const priceTableResult = hasPriceTable();
-      if (priceTableResult.found) {
-        console.log(`✅ H1 mengandung harga DAN ada tabel harga → NON-EVERGREEN`);
+            if (isMoneyLevel && h1Detection.isPrice) {
+      // 🔥 FIX-GABUNG-v1: kalau PLD sudah konfirmasi GABUNG/HARGA/COMMERCIAL
+      // → TRUST PLD, tidak override berdasarkan tabel harga DOM
+      // 🔥 FIX-GABUNG-v2: cek PLD TERSEDIA dulu — kalau PLD tidak ada,
+      // contentFocus datang dari H1 fallback → JALANKAN safety net
+      var _pldAvailable = !!(window.pageLevelDetectorv22 &&
+                             typeof window.pageLevelDetectorv22.detectContentFocus === 'function');
+
+      var _pldConfirmedFocus = _pldAvailable &&
+                               (contentFocus === 'GABUNG' ||
+                                contentFocus === 'HARGA' ||
+                                contentFocus === 'COMMERCIAL');
+
+      if (_pldConfirmedFocus) {
+        console.log(`✅ [FIX-GABUNG-v1] PLD confirmed "${contentFocus}" → TRUST PLD, skip price-table override`);
       } else {
-        console.warn(`⚠️ H1 mengandung harga TAPI TIDAK ADA TABEL HARGA!`);
-        console.warn(`   → Override ke EVERGREEN (konten informatif)`);
-        document.body.classList.add('warning-h1-price-no-table');
-        return {
-          type: 'evergreen', validityDays: 1095,
-          usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft-medium',
-          overridden: true,
-          overrideReason: `H1 mengandung harga tapi tidak ada tabel harga: "${h1Detection.h1Text}"`
-        };
+        if (!_pldAvailable && (contentFocus === 'GABUNG' || contentFocus === 'HARGA' || contentFocus === 'COMMERCIAL')) {
+          console.log(`⚠️ [FIX-GABUNG-v2] PLD tidak tersedia, contentFocus="${contentFocus}" dari H1 fallback → jalankan safety net`);
+        }
+        const priceTableResult = hasPriceTable();
+        if (priceTableResult.found) {
+          console.log(`✅ H1 mengandung harga DAN ada tabel harga → NON-EVERGREEN`);
+        } else {
+          console.warn(`⚠️ H1 mengandung harga TAPI TIDAK ADA TABEL HARGA!`);
+          console.warn(`   → Override ke EVERGREEN (konten informatif)`);
+          document.body.classList.add('warning-h1-price-no-table');
+          return {
+            type: 'evergreen', validityDays: 1095,
+            usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft-medium',
+            overridden: true,
+            overrideReason: `H1 mengandung harga tapi tidak ada tabel harga: "${h1Detection.h1Text}"`
+          };
+        }
       }
     }
 
@@ -2168,7 +2187,7 @@
     const contentFocus = getContentFocus(h1Detection, pageLevel, entityType);
     console.log(`🎯 Content Focus Final: ${contentFocus}`);
 
-    const rule = getRulesByEntityType(entityType, pageLevel, h1Detection);
+    const rule = getRulesByEntityType(entityType, pageLevel, h1Detection, contentFocus);
     const finalType = rule.type;
     const validityDays = rule.validityDays;
     const validityMs = validityDays * 86400000;
