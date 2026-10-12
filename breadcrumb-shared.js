@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * 🍞 Breadcrumb Shared v12.3.3-LITE — MEGA MERGE (FINAL)
+ * 🍞 Breadcrumb Shared v12.3.3-LITE — MEGA MERGE (FINAL + GABUNG SYNC)
  * 
  * FIX FINAL:
  * ✅ TANPA LAZY LOAD — breadcrumb render INSTAN
@@ -9,6 +9,11 @@
  * ✅ Cache detectPageTypeFallback
  * ✅ Guard double init
  * ✅ Silent log di HP
+ * 
+ * 🔥 FIX-GABUNG-v1 (NEW):
+ * ✅ PATCH A: VARIANT_KEYWORDS_JASA + spec phrase words
+ * ✅ PATCH B: Pre-compile LOCATION_REGEXES (perf)
+ * ✅ PATCH C: Sync contentFocus + pldKategori dari PLD
  * 
  * @version 12.3.3-lite
  * ============================================================
@@ -220,6 +225,58 @@
             return null;
         }
 
+        // 🔥 FIX-C: Helper ambil contentFocus dari PLD
+        // Konsisten dengan PLD v23.9.7-LITE-PERF-B2N detectContentFocus()
+        // Support: INFORMASI / HARGA / COMMERCIAL / GABUNG
+        function getContentFocusFromPLD() {
+            const pldVersions = [
+                'pageLevelDetectorv22', 'pageLevelDetectorv20',
+                'pageLevelDetectorv19', 'pageLevelDetectorV18',
+                'pageLevelDetectorV17', 'pageLevelDetector'
+            ];
+
+            for (const pldName of pldVersions) {
+                if (window[pldName] && typeof window[pldName].detectContentFocus === 'function') {
+                    try {
+                        const level = window[pldName].detect();
+                        const entity = window[pldName].detectEntityType();
+                        const focus = window[pldName].detectContentFocus(level, entity);
+                        if (focus) {
+                            const normalized = String(focus).toUpperCase();
+                            log(`PLD Content Focus: ${normalized} (dari ${pldName})`, 'PLD');
+                            return normalized;
+                        }
+                    } catch(e) {
+                        log(`Error getting contentFocus from ${pldName}: ${e.message}`, 'WARN');
+                    }
+                }
+            }
+
+            // Fallback: baca dari body attribute (di-set oleh PLD setSchemaAttributes)
+            const bodyFocus = document.body.getAttribute('data-content-focus');
+            if (bodyFocus) {
+                const normalized = String(bodyFocus).toUpperCase();
+                log(`Content Focus from body: ${normalized}`, 'PLD');
+                return normalized;
+            }
+
+            return null;
+        }
+
+        // 🔥 FIX-C: Helper ambil kategori dari PLD
+        function getKategoriFromPLD(contentFocus) {
+            if (!contentFocus) return null;
+            if (!window.pageLevelDetectorv22 ||
+                typeof window.pageLevelDetectorv22.detectKategori !== 'function') {
+                return null;
+            }
+            try {
+                return window.pageLevelDetectorv22.detectKategori(contentFocus);
+            } catch (e) {
+                return null;
+            }
+        }
+
         // ============================================================
         // 10. HELPER FUNCTIONS
         // ============================================================
@@ -319,6 +376,23 @@
             'terdekat'
         ]);
 
+        // 🔥 FIX-B: Pre-compile regex untuk LOCATION_WORDS (perf optimization)
+        // Sebelumnya: 80 regex creation per panggilan isLocation()
+        // Sesudah: regex di-cache sekali, reuse terus
+        const LOCATION_REGEXES = [];
+        (function _buildLocationRegexes() {
+            for (const city of LOCATION_WORDS) {
+                try {
+                    LOCATION_REGEXES.push(new RegExp(`\\b${city.replace(/\s+/g, '\\s+')}\\b`, 'i'));
+                } catch (e) {
+                    // skip invalid regex
+                }
+            }
+            if (ENABLE_DEBUG) {
+                console.log(`⚡ [Breadcrumb v12.3.3-LITE] Pre-compiled ${LOCATION_REGEXES.length} location regexes`);
+            }
+        })();
+
         const SP1_KEYWORDS = ['vs', 'versus', 'perbandingan', 'lebih baik', 'kelebihan', 'kekurangan'];
         const SP2_KEYWORDS = ['jenis', 'kategori', 'daftar', 'macam', 'tipe'];
 
@@ -328,10 +402,14 @@
             'standar', 'merk', 'brand', 'seri'
         ];
 
+        // 🔥 FIX-A: Tambah spec phrase words (konsisten dengan PLD)
         const VARIANT_KEYWORDS_JASA = [
             'standar pelayanan', 'sop', 'metode kerja',
             'prosedur', 'tahapan', 'cara kerja',
-            'durasi', 'waktu pengerjaan', 'garansi', 'standar pengerjaan'
+            'durasi', 'waktu pengerjaan', 'garansi', 'standar pengerjaan',
+            // 🔥 FIX-A: Spec phrase words (konsisten dengan PLD)
+            'spesifikasi', 'spec', 'ukuran', 'mutu', 'dimensi',
+            'tipe', 'jenis', 'varian', 'kualitas', 'standar'
         ];
 
         const VARIANT_KEYWORDS_SEWA = [
@@ -489,8 +567,9 @@
         function isLocation(text) {
             if (!text) return false;
             const lower = text.toLowerCase();
-            for (const city of LOCATION_WORDS) {
-                if (new RegExp(`\\b${city.replace(/\s+/g, '\\s+')}\\b`, 'i').test(lower)) return true;
+            // 🔥 FIX-B: Pakai pre-compiled regexes (jauh lebih cepat)
+            for (let i = 0; i < LOCATION_REGEXES.length; i++) {
+                if (LOCATION_REGEXES[i].test(lower)) return true;
             }
             return false;
         }
@@ -630,7 +709,7 @@
                                 log(`MONEY-MASTER (commercial override): "${pageName}"`, 'HIERARCHY');
                                 result = 'money-master';
                             } else {
-                                result = null; // continue to normal detection
+                                result = null;
                             }
                         }
 
@@ -1145,6 +1224,10 @@
         document.body.setAttribute('data-breadcrumb-parent', nearestParent ? (nearestParent.name || '') : '');
         document.body.setAttribute('data-breadcrumb-parent-url', nearestParent ? (nearestParent.url || '') : '');
 
+        // 🔥 FIX-C: Ambil contentFocus + kategori dari PLD
+        const contentFocusFromPLD = getContentFocusFromPLD();
+        const kategoriFromPLD = getKategoriFromPLD(contentFocusFromPLD);
+
         window.dispatchEvent(new CustomEvent('breadcrumbGenerated', {
             detail: {
                 parentName: nearestParent ? nearestParent.name : null,
@@ -1154,7 +1237,10 @@
                 entityType: entityType,
                 version: '12.3.3-lite',
                 pldLevel: pldLevel,
-                pldSync: isPLDSynced
+                pldSync: isPLDSynced,
+                // 🔥 FIX-C: New fields
+                contentFocus: contentFocusFromPLD,
+                pldKategori: kategoriFromPLD
             }
         }));
 
@@ -1168,6 +1254,8 @@
             console.log(`   Type: ${currentPageType} (level ${TYPE_LEVEL_MAP[currentPageType]})`);
             console.log(`   Entity: ${entityType}`);
             console.log(`   PLD Sync: ${isPLDSynced ? '✅' : '❌'}`);
+            console.log(`   Content Focus: ${contentFocusFromPLD || 'N/A'}`);
+            console.log(`   PLD Kategori: ${kategoriFromPLD || 'N/A'}`);
             console.log(`   Parents found: ${finalParents.length}`);
             console.log(`   Total levels: ${uniqueLevels.length}`);
             console.log(`   Hierarchy: ${uniqueLevels.map(i => i.type).join(' → ')}`);
@@ -1193,7 +1281,10 @@
             hierarchy: uniqueLevels.map(i => i.type),
             commercialIntent: COMMERCIAL_WORDS.some(w => currentPageTitle.startsWith(w)),
             parentNoSkip: true,
-            parentByPosition: true
+            parentByPosition: true,
+            // 🔥 FIX-C: New fields
+            contentFocus: contentFocusFromPLD,
+            pldKategori: kategoriFromPLD
         };
     }
 
@@ -1206,6 +1297,6 @@
     window.generateBreadcrumbShared = generateBreadcrumbShared;
     window.generateBreadcrumbSharedSync = generateBreadcrumbShared;
 
-    console.log(`✅ [Breadcrumb v12.3.3-LITE] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'}) — LANGSUNG TANPA LAZY LOAD`);
+    console.log(`✅ [Breadcrumb v12.3.3-LITE] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'}) — LANGSUNG TANPA LAZY LOAD + GABUNG SYNC`);
 
 })();
