@@ -2911,9 +2911,12 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
         _tempMin = _tempMin.replace(rx(_matchedBase1, 'g'), ' ');
 
         // Strip promo + noise
-        _tempMin = _tempMin.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|profesional|bersaing|kompetitif|ekonomis)\b/gi, ' ');
+                _tempMin = _tempMin.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|profesional|bersaing|kompetitif|ekonomis)\b/gi, ' ');
         _tempMin = _tempMin.replace(/\b(borongan|sistem borongan|paket borongan|all in|all-in|proyek|per proyek)\b/gi, ' ');
-
+        // 🔥 FIX-BUG-v1: strip SPEC_PHRASE_WORDS (ukuran, spesifikasi, mutu, dll)
+        // Sebelumnya kata-kata ini bikin layer count salah → hasil "variant" (harusnya "money-page")
+        _tempMin = _tempMin.replace(/\b(ukuran|spesifikasi|mutu|metode|cara kerja|panduan|fungsi|dimensi|tipe|jenis|varian|model|standar|kapasitas|faktor penentu|faktor utama|penyebab|dampak|pengaruh|efek)\b/gi, ' ');
+         
         _tempMin = _tempMin.replace(/\s+/g, ' ').trim();
         var _sisaMin = _tempMin.split(/\s+/).filter(function(w) { return w.length > 2; });
 
@@ -2994,7 +2997,7 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
         }
         _tempSw = _tempSw.replace(rx(_matchedBaseSw[0], 'g'), ' ');
 
-        var _durasiNoise = [
+         var _durasiNoise = [
           "harian","mingguan","bulanan","tahunan",
           "per jam","per hari","per minggu","per bulan",
           "short term","long term",
@@ -3007,7 +3010,9 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
           "diesel","bensin","solar","listrik","hidrolik","hydraulic",
           "tambang","pertambangan","basement","banjir","irigasi",
           "kapasitas","pengukuran","mesin",
-          "cor","jalan","kolom","balok","plat","lantai","per"
+          "cor","jalan","kolom","balok","plat","lantai","per",
+          "ukuran","spesifikasi","mutu","metode","cara kerja","panduan",
+          "fungsi","dimensi","tipe","jenis","varian","model","standar"
         ];
         for (var _dn = 0; _dn < _durasiNoise.length; _dn++) {
           _tempSw = _tempSw.replace(rx(_durasiNoise[_dn], 'g'), ' ');
@@ -4087,7 +4092,7 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
           ["jasa bore pile jakarta",          "money-child",       "jasa"],
           ["harga bore pile",                 "money-master",      "jasa"],
           ["jasa bore pile murah",            "money-master",      "jasa"],
-          ["jasa bor tanah profesional",      "money-master",      "jasa"],
+          ["jasa bor tanah profesional",      "money-page",        "jasa"],
           ["jasa bor tanah dalam profesional", "variant",          "jasa"],
           ["jasa bor tanah jakarta",          "money-child",       "jasa"],
           ["ukuran jasa bor tanah",           "money-page",        "jasa"],
