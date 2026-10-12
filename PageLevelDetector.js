@@ -3085,7 +3085,7 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
     var hasBaseService = factors.hasBaseService;
     var subPillar = detectSubPillar(text);
 
-    if (subPillar) return subPillar;
+     if (subPillar) return subPillar;
 
     if (hasLocationWord) {
       var _hasAnyBaseName = false;
@@ -3095,8 +3095,30 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
           if (rx(_baseListMC[_bmc]).test(lowerText)) { _hasAnyBaseName = true; break; }
         }
       }
-      if (hasBaseService || _hasAnyBaseName) return "money-child";
+      if (hasBaseService || _hasAnyBaseName) {
+        // 🔥 FIX-HIERARKI-v1: cek parent family dulu
+        // Parent VAR/SV + location → SV, bukan MC
+        var _locStripped = lowerText;
+        // strip location words
+        if (_MASTER.locationCities) {
+          _locStripped = _locStripped.replace(_MASTER.locationCities, ' ');
+        }
+        _locStripped = _locStripped.replace(/\b(jakarta|bogor|depok|tangerang|bekasi|bandung|semarang|surabaya|jogja|yogyakarta|malang|medan|palembang|makassar|denpasar|bali|pusat|barat|selatan|timur|utara)\b/gi, ' ');
+        _locStripped = _locStripped.replace(/\b(terdekat|sekitar|area|wilayah|daerah|kawasan|saya|dekat|near)\b/gi, ' ');
+        _locStripped = _locStripped.replace(/\s+/g, ' ').trim();
+
+        if (_locStripped && _locStripped !== lowerText) {
+          var _parentLevel = detectMoneyLevelInternal(_locStripped, entityType, true);
+          var _parentNum = LEVEL_HIERARCHY_MAP[_parentLevel] || 4;
+          if (_parentNum >= 7) {
+            return "sub-variant";
+          }
+        }
+        return "money-child";
+      }
     }
+  
+    // ... lanjut general logic
     if (hasSpecPhrase && !hasLocationWord && !hasCommercialWord) return "money-page";
 
     if (hasPerUnit && !hasPriceWord && !hasCommercialWord && !hasLocationWord && !hasSpecPhrase) return "money-page";
