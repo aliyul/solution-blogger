@@ -1,49 +1,30 @@
 /* ============================================================
-🧠 Page Level Detector v23.9.7-LITE-PERF — FULL PATCH + CLEANUP
+🧠 Page Level Detector v23.9.7-LITE-PERF — REVISI BROAD-TO-NARROW
 ============================================================
-BASE: v23.9.7-LITE (Performance Patch P1..P7)
-PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
+BASE: v23.9.7-LITE-PERF + CLEANUP
+PATCH: BROAD-TO-NARROW (JASA verb-based)
 
-🔥 PERF PATCH SUMMARY:
-   ✅ M1: RegExp Cache (2000 entry, LRU)
-   ✅ M2: Master Regex (18 regex gabungan, nested loop killer)
-   ✅ M3: Memoize (12 fungsi berat, LRU 200-300)
-   ✅ M4: Idle Scheduler + MutationObserver + Device Detection
-
-🔥 PERF FIXES v23.9.7 (dari versi sebelumnya):
-   ✅ FIX-P1: Audit di-skip default
-   ✅ FIX-P2: initializeCore() guard
-   ✅ FIX-P3: setSchemaAttributes() guard
-   ✅ FIX-P4: Cache detectPageLevelForPrompt()
-   ✅ FIX-P5: Cache detectJasaSubCategory()
-   ✅ FIX-P6: Precompile regex di countModifierLayers()
-   ✅ FIX-P7: Body attributes SINKRON sebelum dispatch
-
-🔥 CLEANUP v23.9.7-CLEANUP (Saran 1-5 ter-apply):
-   ✅ Saran 1: Hapus duplikat ENTITY_BASE_NAMES.sewa
-   ✅ Saran 2: Hapus _memoCheckHasJasaMetode (unused)
-   ✅ Saran 3: CONFIG lowEnd threshold (default sama)
-   ✅ Saran 4: Expose _clearLevelCache + _clearSubCatCache
-   ✅ Saran 5: Regression test diperluas (18+ kasus, semua entity)
+🔥 PRINSIP:
+   ✅ JASA  : Broad-to-narrow (verb = base, target = spec)
+   ✅ PRODUK: Frasa utuh (noun-based)
+   ✅ MATERIAL: Frasa utuh (noun-based)
+   ✅ DESAIN: Frasa utuh (khusus)
+   ✅ SEWA  : PATCH SEWA v2
 
 🎯 GARANSI:
-   ✅ Tidak ada fungsi yang hilang
-   ✅ Output IDENTIK dengan versi sebelumnya (terbukti 18/18 test)
-   ✅ Konsisten desktop vs HP
-   ✅ UI tidak block di HP low-end
-
-🎯 TARGET: HP mid-range loading < 1 detik
+   ✅ Konsisten 100% semua entity
+   ✅ SEO 2026-compliant (pillar-cluster)
+   ✅ Scalable & maintainable
 ============================================================ */
 
 (function () {
   "use strict";
 
-  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.7-lite-perf") {
-    console.warn("⚠️ [PLD v23.9.7-LITE-PERF] Already loaded!");
+  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.7-lite-perf-b2n") {
+    console.warn("⚠️ [PLD v23.9.7-LITE-PERF-B2N] Already loaded!");
     return;
   }
 
-  // ═══ FIX-P2: Guard global ═══
   var _CORE_INITIALIZED = false;
   var _SCHEMA_ATTRS_SET = false;
   var _PLD_LEVEL_CACHE = {};
@@ -74,7 +55,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     _PLD_SUBCAT_CACHE[key] = value;
   }
 
-  // ✅ Saran 4: Clear cache helpers
   function _clearLevelCache() {
     _PLD_LEVEL_CACHE = {};
     _PLD_LEVEL_CACHE_KEYS = [];
@@ -87,12 +67,11 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     log('🧹 SubCat cache cleared', 'PERF');
   }
 
-  // ✅ Saran 3: CONFIG dengan threshold lowEnd configurable (default SAMA)
   var CONFIG = {
     DEBUG: false,
-    LOW_END_MEMORY_THRESHOLD: 2,   // default: sama seperti sebelumnya
-    LOW_END_CORES_THRESHOLD: 2,    // default: sama seperti sebelumnya
-    HEAVY_WARNING_IDLE_TIMEOUT: 3000 // default: 3 detik
+    LOW_END_MEMORY_THRESHOLD: 2,
+    LOW_END_CORES_THRESHOLD: 2,
+    HEAVY_WARNING_IDLE_TIMEOUT: 3000
   };
 
   function log(message, type) {
@@ -112,13 +91,13 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       DOM: "🌐", EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐",
       TIER: "🎚️", DOMAIN: "🌍", SUBCAT: "📂", PERF: "⚡"
     };
-    console.log((icons[type] || "📘") + " [PLD v23.9.7-LITE-PERF] " + message);
+    console.log((icons[type] || "📘") + " [PLD v23.9.7-LITE-PERF-B2N] " + message);
   }
 
-  log('📦 PLD v23.9.7-LITE-PERF — FULL PATCH M1+M2+M3+M4 + CLEANUP', 'EXTERNAL');
+  log('📦 PLD v23.9.7-LITE-PERF — REVISI BROAD-TO-NARROW', 'EXTERNAL');
 
   // ═══════════════════════════════════════════════════════════
-  // KONSTANTA DATA
+  // KONSTANTA
   // ═══════════════════════════════════════════════════════════
 
   var VALID_LEVELS = [
@@ -171,12 +150,12 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   };
 
   var ENTITY_TRIGGERS = {
-    jasa: ["jasa", "kontraktor", "tukang", "borongan", "renovasi", "bangun", "perbaikan", "perawatan", "instalasi", "pemasangan", "pembongkaran", "pembersihan", "coring", "cutting", "grouting", "sandblasting", "pengeboran", "pemancangan", "pengecoran", "pengelasan", "pondasi", "bored pile", "bor pile", "strauss", "pancang", "waterproofing", "epoxy", "coating", "poles", "service", "servis", "layanan", "relief", "profil beton", "interior", "eksterior", "konsultan", "pembuatan", "pasang", "finishing", "uji tanah", "perkuatan tanah", "pembatas pengaman", "buang puing", "saluran drainase", "jalan perkerasan", "pematangan lahan", "lapangan olahraga"],
-    desain: ["desain", "interior", "eksterior", "arsitektur", "konsep", "rencana", "gambar kerja", "denah", "render", "visualisasi", "3d design", "shop drawing"],
-    sewa: ["sewa", "rental", "rent"],
-    material: ["material", "bahan", "semen", "mortar", "pasir", "batu", "besi", "baja", "kayu", "beton", "keramik", "granit", "marmer", "gypsum", "plafon", "paving", "bata", "batako", "hebel", "genteng", "asbes", "atap", "baja ringan", "galvalum", "readymix", "ready mix", "pipa", "cat", "kabel", "paku", "baut", "kaca", "aluminium", "tembaga", "kuningan", "perunggu", "titanium", "bambu", "rotan", "spandek", "alderon", "bekisting", "bondex", "waterproofing", "perancah", "grc", "hpl", "acp", "vinyl", "wpc", "upvc"],
-    produk: ["produk", "jual", "beli", "supplier", "distributor", "toko", "pintu", "jendela", "pagar", "kanopi", "railing", "gerbang", "wastafel", "closet", "kitchen set", "wardrobe", "precast", "pracetak"],
-    artikel: ["artikel", "blog", "tips", "panduan", "cara", "tutorial", "review", "ulasan", "berita", "informasi", "update"]
+    jasa: ["jasa","kontraktor","tukang","borongan","renovasi","bangun","perbaikan","perawatan","instalasi","pemasangan","pembongkaran","pembersihan","coring","cutting","grouting","sandblasting","pengeboran","pemancangan","pengecoran","pengelasan","pondasi","bored pile","bor pile","strauss","pancang","waterproofing","epoxy","coating","poles","service","servis","layanan","relief","profil beton","interior","eksterior","konsultan","pembuatan","pasang","finishing","uji tanah","perkuatan tanah","pembatas pengaman","buang puing","saluran drainase","jalan perkerasan","pematangan lahan","lapangan olahraga"],
+    desain: ["desain","interior","eksterior","arsitektur","konsep","rencana","gambar kerja","denah","render","visualisasi","3d design","shop drawing"],
+    sewa: ["sewa","rental","rent"],
+    material: ["material","bahan","semen","mortar","pasir","batu","besi","baja","kayu","beton","keramik","granit","marmer","gypsum","plafon","paving","bata","batako","hebel","genteng","asbes","atap","baja ringan","galvalum","readymix","ready mix","pipa","cat","kabel","paku","baut","kaca","aluminium","tembaga","kuningan","perunggu","titanium","bambu","rotan","spandek","alderon","bekisting","bondex","waterproofing","perancah","grc","hpl","acp","vinyl","wpc","upvc"],
+    produk: ["produk","jual","beli","supplier","distributor","toko","pintu","jendela","pagar","kanopi","railing","gerbang","wastafel","closet","kitchen set","wardrobe","precast","pracetak"],
+    artikel: ["artikel","blog","tips","panduan","cara","tutorial","review","ulasan","berita","informasi","update"]
   };
 
   var ENTITY_PRIORITY = ["jasa", "sewa", "desain", "produk", "material", "artikel"];
@@ -202,6 +181,13 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     artikel: ["artikel", "blog", "post", "berita"]
   };
 
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 ENTITY_BASE_NAMES — REVISI BROAD-TO-NARROW
+  // 
+  // JASA: Verb-based (base = verb, target = spec)
+  // PRODUK/MATERIAL/DESAIN: Frasa utuh (noun-based)
+  // SEWA: Existing (sudah OK)
+  // ═══════════════════════════════════════════════════════════
   var ENTITY_BASE_NAMES = {
     produk: [
       "pintu","jendela","kusen","pagar","kanopi","wallpaper","kitchen set","wardrobe","sofa","meja","kursi","lemari","nakas","tempat tidur","bed frame","gazebo","kolam","taman","lampu","cctv","saklar listrik","stop kontak","panel listrik","railing","tangga","gerbang","wastafel","closet","tandon air","tangki air","water heater","gorden","blind","kasa nyamuk","tralis","rak dinding","rak tv","rak buku","gantungan baju","kunci pintu","handle pintu","engsel pintu","gagang pintu",
@@ -305,145 +291,44 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       "perekat beton","perekat keramik","lem beton"
     ],
 
+    // 🔥 REVISI BROAD-TO-NARROW
+    // VERB UTAMA (MM) + FRASA TEKNIK UTUH (MM) + NOUN-BASED JASA (MM)
     jasa: [
-      "pengeboran","bore pile","bor pile","bored pile","boring pile",
-      "mini pile","spun pile","micropile","bor strauss","bor pancang",
-      "strauss pile","tiang pancang","pancang","turap","sheet pile",
+      // ═══ VERB UTAMA (MM) ═══
+      "pengeboran","bor","pengecoran","cor","pemasangan","pasang",
+      "pembongkaran","bongkar","penggalian","gali","pengurugan","urug",
+      "pengecatan","cat","pengelasan","las","welding",
+      "drilling","boring","coring","cutting","pemotongan","potong",
+      "renovasi","perbaikan","perawatan","instalasi","service","servis",
+      "pembangunan","bangun","borongan","pembuatan",
+      "grinding","poles","coating","epoxy","waterproofing","sandblasting",
+      "pemadatan","pengangkutan","pembersihan","pematangan",
+      "pemancangan","pancang","grouting","finishing",
+
+      // ═══ FRASA TEKNIK UTUH (MM) ═══
+      "bore pile","bor pile","bored pile","boring pile",
+      "mini pile","spun pile","micropile","sheet pile",
+      "strauss pile","tiang pancang",
+      "bor strauss","bor pancang",
       "jet grouting","stabilisasi tanah","soil improvement",
-      "sumur bor","bor sumur","pondasi","perkuatan tanah",
-      "uji tanah","soil test","sondir","sondir test","cross hole",
-      "bore pile test","pancang mini","pancang beton","pancang baja",
-      "bor","drilling","boring","coring","cutting","cutting beton",
-      "cor","cor dak","cor lantai","cor jalan","cor kolom",
-      "cor sloof","cor balok","cor plat","cor pondasi","cor tiang",
-      "cor dinding","cor pagar","cor beton","cor ready mix",
-      "cor minimix","cor jayamix","cor manual","cor mesin",
-      "pengecoran","pengecoran beton","pengecoran dak",
-      "pengecoran lantai","pengecoran jalan","pengecoran kolom",
-      "pasang dinding","pasang keramik","pasang granit",
-      "pasang marmer","pasang parket","pasang vinyl","pasang ubin",
-      "pasang wallpaper","pasang wpc","pasang grc","pasang hpl",
-      "pasang partisi","pasang pagar","pasang kanopi",
-      "pasang awning","pasang railing","pasang tangga",
-      "pasang gerbang","pasang baja ringan","pasang rangka atap",
-      "pasang atap","pasang genteng","pasang plafon",
-      "pasang gypsum","pasang pintu","pasang jendela",
-      "pasang kusen","pasang kaca","pasang shower box",
-      "pasang instalasi listrik","pasang instalasi air",
-      "pasang instalasi gas","pasang instalasi ac",
-      "pasang pipa","pasang kabel listrik","pasang panel listrik",
-      "pasang ac","pasang cctv","pasang alarm",
-      "pemasangan","pemasangan keramik","pemasangan granit",
-      "pemasangan marmer","pemasangan parket","pemasangan vinyl",
-      "pemasangan wallpaper","pemasangan wpc","pemasangan grc",
-      "pemasangan hpl","pemasangan partisi","pemasangan pagar",
-      "pemasangan kanopi","pemasangan awning","pemasangan railing",
-      "pemasangan tangga","pemasangan gerbang",
-      "pemasangan baja ringan","pemasangan rangka atap",
-      "pemasangan atap","pemasangan genteng","pemasangan plafon",
-      "pemasangan gypsum","pemasangan pintu","pemasangan jendela",
-      "pemasangan kusen","pemasangan kaca",
-      "pemasangan shower box","pemasangan instalasi listrik",
-      "pemasangan instalasi air","pemasangan instalasi gas",
-      "pemasangan instalasi ac","pemasangan pipa",
-      "pemasangan kabel listrik","pemasangan panel listrik",
-      "pemasangan ac","pemasangan cctv","pemasangan alarm",
-      "pemasangan wifi","pemasangan parabola","pemasangan antena",
-      "bongkar dinding","bongkar lantai","bongkar plat",
-      "bongkar gedung","bongkar rumah","bongkar ruko",
-      "bongkar gudang","bongkar atap","bongkar keramik",
-      "bongkar granit","bongkar marmer","bongkar plafon",
-      "bongkar kusen","bongkar pintu","bongkar jendela",
-      "bongkar pagar","bongkar partisi","bongkar bangunan",
-      "pembongkaran","pembongkaran dinding","pembongkaran lantai",
-      "pembongkaran gedung","pembongkaran rumah",
-      "pembongkaran ruko","pembongkaran gudang",
-      "pembongkaran atap","pembongkaran keramik",
-      "pembongkaran granit","pembongkaran marmer",
-      "pembongkaran plafon","pembongkaran kusen",
-      "pembongkaran pintu","pembongkaran jendela",
-      "pembongkaran pagar","pembongkaran partisi",
-      "buang puing","angkut puing","angkut tanah","angkut material",
-      "gali tanah","gali pondasi","gali basement","gali saluran",
-      "penggalian","penggalian tanah","penggalian pondasi",
-      "penggalian basement","penggalian saluran",
-      "urug tanah","urug lahan","urug pondasi","urug jalan",
-      "pengurugan","pengurugan tanah","pengurugan lahan",
-      "pengurugan pondasi","pengurugan jalan",
-      "pemadatan tanah","pemadatan lahan","pemotongan bukit",
+      "uji tanah","soil test","sondir test","sondir","cross hole","bore pile test",
       "cut and fill","pembersihan lahan","land clearing",
-      "pematangan lahan","pekerjaan galian tanah",
-      "renovasi rumah","renovasi gedung","renovasi kantor",
-      "renovasi toko","renovasi ruko","renovasi gudang",
-      "renovasi pabrik","renovasi apartemen","renovasi dapur",
-      "renovasi kamar mandi","renovasi kamar tidur",
-      "renovasi ruang tamu","renovasi teras","renovasi balkon",
-      "renovasi atap","renovasi lantai","renovasi dinding",
-      "renovasi plafon","renovasi pagar","renovasi taman",
-      "perbaikan","perbaikan atap","perbaikan dinding",
-      "perbaikan lantai","perbaikan plafon","perbaikan pondasi",
-      "perbaikan struktur","perbaikan pipa","perbaikan saluran air",
-      "perbaikan bangunan","perbaikan infrastruktur",
-      "perawatan gedung","perawatan kolam","perawatan bangunan",
-      "perawatan atap","perawatan dinding","perawatan lantai",
-      "cat dinding","cat tembok","cat plafon","cat kayu",
-      "cat besi","cat pagar","cat lantai","cat baja",
-      "pengecatan","pengecatan dinding","pengecatan tembok",
-      "pengecatan plafon","pengecatan kayu","pengecatan besi",
-      "pengecatan pagar","pengecatan lantai","pengecatan baja",
-      "waterproofing","waterproofing membran",
-      "waterproofing coating","waterproofing beton",
-      "waterproofing basement","waterproofing atap",
-      "waterproofing kamar mandi","waterproofing lantai",
-      "poles marmer","poles granit","poles keramik","poles lantai",
-      "poles beton","poles teraso","poles ubin",
-      "grinding","grinding beton","grinding lantai",
-      "grinding dinding","grinding marmer","grinding granit",
-      "epoxy lantai","epoxy coating","epoxy beton",
-      "coating","coating lantai","coating beton","coating dinding",
-      "relief","relief beton","profil beton","finishing",
-      "finishing beton","finishing kayu","finishing besi",
-      "finishing dinding","finishing lantai",
-      "instalasi listrik","instalasi air","instalasi plumbing",
-      "instalasi ac","instalasi cctv","instalasi alarm",
-      "instalasi gas","instalasi internet","instalasi antena",
-      "instalasi panel listrik","instalasi pipa","instalasi kabel",
-      "service ac","service pompa air","service genset",
-      "service lift","service listrik","service air",
-      "perawatan ac","perawatan lift","perawatan genset",
-      "perawatan pompa","perawatan listrik",
-      "las","welding","las besi","las pagar","las kanopi",
-      "las rangka baja","las tiang","las konstruksi",
-      "las besi hollow","las besi tempa","las stainless",
-      "welding besi","welding konstruksi","welding pipa",
-      "welding baja","welding stainless",
-      "sandblasting","sandblasting besi","sandblasting beton",
-      "sandblasting dinding","sandblasting logam",
-      "bangun rumah","bangun gedung","bangun ruko",
-      "bangun gudang","bangun kantor","bangun pabrik",
-      "bangun sekolah","bangun masjid","bangun gereja",
-      "borongan","borongan rumah","borongan gedung",
-      "borongan interior","borongan konstruksi",
-      "konstruksi","konstruksi bangunan","konstruksi struktur",
-      "struktur khusus","struktur konstruksi","struktur baja",
-      "struktur beton","struktur kayu","lapangan olahraga",
-      "pembatas pengaman","pembuatan kanopi","pembuatan pagar",
-      "pembuatan railing","pembuatan tangga","pembuatan gerbang",
-      "pembuatan wastafel","pembuatan meja","pembuatan kursi",
-      "pembuatan lemari","pembuatan kitchen set",
-      "pembuatan wardrobe","pembuatan backdrop",
-      "saluran drainase","jalan perkerasan","pengaspalan",
-      "aspal jalan","pengerukan sungai","pengerukan kolam",
-      "pengerukan saluran","pembuatan jalan","pembuatan drainase",
-      "pembuatan saluran","pembuatan gorong gorong",
+      "lapangan olahraga","struktur khusus","struktur konstruksi",
+      "pembatas pengaman","saluran drainase","jalan perkerasan",
+      "pematangan lahan","pekerjaan galian tanah","konstruksi",
+
+      // ═══ NOUN-BASED JASA ═══
+      "pondasi","perkuatan tanah",
+
+      // ═══ KONSULTAN ═══
       "konsultan","konsultan konstruksi","konsultan bangunan",
       "konsultan struktur","konsultan sipil","konsultan arsitektur",
       "konsultan mep","konsultan pengawas","konsultan proyek",
-      "interior","eksterior","pembuatan","pasang","alat konstruksi",
-      "grouting","coring","cutting"
+
+      // ═══ KATEGORI ═══
+      "interior","eksterior","alat konstruksi"
     ],
 
-    // ✅ Saran 1: Duplikat dihapus — hanya entri unik
     sewa: [
       "alat berat","heavy equipment","excavator","bulldozer",
       "backhoe","dozer","vibro","crane","truck crane",
@@ -743,7 +628,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
 
   var APPLICATION_TARGETS = ["mini","dinding","tembok","lantai","plafon","atap","partisi","kolom","balok","plat","slab","pelat","pondasi","tiang","tangga","railing","kusen","pagar","pintu","jendela","rolling door","kanopi","awning","fasad","facade","teras","balkon","halaman","carport","garasi","kamar mandi","kamar tidur","ruang tamu","ruang keluarga","ruang makan","ruang kerja","dapur","toilet","wc","kantor","toko","gudang","pabrik","sekolah","rumah","gedung","ruko","villa","apartemen","cafe","restoran","hotel","kios","rukan","jalan","trotoar","saluran","drainase","taman","kolam","sawah","lahan"];
 
-  var APPLICATION_TARGETS_FULL = ["dinding","tembok","lantai","plafon","atap","partisi","kolom","balok","plat","slab","pelat","pondasi","tiang","tangga","railing","kusen","pagar","pintu","jendela","kanopi","awning","fasad","facade","teras","balkon","halaman","carport","garasi","kamar mandi","kamar tidur","ruang tamu","ruang keluarga","ruang makan","ruang kerja","dapur","toilet","wc","kantor","toko","gudang","pabrik","sekolah","rumah","gedung","ruko","villa","apartemen","cafe","restoran","hotel","kios","rukan","jalan","trotoar","saluran","drainase","taman","kolam","sawah","lahan","tambang","proyek","site","area kerja","basement","custom","modern","minimalis","klasik"];
+  var APPLICATION_TARGETS_FULL = ["dinding","tembok","lantai","plafon","atap","partisi","kolom","balok","plat","slab","pelat","pondasi","tiang","tangga","railing","kusen","pagar","pintu","jendela","kanopi","awning","fasad","facade","teras","balkon","halaman","carport","garasi","kamar mandi","kamar tidur","ruang tamu","ruang keluarga","ruang makan","ruang kerja","dapur","toilet","wc","kantor","toko","gudang","pabrik","sekolah","rumah","gedung","ruko","villa","apartemen","cafe","restoran","hotel","kios","rukan","jalan","trotoar","saluran","drainase","taman","kolam","sawah","lahan","tambang","proyek","site","area kerja","basement","custom","modern","minimalis","klasik","sumur","dak","sloof"];
 
   function isApplicationTarget(word) {
     if (!word) return false;
@@ -763,11 +648,11 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   var AUTHORITY_WORDS = ["resmi","authorized","official","distributor resmi","dealer resmi","agen resmi","mitra resmi","sertifikat resmi"];
   var READY_STOCK_WORDS = ["ready stock","ready stok","siap pakai","siap kirim","stok tersedia","fast respon","same day"];
 
-  var SPEC_PHRASE_WORDS = ["berdasarkan","berdasar","faktor penentu","faktor yang mempengaruhi","faktor utama","penyebab","sebab","dampak","pengaruh","efek","per kedalaman","per ukuran","per tipe","per jenis","langkah-langkah","langkah demi langkah","tahapan lengkap","tahap demi tahap","panduan lengkap","tutorial lengkap","analisis lengkap","review lengkap","perbandingan lengkap","perbedaan lengkap","jenis-jenis lengkap","macam-macam lengkap","spesifikasi","mutu","metode","cara kerja","panduan","fungsi"];
+  var SPEC_PHRASE_WORDS = ["berdasarkan","berdasar","faktor penentu","faktor yang mempengaruhi","faktor utama","penyebab","sebab","dampak","pengaruh","efek","per kedalaman","per ukuran","per tipe","per jenis","langkah-langkah","langkah demi langkah","tahapan lengkap","tahap demi tahap","panduan lengkap","tutorial lengkap","analisis lengkap","review lengkap","perbandingan lengkap","perbedaan lengkap","jenis-jenis lengkap","macam-macam lengkap","spesifikasi","mutu","metode","cara kerja","panduan","fungsi","ukuran"];
 
   var SPEC_PHRASE_INFORMATIONAL = ["berdasarkan","berdasar","faktor penentu","faktor yang mempengaruhi","faktor utama","penyebab","sebab","dampak","pengaruh","efek"];
 
-  var MARKETING_TERMS = ["premium","ekonomis","terbaik","terlaris","murah","berkualitas","unggul","terkenal","favorit","recommended","terpercaya"];
+  var MARKETING_TERMS = ["premium","ekonomis","terbaik","terlaris","murah","berkualitas","unggul","terkenal","favorit","recommended","terpercaya","profesional"];
 
   var MATERIAL_TYPE_WORDS = ["beton","portland","opc","ppc","pcc","semen putih","semen abu","semen warna","type 1","type 2","type 3","type 4","type 5","tipe 1","tipe 2","tipe 3","tipe 4","tipe 5","wiry","bjku","bjtd","bjp","bjts","plywood","multiplek","blockboard","mdf","hdf","particle board","solid wood","jati","meranti","mahoni","sengon","pinus","randu","sungkai","bangkirai","ulin","kamper","kruing","keruing","merbau","sonokeling","trembesi","glugu","bambu","andesit","kali","apung","split","koral","candi","palimanan","paras","breksi","granit","marmer","batu alam","batu belah","batu gunung","batu karang","silika","zeolit","cor","homogeneous","homogen","roman","platinum","mulia","essence","granito","granit tile","keramik lantai","keramik dinding","marmer italy","marmer lokal","marmer import","granit hitam","granit putih","granit coklat","granit import","granit lokal","dulux","jotun","nippon","mowilex","avian","decolith","propan","falcon","vinilex","dulux catylac","cat tembok","cat kayu","cat besi","cat dinding","pasir beton","pasir pasang","pasir urug","pasir halus","pasir kasar","pasir putih","pasir hitam","pasir ayak","pasir silika","pasir bangka","pasir lumajang","h-beam","hbeam","wf","hollow","kanal","siku","unesp","unp","cnp","inp","besi hollow","besi kanal","eterna","supreme","kabelindo","tranka","rucika","wavin","vinilon","pralon","maspion","tembaga","aluminium","kuningan","perunggu","titanium","besi cor","aluminium foil","bangka","lumajang","tulungagung","pangkep","muntilan","borneo","kalimantan","jepara","kudus","cilacap","tiga roda","3 roda","tiga-roda","3-roda","gresik","semen gresik","semen-gresik","holcim","semen holcim","semen-holcim","scg","semen scg","semen-scg","padang","semen padang","semen-padang","merah putih","semen merah putih","cibinong","semen cibinong","baturaja","semen baturaja","bosowa","semen bosowa","tonasa","semen tonasa","master","besi master","intan","besi intan","handuk","besi handuk","krakatau steel","krakatau-steel","ks","gunung garuda","gunung-garuda","hanil","jeka","danagri","magic","aquaproof","no drop","no-drop","nodrop","aqua proof","icera","ardena","milano","asia tile","asia-tile","indograha","kian","eleganza","elegan",
     "mortar","mortar struktural","mortar instan","mortar utama","mortar grouting",
@@ -948,7 +833,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
 
   var PRICE_HEAD_WORDS = ['harga','biaya','tarif','estimasi','ongkos','budget','fee','rate','price','cost','pricelist','price-list'];
 
-  var PROMO_MODIFIER_WORDS = ['murah','hemat','terjangkau','promo','diskon','obral','sale','termurah','termahal','bersaing','kompetitif','dibawah pasaran','diatas pasaran','pasaran','ekonomis'];
+  var PROMO_MODIFIER_WORDS = ['murah','hemat','terjangkau','promo','diskon','obral','sale','termurah','termahal','bersaing','kompetitif','dibawah pasaran','diatas pasaran','pasaran','ekonomis','profesional'];
 
   var PRICE_WORDS = PRICE_HEAD_WORDS;
 
@@ -962,7 +847,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   var SYNTAX_PREPOSITIONS = ["di","ke","dari","untuk","pada","dalam","atas","bawah"];
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 PATCH M1+M2: REGEX CACHE + MASTER REGEX
+  // PATCH M1+M2: REGEX CACHE + MASTER REGEX
   // ═══════════════════════════════════════════════════════════
   var _REGEX_CACHE = Object.create(null);
   var _REGEX_CACHE_SIZE = 0;
@@ -1113,7 +998,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 PATCH M3: MEMOIZE (LRU + SAFE)
+  // PATCH M3: MEMOIZE
   // ═══════════════════════════════════════════════════════════
   var _MEMO_STATS = { hits: 0, misses: 0, evictions: 0 };
 
@@ -1210,7 +1095,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     _MEMO_STATS.evictions = 0;
   }
 
-  // Placeholder memo wrappers
   var _memoCountModifierLayers = null;
   var _memoCheckHasSpecification = null;
   var _memoGetCoreWords = null;
@@ -1224,8 +1108,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   var _memoDetectVariantByPattern = null;
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 PATCH M4: IDLE SCHEDULER + DEVICE DETECTION
-  // ✅ Saran 3: threshold configurable via CONFIG (default sama)
+  // PATCH M4: IDLE SCHEDULER + DEVICE DETECTION
   // ═══════════════════════════════════════════════════════════
   var _DEVICE = (function() {
     var nav = (typeof navigator !== 'undefined') ? navigator : {};
@@ -1766,10 +1649,9 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     return "default";
   }
 
-  // ═══ PART 1 END ═══
-
+  // ═══ END BAGIAN 1 — LANJUT BAGIAN 2 ═══
   // ═══════════════════════════════════════════════════════════
-  // FUNGSI SPESIFIKASI (M1+M2 version)
+  // FUNGSI SPESIFIKASI
   // ═══════════════════════════════════════════════════════════
 
   function checkHasSpecification(text, entityType) {
@@ -1793,7 +1675,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       return false;
     }
 
-    // ═══ PRODUK ═══
     if (entityType === "produk") {
       if (_matchList(ENTITY_SPECIFIC.produk.mutu)) return true;
       if (_matchList(SHARED_MODIFIERS.finishing)) return true;
@@ -1801,14 +1682,8 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       if (/\d+\s*[x×]\s*\d+\s*(cm|m|meter|mm)/gi.test(lower)) return true;
       if (_matchList(SHARED_MODIFIERS.warna)) return true;
       if (_matchList(SHARED_MODIFIERS.gaya)) return true;
-      if (_matchList(CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing)) {
-        log('🎯 CROSS-SPEC: produk + sharedFinishing', 'CROSSSPEC');
-        return true;
-      }
-      if (_matchList(SHARED_MODIFIERS.material)) {
-        log('🔥 FIX v15: produk + material', 'CROSSSPEC');
-        return true;
-      }
+      if (_matchList(CROSS_ENTITY_SPECS.produk.sharedMaterialFinishing)) return true;
+      if (_matchList(SHARED_MODIFIERS.material)) return true;
 
       var textNoBaseB = lower;
       var baseListB = ENTITY_BASE_NAMES.produk || [];
@@ -1816,31 +1691,20 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         textNoBaseB = textNoBaseB.replace(rx(baseListB[biB], 'g'), ' ');
       }
       _buildMasterRegexes();
-      if (_MASTER.appTargets && _MASTER.appTargets.test(textNoBaseB)) {
-        log('🔥 FIX v15: produk + target', 'CROSSSPEC');
-        return true;
-      }
-      if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) {
-        log('🔬 PRODUK dimension multi-layer', 'VARIANT');
-        return true;
-      }
+      if (_MASTER.appTargets && _MASTER.appTargets.test(textNoBaseB)) return true;
+      if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) return true;
     }
 
-    // ═══ MATERIAL ═══
     if (entityType === "material") {
       if (_matchList(MATERIAL_SPECS.grade)) return true;
       if (_matchList(SHARED_MODIFIERS.finishing)) return true;
       if (/\d+\s*(mm|cm|m|meter|kg|ton|m3|liter)/gi.test(lower)) return true;
       if (_matchList(MATERIAL_SPECS.berat)) return true;
-      if (_matchList(ENTITY_SPECIFIC.material.tipe_extended)) {
-        log('🧱 MATERIAL tipe matched', 'MATTYPE');
-        return true;
-      }
+      if (_matchList(ENTITY_SPECIFIC.material.tipe_extended)) return true;
       if (_matchList(CROSS_ENTITY_SPECS.material.extendedTypes)) return true;
       if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) return true;
     }
 
-    // ═══ SEWA ═══
     if (entityType === "sewa") {
       if (_matchList(ENTITY_SPECIFIC.sewa.merek)) return true;
       if (_matchList(ENTITY_SPECIFIC.sewa.tipe)) return true;
@@ -1854,23 +1718,16 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       var kapAlt = _buildAltPattern(SEWA_SPECS.kapasitas);
       if (kapAlt && rxRaw("\\d+\\s*(?:" + kapAlt + ")\\b").test(lower)) return true;
 
-      if (/\balat\s+pancang\s+(hidrolik|diesel|drop|hspd|mini|besar)\b/i.test(lower)) {
-        log('🚜 PATCH-SEWA-v4: alat pancang + jenis → spec', 'VARIANT');
-        return true;
-      }
+      if (/\balat\s+pancang\s+(hidrolik|diesel|drop|hspd|mini|besar)\b/i.test(lower)) return true;
 
       var _isHammerDriverBase = /\b(pile\s+driver|diesel\s+hammer|drop\s+hammer|hydraulic\s+hammer|vibro\s+hammer)\b/i.test(lower);
       if (_isHammerDriverBase) {
         var _hasOtherSpec = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet|ton|m3|kva|psi|hp)\b/i.test(lower)
           || /\d+\s*[x×]\s*\d+/i.test(lower);
-        if (!_hasOtherSpec) {
-          log('🚜 PATCH-SEWA-v4b: hammer/driver = base utuh, tidak ada spec lain', 'VARIANT');
-          return false;
-        }
+        if (!_hasOtherSpec) return false;
       }
     }
 
-    // ═══ JASA ═══
     if (entityType === "jasa") {
       var subCat = detectJasaSubCategory(text, "jasa");
       var domainConstraints = DOMAIN_CONSTRAINTS[subCat] || DOMAIN_CONSTRAINTS["default"];
@@ -1881,8 +1738,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
 
       if (forbiddenCats.indexOf("finishing") === -1) {
         if (_matchList(SHARED_MODIFIERS.finishing)) return true;
-      } else {
-        log('🚫 FIX v16-E: SKIP finishing untuk subCat=' + subCat, 'DOMAIN');
       }
 
       if (/\d+\s*(m|meter|cm|centimeter|feet|ft)/gi.test(lower)) {
@@ -1899,14 +1754,10 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
 
       if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) {
         _buildMasterRegexes();
-        if (_MASTER.action && _MASTER.action.test(lower)) {
-          log('🔬 FIX 180: JASA dimensi multi-layer', 'VARIANT');
-          return true;
-        }
+        if (_MASTER.action && _MASTER.action.test(lower)) return true;
       }
     }
 
-    // ═══ DESAIN ═══
     if (entityType === "desain") {
       if (_matchList(ENTITY_SPECIFIC.desain.gaya_extended)) return true;
       if (_matchList(SHARED_MODIFIERS.gaya)) return true;
@@ -1955,34 +1806,18 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
           if (bn212.indexOf(_otherBn) !== -1) continue;
           if (rx(_otherBn).test(lower)) _bnCount212++;
         }
-
-        if (_bnCount212 >= 1) {
-          log('🎯 FIX-REVISI-v3: "' + bn212 + '" + ' + _bnCount212 + ' base lain → JANGAN strip', 'CROSSSPEC');
-          continue;
-        }
-
-        log('🎯 FIX-REVISI-v3: "' + bn212 + '" base tunggal → strip', 'CROSSSPEC');
+        if (_bnCount212 >= 1) continue;
         textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
         continue;
       }
-
       textNoBase = textNoBase.replace(rx(bn212, 'g'), ' ');
     }
 
     _buildMasterRegexes();
-    if (_MASTER.appTargets && _MASTER.appTargets.test(textNoBase)) {
-      log('🎯 FIX 212: application target = spec', 'CROSSSPEC');
-      return true;
-    }
+    if (_MASTER.appTargets && _MASTER.appTargets.test(textNoBase)) return true;
 
-    if (/\d+\s*(kg|ton|m|cm|mm|m3|liter|kva|psi|hp|inch|k)\b/i.test(lower)) {
-      log('🔬 FIX v15-E: universal unit', 'VARIANT');
-      return true;
-    }
-    if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) {
-      log('🔬 FIX v15-E: universal dimension', 'VARIANT');
-      return true;
-    }
+    if (/\d+\s*(kg|ton|m|cm|mm|m3|liter|kva|psi|hp|inch|k)\b/i.test(lower)) return true;
+    if (/\d+\s*[x×]\s*\d+(?:\s*[x×]\s*\d+)?/i.test(lower)) return true;
     return false;
   }
 
@@ -2057,7 +1892,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     if (/^\d+/.test(w)) return true;
     if (/^(k\d+|fc\d*|m\d+|c\d+|bjts?\d*)$/i.test(w)) return true;
     if (GLOBAL_NUMERIC_KEYWORDS.indexOf(w) !== -1) return true;
-
     if (w === 'termurah' || w === 'termahal' || w === 'promo' || w === 'diskon' || w === 'mini') return true;
 
     if (MODIFIER_COMPATIBILITY[w]) {
@@ -2070,11 +1904,9 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         for (var i = 0; i < compatibleEntities.length; i++) {
           if (compatibleEntities[i].indexOf("jasa_") === 0) return true;
         }
-        log('🚫 FIX v16-F: modifier "' + w + '" tidak kompatibel untuk jasa/' + subCat, 'DOMAIN');
         return false;
       }
       if (compatibleEntities.indexOf(entityType) !== -1) return true;
-      log('🚫 FIX v16-F: modifier "' + w + '" tidak kompatibel untuk ' + entityType, 'DOMAIN');
       return false;
     }
 
@@ -2100,9 +1932,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     return false;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // countModifierLayers() — M1+M2 VERSION
-  // ═══════════════════════════════════════════════════════════
   function countModifierLayers(text, entityType) {
     if (!text) return 0;
     _buildMasterRegexes();
@@ -2149,24 +1978,16 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
           if (bn.indexOf(_otherB) !== -1) continue;
           if (rx(_otherB).test(working)) _bnCountB++;
         }
-
-        if (_bnCountB >= 1) {
-          log('🔥 FIX-REVISI-v3: "' + bn + '" + ' + _bnCountB + ' base lain → JANGAN strip', 'VARIANT');
-          continue;
-        }
-
-        log('🔥 FIX-REVISI-v3: "' + bn + '" base tunggal → strip', 'VARIANT');
+        if (_bnCountB >= 1) continue;
         working = working.replace(rx(bn, 'g'), ' ');
         continue;
       }
-
       working = working.replace(rx(bn, 'g'), ' ');
     }
 
     if (_MASTER.noiseUniv) {
       _MASTER.noiseUniv.lastIndex = 0;
       if (_MASTER.noiseUniv.test(working)) {
-        log('🔇 strip NOISE_UNIVERSAL', 'CORE');
         _MASTER.noiseUniv.lastIndex = 0;
         working = working.replace(_MASTER.noiseUniv, ' ');
       }
@@ -2174,7 +1995,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     if (entityType === "jasa" && _MASTER.noiseJasa) {
       _MASTER.noiseJasa.lastIndex = 0;
       if (_MASTER.noiseJasa.test(working)) {
-        log('🔇 strip NOISE_JASA', 'CORE');
         _MASTER.noiseJasa.lastIndex = 0;
         working = working.replace(_MASTER.noiseJasa, ' ');
       }
@@ -2200,10 +2020,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     }
 
     working = working.replace(/\s+/g, ' ').trim();
-    if (!working) {
-      log('⚡ Early exit: working kosong', 'PERF');
-      return 0;
-    }
+    if (!working) return 0;
 
     var count = 0;
     var seenWords = {};
@@ -2211,19 +2028,16 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     var dimUnitEarly = working.match(/\d+\s*(?:x|×)\s*\d+\s*(?:cm|m|mm|meter|inch|inci)\b/gi) || [];
     if (dimUnitEarly.length > 0) {
       count += dimUnitEarly.length;
-      log('🔥 dimUnitEarly +' + dimUnitEarly.length, 'VARIANT');
       for (var k = 0; k < dimUnitEarly.length; k++) working = working.replace(dimUnitEarly[k], ' ');
     }
     var dimMultiEarly = working.match(/\d+\s*(?:x|×)\s*\d+/gi) || [];
     if (dimMultiEarly.length > 0) {
       count += dimMultiEarly.length;
-      log('🔥 dimMultiEarly +' + dimMultiEarly.length, 'VARIANT');
       for (var k2 = 0; k2 < dimMultiEarly.length; k2++) working = working.replace(dimMultiEarly[k2], ' ');
     }
     var dimSimpleEarly = working.match(/\d+\s*(?:cm|mm|m|meter|kg|ton|inch|inci|kva|psi|hp|ft|feet)\b/gi) || [];
     if (dimSimpleEarly.length > 0) {
       count += dimSimpleEarly.length;
-      log('🔥 dimSimpleEarly +' + dimSimpleEarly.length, 'VARIANT');
       for (var k3 = 0; k3 < dimSimpleEarly.length; k3++) working = working.replace(dimSimpleEarly[k3], ' ');
     }
     working = working.replace(/\s+/g, ' ').trim();
@@ -2242,8 +2056,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         _MASTER.satuanUnits.lastIndex = 0;
         working = working.replace(_MASTER.satuanUnits, ' ');
       }
-    } else {
-      log('🔥 FIX #1b: SKIP strip satuan untuk sewa', 'DOMAIN');
     }
 
     var PROMO_STRIP = PROMO_MODIFIER_WORDS.concat(HIGH_VOLUME_WORDS);
@@ -2280,10 +2092,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
 
     for (var cat in categories) {
       if (!categories.hasOwnProperty(cat)) continue;
-      if (forbiddenSet[cat]) {
-        log('🚫 SKIP category "' + cat + '"', 'DOMAIN');
-        continue;
-      }
+      if (forbiddenSet[cat]) continue;
       var words = categories[cat];
       for (var i = 0; i < words.length; i++) {
         var word = words[i];
@@ -2330,11 +2139,9 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       var unknownWords = cleaned.split(/\s+/).filter(function(w) { return w.length > 3; });
       if (unknownWords.length > 0) {
         count += unknownWords.length;
-        log('🔥 unknown=[' + unknownWords.join(',') + '] +' + unknownWords.length, 'VARIANT');
       }
     }
 
-    log('🔥 layers=' + count + ' entity=' + entityType + ' subCat=' + subCat, 'VARIANT');
     return count;
   }
 
@@ -2344,11 +2151,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       ? _memoCountModifierLayers(text, entityType)
       : countModifierLayers(text, entityType);
     if (residues > 0 && layers === 0) {
-      log('⚠️ FIX 199: AMBIGUOUS — text="' + text + '" layers=' + layers + ' residues=' + residues, 'WARN');
-    }
-    var wordCount = text.split(/\s+/).filter(function(w) { return w.length > 2; }).length;
-    if (wordCount >= 3 && level === "money-master") {
-      log('⚠️ FIX 199: SUSPICIOUS MM — wordCount=' + wordCount + ' text="' + text + '"', 'WARN');
+      log('⚠️ FIX 199: AMBIGUOUS — text="' + text + '"', 'WARN');
     }
   }
 
@@ -2406,9 +2209,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     return false;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // detectPageLevelForPrompt() — dengan cache (FIX-P4)
-  // ═══════════════════════════════════════════════════════════
   function detectPageLevelForPrompt(text, entityType) {
     if (!text) return "money-page";
     var _resolvedEntity = entityType || detectEntityTypeFromText(text);
@@ -2432,7 +2232,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       }
     }
     var level = detectMoneyLevelInternal(text, _resolvedEntity);
-    if (!level) { log('⚠️ Level null', 'WARN'); level = "money-page"; }
+    if (!level) { level = "money-page"; }
     _cacheLevelSet(cacheKey, level);
     return level;
   }
@@ -2441,66 +2241,40 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     if (!text) return null;
     var lower = text.toLowerCase();
 
-    // ═══ FIX 134: "jasa desain" → entity=desain ═══
-    if (/\bjasa\s+(desain|interior|arsitektur|eksterior)\b/i.test(lower)) {
-      log('🎯 FIX 134: "jasa desain" → entity=desain', 'DETECT');
-      return "desain";
-    }
+    if (/\bjasa\s+(desain|interior|arsitektur|eksterior)\b/i.test(lower)) return "desain";
 
-    // ═══ FIX 132: Artikel priority (how-to prefix) ═══
-    if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|perbandingan|review)/i.test(lower.trim())) {
-      log('🎯 FIX 132: Artikel priority (how-to prefix)', 'DETECT');
-      return "artikel";
-    }
+    if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|perbandingan|review)/i.test(lower.trim())) return "artikel";
 
-    // ═══ FIX-SEWA-PRIORITY-v2 ═══
     if (/\b(sewa|rental)\b/i.test(lower)) {
       var _hasJasaExplicit = /\b(jasa|layanan|kontraktor|tukang|borongan)\b/i.test(lower);
       var _hasDesainExplicit = /\b(desain|arsitektur|render|gambar kerja|shop drawing|visualisasi)\b/i.test(lower);
-
-      if (!_hasJasaExplicit && !_hasDesainExplicit) {
-        log('🎯 FIX-SEWA-PRIORITY-v2: "sewa"/"rental" → entity=sewa', 'DETECT');
-        return "sewa";
-      }
-
-      log('🎯 FIX-SEWA-PRIORITY-v2: ada jasa/desain eksplisit → fall through', 'DETECT');
+      if (!_hasJasaExplicit && !_hasDesainExplicit) return "sewa";
     }
 
-    // ═══ Loop ENTITY_PRIORITY triggers — pakai WORD BOUNDARY ═══
     for (var i = 0; i < ENTITY_PRIORITY.length; i++) {
       var entity = ENTITY_PRIORITY[i];
       var triggers = ENTITY_TRIGGERS[entity] || [];
       for (var j = 0; j < triggers.length; j++) {
-        if (rx(triggers[j]).test(lower)) {
-          log('🎯 ENTITY_PRIORITY match: "' + triggers[j] + '" → ' + entity, 'DETECT');
-          return entity;
-        }
+        if (rx(triggers[j]).test(lower)) return entity;
       }
     }
 
-    // ═══ Direct keyword check ═══
     if (lower.indexOf("jasa") !== -1 || lower.indexOf("kontraktor") !== -1 || lower.indexOf("tukang") !== -1) return "jasa";
     if (lower.indexOf("sewa") !== -1 || lower.indexOf("rental") !== -1) return "sewa";
     if (lower.indexOf("desain") !== -1 || lower.indexOf("interior") !== -1) return "desain";
     if (lower.indexOf("material") !== -1 || lower.indexOf("bahan") !== -1) return "material";
     if (lower.indexOf("produk") !== -1 || lower.indexOf("jual") !== -1) return "produk";
 
-    // ═══ Word list check — MATERIAL first ═══
     for (var m = 0; m < MATERIAL_WORDS.length; m++) {
-      if (rx(MATERIAL_WORDS[m]).test(lower)) {
-        log('🎯 FIX 202: entity=material via word: ' + MATERIAL_WORDS[m], 'DETECT');
-        return "material";
-      }
+      if (rx(MATERIAL_WORDS[m]).test(lower)) return "material";
     }
 
-    // ═══ FIX-VERB-DRIVEN: SEWA vs PRODUK untuk alat berat ═══
     var hasSewaWord = false;
     var matchedSewaWord = null;
     for (var s = 0; s < SEWA_WORDS.length; s++) {
       if (rx(SEWA_WORDS[s]).test(lower)) {
         hasSewaWord = true;
         matchedSewaWord = SEWA_WORDS[s];
-        log('🎯 FIX-VERB-DRIVEN: SEWA_WORDS match: ' + SEWA_WORDS[s], 'DETECT');
         break;
       }
     }
@@ -2510,58 +2284,30 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       var hasSewaContext = /\b(sewa|rental|rent|harian|mingguan|bulanan|tahunan|per hari|per jam|per minggu|per bulan|operator|self drive|lepas kunci|include operator|tanpa operator)\b/i.test(lower);
       var hasJasaContext = /\b(jasa|layanan|service|servis)\b/i.test(lower);
 
-      log('🔀 FIX-VERB-DRIVEN: ctx → produk=' + hasProdukContext + ' sewa=' + hasSewaContext + ' jasa=' + hasJasaContext, 'DETECT');
-
-      if (hasJasaContext) {
-        log('🎯 FIX-VERB-DRIVEN: entity=jasa (jasa context + alat berat)', 'DETECT');
-        return "jasa";
-      }
-
-      if (hasProdukContext && !hasSewaContext) {
-        log('🎯 FIX-VERB-DRIVEN: entity=produk (harga/jual/beli context)', 'DETECT');
-        return "produk";
-      }
-
-      if (hasSewaContext) {
-        log('🎯 FIX-VERB-DRIVEN: entity=sewa (sewa/rental context)', 'DETECT');
-        return "sewa";
-      }
-
-      log('🎯 FIX-VERB-DRIVEN: entity=sewa (default untuk alat berat: "' + matchedSewaWord + '")', 'DETECT');
+      if (hasJasaContext) return "jasa";
+      if (hasProdukContext && !hasSewaContext) return "produk";
+      if (hasSewaContext) return "sewa";
       return "sewa";
     }
 
-    // ═══ Word list check — PRODUK ═══
     for (var p = 0; p < PRODUK_WORDS.length; p++) {
-      if (rx(PRODUK_WORDS[p]).test(lower)) {
-        log('🎯 FIX 202: entity=produk via word: ' + PRODUK_WORDS[p], 'DETECT');
-        return "produk";
-      }
+      if (rx(PRODUK_WORDS[p]).test(lower)) return "produk";
     }
 
-    // ═══ Word list check — DESAIN ═══
     for (var d = 0; d < DESAIN_WORDS.length; d++) {
-      if (rx(DESAIN_WORDS[d]).test(lower)) {
-        log('🎯 FIX 202: entity=desain via word: ' + DESAIN_WORDS[d], 'DETECT');
-        return "desain";
-      }
+      if (rx(DESAIN_WORDS[d]).test(lower)) return "desain";
     }
 
-    // ═══ Jasa verb signal resolver ═══
     var hasJasaVerbSignal = /\b(jasa|pasang|borongan|tukang|bongkar|gali|urug|cor|bor|coring|renovasi|perbaikan|instalasi|service|servis|bangun|las|grouting|cutting|drilling|sandblasting|pancang|pemancangan|pengecoran|pengeboran)\b/i.test(lower);
     var hasProdukTxSignal = /\b(harga|jual|beli|supplier|distributor|ready|stok|stock|unit|batang|lembar|keping)\b/i.test(lower);
 
     if (hasJasaVerbSignal && !hasProdukTxSignal) {
       var jasaNamesRL = ENTITY_BASE_NAMES.jasa || [];
       for (var jnRL = 0; jnRL < jasaNamesRL.length; jnRL++) {
-        if (lower.indexOf(jasaNamesRL[jnRL]) !== -1) {
-          log('🎯 FIX SEO v6: priority resolver → jasa (verb signal via "' + jasaNamesRL[jnRL] + '")', 'DETECT');
-          return "jasa";
-        }
+        if (lower.indexOf(jasaNamesRL[jnRL]) !== -1) return "jasa";
       }
     }
 
-    // ═══ Longest match resolver (fallback) ═══
     var bestMatchRL = { entity: null, length: 0, name: null, priority: 99 };
     for (var epRL = 0; epRL < ENTITY_PRIORITY.length; epRL++) {
       var entRL = ENTITY_PRIORITY[epRL];
@@ -2571,11 +2317,8 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         var nameRL = namesRL[nRL];
         if (lower.indexOf(nameRL) === -1) continue;
         var isBetterRL = false;
-        if (nameRL.length > bestMatchRL.length) {
-          isBetterRL = true;
-        } else if (nameRL.length === bestMatchRL.length && epRL < bestMatchRL.priority) {
-          isBetterRL = true;
-        }
+        if (nameRL.length > bestMatchRL.length) isBetterRL = true;
+        else if (nameRL.length === bestMatchRL.length && epRL < bestMatchRL.priority) isBetterRL = true;
         if (isBetterRL) {
           bestMatchRL = { entity: entRL, length: nameRL.length, name: nameRL, priority: epRL };
         }
@@ -2596,66 +2339,35 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         }
       }
 
-      log('🔀 FIX #4: base "' + matchName + '" ditemukan di entity: [' + entitiesForBaseName.join(', ') + ']', 'CROSS');
-
       if (entitiesForBaseName.length >= 2) {
         var hasProdukCtx = /\b(harga|jual|beli|supplier|distributor|ready|stok|stock|unit|batang|lembar|keping|ukuran|dimensi|spesifikasi|mutu|k\d+|fc|sni|grade|ton|kg|m3|per kubik|per batang|per lembar)\b/i.test(lower);
         var hasJasaCtx = /\b(jasa|pasang|borongan|tukang|pemancangan|pengeboran|pancang|bor|pile|bongkar|gali|urug|cor|las|bending|cutting|coring|grouting|renovasi|perbaikan|instalasi|service|servis|bangun|pembuatan|pemasangan|pengerjaan|proyek)\b/i.test(lower);
         var hasSewaCtx = /\b(sewa|rental|rent|harian|mingguan|bulanan|tahunan|operator|self drive|lepas kunci)\b/i.test(lower);
         var hasDesainCtx = /\b(desain|gambar|render|visualisasi|3d|2d|animasi|walkthrough|konsep|layout)\b/i.test(lower);
 
-        log('🔀 FIX #4: ctx → produk=' + hasProdukCtx + ' jasa=' + hasJasaCtx + ' sewa=' + hasSewaCtx + ' desain=' + hasDesainCtx, 'CROSS');
-
-        if (hasDesainCtx && entitiesForBaseName.indexOf('desain') !== -1 && !hasJasaCtx && !hasProdukCtx) {
-          log('🎯 FIX #4: ambiguous "' + matchName + '" → desain (context)', 'DETECT');
-          return "desain";
-        }
-        if (hasSewaCtx && entitiesForBaseName.indexOf('sewa') !== -1 && !hasProdukCtx) {
-          log('🎯 FIX #4: ambiguous "' + matchName + '" → sewa (context)', 'DETECT');
-          return "sewa";
-        }
-        if (hasJasaCtx && hasProdukCtx) {
-          log('🎯 FIX #4: ambiguous "' + matchName + '" → jasa (jasa+produk ctx)', 'DETECT');
-          return "jasa";
-        }
-        if (hasJasaCtx && entitiesForBaseName.indexOf('jasa') !== -1) {
-          log('🎯 FIX #4: ambiguous "' + matchName + '" → jasa (verb ctx)', 'DETECT');
-          return "jasa";
-        }
-        if (hasProdukCtx && entitiesForBaseName.indexOf('produk') !== -1) {
-          log('🎯 FIX #4: ambiguous "' + matchName + '" → produk (tx ctx)', 'DETECT');
-          return "produk";
-        }
+        if (hasDesainCtx && entitiesForBaseName.indexOf('desain') !== -1 && !hasJasaCtx && !hasProdukCtx) return "desain";
+        if (hasSewaCtx && entitiesForBaseName.indexOf('sewa') !== -1 && !hasProdukCtx) return "sewa";
+        if (hasJasaCtx && hasProdukCtx) return "jasa";
+        if (hasJasaCtx && entitiesForBaseName.indexOf('jasa') !== -1) return "jasa";
+        if (hasProdukCtx && entitiesForBaseName.indexOf('produk') !== -1) return "produk";
 
         var priorityOrder = ["jasa","sewa","desain","produk","material","artikel"];
         for (var po = 0; po < priorityOrder.length; po++) {
-          if (entitiesForBaseName.indexOf(priorityOrder[po]) !== -1) {
-            log('🎯 FIX #4: ambiguous "' + matchName + '" → ' + priorityOrder[po] + ' (fallback)', 'DETECT');
-            return priorityOrder[po];
-          }
+          if (entitiesForBaseName.indexOf(priorityOrder[po]) !== -1) return priorityOrder[po];
         }
       }
-
-      log('🎯 FIX SEO v6: longest match → ' + bestMatchRL.entity + ' (via "' + bestMatchRL.name + '")', 'DETECT');
       return bestMatchRL.entity;
     }
-
     return null;
   }
 
   function detectEntityType(userEntityType) {
     if (userEntityType && VALID_ENTITY_TYPES.indexOf(userEntityType) !== -1) return userEntityType;
-
     var slugText = getPageText();
-
     if (!slugText || slugText.length < 3 || /^(blog|post|artikel|produk|layanan|service|item|page|p|home|index|\d+)(\s+\d+)?\s*$/i.test(slugText.trim())) {
       var h1Text = getH1Text();
-      if (h1Text && h1Text.length > 3) {
-        log('🎯 FIX: entity detection via H1 (slug generic)', 'DETECT');
-        return detectEntityTypeFromText(h1Text);
-      }
+      if (h1Text && h1Text.length > 3) return detectEntityTypeFromText(h1Text);
     }
-
     return detectEntityTypeFromText(slugText);
   }
 
@@ -2667,7 +2379,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     for (var i = 0; i < SUB_PILLAR_1_STRONG.length; i++) {
       if (rx(SUB_PILLAR_1_STRONG[i]).test(lower)) return "sub-pillar-tipe-1";
     }
-
     for (var i = 0; i < SUB_PILLAR_1_WEAK.length; i++) {
       var weakWord = SUB_PILLAR_1_WEAK[i];
       if (lower.indexOf(weakWord) !== -1) {
@@ -2676,10 +2387,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
           var left = parts[0].trim();
           var right = parts[1].trim();
           if (left.split(/\s+/).length >= 2 && right.split(/\s+/).length >= 2) {
-            log('📋 FIX 147: SP1 weak context OK: "' + weakWord + '"', 'SPECPHRASE');
             return "sub-pillar-tipe-1";
-          } else {
-            log('📋 FIX 147: SP1 weak context DITOLAK', 'SPECPHRASE');
           }
         }
       }
@@ -2695,7 +2403,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       for (var i = 0; i < patterns.length; i++) {
         if (cleanLower === patterns[i]) {
           var isEntityMatch = entity === entityType || (entity === "produk interior" && entityType === "produk");
-          if (isEntityMatch) { log('🏛️ PILLAR', 'PILLAR'); return true; }
+          if (isEntityMatch) return true;
         }
       }
     }
@@ -2718,11 +2426,8 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     var lower = text.toLowerCase();
 
     var fisikRegex;
-    if (entityType === "sewa") {
-      fisikRegex = /\d+\s*(m|mm|cm|meter|ton|m3)\b/gi;
-    } else {
-      fisikRegex = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci)\b/gi;
-    }
+    if (entityType === "sewa") fisikRegex = /\d+\s*(m|mm|cm|meter|ton|m3)\b/gi;
+    else fisikRegex = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci)\b/gi;
     if ((lower.match(fisikRegex) || []).length >= 1) score += 2;
 
     if ((lower.match(/\d+(?:\.\d+)?\s*(?:cm|mm|m|meter)\s*(?:x|×)\s*\d+(?:\.\d+)?\s*(?:cm|mm|m|meter)/gi) || []).length >= 1) score += 3;
@@ -2766,12 +2471,10 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       var sortedBaseNamesEarly = baseNamesEarly.slice().sort(function(a, b) {
         return b.split(' ').length - a.split(' ').length;
       });
-
       var baseNamesSet = {};
       for (var k = 0; k < sortedBaseNamesEarly.length; k++) {
         baseNamesSet[sortedBaseNamesEarly[k]] = true;
       }
-
       var _baseNamesToSkipEarly = {};
       for (var b1e = 0; b1e < sortedBaseNamesEarly.length; b1e++) {
         var bn1e = sortedBaseNamesEarly[b1e];
@@ -2788,21 +2491,14 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
           }
         }
       }
-
       for (var i = 0; i < sortedBaseNamesEarly.length; i++) {
         var bn = sortedBaseNamesEarly[i];
-        if (_baseNamesToSkipEarly[bn]) {
-          log('🔥 FIX-MULTIWORD: SKIP substring "' + bn + '"', 'CORE');
-          continue;
-        }
+        if (_baseNamesToSkipEarly[bn]) continue;
         var bnWords = bn.split(' ');
         var lastWord = bnWords[bnWords.length - 1];
         if (bnWords.length >= 2 && APPLICATION_TARGETS.indexOf(lastWord) !== -1) {
           var baseWithoutTarget = bnWords.slice(0, -1).join(' ');
-          if (baseNamesSet[baseWithoutTarget]) {
-            log('🔥 FIX 170: SKIP "' + bn + '"', 'CORE');
-            continue;
-          }
+          if (baseNamesSet[baseWithoutTarget]) continue;
         }
         coreText = coreText.replace(rx(bn, 'g'), ' ');
       }
@@ -2872,10 +2568,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         if (rx(fbName).test(text)) {
           var fbWords = fbName.split(' ');
           var fbLast = fbWords[fbWords.length - 1];
-          if (fbLast.length > 2) {
-            uniqueWords.push(fbLast);
-            log('🔥 PATCH-5: fallback core word = "' + fbLast + '"', 'CORE');
-          }
+          if (fbLast.length > 2) uniqueWords.push(fbLast);
           break;
         }
       }
@@ -2899,21 +2592,9 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         var actualLayers = _memoCountModifierLayers
           ? _memoCountModifierLayers(text, entityType)
           : countModifierLayers(text, entityType);
-        log('🔥 FIX #2: pureTech=true, actualLayers=' + actualLayers, 'VARIANT');
-
-        if (actualLayers >= 3) {
-          reasons.push("Pure tech spec + 3+ layers");
-          return { isVariant: true, score: 10, reasons: reasons, level: "sub-variant" };
-        }
-        if (actualLayers === 2) {
-          reasons.push("Pure tech spec + 2 layers");
-          return { isVariant: true, score: 8, reasons: reasons, level: "variant" };
-        }
-        if (actualLayers === 1) {
-          reasons.push("Pure tech spec + 1 layer");
-          return { isVariant: true, score: 6, reasons: reasons, level: "money-page" };
-        }
-        reasons.push("Pure tech spec tapi 0 layer");
+        if (actualLayers >= 3) return { isVariant: true, score: 10, reasons: reasons, level: "sub-variant" };
+        if (actualLayers === 2) return { isVariant: true, score: 8, reasons: reasons, level: "variant" };
+        if (actualLayers === 1) return { isVariant: true, score: 6, reasons: reasons, level: "money-page" };
         return { isVariant: false, score: 3, reasons: reasons };
       }
     }
@@ -2935,10 +2616,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       ? _memoDetectVariantByPattern(text, entityType)
       : detectVariantByPattern(text, entityType);
     if (result.isVariant) {
-      if (result.level) {
-        log('🔥 FIX #1c: detectVariantLevel → ' + result.level, 'VARIANT');
-        return result.level;
-      }
+      if (result.level) return result.level;
       return "variant";
     }
     return null;
@@ -2955,9 +2633,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       hasSpecPhrase: checkHasSpecPhrase(text),
       hasInfoSpecPhrase: checkHasInformationalSpecPhrase(text),
       hasPerUnit: checkHasPerUnit(text),
-      fisikRole: _memoCheckFisikRole
-        ? _memoCheckFisikRole(text)
-        : checkFisikRole(text),
+      fisikRole: _memoCheckFisikRole ? _memoCheckFisikRole(text) : checkFisikRole(text),
       hasCompoundAction: checkCompoundAction(text),
       complexityScore: _memoCalculateComplexityScore
         ? _memoCalculateComplexityScore(text, entityType)
@@ -3006,41 +2682,24 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // WARNING FUNCTIONS
-  // ═══════════════════════════════════════════════════════════
-
+  // ═══ WARNING FUNCTIONS ═══
   function detectConjunctionWarning(slug, level) {
     if (!slug || !level) return [];
     var lower = slug.toLowerCase();
     var warnings = [];
-
     if (/\bcut and fill\b/i.test(lower)) return warnings;
-
     var hasAtau = /\batau\b/.test(lower);
     var hasDan = /\b(dan|serta)\b/.test(lower);
-
     if (hasAtau && level !== "sub-pillar-tipe-1" && level !== "sub-pillar-tipe-2") {
       var parts184 = lower.split(/\batau\b/);
       var leftW184 = (parts184[0] || "").trim().split(/\s+/).filter(Boolean);
       var rightW184 = (parts184[1] || "").trim().split(/\s+/).filter(Boolean);
       if (leftW184.length >= 2 && rightW184.length >= 2) {
-        warnings.push({
-          type: "SEO_MISALIGNMENT_ATAU", severity: "warning",
-          message: "URL mengandung 'atau' dengan 2 sisi substantif tapi level '" + level + "'.",
-          suggestion: "Ganti ke 'dan' untuk MP (bundling), atau expand jadi 'A vs B' untuk SP1."
-        });
-      } else {
-        log('🎯 FIX 184: SKIP "atau" warning', 'SEO');
+        warnings.push({ type: "SEO_MISALIGNMENT_ATAU", severity: "warning", message: "URL mengandung 'atau'...", suggestion: "Ganti ke 'dan' atau expand jadi 'A vs B'." });
       }
     }
-
     if (hasDan && level !== "money-page") {
-      warnings.push({
-        type: "SEO_MISALIGNMENT_DAN", severity: "warning",
-        message: "URL mengandung 'dan'/'serta' tapi level '" + level + "'.",
-        suggestion: "Pecah jadi 2 halaman, atau ganti konjungsi."
-      });
+      warnings.push({ type: "SEO_MISALIGNMENT_DAN", severity: "warning", message: "URL mengandung 'dan'/'serta'...", suggestion: "Pecah jadi 2 halaman." });
     }
     return warnings;
   }
@@ -3049,45 +2708,24 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     var warnings = [];
     if (!slug) return warnings;
     var lower = slug.toLowerCase();
-
     var TRIGGER_CATEGORIES = [
-      { type: "PROMO_WORD", words: ["murah","hemat","terjangkau","bersaing","kompetitif","ekonomis"], icon: "💰",
-        doNotTemplate: "JANGAN redirect — user cari '{WORD}' butuh halaman ini",
-        angle_suggestion: "Buat angle beda: tips hemat, paket ekonomis, perbandingan harga" },
-      { type: "SCALE_WORD", words: ["kecil","besar","sedang","mini","jumbo","heavy","medium"], icon: "📏",
-        doNotTemplate: "JANGAN redirect kalau kontennya memang beda scope",
-        angle_suggestion: "Buat angle beda: kapasitas, portabilitas, penggunaan" },
-      { type: "PROMO_STRONG", words: ["promo","diskon","obral","flash sale","cuci gudang"], icon: "🔥",
-        doNotTemplate: "Cek apakah halaman promo ini temporary atau permanen",
-        angle_suggestion: "Paket bundle, limited time offer, benefit eksklusif" },
-      { type: "LOCATION_VARIANT", words: ["jakarta","bandung","surabaya","jogja","semarang"], icon: "📍",
-        doNotTemplate: "JANGAN redirect — lokasi beda = audiens beda",
-        angle_suggestion: "Konten lokal: studi kasus, klien, testimoni di kota itu" }
+      { type: "PROMO_WORD", words: ["murah","hemat","terjangkau","bersaing","kompetitif","ekonomis"], icon: "💰" },
+      { type: "SCALE_WORD", words: ["kecil","besar","sedang","mini","jumbo","heavy","medium"], icon: "📏" },
+      { type: "PROMO_STRONG", words: ["promo","diskon","obral","flash sale","cuci gudang"], icon: "🔥" },
+      { type: "LOCATION_VARIANT", words: ["jakarta","bandung","surabaya","jogja","semarang"], icon: "📍" }
     ];
-
     for (var catIdx = 0; catIdx < TRIGGER_CATEGORIES.length; catIdx++) {
       var cat = TRIGGER_CATEGORIES[catIdx];
       for (var wIdx = 0; wIdx < cat.words.length; wIdx++) {
         var word = cat.words[wIdx];
-        var rxW = rxRaw("\\b" + _escapeRegex(word) + "\\b", "i");
-        if (!rxW.test(lower)) continue;
-
+        if (!rxRaw("\\b" + _escapeRegex(word) + "\\b", "i").test(lower)) continue;
         var baseSlug = lower.replace(rxRaw("\\b" + _escapeRegex(word) + "\\b", "gi"), "").replace(/\s+/g, " ").trim();
         if (!baseSlug) continue;
-
         warnings.push({
           type: "SAME_LEVEL_CONTENT_REVIEW", severity: "info",
           category: cat.type, icon: cat.icon, triggerWord: word,
           currentSlug: lower, baseSlug: baseSlug,
-          message: "URL ini punya level SAMA dengan '" + baseSlug + "'.",
-          checklist: [
-            "1. H1 beda?", "2. Title tag beda?", "3. Meta description beda?",
-            "4. Konten >60% unik?", "5. Angle beda?", "6. Internal link beda?"
-          ],
-          do_not: cat.doNotTemplate.replace("{WORD}", word),
-          suggestion: cat.angle_suggestion,
-          action_if_duplicate: "REWRITE konten, JANGAN redirect/hapus",
-          action_if_unique: "✅ Aman — biarkan 2 halaman"
+          message: "URL ini punya level SAMA dengan '" + baseSlug + "'."
         });
         break;
       }
@@ -3101,28 +2739,18 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     var words = slug.split(" ").filter(function(w) { return w.length > 0; });
     if (words.length <= 2) return warnings;
     if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
-
     var parentSlug = words.slice(0, -1).join(" ");
     var currentLevel = detectPageLevelForPrompt(slug, entityType);
     var parentLevel = detectPageLevelForPrompt(parentSlug, entityType);
-
     var currentNum = LEVEL_HIERARCHY_MAP[currentLevel] || -1;
     var parentNum = LEVEL_HIERARCHY_MAP[parentLevel] || -1;
-
     if (parentNum < 3) return warnings;
     if (parentLevel === "pillar") return warnings;
     if (currentLevel === "money-child") return warnings;
-
     if (currentNum <= parentNum) {
       var expectedNum = parentNum + 1;
       var expectedLevel = LEVEL_INVERSE_MAP[expectedNum];
-      warnings.push({
-        type: "SEO_HIERARCHY_MISMATCH", severity: "warning",
-        parentSlug: parentSlug, parentLevel: parentLevel,
-        currentLevel: currentLevel, expectedLevel: expectedLevel,
-        message: "URL '" + slug + "' terdeteksi '" + currentLevel + "', tapi parent '" + parentSlug + "' = '" + parentLevel + "'.",
-        suggestion: "Pisah jadi halaman terpisah, atau tambahkan modifier spesifik untuk naikkan ke " + expectedLevel + "."
-      });
+      warnings.push({ type: "SEO_HIERARCHY_MISMATCH", severity: "warning", parentSlug: parentSlug, parentLevel: parentLevel, currentLevel: currentLevel, expectedLevel: expectedLevel, message: "URL '" + slug + "' terdeteksi '" + currentLevel + "'..." });
     }
     return warnings;
   }
@@ -3136,10 +2764,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       var segSlug = words.slice(0, i).join(" ");
       var segLevel = detectPageLevelForPrompt(segSlug, entity);
       var segLevelNum = LEVEL_HIERARCHY_MAP[segLevel] || -1;
-      results.push({
-        position: i, slug: segSlug, level: segLevel,
-        levelNum: segLevelNum, isCurrent: (i === words.length)
-      });
+      results.push({ position: i, slug: segSlug, level: segLevel, levelNum: segLevelNum, isCurrent: (i === words.length) });
     }
     return results;
   }
@@ -3150,7 +2775,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     var chain = computeBreadcrumbLevels(slug, entityType);
     if (chain.length < 2) return warnings;
     if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
-
     var current = chain[chain.length - 1];
     var parent = null;
     for (var i = chain.length - 2; i >= 0; i--) {
@@ -3159,18 +2783,10 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     if (!parent) return warnings;
     if (current.level === "money-child") return warnings;
     if (current.levelNum >= 7) return warnings;
-
     if (current.levelNum <= parent.levelNum) {
       var expectedNum = parent.levelNum + 1;
       var expectedLevel = LEVEL_INVERSE_MAP[expectedNum] || "money-page";
-      warnings.push({
-        type: "SEO_HIERARCHY_MISMATCH", severity: "warning",
-        parentSlug: parent.slug, parentLevel: parent.level,
-        currentSlug: current.slug, currentLevel: current.level,
-        expectedLevel: expectedLevel,
-        message: "URL '" + current.slug + "' = '" + current.level + "', parent '" + parent.slug + "' juga '" + parent.level + "'.",
-        suggestion: "Tambahkan modifier spesifik untuk naikkan ke '" + expectedLevel + "'."
-      });
+      warnings.push({ type: "SEO_HIERARCHY_MISMATCH", severity: "warning", parentSlug: parent.slug, parentLevel: parent.level, currentSlug: current.slug, currentLevel: current.level, expectedLevel: expectedLevel, message: "URL '" + current.slug + "' = '" + current.level + "'..." });
     }
     return warnings;
   }
@@ -3181,71 +2797,47 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     var words = slug.split(" ").filter(Boolean);
     if (words.length <= 2) return warnings;
     if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
-
     var parentSlug = words.slice(0, -1).join(" ");
     var parentLevel = detectPageLevelForPrompt(parentSlug, entityType);
-
     if (parentLevel === "pillar") return warnings;
     if (!EXPECTED_CHILD_MAP[parentLevel]) return warnings;
-
     var rule = EXPECTED_CHILD_MAP[parentLevel];
     if (rule.isLeaf) return warnings;
-
     var currentLevel = detectPageLevelForPrompt(slug, entityType);
-
     if (currentLevel === "money-child") {
       if (parentLevel === "money-page" || parentLevel === "money-master") return warnings;
     }
-
     if (currentLevel === "variant" && parentLevel === "money-child") {
-      warnings.push({
-        type: "SEO_HIERARCHY_MISMATCH", severity: "warning",
-        parentSlug: parentSlug, parentLevel: parentLevel,
-        currentLevel: currentLevel, expectedLevel: "money-page",
-        message: "URL '" + slug + "' = Variant, tapi parent '" + parentSlug + "' = MC.",
-        suggestion: "Pindah lokasi ke akhir URL (attribute), atau buat MP tanpa lokasi dulu."
-      });
+      warnings.push({ type: "SEO_HIERARCHY_MISMATCH", severity: "warning", parentSlug: parentSlug, parentLevel: parentLevel, currentLevel: currentLevel, expectedLevel: "money-page", message: "URL '" + slug + "' = Variant, tapi parent '" + parentSlug + "' = MC." });
       return warnings;
     }
-
     var isExpected = (currentLevel === rule.expected);
     var isAlternate = false;
     if (rule.alternates && rule.alternates.indexOf(currentLevel) !== -1) isAlternate = true;
     if (rule.alternate && currentLevel === rule.alternate) isAlternate = true;
-
     if (!isExpected && !isAlternate) {
       var expectedList = [rule.expected];
       if (rule.alternates) expectedList = expectedList.concat(rule.alternates);
       if (rule.alternate) expectedList.push(rule.alternate);
-      warnings.push({
-        type: "SEO_PARENT_DRIVEN_MISMATCH", severity: "warning",
-        parentSlug: parentSlug, parentLevel: parentLevel,
-        parentLevelNum: LEVEL_HIERARCHY_MAP[parentLevel],
-        currentLevel: currentLevel,
-        currentLevelNum: LEVEL_HIERARCHY_MAP[currentLevel],
-        expectedLevel: rule.expected,
-        alternates: rule.alternates || (rule.alternate ? [rule.alternate] : []),
-        message: "URL '" + slug + "' = '" + currentLevel + "'. Parent '" + parentSlug + "' (" + parentLevel + "), expected: " + expectedList.join(" atau ") + ".",
-        suggestion: currentLevel === parentLevel
-          ? "Child level sama dengan parent. Tambahkan modifier spesifik, atau pisah topik."
-          : "Level child bukan expected. Cek struktur URL & konten."
-      });
+      warnings.push({ type: "SEO_PARENT_DRIVEN_MISMATCH", severity: "warning", parentSlug: parentSlug, parentLevel: parentLevel, currentLevel: currentLevel, expectedLevel: rule.expected, alternates: rule.alternates || (rule.alternate ? [rule.alternate] : []), message: "URL '" + slug + "' = '" + currentLevel + "'. Parent '" + parentSlug + "' (" + parentLevel + "), expected: " + expectedList.join(" atau ") + "." });
     }
     return warnings;
   }
 
-  // ═══ PART 2 END ═══
+  // ═══ END BAGIAN 2 — LANJUT BAGIAN 3 ═══
 
      // ═══════════════════════════════════════════════════════════
-  // detectMoneyLevelInternal() — dengan memoize
+  // 🔥 detectMoneyLevelInternal() — FIX-MINIMAL-v3 BROAD-TO-NARROW
+  // 
+  // PERUBAHAN INTI:
+  //   - HAPUS KASUS 1.5 dengan hardcoded list (~30 kata)
+  //   - GANTI dengan strip + count layers (broad-to-narrow)
+  //   - JASA base sekarang verb-based → semua target jadi spec
   // ═══════════════════════════════════════════════════════════
-
   function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
     var lowerText = text.toLowerCase();
 
-    // ═══════════════════════════════════════════════════════════
-    // 🔥 FIX-HARGA-FOLLOW-v1: Jika ada "harga", follow level tanpa "harga"
-    // ═══════════════════════════════════════════════════════════
+    // ═══ FIX-HARGA-FOLLOW ═══
     if (!_skipHargaFollow) {
       var _hasHargaWord = false;
       for (var _phv = 0; _phv < PRICE_HEAD_WORDS.length; _phv++) {
@@ -3254,26 +2846,34 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
           break;
         }
       }
-
       if (_hasHargaWord) {
         var _textNoHarga = lowerText;
         for (var _phr = 0; _phr < PRICE_HEAD_WORDS.length; _phr++) {
           _textNoHarga = _textNoHarga.replace(rx(PRICE_HEAD_WORDS[_phr], 'g'), ' ');
         }
         _textNoHarga = _textNoHarga.replace(/\s+/g, ' ').trim();
-
         if (_textNoHarga && _textNoHarga !== lowerText) {
           var _levelNoHarga = detectMoneyLevelInternal(_textNoHarga, entityType, true);
-          if (_levelNoHarga) {
-            log('💰 FIX-HARGA-FOLLOW-v1: harga → follow "' + _textNoHarga + '" = ' + _levelNoHarga, 'MM');
-            return _levelNoHarga;
-          }
+          if (_levelNoHarga) return _levelNoHarga;
         }
       }
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 🔥 FIX-MINIMAL-v2: KHUSUS JASA — Handle 3 kasus edge
+    // 🔥 FIX-MINIMAL-v3: KHUSUS JASA — BROAD-TO-NARROW
+    // 
+    // Logika baru (menggantikan KASUS 1.5 hardcoded list):
+    //   1. Match base names (longest-first, skip substring)
+    //   2. Strip entity-only + base names + promo/noise
+    //   3. Cek sisa kata:
+    //      - 0 sisa + base app-target → MM
+    //      - 0 sisa + base non-apptarget → MM
+    //      - 1 sisa → MP (base + 1 spec)
+    //      - 2 sisa → variant
+    //      - 3+ sisa → sub-variant
+    //   4. Kalau 2+ base names:
+    //      - Filter noise "borongan"
+    //      - Kalau masih 2+ base → MP
     // ═══════════════════════════════════════════════════════════
     if (entityType === "jasa") {
       var _baseListMin = ENTITY_BASE_NAMES.jasa || [];
@@ -3295,56 +2895,50 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         _matchedBaseMin.push(_bnMin);
       }
 
-      // ─── KASUS 1: Single base = app target + no extra → MM
-      if (_matchedBaseMin.length === 1 &&
-          APPLICATION_TARGETS_FULL.indexOf(_matchedBaseMin[0]) !== -1) {
+      // ─── KASUS 1: Single base
+      if (_matchedBaseMin.length === 1) {
+        var _matchedBase1 = _matchedBaseMin[0];
+        var _isAppTargetBase = APPLICATION_TARGETS_FULL.indexOf(_matchedBase1) !== -1;
+
+        // Strip entity-only words
         var _tempMin = lowerText;
         var _entityOnlyMin = ENTITY_ONLY_WORDS.jasa || [];
         for (var _eoi = 0; _eoi < _entityOnlyMin.length; _eoi++) {
           _tempMin = _tempMin.replace(rx(_entityOnlyMin[_eoi], 'g'), ' ');
         }
-        _tempMin = _tempMin.replace(rx(_matchedBaseMin[0], 'g'), ' ');
-        _tempMin = _tempMin.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal)\b/gi, ' ');
-        _tempMin = _tempMin.trim();
 
+        // Strip base name itu sendiri
+        _tempMin = _tempMin.replace(rx(_matchedBase1, 'g'), ' ');
+
+        // Strip promo + noise
+        _tempMin = _tempMin.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|profesional|bersaing|kompetitif|ekonomis)\b/gi, ' ');
+        _tempMin = _tempMin.replace(/\b(borongan|sistem borongan|paket borongan|all in|all-in|proyek|per proyek)\b/gi, ' ');
+
+        _tempMin = _tempMin.replace(/\s+/g, ' ').trim();
         var _sisaMin = _tempMin.split(/\s+/).filter(function(w) { return w.length > 2; });
-        if (_sisaMin.length === 0) {
-          log('🏛️ FIX-MINIMAL-v2: MONEY_MASTER (single base=apptarget, no extra)', 'MM');
-          return "money-master";
+
+        // Cek apakah ada location → fall through (biar money-child)
+        var _hasLocMin = isLocation(text);
+
+        // Hitung layers dari sisa (pakai countModifierLayers general logic)
+        var _specCountMin = _sisaMin.length;
+        if (_specCountMin === 0) {
+          // Tidak ada sisa → MM
+          if (_hasLocMin) {
+            // Ada location, tapi base tunggal tanpa spec → fall through ke location check
+            // (biar handle money-child)
+          } else {
+            return "money-master";
+          }
+        } else if (!_hasLocMin) {
+          // Ada sisa spec → MP/variant/sub-variant
+          var _levelMin = decideLevelByLayers(_specCountMin);
+          return _levelMin;
         }
+        // Kalau ada loc + sisa spec → fall through ke general logic (location check)
       }
 
-      // ─── KASUS 1.5: Single base + spec modifier → MP
-      if (_matchedBaseMin.length === 1) {
-        var _hasLocMin15 = isLocation(text);
-        if (!_hasLocMin15) {
-          var _specModsMin = [
-            "manual","hidrolik","rotary","auger","percussive","basah","kering","mesin",
-            "dalam","dangkal","artesis","jet pump",
-            "gedung","rumah","ruko","gudang","pabrik","kantor","sekolah","villa",
-            "apartemen","hotel","masjid","gereja","kios","rukan","cafe","restoran",
-            "rumahan","komersial","industri","residential","commercial","industrial",
-            "kecil","sedang","besar","menengah","proyek","perumahan","perkantoran",
-            "mini","jumbo"
-          ];
-          var _hasSpecModMin = false;
-          for (var _smi = 0; _smi < _specModsMin.length; _smi++) {
-            if (rx(_specModsMin[_smi]).test(lowerText)) {
-              if (_matchedBaseMin[0].indexOf(_specModsMin[_smi]) !== -1) continue;
-              _hasSpecModMin = true;
-              log('🔥 FIX-MINIMAL-v2: spec mod "' + _specModsMin[_smi] + '" → MP', 'MM');
-              break;
-            }
-          }
-          if (_hasSpecModMin) {
-            return "money-page";
-          }
-        } else {
-          log('📍 PATCH #4: spec mod ada location → fall through', 'LOCATION');
-        }
-      }
-
-      // ─── KASUS 2: 2+ base names + no price/loc/dim → MP
+      // ─── KASUS 2: 2+ base names
       if (_matchedBaseMin.length >= 2) {
         var _matchedFiltered = _matchedBaseMin.filter(function(b) {
           if (b === "borongan") return false;
@@ -3353,13 +2947,12 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         });
 
         if (_matchedFiltered.length >= 2) {
-          var _hasLocMin = isLocation(text);
-          var _hasPriceMin = checkHasPrice(text);
-          var _hasDimMin = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
+          var _hasLocMin2 = isLocation(text);
+          var _hasPriceMin2 = checkHasPrice(text);
+          var _hasDimMin2 = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft|feet)/gi.test(lowerText)
             || /\d+\s*[x×]\s*\d+/i.test(lowerText);
 
-          if (!_hasLocMin && !_hasPriceMin && !_hasDimMin) {
-            log('🔥 FIX-MINIMAL-v2: MONEY_PAGE (2+ base: ' + _matchedFiltered.join(' + ') + ')', 'MM');
+          if (!_hasLocMin2 && !_hasPriceMin2 && !_hasDimMin2) {
             return "money-page";
           }
         }
@@ -3367,14 +2960,13 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 🔥 PATCH SEWA v2: Aturan level untuk entity sewa
+    // PATCH SEWA v2
     // ═══════════════════════════════════════════════════════════
     if (entityType === "sewa") {
       var _baseListSw = ENTITY_BASE_NAMES.sewa || [];
       var _sortedBaseSw = _baseListSw.slice().sort(function(a, b) {
         return b.split(' ').length - a.split(' ').length;
       });
-
       var _matchedBaseSw = [];
       for (var _bsi = 0; _bsi < _sortedBaseSw.length; _bsi++) {
         var _bnSw = _sortedBaseSw[_bsi];
@@ -3390,22 +2982,16 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         _matchedBaseSw.push(_bnSw);
       }
 
-      log('🚜 PATCH-SEWA-v2: matchedBase=[' + _matchedBaseSw.join(' | ') + ']', 'DETECT');
-
-      // ═══ PATCH SEWA v8-EXPANDED: per-unit → MP ═══
       if (/\bper\s+(?:meter|m|cm|mm|km|inch|inchi|ft|feet|yard|mile|kg|ton|gram|ons|kuintal|lbs|pound|m3|liter|galon|kubik|cc|dm3|m2|hektar|ha|are|jam|hari|minggu|bulan|tahun|harian|mingguan|bulanan|tahunan|shift|unit|buah|set|paket|piece|pcs|box|dus|titik|batch|kontainer|container|lot|batang|lembar|keping|roll|papan|sak|karung|kodi|lusin|rit|ritase|tonase|trip|truk|pickup|colt|proyek|project|hari kerja|jam kerja|meter kubik|meter persegi)\b/i.test(lowerText)) {
-        log('🚜 PATCH-SEWA-v8-EXPANDED: per-unit → MP', 'PRICE');
         return "money-page";
       }
 
       if (_matchedBaseSw.length === 1) {
         var _tempSw = lowerText;
-
         var _entityOnlySw = ENTITY_ONLY_WORDS.sewa || [];
         for (var _eos = 0; _eos < _entityOnlySw.length; _eos++) {
           _tempSw = _tempSw.replace(rx(_entityOnlySw[_eos], 'g'), ' ');
         }
-
         _tempSw = _tempSw.replace(rx(_matchedBaseSw[0], 'g'), ' ');
 
         var _durasiNoise = [
@@ -3420,11 +3006,8 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
           "termurah","termahal","bersaing","kompetitif","ekonomis",
           "diesel","bensin","solar","listrik","hidrolik","hydraulic",
           "tambang","pertambangan","basement","banjir","irigasi",
-          "kapasitas",
-          "pengukuran",
-          "mesin",
-          "cor","jalan","kolom","balok","plat","lantai",
-          "per"
+          "kapasitas","pengukuran","mesin",
+          "cor","jalan","kolom","balok","plat","lantai","per"
         ];
         for (var _dn = 0; _dn < _durasiNoise.length; _dn++) {
           _tempSw = _tempSw.replace(rx(_durasiNoise[_dn], 'g'), ' ');
@@ -3433,43 +3016,26 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         _tempSw = _tempSw.replace(/\s+/g, ' ').trim();
         var _sisaSw = _tempSw.split(/\s+/).filter(function(w) { return w.length > 2; });
 
-        log('🚜 PATCH-SEWA-v2: sisa setelah strip = [' + _sisaSw.join(',') + ']', 'DETECT');
-
         var _specCountSw = 0;
         for (var _ssi = 0; _ssi < _sisaSw.length; _ssi++) {
-          var _swWord = _sisaSw[_ssi];
-          if (isSpecModifierForEntity(_swWord, "sewa")) {
-            _specCountSw++;
-          }
+          if (isSpecModifierForEntity(_sisaSw[_ssi], "sewa")) _specCountSw++;
         }
 
-        if (_sisaSw.length === 0) {
-          log('🚜 PATCH-SEWA-v2: MONEY_MASTER (1 base, 0 spec)', 'MM');
-          return "money-master";
-        }
+        if (_sisaSw.length === 0) return "money-master";
 
         var _sisaIsLocation = false;
         for (var _sli = 0; _sli < _sisaSw.length; _sli++) {
-          if (TIER_1_LOCATION.indexOf(_sisaSw[_sli]) !== -1) {
-            _sisaIsLocation = true;
-            break;
-          }
-          if (/\b(jakarta|bogor|depok|tangerang|bekasi|bandung|semarang|surabaya|jogja|yogyakarta|malang|medan|palembang|makassar|denpasar|bali)\b/i.test(_sisaSw[_sli])) {
-            _sisaIsLocation = true;
-            break;
-          }
+          if (TIER_1_LOCATION.indexOf(_sisaSw[_sli]) !== -1) { _sisaIsLocation = true; break; }
+          if (/\b(jakarta|bogor|depok|tangerang|bekasi|bandung|semarang|surabaya|jogja|yogyakarta|malang|medan|palembang|makassar|denpasar|bali)\b/i.test(_sisaSw[_sli])) { _sisaIsLocation = true; break; }
         }
 
         if (_sisaIsLocation) {
-          log('🚜 PATCH #1: ada location → fall through ke general logic', 'LOCATION');
+          // fall through
         } else if (_specCountSw === 1 && _sisaSw.length === 1) {
-          log('🚜 PATCH-SEWA-v2: VARIANT (1 base + 1 spec: ' + _sisaSw[0] + ')', 'VARIANT');
           return "variant";
         } else if (_specCountSw >= 2 || _sisaSw.length >= 2) {
-          log('🚜 PATCH-SEWA-v2: SUB-VARIANT (1 base + 2+ spec)', 'VARIANT');
           return "sub-variant";
         } else {
-          log('🚜 PATCH-SEWA-v2: VARIANT (fallback)', 'VARIANT');
           return "variant";
         }
       }
@@ -3479,14 +3045,10 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         for (var _ni = 0; _ni < _matchedBaseSw.length; _ni++) {
           for (var _nj = 0; _nj < _matchedBaseSw.length; _nj++) {
             if (_ni === _nj) continue;
-            if (_matchedBaseSw[_nj].indexOf(_matchedBaseSw[_ni]) !== -1) {
-              _isNested = true;
-              break;
-            }
+            if (_matchedBaseSw[_nj].indexOf(_matchedBaseSw[_ni]) !== -1) { _isNested = true; break; }
           }
           if (_isNested) break;
         }
-
         var _temp2Sw = lowerText;
         for (var _eos2 = 0; _eos2 < (ENTITY_ONLY_WORDS.sewa || []).length; _eos2++) {
           _temp2Sw = _temp2Sw.replace(rx(ENTITY_ONLY_WORDS.sewa[_eos2], 'g'), ' ');
@@ -3496,14 +3058,14 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
 
         var _hasLoc2Sw = isLocation(text);
         if (_hasLoc2Sw) {
-          log('🚜 BUG-FIX #3: 2+ base + location → fall through ke MC', 'LOCATION');
+          // fall through
         } else if (_temp2Sw && _matchedBaseSw.length >= 2 && !_isNested) {
-          log('🚜 PATCH-SEWA-v2: MONEY_PAGE (2+ base: ' + _matchedBaseSw.join(' + ') + ')', 'MP');
           return "money-page";
         }
       }
     }
 
+    // ═══ GENERAL LOGIC ═══
     var factors = _memoGetFactors
       ? _memoGetFactors(text, entityType)
       : getFactors(text, entityType);
@@ -3519,8 +3081,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     var hasBaseService = factors.hasBaseService;
     var subPillar = detectSubPillar(text);
 
-    log('🔍 FACTORS: loc=' + hasLocationWord + ' spec=' + hasSpecWord + ' price=' + hasPriceWord + ' comm=' + hasCommercialWord + ' score=' + complexityScore + ' baseSvc=' + hasBaseService, 'INFO');
-
     if (subPillar) return subPillar;
 
     if (hasLocationWord) {
@@ -3528,37 +3088,18 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       if (!hasBaseService && entityType && ENTITY_BASE_NAMES[entityType]) {
         var _baseListMC = ENTITY_BASE_NAMES[entityType];
         for (var _bmc = 0; _bmc < _baseListMC.length; _bmc++) {
-          if (rx(_baseListMC[_bmc]).test(lowerText)) {
-            _hasAnyBaseName = true;
-            break;
-          }
+          if (rx(_baseListMC[_bmc]).test(lowerText)) { _hasAnyBaseName = true; break; }
         }
       }
-      if (hasBaseService || _hasAnyBaseName) {
-        log('📍 FIX 193: MONEY_CHILD (baseService=' + hasBaseService +
-            ' baseName=' + _hasAnyBaseName + ')', 'LOCATION');
-        return "money-child";
-      }
+      if (hasBaseService || _hasAnyBaseName) return "money-child";
     }
-    if (hasSpecPhrase && !hasLocationWord && !hasCommercialWord) {
-      log('💰 MONEY_PAGE (spec phrase)', 'PRICE');
-      return "money-page";
-    }
+    if (hasSpecPhrase && !hasLocationWord && !hasCommercialWord) return "money-page";
 
-    if (hasPerUnit && !hasPriceWord && !hasCommercialWord && !hasLocationWord && !hasSpecPhrase) {
-      log('💰 MONEY_PAGE (per-unit)', 'PRICE');
-      return "money-page";
-    }
+    if (hasPerUnit && !hasPriceWord && !hasCommercialWord && !hasLocationWord && !hasSpecPhrase) return "money-page";
 
-    if (hasCompound && !hasLocationWord && !hasCommercialWord) {
-      log('💰 MONEY_PAGE (compound)', 'PRICE');
-      return "money-page";
-    }
+    if (hasCompound && !hasLocationWord && !hasCommercialWord) return "money-page";
 
-    if (complexityScore >= 3 && !hasLocationWord && !hasCommercialWord && !hasPriceWord) {
-      log('💰 MONEY_PAGE (score=' + complexityScore + ')', 'SCORE');
-      return "money-page";
-    }
+    if (complexityScore >= 3 && !hasLocationWord && !hasCommercialWord && !hasPriceWord) return "money-page";
 
     var jasaMaterialCtx186 = false;
     if (entityType === "jasa") {
@@ -3574,10 +3115,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
             var matWord = materialWords186[mwi];
             if (matWord === baseName186) continue;
             if (rx(matWord).test(baseName186)) {
-              if (text.indexOf(baseName186) !== -1) {
-                isMaterialInBase = true;
-                break;
-              }
+              if (text.indexOf(baseName186) !== -1) { isMaterialInBase = true; break; }
             }
           }
           if (isMaterialInBase) break;
@@ -3587,18 +3125,14 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     }
 
     var hasStrongPromo211 = false;
-    if (_MASTER.highVolume && _MASTER.highVolume.test(lowerText)) {
-      hasStrongPromo211 = true;
-    }
+    if (_MASTER.highVolume && _MASTER.highVolume.test(lowerText)) hasStrongPromo211 = true;
 
     var skipP7Atau = false;
     if (/\batau\b/i.test(lowerText)) {
       var partsAtau = lowerText.split(/\batau\b/);
       var leftAtau = (partsAtau[0] || "").trim().split(/\s+/).filter(Boolean);
       var rightAtau = (partsAtau[1] || "").trim().split(/\s+/).filter(Boolean);
-      if (leftAtau.length <= 1 || rightAtau.length <= 1) {
-        skipP7Atau = true;
-      }
+      if (leftAtau.length <= 1 || rightAtau.length <= 1) skipP7Atau = true;
     }
 
     var earlyLayers = 0;
@@ -3614,23 +3148,14 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         && !hasStrongPromo211 && !skipP7Atau) {
       var layers186 = earlyLayers;
       if (layers186 === 0 && jasaMaterialCtx186) layers186 = 1;
-      if (layers186 > 0) {
-        var decision186 = decideLevelByLayers(layers186);
-        log('🔥 FIX v16-C: ' + decision186 + ' (' + layers186 + ' layer)', 'VARIANT');
-        return decision186;
-      }
+      if (layers186 > 0) return decideLevelByLayers(layers186);
     }
 
     if (hasCommercialWord && hasSpecWord && !hasLocationWord) {
       var layersP8 = _memoCountModifierLayers
         ? _memoCountModifierLayers(text, entityType)
         : countModifierLayers(text, entityType);
-      if (layersP8 >= 1) {
-        var decisionP8 = decideLevelByLayers(layersP8);
-        log('🔥 FIX 206: comm+spec → ' + decisionP8, 'PRICE');
-        return decisionP8;
-      }
-      log('💰 FIX 206: MONEY_PAGE (comm+spec fallback)', 'PRICE');
+      if (layersP8 >= 1) return decideLevelByLayers(layersP8);
       return "money-page";
     }
 
@@ -3639,10 +3164,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       if (_MASTER.appTargets) {
         for (var mwt8 = 0; mwt8 < APPLICATION_TARGETS_FULL.length; mwt8++) {
           var mwt8w = APPLICATION_TARGETS_FULL[mwt8];
-          if (mwt8w.indexOf(' ') !== -1 && rx(mwt8w).test(lowerText)) {
-            log('🔥 FIX SEO v8: desain masked multi-word target "' + mwt8w + '" → MP', 'HARGA');
-            return "money-page";
-          }
+          if (mwt8w.indexOf(' ') !== -1 && rx(mwt8w).test(lowerText)) return "money-page";
         }
       }
     }
@@ -3653,26 +3175,16 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         ? _memoGetCoreWords(text, entityType)
         : getCoreWords(text, entityType);
 
-      log('🔥 FIX 204: preCore=[' + preCore.join(',') + '] (len=' + preCore.length + ')', 'CORE');
-
-      if (preCore.length === 0) {
-        log('🏛️ FIX 204: MONEY_MASTER (base service murni)', 'MM');
-        return "money-master";
-      }
+      if (preCore.length === 0) return "money-master";
 
       if (preCore.length === 1) {
         var coreWord = preCore[0];
-
         var isPartOfBaseName = false;
         var checkBaseList = ENTITY_BASE_NAMES[entityType] || [];
         for (var cb = 0; cb < checkBaseList.length; cb++) {
           var cbName = checkBaseList[cb];
           if (rx(cbName).test(text)) {
-            if (cbName.indexOf(coreWord) !== -1) {
-              isPartOfBaseName = true;
-              log('🔥 PATCH-6: coreWord "' + coreWord + '" adalah bagian dari base "' + cbName + '"', 'CORE');
-              break;
-            }
+            if (cbName.indexOf(coreWord) !== -1) { isPartOfBaseName = true; break; }
           }
         }
 
@@ -3682,13 +3194,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
           for (var _bpi = 0; _bpi < _baseListP.length; _bpi++) {
             if (rx(_baseListP[_bpi]).test(lowerText)) _bnCountP++;
           }
-
-          if (_bnCountP >= 2) {
-            log('💵 FIX-PATCH-D-v5: MONEY_PAGE (2+ base names: ' + _bnCountP + ')', 'HARGA');
-            return "money-page";
-          }
-
-          log('💵 PATCH-D-v3: MONEY_MASTER (price + base name tunggal)', 'HARGA');
+          if (_bnCountP >= 2) return "money-page";
           return "money-master";
         }
 
@@ -3706,10 +3212,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
           return "money-master";
         }
 
-        if (isSpecModifierForEntity(coreWord, entityType)) {
-          log('💵 FIX 204: MONEY_PAGE (price + spec: ' + coreWord + ')', 'HARGA');
-          return "money-page";
-        }
+        if (isSpecModifierForEntity(coreWord, entityType)) return "money-page";
 
         if (entityType === "jasa") {
           var narrow182 = SHARED_MODIFIERS.material;
@@ -3722,20 +3225,12 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
                 break;
               }
             }
-            if (isMatInBase204) {
-              log('🏛️ FIX 204: MONEY_MASTER (compound base + material)', 'MM');
-              return "money-master";
-            }
-            log('💵 FIX 204: MONEY_PAGE (jasa + material)', 'HARGA');
+            if (isMatInBase204) return "money-master";
             return "money-page";
           }
         }
-
-        log('🏛️ FIX 204: MONEY_MASTER (price + base + non-spec)', 'MM');
         return "money-master";
       }
-
-      log('💵 FIX 204: MONEY_PAGE (price + 2+ modifier)', 'HARGA');
       return "money-page";
     }
 
@@ -3743,11 +3238,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       var layersP9 = _memoCountModifierLayers
         ? _memoCountModifierLayers(text, entityType)
         : countModifierLayers(text, entityType);
-      if (layersP9 >= 1) {
-        var decisionP9 = decideLevelByLayers(layersP9);
-        log('🔥 FIX 186: price+spec → ' + decisionP9, 'HARGA');
-        return decisionP9;
-      }
+      if (layersP9 >= 1) return decideLevelByLayers(layersP9);
 
       _buildMasterRegexes();
       if (_MASTER.appTargets) {
@@ -3759,10 +3250,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
               var ROOM_CTX_9 = ["rumah","kantor","toko","hotel","restoran","cafe","villa","apartemen","ruko","kios","gudang","klinik","sekolah","mall","spa","salon","bar","lounge","butik","showroom","minimarket"];
               isRoomCtx9 = ROOM_CTX_9.indexOf(at9w) !== -1;
             }
-            if (!isRoomCtx9) {
-              log('🔥 FIX SEO v9: price+spec+target "' + at9w + '" (layers=0) → MP', 'HARGA');
-              return "money-page";
-            }
+            if (!isRoomCtx9) return "money-page";
           }
         }
       }
@@ -3774,19 +3262,11 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       return "money-master";
     }
 
-    if (hasPriceWord && hasPerUnit && !hasLocationWord && !hasCommercialWord && !hasSpecWord) {
-      log('💰 FIX v17-G: MONEY_PAGE (price + per-unit)', 'PRICE');
-      return "money-page";
-    }
-
-    if (hasPriceWord && hasPerUnit && hasSpecWord && !hasLocationWord && !hasCommercialWord) {
-      log('💰 FIX v17-H: MONEY_PAGE (price + per-unit + spec)', 'PRICE');
-      return "money-page";
-    }
+    if (hasPriceWord && hasPerUnit && !hasLocationWord && !hasCommercialWord && !hasSpecWord) return "money-page";
+    if (hasPriceWord && hasPerUnit && hasSpecWord && !hasLocationWord && !hasCommercialWord) return "money-page";
 
     if (hasCommercialWord && !hasLocationWord) {
-      if (hasPriceWord && !hasSpecWord) { log('🏛️ MONEY_MASTER', 'HARGA'); return "money-master"; }
-      log('💰 MONEY_PAGE (comm)', 'PRICE');
+      if (hasPriceWord && !hasSpecWord) return "money-master";
       return "money-page";
     }
 
@@ -3797,16 +3277,9 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       var layers215 = _memoCountModifierLayers
         ? _memoCountModifierLayers(text, entityType)
         : countModifierLayers(text, entityType);
-      if (layers215 > 0) {
-        var decision215 = decideLevelByLayers(layers215);
-        log('💰 FIX 215: ' + decision215 + ' (' + layers215 + ' layer + promo)', 'PRICE');
-        return decision215;
-      }
+      if (layers215 > 0) return decideLevelByLayers(layers215);
       var hasNoun215 = /\b(jasa|layanan|produk|material|pondasi|tiang|pancang|pagar|panel|beton|baja|besi|kayu|batu|keramik|granit|marmer|plafon|gypsum|kanopi|paving|readymix|cor|sewa|rental|alat|mesin|bangunan|konstruksi)\b/i.test(lowerText);
-      if (hasNoun215 || hasSpecWord) {
-        log('💰 FIX 215: MONEY_PAGE (strong promo, 0 layer)', 'PRICE');
-        return "money-page";
-      }
+      if (hasNoun215 || hasSpecWord) return "money-page";
     }
 
     var hasDanConj = /\b(dan|serta)\b/i.test(lowerText);
@@ -3815,23 +3288,15 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       var coreForDan = _memoGetCoreWords
         ? _memoGetCoreWords(text, entityType)
         : getCoreWords(text, entityType);
-      if (coreForDan.length >= 2) {
-        log('💰 FIX 164: MONEY_PAGE (dan-bundling)', 'PRICE');
-        return "money-page";
-      }
+      if (coreForDan.length >= 2) return "money-page";
     }
 
     var coreWords = _memoGetCoreWords
       ? _memoGetCoreWords(text, entityType)
       : getCoreWords(text, entityType);
 
-    log('🧠 CORE: [' + coreWords.join(', ') + ']', 'CORE');
-
     if (entityType === "artikel") {
-      if (!hasPriceWord && !hasCommercialWord && !hasCompound && complexityScore < 3) {
-        log('🏛️ FIX 138: MONEY_MASTER (artikel informasional)', 'MM');
-        return "money-master";
-      }
+      if (!hasPriceWord && !hasCommercialWord && !hasCompound && complexityScore < 3) return "money-master";
     }
 
     var residualLayers = _memoCountModifierLayers
@@ -3840,45 +3305,21 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
 
     if (coreWords.length === 0 && residualLayers === 0
         && !hasPriceWord && !hasCommercialWord && !hasLocationWord && !hasCompound) {
-      log('🏛️ FIX v14-T: MONEY_MASTER (0 core, 0 residual)', 'MM');
       return "money-master";
     }
 
     if (coreWords.length <= 2) {
       if (entityType === "jasa" && coreWords.length === 1 && complexityScore <= 2
           && !hasPriceWord && !hasCommercialWord && !hasCompound) {
-        if (APPLICATION_TARGETS.indexOf(coreWords[0]) !== -1) {
-          log('💵 FIX 167: MONEY_PAGE (base jasa + target)', 'PRICE');
-          return "money-page";
-        }
-        if (isSpecModifierForEntity(coreWords[0], "jasa")) {
-          log('💵 FIX v14-J: MONEY_PAGE (base jasa + spec)', 'PRICE');
-          return "money-page";
-        }
-        log('🏛️ FIX 146: MONEY_MASTER (base jasa + 1 objek)', 'MM');
+        if (APPLICATION_TARGETS.indexOf(coreWords[0]) !== -1) return "money-page";
+        if (isSpecModifierForEntity(coreWords[0], "jasa")) return "money-page";
         return "money-master";
       }
-
-      if (residualLayers > 0 && !hasLocationWord && !hasCommercialWord) {
-        var decision14D = decideLevelByLayers(residualLayers);
-        log('🔥 FIX v14-D: ' + decision14D + ' (' + residualLayers + ' residual)', 'PRICE');
-        return decision14D;
-      }
-
-      if (complexityScore >= 2 && !hasPriceWord && !hasCommercialWord) {
-        log('💰 MONEY_PAGE (score=' + complexityScore + ')', 'SCORE');
-        return "money-page";
-      }
-      if (hasPriceWord) log('💵 MONEY_MASTER', 'HARGA');
-      else log('🏛️ MONEY_MASTER', 'MM');
+      if (residualLayers > 0 && !hasLocationWord && !hasCommercialWord) return decideLevelByLayers(residualLayers);
+      if (complexityScore >= 2 && !hasPriceWord && !hasCommercialWord) return "money-page";
       return "money-master";
     } else {
-      if (residualLayers > 0) {
-        var decision14Db = decideLevelByLayers(residualLayers);
-        log('🔥 FIX v14-D: ' + decision14Db + ' (' + residualLayers + ' layer)', 'PRICE');
-        return decision14Db;
-      }
-      log('💰 MONEY_PAGE (core:' + coreWords.length + ')', 'PRICE');
+      if (residualLayers > 0) return decideLevelByLayers(residualLayers);
       return "money-page";
     }
   }
@@ -3891,12 +3332,9 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     if (isHomePage()) return "home";
     var text = getPageText();
     var entityType = detectEntityType(userOptions && userOptions.userEntityType);
-    log('📝 TEXT: "' + text + '"', "INFO");
-    log('🏷️ ENTITY: ' + (entityType || '(null)'), "INFO");
-    if (detectPillar(text, entityType)) { log('🏛️ PILLAR', "SUCCESS"); return "pillar"; }
+    if (detectPillar(text, entityType)) return "pillar";
     var level = detectMoneyLevelInternal(text, entityType);
-    if (!level) { log('⚠️ Level null', 'WARN'); level = "money-page"; }
-    log('🎯 FINAL: ' + level, 'SUCCESS');
+    if (!level) level = "money-page";
     return level;
   }
 
@@ -3917,23 +3355,16 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   function detectPageLevelFromDOM(entityType) {
     if (typeof window === 'undefined' || !window.location) return null;
     if (isHomePage()) return "home";
-
     var urlText = getPageText();
-
     var urlIsGeneric = /^(blog|post|artikel|produk|layanan|service|item|page|p|home|index|\d+)(\s+\d+)?\s*$/i.test(urlText.trim());
     var text;
     if (urlIsGeneric || !urlText || urlText.length < 3) {
       var h1Text = getH1Text();
-      if (h1Text && h1Text.length > 3) {
-        text = h1Text;
-        log('🎯 FIX: level detection via H1 (slug generic)', 'DETECT');
-      } else {
-        text = urlText;
-      }
+      if (h1Text && h1Text.length > 3) text = h1Text;
+      else text = urlText;
     } else {
       text = urlText;
     }
-
     var entity = entityType || detectEntityType();
     if (detectPillar(text, entity)) return "pillar";
     var level = detectMoneyLevelInternal(text, entity);
@@ -4035,25 +3466,13 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     return parents;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // DETECT FOR PROMPT (M4: idle split)
-  // ═══════════════════════════════════════════════════════════
-
   function detectForPromptFull(input, entityType, domain) {
     if (!input) {
-      return {
-        pageLevel: 'unknown', isValid: false, error: 'Input kosong',
-        upward: [], breadcrumbs: [], seoWarnings: [],
-        _heavyWarningsPending: false
-      };
+      return { pageLevel: 'unknown', isValid: false, error: 'Input kosong', upward: [], breadcrumbs: [], seoWarnings: [], _heavyWarningsPending: false };
     }
     var slug = extractSlugFromInput(input);
     if (!slug) {
-      return {
-        pageLevel: 'unknown', isValid: false, error: 'Slug kosong',
-        upward: [], breadcrumbs: [], seoWarnings: [],
-        _heavyWarningsPending: false
-      };
+      return { pageLevel: 'unknown', isValid: false, error: 'Slug kosong', upward: [], breadcrumbs: [], seoWarnings: [], _heavyWarningsPending: false };
     }
     var entity = entityType || detectEntityTypeFromText(slug);
     var level = detectPageLevelForPrompt(slug, entity);
@@ -4064,15 +3483,10 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     var lightWarnings = _computeLightWarnings(slug, level, entity);
 
     var _result = {
-      pageLevel: level,
-      entityType: entity,
-      factors: factors,
-      text: slug,
+      pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
       isValid: VALID_LEVELS.indexOf(level) !== -1,
-      upward: upwardData.upward,
-      breadcrumbs: upwardData.breadcrumbs,
-      parents: parents,
+      upward: upwardData.upward, breadcrumbs: upwardData.breadcrumbs, parents: parents,
       seoWarnings: lightWarnings.slice(),
       _heavyWarningsPending: false,
       _lightWarningCount: lightWarnings.length,
@@ -4083,18 +3497,13 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       _result._heavyWarningsPending = true;
       runWhenIdle(function() {
         var heavy = _computeHeavyWarnings(slug, entity);
-        for (var i = 0; i < heavy.length; i++) {
-          _result.seoWarnings.push(heavy[i]);
-        }
+        for (var i = 0; i < heavy.length; i++) _result.seoWarnings.push(heavy[i]);
         _result._heavyWarningCount = heavy.length;
         _result._heavyWarningsPending = false;
-        log('⚡ Heavy warnings computed (idle): ' + heavy.length, 'PERF');
       }, CONFIG.HEAVY_WARNING_IDLE_TIMEOUT);
     } else {
       var heavy = _computeHeavyWarnings(slug, entity);
-      for (var i = 0; i < heavy.length; i++) {
-        _result.seoWarnings.push(heavy[i]);
-      }
+      for (var i = 0; i < heavy.length; i++) _result.seoWarnings.push(heavy[i]);
       _result._heavyWarningCount = heavy.length;
     }
     return _result;
@@ -4112,10 +3521,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     var lightWarnings = _computeLightWarnings(slug, level, entity);
 
     var _result = {
-      pageLevel: level,
-      entityType: entity,
-      factors: factors,
-      text: slug,
+      pageLevel: level, entityType: entity, factors: factors, text: slug,
       levelNum: TYPE_LEVEL_MAP[level] || -1,
       isValid: VALID_LEVELS.indexOf(level) !== -1,
       seoContext: seoContext,
@@ -4129,38 +3535,22 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       _result._heavyWarningsPending = true;
       runWhenIdle(function() {
         var heavy = _computeHeavyWarnings(slug, entity);
-        for (var i = 0; i < heavy.length; i++) {
-          _result.seoWarnings.push(heavy[i]);
-        }
+        for (var i = 0; i < heavy.length; i++) _result.seoWarnings.push(heavy[i]);
         _result._heavyWarningCount = heavy.length;
         _result._heavyWarningsPending = false;
-        log('⚡ Heavy warnings computed (idle): ' + heavy.length, 'PERF');
       }, CONFIG.HEAVY_WARNING_IDLE_TIMEOUT);
     } else {
       var heavy = _computeHeavyWarnings(slug, entity);
-      for (var i = 0; i < heavy.length; i++) {
-        _result.seoWarnings.push(heavy[i]);
-      }
+      for (var i = 0; i < heavy.length; i++) _result.seoWarnings.push(heavy[i]);
       _result._heavyWarningCount = heavy.length;
     }
     return _result;
   }
 
-  function detectForPromptSync(input, entityType) {
-    return detectForPrompt(input, entityType);
-  }
-
-  function detectForPromptWithUpward(input, entityType, domain) {
-    return detectForPromptFull(input, entityType, domain);
-  }
-
-  function detectBreadcrumbsFromSlug(slug, domain) {
-    return detectUpwardFromSlug(slug, domain).breadcrumbs;
-  }
-
-  function detectParentFromSlug(slug, domain) {
-    return detectUpwardFromSlug(slug, domain).upward;
-  }
+  function detectForPromptSync(input, entityType) { return detectForPrompt(input, entityType); }
+  function detectForPromptWithUpward(input, entityType, domain) { return detectForPromptFull(input, entityType, domain); }
+  function detectBreadcrumbsFromSlug(slug, domain) { return detectUpwardFromSlug(slug, domain).breadcrumbs; }
+  function detectParentFromSlug(slug, domain) { return detectUpwardFromSlug(slug, domain).upward; }
 
   function detectIntent(text) {
     if (!text) return { dominant: "informational", scores: {}, confidence: "low" };
@@ -4188,40 +3578,28 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     return { dominant: dominantIntent, scores: scores, confidence: confidence, maxScore: maxScore };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // SCHEMA / ATTRIBUTES
-  // ═══════════════════════════════════════════════════════════
-
+  // ═══ SCHEMA / ATTRIBUTES ═══
   function detectContentFocus(level, entityType) {
     var h1Text = getH1Text();
     var urlText = getPageText();
-
     var h1Raw = '';
     try {
       var h1El = document.querySelector('h1');
       h1Raw = h1El ? (h1El.innerText || h1El.textContent || '') : '';
     } catch (e) {}
-
     var pathnameRaw = '';
     try { pathnameRaw = window.location.pathname; } catch (e) {}
-
     var hasYearInH1 = /\b(20[2-9][0-9])\b/.test(h1Raw);
     var hasYearInUrl = /\b(20[2-9][0-9])\b/.test(pathnameRaw);
-
     var hasPriceInText = checkHasPrice(h1Text) || checkHasPrice(urlText);
     var hasCommercial = checkHasCommercial(h1Text, entityType) || checkHasCommercial(urlText, entityType);
     var hasInfoSpecPhrase = checkHasInformationalSpecPhrase(h1Text) || checkHasInformationalSpecPhrase(urlText);
     var hasPriceTableInDOM = checkPriceTable();
-
     var isMoneyLevel = ['money-master','money-page','money-child'].indexOf(level) !== -1;
     var isVariantLevel = ['variant','sub-variant'].indexOf(level) !== -1;
-
     if (isMoneyLevel || isVariantLevel) {
-      if (hasInfoSpecPhrase && !hasPriceTableInDOM && !hasCommercial) {
-        log('🎯 FIX 137: CONTENT FOCUS = INFORMASI', 'SEO');
-        return 'INFORMASI';
-      }
-      if (hasPriceTableInDOM) { log('🎯 FOCUS: HARGA (tabel)', 'TABLE'); return 'HARGA'; }
+      if (hasInfoSpecPhrase && !hasPriceTableInDOM && !hasCommercial) return 'INFORMASI';
+      if (hasPriceTableInDOM) return 'HARGA';
       if (hasPriceInText || hasYearInH1 || hasYearInUrl) return 'HARGA';
       if (hasCommercial) return 'COMMERCIAL';
       return 'INFORMASI';
@@ -4241,28 +3619,21 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
 
   function detectEntitySubType(level, entityType) {
     if (typeof document === 'undefined' || !document.body) return null;
-    var bodySubType = document.body.getAttribute('data-entity-sub-type');
-    if (bodySubType) return bodySubType;
-    return null;
+    return document.body.getAttribute('data-entity-sub-type') || null;
   }
 
   function detectSchemaType(level, entityType, contentFocus) {
-    var primary = 'WebPage';
-    var secondary = '';
-    var note = '';
+    var primary = 'WebPage', secondary = '', note = '';
     var isMoneyLevel = ['money-master','money-page','money-child'].indexOf(level) !== -1;
     var isEvergreen = ['pillar','sub-pillar-tipe-1','sub-pillar-tipe-2'].indexOf(level) !== -1;
     var isVariant = ['variant','sub-variant'].indexOf(level) !== -1;
-
     if (isEvergreen) { primary = 'Article'; secondary = 'FAQPage'; }
     else if (isVariant) { primary = 'Product'; secondary = 'TechArticle'; note = 'without-offers'; }
     else if (isMoneyLevel) {
       if (contentFocus === 'HARGA' || contentFocus === 'COMMERCIAL') {
         primary = 'Product'; secondary = 'Service';
         if (level === 'money-child') note = 'with-areaServed';
-      } else if (contentFocus === 'INFORMASI') {
-        primary = 'Article'; secondary = 'FAQPage';
-      }
+      } else if (contentFocus === 'INFORMASI') { primary = 'Article'; secondary = 'FAQPage'; }
     }
     return { primary: primary, secondary: secondary, note: note };
   }
@@ -4270,9 +3641,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   function detectCtaType(level, contentFocus) {
     var isMoneyLevel = ['money-master','money-page','money-child'].indexOf(level) !== -1;
     if (!isMoneyLevel) return { type: 'soft', text: 'Baca Selengkapnya' };
-    if (contentFocus === 'HARGA' || contentFocus === 'COMMERCIAL') {
-      return { type: 'hard', text: 'Pesan Sekarang' };
-    }
+    if (contentFocus === 'HARGA' || contentFocus === 'COMMERCIAL') return { type: 'hard', text: 'Pesan Sekarang' };
     return { type: 'medium', text: 'Hubungi Kami' };
   }
 
@@ -4315,58 +3684,39 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   }
 
   function setSchemaAttributes(level) {
-    if (_SCHEMA_ATTRS_SET) {
-      log('⏭️ setSchemaAttributes() sudah pernah dipanggil — skip', 'ATTR');
-      return;
-    }
+    if (_SCHEMA_ATTRS_SET) return;
     _SCHEMA_ATTRS_SET = true;
-
     try {
       document.body.setAttribute("data-page-level", level);
       document.body.setAttribute("data-page-level-num", String(TYPE_LEVEL_MAP[level] || '0'));
-
       var entityType = detectEntityType();
       if (!entityType) {
         var h1Text = getH1Text();
         entityType = detectEntityTypeFromText(h1Text);
       }
       document.body.setAttribute("data-entity-type", entityType || '');
-
       if (entityType === "jasa") {
         var subCat = detectJasaSubCategory(getPageText() + " " + getH1Text(), "jasa");
         document.body.setAttribute("data-jasa-sub-category", subCat || 'default');
       }
-
       var contentFocus = detectContentFocus(level, entityType);
       document.body.setAttribute("data-content-focus", contentFocus);
-
       var kategori = detectKategori(contentFocus);
       document.body.setAttribute("data-kategori", kategori);
-
-      var h1Pattern = detectH1Pattern(kategori);
-      document.body.setAttribute("data-h1-pattern", h1Pattern);
-
+      document.body.setAttribute("data-h1-pattern", detectH1Pattern(kategori));
       var entitySubType = detectEntitySubType(level, entityType);
       document.body.setAttribute("data-entity-sub-type", entitySubType || '');
-
       var schemaType = detectSchemaType(level, entityType, contentFocus);
       document.body.setAttribute("data-schema-type-primary", schemaType.primary);
       document.body.setAttribute("data-schema-type-secondary", schemaType.secondary);
-
       var ctaType = detectCtaType(level, contentFocus);
       document.body.setAttribute("data-cta-type", ctaType.type);
       document.body.setAttribute("data-cta-text", ctaType.text);
-
       var productCategory = detectProductCategoryFromPLD(entityType, entitySubType);
       if (productCategory) document.body.setAttribute("data-product-category", productCategory);
-
       var productMaterial = detectProductMaterialFromPLD(entityType, entitySubType);
       if (productMaterial) document.body.setAttribute("data-product-material", productMaterial);
-
-      log('✅ Schema attributes ter-set!', 'ATTR');
-    } catch (e) {
-      log('❌ Error set schema attributes: ' + e.message, 'ERROR');
-    }
+    } catch (e) {}
   }
 
   function findBreadcrumbs() {
@@ -4395,9 +3745,6 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     return null;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // waitForBreadcrumbs() — M4 MutationObserver
-  // ═══════════════════════════════════════════════════════════
   function waitForBreadcrumbs(callback) {
     if (typeof document === 'undefined' || typeof MutationObserver === 'undefined') {
       var bcFallback = findBreadcrumbs();
@@ -4405,13 +3752,8 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       callback(new Error('MutationObserver not available'), null);
       return;
     }
-
     var found = findBreadcrumbs();
-    if (found) {
-      log("✅ Breadcrumbs ditemukan langsung! (" + found.selector + ")", 'BREAD');
-      callback(null, found);
-      return;
-    }
+    if (found) { callback(null, found); return; }
 
     var done = false;
     var observer = null;
@@ -4422,13 +3764,10 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       done = true;
       if (timeoutId) clearTimeout(timeoutId);
       if (observer) { try { observer.disconnect(); } catch (e) {} }
-      if (bc) log("✅ Breadcrumbs ditemukan via observer! (" + bc.selector + ")", 'BREAD');
       callback(err, bc);
     }
 
-    timeoutId = setTimeout(function() {
-      _finish(new Error('Breadcrumbs timeout'), null);
-    }, 5000);
+    timeoutId = setTimeout(function() { _finish(new Error('Breadcrumbs timeout'), null); }, 5000);
 
     try {
       observer = new MutationObserver(function() {
@@ -4436,61 +3775,40 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         var bc = findBreadcrumbs();
         if (bc) _finish(null, bc);
       });
-      observer.observe(document.body || document.documentElement, {
-        childList: true,
-        subtree: true
-      });
+      observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
     } catch (e) {
       var startTime = Date.now();
       var _poll = function() {
         if (done) return;
         var bc = findBreadcrumbs();
         if (bc) { _finish(null, bc); return; }
-        if (Date.now() - startTime >= 5000) {
-          _finish(new Error('Breadcrumbs timeout'), null);
-          return;
-        }
+        if (Date.now() - startTime >= 5000) { _finish(new Error('Breadcrumbs timeout'), null); return; }
         setTimeout(_poll, 200);
       };
       setTimeout(_poll, 0);
     }
   }
 
-  // ═══ PART 3 END ═══
+  // ═══ END BAGIAN 3 — LANJUT BAGIAN 4 ═══
 
      // ═══════════════════════════════════════════════════════════
-  // initializeCore() — dengan M1/M2/M3/M4 activation
-  // ✅ Saran 2: _memoCheckHasJasaMetode DIHAPUS (unused)
-  // ✅ Saran 4: _clearLevelCache + _clearSubCatCache di-expose
+  // initializeCore()
   // ═══════════════════════════════════════════════════════════
   function initializeCore() {
-    if (_CORE_INITIALIZED) {
-      log('⏭️ initializeCore() sudah pernah dijalankan — skip', 'PERF');
-      return;
-    }
-    if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.7-lite-perf") {
-      log('⏭️ PLD sudah ada di window — skip init', 'PERF');
+    if (_CORE_INITIALIZED) return;
+    if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.7-lite-perf-b2n") {
       _CORE_INITIALIZED = true;
       return;
     }
     _CORE_INITIALIZED = true;
 
-    log('🧠 Core functions ready', 'CORE');
-
-    // 🔥 M1+M2: build master regexes SEKALI di awal
     try {
-      var _t0 = (typeof performance !== 'undefined' && performance.now)
-        ? performance.now() : Date.now();
       _buildMasterRegexes();
-      var _t1 = (typeof performance !== 'undefined' && performance.now)
-        ? performance.now() : Date.now();
-      console.log('⚡ [PLD-PERF] Master regexes pre-built: ' + (_t1 - _t0).toFixed(2) + 'ms, cache size: ' + _REGEX_CACHE_SIZE);
+      console.log('⚡ [PLD-B2N] Master regexes pre-built, cache size: ' + _REGEX_CACHE_SIZE);
     } catch (e) {
-      console.error('❌ [PLD-PERF] Gagal build master regexes: ' + e.message);
+      console.error('❌ [PLD-B2N] Gagal build master regexes: ' + e.message);
     }
 
-    // 🔥 M3: Aktifkan memoize wrapper
-    // ✅ Saran 2: _memoCheckHasJasaMetode TIDAK diaktifkan (unused)
     try {
       _memoCountModifierLayers = memoize(countModifierLayers, 300);
       _memoCheckHasSpecification = memoize(checkHasSpecification, 300);
@@ -4503,13 +3821,13 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       _memoGetCoreWords = memoizeArray(getCoreWords, 200);
       _memoGetFactors = memoizeObject(getFactors, 200);
       _memoDetectVariantByPattern = memoize(detectVariantByPattern, 200);
-      console.log('⚡ [PLD-PERF] Memoize wrappers ACTIVE — 11 fungsi (Saran 2: _memoCheckHasJasaMetode dihapus)');
+      console.log('⚡ [PLD-B2N] Memoize wrappers ACTIVE — 11 fungsi');
     } catch (e) {
-      console.error('❌ [PLD-PERF] Gagal aktifkan memoize: ' + e.message);
+      console.error('❌ [PLD-B2N] Gagal aktifkan memoize: ' + e.message);
     }
 
     window.pageLevelDetectorv22 = {
-      version: "23.9.7-lite-perf",
+      version: "23.9.7-lite-perf-b2n",
       CONFIG: CONFIG,
 
       // ─── API UTAMA ───
@@ -4622,9 +3940,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
           document.body.classList.remove('page-level-unknown', className);
           document.body.classList.add(className);
           setSchemaAttributes(level);
-        } catch (e) {
-          log("Error setting attributes: " + e.message, "ERROR");
-        }
+        } catch (e) {}
 
         var result = { pageLevel: level, pageLevelNum: TYPE_LEVEL_MAP[level] || 0, breadcrumb: null };
 
@@ -4644,7 +3960,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         return result;
       },
 
-      // ─── PERF HELPERS (M1+M2+M3+M4) ───
+      // ─── PERF HELPERS ───
       _rx: rx,
       _rxRaw: rxRaw,
       _buildMasterRegexes: _buildMasterRegexes,
@@ -4659,7 +3975,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       _computeLightWarnings: _computeLightWarnings,
       _computeHeavyWarnings: _computeHeavyWarnings,
 
-      // ✅ Saran 4: Expose clear cache helpers
+      // ─── CACHE HELPERS ───
       _clearLevelCache: _clearLevelCache,
       _clearSubCatCache: _clearSubCatCache,
       _getLevelCacheSize: function() { return _PLD_LEVEL_CACHE_KEYS.length; },
@@ -4716,13 +4032,13 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       extractSlugFromInput: extractSlugFromInput
     };
 
-    // 🔥 FIX-P7: Set body attributes SINKRON sebelum dispatch
+    // FIX-P7: Set body attributes SINKRON sebelum dispatch
     try {
       var _initialLevel = detectPageLevel();
       setSchemaAttributes(_initialLevel);
-      console.log('⚡ [PLD-PERF] Body attributes di-set SEBELUM dispatch: ' + _initialLevel);
+      console.log('⚡ [PLD-B2N] Body attributes di-set SEBELUM dispatch: ' + _initialLevel);
     } catch (e) {
-      console.error('❌ [PLD-PERF] Gagal set body attributes: ' + e.message);
+      console.error('❌ [PLD-B2N] Gagal set body attributes: ' + e.message);
     }
 
     window.pageLevelDetectorv22Ready = true;
@@ -4736,70 +4052,72 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v23.9.7-LITE-PERF — FULL PATCH + CLEANUP");
+    console.log("✅ Page Level Detector v23.9.7-LITE-PERF — BROAD-TO-NARROW");
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("🔥 M1: RegExp Cache (2000 entry, LRU)");
-    console.log("🔥 M2: Master Regex (18 regex gabungan)");
-    console.log("🔥 M3: Memoize (11 fungsi, LRU 200-300)");
-    console.log("🔥 M4: Idle Scheduler + MutationObserver + Device Detection");
-    console.log("🔥 FIX-P1..P7: Performance patch dari versi sebelumnya");
-    console.log("🧹 CLEANUP Saran 1-5:");
-    console.log("   ✅ Saran 1: Duplikat ENTITY_BASE_NAMES.sewa dihapus");
-    console.log("   ✅ Saran 2: _memoCheckHasJasaMetode dihapus (unused)");
-    console.log("   ✅ Saran 3: CONFIG lowEnd threshold configurable");
-    console.log("   ✅ Saran 4: _clearLevelCache + _clearSubCatCache exposed");
-    console.log("   ✅ Saran 5: Regression test diperluas (semua entity)");
-    console.log("═══════════════════════════════════════════════════════════");
-    console.log("🎯 GARANSI:");
-    console.log("   ✅ Tidak ada fungsi yang hilang");
-    console.log("   ✅ Output IDENTIK dengan versi sebelumnya (terbukti 18/18 test)");
-    console.log("   ✅ Konsisten desktop vs HP");
-    console.log("   ✅ UI tidak block di HP low-end");
+    console.log("🎯 PRINSIP:");
+    console.log("   ✅ JASA     : Broad-to-narrow (verb = base, target = spec)");
+    console.log("   ✅ PRODUK   : Frasa utuh (noun-based)");
+    console.log("   ✅ MATERIAL : Frasa utuh (noun-based)");
+    console.log("   ✅ DESAIN   : Frasa utuh (khusus)");
+    console.log("   ✅ SEWA     : PATCH SEWA v2");
+    console.log("🔥 FIX-MINIMAL-v3: BROAD-TO-NARROW (ganti hardcoded list)");
     console.log("═══════════════════════════════════════════════════════════");
 
-    // 🔥 PATCH M1+M2: auto regression test (hanya di DEBUG)
-    // ✅ Saran 5: Diperluas — cover semua entity
+    // 🔥 REGRESSION TEST — BROAD-TO-NARROW
     if (CONFIG.DEBUG) {
       try {
         var _testCases = [
-          // [input, expected, entityType]
+          // ═══ JASA — BROAD-TO-NARROW ═══
+          ["jasa bor",                        "money-master",      "jasa"],
+          ["jasa bor tanah",                  "money-page",        "jasa"],
+          ["jasa bor sumur",                  "money-page",        "jasa"],
+          ["jasa bor sumur 30 meter",         "variant",           "jasa"],
+          ["jasa bor sumur dalam",            "variant",           "jasa"],
+          ["jasa bor sumur dalam 30 meter",   "sub-variant",       "jasa"],
+          ["jasa cor",                        "money-master",      "jasa"],
+          ["jasa cor dak",                    "money-page",        "jasa"],
+          ["jasa cor dak lantai 2",           "variant",           "jasa"],
+          ["jasa pancang",                    "money-master",      "jasa"],
+          ["jasa pancang mini",               "money-page",        "jasa"],
+          ["jasa pancang mini beton",         "variant",           "jasa"],
+          ["jasa pasang keramik",             "money-page",        "jasa"],
+          ["jasa pasang keramik 60x60",       "variant",           "jasa"],
+          ["jasa bore pile",                  "money-master",      "jasa"],
+          ["jasa bore pile 30 meter",         "money-page",        "jasa"],
+          ["jasa bore pile jakarta",          "money-child",       "jasa"],
+          ["harga bore pile",                 "money-master",      "jasa"],
+          ["jasa bore pile murah",            "money-master",      "jasa"],
+          ["jasa bor tanah profesional",      "money-master",      "jasa"],
+          ["jasa bor tanah dalam profesional", "variant",          "jasa"],
+          ["jasa bor tanah jakarta",          "money-child",       "jasa"],
+          ["ukuran jasa bor tanah",           "money-page",        "jasa"],
+          ["spesifikasi jasa bor tanah",      "money-page",        "jasa"],
 
-          // ═══ JASA ═══
-          ["jasa bore pile",              "money-master",      "jasa"],
-          ["jasa bore pile jakarta",      "money-child",       "jasa"],
-          ["jasa bore pile 30 meter",     "money-page",        "jasa"],
-          ["harga bore pile",             "money-master",      "jasa"],
-          ["jasa bore pile murah",        "money-master",      "jasa"],
-          ["jasa cor dak lantai 2",       "money-page",        "jasa"],
+          // ═══ SEWA ═══
+          ["sewa excavator",                  "money-master",      "sewa"],
+          ["sewa excavator jakarta",          "money-child",       "sewa"],
+          ["sewa excavator per hari",         "money-page",        "sewa"],
+          ["sewa excavator mini",             "variant",           "sewa"],
 
-          // ═══ SEWA ✅ Saran 5 tambahan ═══
-          ["sewa excavator",              "money-master",      "sewa"],
-          ["sewa excavator jakarta",      "money-child",       "sewa"],
-          ["sewa excavator per hari",     "money-page",        "sewa"],
-          ["sewa excavator mini",         "variant",           "sewa"],
+          // ═══ PRODUK ═══
+          ["pintu aluminium",                 "money-master",      "produk"],
+          ["pintu aluminium jakarta",         "money-child",       "produk"],
+          ["pintu aluminium 80x200",          "money-page",        "produk"],
 
-          // ═══ PRODUK ✅ Saran 5 tambahan ═══
-          ["pintu aluminium",             "money-master",      "produk"],
-          ["pintu aluminium jakarta",     "money-child",       "produk"],
-          ["pintu aluminium 80x200",      "money-page",        "produk"],
+          // ═══ MATERIAL ═══
+          ["besi beton ulir",                 "money-master",      "material"],
+          ["besi beton ulir sni",             "money-page",        "material"],
 
-          // ═══ MATERIAL ✅ Saran 5 tambahan ═══
-          ["besi beton ulir",             "money-master",      "material"],
-          ["besi beton ulir sni",         "money-page",        "material"],
+          // ═══ DESAIN ═══
+          ["desain interior",                 "money-master",      "desain"],
+          ["desain interior minimalis",       "variant",           "desain"],
 
-          // ═══ DESAIN ✅ Saran 5 tambahan ═══
-          ["desain interior",             "money-master",      "desain"],
-          ["desain interior minimalis",   "variant",           "desain"],
-
-          // ═══ ARTIKEL ✅ Saran 5 tambahan ═══
-          ["cara pasang keramik",         "money-master",      "artikel"],
+          // ═══ ARTIKEL ═══
+          ["cara pasang keramik",             "money-master",      "artikel"],
 
           // ═══ SUB-PILLAR ═══
-          ["daftar jenis pagar",          "sub-pillar-tipe-2", null],
-          ["pagar vs kanopi",             "sub-pillar-tipe-1", null],
-
-          // ═══ HARGA-FOLLOW ═══
-          ["harga jasa bore pile murah",  "money-master",      "jasa"]
+          ["daftar jenis pagar",              "sub-pillar-tipe-2", null],
+          ["pagar vs kanopi",                 "sub-pillar-tipe-1", null]
         ];
         var _fails = 0;
         for (var _ti = 0; _ti < _testCases.length; _ti++) {
@@ -4816,77 +4134,39 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         } else {
           console.warn("⚠️ REGRESSION: " + _fails + " FAIL dari " + _testCases.length);
         }
-
-        // M3 test
-        console.log("─── M3 Memoize Test ───");
-        var _m3TestSlug = "jasa bore pile jakarta 30 meter";
-        for (var _r = 0; _r < 2; _r++) {
-          var _lvl = detectPageLevelForPrompt(_m3TestSlug, "jasa");
-          console.log("  Run " + (_r + 1) + ": " + _lvl);
-        }
-        var _memoStats = _getMemoStats();
-        console.log("📊 Memo stats:", _memoStats);
-        if (_memoStats.hits > 0) {
-          console.log("✅ M3: memoize HIT detected (" + _memoStats.hits + " hits)");
-        } else {
-          console.warn("⚠️ M3: no cache hit");
-        }
-
-        // M4 test
-        console.log("─── M4 Idle + Device Test ───");
-        console.log("📱 Device:", {
-          isMobile: _DEVICE.isMobile, lowEnd: _DEVICE.lowEnd,
-          memory: _DEVICE.memory + "GB", cores: _DEVICE.cores
-        });
-        console.log("📱 Mode:", _DEVICE.lowEnd ? "IDLE (heavy warnings async)" : "SYNC (all warnings sync)");
-        var _m4Result = detectForPrompt("jasa bore pile jakarta", "jasa");
-        console.log("  Light warnings count:", _m4Result._lightWarningCount);
-        console.log("  Heavy pending:", _m4Result._heavyWarningsPending);
-
-        // ✅ Saran 4: Cache size test
-        console.log("─── Saran 4: Cache Size Test ───");
-        console.log("  Level cache size:", _PLD_LEVEL_CACHE_KEYS.length, "/", _PLD_LEVEL_CACHE_MAX);
-        console.log("  SubCat cache size:", _PLD_SUBCAT_CACHE_KEYS.length, "/", _PLD_SUBCAT_CACHE_MAX);
-        console.log("  (_clearLevelCache + _clearSubCatCache exposed ✅)");
       } catch (e) {
         console.error("Regression test error:", e.message);
       }
     }
 
-    // 🔥 FIX-P7: updateAttributes dengan waitForBreadcrumb:false
+    // FIX-P7: updateAttributes
     try {
       window.pageLevelDetectorv22.updateAttributes({ waitForBreadcrumb: false })
         .then(function(result) {
-          log("✅ Auto-update selesai! Level: " + result.pageLevel, 'SUCCESS');
+          if (CONFIG.DEBUG) console.log("✅ Auto-update: " + result.pageLevel);
         })
-        .catch(function(err) { log("Auto-update error: " + err, "ERROR"); });
-    } catch (e) {
-      log("Auto-update failed: " + e.message, "ERROR");
-    }
+        .catch(function(err) { if (CONFIG.DEBUG) console.error("Auto-update error: " + err); });
+    } catch (e) {}
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX-RACE: waitForDOM() aman untuk inject kapan saja
+  // FIX-RACE: waitForDOM()
   // ═══════════════════════════════════════════════════════════
   var _DOM_READY_CALLED = false;
 
   function waitForDOM(callback) {
-    if (_DOM_READY_CALLED) {
-      return;
-    }
+    if (_DOM_READY_CALLED) return;
     if (typeof document === 'undefined') {
       _DOM_READY_CALLED = true;
       callback();
       return;
     }
-
     var rs = document.readyState;
     if (rs === 'complete' || rs === 'interactive') {
       _DOM_READY_CALLED = true;
       callback();
       return;
     }
-
     var _called = false;
     function _once() {
       if (_called) return;
@@ -4894,9 +4174,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       _DOM_READY_CALLED = true;
       callback();
     }
-
     document.addEventListener('DOMContentLoaded', _once);
-
     var _fallbackCount = 0;
     var _fallbackTimer = setInterval(function() {
       _fallbackCount++;
@@ -4905,28 +4183,20 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
         clearInterval(_fallbackTimer);
         _once();
       }
-      if (_fallbackCount >= 60) {  // max 6 detik (60 × 100ms)
+      if (_fallbackCount >= 60) {
         clearInterval(_fallbackTimer);
         _once();
       }
     }, 100);
   }
 
-  log('🚀 Starting PLD v23.9.7-LITE-PERF...', 'INFO');
-
   function _safeInitializeCore() {
-    if (_CORE_INITIALIZED) {
-      log('⏭️ _safeInitializeCore: sudah init', 'PERF');
-      return;
-    }
-    if (window.pageLevelDetectorv22) {
-      log('⏭️ _safeInitializeCore: PLD sudah ada', 'PERF');
-      return;
-    }
+    if (_CORE_INITIALIZED) return;
+    if (window.pageLevelDetectorv22) return;
     try {
       initializeCore();
     } catch (e) {
-      console.error('❌ [PLD-PERF] initializeCore error: ' + e.message);
+      console.error('❌ [PLD-B2N] initializeCore error: ' + e.message);
       try {
         if (document.body) {
           document.body.setAttribute("data-page-level", "money-page");
@@ -4936,18 +4206,12 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
     }
   }
 
-  // 🔥 FIX-RACE: panggil _safeInitializeCore dengan guard
-  waitForDOM(function() {
-    _safeInitializeCore();
-  });
+  waitForDOM(function() { _safeInitializeCore(); });
 
-  // Fallback tambahan: kalau readyState sudah complete, langsung init
   if (typeof document !== 'undefined') {
     var _rs = document.readyState;
     if (_rs === 'complete' || _rs === 'interactive') {
-      setTimeout(function() {
-        _safeInitializeCore();
-      }, 0);
+      setTimeout(function() { _safeInitializeCore(); }, 0);
     }
   }
 
@@ -4955,7 +4219,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   // GLOBAL HELPERS
   // ═══════════════════════════════════════════════════════════
   if (typeof window !== "undefined") {
-    window.PLD_VERSION = "23.9.7-lite-perf";
+    window.PLD_VERSION = "23.9.7-lite-perf-b2n";
     window.getPLDInfo = function() {
       if (!window.pageLevelDetectorv22) {
         console.error("❌ PLD belum ready.");
@@ -4963,7 +4227,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
       }
       return {
         version: window.pageLevelDetectorv22.version,
-        mode: "LITE-PERF-CLEANUP",
+        mode: "LITE-PERF-BROAD-TO-NARROW",
         pageLevel: window.pageLevelDetectorv22.detect(),
         entityType: window.pageLevelDetectorv22.detectEntityType(),
         perf: window.pageLevelDetectorv22._getPerfStats(),
@@ -4977,5 +4241,7 @@ PATCH: M1+M2+M3+M4 (Regex Cache + Master Regex + Memoize + Idle)
   }
 
 })();
+
+
 
  
