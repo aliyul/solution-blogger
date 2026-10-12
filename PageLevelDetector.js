@@ -2997,7 +2997,7 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
         }
         _tempSw = _tempSw.replace(rx(_matchedBaseSw[0], 'g'), ' ');
 
-         var _durasiNoise = [
+      var _durasiNoise = [
           "harian","mingguan","bulanan","tahunan",
           "per jam","per hari","per minggu","per bulan",
           "short term","long term",
@@ -3010,10 +3010,9 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
           "diesel","bensin","solar","listrik","hidrolik","hydraulic",
           "tambang","pertambangan","basement","banjir","irigasi",
           "kapasitas","pengukuran","mesin",
-          "cor","jalan","kolom","balok","plat","lantai","per",
-          "ukuran","spesifikasi","mutu","metode","cara kerja","panduan",
-          "fungsi","dimensi","tipe","jenis","varian","model","standar"
+          "cor","jalan","kolom","balok","plat","lantai","per"
         ];
+         
         for (var _dn = 0; _dn < _durasiNoise.length; _dn++) {
           _tempSw = _tempSw.replace(rx(_durasiNoise[_dn], 'g'), ' ');
         }
