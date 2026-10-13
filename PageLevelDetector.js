@@ -2962,14 +2962,26 @@ var SPEC_PHRASE_INFORMATIONAL = [
         // Sebelumnya kata-kata ini bikin layer count salah → hasil "variant" (harusnya "money-page")
         _tempMin = _tempMin.replace(/\b(ukuran|spesifikasi|mutu|metode|cara kerja|panduan|fungsi|dimensi|tipe|jenis|varian|model|standar|kapasitas|faktor penentu|faktor utama|penyebab|dampak|pengaruh|efek)\b/gi, ' ');
          
+                _tempMin = _tempMin.replace(/\s+/g, ' ').trim();
+
+        // 🔥 FIX-PER-UNIT-v1: gabung "per X" jadi 1 unit (bukan 2 kata)
+        // Konsisten dengan countModifierLayers() general logic
+        // Contoh: "jasa bor per meter" → 1 layer, bukan 2
+        var _perUnitPattern = /\bper\s+(?:meter|m|cm|mm|km|inch|inchi|ft|feet|kg|ton|gram|ons|liter|ml|galon|m3|m2|kubik|cc|batang|lembar|keping|papan|roll|titik|unit|buah|set|paket|hari|jam|minggu|bulan|tahun|shift|rit|ritase|tonase|trip|truk|pickup|colt|orang|kali|boks|dus|karung|sak|lot|batch|container|kontainer)\b/gi;
+        var _perUnitMatches = _tempMin.match(_perUnitPattern) || [];
+        var _perUnitCount = _perUnitMatches.length;
+        for (var _pui = 0; _pui < _perUnitMatches.length; _pui++) {
+          _tempMin = _tempMin.replace(_perUnitMatches[_pui], ' ');
+        }
         _tempMin = _tempMin.replace(/\s+/g, ' ').trim();
+
         var _sisaMin = _tempMin.split(/\s+/).filter(function(w) { return w.length > 2; });
 
         // Cek apakah ada location → fall through (biar money-child)
         var _hasLocMin = isLocation(text);
 
-        // Hitung layers dari sisa (pakai countModifierLayers general logic)
-        var _specCountMin = _sisaMin.length;
+        // Hitung layers: sisa kata + per-unit (tiap "per X" = 1 layer)
+        var _specCountMin = _sisaMin.length + _perUnitCount;
         if (_specCountMin === 0) {
           // Tidak ada sisa → MM
           if (_hasLocMin) {
