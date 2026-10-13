@@ -1,10 +1,16 @@
 /**
- * ⚡ AutoSchema Hybrid v5.3-LITE — PRODUCT SCHEMA (PERF MAX)
- ** ✅ P17: Gambar SELALU di-insert DIBAWAH H1 (post-title), bukan firstChild
+ * ⚡ AutoSchema Hybrid v5.4-LITE — PRODUCT SCHEMA (PERF MAX + SYNC AED)
+ * 
+ * 🔥 v5.4-LITE CHANGELOG (SYNC AED v17.4.3):
+ * ✅ FIX-SYNC-AED-1: MONEY_LEVELS + variant/sub-variant
+ * ✅ FIX-SYNC-AED-2: detectContentFocus() — AED priority
+ * ✅ FIX-SYNC-AED-3: getKategori() — AED priority, no compute
+ * 
+ * ✅ P17: Gambar SELALU di-insert DIBAWAH H1 (post-title), bukan firstChild
  *         - Helper baru: insertFigureAfterH1() dengan 3-level fallback
  *         - Fix: figure tidak lagi muncul DI ATAS H1
  *         - Fix: extra closing brace di fixImagesToFormat1()
-
+ *
  * 🔥 v5.3-LITE CHANGELOG (4 OPTIMASI AMAN):
  * ✅ P13: Early return breadcrumb (skip wait kalau flag sudah ada)
  * ✅ P14: Cache getPageLevelFromPLD() di variable global
@@ -44,11 +50,11 @@
   "use strict";
 
   // ═══ FIX-S8: Guard global ═══
-  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.3-lite") {
-    console.log("[AutoSchema Hybrid v5.3-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.4-lite") {
+    console.log("[AutoSchema Hybrid v5.4-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_HYBRID_VERSION = "5.3-lite";
+  window.__AUTOSCHEMA_HYBRID_VERSION = "5.4-lite";
 
   // ============================================================
   // 🔥 FIX-S1: AUTO-DETECT DEBUG 🔥
@@ -70,7 +76,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.3-LITE] 🚫 Blocked external fetch:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.4-LITE] 🚫 Blocked external fetch:', url);
       return Promise.reject(new Error('Blocked by CORB prevention'));
     }
     return originalFetch.apply(this, args);
@@ -83,7 +89,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.3-LITE] 🚫 Blocked external XHR:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.4-LITE] 🚫 Blocked external XHR:', url);
       throw new Error('Blocked by CORB prevention');
     }
     return originalXHROpen.call(this, method, url, ...rest);
@@ -243,7 +249,7 @@
       } catch (error) {
         const fallback = this.fallbacks.get(fnName);
         if (CONFIG.DEBUG) {
-          console.error(`❌ [Hybrid v5.3] Error in ${fnName}:`, error);
+          console.error(`❌ [Hybrid v5.4] Error in ${fnName}:`, error);
         }
         if (fallback) return typeof fallback === 'function'
           ? fallback(...args) : fallback;
@@ -269,7 +275,7 @@
     end(label) {
       if (!CONFIG.DEBUG || !this.marks[label]) return 0;
       const duration = performance.now() - this.marks[label];
-      console.log(`⏱️ [PERF v5.3-LITE] ${label}: ${duration.toFixed(2)}ms`);
+      console.log(`⏱️ [PERF v5.4-LITE] ${label}: ${duration.toFixed(2)}ms`);
       delete this.marks[label];
       return duration;
     }
@@ -277,7 +283,6 @@
 
   // ============================================================
   // 🔥 FIX-S3: DOM CACHE TANPA MUTATIONOBSERVER 🔥
-  // (Dipakai hanya untuk selector yang dipanggil >1x)
   // ============================================================
   class DOMCache {
     constructor() {
@@ -320,7 +325,7 @@
       FLAG: "🚩", EVENT: "📡", FIX: "🔧", MATERIAL: "🧱",
       PHASE46: "🆕", CTA: "🔘", H1PAT: "📝", VERSION: "🔖", WEBP: "🎨"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.3-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.4-LITE] ${msg}`);
   }
 
   // ============================================================
@@ -343,7 +348,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-S5 & FIX-S9: EARLY EXIT 🔥
+  // 🔥 FIX-S5 & FIX-S9 + FIX-SYNC-AED-1: EARLY EXIT 🔥
   // ============================================================
   (function earlyExitCheck() {
     const pageLevel = document.body && document.body.getAttribute('data-page-level');
@@ -354,24 +359,25 @@
       return;
     }
 
-    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child'];
+    // 🔥 FIX-SYNC-AED-1: MONEY_LEVELS + variant/sub-variant
+    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
     const isMoneyLevel = MONEY_LEVELS.indexOf(pageLevel) !== -1;
 
     if (!isMoneyLevel) {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'not-money-level';
-      console.log(`⏸️ [AutoSchema Hybrid v5.3-LITE] SKIP: level "${pageLevel}" bukan money level`);
+      console.log(`⏸️ [AutoSchema Hybrid v5.4-LITE] SKIP: level "${pageLevel}" bukan money level`);
       return;
     }
 
     if (contentFocus === 'INFORMASI') {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'money-informasi';
-      console.log(`⏸️ [AutoSchema Hybrid v5.3-LITE] SKIP: money level + INFORMASI`);
+      console.log(`⏸️ [AutoSchema Hybrid v5.4-LITE] SKIP: money level + INFORMASI`);
       return;
     }
 
     window.__AUTOSCHEMA_HYBRID_SKIP_REASON = null;
     if (CONFIG.DEBUG) {
-      console.log(`✅ [AutoSchema Hybrid v5.3-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
+      console.log(`✅ [AutoSchema Hybrid v5.4-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
     }
   })();
 
@@ -426,10 +432,9 @@
   }
 
   // ============================================================
-  // 🔥 P13: EARLY RETURN BREADCRUMB (SKIP WAIT KALAU FLAG ADA) 🔥
+  // 🔥 P13: EARLY RETURN BREADCRUMB 🔥
   // ============================================================
   function waitForBreadcrumbGenerated(timeout = CONFIG.BREADCRUMB_GENERATED_TIMEOUT) {
-    // 🔥 P13: EARLY RETURN — kalau flag sudah ready, langsung resolve tanpa Promise/interval
     const flagReady = document.body.getAttribute('data-breadcrumb-ready');
     if (flagReady === 'true') {
       const parentName = document.body.getAttribute('data-breadcrumb-parent');
@@ -558,7 +563,6 @@
   let _cachedPageLevelResolved = false;
 
   function getPageLevelFromPLD() {
-    // 🔥 P14: Return cache kalau sudah pernah resolve
     if (_cachedPageLevelResolved) return _cachedPageLevel;
 
     const bodyLevel = document.body.getAttribute('data-page-level');
@@ -585,7 +589,6 @@
   let _cachedEntityTypeResolved = false;
 
   function getEntityTypeFromPLD() {
-    // 🔥 P14: Return cache
     if (_cachedEntityTypeResolved) return _cachedEntityType;
 
     const bodyEntity = document.body.getAttribute('data-entity-type');
@@ -607,24 +610,38 @@
     return null;
   }
 
+  // ============================================================
+  // 🔥 FIX-SYNC-AED-2: detectContentFocus() — AED priority
+  // Prioritas:
+  //   1. AEDMetaDates.contentFocus (paling akurat)
+  //   2. body[data-content-focus] (di-set PLD)
+  //   ❌ JANGAN default ke HARGA (return null biar caller putuskan)
+  // ============================================================
   function detectContentFocus() {
-    const bodyFocus = document.body.getAttribute('data-content-focus');
-    if (bodyFocus) return bodyFocus.toUpperCase();
+    // Prioritas 1: AEDMetaDates
     if (window.AEDMetaDates && window.AEDMetaDates.contentFocus) {
       return String(window.AEDMetaDates.contentFocus).toUpperCase();
     }
-    return 'HARGA';
+    // Prioritas 2: body attribute
+    const bodyFocus = document.body.getAttribute('data-content-focus');
+    if (bodyFocus) return bodyFocus.toUpperCase();
+    // ❌ FIX: JANGAN default ke HARGA
+    return null;
   }
 
+  // ============================================================
+  // 🔥 FIX-SYNC-AED-3: getKategori() — AED priority, no compute
+  // ============================================================
   function getKategori() {
-    const bodyKategori = document.body.getAttribute('data-kategori');
-    if (bodyKategori) return bodyKategori.toUpperCase();
+    // Prioritas 1: AEDMetaDates
     if (window.AEDMetaDates && window.AEDMetaDates.pldKategori) {
       return String(window.AEDMetaDates.pldKategori).toUpperCase();
     }
-    const focus = detectContentFocus();
-    if (focus === 'INFORMASI') return 'EVERGREEN';
-    return 'NON-EVERGREEN';
+    // Prioritas 2: body attribute
+    const bodyKategori = document.body.getAttribute('data-kategori');
+    if (bodyKategori) return bodyKategori.toUpperCase();
+    // ❌ FIX: JANGAN hitung sendiri
+    return null;
   }
 
   function getEntitySubType() {
@@ -760,7 +777,8 @@
   // ============================================================
   // 🔥 FIX-S4 & S6: DETEKSI HARGA 🔥
   // ============================================================
-  const MONEY_LEVELS = ['money-master', 'money-page', 'money-child'];
+  // 🔥 FIX-SYNC-AED-1: MONEY_LEVELS + variant/sub-variant
+  const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
 
   function detectPriceLayered(pageLevel) {
     perf.start('detectPriceLayered');
@@ -971,16 +989,7 @@
   // ============================================================
   // 🔥 P18: INSERT FIGURE DI DALAM KONTEN BLOGGER (SEO FIX) 🔥
   // ============================================================
-  /**
-   * Strategi Blogger-aware:
-   *   1. Container = .post-body → firstChild = TEPAT DIBAWAH H1 visual
-   *      (H1 Blogger ada di luar .post-body, sibling-nya)
-   *   2. H1 di dalam container → insert setelah H1
-   *   3. H1 di luar container → cek .post-outer → firstChild
-   *   4. Fallback: firstChild
-   */
   function insertFigureAfterH1(container, figure) {
-    // ⭐ PRIORITAS 1: Container adalah .post-body / .entry-content (Blogger)
     const isPostBody = container.classList && (
       container.classList.contains('post-body') ||
       container.classList.contains('entry-content')
@@ -996,7 +1005,6 @@
       return figure;
     }
 
-    // PRIORITAS 2: H1 di dalam container
     const h1Inside = container.querySelector('h1');
     if (h1Inside && h1Inside.parentNode === container) {
       h1Inside.parentNode.insertBefore(figure, h1Inside.nextSibling);
@@ -1004,7 +1012,6 @@
       return figure;
     }
 
-    // PRIORITAS 3: H1 di luar container → cek .post-outer
     const h1Global = document.querySelector('h1');
     if (h1Global) {
       const commonParent = h1Global.closest('.post-outer, article, main');
@@ -1019,7 +1026,6 @@
       }
     }
 
-    // FALLBACK: firstChild
     if (container.firstChild) {
       container.insertBefore(figure, container.firstChild);
     } else {
@@ -1055,7 +1061,7 @@
       figure.setAttribute('data-auto-figure', 'true');
     }
 
-        let targetImage = null;
+    let targetImage = null;
     let targetFigure = null;
 
     // 🔥 P18: Prioritas cari gambar existing di dalam .post-body (Blogger)
@@ -1100,7 +1106,6 @@
     if (!targetImage) {
       const contentAreas = ['article', 'section', '.post-body', 'main', '.content', '.entry-content'];
       for (const areaSelector of contentAreas) {
-        // 🔥 P15: querySelector langsung (1x pakai per iterasi)
         const area = document.querySelector(areaSelector);
         if (area) {
           const img = area.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
@@ -1134,7 +1139,7 @@
       return figure || img;
     }
 
-        // 🔥 P18: Prioritas container Blogger dulu
+    // 🔥 P18: Prioritas container Blogger dulu
     const container = 
       document.querySelector('.post-body.entry-content') ||
       document.querySelector('.post-body') ||
@@ -1160,7 +1165,6 @@
     figcaption.style.marginTop = '10px';
     figcaption.style.textAlign = 'center';
     figcaption.textContent = captionText;
-    // ✅ SESUDAH:
     figure.appendChild(img);
     figure.appendChild(figcaption);
     applyResponsiveStyles(figure, img);
@@ -1188,7 +1192,6 @@
   }
 
   function detectProductName() {
-    // 🔥 P15: querySelector langsung
     const h1El = document.querySelector('h1');
     const h1 = h1El?.innerText?.trim();
     if (h1 && h1.length < 120 && h1.length > 3) {
@@ -1224,7 +1227,6 @@
   }
 
   function extractVariantSpec() {
-    // 🔥 P15: querySelector langsung (dipanggil 1x)
     const content = document.querySelector(".post-body.entry-content, .post-body, article");
     if (!content) return null;
     const text = content.innerText;
@@ -1319,12 +1321,12 @@
   }
 
   // ============================================================
-  // 🚀 MAIN INIT v5.3-LITE
+  // 🚀 MAIN INIT v5.4-LITE
   // ============================================================
   async function init() {
     perf.start('init');
     log("═══════════════════════════════════════════════════");
-    log("AutoSchema Hybrid v5.3-LITE — PRODUCT SCHEMA (PERF MAX)");
+    log("AutoSchema Hybrid v5.4-LITE — PRODUCT SCHEMA (PERF MAX + SYNC AED)");
     log(`DEBUG Mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("═══════════════════════════════════════════════════");
 
@@ -1352,8 +1354,8 @@
       log(`🔷 PLD Version: ${pldVer.label}`, "VERSION");
       log(`📌 Page Level: ${pageLevel}`, "PLD");
       log(`📌 Entity Type: ${entityType}`, "PLD");
-      log(`📌 Content Focus: ${contentFocus}`, "FOCUS");
-      log(`📌 Kategori: ${kategori}`, "KATEGORI");
+      log(`📌 Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
+      log(`📌 Kategori: ${kategori || 'NULL'}`, "KATEGORI");
 
       if (shouldSkipProductSchema(pageLevel, entityType)) {
         log(`⏭️ Product schema SKIPPED untuk halaman ini`, "SKIP");
@@ -1524,7 +1526,7 @@
       log(`   JSON format: ${CONFIG.DEBUG ? 'PRETTY (debug)' : 'MINIFIED (production)'}`, "FIX");
       log("═══════════════════════════════════════════════════");
     } catch (error) {
-      console.error('❌ [Hybrid v5.3] Fatal error in init:', error);
+      console.error('❌ [Hybrid v5.4] Fatal error in init:', error);
       log(`Fatal error: ${error.message}`, "ERROR");
     } finally {
       perf.end('init');
@@ -1545,6 +1547,6 @@
 
   window.addEventListener('beforeunload', cleanup);
 
-  console.log(`✅ [AutoSchema Hybrid v5.3-LITE] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`✅ [AutoSchema Hybrid v5.4-LITE] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
 
 })();
