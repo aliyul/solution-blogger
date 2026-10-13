@@ -1,33 +1,33 @@
 /* ============================================================
- 🔥 Hybrid Date Modified v10.0 — SINKRON AED v17.4.0
+ 🔥 Hybrid Date Modified v10.1 — SINKRON AED v17.4.1
+    ✅ FIX-SYNC-v2: Money + INFORMASI = EVERGREEN (sinkron AED v17.4.1)
     ✅ FIX-SYNC-1: EVERGREEN_LEVELS & MONEY_LEVELS sinkron AED
-    ✅ FIX-SYNC-2: getCustomDateByPageLevel() — money ke bawah = AUTO
-    ✅ FIX-SYNC-3: getCategoryLabel() — money ke bawah = NON-EVERGREEN
+    ✅ FIX-SYNC-2: getCustomDateByPageLevel() — money + INFORMASI = tanggal tetap
+    ✅ FIX-SYNC-3: getCategoryLabel() — money + INFORMASI = EVERGREEN label
     ✅ FIX-SYNC-4: Hash source konsisten dengan kategori baru
     ✅ FIX-SYNC-5: detectContentFocus() — PLD-first, no guessing
-    ✅ FIX-SYNC-6: v37Rules — hapus "informasi evergreen" untuk money
+    ✅ FIX-SYNC-6: v37Rules — sinkron dengan AED
 
-    ✅ PRESERVED dari v9.9:
+    ✅ PRESERVED dari v10.0:
     ✅ Skip homepage & static pages (early + late)
     ✅ Guard _HYBRID_INITIALIZED
     ✅ Timeout PLD/AED/Breadcrumb 3s/3s/2s
     ✅ Skip updateMetaDateModified kalau tanggal sama
-    ✅ Kompatibel PLD v23.9.7-LITE
 
     ✅ COMPATIBLE dengan:
-    ✅ PLD v23.9.7-LITE-PERF-B2N
-    ✅ AED v17.4.0-LITE
+    ✅ PLD v23.9.8-LITE-PERF-CONTENT-FIX
+    ✅ AED v17.4.1-LITE
 ============================================================ */
 
 (function () {
   "use strict";
 
   // ═══ Guard global — cegah double init ═══
-  if (window.__hybridDateModifiedVersion === "10.0") {
-    console.log("[HybridDateModified v10.0] ⏭️ Sudah dijalankan — skip");
+  if (window.__hybridDateModifiedVersion === "10.1") {
+    console.log("[HybridDateModified v10.1] ⏭️ Sudah dijalankan — skip");
     return;
   }
-  window.__hybridDateModifiedVersion = "10.0";
+  window.__hybridDateModifiedVersion = "10.1";
 
   // ═══════════════════════════════════════════════════════════
   // SKIP HALAMAN STATIS — EARLY (sebelum DOMContentLoaded)
@@ -70,15 +70,15 @@
   // TUNGGU DOM READY
   // ═══════════════════════════════════════════════════════════
   if (window.__HYBRID_SKIP_REASON) {
-    console.log(`⏸️ [HybridDateModified v10.0] Skip (${window.__HYBRID_SKIP_REASON})`);
+    console.log(`⏸️ [HybridDateModified v10.1] Skip (${window.__HYBRID_SKIP_REASON})`);
   } else if (document.readyState === "loading") {
-    console.log("[HybridDateModified v10.0] ⏳ Menunggu DOMContentLoaded...");
+    console.log("[HybridDateModified v10.1] ⏳ Menunggu DOMContentLoaded...");
     document.addEventListener("DOMContentLoaded", function () {
-      console.log("[HybridDateModified v10.0] ✅ DOM siap, menjalankan...");
+      console.log("[HybridDateModified v10.1] ✅ DOM siap, menjalankan...");
       runHybridDateModified();
     }, { once: true });
   } else {
-    console.log("[HybridDateModified v10.0] ✅ DOM sudah siap, menjalankan...");
+    console.log("[HybridDateModified v10.1] ✅ DOM sudah siap, menjalankan...");
     runHybridDateModified();
   }
 
@@ -89,7 +89,7 @@
     try {
       // Guard double init
       if (window.__HYBRID_RUNNING) {
-        console.log("[HybridDateModified v10.0] ⏭️ Sudah running — skip");
+        console.log("[HybridDateModified v10.1] ⏭️ Sudah running — skip");
         return;
       }
       window.__HYBRID_RUNNING = true;
@@ -163,7 +163,7 @@
         window.HybridDateModified = null;
       }
 
-      if (window.__hybridDateModifiedReady && window.__hybridDateModifiedVersion !== "10.0") {
+      if (window.__hybridDateModifiedReady && window.__hybridDateModifiedVersion !== "10.1") {
         window.__hybridDateModifiedReady = false;
       }
 
@@ -172,7 +172,7 @@
         try { script.remove(); } catch (e) {}
       });
 
-      window.__hybridDateModifiedActive = 'v10.0';
+      window.__hybridDateModifiedActive = 'v10.1';
       window.__hybridDateModifiedReady = true;
       window.runHybridDateModified = runHybridDateModified;
 
@@ -180,7 +180,7 @@
       console.log("🚀 Memulai eksekusi...");
 
       // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-SYNC-1: KONSTANTA SINKRON DENGAN AED v17.4.0
+      // 🔥 FIX-SYNC-1: KONSTANTA SINKRON DENGAN AED v17.4.1
       // ═══════════════════════════════════════════════════════
       const EVERGREEN_LEVELS = [
         'pillar',
@@ -207,6 +207,7 @@
           function checkPLDVersion() {
             if (!window.pageLevelDetectorv22) return null;
             var v = window.pageLevelDetectorv22.version || "unknown";
+            if (v.indexOf("23.9.8") === 0) return "v23.9.8-lite";
             if (v.indexOf("23.9.7") === 0) return "v23.9.7-lite";
             if (v.indexOf("23.") === 0) return "v23.0.0";
             if (v.indexOf("22.") === 0) return "v22.x";
@@ -359,7 +360,7 @@
               console.log(`🎯 [PLD] Content Focus: ${focus}`);
               return {
                 focus: focus,
-                reason: 'PLD v23.9.7-LITE detectContentFocus()',
+                reason: 'PLD v23.9.8-LITE detectContentFocus()',
                 priority: 0,
                 source: 'PLD'
               };
@@ -460,22 +461,54 @@
       }
 
       // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-SYNC-2: CUSTOM DATE — money ke bawah = AUTO
+      // 🔥 FIX-SYNC-v2: CUSTOM DATE — sinkron AED v17.4.1
+      // 
+      // ATURAN:
+      //   - EVERGREEN level → tanggal tetap (MANUAL)
+      //   - Money + INFORMASI + no_year + no_price_table → EVERGREEN (MANUAL)
+      //   - Money + HARGA/COMMERCIAL/GABUNG → AUTO (null)
       // ═══════════════════════════════════════════════════════
       function getCustomDateByPageLevel(pageLevel, entityType, contentFocus) {
-        // Level EVERGREEN → tanggal tetap
+        var normalizedFocus = String(contentFocus || '').toUpperCase();
+
+        // ═══ Level EVERGREEN → tanggal tetap ═══
         if (EVERGREEN_LEVELS.includes(pageLevel)) {
-          console.log(`📌 [${pageLevel}] EVERGREEN → TANPA update berkala (V37)`);
+          console.log(`📌 [${pageLevel}] EVERGREEN → TANPA update berkala`);
           return "2026-01-01T00:00:00+07:00";
         }
 
-        // 🔥 FIX-SYNC-2: SEMUA money ke bawah = AUTO (dynamic update)
-        // Level menentukan, BUKAN contentFocus
+        // ═══ 🔥 FIX-SYNC-v2: Money + INFORMASI = EVERGREEN ═══
         if (MONEY_LEVELS.includes(pageLevel)) {
-          console.log(`📌 [${pageLevel}] MONEY ke bawah → AUTO update (non-evergreen)`);
-          if (contentFocus === 'informasi') {
-            console.log(`   ℹ️ contentFocus=informasi, tapi level "${pageLevel}" commercial → TETAP AUTO`);
+          var isInformational = (normalizedFocus === 'INFORMASI');
+          
+          // Cek guard: tabel harga
+          var hasPriceTable = false;
+          try {
+            var tables = document.querySelectorAll('table');
+            hasPriceTable = tables.length > 0 && /harga|biaya|tarif/i.test(document.body.innerText);
+          } catch(e) {}
+
+          // Cek guard: tahun di H1
+          var h1Text = '';
+          try {
+            var h1El = document.querySelector('h1');
+            h1Text = h1El ? (h1El.innerText || h1El.textContent || '') : '';
+          } catch(e) {}
+          var hasYear = /\b(19|20)\d{2}\b/.test(h1Text);
+
+          // ═══ Case 1: Money + INFORMASI murni = EVERGREEN ═══
+          if (isInformational && !hasPriceTable && !hasYear) {
+            console.log(`📌 [${pageLevel}] MONEY + INFORMASI → EVERGREEN 3 tahun`);
+            console.log(`   ℹ️ H1: "${h1Text.substring(0, 60)}..."`);
+            return "2026-01-01T00:00:00+07:00";
           }
+
+          // ═══ Case 2: Money + HARGA/COMMERCIAL/GABUNG = AUTO ═══
+          var reasons = [];
+          if (!isInformational) reasons.push(`focus=${normalizedFocus}`);
+          if (hasPriceTable) reasons.push('tabel harga');
+          if (hasYear) reasons.push('tahun di H1');
+          console.log(`📌 [${pageLevel}] MONEY → AUTO update (${reasons.join(', ')})`);
           return null; // null = AUTO mode
         }
 
@@ -484,19 +517,44 @@
       }
 
       // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-SYNC-3: CATEGORY LABEL — money ke bawah = NON-EVERGREEN
+      // 🔥 FIX-SYNC-v2: CATEGORY LABEL — sinkron AED v17.4.1
       // ═══════════════════════════════════════════════════════
       function getCategoryLabel(pageLevel, contentFocus) {
+        var normalizedFocus = String(contentFocus || '').toUpperCase();
+
         if (pageLevel === 'home') return 'HOMEPAGE';
 
         if (EVERGREEN_LEVELS.includes(pageLevel)) {
           return `EVERGREEN — ${pageLevel}`;
         }
 
-        // 🔥 FIX-SYNC-3: money ke bawah = NON-EVERGREEN, apapun contentFocus-nya
+        // 🔥 FIX-SYNC-v2: Money + INFORMASI = EVERGREEN label
         if (MONEY_LEVELS.includes(pageLevel)) {
-          var focusUpper = (contentFocus || 'informasi').toUpperCase();
-          return `NON-EVERGREEN — ${pageLevel} / ${focusUpper}`;
+          if (normalizedFocus === 'INFORMASI') {
+            // Cek guard tabel & tahun
+            var hasPriceTable = false;
+            try {
+              var tables = document.querySelectorAll('table');
+              hasPriceTable = tables.length > 0 && /harga|biaya|tarif/i.test(document.body.innerText);
+            } catch(e) {}
+            
+            var h1Text = '';
+            try {
+              var h1El = document.querySelector('h1');
+              h1Text = h1El ? (h1El.innerText || h1El.textContent || '') : '';
+            } catch(e) {}
+            var hasYear = /\b(19|20)\d{2}\b/.test(h1Text);
+
+            if (!hasPriceTable && !hasYear) {
+              return `EVERGREEN — ${pageLevel} / INFORMASI`;
+            }
+            // Guard gagal → NON-EVERGREEN
+            var reasons = [];
+            if (hasPriceTable) reasons.push('tabel');
+            if (hasYear) reasons.push('tahun');
+            return `NON-EVERGREEN — ${pageLevel} / INFORMASI (${reasons.join('+')})`;
+          }
+          return `NON-EVERGREEN — ${pageLevel} / ${normalizedFocus}`;
         }
 
         return `UNKNOWN — ${pageLevel}`;
@@ -536,7 +594,8 @@
             entityType = window.pageLevelDetectorv22.detectEntityType();
 
             const ver = window.pageLevelDetectorv22.version || "unknown";
-            detectorVersion = (ver.indexOf("23.9.7") === 0) ? "v23.9.7-lite" :
+            detectorVersion = (ver.indexOf("23.9.8") === 0) ? "v23.9.8-lite" :
+                              (ver.indexOf("23.9.7") === 0) ? "v23.9.7-lite" :
                               (ver.indexOf("23.") === 0) ? "v23.0.0" :
                               (ver.indexOf("22.") === 0) ? "v22.x" : "v" + ver;
 
@@ -575,13 +634,11 @@
       // ═══════════════════════════════════════════════════════
       // EKSEKUSI UTAMA
       // ═══════════════════════════════════════════════════════
-      console.log("🔥 Hybrid Date Modified v10.0 - Starting...");
-      console.log("📋 FIX-SYNC-1: Konstanta sinkron AED v17.4.0");
-      console.log("📋 FIX-SYNC-2: Money ke bawah = AUTO unconditional");
-      console.log("📋 FIX-SYNC-3: Label money = NON-EVERGREEN");
-      console.log("📋 FIX-SYNC-4: Hash source konsisten");
+      console.log("🔥 Hybrid Date Modified v10.1 - Starting...");
+      console.log("📋 FIX-SYNC-v2: Money + INFORMASI = EVERGREEN (sinkron AED v17.4.1)");
+      console.log("📋 FIX-SYNC-1: Konstanta sinkron AED v17.4.1");
       console.log("📋 FIX-SYNC-5: detectContentFocus PLD-first");
-      console.log("📋 FIX-SYNC-6: v37Rules bersih");
+      console.log("📋 FIX-SYNC-6: v37Rules sinkron dengan AED");
 
       await loadAllScripts();
 
@@ -606,7 +663,7 @@
       let manualMode = customDate !== null;
       let categoryLabel = getCategoryLabel(finalPageLevel, contentFocus);
 
-      console.log(`📋 PAGE CLASSIFICATION (V37-v10):`);
+      console.log(`📋 PAGE CLASSIFICATION (V37-v10.1):`);
       console.log(`   - Page Level: ${finalPageLevel}`);
       console.log(`   - Entity Type: ${entityType}`);
       console.log(`   - Category: ${categoryLabel}`);
@@ -629,13 +686,13 @@
       }
 
       if (!window.AEDMetaDates || !window.AEDMetaDates.dateModified) {
-        console.warn("[HybridDateModified v10.0] AEDMetaDates tidak ditemukan, skip update.");
+        console.warn("[HybridDateModified v10.1] AEDMetaDates tidak ditemukan, skip update.");
         return;
       }
 
       const { dateModified, nextUpdate, type: aedType, entityType: detectedEntityType, pageLevel: detectedPageLevel } = window.AEDMetaDates;
 
-      console.log(`📊 Page Info (V37-v10):`);
+      console.log(`📊 Page Info (V37-v10.1):`);
       console.log(`   - type: ${aedType}`);
       console.log(`   - entityType: ${detectedEntityType}`);
       console.log(`   - pageLevel: ${detectedPageLevel}`);
@@ -643,20 +700,20 @@
       console.log(`   - nextUpdate: ${nextUpdate}`);
 
       // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-SYNC-4: HASH SOURCE — konsisten dengan kategori baru
+      // 🔥 FIX-SYNC-4: HASH SOURCE — konsisten dengan AED
+      // 
+      // AED menentukan kategori berdasarkan:
+      //   - EVERGREEN level → evergreen hash
+      //   - Money + INFORMASI + no_guard → evergreen hash
+      //   - Money + lainnya → non-evergreen hash
       // ═══════════════════════════════════════════════════════
       const uniquePageIdentifier = window.location.pathname;
       let hashSource = uniquePageIdentifier;
 
-      var _isNonEvergreenFocus = (contentFocus === 'harga' ||
-                                   contentFocus === 'gabung' ||
-                                   contentFocus === 'commercial');
-
-      if (EVERGREEN_LEVELS.includes(detectedPageLevel)) {
+      // 🔥 FIX-SYNC-v2: gunakan aedType dari AED untuk konsistensi
+      if (aedType === 'evergreen') {
         hashSource = 'evergreen-' + detectedPageLevel + '-' + hashSource;
-      } else if (MONEY_LEVELS.includes(detectedPageLevel)) {
-        // 🔥 FIX-SYNC-4: SEMUA money level = non-evergreen hash
-        // Tidak ada lagi "money-page-informasi-evergreen"
+      } else if (aedType === 'non-evergreen') {
         hashSource = 'non-evergreen-' + detectedPageLevel + '-' + hashSource;
       } else if (detectedPageLevel === 'home') {
         hashSource = 'home-evergreen-' + hashSource;
@@ -697,7 +754,7 @@
       }
 
       // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-SYNC-6: v37Rules — level-based, bukan contentFocus-based
+      // 🔥 FIX-SYNC-v2: v37Rules — sinkron dengan AED v17.4.1
       // ═══════════════════════════════════════════════════════
       window.AEDMetaDates = {
         ...window.AEDMetaDates,
@@ -711,7 +768,7 @@
         focusSource: focusSource,
         mode: manualMode ? 'MANUAL' : 'AUTO',
         originalDateModified: dateModified,
-        hybridVersion: '10.0',
+        hybridVersion: '10.1',
 
         detectionConfidence: confidence,
         detectionStrategies: strategies,
@@ -724,27 +781,31 @@
         pldCtaType: pldCtaType,
 
         v37Rules: {
-          // Level-based (BUKAN contentFocus-based)
+          // Level-based
           isEvergreenLevel: EVERGREEN_LEVELS.includes(detectedPageLevel),
           isMoneyLevel: MONEY_LEVELS.includes(detectedPageLevel),
 
-          // Aggregated — level menentukan
-          nonEvergreen: MONEY_LEVELS.includes(detectedPageLevel),
-          evergreen: EVERGREEN_LEVELS.includes(detectedPageLevel),
+          // Kategori (dari AED — aedType = final decision)
+          nonEvergreen: (aedType === 'non-evergreen'),
+          evergreen: (aedType === 'evergreen'),
+
+          // Info override (apakah money + informasi dipaksa evergreen)
+          moneyInformationalOverride: (MONEY_LEVELS.includes(detectedPageLevel) && aedType === 'evergreen'),
 
           // Context
           currentContentFocus: contentFocus,
           currentPageLevel: detectedPageLevel,
+          aedFinalType: aedType,
 
           // Config
           flexibleRemoved: true,
           skipHomepage: true,
           skipStaticPages: true,
-          contentFocusDoesNotOverrideLevel: true // 🆕 flag eksplisit
+          contentFocusOverridesLevelForInformational: true
         }
       };
 
-      console.log(`✅ [HybridDateModified v10.0] ${uniquePageIdentifier}`);
+      console.log(`✅ [HybridDateModified v10.1] ${uniquePageIdentifier}`);
       console.log(`   → Final Date Modified: ${isoDate}`);
       console.log(`   → Offset: ${offsetSeconds} detik (${Math.floor(offsetSeconds / 3600)} jam ${Math.floor((offsetSeconds % 3600) / 60)} menit)`);
       console.log(`   → Mode: ${manualMode ? 'MANUAL' : 'AUTO'}`);
@@ -756,10 +817,10 @@
       if (pldH1Pattern) console.log(`   → PLD H1 Pattern: ${pldH1Pattern}`);
       if (pldSchemaType) console.log(`   → PLD Schema: ${pldSchemaType.primary} + ${pldSchemaType.secondary}`);
       if (pldCtaType) console.log(`   → PLD CTA: ${pldCtaType.type} → ${pldCtaType.text}`);
-      console.log(`📋 Hybrid Date Modified v10.0 applied successfully ✅`);
+      console.log(`📋 Hybrid Date Modified v10.1 applied successfully ✅`);
 
     } catch (err) {
-      console.error("[HybridDateModified v10.0] Fatal error:", err);
+      console.error("[HybridDateModified v10.1] Fatal error:", err);
     }
   }
 
