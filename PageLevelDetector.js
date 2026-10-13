@@ -650,7 +650,21 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
 
   var SPEC_PHRASE_WORDS = ["berdasarkan","berdasar","faktor penentu","faktor yang mempengaruhi","faktor utama","penyebab","sebab","dampak","pengaruh","efek","per kedalaman","per ukuran","per tipe","per jenis","langkah-langkah","langkah demi langkah","tahapan lengkap","tahap demi tahap","panduan lengkap","tutorial lengkap","analisis lengkap","review lengkap","perbandingan lengkap","perbedaan lengkap","jenis-jenis lengkap","macam-macam lengkap","spesifikasi","mutu","metode","cara kerja","panduan","fungsi","ukuran"];
 
-  var SPEC_PHRASE_INFORMATIONAL = ["berdasarkan","berdasar","faktor penentu","faktor yang mempengaruhi","faktor utama","penyebab","sebab","dampak","pengaruh","efek"];
+  // 🔥 FIX-CONTENT-FOCUS-v1: Expanded list untuk deteksi konten evergreen
+var SPEC_PHRASE_INFORMATIONAL = [
+  // Faktor/analisis (existing)
+  "berdasarkan","berdasar","faktor penentu","faktor yang mempengaruhi",
+  "faktor utama","penyebab","sebab","dampak","pengaruh","efek",
+  // Panduan/edukasi (BARU)
+  "panduan","panduan lengkap","tips","trik","cara memilih","cara pasang",
+  "cara membuat","cara menghitung","cara merawat","cara menggunakan",
+  "spesifikasi","spec","detail spesifikasi","spek lengkap",
+  "jenis","macam","tipe","kategori","daftar","list",
+  "perbandingan","perbedaan","kelebihan","kekurangan","review","ulasan",
+  "pengertian","definisi","penjelasan","manfaat","fungsi","tujuan","kegunaan",
+  "komponen","bagian","struktur","elemen","standar","mutu","kualitas",
+  "pemula","untuk pemula","dasar","tingkat dasar","tutorial","langkah"
+];
 
   var MARKETING_TERMS = ["premium","ekonomis","terbaik","terlaris","murah","berkualitas","unggul","terkenal","favorit","recommended","terpercaya","profesional"];
 
