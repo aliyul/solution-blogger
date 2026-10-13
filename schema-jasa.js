@@ -1,9 +1,15 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.30-LITE — PERFORMANCE PATCH
-   ✅ SINKRON dengan PLD v23.9.7-LITE
-   ✅ SINKRON dengan AED v17.1-LITE
-   ✅ SINKRON dengan Breadcrumb v15.1.0
-   ✅ SINKRON dengan Hybrid Date v9.8
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.31-LITE — PERFORMANCE PATCH + SYNC AED
+   ✅ SINKRON dengan PLD v23.9.7-LITE (fitur v23.9.9)
+   ✅ SINKRON dengan AED v17.4.3-LITE
+   ✅ SINKRON dengan Breadcrumb v12.3.5
+   ✅ SINKRON dengan Hybrid Date v10.2
 
+   🔥🔥🔥 v7.31-LITE CHANGELOG 🔥🔥🔥
+   ✅ FIX-SYNC-AED-1: MONEY_LEVELS + variant/sub-variant
+   ✅ FIX-SYNC-AED-2: Early exit money level (hindari dobel dengan v5.4)
+   ✅ FIX-SYNC-AED-3: detectContentFocus() — AED-only
+   ✅ FIX-SYNC-AED-4: getKategori() — AED-only
+   
    🔥🔥🔥 v7.30-LITE CHANGELOG 🔥🔥🔥
    ✅ FIX-S1: DEBUG auto-detect (HP = silent, desktop = verbose)
    ✅ FIX-S2: Timeout turun drastis (10s → 2-3s)
@@ -26,18 +32,14 @@
   "use strict";
 
   // ═══ FIX-S8: Guard global — cegah double init ═══
-  if (window.__AUTO_SCHEMA_VERSION === "7.30-lite") {
-    console.log("[AutoSchema v7.30-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTO_SCHEMA_VERSION === "7.31-lite") {
+    console.log("[AutoSchema v7.31-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTO_SCHEMA_VERSION = "7.30-lite";
+  window.__AUTO_SCHEMA_VERSION = "7.31-lite";
 
   // ============================================================
   // 🔥🔥🔥 FIX-S1: AUTO-DETECT DEBUG MODE 🔥🔥🔥
-  // ============================================================
-  // HP = silent (tidak log apapun) — hemat ~1-2 detik
-  // Desktop = verbose (untuk debug)
-  // Override: tambah ?schema-debug=1 di URL untuk paksa verbose
   // ============================================================
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -49,21 +51,21 @@
   // 🔥🔥🔥 FIX-S2: TIMEOUT TURUN DRASTIS 🔥🔥🔥
   // ============================================================
   const CONFIG = {
-    DEBUG: DEBUG_MODE,                  // 🔥 FIX-S1: Auto-detect
-    DELAY_MS: 200,                      // 🔥 FIX-S2: 700 → 200ms
+    DEBUG: DEBUG_MODE,
+    DELAY_MS: 200,
     MAX_OFFERS: 8,
     MIN_PRICE: 10000,
     MAX_PRICE: 100000000,
     SKIP_WORD_COUNT: 300,
-    PLD_TIMEOUT: 1000,                  // 🔥 FIX-S2: 5000 → 1000ms
-    AED_TIMEOUT: 2000,                  // 🔥 FIX-S2: 10000 → 2000ms
-    BREADCRUMB_TIMEOUT: 1000,           // 🔥 FIX-S2: 3000 → 1000ms
-    BREADCRUMB_READY_TIMEOUT: 1500,     // 🔥 FIX-S2: 5000 → 1500ms
-    BREADCRUMB_GENERATED_TIMEOUT: 2000, // 🔥 FIX-S2: 10000 → 2000ms
+    PLD_TIMEOUT: 1000,
+    AED_TIMEOUT: 2000,
+    BREADCRUMB_TIMEOUT: 1000,
+    BREADCRUMB_READY_TIMEOUT: 1500,
+    BREADCRUMB_GENERATED_TIMEOUT: 2000,
     MIN_YEAR_TO_UPDATE: 2026,
     CACHE_DOM_ELEMENTS: true,
     BATCH_DOM_UPDATES: true,
-    MAX_ELEMENTS_TO_SCAN: 100           // 🔥 FIX-S6: Batasi elemen
+    MAX_ELEMENTS_TO_SCAN: 100
   };
 
   // ============================================================
@@ -81,14 +83,13 @@
       WEBP: "🎨"
     };
     const prefix = icons[type] || "📘";
-    console.log(`${prefix} [Schema v7.30-LITE] ${msg}`);
+    console.log(`${prefix} [Schema v7.31-LITE] ${msg}`);
   }
 
-  // ═══ Log startup (hanya kalau DEBUG) ═══
-  log(`🚀 Auto Schema v7.30-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
+  log(`🚀 Auto Schema v7.31-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
 
   // ============================================================
-  // 🔥🔥🔥 FIX-S5: EARLY EXIT HOMEPAGE & STATIC PAGE 🔥🔥🔥
+  // 🔥🔥🔥 FIX-S5 + FIX-SYNC-AED-2: EARLY EXIT 🔥🔥🔥
   // ============================================================
   (function earlyExitCheck() {
     const currentPath = window.location.pathname;
@@ -106,12 +107,21 @@
       return;
     }
 
+    // 🔥 FIX-SYNC-AED-2: Skip money level — v5.4 Hybrid yang handle
+    // Biar tidak dobel Product schema
+    const pageLevel = document.body && document.body.getAttribute('data-page-level');
+    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
+    if (pageLevel && MONEY_LEVELS.indexOf(pageLevel) !== -1) {
+      log('⏭️ FIX-SYNC-AED: Money level — v5.4 Hybrid handle, skip', 'SKIP');
+      window.__SCHEMA_SKIP_REASON = 'money-level-handled-by-hybrid';
+      return;
+    }
+
     window.__SCHEMA_SKIP_REASON = null;
   })();
 
-  // Kalau skip, JANGAN jalankan script lagi
   if (window.__SCHEMA_SKIP_REASON) {
-    console.log(`⏸️ [AutoSchema v7.30-LITE] Skip (${window.__SCHEMA_SKIP_REASON}) — script tidak dijalankan.`);
+    console.log(`⏸️ [AutoSchema v7.31-LITE] Skip (${window.__SCHEMA_SKIP_REASON}) — script tidak dijalankan.`);
     return;
   }
 
@@ -157,15 +167,6 @@
 
   // ============================================================
   // 🔥🔥🔥 FIX-S3: DOM CACHE TANPA MUTATIONOBSERVER 🔥🔥🔥
-  // ============================================================
-  // SEBELUMNYA:
-  //   Setiap `get(selector)` → buat MutationObserver baru
-  //   Setiap observer → observe SELURUH document (subtree: true)
-  //   50 selector = 50 observer aktif = BERAT DI HP
-  //
-  // SESUDAH (FIX-S3):
-  //   Tidak ada MutationObserver
-  //   Cache manual, invalidate manual kalau perlu
   // ============================================================
   class DOMCache {
     constructor() {
@@ -439,7 +440,6 @@
 
   // ============================================================
   // ✅ WAIT FOR BREADCRUMB GENERATED (EVENT + FLAG)
-  // 🔥 FIX-S2: Timeout 10000ms → 2000ms
   // ============================================================
   function waitForBreadcrumbGenerated(timeout = CONFIG.BREADCRUMB_GENERATED_TIMEOUT) {
     return new Promise((resolve) => {
@@ -500,7 +500,6 @@
 
   // ============================================================
   // ✅ WAIT FOR BREADCRUMB READY
-  // 🔥 FIX-S2: Timeout 5000ms → 1500ms
   // ============================================================
   function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
     return new Promise((resolve) => {
@@ -746,53 +745,65 @@
     return null;
   }
 
+  // 🔥 FIX-SYNC-AED-3: detectContentFocus() — AED-only
   function detectContentFocus() {
     perf.start('detectContentFocus');
-    const bodyFocus = document.body.getAttribute('data-content-focus');
-    if (bodyFocus) {
-      const normalized = bodyFocus.toUpperCase();
-      log(`🎯 Content Focus dari body (PLD): ${normalized}`, "FOCUS");
+
+    // Prioritas 1: AEDMetaDates
+    if (window.AEDMetaDates && window.AEDMetaDates.contentFocus) {
+      const normalized = String(window.AEDMetaDates.contentFocus).toUpperCase();
+      log(`🎯 Content Focus dari AED: ${normalized}`, "FOCUS");
       perf.end('detectContentFocus');
       return normalized;
     }
+
+    // Prioritas 2: body attribute (di-set PLD)
+    const bodyFocus = document.body.getAttribute('data-content-focus');
+    if (bodyFocus) {
+      const normalized = bodyFocus.toUpperCase();
+      log(`🎯 Content Focus dari body: ${normalized}`, "FOCUS");
+      perf.end('detectContentFocus');
+      return normalized;
+    }
+
+    // Prioritas 3: V379A (legacy)
     if (window.V379A && window.V379A.focusKonten) {
       const normalized = String(window.V379A.focusKonten).toUpperCase();
       log(`🎯 Content Focus dari V37.9-A: ${normalized}`, "FOCUS");
       perf.end('detectContentFocus');
       return normalized;
     }
-    const h1El = domCache ? domCache.get('h1') : document.querySelector('h1');
-    const h1Text = h1El ? h1El.innerText.toLowerCase() : '';
-    if (/\b(20[2-9][0-9])\b/.test(h1Text)) {
-      log('🎯 Content Focus: HARGA (H1 ada tahun)', "FOCUS");
-      perf.end('detectContentFocus');
-      return 'HARGA';
-    }
-    log('🎯 Content Focus: INFORMASI (default)', "FOCUS");
+
+    // ❌ FIX: JANGAN tebak dari H1
+    log('⚠️ Content Focus tidak tersedia dari sumber manapun', "WARN");
     perf.end('detectContentFocus');
-    return 'INFORMASI';
+    return null;
   }
 
+  // 🔥 FIX-SYNC-AED-4: getKategori() — AED-only
   function getKategori() {
     perf.start('getKategori');
-    const bodyKategori = document.body.getAttribute('data-kategori');
-    if (bodyKategori) {
-      const normalized = bodyKategori.toUpperCase();
-      log(`🏷️ Kategori dari body (PLD): ${normalized}`, "KATEGORI");
+
+    // Prioritas 1: AEDMetaDates
+    if (window.AEDMetaDates && window.AEDMetaDates.pldKategori) {
+      const normalized = String(window.AEDMetaDates.pldKategori).toUpperCase();
+      log(`🏷️ Kategori dari AED: ${normalized}`, "KATEGORI");
       perf.end('getKategori');
       return normalized;
     }
-    const contentFocus = detectContentFocus();
-    if (contentFocus === 'INFORMASI') {
+
+    // Prioritas 2: body attribute
+    const bodyKategori = document.body.getAttribute('data-kategori');
+    if (bodyKategori) {
+      const normalized = bodyKategori.toUpperCase();
+      log(`🏷️ Kategori dari body: ${normalized}`, "KATEGORI");
       perf.end('getKategori');
-      return 'EVERGREEN';
+      return normalized;
     }
-    if (['HARGA', 'COMMERCIAL', 'GABUNG'].includes(contentFocus)) {
-      perf.end('getKategori');
-      return 'NON-EVERGREEN';
-    }
+
+    // ❌ FIX: JANGAN hitung sendiri
     perf.end('getKategori');
-    return 'EVERGREEN';
+    return null;
   }
 
   function getSchemaType() {
@@ -953,7 +964,6 @@
     return new Promise((resolve) => {
       perf.start('waitForPLD');
 
-      // Sudah ada?
       if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 ||
           window.pageLevelDetectorv19 || window.pageLevelDetectorV18 ||
           window.pageLevelDetectorV17 || window.pageLevelDetector) {
@@ -1164,7 +1174,7 @@
       img.style.margin = '0 auto';
       img.style.padding = '0 10px';
       img.style.boxSizing = 'border-box';
-      const styleId = 'responsive-image-style-v730';
+      const styleId = 'responsive-image-style-v731';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
@@ -1465,7 +1475,8 @@
   // ============================================================
   // 🔥🔥🔥 FIX-S4 & S6: DETEKSI HARGA DENGAN SELECTOR SPESIFIK 🔥🔥🔥
   // ============================================================
-  const MONEY_LEVELS = ['money-master', 'money-page', 'money-child'];
+  // 🔥 FIX-SYNC-AED-1: MONEY_LEVELS + variant/sub-variant
+  const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
 
   function detectPriceLayered(pageLevel) {
     perf.start('detectPriceLayered');
@@ -1574,28 +1585,19 @@
     return { hasPrice: false, source: null, value: null, offers: [] };
   }
 
-  // 🔥🔥🔥 FIX-S4 & S6: Selector dipersempit + max 100 elemen 🔥🔥🔥
   function detectPriceFromKeywordElements(container) {
-    // FIX-S4: SELECTOR SPESIFIK (bukan p, div, span, li, td)
-    // FIX-S6: Batasi max 100 elemen
     const candidates = container.querySelectorAll(
       'table td, table th, [class*="price"], [class*="harga"], [class*="biaya"], ' +
       '.price, .harga, .biaya, strong, b, .post-body p'
     );
-    
-    // FIX-S7: Cache container text sekali
     const containerText = container.innerText || '';
     if (!/(harga|biaya|tarif|price|cost)/i.test(containerText)) {
       return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-price-keyword' };
     }
-    
     const keywordRegex = /(harga|biaya|tarif|price|cost|rate|mulai dari|per\s+(m|m²|m2|unit|buah|lembar|meter))/i;
     let processed = 0;
-    
     for (const el of candidates) {
-      // FIX-S6: Batasi max 100 elemen
       if (processed++ > CONFIG.MAX_ELEMENTS_TO_SCAN) break;
-      
       const text = el.innerText || '';
       if (!text || text.length > 500) continue;
       if (!keywordRegex.test(text)) continue;
@@ -1616,11 +1618,9 @@
     return { hasPrice: false, source: null, value: null, offers: [] };
   }
 
-  // 🔥🔥🔥 FIX-S4 & S6: Selector dipersempit + max 100 elemen 🔥🔥🔥
   function detectPriceFromLooseRegex(container) {
     const keywordRegex = /(harga|biaya|tarif|price|cost|rate|mulai dari|per\s+(m|m²|m2|unit|buah|lembar|meter))/i;
     
-    // FIX-S4: SELECTOR SPESIFIK
     const contextEls = [];
     const allEls = container.querySelectorAll(
       'table td, table th, [class*="price"], [class*="harga"], [class*="biaya"], ' +
@@ -1723,15 +1723,14 @@
   }
 
   // ============================================================
-  // 🚀 MAIN FUNCTION v7.30-LITE
+  // 🚀 MAIN FUNCTION v7.31-LITE
   // ============================================================
   document.addEventListener("DOMContentLoaded", () => {
-    // FIX-S2: Delay 700ms → 200ms
     setTimeout(async () => {
       perf.start('init');
       log("═══════════════════════════════════════════════════", "INFO");
-      log("AUTO SCHEMA UNIVERSAL v7.30-LITE", "INFO");
-      log("Cloudinary WebP + Performance Patch", "WEBP");
+      log("AUTO SCHEMA UNIVERSAL v7.31-LITE", "INFO");
+      log("Cloudinary WebP + Performance Patch + SYNC AED", "WEBP");
       log("═══════════════════════════════════════════════════", "INFO");
 
       try {
@@ -1783,8 +1782,8 @@
 
         log(`📌 Page Level: ${pageLevel}`, "SUCCESS");
         log(`📌 Entity Type: ${entityType}`, "SUCCESS");
-        log(`📌 Content Focus: ${contentFocus}`, "FOCUS");
-        log(`📌 Kategori: ${kategori}`, "KATEGORI");
+        log(`📌 Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
+        log(`📌 Kategori: ${kategori || 'NULL'}`, "KATEGORI");
 
         // ===== STEP 5: DETEKSI HARGA BERLAPIS =====
         log('💰 DETEKSI HARGA BERLAPIS (Money Level Only):', "PRICE");
@@ -2051,15 +2050,15 @@
         log(`  PLD Version      : ${pldVer.label}`, "PLD");
         log(`  Page Level       : ${pageLevel}`, "SUCCESS");
         log(`  Entity Type      : ${entityType}`, "SUCCESS");
-        log(`  Content Focus    : ${contentFocus}`, "FOCUS");
-        log(`  Kategori         : ${kategori}`, "KATEGORI");
+        log(`  Content Focus    : ${contentFocus || 'NULL'}`, "FOCUS");
+        log(`  Kategori         : ${kategori || 'NULL'}`, "KATEGORI");
         log(`  Has Price        : ${hasPrice ? '✅ Ya' : '❌ Tidak'}`, "PRICE");
         log(`  Offers Count     : ${tableOffers.length}`, "PRICE");
         log(`  Image Eligible   : ${isEligible ? '✅' : '❌'}`, "IMAGE");
         log(`  Internal Links   : ${internalLinks.length}`, "SUCCESS");
         log(`  DEBUG Mode       : ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`, "FIX");
         log("═══════════════════════════════════════════════════", "INFO");
-        log("AUTO SCHEMA UNIVERSAL v7.30-LITE SELESAI", "SUCCESS");
+        log("AUTO SCHEMA UNIVERSAL v7.31-LITE SELESAI", "SUCCESS");
 
         perf.end('init');
 
