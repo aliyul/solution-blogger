@@ -109,14 +109,10 @@
 
     // 🔥 FIX-SYNC-AED-2: Skip money level — v5.4 Hybrid yang handle
     // Biar tidak dobel Product schema
-    const pageLevel = document.body && document.body.getAttribute('data-page-level');
-    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
-    if (pageLevel && MONEY_LEVELS.indexOf(pageLevel) !== -1) {
-      log('⏭️ FIX-SYNC-AED: Money level — v5.4 Hybrid handle, skip', 'SKIP');
-      window.__SCHEMA_SKIP_REASON = 'money-level-handled-by-hybrid';
-      return;
-    }
-
+        // 🔥 FIX-SYNC-AED-2-REVISED: v7.31 sekarang handle money level juga
+    // (asumsi lama "v5.4 Hybrid handle" tidak terpenuhi — v5.4 tidak loaded)
+    // Jadi v7.31 sendiri yang handle Product schema untuk money level.
+     
     window.__SCHEMA_SKIP_REASON = null;
   })();
 
