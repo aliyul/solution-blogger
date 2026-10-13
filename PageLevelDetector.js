@@ -305,6 +305,10 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
       "pemadatan","pengangkutan","pembersihan","pematangan",
       "pemancangan","pancang","grouting","finishing",
 
+       / 🔥 FIX-TUKANG-v1: Tukang-based base names (MM)
+      // Paralel dengan "jasa bor sumur" — bukan variant
+      "tukang sumur bor","tukang bor sumur","tukang bor air",
+
       // ═══ FRASA TEKNIK UTUH (MM) ═══
       "bore pile","bor pile","bored pile","boring pile",
       "mini pile","spun pile","micropile","sheet pile",
