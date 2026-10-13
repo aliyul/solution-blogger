@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * 🍞 Breadcrumb Shared v12.3.4-LITE — MEGA MERGE (FINAL + GABUNG SYNC + AED SYNC)
+ * 🍞 Breadcrumb Shared v12.3.5-LITE — MEGA MERGE (FINAL + GABUNG SYNC + AED SYNC)
  * 
  * FIX FINAL:
  * ✅ TANPA LAZY LOAD — breadcrumb render INSTAN
@@ -15,12 +15,17 @@
  * ✅ PATCH B: Pre-compile LOCATION_REGEXES (perf)
  * ✅ PATCH C: Sync contentFocus + pldKategori dari PLD
  * 
- * 🔥 FIX-SYNC-v1 (BARU di v12.3.4):
+ * 🔥 FIX-SYNC-v1 (dari v12.3.4):
  * ✅ PATCH D: getPageLevelFromPLD() prefer detectFromDOM() (H1 fallback)
  * ✅ PATCH E: EVERGREEN_LEVELS + MONEY_LEVELS konstanta (sinkron AED v17.4.0)
  * ✅ PATCH F: getLevelCategory() helper + emit di event & return value
  * 
- * @version 12.3.4-lite
+ * 🔥 FIX-SYNC-v2 (BARU di v12.3.5):
+ * ✅ PATCH G: getLevelCategory(level, contentFocus) — Money + INFORMASI = evergreen
+ * ✅ PATCH H: isMoneyLevel/isEvergreenLevel sinkron AED v17.4.1
+ * ✅ PATCH I: Caller getLevelCategory() diupdate untuk kirim contentFocus
+ * 
+ * @version 12.3.5-lite
  * ============================================================
  */
 
@@ -28,10 +33,10 @@
     "use strict";
 
     // ═══ GUARD DOUBLE INIT ═══
-    if (window.__BREADCRUMB_VERSION === "12.3.4-lite") {
+    if (window.__BREADCRUMB_VERSION === "12.3.5-lite") {
         return;
     }
-    window.__BREADCRUMB_VERSION = "12.3.4-lite";
+    window.__BREADCRUMB_VERSION = "12.3.5-lite";
 
     // ============================================================
     // DEVICE DETECTION — Silent log di HP
@@ -78,7 +83,7 @@
                 HIERARCHY: '🏛️', COMMERCIAL: '🛒', PARENT_FIX: '🔧',
                 CACHE: '💾', PERF: '⚡', SYNC: '🔗'
             };
-            console.log(`${icons[type] || '📘'} [Breadcrumb v12.3.4-LITE] ${message}`);
+            console.log(`${icons[type] || '📘'} [Breadcrumb v12.3.5-LITE] ${message}`);
         }
 
         // ============================================================
@@ -127,7 +132,7 @@
         for (let i = 0; i < VALID_LEVELS.length; i++) VALID_LEVELS_SET[VALID_LEVELS[i]] = true;
 
         // ============================================================
-        // 🔥 FIX-SYNC-v1 (PATCH E): KONSTANTA SINKRON AED v17.4.0
+        // 🔥 FIX-SYNC-v1 (PATCH E): KONSTANTA SINKRON AED v17.4.1
         // ============================================================
         const EVERGREEN_LEVELS = [
             'pillar',
@@ -321,14 +326,31 @@
         }
 
         // ============================================================
-        // 🔥 FIX-SYNC-v1 (PATCH F): Helper baru — cek level kategori
-        // Konsisten dengan AED v17.4.0 & Hybrid v10.0
+        // 🔥 FIX-SYNC-v2 (PATCH G): Helper baru — cek level kategori
+        // Konsisten dengan AED v17.4.1 & Hybrid v10.1
+        // 
+        // ATURAN:
+        //   - EVERGREEN_LEVELS → 'evergreen'
+        //   - MONEY_LEVELS + INFORMASI → 'evergreen'
+        //   - MONEY_LEVELS + lainnya → 'non-evergreen'
+        //   - home → 'home'
         // ============================================================
-        function getLevelCategory(level) {
+        function getLevelCategory(level, contentFocus) {
             if (!level) return 'unknown';
-            if (EVERGREEN_LEVELS_SET[level]) return 'evergreen';
-            if (MONEY_LEVELS_SET[level]) return 'non-evergreen';
             if (level === 'home') return 'home';
+
+            // Level EVERGREEN_LEVELS → evergreen
+            if (EVERGREEN_LEVELS_SET[level]) return 'evergreen';
+
+            // Level MONEY_LEVELS
+            if (MONEY_LEVELS_SET[level]) {
+                var normalizedFocus = String(contentFocus || '').toUpperCase();
+                if (normalizedFocus === 'INFORMASI') {
+                    return 'evergreen'; // Money + INFORMASI = evergreen
+                }
+                return 'non-evergreen';
+            }
+
             return 'unknown';
         }
 
@@ -442,7 +464,7 @@
                 }
             }
             if (ENABLE_DEBUG) {
-                console.log(`⚡ [Breadcrumb v12.3.4-LITE] Pre-compiled ${LOCATION_REGEXES.length} location regexes`);
+                console.log(`⚡ [Breadcrumb v12.3.5-LITE] Pre-compiled ${LOCATION_REGEXES.length} location regexes`);
             }
         })();
 
@@ -1003,10 +1025,11 @@
         const isPLDSynced = !!pldLevel;
         log(`PLD Sync: ${isPLDSynced ? '✅ SINKRON' : '❌ FALLBACK'}`, 'PLD');
 
-        // 🔥 FIX-SYNC-v1: Log kategori level
+        // 🔥 FIX-SYNC-v2 (PATCH I): getLevelCategory butuh contentFocus
         if (pldLevel) {
-            const levelCat = getLevelCategory(pldLevel);
-            log(`Level Category: ${levelCat} (level="${pldLevel}")`, 'SYNC');
+            var _focusForLog = getContentFocusFromPLD();
+            const levelCat = getLevelCategory(pldLevel, _focusForLog);
+            log(`Level Category: ${levelCat} (level="${pldLevel}", focus="${_focusForLog}")`, 'SYNC');
         }
 
         // ============================================================
@@ -1286,11 +1309,20 @@
         const contentFocusFromPLD = getContentFocusFromPLD();
         const kategoriFromPLD = getKategoriFromPLD(contentFocusFromPLD);
 
-        // 🔥 FIX-SYNC-v1: Kategori level (sinkron AED v17.4.0)
+        // ============================================================
+        // 🔥 FIX-SYNC-v2 (PATCH H): isMoneyLevel/isEvergreenLevel sinkron AED v17.4.1
+        // ============================================================
         const _levelForCategory = pldLevel || currentPageType;
-        const levelCategory = getLevelCategory(_levelForCategory);
-        const isEvergreenLevel = EVERGREEN_LEVELS_SET[_levelForCategory] === true;
-        const isMoneyLevel = MONEY_LEVELS_SET[_levelForCategory] === true;
+        const _focusUpper = String(contentFocusFromPLD || '').toUpperCase();
+        const _isInformationalFocus = (_focusUpper === 'INFORMASI');
+
+        // 🔥 FIX-SYNC-v2: getLevelCategory butuh contentFocus
+        const levelCategory = getLevelCategory(_levelForCategory, contentFocusFromPLD);
+
+        // 🔥 FIX-SYNC-v2: Money + INFORMASI = evergreen (konsisten AED v17.4.1)
+        const isEvergreenLevel = EVERGREEN_LEVELS_SET[_levelForCategory] === true
+                               || (MONEY_LEVELS_SET[_levelForCategory] === true && _isInformationalFocus);
+        const isMoneyLevel = MONEY_LEVELS_SET[_levelForCategory] === true && !_isInformationalFocus;
 
         // 🔥 FIX-SYNC-v1: Sync contentFocus/kategori ke body attribute
         // agar script lain bisa baca tanpa akses PLD
@@ -1313,13 +1345,13 @@
                 selectedLevels: uniqueLevels,
                 currentPageType: currentPageType,
                 entityType: entityType,
-                version: '12.3.4-lite',
+                version: '12.3.5-lite',
                 pldLevel: pldLevel,
                 pldSync: isPLDSynced,
                 // 🔥 FIX-C: Content focus fields
                 contentFocus: contentFocusFromPLD,
                 pldKategori: kategoriFromPLD,
-                // 🔥 FIX-SYNC-v1: Kategori level fields
+                // 🔥 FIX-SYNC-v1 + v2: Kategori level fields
                 levelCategory: levelCategory,
                 isEvergreenLevel: isEvergreenLevel,
                 isMoneyLevel: isMoneyLevel
@@ -1331,7 +1363,7 @@
         // ============================================================
         if (CONFIG.DEBUG) {
             const commercialDetected = COMMERCIAL_WORDS.some(w => currentPageTitle.startsWith(w));
-            console.log('📊 BREADCRUMB SUMMARY (v12.3.4-LITE):');
+            console.log('📊 BREADCRUMB SUMMARY (v12.3.5-LITE):');
             console.log(`   Page: "${currentPageTitle}"`);
             console.log(`   Type: ${currentPageType} (level ${TYPE_LEVEL_MAP[currentPageType]})`);
             console.log(`   Entity: ${entityType}`);
@@ -1353,7 +1385,7 @@
             selectedLevels: uniqueLevels,
             currentPageType,
             entityType,
-            version: '12.3.4-lite',
+            version: '12.3.5-lite',
             parentCount: finalParents.length,
             parents: finalParents,
             isVariant: currentPageType === 'variant',
@@ -1368,7 +1400,7 @@
             // 🔥 FIX-C: Content focus fields
             contentFocus: contentFocusFromPLD,
             pldKategori: kategoriFromPLD,
-            // 🔥 FIX-SYNC-v1: Kategori level fields
+            // 🔥 FIX-SYNC-v1 + v2: Kategori level fields
             levelCategory: levelCategory,
             isEvergreenLevel: isEvergreenLevel,
             isMoneyLevel: isMoneyLevel
@@ -1381,6 +1413,6 @@
     window.generateBreadcrumbShared = generateBreadcrumbShared;
     window.generateBreadcrumbSharedSync = generateBreadcrumbShared;
 
-    console.log(`✅ [Breadcrumb v12.3.4-LITE] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'}) — LANGSUNG TANPA LAZY LOAD + AED SYNC`);
+    console.log(`✅ [Breadcrumb v12.3.5-LITE] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'}) — LANGSUNG TANPA LAZY LOAD + AED SYNC v17.4.1`);
 
 })();
