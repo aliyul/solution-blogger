@@ -1,22 +1,25 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.4.1-LITE — FULL PATCH (FINAL)
+ 🧠 Smart Evergreen Detector v17.4.2-LITE — FULL PATCH (FINAL)
     ✅ SINKRON dengan PLD v23.9.8-LITE-PERF-CONTENT-FIX
     ✅ PATOKAN UTAMA: PLD = SOURCE OF TRUTH
     ✅ ATURAN LEVEL: Level menentukan EE/NE, dengan override INFORMASI
     ✅ ATURAN TAHUN: H1 mengandung tahun → NON-EVERGREEN
     ✅ AUTO-UPDATE TANPA BATAS: nextUpdate → dateModified → nextUpdate
 
-    🔥🔥🔥 v17.4.1-LITE CHANGELOG 🔥🔥🔥
+    🔥🔥🔥 v17.4.2-LITE CHANGELOG 🔥🔥🔥
+    ✅ FIX-SYNC-v3 (BARU):
+       - hasPriceTable() STRICT — sinkron dengan PLD v23.9.8
+         (skip footer/nav, wajib tbody min 2 baris, wajib th harga,
+          TIDAK ada fallback ke body text)
+       - getKategori() ambil dari finalType — hindari konflik
+       - processMetaDates() kirim finalType ke getKategori()
+       - Konsistensi: type === kategori (selalu sinkron)
+
     ✅ FIX-EE-6: Money + INFORMASI = EVERGREEN (dengan guard)
-                 → Money level + contentFocus=INFORMASI + no_year + no_price_table
-                   = EVERGREEN 1095 hari
-                 → Money level + HARGA/COMMERCIAL/GABUNG
-                   = NON-EVERGREEN 30 hari
-    ✅ FIX-EE-2: MONEY_LEVELS include variant & sub-variant
-                 EVERGREEN_LEVELS hanya pillar & sub-pillar
-    ✅ FIX-EE-3: getPageLevelAndEntityType() — prefer detectFromDOM()
-    ✅ FIX-EE-4: detectContentTypeByH1() — PLD-only, no keyword guessing
-    ✅ FIX-EE-5: getKategori() — level-first dengan override INFORMASI
+    ✅ FIX-EE-2: variant & sub-variant masuk MONEY_LEVELS
+    ✅ FIX-EE-3: getPageLevelAndEntityType() prefer detectFromDOM()
+    ✅ FIX-EE-4: detectContentTypeByH1() PLD-only, no keyword guessing
+    ✅ FIX-EE-5: getKategori() level-first dengan override INFORMASI
     ✅ FIX-B10: decodeHtmlEntities() + deepDecodeHtmlEntities()
     ✅ FIX-B9:  detectIllegalFaqProps()
     ✅ FIX-B1 s/d B8: TETAP AKTIF
@@ -26,12 +29,12 @@
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.4.1-lite") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.4.2-lite") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.4.1-lite";
+  window.__AED_VERSION = "17.4.2-lite";
 
   // ============================================================
   // 📌 BRAND CONFIG
@@ -468,38 +471,47 @@
   }
 
   // ============================================================
-  // 🔥 FIX-EE-6: getKategori — Level + Override INFORMASI
+  // 🔥 FIX-SYNC-v3: getKategori — ambil dari finalType (satu sumber kebenaran)
   // 
-  // Aturan:
-  //   - EVERGREEN_LEVELS → EVERGREEN (tanpa syarat)
-  //   - MONEY_LEVELS + INFORMASI → EVERGREEN
-  //   - MONEY_LEVELS + HARGA/COMMERCIAL/GABUNG → NON-EVERGREEN
+  // Perubahan v17.4.2:
+  //   - Parameter BARU: finalType (dari getRulesByEntityType)
+  //   - Kalau finalType ada → langsung pakai (hindari hitung ulang)
+  //   - Kalau tidak ada → fallback ke logika lama
+  //
+  // Tujuan: hindari konflik antara getKategori() dan getRulesByEntityType()
+  // Contoh konflik lama:
+  //   getKategori()        → "EVERGREEN" (cek level + focus)
+  //   getRulesByEntityType → "non-evergreen" (cek level + focus + tabel)
+  // Sesudah fix: keduanya PASTI sama
   // ============================================================
-  function getKategori(pageLevel, contentFocus) {
+  function getKategori(pageLevel, contentFocus, finalType) {
+    // Prioritas 1: pakai finalType kalau ada (single source of truth)
+    if (finalType) {
+      var kategoriFromType = (finalType === 'evergreen') ? 'EVERGREEN' : 'NON-EVERGREEN';
+      console.log(`🏷️ [FIX-SYNC-v3] Kategori: ${kategoriFromType} (dari finalType="${finalType}")`);
+      return kategoriFromType;
+    }
+
+    // Fallback: logika lama (kalau dipanggil tanpa finalType)
     var normalizedFocus = String(contentFocus || '').toUpperCase();
 
-    // Level EVERGREEN → langsung EVERGREEN
     if (EVERGREEN_LEVELS.indexOf(pageLevel) !== -1) {
-      console.log(`🏷️ [FIX-EE-6] Kategori: EVERGREEN (level "${pageLevel}")`);
+      console.log(`🏷️ [Fallback] Kategori: EVERGREEN (level "${pageLevel}")`);
       return 'EVERGREEN';
     }
 
-    // Level MONEY ke bawah
     if (MONEY_LEVELS.indexOf(pageLevel) !== -1) {
-      // 🔥 FIX-EE-6: Money + INFORMASI = EVERGREEN
       if (normalizedFocus === 'INFORMASI') {
-        console.log(`🏷️ [FIX-EE-6] Kategori: EVERGREEN (money "${pageLevel}" + INFORMASI)`);
+        console.log(`🏷️ [Fallback] Kategori: EVERGREEN (money "${pageLevel}" + INFORMASI)`);
         return 'EVERGREEN';
       }
-      console.log(`🏷️ [FIX-EE-6] Kategori: NON-EVERGREEN (money "${pageLevel}" + ${normalizedFocus})`);
+      console.log(`🏷️ [Fallback] Kategori: NON-EVERGREEN (money "${pageLevel}" + ${normalizedFocus})`);
       return 'NON-EVERGREEN';
     }
 
-    // Fallback PLD
     var pldKategori = getPLDKategori(contentFocus);
     if (pldKategori) return pldKategori;
 
-    console.log(`🏷️ [Fallback] Kategori: EVERGREEN`);
     return 'EVERGREEN';
   }
 
@@ -618,30 +630,59 @@
   }
 
   // ============================================================
-  // 💰 hasPriceTable
+  // 💰 FIX-SYNC-v3: hasPriceTable() STRICT — sinkron dengan PLD v23.9.8
+  //
+  // Kriteria:
+  //   - Skip tabel di footer/nav/sidebar
+  //   - Wajib punya <tbody> dengan minimal 2 baris
+  //   - Wajib punya <th> dengan kata "harga"/"biaya"/"tarif"
+  //   - TIDAK ada fallback ke body text (hindari false positive)
+  //
+  // Perubahan dari v17.4.1:
+  //   - Hapus fallback ke body.innerText (penyebab false positive)
+  //   - Tambah skip footer/nav/sidebar
+  //   - Tambah wajib <tbody> min 2 baris
+  //   - Fallback ke header <th> saja
   // ============================================================
   function hasPriceTable() {
     const tables = document.querySelectorAll('table');
     let priceTableFound = false;
     let tableDetails = [];
-    tables.forEach((table, index) => {
-      const headers = Array.from(table.querySelectorAll('th')).map(th => th.innerText.toLowerCase().trim());
-      const hasPriceHeader = headers.some(h => /harga|biaya|tarif|price|cost|rate/i.test(h));
-      let hasPriceColumn = hasPriceHeader;
-      if (headers.length === 0) {
-        const tableText = table.innerText.toLowerCase();
-        hasPriceColumn = /harga|biaya|estimasi|rp|rupiah|per meter|per lembar|total|subtotal/i.test(tableText);
+
+    for (let index = 0; index < tables.length; index++) {
+      const table = tables[index];
+
+      // Skip tabel di footer/nav/sidebar
+      try {
+        if (table.closest('footer, nav, aside, .footer, .nav, .sidebar, .widget, #footer, #nav, #sidebar')) continue;
+      } catch (e) {}
+
+      // Wajib punya <tbody> dengan minimal 2 baris
+      const rows = table.querySelectorAll('tbody tr');
+      if (rows.length < 2) continue;
+
+      // Wajib punya <th> dengan kata "harga"/"biaya"/"tarif"
+      const headers = table.querySelectorAll('th');
+      let priceHeaderCount = 0;
+      for (let j = 0; j < headers.length; j++) {
+        const headerText = (headers[j].innerText || headers[j].textContent || '').toLowerCase();
+        if (/harga|biaya|tarif|price|cost|rate/i.test(headerText)) priceHeaderCount++;
       }
-      const tableText = table.innerText;
-      const numbers = tableText.match(/[\d.,]+/g);
-      const hasNumbers = numbers && numbers.length >= 3;
-      const hasUnit = /per\s*(meter|m|lembar|lbr|batang|buah|unit|kg|ton|kubik|m³|m2|m²)/i.test(tableText);
-      if (hasPriceColumn && hasNumbers) {
+
+      if (priceHeaderCount >= 1) {
         priceTableFound = true;
-        tableDetails.push({ index, hasPriceHeader, hasNumbers, hasUnit, numberCount: numbers ? numbers.length : 0, headerPreview: headers.slice(0, 5).join(', '), preview: tableText.substring(0, 100) });
+        const headerList = Array.from(headers).map(h => (h.innerText || '').toLowerCase().trim());
+        tableDetails.push({
+          index: index,
+          priceHeaderCount: priceHeaderCount,
+          rowCount: rows.length,
+          headerPreview: headerList.slice(0, 5).join(', '),
+          preview: table.innerText.substring(0, 100)
+        });
       }
-    });
-    console.log(priceTableFound ? '💰 Tabel HARGA ditemukan' : '📋 Tidak ada tabel harga');
+    }
+
+    console.log(priceTableFound ? '💰 Tabel HARGA ditemukan (strict)' : '📋 Tidak ada tabel harga (strict)');
     return { found: priceTableFound, details: tableDetails };
   }
 
@@ -819,7 +860,6 @@
       updateMode = 'year-only';
       modeReason = `Evergreen level "${pageLevel}" → update tahun saja`;
     } else if (isMoneyLevel) {
-      // 🔥 FIX-EE-6: Money + INFORMASI = year-only
       if (normalizedFocus === 'INFORMASI') {
         updateMode = 'year-only';
         modeReason = `Level "${pageLevel}" + INFORMASI → update tahun saja`;
@@ -1129,7 +1169,8 @@
       else validityLabel = `EVERGREEN (${validityDays} hari)`;
     } else validityLabel = `NON-EVERGREEN (${validityDays} hari) — ${entityType}/${pageLevel}`;
 
-    const kategori = getKategori(pageLevel, contentFocus);
+    // 🔥 FIX-SYNC-v3: kirim finalType supaya kategori konsisten dengan type
+    const kategori = getKategori(pageLevel, contentFocus, finalType);
     const h1Pattern = getPLDH1Pattern(kategori);
     const schemaType = getPLDSchemaType(pageLevel, entityType, contentFocus);
     const pldCtaType = getPLDCtaType(pageLevel, contentFocus);
@@ -1139,7 +1180,7 @@
       datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.4.1',
+      detectorVersion: detectorVersion || 'v17.4.2',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
@@ -1350,7 +1391,7 @@
     }
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.4.1-LITE — Loading...");
+    console.log("🧩 detectEvergreen() v17.4.2-LITE — Loading...");
     await waitForPageLevelDetector();
 
     const { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount } = getPageLevelAndEntityType();
@@ -1382,7 +1423,7 @@
 
     await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated);
 
-    console.log(`🧩 detectEvergreen() v17.4.1-LITE — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.4.2-LITE — FINISHED ✅`);
   }
 
   // ============================================================
@@ -1393,8 +1434,9 @@
   window.dispatchEvent(new Event("detectEvergreenReady"));
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Smart Evergreen Detector v17.4.1-LITE ready");
+  console.log("✅ Smart Evergreen Detector v17.4.2-LITE ready");
   console.log("═══════════════════════════════════════════════════════════");
+  console.log("🔥 FIX-SYNC-v3: hasPriceTable() STRICT + getKategori() dari finalType");
   console.log("🔥 FIX-EE-6: Money + INFORMASI = EVERGREEN (dengan guard tahun + tabel)");
   console.log("🔥 FIX-EE-2: variant & sub-variant masuk MONEY_LEVELS");
   console.log("🔥 FIX-EE-3: getPageLevelAndEntityType() prefer detectFromDOM()");
