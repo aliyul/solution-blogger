@@ -1,5 +1,12 @@
 /**
- * 📄 Auto-Schema Generator v8.2-LITE — ARTICLE SCHEMA (EVERGREEN)
+ * 📄 Auto-Schema Generator v8.3-LITE — ARTICLE SCHEMA (EVERGREEN)
+ * 
+ * 🔥 v8.3-LITE CHANGELOG (SYNC AED v17.4.3):
+ * ✅ FIX-SYNC-AED-1: EVERGREEN_LEVELS — buang variant/sub-variant
+ * ✅ FIX-SYNC-AED-2: MONEY_LEVELS — tambah variant/sub-variant
+ * ✅ FIX-SYNC-AED-3: detectContentFocus() — AED-only, no H1 guessing
+ * ✅ FIX-SYNC-AED-4: getKategori() — AED-only, no compute
+ * ✅ FIX-SYNC-AED-5: shouldGenerateArticleSchema() — sederhana + sync
  * 
  * 🔥 v8.2-LITE CHANGELOG (PERFORMANCE PATCH):
  * ✅ FIX-S1: DEBUG auto-detect (HP = silent)
@@ -22,11 +29,11 @@
   "use strict";
 
   // ═══ FIX-S4: Guard global ═══
-  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.2-lite") {
-    console.log("[AutoSchema Article v8.2-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.3-lite") {
+    console.log("[AutoSchema Article v8.3-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.2-lite";
+  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.3-lite";
 
   // ============================================================
   // 🔥 FIX-S1: AUTO-DETECT DEBUG 🔥
@@ -42,20 +49,20 @@
   // ============================================================
   const CONFIG = {
     DEBUG: DEBUG_MODE,
-    AED_TIMEOUT: 2000,                       // FIX-S2: 5000 → 2000
+    AED_TIMEOUT: 2000,
     MAX_ARTICLE_BODY_LENGTH: 8000,
     SITE_NAME: "Beton Jaya Readymix",
     SITE_URL: "https://www.betonjayareadymix.com",
     CURRENT_YEAR: new Date().getFullYear(),
-    PLD_TIMEOUT: 1000,                       // FIX-S2: 10000 → 1000
+    PLD_TIMEOUT: 1000,
     SKIP_WORD_COUNT: 300,
-    BREADCRUMB_TIMEOUT: 1000,                // FIX-S2: 3000 → 1000
-    BREADCRUMB_READY_TIMEOUT: 1500,          // FIX-S2: 5000 → 1500
-    BREADCRUMB_GENERATED_TIMEOUT: 2000,      // FIX-S2: 10000 → 2000
+    BREADCRUMB_TIMEOUT: 1000,
+    BREADCRUMB_READY_TIMEOUT: 1500,
+    BREADCRUMB_GENERATED_TIMEOUT: 2000,
     MIN_IMAGE_WIDTH: 400,
     ARTICLE_IMG_WIDTH: 1200,
     ARTICLE_IMG_HEIGHT: 675,
-    VERSION: "8.2-lite"
+    VERSION: "8.3-lite"
   };
 
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
@@ -75,7 +82,7 @@
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
       PARENT: "👪", FIX: "🔧", NEW: "🆕", IMG: "🖼️"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema Article v8.2-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema Article v8.3-LITE] ${msg}`);
   }
 
   function getPLDVersion() {
@@ -95,9 +102,11 @@
   }
 
   // ============================================================
-  // 🔥 FIX-S3: EARLY EXIT — CEK PAGE LEVEL 🔥
+  // 🔥 FIX-SYNC-AED-1 + 2: EARLY EXIT — CEK PAGE LEVEL
   // ============================================================
-  // File ini HANYA untuk evergreen + money + INFORMASI
+  // File ini HANYA untuk:
+  //   - EVERGREEN level (pillar, sub-pillar-1, sub-pillar-2)
+  //   - Money level (money-*, variant, sub-variant) + INFORMASI
   // ============================================================
   (function earlyExitCheck() {
     const pageLevel = document.body && document.body.getAttribute('data-page-level');
@@ -109,8 +118,11 @@
       return;
     }
 
-    const EVERGREEN_LEVELS = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2', 'variant', 'sub-variant'];
-    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child'];
+    // 🔥 FIX-SYNC-AED-1: EVERGREEN_LEVELS — buang variant/sub-variant
+    const EVERGREEN_LEVELS = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'];
+
+    // 🔥 FIX-SYNC-AED-2: MONEY_LEVELS — tambah variant/sub-variant
+    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
 
     const isEvergreen = EVERGREEN_LEVELS.indexOf(pageLevel) !== -1;
     const isMoney = MONEY_LEVELS.indexOf(pageLevel) !== -1;
@@ -119,13 +131,13 @@
     // Skip kalau BUKAN evergreen DAN BUKAN (money + INFORMASI)
     if (!isEvergreen && !(isMoney && isInformasi)) {
       window.__AUTOSCHEMA_ARTICLE_SKIP_REASON = 'not-article-target';
-      console.log(`⏸️ [AutoSchema Article v8.2-LITE] SKIP: level="${pageLevel}", focus="${contentFocus}" (Product schema handle)`);
+      console.log(`⏸️ [AutoSchema Article v8.3-LITE] SKIP: level="${pageLevel}", focus="${contentFocus}" (Product schema handle)`);
       return;
     }
 
     window.__AUTOSCHEMA_ARTICLE_SKIP_REASON = null;
     if (CONFIG.DEBUG) {
-      console.log(`✅ [AutoSchema Article v8.2-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
+      console.log(`✅ [AutoSchema Article v8.3-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
     }
   })();
 
@@ -294,31 +306,48 @@
   // ============================================================
   // PHASE 4.6 HELPERS
   // ============================================================
+
+  // 🔥 FIX-SYNC-AED-3: detectContentFocus() — AED-only, no H1 guessing
+  // Prioritas:
+  //   1. AEDMetaDates.contentFocus (paling akurat)
+  //   2. body[data-content-focus] (di-set PLD)
+  //   3. PLD.detectContentFocus() (fallback terakhir)
+  //   ❌ JANGAN tebak dari H1
   function detectContentFocus(pageLevel, entityType) {
-    const pldVer = getPLDVersion();
-    if (pldVer.family === "v23-lite" || pldVer.family === "v23") {
-      try {
-        if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectContentFocus === 'function') {
-          const pldFocus = window.pageLevelDetectorv22.detectContentFocus(pageLevel, entityType);
-          if (pldFocus) return String(pldFocus).toLowerCase();
-        }
-      } catch(e) {}
+    // Prioritas 1: AEDMetaDates
+    if (window.AEDMetaDates && window.AEDMetaDates.contentFocus) {
+      return String(window.AEDMetaDates.contentFocus).toLowerCase();
     }
+
+    // Prioritas 2: body attribute
     const bodyFocus = document.body.getAttribute('data-content-focus');
     if (bodyFocus) return bodyFocus.toLowerCase();
-    const h1 = document.querySelector('h1')?.innerText?.toLowerCase() || '';
-    if (/\b(20[2-9][0-9])\b/.test(h1)) return 'harga';
-    if (/\b(harga|biaya|tarif|estimasi)\b/i.test(h1)) return 'harga';
-    return 'informasi';
+
+    // Prioritas 3: PLD langsung
+    if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectContentFocus === 'function') {
+      try {
+        const pldFocus = window.pageLevelDetectorv22.detectContentFocus(pageLevel, entityType);
+        if (pldFocus) return String(pldFocus).toLowerCase();
+      } catch(e) {}
+    }
+
+    // ❌ JANGAN tebak dari H1
+    return null;
   }
 
+  // 🔥 FIX-SYNC-AED-4: getKategori() — AED-only, no compute
   function getKategori(contentFocus) {
+    // Prioritas 1: AEDMetaDates
+    if (window.AEDMetaDates && window.AEDMetaDates.pldKategori) {
+      return String(window.AEDMetaDates.pldKategori).toUpperCase();
+    }
+
+    // Prioritas 2: body attribute
     const bodyKategori = document.body.getAttribute('data-kategori');
     if (bodyKategori) return bodyKategori.toUpperCase();
-    const focus = contentFocus || detectContentFocus();
-    if (focus === 'informasi') return 'EVERGREEN';
-    if (['harga', 'commercial', 'gabung'].includes(focus)) return 'NON-EVERGREEN';
-    return 'EVERGREEN';
+
+    // ❌ JANGAN hitung sendiri dari contentFocus
+    return null;
   }
 
   function getEntitySubType() {
@@ -367,16 +396,18 @@
     return { pageLevel: null, entityType: null, source: 'unavailable' };
   }
 
+  // 🔥 FIX-SYNC-AED-5: shouldGenerateArticleSchema() — sederhana + sync
   function shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) {
+    // Pillar & sub-pillar → SELALU Article
     const mandatoryArticleLevels = ['pillar', 'sub-pillar-tipe-2', 'sub-pillar-tipe-1'];
     if (mandatoryArticleLevels.includes(pageLevel)) return true;
-    if (pageLevel === 'variant' || pageLevel === 'sub-variant') return true;
-    if (pageLevel === 'money-master' || pageLevel === 'money-child') {
+
+    // Money level (termasuk variant/sub-variant) + INFORMASI → Article
+    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
+    if (MONEY_LEVELS.includes(pageLevel)) {
       return contentFocus === 'informasi';
     }
-    if (pageLevel === 'money-page') {
-      return contentFocus === 'informasi';
-    }
+
     return false;
   }
 
@@ -446,7 +477,7 @@
 
     let processed = 0;
     for (const img of candidates) {
-      if (processed++ > 30) break; // FIX-S6: batasi 30 gambar
+      if (processed++ > 30) break;
       const src = img.currentSrc || img.src || "";
       if (!src || src.startsWith("data:")) continue;
       const w = img.naturalWidth || img.width || 0;
@@ -554,11 +585,11 @@
   }
 
   // ============================================================
-  // 🚀 MAIN INIT v8.2-LITE
+  // 🚀 MAIN INIT v8.3-LITE
   // ============================================================
   async function init() {
     log("════════════════════════════════════");
-    log("Auto-Schema Generator v8.2-LITE — ARTICLE");
+    log("Auto-Schema Generator v8.3-LITE — ARTICLE");
     log(`DEBUG: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("════════════════════════════════════");
 
@@ -591,15 +622,15 @@
     const contentFocus = detectContentFocus(pageLevel, entityType);
     const kategori = getKategori(contentFocus);
 
-    log(`📌 Content Focus: ${contentFocus.toUpperCase()}`, "FOCUS");
-    log(`📌 Kategori: ${kategori}`, "KATEGORI");
+    log(`📌 Content Focus: ${contentFocus ? contentFocus.toUpperCase() : 'NULL'}`, "FOCUS");
+    log(`📌 Kategori: ${kategori || 'NULL'}`, "KATEGORI");
 
     // Set body attribute
     document.body.setAttribute("data-schema-page-level", pageLevel);
     document.body.setAttribute("data-schema-entity-type", entityType);
     document.body.setAttribute("data-schema-source", source);
-    document.body.setAttribute("data-schema-content-focus", contentFocus);
-    document.body.setAttribute("data-schema-kategori", kategori);
+    if (contentFocus) document.body.setAttribute("data-schema-content-focus", contentFocus);
+    if (kategori) document.body.setAttribute("data-schema-kategori", kategori);
     document.body.setAttribute("data-schema-pld-version", pldVer.label);
 
     // Wait AED
@@ -632,11 +663,11 @@
     }
 
     log("════════════════════════════════════");
-    log("FINISHED (v8.2-LITE)", "SUCCESS");
+    log("FINISHED (v8.3-LITE)", "SUCCESS");
     log(`   Page Level: ${pageLevel}`, "SUCCESS");
     log(`   Entity Type: ${entityType}`, "SUCCESS");
-    log(`   Content Focus: ${contentFocus}`, "FOCUS");
-    log(`   Kategori: ${kategori}`, "KATEGORI");
+    log(`   Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
+    log(`   Kategori: ${kategori || 'NULL'}`, "KATEGORI");
     log(`   Article Schema: ${shouldGenerate ? 'GENERATED ✅' : 'SKIPPED ⏭️'}`, "ARTICLE");
     log("════════════════════════════════════");
   }
@@ -648,6 +679,6 @@
     init();
   }
 
-  console.log(`✅ [AutoSchema Article v8.2-LITE] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`✅ [AutoSchema Article v8.3-LITE] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
 
 })();
