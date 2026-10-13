@@ -1,23 +1,22 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.4.0-LITE — FULL PATCH (FINAL)
-    ✅ SINKRON dengan PLD v23.9.7-LITE-PERF-B2N
-    ✅ SINKRON dengan Prompt V37.9-B v8.5 (Schema FAQ VALID)
+ 🧠 Smart Evergreen Detector v17.4.1-LITE — FULL PATCH (FINAL)
+    ✅ SINKRON dengan PLD v23.9.8-LITE-PERF-CONTENT-FIX
     ✅ PATOKAN UTAMA: PLD = SOURCE OF TRUTH
-    ✅ ATURAN LEVEL: money-master → sub-variant = WAJIB NON-EVERGREEN
+    ✅ ATURAN LEVEL: Level menentukan EE/NE, dengan override INFORMASI
     ✅ ATURAN TAHUN: H1 mengandung tahun → NON-EVERGREEN
     ✅ AUTO-UPDATE TANPA BATAS: nextUpdate → dateModified → nextUpdate
 
-    🔥🔥🔥 v17.4.0-LITE CHANGELOG 🔥🔥🔥
-    ✅ FIX-EE-1: getRulesByEntityType() — HAPUS 2 override "paksa EVERGREEN"
-                 → Money level ke bawah = NON-EVERGREEN unconditional
+    🔥🔥🔥 v17.4.1-LITE CHANGELOG 🔥🔥🔥
+    ✅ FIX-EE-6: Money + INFORMASI = EVERGREEN (dengan guard)
+                 → Money level + contentFocus=INFORMASI + no_year + no_price_table
+                   = EVERGREEN 1095 hari
+                 → Money level + HARGA/COMMERCIAL/GABUNG
+                   = NON-EVERGREEN 30 hari
     ✅ FIX-EE-2: MONEY_LEVELS include variant & sub-variant
                  EVERGREEN_LEVELS hanya pillar & sub-pillar
     ✅ FIX-EE-3: getPageLevelAndEntityType() — prefer detectFromDOM()
-                 → Dapat H1 fallback otomatis dari PLD
     ✅ FIX-EE-4: detectContentTypeByH1() — PLD-only, no keyword guessing
-                 → Hapus H1 keyword fallback (bikin keputusan konsisten)
-    ✅ FIX-EE-5: getKategori() — level money = NON-EVERGREEN prioritas
-
+    ✅ FIX-EE-5: getKategori() — level-first dengan override INFORMASI
     ✅ FIX-B10: decodeHtmlEntities() + deepDecodeHtmlEntities()
     ✅ FIX-B9:  detectIllegalFaqProps()
     ✅ FIX-B1 s/d B8: TETAP AKTIF
@@ -27,12 +26,12 @@
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.4.0-lite") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.4.1-lite") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.4.0-lite";
+  window.__AED_VERSION = "17.4.1-lite";
 
   // ============================================================
   // 📌 BRAND CONFIG
@@ -374,6 +373,7 @@
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
       var v = window.pageLevelDetectorv22.version;
+      if (v.indexOf("23.9.8") === 0) return { version: v, family: "v23-lite", label: "v23.9.8-lite" };
       if (v.indexOf("23.9.7") === 0) return { version: v, family: "v23-lite", label: "v23.9.7-lite" };
       if (v.indexOf("23.") === 0)    return { version: v, family: "v23", label: "v23.0.0" };
       if (v.indexOf("22.") === 0)    return { version: v, family: "v22", label: "v22.x" };
@@ -468,20 +468,34 @@
   }
 
   // ============================================================
-  // 🔥 FIX-EE-5: getKategori — level money = NON-EVERGREEN prioritas
+  // 🔥 FIX-EE-6: getKategori — Level + Override INFORMASI
+  // 
+  // Aturan:
+  //   - EVERGREEN_LEVELS → EVERGREEN (tanpa syarat)
+  //   - MONEY_LEVELS + INFORMASI → EVERGREEN
+  //   - MONEY_LEVELS + HARGA/COMMERCIAL/GABUNG → NON-EVERGREEN
   // ============================================================
   function getKategori(pageLevel, contentFocus) {
-    // LEVEL FIRST — jangan biarkan PLD detectKategori(INFORMASI) menang untuk money level
-    if (MONEY_LEVELS.indexOf(pageLevel) !== -1) {
-      console.log(`🏷️ [FIX-EE-5] Kategori: NON-EVERGREEN (level "${pageLevel}" = money ke bawah)`);
-      return 'NON-EVERGREEN';
-    }
+    var normalizedFocus = String(contentFocus || '').toUpperCase();
+
+    // Level EVERGREEN → langsung EVERGREEN
     if (EVERGREEN_LEVELS.indexOf(pageLevel) !== -1) {
-      console.log(`🏷️ [FIX-EE-5] Kategori: EVERGREEN (level "${pageLevel}")`);
+      console.log(`🏷️ [FIX-EE-6] Kategori: EVERGREEN (level "${pageLevel}")`);
       return 'EVERGREEN';
     }
 
-    // Fallback ke PLD
+    // Level MONEY ke bawah
+    if (MONEY_LEVELS.indexOf(pageLevel) !== -1) {
+      // 🔥 FIX-EE-6: Money + INFORMASI = EVERGREEN
+      if (normalizedFocus === 'INFORMASI') {
+        console.log(`🏷️ [FIX-EE-6] Kategori: EVERGREEN (money "${pageLevel}" + INFORMASI)`);
+        return 'EVERGREEN';
+      }
+      console.log(`🏷️ [FIX-EE-6] Kategori: NON-EVERGREEN (money "${pageLevel}" + ${normalizedFocus})`);
+      return 'NON-EVERGREEN';
+    }
+
+    // Fallback PLD
     var pldKategori = getPLDKategori(contentFocus);
     if (pldKategori) return pldKategori;
 
@@ -781,7 +795,12 @@
   }
 
   // ============================================================
-  // 📅 P3 + FIX-EE-2: updateContentByLevelAndFocus
+  // 📅 FIX-EE-6: updateContentByLevelAndFocus
+  // 
+  // Aturan:
+  //   - EVERGREEN level → year-only
+  //   - MONEY + INFORMASI → year-only
+  //   - MONEY + HARGA/COMMERCIAL/GABUNG → month-year
   // ============================================================
   function updateContentByLevelAndFocus(pageLevel, contentFocus, now) {
     const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -791,6 +810,7 @@
 
     const isMoneyLevel = MONEY_LEVELS.includes(pageLevel);
     const isEvergreenLevel = EVERGREEN_LEVELS.includes(pageLevel);
+    const normalizedFocus = String(contentFocus || '').toUpperCase();
 
     let updateMode = 'year-only';
     let modeReason = '';
@@ -799,9 +819,14 @@
       updateMode = 'year-only';
       modeReason = `Evergreen level "${pageLevel}" → update tahun saja`;
     } else if (isMoneyLevel) {
-      // 🔥 FIX-EE-2: money ke bawah = SELALU month-year
-      updateMode = 'month-year';
-      modeReason = `Level "${pageLevel}" (money ke bawah) → update bulan + tahun`;
+      // 🔥 FIX-EE-6: Money + INFORMASI = year-only
+      if (normalizedFocus === 'INFORMASI') {
+        updateMode = 'year-only';
+        modeReason = `Level "${pageLevel}" + INFORMASI → update tahun saja`;
+      } else {
+        updateMode = 'month-year';
+        modeReason = `Level "${pageLevel}" + ${normalizedFocus} → update bulan + tahun`;
+      }
     } else {
       updateMode = 'year-only';
       modeReason = `Default → update tahun saja`;
@@ -927,7 +952,7 @@
   }
 
   // ============================================================
-  // 🔄 autoUpdateDates (FIX-B5 reorder)
+  // 🔄 autoUpdateDates
   // ============================================================
   function autoUpdateDates(pageLevel, contentFocus) {
     console.log("🔄 AUTO-UPDATE: Memeriksa tanggal...");
@@ -1114,7 +1139,7 @@
       datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.4.0',
+      detectorVersion: detectorVersion || 'v17.4.1',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
@@ -1138,6 +1163,7 @@
     console.log(`   - Entity: ${entityType}`);
     console.log(`   - Content Type: ${validityLabel}`);
     console.log(`   - Content Focus: ${contentFocus}`);
+    console.log(`   - Kategori: ${kategori}`);
     console.log(`   - Next Update: ${nextUpdate}`);
     if (isOverridden) console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
   }
@@ -1153,7 +1179,6 @@
 
     if (window.pageLevelDetectorv22) {
       try {
-        // 🔥 FIX-EE-3: pakai detectFromDOM (H1 fallback otomatis)
         if (typeof window.pageLevelDetectorv22.detectFromDOM === 'function') {
           var domResult = window.pageLevelDetectorv22.detectFromDOM();
           if (domResult) {
@@ -1161,7 +1186,6 @@
             console.log(`📌 [FIX-EE-3] detectFromDOM() → ${pageLevel}`);
           }
         }
-        // Fallback ke detect() kalau detectFromDOM kosong
         if ((!pageLevel || pageLevel === 'pillar') && typeof window.pageLevelDetectorv22.detect === 'function') {
           var urlResult = window.pageLevelDetectorv22.detect();
           if (urlResult) { pageLevel = urlResult; console.log(`📌 detect() → ${pageLevel}`); }
@@ -1235,38 +1259,66 @@
   }
 
   // ============================================================
-  // 🔥🔥🔥 FIX-EE-1: getRulesByEntityType — REWRITE TOTAL
-  // HAPUS 2 override "paksa EVERGREEN" yang bug
+  // 🔥🔥🔥 FIX-EE-6: getRulesByEntityType — Money + INFORMASI = EVERGREEN
+  // 
+  // ATURAN:
+  //   - Level EVERGREEN_LEVELS → EVERGREEN (tanpa syarat)
+  //   - Level MONEY_LEVELS + INFORMASI + no_year + no_price_table → EVERGREEN
+  //   - Level MONEY_LEVELS + HARGA/COMMERCIAL/GABUNG → NON-EVERGREEN
+  //   - Level MONEY_LEVELS + INFORMASI + (year OR price_table) → NON-EVERGREEN
   // ============================================================
   function getRulesByEntityType(entityType, pageLevel, h1Detection, contentFocus) {
     console.log(`📌 Getting rules: entityType=${entityType}, pageLevel=${pageLevel}, contentFocus=${contentFocus || 'N/A'}`);
 
-    // 🔒 FIX-EE-1: Level money ke bawah = NON-EVERGREEN unconditional
-    var isNonEvergreenLevel = MONEY_LEVELS.indexOf(pageLevel) !== -1;
+    var isMoneyLevel = MONEY_LEVELS.indexOf(pageLevel) !== -1;
+    var isEvergreenLevel = EVERGREEN_LEVELS.indexOf(pageLevel) !== -1;
 
-    if (isNonEvergreenLevel) {
-      console.log(`🔒 [FIX-EE-1] Level "${pageLevel}" → WAJIB NON-EVERGREEN`);
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX-EE-6: MONEY LEVEL + INFORMASI = EVERGREEN (dengan guard)
+    // ═══════════════════════════════════════════════════════════
+    if (isMoneyLevel) {
+      var normalizedFocus = String(contentFocus || '').toUpperCase();
+      var isInformationalFocus = (normalizedFocus === 'INFORMASI');
+      var hasYear = h1Detection && h1Detection.hasYear;
 
-      // Warning saja (tidak override)
-      if (MONEY_LEVELS.indexOf(pageLevel) !== -1 && h1Detection.hasYear) {
-        console.log(`   ℹ️ H1 ada tahun — selaras NON-EVERGREEN`);
-      }
-      if (h1Detection.isInformational && !h1Detection.isPrice) {
-        console.warn(`   ⚠️ H1 terlihat informatif, tapi level "${pageLevel}" = commercial → TETAP NON-EVERGREEN`);
-      }
-      if (MONEY_LEVELS.indexOf(pageLevel) !== -1 && h1Detection.isPrice) {
+      // Cek tabel harga sebagai safety net
+      var hasPriceTableFound = false;
+      try {
         var priceTable = hasPriceTable();
-        if (!priceTable.found) {
-          console.warn(`   ⚠️ H1 harga tapi tabel tidak ada → TETAP NON-EVERGREEN`);
-        }
+        hasPriceTableFound = priceTable && priceTable.found;
+      } catch(e) {}
+
+      // ═══ Case 1: Money + INFORMASI murni (tanpa tahun, tanpa tabel) ═══
+      if (isInformationalFocus && !hasYear && !hasPriceTableFound) {
+        console.log(`✅ [FIX-EE-6] Money "${pageLevel}" + INFORMASI → EVERGREEN 3 tahun`);
+        console.log(`   ℹ️ H1: "${h1Detection ? h1Detection.h1Text : '(no h1)'}"`);
+        console.log(`   ℹ️ Reason: konten informatif murni, tidak ada sinyal harga`);
+        return {
+          type: 'evergreen',
+          validityDays: 1095,
+          usePriceValidUntil: false,
+          allowPriceRange: false,
+          ctaIntensity: 'soft-medium',
+          overridden: true,
+          overrideReason: `Money level tapi konten INFORMASI: "${h1Detection ? h1Detection.h1Text : ''}"`
+        };
       }
 
-      // Ambil rule dari tabel
+      // ═══ Case 2: Money + HARGA/COMMERCIAL/GABUNG = NON-EVERGREEN ═══
+      console.log(`🔒 [FIX-EE-6] Money "${pageLevel}" + ${normalizedFocus} → NON-EVERGREEN`);
+      if (isInformationalFocus && (hasYear || hasPriceTableFound)) {
+        var reasons = [];
+        if (hasYear) reasons.push('tahun di H1');
+        if (hasPriceTableFound) reasons.push('tabel harga');
+        console.warn(`   ⚠️ contentFocus=INFORMASI, tapi ada ${reasons.join(' + ')} → TETAP NON-EVERGREEN`);
+      }
+
       var rule;
-      if (entityType === 'jasa') rule = JASA_RULES[pageLevel];
-      else if (entityType === 'sewa') rule = SEWA_RULES[pageLevel];
-      else if (entityType === 'produk' || entityType === 'material') rule = PRODUK_MATERIAL_RULES[pageLevel];
-      else rule = BASE_PAGE_LEVEL_RULES[pageLevel];
+      if (entityType === 'jasa')            rule = JASA_RULES[pageLevel];
+      else if (entityType === 'sewa')       rule = SEWA_RULES[pageLevel];
+      else if (entityType === 'produk' ||
+               entityType === 'material')   rule = PRODUK_MATERIAL_RULES[pageLevel];
+      else                                  rule = BASE_PAGE_LEVEL_RULES[pageLevel];
 
       if (!rule || rule.type !== 'non-evergreen') {
         rule = {
@@ -1276,15 +1328,15 @@
           allowPriceRange: pageLevel === 'money-master',
           ctaIntensity: pageLevel === 'money-child' ? 'very-hard' : 'hard'
         };
-        console.log(`   ℹ️ Fallback rule NON-EVERGREEN untuk "${pageLevel}"`);
       }
       return rule;
     }
 
-    // Level EVERGREEN — lookup normal, tanpa override paksa
-    if (entityType === 'jasa') return JASA_RULES[pageLevel] || DEFAULT_RULE;
-    if (entityType === 'sewa') return SEWA_RULES[pageLevel] || BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
-    if (entityType === 'produk' || entityType === 'material') return PRODUK_MATERIAL_RULES[pageLevel] || BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
+    // ═══ Level EVERGREEN — lookup normal ═══
+    if (entityType === 'jasa')            return JASA_RULES[pageLevel] || DEFAULT_RULE;
+    if (entityType === 'sewa')            return SEWA_RULES[pageLevel] || BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
+    if (entityType === 'produk' ||
+        entityType === 'material')        return PRODUK_MATERIAL_RULES[pageLevel] || BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
     return BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
   }
 
@@ -1298,7 +1350,7 @@
     }
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.4.0-LITE — Loading...");
+    console.log("🧩 detectEvergreen() v17.4.1-LITE — Loading...");
     await waitForPageLevelDetector();
 
     const { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount } = getPageLevelAndEntityType();
@@ -1330,7 +1382,7 @@
 
     await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated);
 
-    console.log(`🧩 detectEvergreen() v17.4.0-LITE — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.4.1-LITE — FINISHED ✅`);
   }
 
   // ============================================================
@@ -1341,13 +1393,13 @@
   window.dispatchEvent(new Event("detectEvergreenReady"));
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Smart Evergreen Detector v17.4.0-LITE ready");
+  console.log("✅ Smart Evergreen Detector v17.4.1-LITE ready");
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("🔥 FIX-EE-1: Money level ke bawah = NON-EVERGREEN unconditional");
+  console.log("🔥 FIX-EE-6: Money + INFORMASI = EVERGREEN (dengan guard tahun + tabel)");
   console.log("🔥 FIX-EE-2: variant & sub-variant masuk MONEY_LEVELS");
   console.log("🔥 FIX-EE-3: getPageLevelAndEntityType() prefer detectFromDOM()");
   console.log("🔥 FIX-EE-4: detectContentTypeByH1() PLD-only, no keyword guessing");
-  console.log("🔥 FIX-EE-5: getKategori() level-first (money = NON-EVERGREEN)");
+  console.log("🔥 FIX-EE-5: getKategori() level-first dengan override INFORMASI");
   console.log("✅ FIX-B1 s/d B10: TETAP AKTIF");
   console.log("✅ FIX-A1 s/d A21: TETAP AKTIF");
   console.log("🏢 BRAND default: " + DEFAULT_BRAND_NAME);
