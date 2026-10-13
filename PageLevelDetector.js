@@ -650,22 +650,28 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
 
   var SPEC_PHRASE_WORDS = ["berdasarkan","berdasar","faktor penentu","faktor yang mempengaruhi","faktor utama","penyebab","sebab","dampak","pengaruh","efek","per kedalaman","per ukuran","per tipe","per jenis","langkah-langkah","langkah demi langkah","tahapan lengkap","tahap demi tahap","panduan lengkap","tutorial lengkap","analisis lengkap","review lengkap","perbandingan lengkap","perbedaan lengkap","jenis-jenis lengkap","macam-macam lengkap","spesifikasi","mutu","metode","cara kerja","panduan","fungsi","ukuran"];
 
-  // 🔥 FIX-CONTENT-FOCUS-v1: Expanded list untuk deteksi konten evergreen
+// 🔥 FIX-INFO-PHRASE-v1: Hanya kata yang BENAR-BENAR sinyal konten informatif
+// DIHAPUS: "jenis","macam","tipe","kategori","daftar","list" 
+//   → kata umum yang muncul di halaman komersial
 var SPEC_PHRASE_INFORMATIONAL = [
-  // Faktor/analisis (existing)
-  "berdasarkan","berdasar","faktor penentu","faktor yang mempengaruhi",
-  "faktor utama","penyebab","sebab","dampak","pengaruh","efek",
-  // Panduan/edukasi (BARU)
-  "panduan","panduan lengkap","tips","trik","cara memilih","cara pasang",
-  "cara membuat","cara menghitung","cara merawat","cara menggunakan",
-  "spesifikasi","spec","detail spesifikasi","spek lengkap",
-  "jenis","macam","tipe","kategori","daftar","list",
+  // Faktor/analisis (strong info signal)
+  "faktor penentu","faktor yang mempengaruhi","faktor utama",
+  "penyebab","sebab","dampak","pengaruh","efek",
+  // Panduan
+  "panduan lengkap","panduan","tips","trik","cara memilih",
+  "cara pasang","cara membuat","cara menghitung","cara merawat",
+  "cara menggunakan",
+  // Edukasi mendalam
+  "spesifikasi","detail spesifikasi","spek lengkap",
   "perbandingan","perbedaan","kelebihan","kekurangan","review","ulasan",
-  "pengertian","definisi","penjelasan","manfaat","fungsi","tujuan","kegunaan",
-  "komponen","bagian","struktur","elemen","standar","mutu","kualitas",
-  "pemula","untuk pemula","dasar","tingkat dasar","tutorial","langkah"
+  "pengertian","definisi","penjelasan","manfaat","fungsi","tujuan",
+  "komponen","elemen","standar","mutu",
+  // Tutorial
+  "pemula","untuk pemula","tutorial","langkah-langkah","langkah demi langkah",
+  // Berdasarkan
+  "berdasarkan","berdasar"
 ];
-
+   
   var MARKETING_TERMS = ["premium","ekonomis","terbaik","terlaris","murah","berkualitas","unggul","terkenal","favorit","recommended","terpercaya","profesional"];
 
   var MATERIAL_TYPE_WORDS = ["beton","portland","opc","ppc","pcc","semen putih","semen abu","semen warna","type 1","type 2","type 3","type 4","type 5","tipe 1","tipe 2","tipe 3","tipe 4","tipe 5","wiry","bjku","bjtd","bjp","bjts","plywood","multiplek","blockboard","mdf","hdf","particle board","solid wood","jati","meranti","mahoni","sengon","pinus","randu","sungkai","bangkirai","ulin","kamper","kruing","keruing","merbau","sonokeling","trembesi","glugu","bambu","andesit","kali","apung","split","koral","candi","palimanan","paras","breksi","granit","marmer","batu alam","batu belah","batu gunung","batu karang","silika","zeolit","cor","homogeneous","homogen","roman","platinum","mulia","essence","granito","granit tile","keramik lantai","keramik dinding","marmer italy","marmer lokal","marmer import","granit hitam","granit putih","granit coklat","granit import","granit lokal","dulux","jotun","nippon","mowilex","avian","decolith","propan","falcon","vinilex","dulux catylac","cat tembok","cat kayu","cat besi","cat dinding","pasir beton","pasir pasang","pasir urug","pasir halus","pasir kasar","pasir putih","pasir hitam","pasir ayak","pasir silika","pasir bangka","pasir lumajang","h-beam","hbeam","wf","hollow","kanal","siku","unesp","unp","cnp","inp","besi hollow","besi kanal","eterna","supreme","kabelindo","tranka","rucika","wavin","vinilon","pralon","maspion","tembaga","aluminium","kuningan","perunggu","titanium","besi cor","aluminium foil","bangka","lumajang","tulungagung","pangkep","muntilan","borneo","kalimantan","jepara","kudus","cilacap","tiga roda","3 roda","tiga-roda","3-roda","gresik","semen gresik","semen-gresik","holcim","semen holcim","semen-holcim","scg","semen scg","semen-scg","padang","semen padang","semen-padang","merah putih","semen merah putih","cibinong","semen cibinong","baturaja","semen baturaja","bosowa","semen bosowa","tonasa","semen tonasa","master","besi master","intan","besi intan","handuk","besi handuk","krakatau steel","krakatau-steel","ks","gunung garuda","gunung-garuda","hanil","jeka","danagri","magic","aquaproof","no drop","no-drop","nodrop","aqua proof","icera","ardena","milano","asia tile","asia-tile","indograha","kian","eleganza","elegan",
@@ -1257,14 +1263,35 @@ var SPEC_PHRASE_INFORMATIONAL = [
           isInFooterNav = !!(table.closest('footer, nav, aside, .footer, .nav, .sidebar, .widget, #footer, #nav, #sidebar'));
         } catch (e) {}
         if (isInFooterNav) continue;
-        var rows = table.querySelectorAll('tbody tr');
+
+        // 🔥 FIX-TABLE-v1: pakai 'tr' langsung, tidak wajib <tbody>
+        var rows = table.querySelectorAll('tr');
         if (rows.length < 2) continue;
-        var headers = table.querySelectorAll('th');
+
         var priceHeaderCount = 0;
+
+        // 🔥 Cek 1: <th> dengan kata harga
+        var headers = table.querySelectorAll('th');
         for (var j = 0; j < headers.length; j++) {
           var headerText = (headers[j].innerText || headers[j].textContent || '').toLowerCase();
           if (/harga|biaya|tarif|price|cost|rate/i.test(headerText)) priceHeaderCount++;
         }
+
+        // 🔥 Cek 2: kalau tidak ada <th>, cek baris pertama
+        if (priceHeaderCount === 0 && rows.length > 0) {
+          var firstRowText = (rows[0].innerText || rows[0].textContent || '').toLowerCase();
+          if (/harga|biaya|tarif|price|cost|rate/i.test(firstRowText)) priceHeaderCount++;
+        }
+
+        // 🔥 Cek 3: fallback — cek teks tabel keseluruhan
+        // Wajib ada kata harga + angka minimal 4 karakter (hindari false positive)
+        if (priceHeaderCount === 0) {
+          var tableText = (table.innerText || table.textContent || '').toLowerCase();
+          if (/harga|biaya|tarif/i.test(tableText) && /[\d.,]{4,}/.test(tableText)) {
+            priceHeaderCount++;
+          }
+        }
+
         if (priceHeaderCount >= 1) {
           log('📊 TABEL HARGA', 'TABLE');
           return true;
@@ -1272,7 +1299,7 @@ var SPEC_PHRASE_INFORMATIONAL = [
       }
     } catch (e) {}
     return false;
-  }
+}
 
   function checkFisikRole(text) {
     if (!text) return "none";
