@@ -3669,12 +3669,24 @@ var SPEC_PHRASE_INFORMATIONAL = [
     var hasPriceTableInDOM = checkPriceTable();
     var isMoneyLevel = ['money-master','money-page','money-child'].indexOf(level) !== -1;
     var isVariantLevel = ['variant','sub-variant'].indexOf(level) !== -1;
+     
    if (isMoneyLevel || isVariantLevel) {
+      // ═══════════════════════════════════════════════════════════
+      // 🔥 FIX-CONTENT-FOCUS-v2: H1 diawali kata harga → langsung HARGA
+      // Contoh: "Harga Jasa Bor 2026 – Estimasi & Faktor Penentu"
+      //         → meskipun ada "Faktor Penentu" (info), tetap HARGA
+      // ═══════════════════════════════════════════════════════════
+      var h1Lower = (h1Raw || '').toLowerCase().trim();
+      if (/^(harga|biaya|tarif|estimasi|ongkos|budget)\b/i.test(h1Lower)) {
+        log('💵 H1 diawali harga → HARGA (override GABUNG)', 'HARGA');
+        return 'HARGA';
+      }
+
       // 🔥 FIX-GABUNG-v1: cek GABUNG dulu (info + harga/commercial)
       var _hasInfoSignal = hasInfoSpecPhrase;
       var _hasPriceSignal = hasPriceTableInDOM || hasPriceInText || hasYearInH1 || hasYearInUrl;
       var _hasCommSignal = hasCommercial;
-
+      
       // GABUNG = info + (harga ATAU commercial)
       if (_hasInfoSignal && (_hasPriceSignal || _hasCommSignal)) {
         return 'GABUNG';
