@@ -1,27 +1,35 @@
 /* ============================================================
-🧠 Page Level Detector v23.9.7-LITE-PERF — REVISI BROAD-TO-NARROW
+🧠 Page Level Detector v23.9.8 — SEO DIMENSION
 ============================================================
-BASE: v23.9.7-LITE-PERF + CLEANUP
-PATCH: BROAD-TO-NARROW (JASA verb-based)
+BASE: v23.9.7-LITE-PERF-B2N
+PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 
 🔥 PRINSIP:
    ✅ JASA  : Broad-to-narrow (verb = base, target = spec)
-   ✅ PRODUK: Frasa utuh (noun-based)
-   ✅ MATERIAL: Frasa utuh (noun-based)
-   ✅ DESAIN: Frasa utuh (khusus)
-   ✅ SEWA  : PATCH SEWA v2
+   ✅ PRODUK: Frasa utuh (noun-based) + Compound-aware
+   ✅ MATERIAL: Frasa utuh (noun-based) + Compound-aware
+   ✅ DESAIN: Frasa utuh (khusus) + Compound-aware
+   ✅ SEWA  : PATCH SEWA v3
+
+🎯 PERUBAHAN v23.9.8:
+   ✅ COMPOUND_LIBRARY: 1 konsep = 1 layer
+   ✅ countSemanticUnits(): bukan word count
+   ✅ Location override: MC selalu, bukan sub-variant
+   ✅ PRODUK/MATERIAL/DESAIN: compound-aware
+   ✅ EXPECTED_CHILD_MAP: variant boleh child MC
+   ✅ Validator update: tidak warning variant+MC
 
 🎯 GARANSI:
    ✅ Konsisten 100% semua entity
-   ✅ SEO 2026-compliant (pillar-cluster)
+   ✅ SEO 2026-compliant (pillar-cluster + dimension)
    ✅ Scalable & maintainable
 ============================================================ */
 
 (function () {
   "use strict";
 
-  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.7-lite-perf-b2n") {
-    console.warn("⚠️ [PLD v23.9.7-LITE-PERF-B2N] Already loaded!");
+  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.8-seo-dimension") {
+    console.warn("⚠️ [PLD v23.9.8-SEO-DIMENSION] Already loaded!");
     return;
   }
 
@@ -91,10 +99,10 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
       DOM: "🌐", EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐",
       TIER: "🎚️", DOMAIN: "🌍", SUBCAT: "📂", PERF: "⚡"
     };
-    console.log((icons[type] || "📘") + " [PLD v23.9.7-LITE-PERF-B2N] " + message);
+    console.log((icons[type] || "📘") + " [PLD v23.9.8-SEO-DIMENSION] " + message);
   }
 
-  log('📦 PLD v23.9.7-LITE-PERF — REVISI BROAD-TO-NARROW', 'EXTERNAL');
+  log('📦 PLD v23.9.8-SEO-DIMENSION — Compound-Aware + Location-Parallel', 'EXTERNAL');
 
   // ═══════════════════════════════════════════════════════════
   // KONSTANTA
@@ -123,6 +131,13 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
     7: "variant", 8: "sub-variant"
   };
 
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 PATCH 12a: EXPECTED_CHILD_MAP (SEO DIMENSION)
+  // 
+  // PERUBAHAN:
+  // - VARIANT sekarang bisa punya child MC (lokasi paralel)
+  // - Karena location override, VAR + lokasi → MC, bukan SV
+  // ═══════════════════════════════════════════════════════════
   var EXPECTED_CHILD_MAP = {
     "pillar":            { expected: "sub-pillar-tipe-2", num: 2,
                            alternates: ["sub-pillar-tipe-1", "money-master"] },
@@ -133,7 +148,9 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
     "money-page":        { expected: "money-child",       num: 6,
                            alternates: ["variant"] },
     "money-child":       { expected: null,                num: 6, isLeaf: true },
-    "variant":           { expected: "sub-variant",       num: 8 },
+    // 🔥 PATCH-VALIDATOR-v2: VARIANT bisa punya MC (lokasi paralel)
+    "variant":           { expected: "sub-variant",       num: 8,
+                           alternates: ["money-child"] },
     "sub-variant":       { expected: null,                num: 9, isLeaf: true }
   };
 
@@ -183,10 +200,6 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
 
   // ═══════════════════════════════════════════════════════════
   // 🔥 ENTITY_BASE_NAMES — REVISI BROAD-TO-NARROW
-  // 
-  // JASA: Verb-based (base = verb, target = spec)
-  // PRODUK/MATERIAL/DESAIN: Frasa utuh (noun-based)
-  // SEWA: Existing (sudah OK)
   // ═══════════════════════════════════════════════════════════
   var ENTITY_BASE_NAMES = {
     produk: [
@@ -291,10 +304,8 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
       "perekat beton","perekat keramik","lem beton"
     ],
 
-    // 🔥 REVISI BROAD-TO-NARROW
-    // VERB UTAMA (MM) + FRASA TEKNIK UTUH (MM) + NOUN-BASED JASA (MM)
     jasa: [
-      // ═══ VERB UTAMA (MM) ═══
+      // VERB UTAMA (MM)
       "pengeboran","bor","pengecoran","cor","pemasangan","pasang",
       "pembongkaran","bongkar","penggalian","gali","pengurugan","urug",
       "pengecatan","cat","pengelasan","las","welding",
@@ -305,11 +316,10 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
       "pemadatan","pengangkutan","pembersihan","pematangan",
       "pemancangan","pancang","grouting","finishing",
 
-       // 🔥 FIX-TUKANG-v1: Tukang-based base names (MM)
-      // Paralel dengan "jasa bor sumur" — bukan variant
+      // Tukang-based base names
       "tukang sumur bor","tukang bor sumur","tukang bor air",
 
-      // ═══ FRASA TEKNIK UTUH (MM) ═══
+      // FRASA TEKNIK UTUH (MM)
       "bore pile","bor pile","bored pile","boring pile",
       "mini pile","spun pile","micropile","sheet pile",
       "strauss pile","tiang pancang",
@@ -321,15 +331,15 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
       "pembatas pengaman","saluran drainase","jalan perkerasan",
       "pematangan lahan","pekerjaan galian tanah","konstruksi",
 
-      // ═══ NOUN-BASED JASA ═══
+      // NOUN-BASED JASA
       "pondasi","perkuatan tanah",
 
-      // ═══ KONSULTAN ═══
+      // KONSULTAN
       "konsultan","konsultan konstruksi","konsultan bangunan",
       "konsultan struktur","konsultan sipil","konsultan arsitektur",
       "konsultan mep","konsultan pengawas","konsultan proyek",
 
-      // ═══ KATEGORI ═══
+      // KATEGORI
       "interior","eksterior","alat konstruksi"
     ],
 
@@ -530,347 +540,159 @@ PATCH: BROAD-TO-NARROW (JASA verb-based)
     }
   })();
 
-  var JASA_SUB_CATEGORIES = {
-    struktural: ["bore pile","bor pile","bored pile","boring pile","mini pile","spun pile","micropile","bor strauss","bor pancang","strauss pile","tiang pancang","pancang","turap","sheet pile","jet grouting","stabilisasi tanah","soil improvement","sumur bor","bor sumur","pondasi","perkuatan tanah","cor","cor dak","cor lantai","cor jalan","cor kolom","cor sloof","cor balok","cor plat","cor pondasi","cor tiang","cor dinding","cor pagar","pengeboran","drilling","boring","coring","cutting","cutting beton","uji tanah","soil test","gali tanah","gali pondasi","gali basement","gali saluran","penggalian tanah","penggalian pondasi","urug tanah","urug lahan","urug pondasi","urug jalan","pengurugan tanah","pengurugan lahan","pemadatan tanah","pemadatan lahan","pemotongan bukit","cut and fill"],
-    finishing: ["relief","relief beton","profil beton","finishing","cat dinding","cat tembok","cat plafon","cat kayu","cat besi","cat pagar","pengecatan dinding","pengecatan tembok","waterproofing","poles marmer","poles granit","poles keramik","poles lantai","grinding","grinding beton","grinding lantai","epoxy lantai","coating","coating lantai","coating beton","sandblasting besi","sandblasting beton","sandblasting dinding"],
-    konstruksi: ["konstruksi bangunan","konstruksi struktur","struktur khusus","struktur konstruksi","lapangan olahraga","bangun rumah","bangun gedung","bangun ruko","bangun gudang","bangun kantor","bangun pabrik","bangun sekolah","borongan rumah","borongan gedung","borongan interior","pembuatan kanopi","pembuatan pagar","pembuatan railing"],
-    infrastruktur: ["saluran drainase","jalan perkerasan","pengaspalan","aspal jalan","pengerukan sungai","pengerukan kolam","pengerukan saluran"],
-    pematangan: ["pematangan lahan","pekerjaan galian tanah","pembersihan lahan","land clearing","angkut tanah","angkut puing","angkut material"],
-    bongkar_buang: ["bongkar dinding","bongkar lantai","bongkar plat","bongkar gedung","bongkar rumah","bongkar ruko","bongkar gudang","bongkar atap","bongkar keramik","bongkar granit","bongkar marmer","bongkar plafon","bongkar kusen","bongkar pintu","bongkar jendela","bongkar pagar","bongkar partisi","bongkar bangunan","buang puing"],
-    perbaikan: ["renovasi rumah","renovasi gedung","renovasi kantor","renovasi toko","renovasi ruko","renovasi gudang","renovasi pabrik","renovasi apartemen","renovasi dapur","renovasi kamar mandi","renovasi kamar tidur","renovasi ruang tamu","renovasi teras","renovasi balkon","renovasi atap","renovasi lantai","renovasi dinding","renovasi plafon","renovasi pagar","renovasi taman","perbaikan atap","perbaikan dinding","perbaikan lantai","perbaikan plafon","perbaikan pondasi","perbaikan struktur","perbaikan pipa","perbaikan saluran air","perbaikan bangunan","perbaikan infrastruktur","perawatan gedung","perawatan kolam"],
-    instalasi: ["instalasi listrik","instalasi air","instalasi plumbing","instalasi ac","instalasi cctv","instalasi alarm","pasang instalasi listrik","pasang instalasi air","pasang instalasi gas","pasang instalasi ac","pasang pipa","pasang kabel listrik","pasang panel listrik","pasang ac","pasang cctv","pasang alarm","service ac","service pompa air","service genset","service lift","pemasangan wifi","instalasi internet","instalasi antena","pemasangan parabola"],
-    konsultasi: ["konsultan","konsultan konstruksi"],
-    pembuatan_pasang: ["pembuatan","pasang","pasang dinding","pasang keramik","pasang granit","pasang marmer","pasang parket","pasang vinyl","pasang ubin","pasang wallpaper","pasang wpc","pasang grc","pasang hpl","pasang partisi","pasang pagar","pasang kanopi","pasang awning","pasang railing","pasang tangga","pasang gerbang","pasang baja ringan","pasang rangka atap","pasang atap","pasang genteng","pasang plafon","pasang gypsum","pasang pintu","pasang jendela","pasang kusen","pasang kaca","pasang shower box"],
-    pengaman: ["pembatas pengaman"],
-    alat_konstruksi: ["alat konstruksi"],
-    interior_eksterior: ["interior","eksterior"],
-    las_welding: ["las","welding","sandblasting","las besi","las pagar","las kanopi","las rangka baja","las tiang","welding besi","welding konstruksi"]
-  };
-
-  var DOMAIN_CONSTRAINTS = {
-    struktural: { allowed_categories: ["metode","skala","tipe_aspal","material","dimensi","kedalaman","target","price","per_unit","global_numeric","tipe","merek","kondisi","durasi","kapasitas"], forbidden_categories: ["finishing","warna","gaya","furniture","subjektif","konsep","warna_extended","gaya_extended"] },
-    finishing: { allowed_categories: ["metode","skala","finishing","warna","material","target","price","per_unit","global_numeric"], forbidden_categories: ["dimensi","kedalaman","gaya","furniture","konsep","warna_extended","gaya_extended"] },
-    konstruksi: { allowed_categories: ["metode","skala","material","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","subjektif","konsep","warna_extended","gaya_extended"] },
-    infrastruktur: { allowed_categories: ["metode","skala","material","target","price","per_unit","global_numeric","tipe_aspal"], forbidden_categories: ["finishing","warna","gaya","furniture","subjektif","konsep","warna_extended","gaya_extended"] },
-    pematangan: { allowed_categories: ["metode","skala","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","subjektif","konsep","dimensi","kedalaman"] },
-    bongkar_buang: { allowed_categories: ["metode","skala","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","subjektif","konsep","dimensi","kedalaman"] },
-    perbaikan: { allowed_categories: ["metode","skala","material","finishing","gaya","target","price","per_unit","global_numeric"], forbidden_categories: ["dimensi","kedalaman","furniture","konsep","warna_extended","gaya_extended"] },
-    instalasi: { allowed_categories: ["metode","skala","merek","kapasitas","kondisi","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","konsep","dimensi","kedalaman","warna_extended","gaya_extended"] },
-    konsultasi: { allowed_categories: ["skala","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","konsep","dimensi","kedalaman","metode","material"] },
-    pembuatan_pasang: { allowed_categories: ["metode","skala","material","finishing","gaya","dimensi","target","price","per_unit","global_numeric","warna"], forbidden_categories: ["kedalaman","furniture","konsep","warna_extended","gaya_extended"] },
-    pengaman: { allowed_categories: ["material","dimensi","target","price","per_unit","global_numeric","metode"], forbidden_categories: ["finishing","warna","gaya","furniture","konsep","kedalaman","warna_extended","gaya_extended"] },
-    alat_konstruksi: { allowed_categories: ["merek","kapasitas","kondisi","durasi","tipe","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","konsep","dimensi","kedalaman","warna_extended","gaya_extended"] },
-    interior_eksterior: { allowed_categories: ["gaya","warna","material","finishing","konsep","furniture","subjektif","target","price","per_unit","global_numeric","warna_extended","gaya_extended"], forbidden_categories: ["dimensi","kedalaman","metode"] },
-    las_welding: { allowed_categories: ["metode","material","dimensi","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","konsep","kedalaman","warna_extended","gaya_extended"] },
-    default: { allowed_categories: ["metode","skala","material","finishing","warna","gaya","dimensi","target","price","per_unit","global_numeric","tipe","merek","kondisi","durasi","kapasitas"], forbidden_categories: [] }
-  };
-
-  var MODIFIER_COMPATIBILITY = {
-    "polos": ["produk","material","desain","jasa_finishing","jasa_pembuatan_pasang"], "motif": ["produk","material","desain","jasa_finishing"], "bermotif": ["produk","material","desain"], "bercorak": ["produk","material","desain"], "tekstur": ["produk","material","desain","jasa_finishing"], "serat": ["produk","material","desain"], "halus": ["produk","material","desain","jasa_finishing"], "kasar": ["produk","material","desain"], "matte": ["produk","material","desain"], "glossy": ["produk","material","desain"], "doff": ["produk","material","desain"], "gloss": ["produk","material","desain"], "satin": ["produk","material","desain"], "anyaman": ["produk","material","desain"], "natural": ["produk","material","desain"], "ekspos": ["produk","material","desain","jasa_finishing"], "custom": ["produk","material","desain","jasa_pembuatan_pasang"], "polosan": ["produk","material","desain"], "cat": ["produk","material","desain","jasa_finishing"], "coating": ["produk","material","desain","jasa_finishing"], "lapisan": ["produk","material","desain"], "vernis": ["produk","material","desain","jasa_finishing"],
-    "putih": ["produk","material","desain","jasa_interior_eksterior"], "hitam": ["produk","material","desain","jasa_interior_eksterior"], "abu-abu": ["produk","material","desain","jasa_interior_eksterior"], "merah": ["produk","material","desain","jasa_interior_eksterior"], "biru": ["produk","material","desain","jasa_interior_eksterior"], "kuning": ["produk","material","desain","jasa_interior_eksterior"], "hijau": ["produk","material","desain","jasa_interior_eksterior"], "coklat": ["produk","material","desain","jasa_interior_eksterior"], "netral": ["produk","material","desain","jasa_interior_eksterior"], "krem": ["produk","material","desain","jasa_interior_eksterior"], "maroon": ["produk","material","desain","jasa_interior_eksterior"], "navy": ["produk","material","desain","jasa_interior_eksterior"], "forest": ["produk","material","desain","jasa_interior_eksterior"], "gold": ["produk","material","desain","jasa_interior_eksterior"], "silver": ["produk","material","desain","jasa_interior_eksterior"], "bronze": ["produk","material","desain","jasa_interior_eksterior"], "copper": ["produk","material","desain","jasa_interior_eksterior"], "rose gold": ["produk","material","desain","jasa_interior_eksterior"], "teal": ["produk","material","desain","jasa_interior_eksterior"], "turquoise": ["produk","material","desain","jasa_interior_eksterior"], "lavender": ["produk","material","desain","jasa_interior_eksterior"], "magenta": ["produk","material","desain","jasa_interior_eksterior"], "coral": ["produk","material","desain","jasa_interior_eksterior"], "salmon": ["produk","material","desain","jasa_interior_eksterior"], "peach": ["produk","material","desain","jasa_interior_eksterior"], "mint": ["produk","material","desain","jasa_interior_eksterior"], "warm": ["produk","material","desain","jasa_interior_eksterior"], "cool": ["produk","material","desain","jasa_interior_eksterior"], "pastel": ["produk","material","desain","jasa_interior_eksterior"], "dark": ["produk","material","desain","jasa_interior_eksterior"], "light": ["produk","material","desain","jasa_interior_eksterior"],
-    "minimalis": ["produk","desain","jasa_interior_eksterior","jasa_perbaikan","jasa_pembuatan_pasang"], "modern": ["produk","desain","jasa_interior_eksterior","jasa_perbaikan","jasa_pembuatan_pasang"], "klasik": ["produk","desain","jasa_interior_eksterior"], "skandinavia": ["produk","desain","jasa_interior_eksterior"], "japandi": ["produk","desain","jasa_interior_eksterior"], "industrial": ["produk","desain","jasa_interior_eksterior"], "kontemporer": ["produk","desain","jasa_interior_eksterior"], "tradisional": ["produk","desain","jasa_interior_eksterior"], "rustic": ["produk","desain","jasa_interior_eksterior"], "bohemian": ["produk","desain","jasa_interior_eksterior"],
-    "dimensi": ["material","produk","jasa_struktural","jasa_pengaman","jasa_las_welding"], "ukuran": ["material","produk","jasa_struktural","jasa_pengaman"], "tebal": ["material","produk"], "panjang": ["material","produk","jasa_struktural"], "lebar": ["material","produk"], "tinggi": ["material","produk"], "diameter": ["material","produk","jasa_struktural"], "kedalaman": ["jasa_struktural"], "radius": ["material","produk"],
-    "manual": ["jasa_struktural","jasa_instalasi","jasa_las_welding","jasa_pembuatan_pasang","jasa_finishing"], "hidrolik": ["jasa_struktural","jasa_alat_konstruksi"], "auger": ["jasa_struktural"], "rotary": ["jasa_struktural"], "percussive": ["jasa_struktural"], "dry": ["jasa_struktural","jasa_finishing"], "wet": ["jasa_struktural","jasa_finishing"], "basah": ["jasa_finishing"], "kering": ["jasa_finishing"], "mesin": ["jasa_struktural","jasa_instalasi","jasa_las_welding"],
-    "beton": ["produk","material","jasa_struktural","jasa_konstruksi","jasa_perbaikan"], "besi": ["produk","material","jasa_las_welding","jasa_struktural","jasa_pembuatan_pasang"], "kayu": ["produk","material","desain","jasa_pembuatan_pasang"], "aluminium": ["produk","material","jasa_instalasi","jasa_pembuatan_pasang"], "kaca": ["produk","material","jasa_instalasi","jasa_pembuatan_pasang"], "stainless": ["produk","material","jasa_pembuatan_pasang"], "baja": ["produk","material","jasa_struktural","jasa_las_welding"], "pvc": ["produk","material","jasa_instalasi"], "wpc": ["produk","material","jasa_pembuatan_pasang"], "grc": ["produk","material","jasa_pembuatan_pasang","jasa_finishing"], "hpl": ["produk","material","jasa_pembuatan_pasang"], "acp": ["produk","material","jasa_pembuatan_pasang"], "vinyl": ["produk","material","jasa_pembuatan_pasang"], "upvc": ["produk","material","jasa_instalasi"], "tembaga": ["produk","material","jasa_instalasi"], "kuningan": ["produk","material"], "perunggu": ["produk","material"], "titanium": ["produk","material"], "bambu": ["produk","material","desain"], "rotan": ["produk","material","desain"]
-  };
-
-  var GLOBAL_NUMERIC_KEYWORDS = ["grade a","grade b","grade c","sni","standar","kualitas 1","kualitas 2","kualitas 3","kelas 1","kelas 2","kelas 3"];
-
-  var SHARED_MODIFIERS = {
-    material: ["beton","besi","kayu","aluminium","kaca","stainless","baja","pvc","wpc","grc","hpl","acp","vinyl","upvc","tembaga","kuningan","perunggu","titanium","bambu","rotan"],
-    finishing: ["polos","motif","bermotif","bercorak","tekstur","serat","halus","kasar","matte","glossy","doff","gloss","satin","anyaman","natural","ekspos","custom","polosan","cat","coating","lapisan","vernis"],
-    warna: ["putih","hitam","abu-abu","merah","biru","kuning","hijau","coklat","netral","krem","maroon","navy","forest","gold","silver","bronze","copper","rose gold","teal","turquoise","lavender","magenta","coral","salmon","peach","mint","warm","cool","pastel","dark","light"],
-    gaya: ["minimalis","modern","klasik","skandinavia","japandi","industrial","kontemporer","tradisional","rustic","bohemian"]
-  };
-
-  var ENTITY_SPECIFIC = {
-    jasa: {
-      metode: ["manual","hidrolik","auger","rotary","percussive","dry","wet","basah","kering","mesin","dalam","dangkal","artesis","jet pump"],
-      skala: ["rumahan","komersial","industri","residential","commercial","industrial","kecil","sedang","besar","menengah","proyek","perumahan","perkantoran","pabrik","sekolah"],
-      tipe_aspal: ["hotmix","coldmix","aspal cair","aspal buton"]
-    },
-    produk: {
-      mutu: ["k225","k250","k300","k350","k400","k500","fc"],
-      tipe: ["geser","lipat","swing","sliding","casement","rolling door","folding gate","harmonika","ayun","kupu-kupu","revolving","otomatis","manual","knockdown","prefab","precast"]
-    },
-    material: {
-      grade_material: ["portland","opc","ppc","pcc","type 1","type 2","type 3","type 4","type 5","tipe 1","tipe 2","tipe 3","tipe 4","tipe 5"],
-      tipe_extended: ["wiry","bjku","bjtd","bjp","bjts","plywood","multiplek","blockboard","mdf","hdf","particle board","solid wood","jati","meranti","mahoni","sengon","pinus","randu","sungkai","bangkirai","ulin","kamper","kruing","keruing","merbau","sonokeling","trembesi","glugu","andesit","kali","apung","split","koral","candi","palimanan","paras","breksi","batu alam","batu belah","batu gunung","batu karang","silika","zeolit","cor","homogeneous","homogen","roman","platinum","mulia","essence","granito","granit tile","keramik lantai","keramik dinding","marmer italy","marmer lokal","marmer import","granit hitam","granit putih","granit coklat","granit import","granit lokal","dulux","jotun","nippon","mowilex","avian","decolith","propan","falcon","vinilex","pasir beton","pasir pasang","pasir urug","pasir halus","pasir kasar","pasir putih","pasir hitam","pasir ayak","pasir silika","pasir bangka","pasir lumajang","h-beam","hbeam","wf","hollow","kanal","siku","unesp","unp","cnp","inp","besi hollow","besi kanal","eterna","supreme","kabelindo","tranka","rucika","wavin","vinilon","pralon","maspion","besi cor","aluminium foil","bangka","lumajang","tulungagung","pangkep","muntilan","borneo","kalimantan","jepara","kudus","cilacap","tiga roda","3 roda","gresik","semen gresik","semen-gresik","holcim","semen holcim","semen-holcim","scg","semen scg","semen-scg","padang","semen padang","semen-padang","merah putih","semen merah putih","cibinong","semen cibinong","baturaja","semen baturaja","bosowa","semen bosowa","tonasa","semen tonasa","master","besi master","intan","besi intan","handuk","besi handuk","krakatau steel","krakatau-steel","ks","gunung garuda","gunung-garuda","hanil","jeka","danagri","magic","aquaproof","no drop","no-drop","nodrop","aqua proof","icera","ardena","milano","asia tile","asia-tile","indograha","kian","eleganza","elegan","paving","paving block","grass block","atap","atap spandek","atap metal","atap genteng","plafon","plafon gypsum","plafon pvc","plafon grc","shunda","kalsiboard","gyproc","jayaboard"]
-    },
-    sewa: {
-      merek: ["pc75","pc200","pc300","pc350","pc400","komatsu","hitachi","caterpillar","cat","volvo","hyundai","doosan","kobelco","sumitomo","case","jcb","liebherr","kubota","yanmar","perkins","cummin"],
-      kondisi: ["baru","bekas","servis","recondition","rebuilt","ready","siap pakai","prima","baik","layak","standar","listrik","diesel","bensin","solar","hydraulic"],
-      durasi: ["harian","mingguan","bulanan","tahunan","per jam","per hari","per minggu","per bulan","short term","long term"],
-      tipe: ["mini","besar","kecil","sedang","medium","heavy","standar","extra","ekstra","jumbo","compact","full size","large","operator","tanpa operator","self drive","lepas kunci","include operator"],
-      kapasitas: ["ton","m3","kg","liter","galon","hp","ps","kva","psi","rpm","kw","inch","inchi"],
-      tools_extended: ["motor grader","wheel loader","tower crane","asphalt finisher","asphalt paver","tandem roller","pneumatic tire roller","cold milling","batching plant","concrete pump","genset","pompa air","pompa-beton","compressor","jack hammer"]
-    },
-    desain: {
-      tipe: ["2d","3d","animasi","walkthrough","virtual tour","vr","ar","render"],
-      gaya_extended: ["art deco","mid century","victorian","gothic","renaissance","baroque","rococo","neoklasik","art nouveau","bauhaus","postmodern","dekonstruksi","high tech","eklektik","transisi","tropis","mediterania","kolonial","peranakan","balinese","javanese","japandi","coastal","new york","hampton","farmhouse","shabby chic","parisian","moroccan","brutalist","cottage core","grand millennial","tropical modern","contemporary","industrial chic","minimalism","classic","modern classic","streamline","boho chic","mid-century","memphis","cyberpunk","steampunk","neofuturism","biophilic","wabi sabi","zen","feng shui","bali modern","java etnik","minimalis tropis","kolonial modern","industrial rustic","scandinavian japandi","modern klasik","minimalis skandinavia","japandi minimalis","classic modern","modern farmhouse","boho industrial","javanese modern","balinese contemporary","traditional modern","ethnic modern","modern etnik","tribal modern"],
-      warna_extended: ["earth tone","sage green","sage","dusty pink","dusty","terracotta","navy blue","mustard","olive","mauve","charcoal","cream","ivory","beige","taupe","greige"],
-      konsep: ["open space","split level","loft","studio","apartment","villa","tiny house","smart home","eco home","sustainable","green building","biophilic","zen","feng shui","vastu","wabi sabi"],
-      material: ["kayu","besi","kaca","marmer","granit","keramik","plafon","gypsum","pvc","acp","vinyl","wpc","grc","hpl","bambu","rotan","anyaman","kain","kulit","karpet","parket","ubin","batu alam","batu bata","beton ekspos"],
-      furniture: ["minimalis","skandinavia","jepang","klasik","modern","retro","vintage","industrial","rustic","bohemian","mid century","art deco","contemporary"],
-      subjektif: ["mewah","eksklusif","premium","luxury","high end","artistik","estetik"]
-    }
-  };
-
-  function uniqArray(arr) {
-    var seen = {};
-    return arr.filter(function(w) {
-      if (seen[w]) return false;
-      seen[w] = true;
-      return true;
-    });
-  }
-
-  var PURE_JASA_TECHNIQUES = [];
-  var PURE_METHODS = ["manual","hidrolik","auger","rotary","percussive","dry","wet","basah","kering","mesin","dalam","dangkal","artesis","jet pump","borongan","perumahan","proyek"];
-  var PURE_SCALES = ["rumahan","komersial","industri","residential","commercial","industrial","kecil","sedang","besar","menengah"];
-  var PURE_FINISHING = ["polos","motif","bermotif","bercorak","tekstur","serat","halus","kasar","matte","glossy","doff","gloss","satin","anyaman","natural","ekspos","custom","polosan","cat","coating","lapisan","vernis"];
-
-  var APPLICATION_TARGETS = ["mini","dinding","tembok","lantai","plafon","atap","partisi","kolom","balok","plat","slab","pelat","pondasi","tiang","tangga","railing","kusen","pagar","pintu","jendela","rolling door","kanopi","awning","fasad","facade","teras","balkon","halaman","carport","garasi","kamar mandi","kamar tidur","ruang tamu","ruang keluarga","ruang makan","ruang kerja","dapur","toilet","wc","kantor","toko","gudang","pabrik","sekolah","rumah","gedung","ruko","villa","apartemen","cafe","restoran","hotel","kios","rukan","jalan","trotoar","saluran","drainase","taman","kolam","sawah","lahan"];
-
-  var APPLICATION_TARGETS_FULL = ["dinding","tembok","lantai","plafon","atap","partisi","kolom","balok","plat","slab","pelat","pondasi","tiang","tangga","railing","kusen","pagar","pintu","jendela","kanopi","awning","fasad","facade","teras","balkon","halaman","carport","garasi","kamar mandi","kamar tidur","ruang tamu","ruang keluarga","ruang makan","ruang kerja","dapur","toilet","wc","kantor","toko","gudang","pabrik","sekolah","rumah","gedung","ruko","villa","apartemen","cafe","restoran","hotel","kios","rukan","jalan","trotoar","saluran","drainase","taman","kolam","sawah","lahan","tambang","proyek","site","area kerja","basement","custom","modern","minimalis","klasik","sumur","dak","sloof"];
-
-  function isApplicationTarget(word) {
-    if (!word) return false;
-    var w = word.toLowerCase().trim();
-    return APPLICATION_TARGETS.indexOf(w) !== -1 ||
-           APPLICATION_TARGETS_FULL.indexOf(w) !== -1;
-  }
-
-  var SATUAN_UNITS = ["meter","m","cm","mm","km","mtr","mtrs","inchi","inch","ft","feet","kg","ton","gram","ons","kuintal","lbs","pound","liter","ml","galon","m3","cc","dm3","m2","hektar","ha","are","detik","menit","jam","hari","minggu","bulan","tahun","harian","mingguan","bulanan","tahunan","unit","buah","lembar","batang","keping","papan","roll","set","paket","titik","boks","dus","karung","sak","kodi","lusin","gross","ampere","watt","volt","kva","kw","hp","ps","rpm","psi","bar","pascal","mpa","kpa","gpa","orang","kali","kubik","pk","truk","colt","pickup","angkutan","rim","lot","batch","container","kontainer"];
-
-  var QUESTION_WORDS = ["berapa","apa itu","apa yang","apa beda","apa perbedaan","apa fungsi","apa manfaat","bagaimana","gimana cara","bagaimana cara","mengapa","kenapa","kapan","dimana","di mana","siapa","yang mana","apakah","adakah"];
-
-  var COMMERCIAL_INVESTIGATION_WORDS = ["review","ulasan","testimoni","pengalaman","rating","penilaian","rekomendasi","saran","anjuran","suggest","terbaik","terburuk","terpopuler","terfavorit","top","pilihan","alternatif","vs","versus","perbandingan","bandingkan","kelebihan","kekurangan","plus minus","pro kontra","untung rugi"];
-
-  var FREE_INFO_WORDS = ["panduan gratis","ebook gratis","template gratis","download gratis","pdf gratis"];
-  var FREE_COMM_WORDS = ["konsultasi gratis","survey gratis","sample gratis","demo gratis","trial gratis","estimasi gratis","penawaran gratis"];
-  var AUTHORITY_WORDS = ["resmi","authorized","official","distributor resmi","dealer resmi","agen resmi","mitra resmi","sertifikat resmi"];
-  var READY_STOCK_WORDS = ["ready stock","ready stok","siap pakai","siap kirim","stok tersedia","fast respon","same day"];
-
-  var SPEC_PHRASE_WORDS = ["berdasarkan","berdasar","faktor penentu","faktor yang mempengaruhi","faktor utama","penyebab","sebab","dampak","pengaruh","efek","per kedalaman","per ukuran","per tipe","per jenis","langkah-langkah","langkah demi langkah","tahapan lengkap","tahap demi tahap","panduan lengkap","tutorial lengkap","analisis lengkap","review lengkap","perbandingan lengkap","perbedaan lengkap","jenis-jenis lengkap","macam-macam lengkap","spesifikasi","mutu","metode","cara kerja","panduan","fungsi","ukuran"];
-
-// 🔥 FIX-INFO-PHRASE-v1: Hanya kata yang BENAR-BENAR sinyal konten informatif
-// DIHAPUS: "jenis","macam","tipe","kategori","daftar","list" 
-//   → kata umum yang muncul di halaman komersial
-var SPEC_PHRASE_INFORMATIONAL = [
-  // Faktor/analisis (strong info signal)
-  "faktor penentu","faktor yang mempengaruhi","faktor utama",
-  "penyebab","sebab","dampak","pengaruh","efek",
-  // Panduan
-  "panduan lengkap","panduan","tips","trik","cara memilih",
-  "cara pasang","cara membuat","cara menghitung","cara merawat",
-  "cara menggunakan",
-  // Edukasi mendalam
-  "spesifikasi","detail spesifikasi","spek lengkap",
-  "perbandingan","perbedaan","kelebihan","kekurangan","review","ulasan",
-  "pengertian","definisi","penjelasan","manfaat","fungsi","tujuan",
-  "komponen","elemen","standar","mutu",
-  // Tutorial
-  "pemula","untuk pemula","tutorial","langkah-langkah","langkah demi langkah",
-  // Berdasarkan
-  "berdasarkan","berdasar"
-];
-   
-  var MARKETING_TERMS = ["premium","ekonomis","terbaik","terlaris","murah","berkualitas","unggul","terkenal","favorit","recommended","terpercaya","profesional"];
-
-  var MATERIAL_TYPE_WORDS = ["beton","portland","opc","ppc","pcc","semen putih","semen abu","semen warna","type 1","type 2","type 3","type 4","type 5","tipe 1","tipe 2","tipe 3","tipe 4","tipe 5","wiry","bjku","bjtd","bjp","bjts","plywood","multiplek","blockboard","mdf","hdf","particle board","solid wood","jati","meranti","mahoni","sengon","pinus","randu","sungkai","bangkirai","ulin","kamper","kruing","keruing","merbau","sonokeling","trembesi","glugu","bambu","andesit","kali","apung","split","koral","candi","palimanan","paras","breksi","granit","marmer","batu alam","batu belah","batu gunung","batu karang","silika","zeolit","cor","homogeneous","homogen","roman","platinum","mulia","essence","granito","granit tile","keramik lantai","keramik dinding","marmer italy","marmer lokal","marmer import","granit hitam","granit putih","granit coklat","granit import","granit lokal","dulux","jotun","nippon","mowilex","avian","decolith","propan","falcon","vinilex","dulux catylac","cat tembok","cat kayu","cat besi","cat dinding","pasir beton","pasir pasang","pasir urug","pasir halus","pasir kasar","pasir putih","pasir hitam","pasir ayak","pasir silika","pasir bangka","pasir lumajang","h-beam","hbeam","wf","hollow","kanal","siku","unesp","unp","cnp","inp","besi hollow","besi kanal","eterna","supreme","kabelindo","tranka","rucika","wavin","vinilon","pralon","maspion","tembaga","aluminium","kuningan","perunggu","titanium","besi cor","aluminium foil","bangka","lumajang","tulungagung","pangkep","muntilan","borneo","kalimantan","jepara","kudus","cilacap","tiga roda","3 roda","tiga-roda","3-roda","gresik","semen gresik","semen-gresik","holcim","semen holcim","semen-holcim","scg","semen scg","semen-scg","padang","semen padang","semen-padang","merah putih","semen merah putih","cibinong","semen cibinong","baturaja","semen baturaja","bosowa","semen bosowa","tonasa","semen tonasa","master","besi master","intan","besi intan","handuk","besi handuk","krakatau steel","krakatau-steel","ks","gunung garuda","gunung-garuda","hanil","jeka","danagri","magic","aquaproof","no drop","no-drop","nodrop","aqua proof","icera","ardena","milano","asia tile","asia-tile","indograha","kian","eleganza","elegan",
-    "mortar","mortar struktural","mortar instan","mortar utama","mortar grouting",
-    "mortar perbaikan","mortar beton","mortar semen","mortar pasangan",
-    "mortar plester","mortar acian","mortar keramik","mortar bata ringan",
-    "mortar hebel","mortar non shrink","mortar fiber","mortar fiber reinforced",
-    "mortar perbaikan beton","mortar struktural non shrink","mortar struktural fiber",
-    "mortar perbaikan beton struktural","mortar sika","mortar fosroc","mortar weber",
-    "mortar drymix","mortar siap pakai","mortar instan acian","mortar instan plester",
-    "mortar instan perekat","mortar instan keramik","mortar thin bed","mortar thick bed",
-    "mortar grouting non shrink","mortar grouting structural","mortar repair",
-    "mortar perbaikan struktural","mortar structural repair","mortar tahan api",
-    "mortar refraktori","mortar tahan asam","mortar waterproofing","mortar anti bocor",
-    "baja ringan c75","baja ringan c100","baja ringan c125",
-    "baja ringan gording","baja ringan reng","baja ringan usuk","baja ringan kaso",
-    "baja ringan galvanis","baja ringan zincalume",
-    "baja ringan struktur","baja ringan non struktural",
-    "baja ringan struktur bangunan","baja ringan struktur rangka",
-    "baja profil wf","baja profil hbeam","baja profil iwf","baja profil unp","baja profil cnp",
-    "baja tulangan ulir","baja tulangan polos",
-    "besi beton ulir sirip","besi beton ulir","besi beton polos","besi beton sni",
-    "besi hollow galvanis","besi hollow hitam","besi hollow kotak","besi hollow bulat",
-    "besi kanal c","besi kanal u",
-    "besi plat strip","besi plat hitam","besi plat putih",
-    "besi siku lubang","besi siku polos",
-    "besi ulir sirip","besi tulangan ulir","besi tulangan polos",
-    "besi wiremesh m6","besi wiremesh m8","besi wiremesh m10","besi wiremesh m12",
-    "kayu jati solid","kayu jati belanda",
-    "kayu meranti merah","kayu meranti putih",
-    "kayu mahoni solid","kayu sengon solid","kayu pinus solid",
-    "kayu kamper solid","kayu kruing solid",
-    "batu kali bulat","batu kali belah","batu gunung belah",
-    "batu alam andesit","batu alam palimanan","batu alam paras",
-    "batu alam templek","batu alam sikat",
-    "pasir putih bangka",
-    "semen portland pozzolan","semen portland composite",
-    "semen portland putih","semen portland abu",
-    "semen portland tipe 1","semen portland tipe 2","semen portland tipe 3","semen portland tipe 4","semen portland tipe 5",
-    "semen gresik portland","semen holcim portland","semen tiga roda portland",
-    "cat tembok weathershield","cat besi anti karat","cat lantai epoxy",
-    "keramik motif kayu","keramik motif marmer",
-    "keramik polos putih","keramik polos hitam"
-  ];
-
-  var OBJECT_WORDS = ["tanah","lahan","badan","permukaan","dasar","area","bidang","tapak","kavling","petak","drainase","geotekstil","pondasi","saluran","gorong","aspal","pipa","kabel","tiang","dinding","gorong-gorong","jembatan","tanggul","embung","waduk","bendungan","beton","cor","besi","baja","kayu","batu","bata","keramik","granit","marmer","paving","genteng","rumah","gedung","ruko","gudang","pabrik","jalan","trotoar","selokan","bukit","gunung","sungai","rawa","gambut","lereng","tebing","jurang","lembah","pile","pancang","strauss","bore","kolom","balok","plat","slab","pelat","lantai","plafon","atap","kusen","septic","septic tank","resapan","sumur","tangga","kamar","kamar mandi","kamar tidur","dapur","toilet","wc","ruang","ruang tamu","ruang makan","ruang keluarga","ruang kerja","ruang tidur","teras","balkon","fasad","halaman","carport","garasi","taman","halaman depan","halaman belakang","kantor","toko","cafe","restoran","hotel","apartemen","showroom","klinik","mall","sekolah","rukan","kios","warung","pujasera","wallpaper","parket","laminasi","vinyl","wpc","hpl","grc","acp","pagar","pintu","jendela","railing","rolling door","shower box","tralis","jeruji","kanopi","awning","spandek","alderon","genteng metal","wall","wallpanel","wall-panel","moulding","wall-moulding","cornice","plinth","skirting","wainscoting","backdrop","feature-wall","feature wall","ceiling","drop-ceiling","partisi","sekat","cladding","facade","facade-panel","panel-dinding","dinding-panel","ac","air conditioner","cctv","listrik","instalasi listrik","air","pipa air","plumbing","gas","panel-listrik","travo","trafo","internet","jaringan","alarm","kamera","sensor","detector","detektor","antena","parabola","wifi","router","cctv-kamera","signage","logo","spanduk","banner","billboard","neonbox","neon box","letter timbul","huruf timbul","papan nama","plang","reklame","papan reklame","kaca tempered","kaca-polos","kaca-bermotif","kaca-buram","kaca-es","kaca-panasap","aluminium-composite","aluminium foil","kaca-film","kaca-jendela"];
-
-  var BASE_ENTITY_OBJECTS = ["beton","batu","kayu","besi","baja","rumah","gedung","jalan","keramik","granit","marmer","vinyl","wallpaper","parket","laminasi","wpc","hpl","grc","acp","bata","paving","genteng","kaca"];
-  var GENERIC_OBJECTS = ["tanah","lahan","bukit","gunung","sungai","rawa","gambut","lereng","tebing","jurang","lembah"];
-
-  var BASE_ENTITY_OBJECTS_SET = {};
-  (function() {
-    for (var i = 0; i < BASE_ENTITY_OBJECTS.length; i++) {
-      BASE_ENTITY_OBJECTS_SET[BASE_ENTITY_OBJECTS[i]] = true;
-    }
-  })();
-
-  var GENERIC_OBJECTS_SET = {};
-  (function() {
-    for (var i = 0; i < GENERIC_OBJECTS.length; i++) {
-      GENERIC_OBJECTS_SET[GENERIC_OBJECTS[i]] = true;
-    }
-  })();
-
-  var MATERIAL_SERVICE_NAMES = ["semen","mortar","pasir","batu split","kerikil","besi","baja","kayu","beton","keramik","granit","marmer","gypsum","bata","batako","hebel","genteng","asbes","baja ringan","galvalum","readymix","cor","kaca","aluminium","pipa"];
-
-  var CROSS_ENTITY_SPECS = {
-    jasa: {
-      sharedFinishing: PURE_FINISHING,
-      sharedGaya: ["minimalis","modern","klasik","custom","elegan","mewah","eksklusif","premium"],
-      foreignTechniques: ["waterproofing","grouting","shotcrete","guniting","dewatering","scaffolding","bekisting","formwork","curing","boring","welding","coating","plating","anodizing","polishing","sandblasting","painting","lining","topping off","lean concrete","soil test","sondir test","cross hole","bore pile test","building maintenance","home renovation","waterproofing solution"]
-    },
-    produk: {
-      sharedMaterialFinishing: ["galvanis","zincalume","coating","berlapis","cat"],
-      sharedMaterialDimensi: ["tebal","panjang","lebar","diameter"]
-    },
-    material: {
-      extendedTypes: ["silika","zeolit","cor","tembaga","aluminium","foil","kuningan","perunggu","titanium","grafit","karbon"]
-    },
-    sewa: {
-      extendedUnits: ["hp","ps","kva","psi","rpm","inch","inchi","kw"],
-      extendedTools: ["motor grader","wheel loader","tower crane","asphalt finisher","asphalt paver","tandem roller","pneumatic tire roller","cold milling","batching plant","concrete pump","genset","pompa air","pompa-beton","compressor","jack hammer"]
-    },
-    desain: {
-      extendedColors: ["earth tone","sage green","sage","dusty pink","dusty","terracotta","navy blue","mustard","olive","mauve","charcoal","cream","ivory","beige","taupe","greige"],
-      extendedGaya: ["bali modern","java etnik","minimalis tropis","kolonial modern","industrial rustic","scandinavian japandi","modern klasik","minimalis skandinavia","japandi minimalis","classic modern","modern farmhouse","boho industrial","javanese modern","balinese contemporary","traditional modern","ethnic modern","modern etnik","tribal modern"],
-      subjektif: ["mewah","eksklusif","premium","luxury","high end","artistik","estetik"]
-    }
-  };
-
-  var PRODUK_SPECS = {
-    mutu: ["k225","k250","k300","k350","k400","k500","fc","sni","standar","premium","ekonomis"],
-    finishing: ["polos","motif","bermotif","bercorak","tekstur","serat","halus","kasar","matte","glossy","doff","gloss","satin","anyaman","natural","ekspos","custom","polosan","cat","coating","lapisan","vernis","anti gores","anti air","anti jamur","ulir"],
-    dimensi: ["ukuran","dimensi","spesifikasi","tipe","model","varian","seri","tinggi","rendah","panjang","pendek","lebar","sempit","tebal","tipis","dalam","dangkal","diameter","radius","besar","kecil","sedang","mini","jumbo"],
-    warna: ["putih","hitam","abu-abu","merah","biru","kuning","hijau","coklat","netral","warm","cool","pastel","dark","light","krem","maroon","navy","forest","gold","silver","bronze","copper","rose gold","teal","turquoise","lavender","magenta","coral","salmon","peach","mint"],
-    gaya: ["minimalis","modern","klasik","skandinavia","japandi","industrial","kontemporer","tradisional","rustic","bohemian"]
-  };
-
-  var PURE_PRODUK_SPECS = PRODUK_SPECS.mutu
-    .concat(PRODUK_SPECS.warna)
-    .concat(PRODUK_SPECS.finishing)
-    .concat(PRODUK_SPECS.gaya);
-
-  var MATERIAL_SPECS = {
-    grade: ["grade a","grade b","grade c","sni","standar","kualitas 1","kualitas 2","kualitas 3","kelas 1","kelas 2","kelas 3","non shrink","fiber reinforced","thin bed","thick bed","refraktori","tahan api","tahan asam","40 mpa","50 mpa","60 mpa","70 mpa","30 mpa","20 mpa","25 mpa","35 mpa"],
-    finishing: ["ulir","polos","galvanis","berlapis","cat","coating","anyaman","anti karat","anti korosi","anti air","diamon","rough","smooth","textured","zincalume"],
-    dimensi: ["tebal","panjang","lebar","diameter","radius","ukuran","dimensi","ketebalan","kedalaman","tinggi"],
-    berat: ["kg","ton","m3","liter","gram","ons"],
-    tipe: MATERIAL_TYPE_WORDS
-  };
-
-  var PURE_MATERIAL_SPECS = MATERIAL_SPECS.grade
-    .concat(MATERIAL_SPECS.finishing)
-    .concat(MATERIAL_SPECS.tipe);
-
-  var SEWA_SPECS = {
-    tipe: ["mini","besar","kecil","sedang","medium","heavy","standar","extra","ekstra","jumbo","compact","full size","large"],
-    merek: ["pc75","pc200","pc300","pc350","pc400","komatsu","hitachi","caterpillar","cat","volvo","hyundai","doosan","kobelco","sumitomo","case","jcb","liebherr","kubota","yanmar","perkins","cummin"],
-    kapasitas: ["ton","m3","kg","liter","galon","hp","ps","kva","psi","rpm","kw","inch","inchi"],
-    kondisi: ["baru","bekas","servis","recondition","rebuilt","ready","siap pakai","prima","baik","layak","standar","listrik","diesel","bensin","solar","hydraulic","manual"],
-    durasi: ["harian","mingguan","bulanan","tahunan","per jam","per hari","per minggu","per bulan","short term","long term"]
-  };
-
-  var PURE_SEWA_SPECS = SEWA_SPECS.merek
-    .concat(SEWA_SPECS.tipe)
-    .concat(SEWA_SPECS.kondisi)
-    .concat(SEWA_SPECS.durasi)
-    .concat(SEWA_SPECS.kapasitas)
-    .concat(CROSS_ENTITY_SPECS.sewa.extendedTools)
-    .concat(CROSS_ENTITY_SPECS.sewa.extendedUnits);
-
-  var JASA_SPECS = {
-    metode: ["manual","hidrolik","auger","rotary","percussive","dry","wet","basah","kering"],
-    skala: ["rumahan","komersial","industri","residential","commercial","industrial","kecil","sedang","besar","menengah"],
-    finishing: PURE_FINISHING,
-    kedalaman: ["m","meter","cm","centimeter","feet","ft"],
-    foreign: CROSS_ENTITY_SPECS.jasa.foreignTechniques
-  };
-
-  var DESAIN_SPECS = {
-    gaya: ["modern","minimalis","klasik","tradisional","kontemporer","elegan","luxury","industrial","scandinavian","jepang","rustic","vintage","bohemian","art deco","mid century","victorian","gothic","renaissance","baroque","rococo","neoklasik","art nouveau","bauhaus","postmodern","dekonstruksi","high tech","eklektik","transisi","tropis","mediterania","kolonial","peranakan","balinese","javanese","japandi","coastal","new york","hampton","farmhouse","shabby chic","parisian","moroccan","brutalist","cottage core","grand millennial","tropical modern","contemporary","industrial chic","minimalism","classic","modern classic","streamline","boho chic","mid-century","memphis","cyberpunk","steampunk","neofuturism","biophilic","wabi sabi","zen","feng shui"].concat(CROSS_ENTITY_SPECS.desain.extendedGaya),
-    warna: ["putih","hitam","abu-abu","merah","biru","kuning","hijau","coklat","netral","warm","cool","pastel","dark","light","krem","maroon","navy","forest","gold","silver","bronze","copper","rose gold","teal","turquoise","lavender","magenta","coral","salmon","peach","mint"].concat(CROSS_ENTITY_SPECS.desain.extendedColors),
-    material: ["kayu","besi","kaca","marmer","granit","keramik","plafon","gypsum","pvc","acp","vinyl","wpc","grc","hpl","bambu","rotan","anyaman","kain","kulit","karpet","parket","ubin","batu alam","batu bata","beton ekspos"],
-    konsep: ["open space","split level","loft","studio","apartment","villa","tiny house","smart home","eco home","sustainable","green building","biophilic","zen","feng shui","vastu","wabi sabi"],
-    furniture: ["minimalis","skandinavia","jepang","klasik","modern","retro","vintage","industrial","rustic","bohemian","mid century","art deco","contemporary"],
-    subjektif: CROSS_ENTITY_SPECS.desain.subjektif
-  };
-
-  var PURE_DESAIN_SPECS = DESAIN_SPECS.gaya
-    .concat(DESAIN_SPECS.warna)
-    .concat(DESAIN_SPECS.material)
-    .concat(DESAIN_SPECS.konsep)
-    .concat(DESAIN_SPECS.furniture)
-    .concat(DESAIN_SPECS.subjektif);
-
-  var SUB_PILLAR_2_KEYWORDS = ['daftar','jenis','macam','kategori','tipe','list','katalog','variasi','model','gaya','varian'];
-  var SUB_PILLAR_1_KEYWORDS = ['perbandingan','vs','versus','kelebihan','kekurangan','perbedaan','lebih baik','unggul','mana yang','antara','atau'];
-  var SUB_PILLAR_1_STRONG = ['perbandingan','vs','versus','kelebihan','kekurangan','perbedaan','lebih baik','unggul','mana yang'];
-  var SUB_PILLAR_1_WEAK = ['antara','atau'];
-
-  var HIGH_VOLUME_WORDS = ["promo","diskon","obral","cuci gudang","flash sale","termurah","termahal"];
-
-  var INTENT_TRIGGERS = {
-    transactional: ["beli","order","pesan","booking","sewa sekarang","harga","biaya","tarif","estimasi","promo","diskon","bayar","cicilan","kredit","dapatkan","pesan sekarang","resmi","authorized","ready stock","siap pakai","cara order","cara pesan","cara beli"],
-    informational: ["cara","tutorial","panduan","tips","langkah","bagaimana","apa itu","pengertian","definisi","contoh","jenis","perbedaan","kelebihan","kekurangan","manfaat","fungsi","berapa","apa yang","mengapa","kenapa","kapan","dimana","siapa","yang mana","apakah","update terbaru","informasi terbaru","kabar terbaru"],
-    commercial: ["review","testimoni","rekomendasi","terbaik","paling","vs","versus","perbandingan","alternatif","pilihan","populer","favorit","unggulan","ulasan","pengalaman","rating","penilaian","terburuk","terpopuler","terfavorit"],
-    navigational: ["login","daftar","kontak","tentang","hubungi","alamat","lokasi","maps","direksi"]
-  };
-
-  var COMMERCIAL_WORDS = ['jual','beli','order','pesan','booking','supplier','distributor','toko','shop','dapatkan','pesan sekarang','order sekarang','beli sekarang','checkout','cara order','cara pesan','cara beli','cara booking','resmi','authorized','official','distributor resmi','dealer resmi','agen resmi','mitra resmi','sertifikat resmi','ready stock','ready stok','siap pakai','siap kirim','stok tersedia','fast respon','same day'];
-
-  var INFORMATIONAL_WORDS = ['butuh','cari','mau','ingin','panduan','cara','tips','tutorial','pengertian','definisi','penjelasan','kenapa','mengapa','bagaimana','berapa','apa itu','apa yang','kapan','dimana','siapa','yang mana','apakah','adakah','apa beda','apa perbedaan','update terbaru','informasi terbaru','kabar terbaru','update'];
-
-  var TIER_1_LOCATION = ["jakarta","jakarta pusat","jakarta barat","jakarta selatan","jakarta timur","jakarta utara","bogor","depok","tangerang","bekasi","bandung","karawang","purwakarta","cikarang","subang","cirebon","semarang","solo","surakarta","pekalongan","tegal","magelang","sukoharjo","boyolali","klaten","jogja","yogyakarta","surabaya","malang","kediri","gresik","sidoarjo","mojokerto","pasuruan","probolinggo","jember","banyuwangi","madiun","medan","palembang","pekanbaru","padang","lampung","batam","aceh","jambi","bengkulu","pontianak","balikpapan","samarinda","banjarmasin","makassar","manado","palu","kendari","bali","denpasar","gianyar","tabanan","bangli","karangasem","klungkung","buleleng","mataram","kupang"];
-
-  var FISIK_WORDS = ["pantai","taman","sungai","gunung","jalan","pasar","sekolah","masjid","gereja","mall","terminal","stasiun","bandara","pelabuhan","sawah","hutan","danau","lembah","bukit","kali","dermaga","lapangan","kantor","pabrik","gudang","warung","restoran","cafe","hotel","villa","klinik","puskesmas","apotek","bank","atm","pos"];
-
-  var LOCATION_WORDS = TIER_1_LOCATION;
-
-  var PRICE_HEAD_WORDS = ['harga','biaya','tarif','estimasi','ongkos','budget','fee','rate','price','cost','pricelist','price-list'];
-
-  var PROMO_MODIFIER_WORDS = ['murah','hemat','terjangkau','promo','diskon','obral','sale','termurah','termahal','bersaing','kompetitif','dibawah pasaran','diatas pasaran','pasaran','ekonomis','profesional'];
-
-  var PRICE_WORDS = PRICE_HEAD_WORDS;
-
-  var NOISE_WORDS_UNIVERSAL = ['borongan','sistem borongan','borongan penuh','borongan sebagian','paket borongan','sistem paket','sistem paket borongan','all in','all-in','all in one','cash','kredit','cicilan','tunai','transfer','dp','lunas','termin','kontan','installment','debit','cod','cash on delivery','paylater','pay later','bayar di tempat','bayar di awal','bayar di akhir','pembayaran','preorder','pre-order','indent','po','bangunan','konstruksi','proyek'];
-
-  var NOISE_WORDS_JASA = ['meteran','sistem meteran','sistem harian','sistem mingguan','sistem bulanan','sistem tahunan','per proyek','per paket','per pekerjaan','short term','long term','per area','per zona','per ruangan','per lantai','per hari kerja','per jam kerja','per shift','per tongkang','per rit','per ritase'];
-
-  var ACTION_VERBS = ["pemotongan","pemotong","memotong","potong","potongan","penggalian","penggali","menggali","gali","galian","pengurugan","pengurug","mengurug","urug","urugan","pengangkutan","pengangkut","mengangkut","angkut","angkutan","pengeboran","pengebor","mengebor","bor","boran","pengelasan","pengelas","mengelas","las","lasan","pengecoran","pengecor","mengecor","cor","coran","pengecatan","pengecat","mengecat","cat","catan","pengukuran","pengukur","mengukur","ukur","ukuran","pemasangan","pemasang","memasang","pasang","pasangan","pembongkaran","pembongkar","membongkar","bongkar","bongkaran","pembuatan","pembuat","membuat","buat","buatan","pengupasan","pengupas","mengupas","upas","upasan","pemadatan","pemadat","memadatkan","padat","padatan","pengerukan","pengeruk","mengeruk","keruk","kerukan","pemancangan","pemancang","memancang","pancang","pancangan","pembersihan","pembersih","membersihkan","bersih","bersihan","perataan","perata","meratakan","rata","rataan","pembentukan","pembentuk","membentuk","bentuk","bentukan","persiapan","persiap","mempersiapkan","siap","siapan","stabilisasi","stabilis","menstabilkan","stabil","cut","fill","grading","elevasi","pemetaan","tebang","menebang","penebangan","pindah","pemindahan","timbun","penimbunan","renovasi","merenovasi","perbaikan","memperbaiki","instalasi","menginstal","install","service","servis","menyervis","penggantian","mengganti","ganti","pemeliharaan","memelihara","rawat","perawatan","pengadaan","menyediakan","relief","profil","finishing","cutting","bongkar","buang","uji","perkuatan","pematangan"];
-
-  var SYNTAX_CONJUNCTIONS = ["dan","serta","juga","dengan","tanpa"];
-  var SYNTAX_PREPOSITIONS = ["di","ke","dari","untuk","pada","dalam","atas","bawah"];
-
   // ═══════════════════════════════════════════════════════════
+  // 🔥 PATCH-COMPOUND-v1: COMPOUND TERM LIBRARY (EXPANDED)
+  // 
+  // PRINSIP: 1 KONSEP = 1 LAYER (bukan 1 kata = 1 layer)
+  // Contoh: "air tanah" = 1 konsep (groundwater), bukan 2
+  // ═══════════════════════════════════════════════════════════
+  var COMPOUND_LIBRARY = {
+    jasa: [
+      // Base compounds (verb + objek jadi 1 konsep)
+      "bore pile", "bored pile", "bor pile", "boring pile",
+      "sumur bor", "bor sumur", "air tanah",
+      "jet pump", "jet grouting", "soil test", "sondir test",
+      "cut and fill", "land clearing",
+      "mini pile", "spun pile", "micropile", "sheet pile",
+      "tiang pancang", "strauss pile", "pancang bor",
+      
+      // Metode compounds
+      "rotary bor", "hidrolik bor", "casing bor", "slurry bor",
+      "bor manual", "bor mesin", "bor hidrolik",
+      
+      // Objek compounds
+      "dak beton", "plat beton", "kolom beton", "sloof beton",
+      "tiang bor", "pondasi bor", "pondasi dangkal", "pondasi dalam",
+      
+      // Scale compounds
+      "rumah tinggal", "skala kecil", "skala besar", "skala menengah",
+      "proyek besar", "proyek kecil", "lahan sempit",
+      
+      // Common multi-word terms
+      "sumur dalam", "sumur dangkal", "sumur artesis", "sumur resapan",
+      "air bersih", "air kotor", "air limbah",
+      "besi beton", "baja ringan", "baja berat",
+      "k3 konstruksi", "uji tanah",
+      
+      // PATCH-v2: Tambahan
+      "air permukaan", "air bawah tanah", "air sumur",
+      "sumur gali", "sumur pantek", "sumur bor dalam",
+      "sumur bor dangkal", "sumur bor artesis",
+      "pondasi tiang", "pondasi telapak", "pondasi strauss",
+      "tiang bor mini", "bor pile mini",
+      "baja tulangan", "besi tulangan",
+      "kolom praktis", "sloof beton", "ring balk",
+      "cor dak beton", "cor lantai beton", "cor jalan beton"
+    ],
+    
+    produk: [
+      "pintu aluminium", "pintu kayu", "pintu besi", "pintu kaca",
+      "jendela kaca", "jendela aluminium", "jendela kayu",
+      "kitchen set", "wardrobe custom", "walk in closet",
+      "pagar panel", "pagar beton", "pagar brc", "pagar besi",
+      "kanopi baja", "kanopi alderon", "kanopi spandek",
+      "railing tangga", "railing balkon",
+      "wall panel", "wall moulding",
+      "u ditch", "box culvert", "grass block",
+      "paving block", "rooster beton", "half slab",
+      "tangga putar", "tangga monyet",
+      
+      // PATCH-v2: Tambahan
+      "pagar panel beton", "pagar brc galvanis",
+      "pintu besi hollow", "pintu besi tempa",
+      "pintu kayu jati", "pintu kayu meranti",
+      "jendela upvc", "jendela casement",
+      "kitchen set minimalis", "kitchen set hpl",
+      "wardrobe sliding", "wardrobe swing",
+      "kanopi membrane", "kanopi polycarbonate",
+      "precast beton", "beton precast",
+      "tiang pancang beton", "mini pile beton",
+      "sloof beton", "kolom praktis"
+    ],
+    
+    material: [
+      "besi beton", "besi hollow", "besi kanal", "besi unp",
+      "besi wf", "besi hbeam", "besi iwf", "besi siku",
+      "baja ringan", "baja berat", "baja tulangan",
+      "batu kali", "batu split", "batu belah", "batu alam",
+      "batu apung", "batu andesit", "batu candi", "batu koral",
+      "kayu jati", "kayu meranti", "kayu mahoni", "kayu sengon",
+      "kayu pinus", "kayu kamper", "kayu kruing", "kayu merbau",
+      "semen portland", "semen putih", "semen instan", "semen mortar",
+      "pasir beton", "pasir pasang", "pasir urug", "pasir halus",
+      "pasir kasar", "pasir putih", "pasir silika", "pasir bangka",
+      "keramik lantai", "keramik dinding", "keramik kamar",
+      "granit tile", "marmer italy", "marmer lokal",
+      "cat tembok", "cat kayu", "cat besi", "cat dinding",
+      "pipa pvc", "pipa galvanis", "pipa besi", "pipa tembaga",
+      "pipa hdpe", "pipa pp-r", "pipa conduit",
+      "kabel listrik", "kabel tanah", "kabel udara",
+      "atap spandek", "atap metal", "atap genteng", "atap beton",
+      "plafon gypsum", "plafon pvc", "plafon grc",
+      "gypsum board", "gypsum jayaboard",
+      
+      // PATCH-v2: Tambahan
+      "besi beton ulir", "besi beton polos", "besi beton sni",
+      "baja ringan galvanis", "baja ringan zincalume",
+      "besi hollow galvanis", "besi hollow hitam",
+      "semen portland pozzolan", "semen portland composite",
+      "semen tiga roda", "semen gresik", "semen holcim",
+      "keramik motif kayu", "keramik motif marmer",
+      "granit 60x60", "granit 80x80", "marmer travertine",
+      "cat anti bocor", "cat anti jamur", "cat anti karat",
+      "pipa sch 40", "pipa sch 80", "pipa seamless",
+      "kabel nyy", "kabel nym", "kabel nyaf",
+      "atap spandek pasir", "atap spandek warna",
+      "plafon kalsiboard", "plafon shunda",
+      "gypsum knauf", "gypsum jayaboard",
+      "kayu jati solid", "kayu mahoni solid",
+      "batu kali belah", "batu gunung belah",
+      "pasir putih bangka", "pasir lumajang"
+    ],
+    
+    sewa: [
+      "alat berat", "heavy equipment",
+      "concrete pump", "tower crane", "mobile crane", "crawler crane",
+      "dump truck", "motor grader", "wheel loader",
+      "asphalt finisher", "asphalt paver", "tandem roller",
+      "batching plant", "jack hammer",
+      "baby roller", "vibro roller", "plate compactor",
+      
+      // PATCH-v2: Tambahan
+      "mini excavator", "mini crane", "mini loader",
+      "skid steer", "skid loader",
+      "alat bor tanah", "alat bor beton", "alat bor sumur",
+      "mesin bor beton", "bor beton",
+      "panel listrik", "panel distribusi",
+      "lampu sorot proyek", "lampu tower",
+      "pompa air", "pompa beton", "pompa lumpur",
+      "gps survey", "total station"
+    ],
+    
+    desain: [
+      "desain interior", "desain eksterior", "desain rumah",
+      "desain arsitektur", "desain 3d", "desain 2d",
+      "desain kantor", "desain toko", "desain cafe",
+      "interior minimalis", "interior modern", "interior klasik",
+      "konsep modern", "konsep minimalis", "open space",
+      "ruang tamu", "ruang keluarga", "ruang makan", "ruang kerja",
+      "kamar mandi", "kamar tidur", "kamar anak",
+      
+      // PATCH-v2: Tambahan
+      "desain interior rumah", "desain interior kantor",
+      "desain interior cafe", "desain interior restoran",
+      "desain rumah minimalis", "desain rumah modern",
+      "desain rumah 2 lantai", "desain rumah 3 lantai",
+      "render 3d", "visualisasi 3d",
+      "shop drawing", "as built drawing",
+      "gambar kerja", "gambar teknik",
+      "desain struktur", "desain mep"
+    ]
+  };
+
+  // ═══ END STAGE 1/6 — LANJUT STAGE 2/6 ═══
+
+   // ═══════════════════════════════════════════════════════════
   // PATCH M1+M2: REGEX CACHE + MASTER REGEX
   // ═══════════════════════════════════════════════════════════
   var _REGEX_CACHE = Object.create(null);
@@ -879,6 +701,76 @@ var SPEC_PHRASE_INFORMATIONAL = [
 
   function _escapeRegex(s) {
     return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 PATCH-COMPOUND-v1: NORMALIZE COMPOUND TERMS
+  // 
+  // FUNGSI: Ganti compound term dengan 1 token placeholder
+  // 
+  // CONTOH:
+  //   Input : "jasa bor air tanah jakarta"
+  //   Output: "jasa bor ct_5 jakarta"
+  //   (dengan "air tanah" diganti 1 token "ct_5")
+  // 
+  // TUJUAN: Agar countSemanticUnits() hitung 1 KONSEP,
+  //         bukan 1 KATA.
+  // ═══════════════════════════════════════════════════════════
+  function normalizeCompoundTerms(text, entityType) {
+    // Guard: input kosong
+    if (!text) return text;
+    
+    // Lowercase untuk konsistensi
+    var normalized = text.toLowerCase();
+    
+    // Ambil compound library untuk entity ini
+    var compounds = COMPOUND_LIBRARY[entityType] || [];
+    if (compounds.length === 0) return normalized;
+    
+    // Sort by word count DESC (panjang dulu, agar "bore pile manual"
+    // di-replace sebelum "bore pile")
+    var sortedCompounds = compounds.slice().sort(function(a, b) {
+      return b.split(' ').length - a.split(' ').length;
+    });
+    
+    // Loop setiap compound dan replace dengan token unik
+    for (var i = 0; i < sortedCompounds.length; i++) {
+      var compound = sortedCompounds[i];
+      var pattern = rx(compound, 'g');
+      
+      if (pattern.test(normalized)) {
+        pattern.lastIndex = 0;
+        // Ganti dengan placeholder 1 token
+        // ct_ = compound term (agar tidak ketabrak regex lain)
+        normalized = normalized.replace(pattern, 'ct_' + i);
+      }
+    }
+    
+    return normalized;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 PATCH-COMPOUND-v1: COUNT SEMANTIC UNITS
+  // 
+  // FUNGSI: Hitung semantic unit (setelah normalize compound)
+  // BUKAN word count biasa
+  // 
+  // CONTOH:
+  //   Input : "jasa bor air tanah"
+  //   Output: 2 (bukan 4)
+  // 
+  // LOGIKA:
+  //   1. Normalize compound → "jasa bor ct_5"
+  //   2. Filter kata > 2 karakter
+  //   3. Count = 3 (jasa, bor, ct_5)
+  // ═══════════════════════════════════════════════════════════
+  function countSemanticUnits(text, entityType) {
+    if (!text) return 0;
+    var normalized = normalizeCompoundTerms(text, entityType);
+    var units = normalized.split(/\s+/).filter(function(w) {
+      return w.length > 2;
+    });
+    return units.length;
   }
 
   function rx(word, flags) {
@@ -1218,6 +1110,8 @@ var SPEC_PHRASE_INFORMATIONAL = [
     };
   }
 
+  // ═══ END STAGE 2/6 — LANJUT STAGE 3/6 ═══
+
   // ═══════════════════════════════════════════════════════════
   // FUNGSI DASAR
   // ═══════════════════════════════════════════════════════════
@@ -1268,27 +1162,22 @@ var SPEC_PHRASE_INFORMATIONAL = [
         } catch (e) {}
         if (isInFooterNav) continue;
 
-        // 🔥 FIX-TABLE-v1: pakai 'tr' langsung, tidak wajib <tbody>
         var rows = table.querySelectorAll('tr');
         if (rows.length < 2) continue;
 
         var priceHeaderCount = 0;
 
-        // 🔥 Cek 1: <th> dengan kata harga
         var headers = table.querySelectorAll('th');
         for (var j = 0; j < headers.length; j++) {
           var headerText = (headers[j].innerText || headers[j].textContent || '').toLowerCase();
           if (/harga|biaya|tarif|price|cost|rate/i.test(headerText)) priceHeaderCount++;
         }
 
-        // 🔥 Cek 2: kalau tidak ada <th>, cek baris pertama
         if (priceHeaderCount === 0 && rows.length > 0) {
           var firstRowText = (rows[0].innerText || rows[0].textContent || '').toLowerCase();
           if (/harga|biaya|tarif|price|cost|rate/i.test(firstRowText)) priceHeaderCount++;
         }
 
-        // 🔥 Cek 3: fallback — cek teks tabel keseluruhan
-        // Wajib ada kata harga + angka minimal 4 karakter (hindari false positive)
         if (priceHeaderCount === 0) {
           var tableText = (table.innerText || table.textContent || '').toLowerCase();
           if (/harga|biaya|tarif/i.test(tableText) && /[\d.,]{4,}/.test(tableText)) {
@@ -1303,7 +1192,7 @@ var SPEC_PHRASE_INFORMATIONAL = [
       }
     } catch (e) {}
     return false;
-}
+  }
 
   function checkFisikRole(text) {
     if (!text) return "none";
@@ -1694,7 +1583,6 @@ var SPEC_PHRASE_INFORMATIONAL = [
     return "default";
   }
 
-  // ═══ END BAGIAN 1 — LANJUT BAGIAN 2 ═══
   // ═══════════════════════════════════════════════════════════
   // FUNGSI SPESIFIKASI
   // ═══════════════════════════════════════════════════════════
@@ -2727,7 +2615,12 @@ var SPEC_PHRASE_INFORMATIONAL = [
     };
   }
 
-  // ═══ WARNING FUNCTIONS ═══
+  // ═══ END STAGE 3/6 — LANJUT STAGE 4/6 ═══
+
+  // ═══════════════════════════════════════════════════════════
+  // WARNING FUNCTIONS
+  // ═══════════════════════════════════════════════════════════
+
   function detectConjunctionWarning(slug, level) {
     if (!slug || !level) return [];
     var lower = slug.toLowerCase();
@@ -2836,30 +2729,52 @@ var SPEC_PHRASE_INFORMATIONAL = [
     return warnings;
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 PATCH 12b: validateParentDrivenHierarchy() — SEO DIMENSION
+  // 
+  // PERUBAHAN:
+  // - Tidak warning kalau VARIANT + location → MC
+  // - MC selalu valid kalau ada location
+  // ═══════════════════════════════════════════════════════════
   function validateParentDrivenHierarchy(slug, entityType) {
     var warnings = [];
     if (!slug) return warnings;
     var words = slug.split(" ").filter(Boolean);
     if (words.length <= 2) return warnings;
     if (/\b(atau|dan|serta)\b/i.test(slug)) return warnings;
+    
     var parentSlug = words.slice(0, -1).join(" ");
     var parentLevel = detectPageLevelForPrompt(parentSlug, entityType);
     if (parentLevel === "pillar") return warnings;
     if (!EXPECTED_CHILD_MAP[parentLevel]) return warnings;
+    
     var rule = EXPECTED_CHILD_MAP[parentLevel];
     if (rule.isLeaf) return warnings;
+    
     var currentLevel = detectPageLevelForPrompt(slug, entityType);
+    
+    // 🔥 PATCH-VALIDATOR-v2: MC selalu valid kalau ada location
     if (currentLevel === "money-child") {
+      var currentIsLocation = isLocation(slug);
+      if (currentIsLocation) return warnings;  // ← Skip warning, MC = valid
       if (parentLevel === "money-page" || parentLevel === "money-master") return warnings;
     }
+    
+    // 🔥 PATCH-VALIDATOR-v2: Variant + location = MC = valid
+    if (currentLevel === "money-child" && parentLevel === "variant") {
+      return warnings;  // ← Valid, karena location override
+    }
+    
     if (currentLevel === "variant" && parentLevel === "money-child") {
       warnings.push({ type: "SEO_HIERARCHY_MISMATCH", severity: "warning", parentSlug: parentSlug, parentLevel: parentLevel, currentLevel: currentLevel, expectedLevel: "money-page", message: "URL '" + slug + "' = Variant, tapi parent '" + parentSlug + "' = MC." });
       return warnings;
     }
+    
     var isExpected = (currentLevel === rule.expected);
     var isAlternate = false;
     if (rule.alternates && rule.alternates.indexOf(currentLevel) !== -1) isAlternate = true;
     if (rule.alternate && currentLevel === rule.alternate) isAlternate = true;
+    
     if (!isExpected && !isAlternate) {
       var expectedList = [rule.expected];
       if (rule.alternates) expectedList = expectedList.concat(rule.alternates);
@@ -2869,15 +2784,18 @@ var SPEC_PHRASE_INFORMATIONAL = [
     return warnings;
   }
 
-  // ═══ END BAGIAN 2 — LANJUT BAGIAN 3 ═══
-
-     // ═══════════════════════════════════════════════════════════
-  // 🔥 detectMoneyLevelInternal() — FIX-MINIMAL-v3 BROAD-TO-NARROW
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 detectMoneyLevelInternal() — SEO DIMENSION v23.9.8
   // 
-  // PERUBAHAN INTI:
-  //   - HAPUS KASUS 1.5 dengan hardcoded list (~30 kata)
-  //   - GANTI dengan strip + count layers (broad-to-narrow)
-  //   - JASA base sekarang verb-based → semua target jadi spec
+  // TERMASUK:
+  //   - FIX-HARGA-FOLLOW
+  //   - PATCH 4: Blok JASA (compound-aware)
+  //   - PATCH 6: Blok SEWA (compound-aware)
+  //   - PATCH 9: Blok PRODUK (BARU — compound-aware)
+  //   - PATCH 10: Blok MATERIAL (BARU — compound-aware)
+  //   - PATCH 11: Blok DESAIN (BARU — compound-aware)
+  //   - PATCH 5: Location Override (MC selalu)
+  //   - General Logic
   // ═══════════════════════════════════════════════════════════
   function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
     var lowerText = text.toLowerCase();
@@ -2905,20 +2823,7 @@ var SPEC_PHRASE_INFORMATIONAL = [
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 🔥 FIX-MINIMAL-v3: KHUSUS JASA — BROAD-TO-NARROW
-    // 
-    // Logika baru (menggantikan KASUS 1.5 hardcoded list):
-    //   1. Match base names (longest-first, skip substring)
-    //   2. Strip entity-only + base names + promo/noise
-    //   3. Cek sisa kata:
-    //      - 0 sisa + base app-target → MM
-    //      - 0 sisa + base non-apptarget → MM
-    //      - 1 sisa → MP (base + 1 spec)
-    //      - 2 sisa → variant
-    //      - 3+ sisa → sub-variant
-    //   4. Kalau 2+ base names:
-    //      - Filter noise "borongan"
-    //      - Kalau masih 2+ base → MP
+    // 🔥 PATCH 4: FIX JASA BLOCK (Compound-aware)
     // ═══════════════════════════════════════════════════════════
     if (entityType === "jasa") {
       var _baseListMin = ENTITY_BASE_NAMES.jasa || [];
@@ -2940,33 +2845,25 @@ var SPEC_PHRASE_INFORMATIONAL = [
         _matchedBaseMin.push(_bnMin);
       }
 
-      // ─── KASUS 1: Single base
       if (_matchedBaseMin.length === 1) {
         var _matchedBase1 = _matchedBaseMin[0];
         var _isAppTargetBase = APPLICATION_TARGETS_FULL.indexOf(_matchedBase1) !== -1;
 
-        // Strip entity-only words
         var _tempMin = lowerText;
         var _entityOnlyMin = ENTITY_ONLY_WORDS.jasa || [];
         for (var _eoi = 0; _eoi < _entityOnlyMin.length; _eoi++) {
           _tempMin = _tempMin.replace(rx(_entityOnlyMin[_eoi], 'g'), ' ');
         }
 
-        // Strip base name itu sendiri
         _tempMin = _tempMin.replace(rx(_matchedBase1, 'g'), ' ');
+        _tempMin = normalizeCompoundTerms(_tempMin, "jasa");
 
-        // Strip promo + noise
-                _tempMin = _tempMin.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|profesional|bersaing|kompetitif|ekonomis)\b/gi, ' ');
+        _tempMin = _tempMin.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|profesional|bersaing|kompetitif|ekonomis)\b/gi, ' ');
         _tempMin = _tempMin.replace(/\b(borongan|sistem borongan|paket borongan|all in|all-in|proyek|per proyek)\b/gi, ' ');
-        // 🔥 FIX-BUG-v1: strip SPEC_PHRASE_WORDS (ukuran, spesifikasi, mutu, dll)
-        // Sebelumnya kata-kata ini bikin layer count salah → hasil "variant" (harusnya "money-page")
         _tempMin = _tempMin.replace(/\b(ukuran|spesifikasi|mutu|metode|cara kerja|panduan|fungsi|dimensi|tipe|jenis|varian|model|standar|kapasitas|faktor penentu|faktor utama|penyebab|dampak|pengaruh|efek)\b/gi, ' ');
-         
-                _tempMin = _tempMin.replace(/\s+/g, ' ').trim();
+        
+        _tempMin = _tempMin.replace(/\s+/g, ' ').trim();
 
-        // 🔥 FIX-PER-UNIT-v1: gabung "per X" jadi 1 unit (bukan 2 kata)
-        // Konsisten dengan countModifierLayers() general logic
-        // Contoh: "jasa bor per meter" → 1 layer, bukan 2
         var _perUnitPattern = /\bper\s+(?:meter|m|cm|mm|km|inch|inchi|ft|feet|kg|ton|gram|ons|liter|ml|galon|m3|m2|kubik|cc|batang|lembar|keping|papan|roll|titik|unit|buah|set|paket|hari|jam|minggu|bulan|tahun|shift|rit|ritase|tonase|trip|truk|pickup|colt|orang|kali|boks|dus|karung|sak|lot|batch|container|kontainer)\b/gi;
         var _perUnitMatches = _tempMin.match(_perUnitPattern) || [];
         var _perUnitCount = _perUnitMatches.length;
@@ -2976,34 +2873,24 @@ var SPEC_PHRASE_INFORMATIONAL = [
         _tempMin = _tempMin.replace(/\s+/g, ' ').trim();
 
         var _sisaMin = _tempMin.split(/\s+/).filter(function(w) { return w.length > 2; });
-
-        // Cek apakah ada location → fall through (biar money-child)
         var _hasLocMin = isLocation(text);
-
-        // Hitung layers: sisa kata + per-unit (tiap "per X" = 1 layer)
         var _specCountMin = _sisaMin.length + _perUnitCount;
+
         if (_specCountMin === 0) {
-          // Tidak ada sisa → MM
           if (_hasLocMin) {
-            // Ada location, tapi base tunggal tanpa spec → fall through ke location check
-            // (biar handle money-child)
+            // fall through
           } else {
             return "money-master";
           }
-       } else if (!_hasLocMin) {
-          // Ada sisa spec → MP/variant/sub-variant
+        } else if (!_hasLocMin) {
           var _levelMin = decideLevelByLayers(_specCountMin);
-          // 🔥 FIX-SV-v1: cek dimensi numeric pakai isSubVariant
-          // Word count bisa miss unit pendek (m, cm, mm) → naikkan ke SV
           if (_levelMin === "variant" && isSubVariant(text, "jasa")) {
             return "sub-variant";
           }
           return _levelMin;
-       }
-        // Kalau ada loc + sisa spec → fall through ke general logic (location check)
+        }
       }
 
-      // ─── KASUS 2: 2+ base names
       if (_matchedBaseMin.length >= 2) {
         var _matchedFiltered = _matchedBaseMin.filter(function(b) {
           if (b === "borongan") return false;
@@ -3025,7 +2912,7 @@ var SPEC_PHRASE_INFORMATIONAL = [
     }
 
     // ═══════════════════════════════════════════════════════════
-    // PATCH SEWA v2
+    // 🔥 PATCH 6: FIX SEWA BLOCK (Compound-aware)
     // ═══════════════════════════════════════════════════════════
     if (entityType === "sewa") {
       var _baseListSw = ENTITY_BASE_NAMES.sewa || [];
@@ -3047,7 +2934,7 @@ var SPEC_PHRASE_INFORMATIONAL = [
         _matchedBaseSw.push(_bnSw);
       }
 
-      if (/\bper\s+(?:meter|m|cm|mm|km|inch|inchi|ft|feet|yard|mile|kg|ton|gram|ons|kuintal|lbs|pound|m3|liter|galon|kubik|cc|dm3|m2|hektar|ha|are|jam|hari|minggu|bulan|tahun|harian|mingguan|bulanan|tahunan|shift|unit|buah|set|paket|piece|pcs|box|dus|titik|batch|kontainer|container|lot|batang|lembar|keping|roll|papan|sak|karung|kodi|lusin|rit|ritase|tonase|trip|truk|pickup|colt|proyek|project|hari kerja|jam kerja|meter kubik|meter persegi)\b/i.test(lowerText)) {
+      if (/\bper\s+(?:meter|m|cm|mm|kg|ton|jam|hari|minggu|bulan|tahun|unit|shift|rit|trip)\b/i.test(lowerText)) {
         return "money-page";
       }
 
@@ -3058,12 +2945,13 @@ var SPEC_PHRASE_INFORMATIONAL = [
           _tempSw = _tempSw.replace(rx(_entityOnlySw[_eos], 'g'), ' ');
         }
         _tempSw = _tempSw.replace(rx(_matchedBaseSw[0], 'g'), ' ');
+        _tempSw = normalizeCompoundTerms(_tempSw, "sewa");
 
-      var _durasiNoise = [
+        var _durasiNoise = [
           "harian","mingguan","bulanan","tahunan",
           "per jam","per hari","per minggu","per bulan",
           "short term","long term",
-          "proyek","project","site","area kerja","lapangan",
+          "proyek","project","site","area kerja",
           "industri","komersial","rumahan",
           "residential","commercial","industrial",
           "kecil","sedang","besar","menengah","skala",
@@ -3074,7 +2962,6 @@ var SPEC_PHRASE_INFORMATIONAL = [
           "kapasitas","pengukuran","mesin",
           "cor","jalan","kolom","balok","plat","lantai","per"
         ];
-         
         for (var _dn = 0; _dn < _durasiNoise.length; _dn++) {
           _tempSw = _tempSw.replace(rx(_durasiNoise[_dn], 'g'), ' ');
         }
@@ -3131,6 +3018,276 @@ var SPEC_PHRASE_INFORMATIONAL = [
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 PATCH 9: FIX PRODUK BLOCK (Compound-aware) — BARU
+    // ═══════════════════════════════════════════════════════════
+    if (entityType === "produk") {
+      var _baseListPr = ENTITY_BASE_NAMES.produk || [];
+      var _sortedBasePr = _baseListPr.slice().sort(function(a, b) {
+        return b.split(' ').length - a.split(' ').length;
+      });
+      var _matchedBasePr = [];
+      for (var _bpi = 0; _bpi < _sortedBasePr.length; _bpi++) {
+        var _bnPr = _sortedBasePr[_bpi];
+        if (!rx(_bnPr).test(lowerText)) continue;
+        var _isSubPr = false;
+        for (var _mbiPr = 0; _mbiPr < _matchedBasePr.length; _mbiPr++) {
+          if (_matchedBasePr[_mbiPr].indexOf(_bnPr) !== -1) {
+            _isSubPr = true;
+            break;
+          }
+        }
+        if (_isSubPr) continue;
+        _matchedBasePr.push(_bnPr);
+      }
+
+      if (_matchedBasePr.length === 1) {
+        var _matchedBasePr1 = _matchedBasePr[0];
+
+        var _tempPr = lowerText;
+        var _entityOnlyPr = ENTITY_ONLY_WORDS.produk || [];
+        for (var _eopi = 0; _eopi < _entityOnlyPr.length; _eopi++) {
+          _tempPr = _tempPr.replace(rx(_entityOnlyPr[_eopi], 'g'), ' ');
+        }
+
+        _tempPr = _tempPr.replace(rx(_matchedBasePr1, 'g'), ' ');
+        _tempPr = normalizeCompoundTerms(_tempPr, "produk");
+
+        _tempPr = _tempPr.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|premium|ekonomis|profesional)\b/gi, ' ');
+        _tempPr = _tempPr.replace(/\b(ready stock|siap kirim|stok tersedia|fast respon)\b/gi, ' ');
+        _tempPr = _tempPr.replace(/\b(ukuran|spesifikasi|mutu|dimensi|tipe|jenis|varian|model|standar|kapasitas|kualitas|harga|biaya)\b/gi, ' ');
+        
+        _tempPr = _tempPr.replace(/\s+/g, ' ').trim();
+
+        var _perUnitPr = /\bper\s+(?:meter|m|cm|mm|inch|inchi|ft|kg|ton|liter|m3|m2|batang|lembar|keping|roll|titik|unit|buah|set|paket|pcs|piece|boks|dus|lot)\b/gi;
+        var _perUnitPrM = _tempPr.match(_perUnitPr) || [];
+        var _perUnitPrC = _perUnitPrM.length;
+        for (var _pupi = 0; _pupi < _perUnitPrM.length; _pupi++) {
+          _tempPr = _tempPr.replace(_perUnitPrM[_pupi], ' ');
+        }
+        _tempPr = _tempPr.replace(/\s+/g, ' ').trim();
+
+        var _sisaPr = _tempPr.split(/\s+/).filter(function(w) { return w.length > 2; });
+        var _hasLocPr = isLocation(text);
+        var _specCountPr = _sisaPr.length + _perUnitPrC;
+
+        if (_specCountPr === 0) {
+          if (_hasLocPr) {
+            // fall through
+          } else {
+            return "money-master";
+          }
+        } else if (!_hasLocPr) {
+          var _levelPr = decideLevelByLayers(_specCountPr);
+          if (_levelPr === "variant" && isSubVariant(text, "produk")) {
+            return "sub-variant";
+          }
+          return _levelPr;
+        }
+      }
+
+      if (_matchedBasePr.length >= 2) {
+        var _isNestedPr = false;
+        for (var _npi = 0; _npi < _matchedBasePr.length; _npi++) {
+          for (var _npj = 0; _npj < _matchedBasePr.length; _npj++) {
+            if (_npi === _npj) continue;
+            if (_matchedBasePr[_npj].indexOf(_matchedBasePr[_npi]) !== -1) { _isNestedPr = true; break; }
+          }
+          if (_isNestedPr) break;
+        }
+        
+        if (!_isNestedPr) {
+          var _hasLocPr2 = isLocation(text);
+          var _hasPricePr2 = checkHasPrice(text);
+          var _hasDimPr2 = /\d+\s*(m|mm|cm|meter|kg|ton|inch|inci|ft)/gi.test(lowerText)
+            || /\d+\s*[x×]\s*\d+/i.test(lowerText);
+
+          if (!_hasLocPr2 && !_hasPricePr2 && !_hasDimPr2) {
+            return "money-page";
+          }
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 PATCH 10: FIX MATERIAL BLOCK (Compound-aware) — BARU
+    // ═══════════════════════════════════════════════════════════
+    if (entityType === "material") {
+      var _baseListMt = ENTITY_BASE_NAMES.material || [];
+      var _sortedBaseMt = _baseListMt.slice().sort(function(a, b) {
+        return b.split(' ').length - a.split(' ').length;
+      });
+      var _matchedBaseMt = [];
+      for (var _bmiMt = 0; _bmiMt < _sortedBaseMt.length; _bmiMt++) {
+        var _bnMt = _sortedBaseMt[_bmiMt];
+        if (!rx(_bnMt).test(lowerText)) continue;
+        var _isSubMt = false;
+        for (var _mbiMt = 0; _mbiMt < _matchedBaseMt.length; _mbiMt++) {
+          if (_matchedBaseMt[_mbiMt].indexOf(_bnMt) !== -1) {
+            _isSubMt = true;
+            break;
+          }
+        }
+        if (_isSubMt) continue;
+        _matchedBaseMt.push(_bnMt);
+      }
+
+      if (_matchedBaseMt.length === 1) {
+        var _matchedBaseMt1 = _matchedBaseMt[0];
+
+        var _tempMt = lowerText;
+        var _entityOnlyMt = ENTITY_ONLY_WORDS.material || [];
+        for (var _eomt = 0; _eomt < _entityOnlyMt.length; _eomt++) {
+          _tempMt = _tempMt.replace(rx(_entityOnlyMt[_eomt], 'g'), ' ');
+        }
+
+        _tempMt = _tempMt.replace(rx(_matchedBaseMt1, 'g'), ' ');
+        _tempMt = normalizeCompoundTerms(_tempMt, "material");
+
+        _tempMt = _tempMt.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|premium|ekonomis|bersaing|kompetitif)\b/gi, ' ');
+        _tempMt = _tempMt.replace(/\b(ukuran|spesifikasi|mutu|dimensi|tipe|jenis|varian|model|standar|kualitas|harga|biaya|grade|kelas)\b/gi, ' ');
+        
+        _tempMt = _tempMt.replace(/\s+/g, ' ').trim();
+
+        var _perUnitMt = /\bper\s+(?:meter|m|cm|mm|kg|ton|liter|m3|m2|batang|lembar|keping|roll|sak|karung|kubik|zak)\b/gi;
+        var _perUnitMtM = _tempMt.match(_perUnitMt) || [];
+        var _perUnitMtC = _perUnitMtM.length;
+        for (var _pumt = 0; _pumt < _perUnitMtM.length; _pumt++) {
+          _tempMt = _tempMt.replace(_perUnitMtM[_pumt], ' ');
+        }
+        _tempMt = _tempMt.replace(/\s+/g, ' ').trim();
+
+        var _sisaMt = _tempMt.split(/\s+/).filter(function(w) { return w.length > 2; });
+        var _hasLocMt = isLocation(text);
+        var _specCountMt = _sisaMt.length + _perUnitMtC;
+
+        if (_specCountMt === 0) {
+          if (_hasLocMt) {
+            // fall through
+          } else {
+            return "money-master";
+          }
+        } else if (!_hasLocMt) {
+          var _levelMt = decideLevelByLayers(_specCountMt);
+          if (_levelMt === "variant" && isSubVariant(text, "material")) {
+            return "sub-variant";
+          }
+          return _levelMt;
+        }
+      }
+
+      if (_matchedBaseMt.length >= 2) {
+        var _isNestedMt = false;
+        for (var _nmi = 0; _nmi < _matchedBaseMt.length; _nmi++) {
+          for (var _nmj = 0; _nmj < _matchedBaseMt.length; _nmj++) {
+            if (_nmi === _nmj) continue;
+            if (_matchedBaseMt[_nmj].indexOf(_matchedBaseMt[_nmi]) !== -1) { _isNestedMt = true; break; }
+          }
+          if (_isNestedMt) break;
+        }
+        
+        if (!_isNestedMt) {
+          var _hasLocMt2 = isLocation(text);
+          var _hasPriceMt2 = checkHasPrice(text);
+          var _hasDimMt2 = /\d+\s*(m|mm|cm|kg|ton|inch|inci)/gi.test(lowerText)
+            || /\d+\s*[x×]\s*\d+/i.test(lowerText);
+
+          if (!_hasLocMt2 && !_hasPriceMt2 && !_hasDimMt2) {
+            return "money-page";
+          }
+        }
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 PATCH 11: FIX DESAIN BLOCK (Compound-aware) — BARU
+    // ═══════════════════════════════════════════════════════════
+    if (entityType === "desain") {
+      var _baseListDs = ENTITY_BASE_NAMES.desain || [];
+      var _sortedBaseDs = _baseListDs.slice().sort(function(a, b) {
+        return b.split(' ').length - a.split(' ').length;
+      });
+      var _matchedBaseDs = [];
+      for (var _bdiDs = 0; _bdiDs < _sortedBaseDs.length; _bdiDs++) {
+        var _bnDs = _sortedBaseDs[_bdiDs];
+        if (!rx(_bnDs).test(lowerText)) continue;
+        var _isSubDs = false;
+        for (var _mbiDs = 0; _mbiDs < _matchedBaseDs.length; _mbiDs++) {
+          if (_matchedBaseDs[_mbiDs].indexOf(_bnDs) !== -1) {
+            _isSubDs = true;
+            break;
+          }
+        }
+        if (_isSubDs) continue;
+        _matchedBaseDs.push(_bnDs);
+      }
+
+      if (_matchedBaseDs.length === 1) {
+        var _matchedBaseDs1 = _matchedBaseDs[0];
+
+        var _tempDs = lowerText;
+        var _entityOnlyDs = ENTITY_ONLY_WORDS.desain || [];
+        for (var _eods = 0; _eods < _entityOnlyDs.length; _eods++) {
+          _tempDs = _tempDs.replace(rx(_entityOnlyDs[_eods], 'g'), ' ');
+        }
+
+        _tempDs = _tempDs.replace(rx(_matchedBaseDs1, 'g'), ' ');
+        _tempDs = normalizeCompoundTerms(_tempDs, "desain");
+
+        _tempDs = _tempDs.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|premium|mewah|eksklusif|luxury|high end)\b/gi, ' ');
+        _tempDs = _tempDs.replace(/\b(ukuran|spesifikasi|tipe|jenis|varian|model|standar|kualitas|harga|biaya|konsep|gaya|desain)\b/gi, ' ');
+        
+        _tempDs = _tempDs.replace(/\s+/g, ' ').trim();
+
+        var _sisaDs = _tempDs.split(/\s+/).filter(function(w) { return w.length > 2; });
+        var _hasLocDs = isLocation(text);
+
+        var _ROOM_CTX_DS = ["rumah","kantor","toko","hotel","restoran","cafe","villa","apartemen",
+                            "ruko","kios","gudang","klinik","sekolah","mall","spa","salon",
+                            "bar","lounge","butik","showroom","minimarket"];
+        var _roomCountDs = 0;
+        for (var _rci = 0; _rci < _sisaDs.length; _rci++) {
+          if (_ROOM_CTX_DS.indexOf(_sisaDs[_rci]) !== -1) _roomCountDs++;
+        }
+
+        var _specCountDs = _sisaDs.length;
+
+        if (_specCountDs === 0) {
+          if (_hasLocDs) {
+            // fall through
+          } else {
+            return "money-master";
+          }
+        } else if (!_hasLocDs) {
+          var _levelDs = decideLevelByLayers(_specCountDs);
+          if (_levelDs === "variant" && isSubVariant(text, "desain")) {
+            return "sub-variant";
+          }
+          return _levelDs;
+        }
+      }
+
+      if (_matchedBaseDs.length >= 2) {
+        var _isNestedDs = false;
+        for (var _ndi = 0; _ndi < _matchedBaseDs.length; _ndi++) {
+          for (var _ndj = 0; _ndj < _matchedBaseDs.length; _ndj++) {
+            if (_ndi === _ndj) continue;
+            if (_matchedBaseDs[_ndj].indexOf(_matchedBaseDs[_ndi]) !== -1) { _isNestedDs = true; break; }
+          }
+          if (_isNestedDs) break;
+        }
+        
+        if (!_isNestedDs) {
+          var _hasLocDs2 = isLocation(text);
+          var _hasPriceDs2 = checkHasPrice(text);
+
+          if (!_hasLocDs2 && !_hasPriceDs2) {
+            return "money-page";
+          }
+        }
+      }
+    }
+
     // ═══ GENERAL LOGIC ═══
     var factors = _memoGetFactors
       ? _memoGetFactors(text, entityType)
@@ -3147,8 +3304,12 @@ var SPEC_PHRASE_INFORMATIONAL = [
     var hasBaseService = factors.hasBaseService;
     var subPillar = detectSubPillar(text);
 
-     if (subPillar) return subPillar;
+    if (subPillar) return subPillar;
 
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 PATCH 5: LOCATION OVERRIDE
+    // Lokasi SELALU jadi MC, apapun parent-nya
+    // ═══════════════════════════════════════════════════════════
     if (hasLocationWord) {
       var _hasAnyBaseName = false;
       if (!hasBaseService && entityType && ENTITY_BASE_NAMES[entityType]) {
@@ -3157,30 +3318,14 @@ var SPEC_PHRASE_INFORMATIONAL = [
           if (rx(_baseListMC[_bmc]).test(lowerText)) { _hasAnyBaseName = true; break; }
         }
       }
+      
       if (hasBaseService || _hasAnyBaseName) {
-        // 🔥 FIX-HIERARKI-v1: cek parent family dulu
-        // Parent VAR/SV + location → SV, bukan MC
-        var _locStripped = lowerText;
-        // strip location words
-        if (_MASTER.locationCities) {
-          _locStripped = _locStripped.replace(_MASTER.locationCities, ' ');
-        }
-        _locStripped = _locStripped.replace(/\b(jakarta|bogor|depok|tangerang|bekasi|bandung|semarang|surabaya|jogja|yogyakarta|malang|medan|palembang|makassar|denpasar|bali|pusat|barat|selatan|timur|utara)\b/gi, ' ');
-        _locStripped = _locStripped.replace(/\b(terdekat|sekitar|area|wilayah|daerah|kawasan|saya|dekat|near)\b/gi, ' ');
-        _locStripped = _locStripped.replace(/\s+/g, ' ').trim();
-
-        if (_locStripped && _locStripped !== lowerText) {
-          var _parentLevel = detectMoneyLevelInternal(_locStripped, entityType, true);
-          var _parentNum = LEVEL_HIERARCHY_MAP[_parentLevel] || 4;
-          if (_parentNum >= 7) {
-            return "sub-variant";
-          }
-        }
+        // 🔥 PATCH-LOCATION-v2: Lokasi SELALU MC
         return "money-child";
       }
     }
-  
-    // ... lanjut general logic
+
+    // ═══ GENERAL LOGIC LANJUTAN ═══
     if (hasSpecPhrase && !hasLocationWord && !hasCommercialWord) return "money-page";
 
     if (hasPerUnit && !hasPriceWord && !hasCommercialWord && !hasLocationWord && !hasSpecPhrase) return "money-page";
@@ -3257,7 +3402,6 @@ var SPEC_PHRASE_INFORMATIONAL = [
       }
     }
 
-    // ═══ FIX 204: PRICE + BASE SERVICE + NON-SPEC ═══
     if (hasPriceWord && hasBaseService && !hasSpecWord && !hasCommercialWord && !hasLocationWord) {
       var preCore = _memoGetCoreWords
         ? _memoGetCoreWords(text, entityType)
@@ -3411,6 +3555,8 @@ var SPEC_PHRASE_INFORMATIONAL = [
       return "money-page";
     }
   }
+
+  // ═══ END STAGE 4/6 — LANJUT STAGE 5/6 ═══
 
   // ═══════════════════════════════════════════════════════════
   // DETECT PAGE LEVEL (main)
@@ -3666,7 +3812,9 @@ var SPEC_PHRASE_INFORMATIONAL = [
     return { dominant: dominantIntent, scores: scores, confidence: confidence, maxScore: maxScore };
   }
 
-  // ═══ SCHEMA / ATTRIBUTES ═══
+  // ═══════════════════════════════════════════════════════════
+  // SCHEMA / ATTRIBUTES
+  // ═══════════════════════════════════════════════════════════
   function detectContentFocus(level, entityType) {
     var h1Text = getH1Text();
     var urlText = getPageText();
@@ -3686,12 +3834,8 @@ var SPEC_PHRASE_INFORMATIONAL = [
     var isMoneyLevel = ['money-master','money-page','money-child'].indexOf(level) !== -1;
     var isVariantLevel = ['variant','sub-variant'].indexOf(level) !== -1;
      
-   if (isMoneyLevel || isVariantLevel) {
-      // ═══════════════════════════════════════════════════════════
+    if (isMoneyLevel || isVariantLevel) {
       // 🔥 FIX-CONTENT-FOCUS-v2: H1 diawali kata harga → langsung HARGA
-      // Contoh: "Harga Jasa Bor 2026 – Estimasi & Faktor Penentu"
-      //         → meskipun ada "Faktor Penentu" (info), tetap HARGA
-      // ═══════════════════════════════════════════════════════════
       var h1Lower = (h1Raw || '').toLowerCase().trim();
       if (/^(harga|biaya|tarif|estimasi|ongkos|budget)\b/i.test(h1Lower)) {
         log('💵 H1 diawali harga → HARGA (override GABUNG)', 'HARGA');
@@ -3907,14 +4051,14 @@ var SPEC_PHRASE_INFORMATIONAL = [
     }
   }
 
-  // ═══ END BAGIAN 3 — LANJUT BAGIAN 4 ═══
+  // ═══ END STAGE 5/6 — LANJUT STAGE 6/6 ═══
 
-     // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════
   // initializeCore()
   // ═══════════════════════════════════════════════════════════
   function initializeCore() {
     if (_CORE_INITIALIZED) return;
-    if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.7-lite-perf-b2n") {
+    if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.8-seo-dimension") {
       _CORE_INITIALIZED = true;
       return;
     }
@@ -3922,9 +4066,9 @@ var SPEC_PHRASE_INFORMATIONAL = [
 
     try {
       _buildMasterRegexes();
-      console.log('⚡ [PLD-B2N] Master regexes pre-built, cache size: ' + _REGEX_CACHE_SIZE);
+      console.log('⚡ [PLD-SEO-DIMENSION] Master regexes pre-built, cache size: ' + _REGEX_CACHE_SIZE);
     } catch (e) {
-      console.error('❌ [PLD-B2N] Gagal build master regexes: ' + e.message);
+      console.error('❌ [PLD-SEO-DIMENSION] Gagal build master regexes: ' + e.message);
     }
 
     try {
@@ -3939,13 +4083,13 @@ var SPEC_PHRASE_INFORMATIONAL = [
       _memoGetCoreWords = memoizeArray(getCoreWords, 200);
       _memoGetFactors = memoizeObject(getFactors, 200);
       _memoDetectVariantByPattern = memoize(detectVariantByPattern, 200);
-      console.log('⚡ [PLD-B2N] Memoize wrappers ACTIVE — 11 fungsi');
+      console.log('⚡ [PLD-SEO-DIMENSION] Memoize wrappers ACTIVE — 11 fungsi');
     } catch (e) {
-      console.error('❌ [PLD-B2N] Gagal aktifkan memoize: ' + e.message);
+      console.error('❌ [PLD-SEO-DIMENSION] Gagal aktifkan memoize: ' + e.message);
     }
 
     window.pageLevelDetectorv22 = {
-      version: "23.9.7-lite-perf-b2n",
+      version: "23.9.8-seo-dimension",
       CONFIG: CONFIG,
 
       // ─── API UTAMA ───
@@ -4093,6 +4237,11 @@ var SPEC_PHRASE_INFORMATIONAL = [
       _computeLightWarnings: _computeLightWarnings,
       _computeHeavyWarnings: _computeHeavyWarnings,
 
+      // ─── 🔥 PATCH-COMPOUND-v1: COMPOUND HELPERS ───
+      COMPOUND_LIBRARY: COMPOUND_LIBRARY,
+      normalizeCompoundTerms: normalizeCompoundTerms,
+      countSemanticUnits: countSemanticUnits,
+
       // ─── CACHE HELPERS ───
       _clearLevelCache: _clearLevelCache,
       _clearSubCatCache: _clearSubCatCache,
@@ -4150,13 +4299,13 @@ var SPEC_PHRASE_INFORMATIONAL = [
       extractSlugFromInput: extractSlugFromInput
     };
 
-    // FIX-P7: Set body attributes SINKRON sebelum dispatch
+    // Set body attributes SINKRON sebelum dispatch
     try {
       var _initialLevel = detectPageLevel();
       setSchemaAttributes(_initialLevel);
-      console.log('⚡ [PLD-B2N] Body attributes di-set SEBELUM dispatch: ' + _initialLevel);
+      console.log('⚡ [PLD-SEO-DIMENSION] Body attributes di-set SEBELUM dispatch: ' + _initialLevel);
     } catch (e) {
-      console.error('❌ [PLD-B2N] Gagal set body attributes: ' + e.message);
+      console.error('❌ [PLD-SEO-DIMENSION] Gagal set body attributes: ' + e.message);
     }
 
     window.pageLevelDetectorv22Ready = true;
@@ -4170,94 +4319,163 @@ var SPEC_PHRASE_INFORMATIONAL = [
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v23.9.7-LITE-PERF — BROAD-TO-NARROW");
+    console.log("✅ Page Level Detector v23.9.8 — SEO DIMENSION");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🎯 PRINSIP:");
     console.log("   ✅ JASA     : Broad-to-narrow (verb = base, target = spec)");
-    console.log("   ✅ PRODUK   : Frasa utuh (noun-based)");
-    console.log("   ✅ MATERIAL : Frasa utuh (noun-based)");
-    console.log("   ✅ DESAIN   : Frasa utuh (khusus)");
-    console.log("   ✅ SEWA     : PATCH SEWA v2");
-    console.log("🔥 FIX-MINIMAL-v3: BROAD-TO-NARROW (ganti hardcoded list)");
+    console.log("   ✅ PRODUK   : Frasa utuh (noun-based) + Compound-aware");
+    console.log("   ✅ MATERIAL : Frasa utuh (noun-based) + Compound-aware");
+    console.log("   ✅ DESAIN   : Frasa utuh (khusus) + Compound-aware");
+    console.log("   ✅ SEWA     : PATCH SEWA v3");
+    console.log("🎯 PERUBAHAN v23.9.8:");
+    console.log("   ✅ COMPOUND_LIBRARY: 1 konsep = 1 layer");
+    console.log("   ✅ countSemanticUnits(): bukan word count");
+    console.log("   ✅ Location override: MC selalu, bukan sub-variant");
+    console.log("   ✅ PRODUK/MATERIAL/DESAIN: compound-aware");
+    console.log("   ✅ EXPECTED_CHILD_MAP: variant boleh child MC");
+    console.log("   ✅ Validator update: tidak warning variant+MC");
     console.log("═══════════════════════════════════════════════════════════");
 
-    // 🔥 REGRESSION TEST — BROAD-TO-NARROW
-    if (CONFIG.DEBUG) {
-      try {
-        var _testCases = [
-          // ═══ JASA — BROAD-TO-NARROW ═══
-          ["jasa bor",                        "money-master",      "jasa"],
-          ["jasa bor tanah",                  "money-page",        "jasa"],
-          ["jasa bor sumur",                  "money-page",        "jasa"],
-          ["jasa bor sumur 30 meter",         "variant",           "jasa"],
-          ["jasa bor sumur dalam",            "variant",           "jasa"],
-          ["jasa bor sumur dalam 30 meter",   "sub-variant",       "jasa"],
-          ["jasa cor",                        "money-master",      "jasa"],
-          ["jasa cor dak",                    "money-page",        "jasa"],
-          ["jasa cor dak lantai 2",           "variant",           "jasa"],
-          ["jasa pancang",                    "money-master",      "jasa"],
-          ["jasa pancang mini",               "money-page",        "jasa"],
-          ["jasa pancang mini beton",         "variant",           "jasa"],
-          ["jasa pasang keramik",             "money-page",        "jasa"],
-          ["jasa pasang keramik 60x60",       "variant",           "jasa"],
-          ["jasa bore pile",                  "money-master",      "jasa"],
-          ["jasa bore pile 30 meter",         "money-page",        "jasa"],
-          ["jasa bore pile jakarta",          "money-child",       "jasa"],
-          ["harga bore pile",                 "money-master",      "jasa"],
-          ["jasa bore pile murah",            "money-master",      "jasa"],
-          ["jasa bor tanah profesional",      "money-page",        "jasa"],
-          ["jasa bor tanah dalam profesional", "variant",          "jasa"],
-          ["jasa bor tanah jakarta",          "money-child",       "jasa"],
-          ["ukuran jasa bor tanah",           "money-page",        "jasa"],
-          ["spesifikasi jasa bor tanah",      "money-page",        "jasa"],
+    // 🔥 REGRESSION TEST v9.3 — SEO DIMENSION
+    try {
+      var _testCases = [
+        // ═══ JASA — BROAD-TO-NARROW dengan Compound-aware ═══
+        // Base → MM
+        ["jasa bor",                        "money-master",      "jasa"],
+        ["jasa cor",                        "money-master",      "jasa"],
+        ["jasa pasang",                     "money-master",      "jasa"],
+        ["jasa pancang",                    "money-master",      "jasa"],
+        
+        // 🔥 COMPOUND TEST: MP test (compound = 1 layer)
+        ["jasa bor sumur",                  "money-page",        "jasa"],
+        ["jasa bor air tanah",              "money-page",        "jasa"],  // ← FIX
+        ["jasa bor pile",                   "money-page",        "jasa"],
+        ["jasa bor bore pile",              "money-page",        "jasa"],  // ← FIX
+        ["jasa cor dak",                    "money-page",        "jasa"],
+        ["jasa pasang keramik",             "money-page",        "jasa"],
+        ["jasa pancang mini",               "money-page",        "jasa"],
+        ["jasa bor tanah profesional",      "money-page",        "jasa"],
+        ["ukuran jasa bor tanah",           "money-page",        "jasa"],
+        ["spesifikasi jasa bor tanah",      "money-page",        "jasa"],
+        
+        // Variant test (2 layers: base + 2 spesifikasi)
+        ["jasa bor sumur dalam",            "variant",           "jasa"],
+        ["jasa bor air tanah dalam",        "variant",           "jasa"],  // ← FIX
+        ["jasa bor air tanah dangkal",      "variant",           "jasa"],  // ← FIX
+        ["jasa cor dak lantai 2",           "variant",           "jasa"],
+        ["jasa pasang keramik 60x60",       "variant",           "jasa"],
+        ["jasa pancang mini beton",         "variant",           "jasa"],
+        ["jasa bor tanah dalam profesional", "variant",          "jasa"],
+        
+        // Sub-variant (3+ layers)
+        ["jasa bor sumur dalam 30 meter",   "sub-variant",       "jasa"],
+        ["jasa bor air tanah dalam 30 meter", "sub-variant",     "jasa"],  // ← FIX
+        
+        // 🔥 LOCATION TEST: Location SELALU MC
+        ["jasa bor jakarta",                "money-child",       "jasa"],
+        ["jasa bor air tanah jakarta",      "money-child",       "jasa"],  // ← FIX
+        ["jasa bor air tanah surabaya",     "money-child",       "jasa"],  // ← FIX
+        ["jasa bor air tanah bogor",        "money-child",       "jasa"],  // ← FIX
+        ["jasa bor air tanah depok",        "money-child",       "jasa"],  // ← FIX
+        ["jasa bor air tanah tangerang",    "money-child",       "jasa"],  // ← FIX
+        ["jasa bor air tanah bekasi",       "money-child",       "jasa"],  // ← FIX
+        ["jasa bor air tanah karawang",     "money-child",       "jasa"],  // ← FIX
+        ["jasa bor tanah jakarta",          "money-child",       "jasa"],
+        ["jasa bore pile jakarta",          "money-child",       "jasa"],
+        ["jasa cor dak jakarta",            "money-child",       "jasa"],
+        
+        // Harga variants
+        ["harga bore pile",                 "money-master",      "jasa"],
+        ["jasa bore pile murah",            "money-master",      "jasa"],
 
-          // ═══ SEWA ═══
-          ["sewa excavator",                  "money-master",      "sewa"],
-          ["sewa excavator jakarta",          "money-child",       "sewa"],
-          ["sewa excavator per hari",         "money-page",        "sewa"],
-          ["sewa excavator mini",             "variant",           "sewa"],
-
-          // ═══ PRODUK ═══
-          ["pintu aluminium",                 "money-master",      "produk"],
-          ["pintu aluminium jakarta",         "money-child",       "produk"],
-          ["pintu aluminium 80x200",          "money-page",        "produk"],
-
-          // ═══ MATERIAL ═══
-          ["besi beton ulir",                 "money-master",      "material"],
-          ["besi beton ulir sni",             "money-page",        "material"],
-
-          // ═══ DESAIN ═══
-          ["desain interior",                 "money-master",      "desain"],
-          ["desain interior minimalis",       "variant",           "desain"],
-
-          // ═══ ARTIKEL ═══
-          ["cara pasang keramik",             "money-master",      "artikel"],
-
-          // ═══ SUB-PILLAR ═══
-          ["daftar jenis pagar",              "sub-pillar-tipe-2", null],
-          ["pagar vs kanopi",                 "sub-pillar-tipe-1", null]
-        ];
-        var _fails = 0;
-        for (var _ti = 0; _ti < _testCases.length; _ti++) {
-          var _got = detectPageLevelForPrompt(_testCases[_ti][0], _testCases[_ti][2]);
-          if (_got !== _testCases[_ti][1]) {
-            console.error("❌ REGRESSION FAIL:", _testCases[_ti][0],
-                          "expected", _testCases[_ti][1], "got", _got,
-                          "(entity=" + _testCases[_ti][2] + ")");
-            _fails++;
-          }
+        // Tukang-based (FIX-TUKANG-v1)
+        ["tukang sumur bor",                "money-master",      "jasa"],
+        ["tukang bor sumur jakarta",        "money-child",       "jasa"],
+        
+        // ═══ SEWA ═══
+        ["sewa excavator",                  "money-master",      "sewa"],
+        ["sewa excavator jakarta",          "money-child",       "sewa"],
+        ["sewa excavator per hari",         "money-page",        "sewa"],
+        ["sewa excavator mini",             "variant",           "sewa"],
+        ["sewa alat berat",                 "money-master",      "sewa"],  // ← compound
+        ["sewa alat berat jakarta",         "money-child",       "sewa"],  // ← compound + loc
+        ["sewa concrete pump",              "money-master",      "sewa"],  // ← compound
+        ["sewa tower crane",                "money-master",      "sewa"],  // ← compound
+        ["sewa mobile crane",               "money-master",      "sewa"],  // ← compound
+        ["sewa dump truck jakarta",         "money-child",       "sewa"],  // ← compound + loc
+        
+        // ═══ PRODUK (PATCH 9) ═══
+        ["pintu aluminium",                 "money-master",      "produk"],
+        ["pintu aluminium jakarta",         "money-child",       "produk"],
+        ["pintu aluminium 80x200",          "money-page",        "produk"],
+        ["kitchen set",                     "money-master",      "produk"],  // ← compound
+        ["kitchen set minimalis",           "money-page",        "produk"],
+        ["kitchen set jakarta",             "money-child",       "produk"],
+        ["pagar panel",                     "money-master",      "produk"],  // ← compound
+        ["pagar panel beton",               "money-master",      "produk"],
+        ["pagar panel beton jakarta",       "money-child",       "produk"],
+        ["u ditch",                         "money-master",      "produk"],  // ← compound
+        ["u ditch 30x30",                   "money-page",        "produk"],
+        ["wall panel",                      "money-master",      "produk"],  // ← compound
+        
+        // ═══ MATERIAL (PATCH 10) ═══
+        ["besi beton",                      "money-master",      "material"], // ← compound
+        ["besi beton ulir",                 "money-page",        "material"],
+        ["besi beton ulir sni",             "variant",           "material"],
+        ["kayu jati",                       "money-master",      "material"], // ← compound
+        ["kayu jati solid",                 "money-page",        "material"],
+        ["batu kali",                       "money-master",      "material"], // ← compound
+        ["batu kali belah",                 "money-page",        "material"],
+        ["semen portland",                  "money-master",      "material"], // ← compound
+        ["semen portland tipe 1",           "money-page",        "material"],
+        ["pasir beton",                     "money-master",      "material"], // ← compound
+        ["pasir beton halus",               "money-page",        "material"],
+        ["besi beton ulir sni 13mm",        "sub-variant",       "material"],
+        
+        // ═══ DESAIN (PATCH 11) ═══
+        ["desain interior",                 "money-master",      "desain"], // ← compound
+        ["desain interior minimalis",       "money-page",        "desain"],
+        ["desain interior minimalis rumah", "variant",           "desain"],
+        ["desain interior kantor",          "money-page",        "desain"],  // ← room ctx
+        ["desain interior kantor modern",   "variant",           "desain"],
+        ["desain rumah",                    "money-master",      "desain"], // ← compound
+        ["desain rumah minimalis",          "money-page",        "desain"],
+        ["desain rumah minimalis 2 lantai", "variant",           "desain"],
+        ["desain 3d",                       "money-master",      "desain"], // ← compound
+        ["desain 3d rumah",                 "money-page",        "desain"],
+        ["desain interior cafe jakarta",    "money-child",       "desain"],
+        
+        // ═══ ARTIKEL ═══
+        ["cara pasang keramik",             "money-master",      "artikel"],
+        ["tips memilih baja ringan",        "money-master",      "artikel"],
+        
+        // ═══ SUB-PILLAR ═══
+        ["daftar jenis pagar",              "sub-pillar-tipe-2", null],
+        ["pagar vs kanopi",                 "sub-pillar-tipe-1", null]
+      ];
+      var _fails = 0;
+      var _failsList = [];
+      for (var _ti = 0; _ti < _testCases.length; _ti++) {
+        var _got = detectPageLevelForPrompt(_testCases[_ti][0], _testCases[_ti][2]);
+        if (_got !== _testCases[_ti][1]) {
+          console.error("❌ REGRESSION FAIL:", _testCases[_ti][0],
+                        "expected", _testCases[_ti][1], "got", _got,
+                        "(entity=" + _testCases[_ti][2] + ")");
+          _fails++;
+          _failsList.push(_testCases[_ti][0]);
         }
-        if (_fails === 0) {
-          console.log("🎉 REGRESSION: ALL " + _testCases.length + " PASS");
-        } else {
-          console.warn("⚠️ REGRESSION: " + _fails + " FAIL dari " + _testCases.length);
-        }
-      } catch (e) {
-        console.error("Regression test error:", e.message);
       }
+      if (_fails === 0) {
+        console.log("🎉 REGRESSION: ALL " + _testCases.length + " PASS ✅");
+      } else {
+        console.warn("⚠️ REGRESSION: " + _fails + " FAIL dari " + _testCases.length);
+        console.warn("⚠️ Fails: " + _failsList.join(", "));
+      }
+    } catch (e) {
+      console.error("Regression test error:", e.message);
     }
 
-    // FIX-P7: updateAttributes
+    // Auto-update attributes
     try {
       window.pageLevelDetectorv22.updateAttributes({ waitForBreadcrumb: false })
         .then(function(result) {
@@ -4314,7 +4532,7 @@ var SPEC_PHRASE_INFORMATIONAL = [
     try {
       initializeCore();
     } catch (e) {
-      console.error('❌ [PLD-B2N] initializeCore error: ' + e.message);
+      console.error('❌ [PLD-SEO-DIMENSION] initializeCore error: ' + e.message);
       try {
         if (document.body) {
           document.body.setAttribute("data-page-level", "money-page");
@@ -4337,7 +4555,7 @@ var SPEC_PHRASE_INFORMATIONAL = [
   // GLOBAL HELPERS
   // ═══════════════════════════════════════════════════════════
   if (typeof window !== "undefined") {
-    window.PLD_VERSION = "23.9.7-lite-perf-b2n";
+    window.PLD_VERSION = "23.9.8-seo-dimension";
     window.getPLDInfo = function() {
       if (!window.pageLevelDetectorv22) {
         console.error("❌ PLD belum ready.");
@@ -4345,7 +4563,7 @@ var SPEC_PHRASE_INFORMATIONAL = [
       }
       return {
         version: window.pageLevelDetectorv22.version,
-        mode: "LITE-PERF-BROAD-TO-NARROW",
+        mode: "SEO-DIMENSION",
         pageLevel: window.pageLevelDetectorv22.detect(),
         entityType: window.pageLevelDetectorv22.detectEntityType(),
         perf: window.pageLevelDetectorv22._getPerfStats(),
@@ -4359,7 +4577,6 @@ var SPEC_PHRASE_INFORMATIONAL = [
   }
 
 })();
-
 
 
  
