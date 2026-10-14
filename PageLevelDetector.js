@@ -214,7 +214,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       // === Kanopi material ===
       "kanopi baja ringan","kanopi alderon","kanopi spandek","kanopi solarflat","kanopi kaca","kanopi polycarbonate","kanopi besi","kanopi galvanis","kanopi hollow","kanopi membrane",
       // === Pagar material ===
-      "pagar panel","pagar beton","pagar brc","pagar panel beton","pagar brc galvanis","pagar besi","pagar kayu","pagar aluminium","pagar stainless","pagar hollow","pagar tembok","pagar besi tempa","pagar besi hollow","pagar besi ulir","pagar wpc","pagar pvc","pagar grc","pagar kawat","pagar harmonika","pagar elektrik",
+            "pagar panel","pagar beton","pagar brc","pagar besi","pagar kayu","pagar aluminium","pagar stainless","pagar hollow","pagar tembok","pagar besi tempa","pagar besi hollow","pagar besi ulir","pagar wpc","pagar pvc","pagar grc","pagar kawat","pagar harmonika","pagar elektrik",
       // === Railing ===
       "railing tangga","railing balkon","railing besi","railing stainless","railing aluminium","railing kaca","railing hollow","railing besi tempa",
       // === Tangga ===
@@ -545,7 +545,8 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "paving block", "rooster beton", "half slab",
       "tangga putar", "tangga monyet",
       // Komponen pagar
-      "pagar panel beton", "pagar brc galvanis",
+            // 🔥 FIX: pagar panel beton bukan base, biar jadi MP
+      //"pagar panel beton", "pagar brc galvanis",
       // Precast
       "precast beton", "beton precast",
       "tiang pancang beton", "mini pile beton",
@@ -574,6 +575,9 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "plafon gypsum", "plafon pvc", "plafon grc",
       "gypsum board", "gypsum jayaboard",
       // Tambahan
+            // 🔥 FIX-TIPE-NUM: "tipe 1" sebagai 1 konsep
+      "tipe 1", "tipe 2", "tipe 3", "tipe 4", "tipe 5",
+      "type 1", "type 2", "type 3", "type 4", "type 5",
       "semen portland pozzolan", "semen portland composite",
       "semen tiga roda", "semen gresik", "semen holcim",
       "marmer travertine",
@@ -3242,14 +3246,17 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
           if (/\b(jakarta|bogor|depok|tangerang|bekasi|bandung|semarang|surabaya|jogja|yogyakarta|malang|medan|palembang|makassar|denpasar|bali)\b/i.test(_sisaSw[_sli])) { _sisaIsLocation = true; break; }
         }
 
-        if (_sisaIsLocation) {
+         if (_sisaIsLocation) {
           // fall through
         } else if (_specCountSw === 1 && _sisaSw.length === 1) {
-          return "variant";
+          // 🔥 FIX-SEWA-LAYER: base + 1 spec = money-page
+          return "money-page";
         } else if (_specCountSw >= 2 || _sisaSw.length >= 2) {
-          return "sub-variant";
-        } else {
+          // 🔥 FIX-SEWA-LAYER: base + 2 spec = variant
+          if (isSubVariant(text, "sewa")) return "sub-variant";
           return "variant";
+        } else {
+          return "money-page";
         }
       }
 
@@ -3485,13 +3492,13 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       if (_matchedBaseDs.length === 1) {
         var _matchedBaseDs1 = _matchedBaseDs[0];
 
-        var _tempDs = lowerText;
+                var _tempDs = lowerText;
+        // 🔥 FIX-DESAIN-STRIP: strip base DULU, baru entity-only
+        _tempDs = _tempDs.replace(rx(_matchedBaseDs1, 'g'), ' ');
         var _entityOnlyDs = ENTITY_ONLY_WORDS.desain || [];
         for (var _eods = 0; _eods < _entityOnlyDs.length; _eods++) {
           _tempDs = _tempDs.replace(rx(_entityOnlyDs[_eods], 'g'), ' ');
         }
-
-        _tempDs = _tempDs.replace(rx(_matchedBaseDs1, 'g'), ' ');
         _tempDs = normalizeCompoundTerms(_tempDs, "desain");
 
         _tempDs = _tempDs.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|premium|mewah|eksklusif|luxury|high end)\b/gi, ' ');
