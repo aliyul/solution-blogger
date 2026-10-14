@@ -616,7 +616,340 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     ]
   };
    
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 BLOCK KONSTANTA (WAJIB ADA — jangan dihapus)
+  // ═══════════════════════════════════════════════════════════
 
+  var JASA_SUB_CATEGORIES = {
+    struktural: ["bore pile","bor pile","bored pile","boring pile","mini pile","spun pile","micropile","bor strauss","bor pancang","strauss pile","tiang pancang","pancang","turap","sheet pile","jet grouting","stabilisasi tanah","soil improvement","sumur bor","bor sumur","pondasi","perkuatan tanah","cor","cor dak","cor lantai","cor jalan","cor kolom","cor sloof","cor balok","cor plat","cor pondasi","cor tiang","cor dinding","cor pagar","pengeboran","drilling","boring","coring","cutting","cutting beton","uji tanah","soil test","gali tanah","gali pondasi","gali basement","gali saluran","penggalian tanah","penggalian pondasi","urug tanah","urug lahan","urug pondasi","urug jalan","pengurugan tanah","pengurugan lahan","pemadatan tanah","pemadatan lahan","pemotongan bukit","cut and fill"],
+    finishing: ["relief","relief beton","profil beton","finishing","cat dinding","cat tembok","cat plafon","cat kayu","cat besi","cat pagar","pengecatan dinding","pengecatan tembok","waterproofing","poles marmer","poles granit","poles keramik","poles lantai","grinding","grinding beton","grinding lantai","epoxy lantai","coating","coating lantai","coating beton","sandblasting besi","sandblasting beton","sandblasting dinding"],
+    konstruksi: ["konstruksi bangunan","konstruksi struktur","struktur khusus","struktur konstruksi","lapangan olahraga","bangun rumah","bangun gedung","bangun ruko","bangun gudang","bangun kantor","bangun pabrik","bangun sekolah","borongan rumah","borongan gedung","borongan interior","pembuatan kanopi","pembuatan pagar","pembuatan railing"],
+    infrastruktur: ["saluran drainase","jalan perkerasan","pengaspalan","aspal jalan","pengerukan sungai","pengerukan kolam","pengerukan saluran"],
+    pematangan: ["pematangan lahan","pekerjaan galian tanah","pembersihan lahan","land clearing","angkut tanah","angkut puing","angkut material"],
+    bongkar_buang: ["bongkar dinding","bongkar lantai","bongkar plat","bongkar gedung","bongkar rumah","bongkar ruko","bongkar gudang","bongkar atap","bongkar keramik","bongkar granit","bongkar marmer","bongkar plafon","bongkar kusen","bongkar pintu","bongkar jendela","bongkar pagar","bongkar partisi","bongkar bangunan","buang puing"],
+    perbaikan: ["renovasi rumah","renovasi gedung","renovasi kantor","renovasi toko","renovasi ruko","renovasi gudang","renovasi pabrik","renovasi apartemen","renovasi dapur","renovasi kamar mandi","renovasi kamar tidur","renovasi ruang tamu","renovasi teras","renovasi balkon","renovasi atap","renovasi lantai","renovasi dinding","renovasi plafon","renovasi pagar","renovasi taman","perbaikan atap","perbaikan dinding","perbaikan lantai","perbaikan plafon","perbaikan pondasi","perbaikan struktur","perbaikan pipa","perbaikan saluran air","perbaikan bangunan","perbaikan infrastruktur","perawatan gedung","perawatan kolam"],
+    instalasi: ["instalasi listrik","instalasi air","instalasi plumbing","instalasi ac","instalasi cctv","instalasi alarm","pasang instalasi listrik","pasang instalasi air","pasang instalasi gas","pasang instalasi ac","pasang pipa","pasang kabel listrik","pasang panel listrik","pasang ac","pasang cctv","pasang alarm","service ac","service pompa air","service genset","service lift","pemasangan wifi","instalasi internet","instalasi antena","pemasangan parabola"],
+    konsultasi: ["konsultan","konsultan konstruksi"],
+    pembuatan_pasang: ["pembuatan","pasang","pasang dinding","pasang keramik","pasang granit","pasang marmer","pasang parket","pasang vinyl","pasang ubin","pasang wallpaper","pasang wpc","pasang grc","pasang hpl","pasang partisi","pasang pagar","pasang kanopi","pasang awning","pasang railing","pasang tangga","pasang gerbang","pasang baja ringan","pasang rangka atap","pasang atap","pasang genteng","pasang plafon","pasang gypsum","pasang pintu","pasang jendela","pasang kusen","pasang kaca","pasang shower box"],
+    pengaman: ["pembatas pengaman"],
+    alat_konstruksi: ["alat konstruksi"],
+    interior_eksterior: ["interior","eksterior"],
+    las_welding: ["las","welding","sandblasting","las besi","las pagar","las kanopi","las rangka baja","las tiang","welding besi","welding konstruksi"]
+  };
+
+  var DOMAIN_CONSTRAINTS = {
+    struktural: { allowed_categories: ["metode","skala","tipe_aspal","material","dimensi","kedalaman","target","price","per_unit","global_numeric","tipe","merek","kondisi","durasi","kapasitas"], forbidden_categories: ["finishing","warna","gaya","furniture","subjektif","konsep","warna_extended","gaya_extended"] },
+    finishing: { allowed_categories: ["metode","skala","finishing","warna","material","target","price","per_unit","global_numeric"], forbidden_categories: ["dimensi","kedalaman","gaya","furniture","konsep","warna_extended","gaya_extended"] },
+    konstruksi: { allowed_categories: ["metode","skala","material","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","subjektif","konsep","warna_extended","gaya_extended"] },
+    infrastruktur: { allowed_categories: ["metode","skala","material","target","price","per_unit","global_numeric","tipe_aspal"], forbidden_categories: ["finishing","warna","gaya","furniture","subjektif","konsep","warna_extended","gaya_extended"] },
+    pematangan: { allowed_categories: ["metode","skala","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","subjektif","konsep","dimensi","kedalaman"] },
+    bongkar_buang: { allowed_categories: ["metode","skala","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","subjektif","konsep","dimensi","kedalaman"] },
+    perbaikan: { allowed_categories: ["metode","skala","material","finishing","gaya","target","price","per_unit","global_numeric"], forbidden_categories: ["dimensi","kedalaman","furniture","konsep","warna_extended","gaya_extended"] },
+    instalasi: { allowed_categories: ["metode","skala","merek","kapasitas","kondisi","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","konsep","dimensi","kedalaman","warna_extended","gaya_extended"] },
+    konsultasi: { allowed_categories: ["skala","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","konsep","dimensi","kedalaman","metode","material"] },
+    pembuatan_pasang: { allowed_categories: ["metode","skala","material","finishing","gaya","dimensi","target","price","per_unit","global_numeric","warna"], forbidden_categories: ["kedalaman","furniture","konsep","warna_extended","gaya_extended"] },
+    pengaman: { allowed_categories: ["material","dimensi","target","price","per_unit","global_numeric","metode"], forbidden_categories: ["finishing","warna","gaya","furniture","konsep","kedalaman","warna_extended","gaya_extended"] },
+    alat_konstruksi: { allowed_categories: ["merek","kapasitas","kondisi","durasi","tipe","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","konsep","dimensi","kedalaman","warna_extended","gaya_extended"] },
+    interior_eksterior: { allowed_categories: ["gaya","warna","material","finishing","konsep","furniture","subjektif","target","price","per_unit","global_numeric","warna_extended","gaya_extended"], forbidden_categories: ["dimensi","kedalaman","metode"] },
+    las_welding: { allowed_categories: ["metode","material","dimensi","target","price","per_unit","global_numeric"], forbidden_categories: ["finishing","warna","gaya","furniture","konsep","kedalaman","warna_extended","gaya_extended"] },
+    default: { allowed_categories: ["metode","skala","material","finishing","warna","gaya","dimensi","target","price","per_unit","global_numeric","tipe","merek","kondisi","durasi","kapasitas"], forbidden_categories: [] }
+  };
+
+  var MODIFIER_COMPATIBILITY = {
+    "polos": ["produk","material","desain","jasa_finishing","jasa_pembuatan_pasang"], "motif": ["produk","material","desain","jasa_finishing"], "bermotif": ["produk","material","desain"], "bercorak": ["produk","material","desain"], "tekstur": ["produk","material","desain","jasa_finishing"], "serat": ["produk","material","desain"], "halus": ["produk","material","desain","jasa_finishing"], "kasar": ["produk","material","desain"], "matte": ["produk","material","desain"], "glossy": ["produk","material","desain"], "doff": ["produk","material","desain"], "gloss": ["produk","material","desain"], "satin": ["produk","material","desain"], "anyaman": ["produk","material","desain"], "natural": ["produk","material","desain"], "ekspos": ["produk","material","desain","jasa_finishing"], "custom": ["produk","material","desain","jasa_pembuatan_pasang"], "polosan": ["produk","material","desain"], "cat": ["produk","material","desain","jasa_finishing"], "coating": ["produk","material","desain","jasa_finishing"], "lapisan": ["produk","material","desain"], "vernis": ["produk","material","desain","jasa_finishing"],
+    "putih": ["produk","material","desain","jasa_interior_eksterior"], "hitam": ["produk","material","desain","jasa_interior_eksterior"], "abu-abu": ["produk","material","desain","jasa_interior_eksterior"], "merah": ["produk","material","desain","jasa_interior_eksterior"], "biru": ["produk","material","desain","jasa_interior_eksterior"], "kuning": ["produk","material","desain","jasa_interior_eksterior"], "hijau": ["produk","material","desain","jasa_interior_eksterior"], "coklat": ["produk","material","desain","jasa_interior_eksterior"], "netral": ["produk","material","desain","jasa_interior_eksterior"], "krem": ["produk","material","desain","jasa_interior_eksterior"], "maroon": ["produk","material","desain","jasa_interior_eksterior"], "navy": ["produk","material","desain","jasa_interior_eksterior"], "forest": ["produk","material","desain","jasa_interior_eksterior"], "gold": ["produk","material","desain","jasa_interior_eksterior"], "silver": ["produk","material","desain","jasa_interior_eksterior"], "bronze": ["produk","material","desain","jasa_interior_eksterior"], "copper": ["produk","material","desain","jasa_interior_eksterior"], "rose gold": ["produk","material","desain","jasa_interior_eksterior"], "teal": ["produk","material","desain","jasa_interior_eksterior"], "turquoise": ["produk","material","desain","jasa_interior_eksterior"], "lavender": ["produk","material","desain","jasa_interior_eksterior"], "magenta": ["produk","material","desain","jasa_interior_eksterior"], "coral": ["produk","material","desain","jasa_interior_eksterior"], "salmon": ["produk","material","desain","jasa_interior_eksterior"], "peach": ["produk","material","desain","jasa_interior_eksterior"], "mint": ["produk","material","desain","jasa_interior_eksterior"], "warm": ["produk","material","desain","jasa_interior_eksterior"], "cool": ["produk","material","desain","jasa_interior_eksterior"], "pastel": ["produk","material","desain","jasa_interior_eksterior"], "dark": ["produk","material","desain","jasa_interior_eksterior"], "light": ["produk","material","desain","jasa_interior_eksterior"],
+    "minimalis": ["produk","desain","jasa_interior_eksterior","jasa_perbaikan","jasa_pembuatan_pasang"], "modern": ["produk","desain","jasa_interior_eksterior","jasa_perbaikan","jasa_pembuatan_pasang"], "klasik": ["produk","desain","jasa_interior_eksterior"], "skandinavia": ["produk","desain","jasa_interior_eksterior"], "japandi": ["produk","desain","jasa_interior_eksterior"], "industrial": ["produk","desain","jasa_interior_eksterior"], "kontemporer": ["produk","desain","jasa_interior_eksterior"], "tradisional": ["produk","desain","jasa_interior_eksterior"], "rustic": ["produk","desain","jasa_interior_eksterior"], "bohemian": ["produk","desain","jasa_interior_eksterior"],
+    "dimensi": ["material","produk","jasa_struktural","jasa_pengaman","jasa_las_welding"], "ukuran": ["material","produk","jasa_struktural","jasa_pengaman"], "tebal": ["material","produk"], "panjang": ["material","produk","jasa_struktural"], "lebar": ["material","produk"], "tinggi": ["material","produk"], "diameter": ["material","produk","jasa_struktural"], "kedalaman": ["jasa_struktural"], "radius": ["material","produk"],
+    "manual": ["jasa_struktural","jasa_instalasi","jasa_las_welding","jasa_pembuatan_pasang","jasa_finishing"], "hidrolik": ["jasa_struktural","jasa_alat_konstruksi"], "auger": ["jasa_struktural"], "rotary": ["jasa_struktural"], "percussive": ["jasa_struktural"], "dry": ["jasa_struktural","jasa_finishing"], "wet": ["jasa_struktural","jasa_finishing"], "basah": ["jasa_finishing"], "kering": ["jasa_finishing"], "mesin": ["jasa_struktural","jasa_instalasi","jasa_las_welding"],
+    "beton": ["produk","material","jasa_struktural","jasa_konstruksi","jasa_perbaikan"], "besi": ["produk","material","jasa_las_welding","jasa_struktural","jasa_pembuatan_pasang"], "kayu": ["produk","material","desain","jasa_pembuatan_pasang"], "aluminium": ["produk","material","jasa_instalasi","jasa_pembuatan_pasang"], "kaca": ["produk","material","jasa_instalasi","jasa_pembuatan_pasang"], "stainless": ["produk","material","jasa_pembuatan_pasang"], "baja": ["produk","material","jasa_struktural","jasa_las_welding"], "pvc": ["produk","material","jasa_instalasi"], "wpc": ["produk","material","jasa_pembuatan_pasang"], "grc": ["produk","material","jasa_pembuatan_pasang","jasa_finishing"], "hpl": ["produk","material","jasa_pembuatan_pasang"], "acp": ["produk","material","jasa_pembuatan_pasang"], "vinyl": ["produk","material","jasa_pembuatan_pasang"], "upvc": ["produk","material","jasa_instalasi"], "tembaga": ["produk","material","jasa_instalasi"], "kuningan": ["produk","material"], "perunggu": ["produk","material"], "titanium": ["produk","material"], "bambu": ["produk","material","desain"], "rotan": ["produk","material","desain"]
+  };
+
+  var GLOBAL_NUMERIC_KEYWORDS = ["grade a","grade b","grade c","sni","standar","kualitas 1","kualitas 2","kualitas 3","kelas 1","kelas 2","kelas 3"];
+
+  var SHARED_MODIFIERS = {
+    material: ["beton","besi","kayu","aluminium","kaca","stainless","baja","pvc","wpc","grc","hpl","acp","vinyl","upvc","tembaga","kuningan","perunggu","titanium","bambu","rotan"],
+    finishing: ["polos","motif","bermotif","bercorak","tekstur","serat","halus","kasar","matte","glossy","doff","gloss","satin","anyaman","natural","ekspos","custom","polosan","cat","coating","lapisan","vernis"],
+    warna: ["putih","hitam","abu-abu","merah","biru","kuning","hijau","coklat","netral","krem","maroon","navy","forest","gold","silver","bronze","copper","rose gold","teal","turquoise","lavender","magenta","coral","salmon","peach","mint","warm","cool","pastel","dark","light"],
+    gaya: ["minimalis","modern","klasik","skandinavia","japandi","industrial","kontemporer","tradisional","rustic","bohemian"]
+  };
+
+  var ENTITY_SPECIFIC = {
+    jasa: {
+      metode: ["manual","hidrolik","auger","rotary","percussive","dry","wet","basah","kering","mesin","dalam","dangkal","artesis","jet pump"],
+      skala: ["rumahan","komersial","industri","residential","commercial","industrial","kecil","sedang","besar","menengah","proyek","perumahan","perkantoran","pabrik","sekolah"],
+      tipe_aspal: ["hotmix","coldmix","aspal cair","aspal buton"]
+    },
+    produk: {
+      mutu: ["k225","k250","k300","k350","k400","k500","fc"],
+      tipe: ["geser","lipat","swing","sliding","casement","rolling door","folding gate","harmonika","ayun","kupu-kupu","revolving","otomatis","manual","knockdown","prefab","precast"]
+    },
+    material: {
+      grade_material: ["portland","opc","ppc","pcc","type 1","type 2","type 3","type 4","type 5","tipe 1","tipe 2","tipe 3","tipe 4","tipe 5"],
+      tipe_extended: ["wiry","bjku","bjtd","bjp","bjts","plywood","multiplek","blockboard","mdf","hdf","particle board","solid wood","jati","meranti","mahoni","sengon","pinus","randu","sungkai","bangkirai","ulin","kamper","kruing","keruing","merbau","sonokeling","trembesi","glugu","andesit","kali","apung","split","koral","candi","palimanan","paras","breksi","batu alam","batu belah","batu gunung","batu karang","silika","zeolit","cor","homogeneous","homogen","roman","platinum","mulia","essence","granito","granit tile","keramik lantai","keramik dinding","marmer italy","marmer lokal","marmer import","granit hitam","granit putih","granit coklat","granit import","granit lokal","dulux","jotun","nippon","mowilex","avian","decolith","propan","falcon","vinilex","pasir beton","pasir pasang","pasir urug","pasir halus","pasir kasar","pasir putih","pasir hitam","pasir ayak","pasir silika","pasir bangka","pasir lumajang","h-beam","hbeam","wf","hollow","kanal","siku","unesp","unp","cnp","inp","besi hollow","besi kanal","eterna","supreme","kabelindo","tranka","rucika","wavin","vinilon","pralon","maspion","besi cor","aluminium foil","bangka","lumajang","tulungagung","pangkep","muntilan","borneo","kalimantan","jepara","kudus","cilacap","tiga roda","3 roda","gresik","semen gresik","semen-gresik","holcim","semen holcim","semen-holcim","scg","semen scg","semen-scg","padang","semen padang","semen-padang","merah putih","semen merah putih","cibinong","semen cibinong","baturaja","semen baturaja","bosowa","semen bosowa","tonasa","semen tonasa","master","besi master","intan","besi intan","handuk","besi handuk","krakatau steel","krakatau-steel","ks","gunung garuda","gunung-garuda","hanil","jeka","danagri","magic","aquaproof","no drop","no-drop","nodrop","aqua proof","icera","ardena","milano","asia tile","asia-tile","indograha","kian","eleganza","elegan","paving","paving block","grass block","atap","atap spandek","atap metal","atap genteng","plafon","plafon gypsum","plafon pvc","plafon grc","shunda","kalsiboard","gyproc","jayaboard"]
+    },
+    sewa: {
+      merek: ["pc75","pc200","pc300","pc350","pc400","komatsu","hitachi","caterpillar","cat","volvo","hyundai","doosan","kobelco","sumitomo","case","jcb","liebherr","kubota","yanmar","perkins","cummin"],
+      kondisi: ["baru","bekas","servis","recondition","rebuilt","ready","siap pakai","prima","baik","layak","standar","listrik","diesel","bensin","solar","hydraulic"],
+      durasi: ["harian","mingguan","bulanan","tahunan","per jam","per hari","per minggu","per bulan","short term","long term"],
+      tipe: ["mini","besar","kecil","sedang","medium","heavy","standar","extra","ekstra","jumbo","compact","full size","large","operator","tanpa operator","self drive","lepas kunci","include operator"],
+      kapasitas: ["ton","m3","kg","liter","galon","hp","ps","kva","psi","rpm","kw","inch","inchi"],
+      tools_extended: ["motor grader","wheel loader","tower crane","asphalt finisher","asphalt paver","tandem roller","pneumatic tire roller","cold milling","batching plant","concrete pump","genset","pompa air","pompa-beton","compressor","jack hammer"]
+    },
+    desain: {
+      tipe: ["2d","3d","animasi","walkthrough","virtual tour","vr","ar","render"],
+      gaya_extended: ["art deco","mid century","victorian","gothic","renaissance","baroque","rococo","neoklasik","art nouveau","bauhaus","postmodern","dekonstruksi","high tech","eklektik","transisi","tropis","mediterania","kolonial","peranakan","balinese","javanese","japandi","coastal","new york","hampton","farmhouse","shabby chic","parisian","moroccan","brutalist","cottage core","grand millennial","tropical modern","contemporary","industrial chic","minimalism","classic","modern classic","streamline","boho chic","mid-century","memphis","cyberpunk","steampunk","neofuturism","biophilic","wabi sabi","zen","feng shui","bali modern","java etnik","minimalis tropis","kolonial modern","industrial rustic","scandinavian japandi","modern klasik","minimalis skandinavia","japandi minimalis","classic modern","modern farmhouse","boho industrial","javanese modern","balinese contemporary","traditional modern","ethnic modern","modern etnik","tribal modern"],
+      warna_extended: ["earth tone","sage green","sage","dusty pink","dusty","terracotta","navy blue","mustard","olive","mauve","charcoal","cream","ivory","beige","taupe","greige"],
+      konsep: ["open space","split level","loft","studio","apartment","villa","tiny house","smart home","eco home","sustainable","green building","biophilic","zen","feng shui","vastu","wabi sabi"],
+      material: ["kayu","besi","kaca","marmer","granit","keramik","plafon","gypsum","pvc","acp","vinyl","wpc","grc","hpl","bambu","rotan","anyaman","kain","kulit","karpet","parket","ubin","batu alam","batu bata","beton ekspos"],
+      furniture: ["minimalis","skandinavia","jepang","klasik","modern","retro","vintage","industrial","rustic","bohemian","mid century","art deco","contemporary"],
+      subjektif: ["mewah","eksklusif","premium","luxury","high end","artistik","estetik"]
+    }
+  };
+
+  function uniqArray(arr) {
+    var seen = {};
+    return arr.filter(function(w) {
+      if (seen[w]) return false;
+      seen[w] = true;
+      return true;
+    });
+  }
+
+  var PURE_JASA_TECHNIQUES = [];
+  var PURE_METHODS = ["manual","hidrolik","auger","rotary","percussive","dry","wet","basah","kering","mesin","dalam","dangkal","artesis","jet pump","borongan","perumahan","proyek"];
+  var PURE_SCALES = ["rumahan","komersial","industri","residential","commercial","industrial","kecil","sedang","besar","menengah"];
+  var PURE_FINISHING = ["polos","motif","bermotif","bercorak","tekstur","serat","halus","kasar","matte","glossy","doff","gloss","satin","anyaman","natural","ekspos","custom","polosan","cat","coating","lapisan","vernis"];
+
+  var APPLICATION_TARGETS = ["mini","dinding","tembok","lantai","plafon","atap","partisi","kolom","balok","plat","slab","pelat","pondasi","tiang","tangga","railing","kusen","pagar","pintu","jendela","rolling door","kanopi","awning","fasad","facade","teras","balkon","halaman","carport","garasi","kamar mandi","kamar tidur","ruang tamu","ruang keluarga","ruang makan","ruang kerja","dapur","toilet","wc","kantor","toko","gudang","pabrik","sekolah","rumah","gedung","ruko","villa","apartemen","cafe","restoran","hotel","kios","rukan","jalan","trotoar","saluran","drainase","taman","kolam","sawah","lahan"];
+
+  var APPLICATION_TARGETS_FULL = ["dinding","tembok","lantai","plafon","atap","partisi","kolom","balok","plat","slab","pelat","pondasi","tiang","tangga","railing","kusen","pagar","pintu","jendela","kanopi","awning","fasad","facade","teras","balkon","halaman","carport","garasi","kamar mandi","kamar tidur","ruang tamu","ruang keluarga","ruang makan","ruang kerja","dapur","toilet","wc","kantor","toko","gudang","pabrik","sekolah","rumah","gedung","ruko","villa","apartemen","cafe","restoran","hotel","kios","rukan","jalan","trotoar","saluran","drainase","taman","kolam","sawah","lahan","tambang","proyek","site","area kerja","basement","custom","modern","minimalis","klasik","sumur","dak","sloof"];
+
+  function isApplicationTarget(word) {
+    if (!word) return false;
+    var w = word.toLowerCase().trim();
+    return APPLICATION_TARGETS.indexOf(w) !== -1 ||
+           APPLICATION_TARGETS_FULL.indexOf(w) !== -1;
+  }
+
+  var SATUAN_UNITS = ["meter","m","cm","mm","km","mtr","mtrs","inchi","inch","ft","feet","kg","ton","gram","ons","kuintal","lbs","pound","liter","ml","galon","m3","cc","dm3","m2","hektar","ha","are","detik","menit","jam","hari","minggu","bulan","tahun","harian","mingguan","bulanan","tahunan","unit","buah","lembar","batang","keping","papan","roll","set","paket","titik","boks","dus","karung","sak","kodi","lusin","gross","ampere","watt","volt","kva","kw","hp","ps","rpm","psi","bar","pascal","mpa","kpa","gpa","orang","kali","kubik","pk","truk","colt","pickup","angkutan","rim","lot","batch","container","kontainer"];
+
+  var QUESTION_WORDS = ["berapa","apa itu","apa yang","apa beda","apa perbedaan","apa fungsi","apa manfaat","bagaimana","gimana cara","bagaimana cara","mengapa","kenapa","kapan","dimana","di mana","siapa","yang mana","apakah","adakah"];
+
+  var COMMERCIAL_INVESTIGATION_WORDS = ["review","ulasan","testimoni","pengalaman","rating","penilaian","rekomendasi","saran","anjuran","suggest","terbaik","terburuk","terpopuler","terfavorit","top","pilihan","alternatif","vs","versus","perbandingan","bandingkan","kelebihan","kekurangan","plus minus","pro kontra","untung rugi"];
+
+  var FREE_INFO_WORDS = ["panduan gratis","ebook gratis","template gratis","download gratis","pdf gratis"];
+  var FREE_COMM_WORDS = ["konsultasi gratis","survey gratis","sample gratis","demo gratis","trial gratis","estimasi gratis","penawaran gratis"];
+  var AUTHORITY_WORDS = ["resmi","authorized","official","distributor resmi","dealer resmi","agen resmi","mitra resmi","sertifikat resmi"];
+  var READY_STOCK_WORDS = ["ready stock","ready stok","siap pakai","siap kirim","stok tersedia","fast respon","same day"];
+
+  var SPEC_PHRASE_WORDS = ["berdasarkan","berdasar","faktor penentu","faktor yang mempengaruhi","faktor utama","penyebab","sebab","dampak","pengaruh","efek","per kedalaman","per ukuran","per tipe","per jenis","langkah-langkah","langkah demi langkah","tahapan lengkap","tahap demi tahap","panduan lengkap","tutorial lengkap","analisis lengkap","review lengkap","perbandingan lengkap","perbedaan lengkap","jenis-jenis lengkap","macam-macam lengkap","spesifikasi","mutu","metode","cara kerja","panduan","fungsi","ukuran"];
+
+  var SPEC_PHRASE_INFORMATIONAL = [
+    "faktor penentu","faktor yang mempengaruhi","faktor utama",
+    "penyebab","sebab","dampak","pengaruh","efek",
+    "panduan lengkap","panduan","tips","trik","cara memilih",
+    "cara pasang","cara membuat","cara menghitung","cara merawat",
+    "cara menggunakan",
+    "spesifikasi","detail spesifikasi","spek lengkap",
+    "perbandingan","perbedaan","kelebihan","kekurangan","review","ulasan",
+    "pengertian","definisi","penjelasan","manfaat","fungsi","tujuan",
+    "komponen","elemen","standar","mutu",
+    "pemula","untuk pemula","tutorial","langkah-langkah","langkah demi langkah",
+    "berdasarkan","berdasar"
+  ];
+
+  var MARKETING_TERMS = ["premium","ekonomis","terbaik","terlaris","murah","berkualitas","unggul","terkenal","favorit","recommended","terpercaya","profesional"];
+
+  var MATERIAL_TYPE_WORDS = ["beton","portland","opc","ppc","pcc","semen putih","semen abu","semen warna","type 1","type 2","type 3","type 4","type 5","tipe 1","tipe 2","tipe 3","tipe 4","tipe 5","wiry","bjku","bjtd","bjp","bjts","plywood","multiplek","blockboard","mdf","hdf","particle board","solid wood","jati","meranti","mahoni","sengon","pinus","randu","sungkai","bangkirai","ulin","kamper","kruing","keruing","merbau","sonokeling","trembesi","glugu","bambu","andesit","kali","apung","split","koral","candi","palimanan","paras","breksi","granit","marmer","batu alam","batu belah","batu gunung","batu karang","silika","zeolit","cor","homogeneous","homogen","roman","platinum","mulia","essence","granito","granit tile","keramik lantai","keramik dinding","marmer italy","marmer lokal","marmer import","granit hitam","granit putih","granit coklat","granit import","granit lokal","dulux","jotun","nippon","mowilex","avian","decolith","propan","falcon","vinilex","dulux catylac","cat tembok","cat kayu","cat besi","cat dinding","pasir beton","pasir pasang","pasir urug","pasir halus","pasir kasar","pasir putih","pasir hitam","pasir ayak","pasir silika","pasir bangka","pasir lumajang","h-beam","hbeam","wf","hollow","kanal","siku","unesp","unp","cnp","inp","besi hollow","besi kanal","eterna","supreme","kabelindo","tranka","rucika","wavin","vinilon","pralon","maspion","tembaga","aluminium","kuningan","perunggu","titanium","besi cor","aluminium foil","bangka","lumajang","tulungagung","pangkep","muntilan","borneo","kalimantan","jepara","kudus","cilacap","tiga roda","3 roda","tiga-roda","3-roda","gresik","semen gresik","semen-gresik","holcim","semen holcim","semen-holcim","scg","semen scg","semen-scg","padang","semen padang","semen-padang","merah putih","semen merah putih","cibinong","semen cibinong","baturaja","semen baturaja","bosowa","semen bosowa","tonasa","semen tonasa","master","besi master","intan","besi intan","handuk","besi handuk","krakatau steel","krakatau-steel","ks","gunung garuda","gunung-garuda","hanil","jeka","danagri","magic","aquaproof","no drop","no-drop","nodrop","aqua proof","icera","ardena","milano","asia tile","asia-tile","indograha","kian","eleganza","elegan",
+    "mortar","mortar struktural","mortar instan","mortar utama","mortar grouting",
+    "mortar perbaikan","mortar beton","mortar semen","mortar pasangan",
+    "mortar plester","mortar acian","mortar keramik","mortar bata ringan",
+    "mortar hebel","mortar non shrink","mortar fiber","mortar fiber reinforced",
+    "mortar perbaikan beton","mortar struktural non shrink","mortar struktural fiber",
+    "mortar perbaikan beton struktural","mortar sika","mortar fosroc","mortar weber",
+    "mortar drymix","mortar siap pakai","mortar instan acian","mortar instan plester",
+    "mortar instan perekat","mortar instan keramik","mortar thin bed","mortar thick bed",
+    "mortar grouting non shrink","mortar grouting structural","mortar repair",
+    "mortar perbaikan struktural","mortar structural repair","mortar tahan api",
+    "mortar refraktori","mortar tahan asam","mortar waterproofing","mortar anti bocor",
+    "baja ringan c75","baja ringan c100","baja ringan c125",
+    "baja ringan gording","baja ringan reng","baja ringan usuk","baja ringan kaso",
+    "baja ringan galvanis","baja ringan zincalume",
+    "baja ringan struktur","baja ringan non struktural",
+    "baja ringan struktur bangunan","baja ringan struktur rangka",
+    "baja profil wf","baja profil hbeam","baja profil iwf","baja profil unp","baja profil cnp",
+    "baja tulangan ulir","baja tulangan polos",
+    "besi beton ulir sirip","besi beton ulir","besi beton polos","besi beton sni",
+    "besi hollow galvanis","besi hollow hitam","besi hollow kotak","besi hollow bulat",
+    "besi kanal c","besi kanal u",
+    "besi plat strip","besi plat hitam","besi plat putih",
+    "besi siku lubang","besi siku polos",
+    "besi ulir sirip","besi tulangan ulir","besi tulangan polos",
+    "besi wiremesh m6","besi wiremesh m8","besi wiremesh m10","besi wiremesh m12",
+    "kayu jati solid","kayu jati belanda",
+    "kayu meranti merah","kayu meranti putih",
+    "kayu mahoni solid","kayu sengon solid","kayu pinus solid",
+    "kayu kamper solid","kayu kruing solid",
+    "batu kali bulat","batu kali belah","batu gunung belah",
+    "batu alam andesit","batu alam palimanan","batu alam paras",
+    "batu alam templek","batu alam sikat",
+    "pasir putih bangka",
+    "semen portland pozzolan","semen portland composite",
+    "semen portland putih","semen portland abu",
+    "semen portland tipe 1","semen portland tipe 2","semen portland tipe 3","semen portland tipe 4","semen portland tipe 5",
+    "semen gresik portland","semen holcim portland","semen tiga roda portland",
+    "cat tembok weathershield","cat besi anti karat","cat lantai epoxy",
+    "keramik motif kayu","keramik motif marmer",
+    "keramik polos putih","keramik polos hitam"
+  ];
+
+  var OBJECT_WORDS = ["tanah","lahan","badan","permukaan","dasar","area","bidang","tapak","kavling","petak","drainase","geotekstil","pondasi","saluran","gorong","aspal","pipa","kabel","tiang","dinding","gorong-gorong","jembatan","tanggul","embung","waduk","bendungan","beton","cor","besi","baja","kayu","batu","bata","keramik","granit","marmer","paving","genteng","rumah","gedung","ruko","gudang","pabrik","jalan","trotoar","selokan","bukit","gunung","sungai","rawa","gambut","lereng","tebing","jurang","lembah","pile","pancang","strauss","bore","kolom","balok","plat","slab","pelat","lantai","plafon","atap","kusen","septic","septic tank","resapan","sumur","tangga","kamar","kamar mandi","kamar tidur","dapur","toilet","wc","ruang","ruang tamu","ruang makan","ruang keluarga","ruang kerja","ruang tidur","teras","balkon","fasad","halaman","carport","garasi","taman","halaman depan","halaman belakang","kantor","toko","cafe","restoran","hotel","apartemen","showroom","klinik","mall","sekolah","rukan","kios","warung","pujasera","wallpaper","parket","laminasi","vinyl","wpc","hpl","grc","acp","pagar","pintu","jendela","railing","rolling door","shower box","tralis","jeruji","kanopi","awning","spandek","alderon","genteng metal","wall","wallpanel","wall-panel","moulding","wall-moulding","cornice","plinth","skirting","wainscoting","backdrop","feature-wall","feature wall","ceiling","drop-ceiling","partisi","sekat","cladding","facade","facade-panel","panel-dinding","dinding-panel","ac","air conditioner","cctv","listrik","instalasi listrik","air","pipa air","plumbing","gas","panel-listrik","travo","trafo","internet","jaringan","alarm","kamera","sensor","detector","detektor","antena","parabola","wifi","router","cctv-kamera","signage","logo","spanduk","banner","billboard","neonbox","neon box","letter timbul","huruf timbul","papan nama","plang","reklame","papan reklame","kaca tempered","kaca-polos","kaca-bermotif","kaca-buram","kaca-es","kaca-panasap","aluminium-composite","aluminium foil","kaca-film","kaca-jendela"];
+
+  var BASE_ENTITY_OBJECTS = ["beton","batu","kayu","besi","baja","rumah","gedung","jalan","keramik","granit","marmer","vinyl","wallpaper","parket","laminasi","wpc","hpl","grc","acp","bata","paving","genteng","kaca"];
+  var GENERIC_OBJECTS = ["tanah","lahan","bukit","gunung","sungai","rawa","gambut","lereng","tebing","jurang","lembah"];
+
+  var BASE_ENTITY_OBJECTS_SET = {};
+  (function() {
+    for (var i = 0; i < BASE_ENTITY_OBJECTS.length; i++) {
+      BASE_ENTITY_OBJECTS_SET[BASE_ENTITY_OBJECTS[i]] = true;
+    }
+  })();
+
+  var GENERIC_OBJECTS_SET = {};
+  (function() {
+    for (var i = 0; i < GENERIC_OBJECTS.length; i++) {
+      GENERIC_OBJECTS_SET[GENERIC_OBJECTS[i]] = true;
+    }
+  })();
+
+  var MATERIAL_SERVICE_NAMES = ["semen","mortar","pasir","batu split","kerikil","besi","baja","kayu","beton","keramik","granit","marmer","gypsum","bata","batako","hebel","genteng","asbes","baja ringan","galvalum","readymix","cor","kaca","aluminium","pipa"];
+
+  var CROSS_ENTITY_SPECS = {
+    jasa: {
+      sharedFinishing: PURE_FINISHING,
+      sharedGaya: ["minimalis","modern","klasik","custom","elegan","mewah","eksklusif","premium"],
+      foreignTechniques: ["waterproofing","grouting","shotcrete","guniting","dewatering","scaffolding","bekisting","formwork","curing","boring","welding","coating","plating","anodizing","polishing","sandblasting","painting","lining","topping off","lean concrete","soil test","sondir test","cross hole","bore pile test","building maintenance","home renovation","waterproofing solution"]
+    },
+    produk: {
+      sharedMaterialFinishing: ["galvanis","zincalume","coating","berlapis","cat"],
+      sharedMaterialDimensi: ["tebal","panjang","lebar","diameter"]
+    },
+    material: {
+      extendedTypes: ["silika","zeolit","cor","tembaga","aluminium","foil","kuningan","perunggu","titanium","grafit","karbon"]
+    },
+    sewa: {
+      extendedUnits: ["hp","ps","kva","psi","rpm","inch","inchi","kw"],
+      extendedTools: ["motor grader","wheel loader","tower crane","asphalt finisher","asphalt paver","tandem roller","pneumatic tire roller","cold milling","batching plant","concrete pump","genset","pompa air","pompa-beton","compressor","jack hammer"]
+    },
+    desain: {
+      extendedColors: ["earth tone","sage green","sage","dusty pink","dusty","terracotta","navy blue","mustard","olive","mauve","charcoal","cream","ivory","beige","taupe","greige"],
+      extendedGaya: ["bali modern","java etnik","minimalis tropis","kolonial modern","industrial rustic","scandinavian japandi","modern klasik","minimalis skandinavia","japandi minimalis","classic modern","modern farmhouse","boho industrial","javanese modern","balinese contemporary","traditional modern","ethnic modern","modern etnik","tribal modern"],
+      subjektif: ["mewah","eksklusif","premium","luxury","high end","artistik","estetik"]
+    }
+  };
+
+  var PRODUK_SPECS = {
+    mutu: ["k225","k250","k300","k350","k400","k500","fc","sni","standar","premium","ekonomis"],
+    finishing: ["polos","motif","bermotif","bercorak","tekstur","serat","halus","kasar","matte","glossy","doff","gloss","satin","anyaman","natural","ekspos","custom","polosan","cat","coating","lapisan","vernis","anti gores","anti air","anti jamur","ulir"],
+    dimensi: ["ukuran","dimensi","spesifikasi","tipe","model","varian","seri","tinggi","rendah","panjang","pendek","lebar","sempit","tebal","tipis","dalam","dangkal","diameter","radius","besar","kecil","sedang","mini","jumbo"],
+    warna: ["putih","hitam","abu-abu","merah","biru","kuning","hijau","coklat","netral","warm","cool","pastel","dark","light","krem","maroon","navy","forest","gold","silver","bronze","copper","rose gold","teal","turquoise","lavender","magenta","coral","salmon","peach","mint"],
+    gaya: ["minimalis","modern","klasik","skandinavia","japandi","industrial","kontemporer","tradisional","rustic","bohemian"]
+  };
+
+  var PURE_PRODUK_SPECS = PRODUK_SPECS.mutu
+    .concat(PRODUK_SPECS.warna)
+    .concat(PRODUK_SPECS.finishing)
+    .concat(PRODUK_SPECS.gaya);
+
+  var MATERIAL_SPECS = {
+    grade: ["grade a","grade b","grade c","sni","standar","kualitas 1","kualitas 2","kualitas 3","kelas 1","kelas 2","kelas 3","non shrink","fiber reinforced","thin bed","thick bed","refraktori","tahan api","tahan asam","40 mpa","50 mpa","60 mpa","70 mpa","30 mpa","20 mpa","25 mpa","35 mpa"],
+    finishing: ["ulir","polos","galvanis","berlapis","cat","coating","anyaman","anti karat","anti korosi","anti air","diamon","rough","smooth","textured","zincalume"],
+    dimensi: ["tebal","panjang","lebar","diameter","radius","ukuran","dimensi","ketebalan","kedalaman","tinggi"],
+    berat: ["kg","ton","m3","liter","gram","ons"],
+    tipe: MATERIAL_TYPE_WORDS
+  };
+
+  var PURE_MATERIAL_SPECS = MATERIAL_SPECS.grade
+    .concat(MATERIAL_SPECS.finishing)
+    .concat(MATERIAL_SPECS.tipe);
+
+  var SEWA_SPECS = {
+    tipe: ["mini","besar","kecil","sedang","medium","heavy","standar","extra","ekstra","jumbo","compact","full size","large"],
+    merek: ["pc75","pc200","pc300","pc350","pc400","komatsu","hitachi","caterpillar","cat","volvo","hyundai","doosan","kobelco","sumitomo","case","jcb","liebherr","kubota","yanmar","perkins","cummin"],
+    kapasitas: ["ton","m3","kg","liter","galon","hp","ps","kva","psi","rpm","kw","inch","inchi"],
+    kondisi: ["baru","bekas","servis","recondition","rebuilt","ready","siap pakai","prima","baik","layak","standar","listrik","diesel","bensin","solar","hydraulic","manual"],
+    durasi: ["harian","mingguan","bulanan","tahunan","per jam","per hari","per minggu","per bulan","short term","long term"]
+  };
+
+  var PURE_SEWA_SPECS = SEWA_SPECS.merek
+    .concat(SEWA_SPECS.tipe)
+    .concat(SEWA_SPECS.kondisi)
+    .concat(SEWA_SPECS.durasi)
+    .concat(SEWA_SPECS.kapasitas)
+    .concat(CROSS_ENTITY_SPECS.sewa.extendedTools)
+    .concat(CROSS_ENTITY_SPECS.sewa.extendedUnits);
+
+  var JASA_SPECS = {
+    metode: ["manual","hidrolik","auger","rotary","percussive","dry","wet","basah","kering"],
+    skala: ["rumahan","komersial","industri","residential","commercial","industrial","kecil","sedang","besar","menengah"],
+    finishing: PURE_FINISHING,
+    kedalaman: ["m","meter","cm","centimeter","feet","ft"],
+    foreign: CROSS_ENTITY_SPECS.jasa.foreignTechniques
+  };
+
+  var DESAIN_SPECS = {
+    gaya: ["modern","minimalis","klasik","tradisional","kontemporer","elegan","luxury","industrial","scandinavian","jepang","rustic","vintage","bohemian","art deco","mid century","victorian","gothic","renaissance","baroque","rococo","neoklasik","art nouveau","bauhaus","postmodern","dekonstruksi","high tech","eklektik","transisi","tropis","mediterania","kolonial","peranakan","balinese","javanese","japandi","coastal","new york","hampton","farmhouse","shabby chic","parisian","moroccan","brutalist","cottage core","grand millennial","tropical modern","contemporary","industrial chic","minimalism","classic","modern classic","streamline","boho chic","mid-century","memphis","cyberpunk","steampunk","neofuturism","biophilic","wabi sabi","zen","feng shui"].concat(CROSS_ENTITY_SPECS.desain.extendedGaya),
+    warna: ["putih","hitam","abu-abu","merah","biru","kuning","hijau","coklat","netral","warm","cool","pastel","dark","light","krem","maroon","navy","forest","gold","silver","bronze","copper","rose gold","teal","turquoise","lavender","magenta","coral","salmon","peach","mint"].concat(CROSS_ENTITY_SPECS.desain.extendedColors),
+    material: ["kayu","besi","kaca","marmer","granit","keramik","plafon","gypsum","pvc","acp","vinyl","wpc","grc","hpl","bambu","rotan","anyaman","kain","kulit","karpet","parket","ubin","batu alam","batu bata","beton ekspos"],
+    konsep: ["open space","split level","loft","studio","apartment","villa","tiny house","smart home","eco home","sustainable","green building","biophilic","zen","feng shui","vastu","wabi sabi"],
+    furniture: ["minimalis","skandinavia","jepang","klasik","modern","retro","vintage","industrial","rustic","bohemian","mid century","art deco","contemporary"],
+    subjektif: CROSS_ENTITY_SPECS.desain.subjektif
+  };
+
+  var PURE_DESAIN_SPECS = DESAIN_SPECS.gaya
+    .concat(DESAIN_SPECS.warna)
+    .concat(DESAIN_SPECS.material)
+    .concat(DESAIN_SPECS.konsep)
+    .concat(DESAIN_SPECS.furniture)
+    .concat(DESAIN_SPECS.subjektif);
+
+  var SUB_PILLAR_2_KEYWORDS = ['daftar','jenis','macam','kategori','tipe','list','katalog','variasi','model','gaya','varian'];
+  var SUB_PILLAR_1_KEYWORDS = ['perbandingan','vs','versus','kelebihan','kekurangan','perbedaan','lebih baik','unggul','mana yang','antara','atau'];
+  var SUB_PILLAR_1_STRONG = ['perbandingan','vs','versus','kelebihan','kekurangan','perbedaan','lebih baik','unggul','mana yang'];
+  var SUB_PILLAR_1_WEAK = ['antara','atau'];
+
+  var HIGH_VOLUME_WORDS = ["promo","diskon","obral","cuci gudang","flash sale","termurah","termahal"];
+
+  var INTENT_TRIGGERS = {
+    transactional: ["beli","order","pesan","booking","sewa sekarang","harga","biaya","tarif","estimasi","promo","diskon","bayar","cicilan","kredit","dapatkan","pesan sekarang","resmi","authorized","ready stock","siap pakai","cara order","cara pesan","cara beli"],
+    informational: ["cara","tutorial","panduan","tips","langkah","bagaimana","apa itu","pengertian","definisi","contoh","jenis","perbedaan","kelebihan","kekurangan","manfaat","fungsi","berapa","apa yang","mengapa","kenapa","kapan","dimana","siapa","yang mana","apakah","update terbaru","informasi terbaru","kabar terbaru"],
+    commercial: ["review","testimoni","rekomendasi","terbaik","paling","vs","versus","perbandingan","alternatif","pilihan","populer","favorit","unggulan","ulasan","pengalaman","rating","penilaian","terburuk","terpopuler","terfavorit"],
+    navigational: ["login","daftar","kontak","tentang","hubungi","alamat","lokasi","maps","direksi"]
+  };
+
+  var COMMERCIAL_WORDS = ['jual','beli','order','pesan','booking','supplier','distributor','toko','shop','dapatkan','pesan sekarang','order sekarang','beli sekarang','checkout','cara order','cara pesan','cara beli','cara booking','resmi','authorized','official','distributor resmi','dealer resmi','agen resmi','mitra resmi','sertifikat resmi','ready stock','ready stok','siap pakai','siap kirim','stok tersedia','fast respon','same day'];
+
+  var INFORMATIONAL_WORDS = ['butuh','cari','mau','ingin','panduan','cara','tips','tutorial','pengertian','definisi','penjelasan','kenapa','mengapa','bagaimana','berapa','apa itu','apa yang','kapan','dimana','siapa','yang mana','apakah','adakah','apa beda','apa perbedaan','update terbaru','informasi terbaru','kabar terbaru','update'];
+
+  var TIER_1_LOCATION = ["jakarta","jakarta pusat","jakarta barat","jakarta selatan","jakarta timur","jakarta utara","bogor","depok","tangerang","bekasi","bandung","karawang","purwakarta","cikarang","subang","cirebon","semarang","solo","surakarta","pekalongan","tegal","magelang","sukoharjo","boyolali","klaten","jogja","yogyakarta","surabaya","malang","kediri","gresik","sidoarjo","mojokerto","pasuruan","probolinggo","jember","banyuwangi","madiun","medan","palembang","pekanbaru","padang","lampung","batam","aceh","jambi","bengkulu","pontianak","balikpapan","samarinda","banjarmasin","makassar","manado","palu","kendari","bali","denpasar","gianyar","tabanan","bangli","karangasem","klungkung","buleleng","mataram","kupang"];
+
+  var FISIK_WORDS = ["pantai","taman","sungai","gunung","jalan","pasar","sekolah","masjid","gereja","mall","terminal","stasiun","bandara","pelabuhan","sawah","hutan","danau","lembah","bukit","kali","dermaga","lapangan","kantor","pabrik","gudang","warung","restoran","cafe","hotel","villa","klinik","puskesmas","apotek","bank","atm","pos"];
+
+  var LOCATION_WORDS = TIER_1_LOCATION;
+
+  var PRICE_HEAD_WORDS = ['harga','biaya','tarif','estimasi','ongkos','budget','fee','rate','price','cost','pricelist','price-list'];
+
+  var PROMO_MODIFIER_WORDS = ['murah','hemat','terjangkau','promo','diskon','obral','sale','termurah','termahal','bersaing','kompetitif','dibawah pasaran','diatas pasaran','pasaran','ekonomis','profesional'];
+
+  var PRICE_WORDS = PRICE_HEAD_WORDS;
+
+  var NOISE_WORDS_UNIVERSAL = ['borongan','sistem borongan','borongan penuh','borongan sebagian','paket borongan','sistem paket','sistem paket borongan','all in','all-in','all in one','cash','kredit','cicilan','tunai','transfer','dp','lunas','termin','kontan','installment','debit','cod','cash on delivery','paylater','pay later','bayar di tempat','bayar di awal','bayar di akhir','pembayaran','preorder','pre-order','indent','po','bangunan','konstruksi','proyek'];
+
+  var NOISE_WORDS_JASA = ['meteran','sistem meteran','sistem harian','sistem mingguan','sistem bulanan','sistem tahunan','per proyek','per paket','per pekerjaan','short term','long term','per area','per zona','per ruangan','per lantai','per hari kerja','per jam kerja','per shift','per tongkang','per rit','per ritase'];
+
+  var ACTION_VERBS = ["pemotongan","pemotong","memotong","potong","potongan","penggalian","penggali","menggali","gali","galian","pengurugan","pengurug","mengurug","urug","urugan","pengangkutan","pengangkut","mengangkut","angkut","angkutan","pengeboran","pengebor","mengebor","bor","boran","pengelasan","pengelas","mengelas","las","lasan","pengecoran","pengecor","mengecor","cor","coran","pengecatan","pengecat","mengecat","cat","catan","pengukuran","pengukur","mengukur","ukur","ukuran","pemasangan","pemasang","memasang","pasang","pasangan","pembongkaran","pembongkar","membongkar","bongkar","bongkaran","pembuatan","pembuat","membuat","buat","buatan","pengupasan","pengupas","mengupas","upas","upasan","pemadatan","pemadat","memadatkan","padat","padatan","pengerukan","pengeruk","mengeruk","keruk","kerukan","pemancangan","pemancang","memancang","pancang","pancangan","pembersihan","pembersih","membersihkan","bersih","bersihan","perataan","perata","meratakan","rata","rataan","pembentukan","pembentuk","membentuk","bentuk","bentukan","persiapan","persiap","mempersiapkan","siap","siapan","stabilisasi","stabilis","menstabilkan","stabil","cut","fill","grading","elevasi","pemetaan","tebang","menebang","penebangan","pindah","pemindahan","timbun","penimbunan","renovasi","merenovasi","perbaikan","memperbaiki","instalasi","menginstal","install","service","servis","menyervis","penggantian","mengganti","ganti","pemeliharaan","memelihara","rawat","perawatan","pengadaan","menyediakan","relief","profil","finishing","cutting","bongkar","buang","uji","perkuatan","pematangan"];
+
+  // ═══ END BLOCK KONSTANTA ═══
   // ═══ END STAGE 1/6 — LANJUT STAGE 2/6 ═══
 
    // ═══════════════════════════════════════════════════════════
