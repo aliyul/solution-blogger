@@ -3104,8 +3104,8 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
     var lowerText = text.toLowerCase();
 
-    // 🔥 FIX-SUBPILLAR-EARLY: cek sub-pillar SEBELUM entity blocks
-    var _earlySubPillar = detectSubPillar(text);
+   // 🔥 FIX-SUBPILLAR-STRICT: pakai versi ketat (keyword harus di awal)
+    var _earlySubPillar = detectSubPillarStrict(text);
     if (_earlySubPillar) return _earlySubPillar;
 
     // ═══ FIX-HARGA-FOLLOW ═══
@@ -3613,11 +3613,11 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     var hasPerUnit = factors.hasPerUnit;
     var hasCompound = factors.hasCompoundAction;
     var complexityScore = factors.complexityScore;
-        var hasBaseService = factors.hasBaseService;
-    // (sub-pillar sudah dicek di atas — FIX-SUBPILLAR-EARLY)
-    //var subPillar = detectSubPillar(text);
-
-    //if (subPillar) return subPillar;
+            var hasBaseService = factors.hasBaseService;
+    // (sub-pillar sudah dicek di atas — FIX-SUBPILLAR-STRICT)
+    // Fallback: kalau lewat general logic, cek strict lagi
+    var subPillar = detectSubPillarStrict(text);
+    if (subPillar) return subPillar;
 
     // ═══════════════════════════════════════════════════════════
     // 🔥 PATCH 5: LOCATION OVERRIDE
