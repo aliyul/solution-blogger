@@ -2570,6 +2570,44 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     return detectEntityTypeFromText(slugText);
   }
 
+     // 🔥 FIX-SUBPILLAR-STRICT: keyword hanya match kalau di posisi PERTAMA
+  // Mencegah false positive pada "semen portland tipe 1", "jasa cor tipe a", dsb
+  function detectSubPillarStrict(text) {
+    if (!text) return null;
+    var lower = text.toLowerCase().trim();
+    if (!lower) return null;
+
+    var words = lower.split(/\s+/).filter(Boolean);
+    if (words.length === 0) return null;
+
+    // 1) Keyword sub-pillar di posisi PERTAMA saja
+    var firstWord = words[0];
+    for (var i = 0; i < SUB_PILLAR_2_KEYWORDS.length; i++) {
+      if (SUB_PILLAR_2_KEYWORDS[i] === firstWord) {
+        return "sub-pillar-tipe-2";
+      }
+    }
+
+    // 2) Pola "X vs Y" / "X versus Y"
+    if (/\b(vs|versus)\b/i.test(lower)) {
+      var parts = lower.split(/\b(?:vs|versus)\b/);
+      if (parts.length >= 2) {
+        var leftWords = parts[0].trim().split(/\s+/).filter(Boolean);
+        var rightWords = parts[1].trim().split(/\s+/).filter(Boolean);
+        if (leftWords.length >= 1 && rightWords.length >= 1) {
+          return "sub-pillar-tipe-1";
+        }
+      }
+    }
+
+    // 3) Sub-pillar-1 STRONG (spesifik, jarang false positive)
+    for (var j = 0; j < SUB_PILLAR_1_STRONG.length; j++) {
+      if (rx(SUB_PILLAR_1_STRONG[j]).test(lower)) return "sub-pillar-tipe-1";
+    }
+
+    return null;
+  }
+
   function detectSubPillar(text) {
     var lower = text.toLowerCase();
     for (var i = 0; i < SUB_PILLAR_2_KEYWORDS.length; i++) {
