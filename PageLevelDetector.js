@@ -589,7 +589,9 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     ],
 
     sewa: [
-      "alat berat", "heavy equipment",
+           "alat berat", "heavy equipment",
+      // 🔥 FIX-KVA: kapasitas genset = 1 konsep
+      "100 kva", "50 kva", "20 kva", "10 kva", "100 kva silent",
       "concrete pump", "tower crane", "mobile crane", "crawler crane",
       "dump truck", "motor grader", "wheel loader",
       "asphalt finisher", "asphalt paver", "tandem roller",
@@ -3061,9 +3063,14 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
   //   - PATCH 5: Location Override (MC selalu)
   //   - General Logic
   // ═══════════════════════════════════════════════════════════
-  function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
+    function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
     var lowerText = text.toLowerCase();
 
+    // 🔥 FIX-SUBPILLAR-EARLY: cek sub-pillar SEBELUM entity blocks
+    var _earlySubPillar = detectSubPillar(text);
+    if (_earlySubPillar) return _earlySubPillar;
+
+    // ═══ FIX-HARGA-FOLLOW ═══
     // ═══ FIX-HARGA-FOLLOW ═══
     if (!_skipHargaFollow) {
       var _hasHargaWord = false;
@@ -3568,10 +3575,11 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     var hasPerUnit = factors.hasPerUnit;
     var hasCompound = factors.hasCompoundAction;
     var complexityScore = factors.complexityScore;
-    var hasBaseService = factors.hasBaseService;
-    var subPillar = detectSubPillar(text);
+        var hasBaseService = factors.hasBaseService;
+    // (sub-pillar sudah dicek di atas — FIX-SUBPILLAR-EARLY)
+    //var subPillar = detectSubPillar(text);
 
-    if (subPillar) return subPillar;
+    //if (subPillar) return subPillar;
 
     // ═══════════════════════════════════════════════════════════
     // 🔥 PATCH 5: LOCATION OVERRIDE
@@ -4617,8 +4625,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
         ["jasa cor dak",                    "money-page",        "jasa"],
         ["jasa pasang keramik",             "money-page",        "jasa"],
         ["jasa bor sumur dalam",            "money-page",        "jasa"],
-        ["jasa bor sumur dalam 30 meter",   "variant",           "jasa"],
-        ["jasa bor jakarta",                "money-child",       "jasa"],
+        ["jasa bor sumur dalam 30 meter",   "sub-variant",       "jasa"],        ["jasa bor jakarta",                "money-child",       "jasa"],
         ["jasa bor air tanah jakarta",      "money-child",       "jasa"],
         ["jasa bor air tanah surabaya",     "money-child",       "jasa"],
         ["jasa bor air tanah bogor",        "money-child",       "jasa"],
