@@ -4197,27 +4197,232 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     return document.body.getAttribute('data-entity-sub-type') || null;
   }
 
+   /* ═══════════════════════════════════════════════════════════
+     🔥 detectSchemaType() — REVISI v23.9.9 (SEO 2026 ENTITY-AWARE)
+     
+     PERUBAHAN dari v23.9.8:
+     ✅ entityType SEKARANG DIPAKAI (sebelumnya di-ignore = bug)
+     ✅ JASA/SEWA → Service sebagai primary
+     ✅ PRODUK/MATERIAL → Product sebagai primary
+     ✅ DESAIN → Service + CreativeWork
+     ✅ ARTIKEL → Article
+     ✅ contentFocus memengaruhi note (with-offers, with-areaServed)
+     ✅ Secondary schema tetap relevan (FAQPage / TechArticle / Product)
+     
+     PRINSIP SEO 2026:
+     - Schema harus match ENTITY + CONTENT, bukan hanya LEVEL
+     - Service = halaman yang menawarkan jasa
+     - Product = halaman yang menawarkan barang/material
+     - Article = halaman informasional
+     - FAQPage / TechArticle = pelengkap (secondary)
+     ═══════════════════════════════════════════════════════════ */
   function detectSchemaType(level, entityType, contentFocus) {
-    var primary = 'WebPage', secondary = '', note = '';
-    var isMoneyLevel = ['money-master','money-page','money-child'].indexOf(level) !== -1;
-    var isEvergreen = ['pillar','sub-pillar-tipe-1','sub-pillar-tipe-2'].indexOf(level) !== -1;
-    var isVariant = ['variant','sub-variant'].indexOf(level) !== -1;
-    if (isEvergreen) { primary = 'Article'; secondary = 'FAQPage'; }
-    else if (isVariant) { primary = 'Product'; secondary = 'TechArticle'; note = 'without-offers'; }
-    else if (isMoneyLevel) {
-      if (contentFocus === 'HARGA' || contentFocus === 'COMMERCIAL') {
-        primary = 'Product'; secondary = 'Service';
-        if (level === 'money-child') note = 'with-areaServed';
-      } else if (contentFocus === 'INFORMASI') { primary = 'Article'; secondary = 'FAQPage'; }
+    var primary = 'WebPage';
+    var secondary = '';
+    var note = '';
+
+    // ─── Klasifikasi level ───
+    var isEvergreen  = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].indexOf(level) !== -1;
+    var isMoneyLevel = ['money-master', 'money-page', 'money-child'].indexOf(level) !== -1;
+    var isVariant    = ['variant', 'sub-variant'].indexOf(level) !== -1;
+
+    // ─── Klasifikasi content focus ───
+    var isCommercial = (contentFocus === 'HARGA' ||
+                        contentFocus === 'COMMERCIAL' ||
+                        contentFocus === 'GABUNG');
+    var isInfoOnly   = (contentFocus === 'INFORMASI');
+
+    // ─── Klasifikasi entity ───
+    var isServiceEntity  = (entityType === 'jasa' || entityType === 'sewa');
+    var isProductEntity  = (entityType === 'produk' || entityType === 'material');
+    var isDesignEntity   = (entityType === 'desain');
+    var isArticleEntity  = (entityType === 'artikel');
+
+    // ═══════════════════════════════════════════════════════════
+    // 1) JASA / SEWA → Service sebagai primary
+    // ═══════════════════════════════════════════════════════════
+    if (isServiceEntity) {
+      if (isEvergreen) {
+        // Pillar & sub-pillar: halaman induk layanan
+        primary   = 'Service';
+        secondary = 'FAQPage';
+        note      = 'evergreen-service';
+      } else if (isVariant) {
+        // Variant/sub-variant: spesifikasi teknis layanan
+        primary   = 'Service';
+        secondary = 'TechArticle';
+        if (isCommercial) {
+          note = 'with-offers';
+        } else {
+          note = 'without-offers';
+        }
+      } else if (isMoneyLevel) {
+        // Money: halaman penawaran layanan
+        primary   = 'Service';
+        secondary = 'Product';
+        if (level === 'money-child') {
+          note = 'with-areaServed';
+        }
+        if (isCommercial) {
+          note = note ? (note + ',with-offers') : 'with-offers';
+        }
+      } else {
+        // Fallback
+        primary   = 'Service';
+        secondary = 'FAQPage';
+      }
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // 2) DESAIN → Service + CreativeWork (jasa desain)
+    // ═══════════════════════════════════════════════════════════
+    else if (isDesignEntity) {
+      if (isEvergreen) {
+        primary   = 'Service';
+        secondary = 'FAQPage';
+        note      = 'design-service';
+      } else if (isVariant) {
+        primary   = 'Service';
+        secondary = 'CreativeWork';
+        note      = 'design-portfolio';
+      } else if (isMoneyLevel) {
+        primary   = 'Service';
+        secondary = 'CreativeWork';
+        if (level === 'money-child') {
+          note = 'with-areaServed';
+        }
+        if (isCommercial) {
+          note = note ? (note + ',with-offers') : 'with-offers';
+        }
+      } else {
+        primary   = 'Service';
+        secondary = 'FAQPage';
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 3) PRODUK / MATERIAL → Product sebagai primary
+    // ═══════════════════════════════════════════════════════════
+    else if (isProductEntity) {
+      if (isEvergreen) {
+        // Pillar & sub-pillar produk: informasional (katalog/daftar)
+        primary   = 'Article';
+        secondary = 'FAQPage';
+        note      = 'product-pillar';
+      } else if (isVariant) {
+        // Variant/sub-variant: spesifikasi produk
+        primary   = 'Product';
+        secondary = 'TechArticle';
+        note      = 'without-offers';
+      } else if (isMoneyLevel) {
+        if (isCommercial) {
+          primary   = 'Product';
+          secondary = 'Service';
+          if (level === 'money-child') {
+            note = 'with-areaServed';
+          }
+        } else if (isInfoOnly) {
+          primary   = 'Article';
+          secondary = 'FAQPage';
+        } else {
+          primary   = 'Product';
+          secondary = 'FAQPage';
+        }
+      } else {
+        primary   = 'Product';
+        secondary = 'FAQPage';
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 4) ARTIKEL → Article sebagai primary
+    // ═══════════════════════════════════════════════════════════
+    else if (isArticleEntity) {
+      primary   = 'Article';
+      secondary = 'FAQPage';
+      note      = 'informational';
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 5) FALLBACK — entity tidak dikenal
+    // ═══════════════════════════════════════════════════════════
+    else {
+      if (isEvergreen) {
+        primary   = 'Article';
+        secondary = 'FAQPage';
+      } else if (isVariant) {
+        primary   = 'Product';
+        secondary = 'TechArticle';
+        note      = 'without-offers';
+      } else if (isMoneyLevel) {
+        if (isCommercial) {
+          primary   = 'Product';
+          secondary = 'Service';
+        } else {
+          primary   = 'Article';
+          secondary = 'FAQPage';
+        }
+      } else {
+        primary   = 'WebPage';
+      }
+    }
+
+    // ─── Log (kalau DEBUG aktif) ───
+    if (CONFIG.DEBUG) {
+      log('🔗 detectSchemaType: level=' + level +
+          ', entity=' + entityType +
+          ', focus=' + contentFocus +
+          ' → primary=' + primary +
+          ', secondary=' + secondary +
+          (note ? ', note=' + note : ''), 'SCHEMA');
+    }
+
     return { primary: primary, secondary: secondary, note: note };
   }
+   
+  /* ═══════════════════════════════════════════════════════════
+     🔥 detectCtaType() — REVISI v23.9.9 (ENTITY-AWARE)
+     
+     PERUBAHAN dari v23.9.8:
+     ✅ entityType ditambahkan sebagai parameter ke-3
+     ✅ JASA/SEWA/DESAIN → CTA "Konsultasi" (bukan "Pesan")
+     ✅ PRODUK/MATERIAL   → CTA "Pesan" (beli barang)
+     ✅ ARTIKEL/lain      → CTA "Baca" (soft)
+     ✅ Type (hard/medium/soft) tetap sesuai content focus
+     
+     OUTPUT:
+     - type : 'hard' | 'medium' | 'soft'
+     - text : teks tombol CTA
+     
+     DIPAKAI UNTUK:
+     - data-cta-type  → styling tombol (CSS)
+     - data-cta-text  → label tombol (UI)
+     ═══════════════════════════════════════════════════════════ */
+  function detectCtaType(level, contentFocus, entityType) {
+    var isMoneyLevel = ['money-master', 'money-page', 'money-child'].indexOf(level) !== -1;
+    var isService    = (entityType === 'jasa' || entityType === 'sewa' || entityType === 'desain');
+    var isProduct    = (entityType === 'produk' || entityType === 'material');
+    var isCommercial = (contentFocus === 'HARGA' ||
+                        contentFocus === 'COMMERCIAL' ||
+                        contentFocus === 'GABUNG');
 
-  function detectCtaType(level, contentFocus) {
-    var isMoneyLevel = ['money-master','money-page','money-child'].indexOf(level) !== -1;
-    if (!isMoneyLevel) return { type: 'soft', text: 'Baca Selengkapnya' };
-    if (contentFocus === 'HARGA' || contentFocus === 'COMMERCIAL') return { type: 'hard', text: 'Pesan Sekarang' };
-    return { type: 'medium', text: 'Hubungi Kami' };
+    // ─── SERVICE (jasa / sewa / desain) ───
+    if (isService) {
+      if (isCommercial) return { type: 'hard',   text: 'Konsultasi Gratis' };
+      if (isMoneyLevel) return { type: 'medium', text: 'Hubungi Kami' };
+      return                   { type: 'medium', text: 'Konsultasi Sekarang' };
+    }
+
+    // ─── PRODUCT (produk / material) ───
+    if (isProduct) {
+      if (isCommercial) return { type: 'hard',   text: 'Pesan Sekarang' };
+      if (isMoneyLevel) return { type: 'medium', text: 'Tanya Harga' };
+      return                   { type: 'soft',   text: 'Lihat Detail' };
+    }
+
+    // ─── ARTIKEL / LAIN ───
+    if (isMoneyLevel) return { type: 'medium', text: 'Baca Selengkapnya' };
+    return                   { type: 'soft',   text: 'Baca Selengkapnya' };
   }
 
   function detectProductCategoryFromPLD(entityType, entitySubType) {
@@ -4262,37 +4467,65 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     if (_SCHEMA_ATTRS_SET) return;
     _SCHEMA_ATTRS_SET = true;
     try {
+      // ─── Level ───
       document.body.setAttribute("data-page-level", level);
       document.body.setAttribute("data-page-level-num", String(TYPE_LEVEL_MAP[level] || '0'));
+
+      // ─── Entity Type ───
       var entityType = detectEntityType();
       if (!entityType) {
         var h1Text = getH1Text();
         entityType = detectEntityTypeFromText(h1Text);
       }
       document.body.setAttribute("data-entity-type", entityType || '');
+
+      // ─── Jasa Sub-Category ───
       if (entityType === "jasa") {
         var subCat = detectJasaSubCategory(getPageText() + " " + getH1Text(), "jasa");
         document.body.setAttribute("data-jasa-sub-category", subCat || 'default');
       }
+
+      // ─── Content Focus ───
       var contentFocus = detectContentFocus(level, entityType);
       document.body.setAttribute("data-content-focus", contentFocus);
+
+      // ─── Kategori & H1 Pattern ───
       var kategori = detectKategori(contentFocus);
       document.body.setAttribute("data-kategori", kategori);
       document.body.setAttribute("data-h1-pattern", detectH1Pattern(kategori));
+
+      // ─── Entity Sub-Type ───
       var entitySubType = detectEntitySubType(level, entityType);
       document.body.setAttribute("data-entity-sub-type", entitySubType || '');
+
+      // ═══════════════════════════════════════════════════════
+      // 🔥 SCHEMA TYPE — entity-aware + content-aware (SEO 2026)
+      // ═══════════════════════════════════════════════════════
       var schemaType = detectSchemaType(level, entityType, contentFocus);
-      document.body.setAttribute("data-schema-type-primary", schemaType.primary);
-      document.body.setAttribute("data-schema-type-secondary", schemaType.secondary);
-      var ctaType = detectCtaType(level, contentFocus);
+      document.body.setAttribute("data-schema-type-primary",   schemaType.primary   || '');
+      document.body.setAttribute("data-schema-type-secondary", schemaType.secondary || '');
+
+      // 🔥 FIX-WAJIB: set note — dipakai Auto Schema untuk
+      //    keputusan offers / areaServed / without-offers
+      document.body.setAttribute("data-schema-type-note", schemaType.note || '');
+
+      // ═══════════════════════════════════════════════════════
+      // 🔥 CTA TYPE — entity-aware
+      // ═══════════════════════════════════════════════════════
+      var ctaType = detectCtaType(level, contentFocus, entityType);
       document.body.setAttribute("data-cta-type", ctaType.type);
       document.body.setAttribute("data-cta-text", ctaType.text);
+
+      // ─── Product Category & Material ───
       var productCategory = detectProductCategoryFromPLD(entityType, entitySubType);
       if (productCategory) document.body.setAttribute("data-product-category", productCategory);
+
       var productMaterial = detectProductMaterialFromPLD(entityType, entitySubType);
       if (productMaterial) document.body.setAttribute("data-product-material", productMaterial);
+
     } catch (e) {}
   }
+
 
   function findBreadcrumbs() {
     if (typeof document === 'undefined') return null;
