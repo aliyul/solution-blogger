@@ -1,44 +1,75 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.4.3-LITE — FULL PATCH (FINAL)
-    ✅ SINKRON dengan PLD v23.9.9-LITE-PERF-CONTENT-FIX-V2
+ 🧠 Smart Evergreen Detector v17.4.7 — COMPLETE FIX
+    ✅ SINKRON dengan PLD v23.9.8-SEO-DIMENSION
     ✅ PATOKAN UTAMA: PLD = SOURCE OF TRUTH
-    ✅ ATURAN LEVEL: Level menentukan EE/NE, dengan override INFORMASI
-    ✅ ATURAN TAHUN: H1 mengandung tahun → NON-EVERGREEN
-    ✅ AUTO-UPDATE TANPA BATAS: nextUpdate → dateModified → nextUpdate
+    ✅ CONTENT-AWARE VALIDITY
+    ✅ TIERED WARNING
+    ✅ INLINE WARNING TEXT MERAH
+    ✅ FULL PATTERN SUPPORT (ISO + DD/MM/YYYY)
 
-    🔥🔥🔥 v17.4.3-LITE CHANGELOG 🔥🔥🔥
-    ✅ FIX-SYNC-v4 (BARU):
-       - HAPUS hasPriceTable() dari AED — sudah di PLD
-       - SEDERHANAKAN getRulesByEntityType() — cukup cek contentFocus
-       - Prinsip: 1 sinyal = 1 tempat deteksi (single source of truth)
-       - Tahun di H1 TETAP dicek di AED (karena PLD strip tahun dari H1)
+    🔥🔥🔥 v17.4.7 CHANGELOG 🔥🔥🔥
+    ✅ FIX-KRITIS: Kembalikan ISO + DD/MM/YYYY pattern
+              - "2025-10-15" → "15 Oktober 2026"
+              - "15/10/2025" → "15 Oktober 2026"
+    ✅ FIX-MINOR: Kembalikan guard di updateJsonLdFaqYears()
     
-    ✅ FIX-EE-6: Money + INFORMASI = EVERGREEN (dengan guard tahun)
-    ✅ FIX-EE-2: variant & sub-variant masuk MONEY_LEVELS
-    ✅ FIX-EE-3: getPageLevelAndEntityType() prefer detectFromDOM()
-    ✅ FIX-EE-4: detectContentTypeByH1() PLD-only, no keyword guessing
-    ✅ FIX-EE-5: getKategori() level-first dengan override INFORMASI
-    ✅ FIX-SYNC-v3: getKategori() ambil dari finalType
-    ✅ FIX-B10: decodeHtmlEntities() + deepDecodeHtmlEntities()
-    ✅ FIX-B9:  detectIllegalFaqProps()
-    ✅ FIX-B1 s/d B8: TETAP AKTIF
-    ✅ FIX-A1 s/d A21: TETAP AKTIF
+    ✅ PRESERVED dari v17.4.6:
+    ✅ Content-aware validity (HARGA=90, COM=180, INFO=365)
+    ✅ Tiered warning (14/21/30 hari)
+    ✅ Inline warning TEXT MERAH + data-nosnippet
+    
+    ✅ PRESERVED dari v17.4.3-LITE:
+    ✅ FIX-SYNC-v4: hasPriceTable() DIHAPUS
+    ✅ FIX-EE-6: Money + INFORMASI = EVERGREEN
+    ✅ FIX-EE-2 s/d EE-5
+    ✅ FIX-SYNC-v3: getKategori dari finalType
+    ✅ FIX-B1 s/d B10: AKTIF
+    ✅ FIX-A1 s/d A21: AKTIF
 
     📌 BRAND DEFAULT: "Beton Jaya Readymix"
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.4.3-lite") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.4.7") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.4.3-lite";
+  window.__AED_VERSION = "17.4.7";
 
   // ============================================================
   // 📌 BRAND CONFIG
   // ============================================================
   var DEFAULT_BRAND_NAME = "Beton Jaya Readymix";
+
+  // ============================================================
+  // 🔔 INLINE WARNING CONFIG — TIERED
+  // ============================================================
+  const WARNING_CONFIG = {
+    ENABLED: true,
+    SHOW_AFTER_EXPIRED: true,
+    USE_TIERED: true,
+    TIERED_RULES: [
+      { maxValidity: 90,  showDays: 14, label: 'HARGA (90 hari) → warning 14 hari' },
+      { maxValidity: 180, showDays: 21, label: 'COMMERCIAL (180 hari) → warning 21 hari' },
+      { maxValidity: 999, showDays: 30, label: 'INFORMASI (365 hari) → warning 30 hari' }
+    ],
+    SHOW_DAYS_BEFORE: 30,
+    INSERT_AFTER_SELECTOR: '.last-updated, .updated-date, .date-modified, [class*="last-updated"]',
+    USE_NOSNIPPET: true,
+    STYLE: {
+      display: 'block',
+      color: '#dc2626',
+      fontWeight: 'bold',
+      fontSize: '0.9rem',
+      marginTop: '8px',
+      marginBottom: '12px',
+      padding: '8px 12px',
+      background: '#fef2f2',
+      borderLeft: '4px solid #dc2626',
+      borderRadius: '4px'
+    }
+  };
 
   // ============================================================
   // 📌 ATURAN V37 — BASE RULES
@@ -47,11 +78,11 @@
     'pillar':            { type: 'evergreen',     validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft' },
     'sub-pillar-tipe-2': { type: 'evergreen',     validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft-medium' },
     'sub-pillar-tipe-1': { type: 'evergreen',     validityDays: 730,  usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'medium' },
-    'variant':           { type: 'non-evergreen', validityDays: 30,   usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
-    'sub-variant':       { type: 'non-evergreen', validityDays: 30,   usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
-    'money-master':      { type: 'non-evergreen', validityDays: 30,   usePriceValidUntil: false, allowPriceRange: true,  ctaIntensity: 'hard' },
-    'money-page':        { type: 'non-evergreen', validityDays: 30,   usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
-    'money-child':       { type: 'non-evergreen', validityDays: 30,   usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'very-hard' }
+    'variant':           { type: 'non-evergreen', validityDays: 365,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
+    'sub-variant':       { type: 'non-evergreen', validityDays: 365,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
+    'money-master':      { type: 'non-evergreen', validityDays: 365,  usePriceValidUntil: false, allowPriceRange: true,  ctaIntensity: 'hard' },
+    'money-page':        { type: 'non-evergreen', validityDays: 365,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
+    'money-child':       { type: 'non-evergreen', validityDays: 365,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'very-hard' }
   };
 
   const PRODUK_MATERIAL_RULES = Object.assign({}, BASE_PAGE_LEVEL_RULES);
@@ -64,7 +95,55 @@
   const EVERGREEN_LEVELS = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'];
 
   // ============================================================
-  // 📌 TO ISO WITH TIMEZONE LOCAL
+  // 🎯 CONTENT-AWARE VALIDITY
+  // ============================================================
+  function getValidityByContext(pageLevel, contentFocus) {
+    var focus = String(contentFocus || '').toUpperCase();
+    var isMoney = MONEY_LEVELS.indexOf(pageLevel) !== -1;
+    
+    if (isMoney) {
+      if (focus === 'HARGA' || focus === 'GABUNG') {
+        console.log(`📅 [Validity] ${pageLevel} + ${focus} → 90 hari`);
+        return 90;
+      }
+      if (focus === 'COMMERCIAL') {
+        console.log(`📅 [Validity] ${pageLevel} + ${focus} → 180 hari`);
+        return 180;
+      }
+      if (focus === 'INFORMASI') {
+        console.log(`📅 [Validity] ${pageLevel} + ${focus} → 365 hari`);
+        return 365;
+      }
+      if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
+        console.log(`📅 [Validity] ${pageLevel} → 365 hari`);
+        return 365;
+      }
+      console.log(`📅 [Validity] ${pageLevel} → 365 hari (default)`);
+      return 365;
+    }
+    
+    var rule = BASE_PAGE_LEVEL_RULES[pageLevel];
+    return rule ? rule.validityDays : 365;
+  }
+
+  // ============================================================
+  // 🔔 TIERED WARNING
+  // ============================================================
+  function getWarningDays(validityDays) {
+    if (!WARNING_CONFIG.USE_TIERED) return WARNING_CONFIG.SHOW_DAYS_BEFORE;
+    
+    var rules = WARNING_CONFIG.TIERED_RULES || [];
+    for (var i = 0; i < rules.length; i++) {
+      if (validityDays <= rules[i].maxValidity) {
+        console.log(`📅 [Warning Tier] validity ${validityDays} hari → warning ${rules[i].showDays} hari (${rules[i].label})`);
+        return rules[i].showDays;
+      }
+    }
+    return WARNING_CONFIG.SHOW_DAYS_BEFORE;
+  }
+
+  // ============================================================
+  // 📌 TO ISO
   // ============================================================
   function toISOWithTimezoneLocal(date, offset = "+07:00") {
     if (!date) return null;
@@ -81,7 +160,121 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B10: Decode HTML Entities di JSON-LD
+  // 🔔 INLINE WARNING
+  // ============================================================
+  function formatTanggalIndo(dateStr) {
+    if (!dateStr) return '';
+    var bulan = ['Januari','Februari','Maret','April','Mei','Juni',
+                 'Juli','Agustus','September','Oktober','November','Desember'];
+    var d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    return d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear();
+  }
+
+  function checkAndShowInlineWarning() {
+    if (!WARNING_CONFIG.ENABLED) return;
+
+    const metaNext = document.querySelector('meta[name="nextUpdate"]');
+    const metaModified = document.querySelector('meta[itemprop="dateModified"]');
+
+    if (!metaNext || !metaNext.getAttribute('content')) {
+      console.log('ℹ️ [AED Warning] Belum ada nextUpdate — skip');
+      return;
+    }
+
+    const nextUpdateStr = metaNext.getAttribute('content');
+    const modifiedStr = metaModified ? metaModified.getAttribute('content') : 'unknown';
+
+    let validityDays = 365;
+    if (modifiedStr && modifiedStr !== 'unknown') {
+      const modDate = new Date(modifiedStr);
+      const nextDate = new Date(nextUpdateStr);
+      if (!isNaN(modDate.getTime()) && !isNaN(nextDate.getTime())) {
+        validityDays = Math.round((nextDate - modDate) / 86400000);
+      }
+    }
+
+    const warningThreshold = getWarningDays(validityDays);
+    const nextDate = new Date(nextUpdateStr);
+    const now = new Date();
+    const daysDiff = Math.ceil((nextDate - now) / 86400000);
+
+    let severity = null;
+    let message = '';
+
+    if (daysDiff < 0) {
+      if (!WARNING_CONFIG.SHOW_AFTER_EXPIRED) return;
+      severity = 'expired';
+      message = `🔴 KEDALUWARSA: Halaman ini sudah melewati batas update ${Math.abs(daysDiff)} hari (batas: ${formatTanggalIndo(nextUpdateStr)})`;
+    } else if (daysDiff === 0) {
+      severity = 'critical';
+      message = `🔴 HARI INI: Batas update halaman ini adalah hari ini (${formatTanggalIndo(nextUpdateStr)})`;
+    } else if (daysDiff <= warningThreshold) {
+      severity = 'warning';
+      message = `⚠️ PERLU UPDATE: Halaman ini akan kedaluwarsa dalam ${daysDiff} hari (batas: ${formatTanggalIndo(nextUpdateStr)})`;
+    } else {
+      console.log(`✅ [AED Warning] Halaman fresh — ${daysDiff} hari lagi (threshold: ${warningThreshold} hari)`);
+      return;
+    }
+
+    console.warn('═══════════════════════════════════════════');
+    console.warn('[AED Warning]', message);
+    console.warn('  Validity   :', validityDays, 'hari');
+    console.warn('  Threshold  :', warningThreshold, 'hari');
+    console.warn('  Days diff  :', daysDiff);
+    console.warn('  dateModified:', modifiedStr);
+    console.warn('  nextUpdate :', nextUpdateStr);
+    console.warn('═══════════════════════════════════════════');
+
+    createWarningElement(message, severity);
+  }
+
+  function createWarningElement(message, severity) {
+    if (document.getElementById('aed-update-warning')) {
+      console.log('⏭️ [AED Warning] Warning sudah ada — skip');
+      return;
+    }
+
+    var warning = document.createElement('div');
+    warning.id = 'aed-update-warning';
+    warning.setAttribute('data-nosnippet', '');
+    warning.setAttribute('data-severity', severity);
+    warning.textContent = message;
+
+    var style = WARNING_CONFIG.STYLE;
+    for (var key in style) {
+      if (style.hasOwnProperty(key)) {
+        warning.style[key] = style[key];
+      }
+    }
+
+    var anchor = null;
+    var selectors = WARNING_CONFIG.INSERT_AFTER_SELECTOR.split(',').map(s => s.trim());
+    
+    for (var i = 0; i < selectors.length; i++) {
+      try {
+        var el = document.querySelector(selectors[i]);
+        if (el) { anchor = el; break; }
+      } catch(e) {}
+    }
+
+    if (anchor) {
+      anchor.parentNode.insertBefore(warning, anchor.nextSibling);
+      console.log('✅ [AED Warning] Ditambahkan setelah:', anchor.className || anchor.tagName);
+    } else {
+      var h1 = document.querySelector('h1');
+      if (h1) {
+        h1.parentNode.insertBefore(warning, h1.nextSibling);
+        console.log('✅ [AED Warning] Ditambahkan setelah H1');
+      } else {
+        document.body.insertBefore(warning, document.body.firstChild);
+        console.log('⚠️ [AED Warning] Di awal body (fallback)');
+      }
+    }
+  }
+
+  // ============================================================
+  // FIX-B10: Decode HTML Entities
   // ============================================================
   function decodeHtmlEntities(str) {
     if (typeof str !== 'string') return str;
@@ -132,7 +325,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B9 + B10: Deteksi properti ilegal + entities di FAQ
+  // FIX-B9 + B10: Deteksi properti ilegal
   // ============================================================
   function detectIllegalFaqProps() {
     var hasIllegal = false;
@@ -208,7 +401,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B8: Auto-Normalize Brand Case
+  // FIX-B8: Normalize Brand Case
   // ============================================================
   function normalizeBrandCase(str) {
     if (!str || typeof str !== 'string') return str;
@@ -233,7 +426,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B2: Resolve brand name dari 5 sumber prioritas
+  // FIX-B2: Resolve brand name
   // ============================================================
   function resolveBrandName() {
     if (window.AEDMetaDates && window.AEDMetaDates.brandName) return window.AEDMetaDates.brandName;
@@ -275,7 +468,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B1 + B8 + B10: Cleanup FAQ schema
+  // FIX-B1 + B8 + B10: Cleanup FAQ schema
   // ============================================================
   function cleanupFaqSchema(brandName) {
     var cleaned = 0, injected = 0, normalized = 0, entitiesDecoded = 0;
@@ -369,7 +562,7 @@
   }
 
   // ============================================================
-  // 🆕 Helper deteksi versi PLD
+  // Helper deteksi versi PLD
   // ============================================================
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
@@ -397,7 +590,7 @@
   }
 
   // ============================================================
-  // 🎯 PLD HELPER — contentFocus, kategori, schema, cta
+  // PLD HELPER
   // ============================================================
   function getPLDContentFocus(pageLevel, entityType) {
     if (!window.pageLevelDetectorv22) return null;
@@ -470,17 +663,15 @@
   }
 
   // ============================================================
-  // 🔥 FIX-SYNC-v3: getKategori — ambil dari finalType (single source)
+  // FIX-SYNC-v3: getKategori
   // ============================================================
   function getKategori(pageLevel, contentFocus, finalType) {
-    // Prioritas 1: pakai finalType kalau ada
     if (finalType) {
       var kategoriFromType = (finalType === 'evergreen') ? 'EVERGREEN' : 'NON-EVERGREEN';
       console.log(`🏷️ [FIX-SYNC-v3] Kategori: ${kategoriFromType} (dari finalType="${finalType}")`);
       return kategoriFromType;
     }
 
-    // Fallback: logika lama
     var normalizedFocus = String(contentFocus || '').toUpperCase();
 
     if (EVERGREEN_LEVELS.indexOf(pageLevel) !== -1) {
@@ -504,7 +695,7 @@
   }
 
   // ============================================================
-  // 🎯 FIX-EE-4: detectContentTypeByH1 — PLD-ONLY, no guessing
+  // FIX-EE-4: detectContentTypeByH1
   // ============================================================
   function detectContentTypeByH1() {
     const h1 = document.querySelector('h1');
@@ -521,7 +712,6 @@
       };
     }
 
-    // ==== PLD source of truth ====
     const pldVersion = getPLDVersion();
     if (pldVersion.family === "v23-lite" || pldVersion.family === "v23" || pldVersion.family === "v22") {
       try {
@@ -537,8 +727,7 @@
           return {
             isInformational: isInfo, isPrice: isPrice, hasYear: hasYear, h1Text: h1Text,
             reason: `PLD ${pldVersion.label} detectContentFocus = ${normalized}`,
-            confidence: 'high',
-            source: 'pld-only'
+            confidence: 'high', source: 'pld-only'
           };
         }
       } catch (e) {
@@ -546,7 +735,6 @@
       }
     }
 
-    // ==== Body attribute fallback ====
     const bodyFocus = document.body.getAttribute('data-content-focus');
     if (bodyFocus) {
       const normalized = bodyFocus.toUpperCase();
@@ -560,7 +748,6 @@
       };
     }
 
-    // ==== V379A fallback ====
     if (window.V379A && window.V379A.focusKonten) {
       const normalized = String(window.V379A.focusKonten).toUpperCase();
       const isInfo = (normalized === 'INFORMASI');
@@ -573,8 +760,7 @@
       };
     }
 
-    // ❌ FIX-EE-4: JANGAN tebak dari keyword H1
-    console.warn('⚠️ [FIX-EE-4] PLD/V379A tidak tersedia — safe default INFORMASI (no guessing)');
+    console.warn('⚠️ [FIX-EE-4] PLD/V379A tidak tersedia — safe default INFORMASI');
     return {
       isInformational: true, isPrice: false, hasYear: hasYear, h1Text: h1Text,
       reason: 'PLD unavailable — safe default INFORMASI',
@@ -598,7 +784,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-A5: queryByKeyword
+  // FIX-A5: queryByKeyword
   // ============================================================
   function queryByKeyword(container, keywords, requireYear = true) {
     const results = [];
@@ -617,19 +803,8 @@
     return results;
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX-SYNC-v4: hasPriceTable() DIHAPUS dari AED
-  // 
-  // Alasan:
-  //   - Deteksi tabel harga = tanggung jawab PLD (checkPriceTable())
-  //   - PLD sudah return contentFocus = HARGA/GABUNG kalau ada tabel
-  //   - AED cukup baca contentFocus dari PLD
-  //   - Prinsip: 1 sinyal = 1 tempat deteksi
-  //   - Kalau AED cek sendiri → bisa konflik dengan PLD
-  // ═══════════════════════════════════════════════════════════
-
   // ============================================================
-  // 🆕 FIX-B4: hasLastUpdatedAnchor
+  // FIX-B4: hasLastUpdatedAnchor
   // ============================================================
   function hasLastUpdatedAnchor() {
     var selectors = ['.update-badge', '[class*="update-badge"]', '.last-updated', '.updated-date', '.date-modified', '.post-date', '.article-date', '.publish-date', '.post-meta', '.entry-meta', '.article-meta', '.breadcrumb + p', '.toc + p', 'h1 + p', '[class*="last-updated"]'];
@@ -646,7 +821,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B3: updateJsonLdDates (non-FAQ only)
+  // FIX-B3: updateJsonLdDates
   // ============================================================
   function updateJsonLdDates(dateModified, nextUpdate) {
     var updated = 0;
@@ -681,7 +856,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-A14+A18+A20: isHistoricalContext
+  // FIX-A14+A18+A20: isHistoricalContext
   // ============================================================
   function isHistoricalContext(fullText, yearPos, yearLength) {
     var before = fullText.substring(Math.max(0, yearPos - 80), yearPos).toLowerCase();
@@ -727,7 +902,7 @@
   }
 
   // ============================================================
-  // 🆕 FIX-B6: updateJsonLdFaqYears
+  // FIX-B6: updateJsonLdFaqYears (KEMBALIKAN 2 GUARD)
   // ============================================================
   function updateJsonLdFaqYears(newYear) {
     var updated = 0, replacedCount = 0, skippedCount = 0;
@@ -744,8 +919,8 @@
       var raw = script.textContent;
       if (!raw) { skippedCount++; return; }
       if (raw.indexOf('"FAQPage"') === -1 && raw.indexOf('"QAPage"') === -1) { skippedCount++; return; }
-      if (!oldYearRegex.test(raw)) { skippedCount++; return; }
-      if (!/\b20\d{2}\b/.test(raw)) { skippedCount++; return; }
+      if (!oldYearRegex.test(raw)) { skippedCount++; return; }        // ← GUARD 1
+      if (!/\b20\d{2}\b/.test(raw)) { skippedCount++; return; }       // ← GUARD 2 (KEMBALI)
 
       var json;
       try { json = JSON.parse(raw); } catch (e) { skippedCount++; return; }
@@ -778,7 +953,8 @@
   }
 
   // ============================================================
-  // 📅 FIX-EE-6: updateContentByLevelAndFocus
+  // FIX-EE-6: updateContentByLevelAndFocus
+  // 🔥 FIX-KRITIS v17.4.7: KEMBALIKAN ISO + DD/MM/YYYY pattern
   // ============================================================
   function updateContentByLevelAndFocus(pageLevel, contentFocus, now) {
     const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
@@ -858,11 +1034,13 @@
         let newTextNode = oldText;
         if (updateMode === 'month-year') {
           newTextNode = newTextNode
+            // 1. Bulan Tahun: "Oktober 2025"
             .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, (match, month, year) => {
               const y = parseInt(year);
               if (y > 2025 && y < newYear) return newDateText;
               return match;
             })
+            // 2. 🔥 ISO Date: "2025-10-15"
             .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
               const yearNum = parseInt(y);
               if (yearNum > 2025 && yearNum < newYear) {
@@ -871,6 +1049,7 @@
               }
               return match;
             })
+            // 3. 🔥 DD/MM/YYYY: "15/10/2025"
             .replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
               const yearNum = parseInt(y);
               if (yearNum > 2025 && yearNum < newYear) {
@@ -899,7 +1078,7 @@
   }
 
   // ============================================================
-  // 📅 P2: updateH1WithRules
+  // P2: updateH1WithRules
   // ============================================================
   function updateH1WithRules(pageLevel, now) {
     const isMoneyLevel = MONEY_LEVELS.includes(pageLevel);
@@ -929,7 +1108,7 @@
   }
 
   // ============================================================
-  // 🔄 autoUpdateDates
+  // autoUpdateDates
   // ============================================================
   function autoUpdateDates(pageLevel, contentFocus) {
     console.log("🔄 AUTO-UPDATE: Memeriksa tanggal...");
@@ -950,11 +1129,7 @@
 
     console.log(`🔄 NEXTUPDATE LEWAT! ${currentNext} → ${now.toISOString()}`);
 
-    let validityDays = 30;
-    if (currentModified && currentNext) {
-      const diffDays = Math.round((nextDate.getTime() - currentModifiedDate.getTime()) / 86400000);
-      if (diffDays > 0) validityDays = diffDays;
-    }
+    let validityDays = getValidityByContext(pageLevel, contentFocus);
 
     const newModified = now;
     const newNext = new Date(now.getTime() + (validityDays * 86400000));
@@ -1023,12 +1198,12 @@
     document.body.setAttribute('data-last-auto-update', now.toISOString());
     document.body.setAttribute('data-update-count', (parseInt(document.body.getAttribute('data-update-count') || '0') + 1).toString());
 
-    console.log(`✅ AUTO-UPDATE SELESAI! nextUpdate baru: ${newNextStr}`);
+    console.log(`✅ AUTO-UPDATE SELESAI! nextUpdate baru: ${newNextStr} (${validityDays} hari)`);
     return true;
   }
 
   // ============================================================
-  // 📌 processMetaDates
+  // processMetaDates
   // ============================================================
   async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated) {
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
@@ -1106,7 +1281,6 @@
       else validityLabel = `EVERGREEN (${validityDays} hari)`;
     } else validityLabel = `NON-EVERGREEN (${validityDays} hari) — ${entityType}/${pageLevel}`;
 
-    // 🔥 FIX-SYNC-v3: kirim finalType supaya kategori konsisten dengan type
     const kategori = getKategori(pageLevel, contentFocus, finalType);
     const h1Pattern = getPLDH1Pattern(kategori);
     const schemaType = getPLDSchemaType(pageLevel, entityType, contentFocus);
@@ -1117,7 +1291,7 @@
       datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.4.3',
+      detectorVersion: detectorVersion || 'v17.4.7',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
@@ -1147,7 +1321,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-EE-3: getPageLevelAndEntityType — prefer detectFromDOM()
+  // FIX-EE-3: getPageLevelAndEntityType
   // ============================================================
   function getPageLevelAndEntityType() {
     let pageLevel = 'pillar';
@@ -1205,7 +1379,7 @@
   }
 
   // ============================================================
-  // 📌 WAIT FOR PLD
+  // WAIT FOR PLD
   // ============================================================
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
@@ -1237,44 +1411,21 @@
   }
 
   // ============================================================
-  // 🔥🔥🔥 FIX-SYNC-v4: getRulesByEntityType — SEDERHANA
-  // 
-  // Perubahan v17.4.3:
-  //   - HAPUS cek hasPriceTable() dari AED
-  //   - Cukup cek contentFocus dari PLD
-  //   - PLD sudah handle deteksi tabel harga
-  //   - Tahun di H1 TETAP dicek di AED (PLD strip tahun dari H1)
-  // 
-  // ATURAN:
-  //   - Level EVERGREEN_LEVELS → EVERGREEN (tanpa syarat)
-  //   - Level MONEY_LEVELS + INFORMASI + no_year → EVERGREEN
-  //   - Level MONEY_LEVELS + INFORMASI + has_year → NON-EVERGREEN
-  //   - Level MONEY_LEVELS + HARGA/COMMERCIAL/GABUNG → NON-EVERGREEN
+  // FIX-SYNC-v4: getRulesByEntityType
   // ============================================================
   function getRulesByEntityType(entityType, pageLevel, h1Detection, contentFocus) {
     console.log(`📌 Getting rules: entityType=${entityType}, pageLevel=${pageLevel}, contentFocus=${contentFocus || 'N/A'}`);
 
     var isMoneyLevel = MONEY_LEVELS.indexOf(pageLevel) !== -1;
-    var isEvergreenLevel = EVERGREEN_LEVELS.indexOf(pageLevel) !== -1;
 
-    // ═══════════════════════════════════════════════════════════
-    // 🔥 FIX-SYNC-v4: MONEY LEVEL + INFORMASI = EVERGREEN
-    // 
-    // Tidak cek tabel lagi — PLD sudah handle:
-    //   - Kalau ada tabel harga → PLD return HARGA/GABUNG
-    //   - Kalau tidak ada tabel → PLD return INFORMASI
-    // AED cukup baca contentFocus.
-    // ═══════════════════════════════════════════════════════════
     if (isMoneyLevel) {
       var normalizedFocus = String(contentFocus || '').toUpperCase();
       var isInformationalFocus = (normalizedFocus === 'INFORMASI');
       var hasYear = h1Detection && h1Detection.hasYear;
 
-      // ═══ Case 1: Money + INFORMASI murni (tanpa tahun di H1) ═══
+      // Money + INFORMASI murni → EVERGREEN
       if (isInformationalFocus && !hasYear) {
         console.log(`✅ [FIX-SYNC-v4] Money "${pageLevel}" + INFORMASI → EVERGREEN 3 tahun`);
-        console.log(`   ℹ️ H1: "${h1Detection ? h1Detection.h1Text : '(no h1)'}"`);
-        console.log(`   ℹ️ Reason: konten informatif murni (PLD konfirmasi tidak ada harga)`);
         return {
           type: 'evergreen',
           validityDays: 1095,
@@ -1282,36 +1433,28 @@
           allowPriceRange: false,
           ctaIntensity: 'soft-medium',
           overridden: true,
-          overrideReason: `Money level tapi konten INFORMASI: "${h1Detection ? h1Detection.h1Text : ''}"`
+          overrideReason: `Money level tapi konten INFORMASI`
         };
       }
 
-      // ═══ Case 2: Money + HARGA/COMMERCIAL/GABUNG = NON-EVERGREEN ═══
+      // Money + HARGA/COMMERCIAL/GABUNG → NON-EVERGREEN (content-aware)
       console.log(`🔒 [FIX-SYNC-v4] Money "${pageLevel}" + ${normalizedFocus} → NON-EVERGREEN`);
       if (isInformationalFocus && hasYear) {
         console.warn(`   ⚠️ contentFocus=INFORMASI, tapi ada tahun di H1 → TETAP NON-EVERGREEN`);
       }
 
-      var rule;
-      if (entityType === 'jasa')            rule = JASA_RULES[pageLevel];
-      else if (entityType === 'sewa')       rule = SEWA_RULES[pageLevel];
-      else if (entityType === 'produk' ||
-               entityType === 'material')   rule = PRODUK_MATERIAL_RULES[pageLevel];
-      else                                  rule = BASE_PAGE_LEVEL_RULES[pageLevel];
-
-      if (!rule || rule.type !== 'non-evergreen') {
-        rule = {
-          type: 'non-evergreen',
-          validityDays: 30,
-          usePriceValidUntil: pageLevel !== 'money-master',
-          allowPriceRange: pageLevel === 'money-master',
-          ctaIntensity: pageLevel === 'money-child' ? 'very-hard' : 'hard'
-        };
-      }
-      return rule;
+      var validity = getValidityByContext(pageLevel, normalizedFocus);
+      
+      return {
+        type: 'non-evergreen',
+        validityDays: validity,
+        usePriceValidUntil: (normalizedFocus === 'HARGA' || normalizedFocus === 'GABUNG'),
+        allowPriceRange: pageLevel === 'money-master',
+        ctaIntensity: pageLevel === 'money-child' ? 'very-hard' : 'hard'
+      };
     }
 
-    // ═══ Level EVERGREEN — lookup normal ═══
+    // Evergreen level
     if (entityType === 'jasa')            return JASA_RULES[pageLevel] || DEFAULT_RULE;
     if (entityType === 'sewa')            return SEWA_RULES[pageLevel] || BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
     if (entityType === 'produk' ||
@@ -1320,7 +1463,7 @@
   }
 
   // ============================================================
-  // 📌 FUNGSI UTAMA
+  // FUNGSI UTAMA
   // ============================================================
   async function detectEvergreen({ customDateModified = null } = {}) {
     if (_AED_INITIALIZED) {
@@ -1329,7 +1472,7 @@
     }
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.4.3-LITE — Loading...");
+    console.log("🧩 detectEvergreen() v17.4.7 — COMPLETE");
     await waitForPageLevelDetector();
 
     const { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount } = getPageLevelAndEntityType();
@@ -1361,28 +1504,38 @@
 
     await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated);
 
-    console.log(`🧩 detectEvergreen() v17.4.3-LITE — FINISHED ✅`);
+    // TAMPILKAN INLINE WARNING (TIERED)
+    checkAndShowInlineWarning();
+
+    console.log(`🧩 detectEvergreen() v17.4.7 — FINISHED ✅`);
   }
 
   // ============================================================
-  // 🌐 EXPORT GLOBAL
+  // EXPORT GLOBAL
   // ============================================================
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
   window.dispatchEvent(new Event("detectEvergreenReady"));
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Smart Evergreen Detector v17.4.3-LITE ready");
+  console.log("✅ Smart Evergreen Detector v17.4.7 — READY");
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("🔥 FIX-SYNC-v4: hasPriceTable() DIHAPUS — cukup baca contentFocus dari PLD");
-  console.log("🔥 FIX-EE-6: Money + INFORMASI = EVERGREEN (guard: hanya cek tahun di H1)");
-  console.log("🔥 FIX-EE-2: variant & sub-variant masuk MONEY_LEVELS");
-  console.log("🔥 FIX-EE-3: getPageLevelAndEntityType() prefer detectFromDOM()");
-  console.log("🔥 FIX-EE-4: detectContentTypeByH1() PLD-only, no keyword guessing");
-  console.log("🔥 FIX-EE-5: getKategori() level-first dengan override INFORMASI");
-  console.log("✅ FIX-SYNC-v3: getKategori() ambil dari finalType");
-  console.log("✅ FIX-B1 s/d B10: TETAP AKTIF");
-  console.log("✅ FIX-A1 s/d A21: TETAP AKTIF");
+  console.log("🔥 FIX-KRITIS: ISO + DD/MM/YYYY pattern DIKEMBALIKAN");
+  console.log("🔥 FIX-MINOR: Guard updateJsonLdFaqYears DIKEMBALIKAN");
+  console.log("📅 TIERED WARNING:");
+  console.log("   • HARGA (90 hari)        → warning 14 hari");
+  console.log("   • COMMERCIAL (180 hari)  → warning 21 hari");
+  console.log("   • INFORMASI (365 hari)   → warning 30 hari");
+  console.log("🎯 CONTENT-AWARE VALIDITY:");
+  console.log("   • HARGA/GABUNG  → 90 hari");
+  console.log("   • COMMERCIAL    → 180 hari");
+  console.log("   • INFORMASI     → 365 hari");
+  console.log("   • Variant/Sub-V → 365 hari");
+  console.log("🔔 INLINE WARNING:");
+  console.log("   • Letak: bawah .last-updated");
+  console.log("   • Format: TEXT MERAH");
+  console.log("   • data-nosnippet: tidak di-index Google");
+  console.log("✅ PRESERVED: FIX-SYNC-v4, FIX-EE-2 s/d EE-6, FIX-B1 s/d B10, FIX-A1 s/d A21");
   console.log("🏢 BRAND default: " + DEFAULT_BRAND_NAME);
   console.log("═══════════════════════════════════════════════════════════");
 
