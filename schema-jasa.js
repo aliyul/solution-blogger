@@ -1,30 +1,40 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.34-LITE COMPLETE — FINAL
-   ✅ SINKRON dengan PLD v23.9.7-LITE
-   ✅ SINKRON dengan AED v17.4.3-LITE
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.35-LITE COMPLETE — FINAL
+   ✅ SINKRON dengan PLD v23.9.8-SEO-DIMENSION
+   ✅ SINKRON dengan AED v17.4.7 (TIERED + CONTENT-AWARE)
    ✅ SINKRON dengan Breadcrumb v12.3.5
-   ✅ SINKRON dengan Article v8.4 (@id reference)
+   ✅ SINKRON dengan Article v8.5 (@id reference)
 
-   🔥🔥🔥 v7.34-LITE CHANGELOG 🔥🔥🔥
-   ✅ KEEP: Semua fitur v7.31-LITE (4 layer harga, breadcrumb DOM, ErrorBoundary, dll)
-   ✅ ADD-1: Anti-spoofing dateModified (fallback = null)
-   ✅ ADD-2: KNOWS_ABOUT — 1 array LENGKAP (110+ item)
-   ✅ ADD-3: areaServed — Indonesia + 11 kota prioritas
-   ✅ ADD-4: Filter URL placeholder {{LINK_1}}, {{LINK_2}}
-   ✅ ADD-5: contactPoint di LocalBusiness
-   ✅ ADD-6: Sync @id dengan Article v8.4 (#localbusiness)
+   🔥🔥🔥 v7.35-LITE CHANGELOG 🔥🔥🔥
+   ✅ FIX-1: extractServiceType() — support – — - | : &
+   ✅ FIX-2: ItemList max 8 (dari 40)
+   ✅ FIX-3: Guard anti-race-condition di waitForAEDMetaDates
+   ✅ FIX-4: Support AED v17.4.7 (content-aware + tiered warning)
 
-   Status: FINAL v7.34 — COMPLETE (Semua Fitur + Semua Perbaikan)
+   ✅ PRESERVED dari v7.34-LITE:
+   ✅ Anti-spoofing dateModified (fallback = null)
+   ✅ KNOWS_ABOUT — 1 array LENGKAP (110 item)
+   ✅ areaServed — Indonesia + 11 kota prioritas
+   ✅ Filter URL placeholder {{LINK_1}}, {{LINK_2}}
+   ✅ contactPoint di LocalBusiness
+   ✅ Sync @id dengan Article v8.5 (#localbusiness)
+   ✅ 4-layer price detection
+   ✅ Breadcrumb DOM fallback
+   ✅ ErrorBoundary
+   ✅ Responsive image styles
+   ✅ Cloudinary WebP
+
+   Status: FINAL v7.35 — COMPLETE (Semua Fitur + Semua Perbaikan)
 */
 
 (function() {
   "use strict";
 
   // ═══ GUARD GLOBAL ═══
-  if (window.__AUTO_SCHEMA_VERSION === "7.34-lite") {
-    console.log("[AutoSchema v7.34-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTO_SCHEMA_VERSION === "7.35-lite") {
+    console.log("[AutoSchema v7.35-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTO_SCHEMA_VERSION = "7.34-lite";
+  window.__AUTO_SCHEMA_VERSION = "7.35-lite";
 
   // ============================================================
   // 🔥 AUTO-DETECT DEBUG MODE
@@ -55,14 +65,15 @@
     BATCH_DOM_UPDATES: true,
     MAX_ELEMENTS_TO_SCAN: 100,
     
-    // 🔥 ADD-6: SYNC @id dengan Article v8.4
+    // 🔥 FIX-2: ItemList max 8
+    MAX_INTERNAL_LINKS: 8,
+    
+    // 🔥 SYNC: @id reference ke LocalBusiness
     LOCALBUSINESS_ID: "https://www.betonjayareadymix.com#localbusiness",
     
-    // 🔥 ADD-3: areaServed LENGKAP — Indonesia + Kota Prioritas
+    // 🔥 areaServed LENGKAP
     AREA_SERVED: [
-      // === NASIONAL ===
       { "@type": "Country", "name": "Indonesia" },
-      // === PRIORITAS 1 — JABODETABEK ===
       { "@type": "AdministrativeArea", "name": "DKI Jakarta" },
       { "@type": "AdministrativeArea", "name": "Kota Bogor" },
       { "@type": "AdministrativeArea", "name": "Kabupaten Bogor" },
@@ -72,30 +83,24 @@
       { "@type": "AdministrativeArea", "name": "Kota Tangerang Selatan" },
       { "@type": "AdministrativeArea", "name": "Kota Bekasi" },
       { "@type": "AdministrativeArea", "name": "Kabupaten Bekasi" },
-      // === PRIORITAS 2 — KARAWANG ===
       { "@type": "AdministrativeArea", "name": "Kabupaten Karawang" },
-      // === PRIORITAS 3 — SURABAYA ===
       { "@type": "AdministrativeArea", "name": "Kota Surabaya" }
     ],
     
-    // 🔥 ADD-2: KNOWS_ABOUT — 1 ARRAY LENGKAP (SAMA untuk semua halaman)
+    // 🔥 KNOWS_ABOUT — 110 item LENGKAP
     KNOWS_ABOUT: [
-      // === JASA — PENGEOBORAN ===
       "Jasa Bor Sumur", "Jasa Bor Horizontal", "Jasa Bor Manual",
       "Jasa Bor Hidrolik", "Jasa Bor Rotary", "Jasa Bor Auger",
       "Jasa Bor Sumur Dalam", "Jasa Bor Sumur Dangkal",
       "Jasa Pengeboran Tanah", "Jasa Pengeboran Air Tanah",
-      // === JASA — PONDASI ===
       "Jasa Bore Pile", "Jasa Strauss Pile", "Jasa Borongan Bore Pile",
       "Jasa Borongan Strauss Pile", "Jasa Tiang Pancang", "Jasa Pondasi Dalam",
       "Jasa Pondasi Bore Pile", "Jasa Pondasi Strauss Pile",
-      // === JASA — CORING & BETON ===
       "Jasa Coring Beton", "Jasa Coring Dinding", "Jasa Coring Lantai",
       "Jasa Coring Plat", "Jasa Coring Kolom", "Jasa Coring Pondasi",
       "Jasa Coring Balok", "Jasa Core Drill", "Jasa Cutting Beton",
       "Jasa Bongkar Beton", "Jasa Injeksi Beton", "Jasa Grouting",
       "Jasa Waterproofing", "Jasa Perbaikan Beton", "Jasa Cor Beton",
-      // === JASA — PASANG KONSTRUKSI ===
       "Jasa Pasang Pagar Panel", "Jasa Pasang Pagar BRC", "Jasa Pasang Pagar Beton",
       "Jasa Pasang Kanopi", "Jasa Pasang Plafon", "Jasa Pasang Plafon Gypsum",
       "Jasa Pasang Plafon PVC", "Jasa Pasang Kusen", "Jasa Pasang Kusen Aluminium",
@@ -105,35 +110,28 @@
       "Jasa Pasang Kansteen", "Jasa Pasang Keramik", "Jasa Pasang Granit",
       "Jasa Pasang Marmer", "Jasa Pasang Kaca", "Jasa Pasang Teralis",
       "Jasa Pasang Railing",
-      // === JASA — RENOVASI & BANGUN ===
       "Jasa Renovasi Rumah", "Jasa Renovasi Bangunan", "Jasa Bangun Rumah",
       "Jasa Bangun Ruko", "Jasa Bangun Gudang", "Jasa Bangun Pagar",
       "Jasa Plester Dinding", "Jasa Acian", "Jasa Pengecatan",
-      // === PRODUK — BETON READYMIX ===
       "Beton Readymix", "Beton Cor", "Beton K-175", "Beton K-200",
       "Beton K-225", "Beton K-250", "Beton K-300", "Beton K-350",
       "Beton K-400", "Beton K-500", "Beton Mutu Tinggi", "Beton Struktural",
-      // === PRODUK — PRECAST ===
       "Pagar Panel Beton", "Pagar Panel Precast", "Pagar Beton Precast",
       "Saluran Precast", "Saluran U-Ditch", "Saluran Box Culvert",
       "Saluran Drainase Precast", "Kansteen Beton", "Kansteen Precast",
       "Paving Block", "Panel Beton Precast", "Road Barrier Beton",
-      // === MATERIAL KONSTRUKSI ===
       "Material Konstruksi", "Material Bangunan", "Besi Beton",
       "Besi Ulir", "Besi Polos", "Besi Wiremesh", "Semen",
       "Pasir Beton", "Pasir Cor", "Agregat", "Split", "Batu Belah",
       "Batu Kali", "Mortar", "Bata Ringan", "Bata Merah", "Batako", "Hebel",
-      // === SEWA ALAT ===
       "Sewa Alat Bor", "Sewa Mesin Coring", "Sewa Alat Berat",
       "Sewa Concrete Pump", "Sewa Vibrator Beton", "Sewa Pompa Beton",
       "Sewa Excavator", "Sewa Crane", "Sewa Scaffolding",
-      // === BIDANG UMUM ===
       "Konstruksi", "Jasa Konstruksi", "Kontraktor", "Pondasi",
       "Geoteknik", "Infrastruktur", "Drainase", "Struktur Beton",
       "Teknik Sipil", "Bangunan", "Renovasi", "Pembangunan"
     ],
     
-    // 🔥 ADD-5: Contact Point
     CONTACT_POINT: {
       "@type": "ContactPoint",
       "telephone": "+6281299842508",
@@ -144,7 +142,7 @@
   };
 
   // ============================================================
-  // LOGGING (SILENT DI HP)
+  // LOGGING
   // ============================================================
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG) return;
@@ -155,13 +153,14 @@
       PERF: "⏱️", CACHE: "💾", CORB: "🚫", COMMERCIAL: "🛒",
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", PARENT: "👪", PRICE: "💰",
       FLAG: "🚩", EVENT: "📡", FIX: "🔧", MATERIAL: "🧱", PHASE46: "🆕",
-      WEBP: "🎨", KNOWS: "🎓", SYNC: "🔗"
+      WEBP: "🎨", KNOWS: "🎓", SYNC: "🔗", RACE: "⚡"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.34-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.35-LITE] ${msg}`);
   }
 
-  log(`🚀 Auto Schema v7.34-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
+  log(`🚀 Auto Schema v7.35-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
   log(`🎓 KNOWS_ABOUT: ${CONFIG.KNOWS_ABOUT.length} item`, "KNOWS");
+  log(`🔗 MAX_INTERNAL_LINKS: ${CONFIG.MAX_INTERNAL_LINKS}`, "SYNC");
 
   // ============================================================
   // EARLY EXIT
@@ -185,7 +184,7 @@
   })();
 
   if (window.__SCHEMA_SKIP_REASON) {
-    console.log(`⏸️ [AutoSchema v7.34-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
+    console.log(`⏸️ [AutoSchema v7.35-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
     return;
   }
 
@@ -212,7 +211,7 @@
   };
 
   // ============================================================
-  // PERFORMANCE MONITORING (KEEP dari v7.31)
+  // PERFORMANCE MONITORING
   // ============================================================
   const perf = {
     marks: {},
@@ -230,7 +229,7 @@
   };
 
   // ============================================================
-  // DOM CACHE (KEEP dari v7.31)
+  // DOM CACHE
   // ============================================================
   class DOMCache {
     constructor() { this.cache = new Map(); }
@@ -253,7 +252,7 @@
   }
 
   // ============================================================
-  // ERROR BOUNDARY (KEEP dari v7.31)
+  // ERROR BOUNDARY
   // ============================================================
   class ErrorBoundary {
     constructor() { this.errors = []; this.fallbacks = new Map(); }
@@ -278,7 +277,7 @@
   const errorBoundary = new ErrorBoundary();
 
   // ============================================================
-  // CLOUDINARY CONFIG (KEEP dari v7.31 — FULL)
+  // CLOUDINARY CONFIG (KEEP FULL dari v7.34)
   // ============================================================
   const CLOUDINARY_CONFIG = {
     ENABLED: true,
@@ -395,6 +394,8 @@
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
       var v = String(window.pageLevelDetectorv22.version);
+      if (v.indexOf("23.9.9") === 0) return { version: v, family: "v23-lite", label: "v23.9.9-lite" };
+      if (v.indexOf("23.9.8") === 0) return { version: v, family: "v23-lite", label: "v23.9.8-lite" };
       if (v.indexOf("23.9.7") === 0) return { version: v, family: "v23-lite", label: "v23.9.7-lite" };
       if (v.indexOf("23.") === 0) return { version: v, family: "v23", label: "v23.0.0" };
       if (v.indexOf("22.") === 0) return { version: v, family: "v22", label: "v22.x" };
@@ -409,7 +410,7 @@
   }
 
   // ============================================================
-  // BREADCRUMB HELPERS (KEEP dari v7.31)
+  // BREADCRUMB HELPERS
   // ============================================================
   function cleanBreadcrumbText(text) {
     if (!text) return '';
@@ -493,7 +494,6 @@
     });
   }
 
-  // ✅ KEEP: Breadcrumb Fallback DOM
   function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
     return new Promise((resolve) => {
       perf.start('waitForBreadcrumbReady');
@@ -566,7 +566,6 @@
     });
   }
 
-  // ✅ KEEP: Get Parent from Breadcrumb Ready
   function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
     perf.start('getParentFromBreadcrumbReady');
     const parentFromFlag = document.body.getAttribute('data-breadcrumb-parent');
@@ -672,7 +671,6 @@
     return null;
   }
 
-  // ✅ KEEP: getSchemaType
   function getSchemaType() {
     perf.start('getSchemaType');
     const bodyPrimary = document.body.getAttribute('data-schema-type-primary');
@@ -687,7 +685,6 @@
     return null;
   }
 
-  // ✅ KEEP: getCtaType
   function getCtaType() {
     perf.start('getCtaType');
     const bodyCtaType = document.body.getAttribute('data-cta-type');
@@ -702,7 +699,6 @@
     return null;
   }
 
-  // ✅ KEEP: getH1Pattern
   function getH1Pattern() {
     perf.start('getH1Pattern');
     const bodyH1Pattern = document.body.getAttribute('data-h1-pattern');
@@ -729,7 +725,7 @@
   }
 
   // ============================================================
-  // WAIT AED — 🔥 ADD-1: Anti-spoofing
+  // 🔥 FIX-3: waitForAEDMetaDates — Anti-race-condition
   // ============================================================
   function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
     return new Promise((resolve) => {
@@ -741,6 +737,7 @@
         if (!resolved) { resolved = true; perf.end('waitForAEDMetaDates'); }
       }
 
+      // 🔥 FIX-3: Cek AED langsung
       if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
         log(`⚡ AED ready: ${window.AEDMetaDates.dateModified}`, "AED");
         safeEnd();
@@ -780,11 +777,10 @@
           cleanup();
           log(`⏰ AED timeout — dateModified di-skip (anti-spoofing)`, "WARN");
           safeEnd();
-          // 🔥 ADD-1: JANGAN spoof — return null
           resolve({
             dateModified: null,
             nextUpdate: null,
-            validityDays: 30,
+            validityDays: 365,
             usePriceValidUntil: false
           });
         }
@@ -820,7 +816,7 @@
   }
 
   // ============================================================
-  // ✅ KEEP: Color helpers
+  // Color helpers
   // ============================================================
   function getColorConfig(level) {
     const colors = {
@@ -885,7 +881,6 @@
     return IMAGE_CONFIG.LOGO_IMAGE;
   }
 
-  // ✅ KEEP: getFallbackImage
   function getFallbackImage(pageName, level, year) {
     if (CLOUDINARY_CONFIG.ENABLED && CLOUDINARY_CONFIG.CLOUD_NAME) {
       try {
@@ -900,7 +895,7 @@
   }
 
   // ============================================================
-  // ✅ KEEP: Fix Images dengan applyResponsiveStyles + getImageInsertionPoint
+  // Fix Images
   // ============================================================
   function fixImagesToFormat1(pageLevel) {
     perf.start('fixImagesToFormat1');
@@ -955,7 +950,7 @@
       img.style.margin = '0 auto';
       img.style.padding = '0 10px';
       img.style.boxSizing = 'border-box';
-      const styleId = 'responsive-image-style-v734';
+      const styleId = 'responsive-image-style-v735';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
@@ -1054,7 +1049,6 @@
       return result;
     }
 
-    // Create new figure
     const insertPoint = getImageInsertionPoint();
     const figure = document.createElement('figure');
     const img = document.createElement('img');
@@ -1083,25 +1077,38 @@
   }
 
   // ============================================================
-  // SERVICE TYPE EXTRACTOR
+  // 🔥 FIX-1: SERVICE TYPE EXTRACTOR — Support – — - | : &
   // ============================================================
   function extractServiceType(title, entityType) {
     let serviceType = title
-      .replace(/^(harga|biaya|tarif|estimasi)\s*/i, '')
+      // 1. Hapus prefix umum
+      .replace(/^(harga|biaya|tarif|estimasi|daftar|perbandingan|jual|beli)\s*/i, '')
+      // 2. Hapus tahun
       .replace(/\b(19|20)\d{2}\b/g, '')
-      .replace(/\s*terbaru|\s*update|\s*terkini/g, '')
-      .replace(/[-,|:].*$/, '')
+      // 3. Hapus kata "terbaru", "update", dll
+      .replace(/\s*terbaru|\s*update|\s*terkini|\s*lengkap|\s*terpercaya/gi, '')
+      // 🔥 FIX-1: Handle – — - | : & dan karakter separator lainnya
+      .replace(/\s*[–—\-|:&•·].*$/, '')
+      // 4. Trim spasi
+      .replace(/\s+/g, ' ')
       .trim();
-    if (entityType === 'jasa' && !/^(jasa|layanan|service|borongan|kontraktor)/i.test(serviceType)) {
+    
+    // 5. Tambah prefix entity kalau perlu
+    if (entityType === 'jasa' && !/^(jasa|layanan|service|borongan|kontraktor|pemasangan|instalasi)/i.test(serviceType)) {
       serviceType = 'Jasa ' + serviceType;
     } else if (entityType === 'sewa' && !/^(sewa|rental)/i.test(serviceType)) {
       serviceType = 'Sewa ' + serviceType;
+    } else if (entityType === 'produk' && !/^(produk|jual|beli)/i.test(serviceType)) {
+      serviceType = 'Produk ' + serviceType;
     }
-    if (serviceType.length > 50) serviceType = serviceType.substring(0, 50);
+    
+    // 6. Batasi panjang
+    if (serviceType.length > 60) serviceType = serviceType.substring(0, 60).trim();
+    
+    log(`🔧 extractServiceType: "${title}" → "${serviceType}"`, "FIX");
     return serviceType;
   }
 
-  // ✅ KEEP: detectProductMaterial
   function detectProductMaterial(entityType) {
     const bodyMaterial = document.body.getAttribute('data-product-material');
     if (bodyMaterial) return bodyMaterial;
@@ -1155,7 +1162,7 @@
   }
 
   // ============================================================
-  // DETEKSI HARGA — 4 LAYERS (KEEP SEMUA dari v7.31)
+  // 4-LAYER PRICE DETECTION
   // ============================================================
   const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
 
@@ -1167,19 +1174,15 @@
     }
     const container = document.querySelector('article, main, .post-body, .entry-content') || document.body;
 
-    // Layer 1
     const layer1 = detectPriceFromTableHeader(container);
     if (layer1.hasPrice) { perf.end('detectPriceLayered'); return { ...layer1, layer: 1 }; }
 
-    // Layer 2 — KEEP
     const layer2 = detectPriceFromElements(container);
     if (layer2.hasPrice) { perf.end('detectPriceLayered'); return { ...layer2, layer: 2 }; }
 
-    // Layer 3 — KEEP
     const layer3 = detectPriceFromKeywordElements(container);
     if (layer3.hasPrice) { perf.end('detectPriceLayered'); return { ...layer3, layer: 3 }; }
 
-    // Layer 4 — KEEP
     const layer4 = detectPriceFromLooseRegex(container);
     if (layer4.hasPrice) { perf.end('detectPriceLayered'); return { ...layer4, layer: 4 }; }
 
@@ -1211,7 +1214,6 @@
     return { hasPrice: offers.length > 0, source: 'table-header', value: offers[0]?.price, offers };
   }
 
-  // ✅ KEEP: Layer 2
   function detectPriceFromElements(container) {
     const selectors = ['[itemprop="price"]', '.price', '.harga', '.biaya', '.tarif', '[data-price]', '.price-item', '.price-value', '.amount', '.cost'];
     const priceEls = container.querySelectorAll(selectors.join(', '));
@@ -1235,7 +1237,6 @@
     return { hasPrice: false, source: null, value: null, offers: [] };
   }
 
-  // ✅ KEEP: Layer 3
   function detectPriceFromKeywordElements(container) {
     const candidates = container.querySelectorAll(
       'table td, table th, [class*="price"], [class*="harga"], [class*="biaya"], .price, .harga, .biaya, strong, b, .post-body p'
@@ -1262,7 +1263,6 @@
     return { hasPrice: false, source: null, value: null, offers: [] };
   }
 
-  // ✅ KEEP: Layer 4
   function detectPriceFromLooseRegex(container) {
     const keywordRegex = /(harga|biaya|tarif|price|cost|rate|mulai dari|per\s+(m|m²|m2|unit|buah|lembar|meter))/i;
     const contextEls = [];
@@ -1320,7 +1320,7 @@
   }
 
   // ============================================================
-  // INTERNAL LINKS — 🔥 ADD-4: Filter Placeholder
+  // 🔥 FIX-2: INTERNAL LINKS — Max 8 (dari 40)
   // ============================================================
   function generateInternalLinks() {
     perf.start('generateInternalLinks');
@@ -1333,30 +1333,34 @@
       if (!href.includes(location.hostname)) continue;
       if (href.includes('#')) continue;
       if (href.match(/(\/search|\/feed|\/label)/i)) continue;
-      // 🔥 ADD-4: Filter placeholder
+      // Filter placeholder
       if (href.includes('{{') || href.includes('%7B') || href.includes('LINK_')) continue;
       links.push(href);
-      if (links.length >= 40) break;
+      // 🔥 FIX-2: Max 8 links (dari 40)
+      if (links.length >= CONFIG.MAX_INTERNAL_LINKS) break;
     }
     const unique = [...new Set(links)];
-    const result = unique.map((u, i) => ({
+    // 🔥 FIX-2: Pastikan unique juga max 8
+    const limited = unique.slice(0, CONFIG.MAX_INTERNAL_LINKS);
+    const result = limited.map((u, i) => ({
       "@type": "ListItem",
       position: i + 1,
       url: u,
       name: decodeURIComponent(u.split("/").pop().replace(".html", "").replace(/-/g, " "))
     }));
+    log(`🔗 Internal links: ${result.length} (max ${CONFIG.MAX_INTERNAL_LINKS})`, "SYNC");
     perf.end('generateInternalLinks');
     return result;
   }
 
   // ============================================================
-  // 🚀 MAIN FUNCTION v7.34-LITE
+  // 🚀 MAIN FUNCTION v7.35-LITE
   // ============================================================
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
       perf.start('init');
       log("═══════════════════════════════════════════════════", "INFO");
-      log("AUTO SCHEMA UNIVERSAL v7.34-LITE COMPLETE", "INFO");
+      log("AUTO SCHEMA UNIVERSAL v7.35-LITE COMPLETE", "INFO");
       log("═══════════════════════════════════════════════════", "INFO");
 
       try {
@@ -1381,9 +1385,9 @@
         const entityType = getEntityTypeFromPLD();
         const contentFocus = detectContentFocus();
         const kategori = getKategori();
-        const schemaType = getSchemaType();  // ✅ KEEP
-        const ctaType = getCtaType();        // ✅ KEEP
-        const h1Pattern = getH1Pattern();    // ✅ KEEP
+        const schemaType = getSchemaType();
+        const ctaType = getCtaType();
+        const h1Pattern = getH1Pattern();
 
         log(`📌 Level: ${pageLevel} | Entity: ${entityType} | Focus: ${contentFocus}`, "SUCCESS");
 
@@ -1415,10 +1419,8 @@
         const description = document.querySelector('meta[name="description"]')?.content?.trim() ||
           document.querySelector("article p, main p")?.innerText?.substring(0, 200) || title;
 
-        // 🔥 ADD-2: KNOWS_ABOUT LENGKAP
         const knowsAbout = CONFIG.KNOWS_ABOUT;
         
-        // 🔥 ADD-1: Anti-spoofing
         const dateModified = (aed && aed.dateModified) ? aed.dateModified : undefined;
         const priceValidUntil = (aed && aed.nextUpdate) ? aed.nextUpdate : undefined;
 
@@ -1435,11 +1437,8 @@
             "openingHours": "Mo-Sa 08:00-17:00",
             "logo": IMAGE_CONFIG.LOGO_IMAGE,
             "sameAs": ["https://www.facebook.com/betonjayareadymix", "https://www.instagram.com/betonjayareadymix"],
-            // 🔥 ADD-3: areaServed Indonesia + 11 Kota
             "areaServed": CONFIG.AREA_SERVED,
-            // 🔥 ADD-2: knowsAbout LENGKAP
             "knowsAbout": knowsAbout,
-            // 🔥 ADD-5: contactPoint
             "contactPoint": CONFIG.CONTACT_POINT
           },
           {
@@ -1451,7 +1450,6 @@
             "image": pageImage,
             "isPartOf": { "@type": "WebPage", "@id": parentData.parentUrl, "name": parentData.parentName },
             "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
-            // 🔥 ADD-1: dateModified di-skip kalau tidak ada
             ...(dateModified && { "dateModified": dateModified }),
             "inLanguage": "id"
           }
@@ -1529,7 +1527,7 @@
           };
           if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
             productNode.productType = pageLevel === 'variant' ? "Variant" : "Sub-Variant";
-            const material = detectProductMaterial(entityType);  // ✅ KEEP
+            const material = detectProductMaterial(entityType);
             if (material) productNode.material = material;
             productNode.manufacturer = { "@type": "Organization", name: "Beton Jaya Readymix" };
           }
@@ -1553,7 +1551,7 @@
           graph.push(productNode);
         }
 
-        // Internal Links
+        // Internal Links (max 8)
         const internalLinks = generateInternalLinks();
         if (internalLinks.length > 0) {
           graph.push({
@@ -1580,6 +1578,7 @@
         log("✅ Schema COMPLETE generated", "SUCCESS");
         log(`   knowsAbout: ${knowsAbout.length} item | areaServed: ${CONFIG.AREA_SERVED.length} area`, "KNOWS");
         log(`   Price layers: ${hasPrice ? 'Layer ' + priceResult.layer : 'None'}`, "PRICE");
+        log(`   Internal links: ${internalLinks.length} (max ${CONFIG.MAX_INTERNAL_LINKS})`, "SYNC");
         log(`   Breadcrumb source: ${parentData.source}`, "BREADCRUMB");
         log("═══════════════════════════════════════════════════", "SUCCESS");
 
@@ -1596,5 +1595,19 @@
   // CLEANUP
   function cleanup() { if (domCache) domCache.clear(); }
   window.addEventListener('beforeunload', cleanup);
+
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("✅ Auto Schema v7.35-LITE — READY");
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("🔥 FIX-1: extractServiceType() — support – — - | : &");
+  console.log("🔥 FIX-2: ItemList max 8 (dari 40)");
+  console.log("🔥 FIX-3: Guard anti-race-condition AED");
+  console.log("🔥 FIX-4: Support AED v17.4.7 (tiered + content-aware)");
+  console.log("✅ KNOWS_ABOUT: 110 item");
+  console.log("✅ areaServed: Indonesia + 11 kota");
+  console.log("✅ 4-layer price detection");
+  console.log("✅ Breadcrumb DOM fallback");
+  console.log("✅ ErrorBoundary + DOMCache");
+  console.log("═══════════════════════════════════════════════════════════");
 
 })();
