@@ -1,15 +1,22 @@
-/* ⚡ AutoSchema Hybrid v5.5-LITE COMPLETE — PRODUCT SCHEMA
-   ✅ SINKRON dengan v7.34-LITE (@id) & v8.4-LITE (@id)
-   ✅ SINKRON dengan AED v17.4.3-LITE
+/* ⚡ AutoSchema Hybrid v5.6-LITE COMPLETE — PRODUCT SCHEMA (PLD-DRIVEN)
+   ✅ SINKRON dengan PLD v23.9.9 (entity-aware detectSchemaType)
+   ✅ SINKRON dengan Auto Schema v7.36-LITE
+   ✅ SINKRON dengan Auto Schema Article v8.6
+   ✅ SINKRON dengan AED v17.4.7
 
-   🔥 v5.5-LITE CHANGELOG:
-   ✅ ADD-1: Anti-spoofing dateModified (fallback = null)
-   ✅ ADD-2: @id sync (#localbusiness tanpa slash)
-   ✅ ADD-3: knowsAbout LENGKAP (110 item)
-   ✅ ADD-4: areaServed Indonesia + 11 kota
-   ✅ ADD-5: contactPoint
+   🔥 v5.6-LITE CHANGELOG:
+   ✅ FIX-1: getPLDSchemaHint() — baca data-schema-type-primary/secondary/note
+   ✅ FIX-2: shouldSkipProductSchema() — PLD-driven (bukan hardcode entity)
+   ✅ FIX-3: Guard offers via note (with-offers vs without-offers)
+   ✅ FIX-4: wantAreaServed dari note
+   ✅ FIX-5: Fallback legacy tetap ada untuk PLD lama
 
-   ✅ PRESERVED dari v5.4-LITE:
+   ✅ PRESERVED dari v5.5-LITE:
+   ✅ Anti-spoofing dateModified (fallback = null)
+   ✅ @id sync (#localbusiness tanpa slash)
+   ✅ knowsAbout LENGKAP (110 item)
+   ✅ areaServed Indonesia + 11 kota
+   ✅ contactPoint
    ✅ Variant spec extraction (size/weight/sku)
    ✅ Extended properties (productType, material, manufacturer)
    ✅ 4-layer price detection
@@ -18,17 +25,19 @@
    ✅ Early return breadcrumb (P13)
    ✅ Cache getPageLevelFromPLD (P14)
    ✅ Minified production JSON (P16)
+
+   Status: FINAL v5.6 — PLD-DRIVEN, SEO 2026
 */
 
 (function() {
   "use strict";
 
   // ═══ GUARD GLOBAL ═══
-  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.5-lite") {
-    console.log("[AutoSchema Hybrid v5.5-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.6-lite") {
+    console.log("[AutoSchema Hybrid v5.6-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_HYBRID_VERSION = "5.5-lite";
+  window.__AUTOSCHEMA_HYBRID_VERSION = "5.6-lite";
 
   // ============================================================
   // AUTO-DETECT DEBUG
@@ -50,7 +59,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.5-LITE] 🚫 Blocked external fetch:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.6-LITE] 🚫 Blocked external fetch:', url);
       return Promise.reject(new Error('Blocked by CORB prevention'));
     }
     return originalFetch.apply(this, args);
@@ -63,7 +72,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.5-LITE] 🚫 Blocked external XHR:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.6-LITE] 🚫 Blocked external XHR:', url);
       throw new Error('Blocked by CORB prevention');
     }
     return originalXHROpen.call(this, method, url, ...rest);
@@ -115,24 +124,20 @@
       "availableLanguage": ["id"]
     },
     
-    // 🔥 ADD-3: KNOWS_ABOUT — 110 item LENGKAP (sama dengan v7.34)
+    // 🔥 ADD-3: KNOWS_ABOUT — 110 item LENGKAP
     KNOWS_ABOUT: [
-      // JASA — PENGEOBORAN
       "Jasa Bor Sumur", "Jasa Bor Horizontal", "Jasa Bor Manual",
       "Jasa Bor Hidrolik", "Jasa Bor Rotary", "Jasa Bor Auger",
       "Jasa Bor Sumur Dalam", "Jasa Bor Sumur Dangkal",
       "Jasa Pengeboran Tanah", "Jasa Pengeboran Air Tanah",
-      // JASA — PONDASI
       "Jasa Bore Pile", "Jasa Strauss Pile", "Jasa Borongan Bore Pile",
       "Jasa Borongan Strauss Pile", "Jasa Tiang Pancang", "Jasa Pondasi Dalam",
       "Jasa Pondasi Bore Pile", "Jasa Pondasi Strauss Pile",
-      // JASA — CORING & BETON
       "Jasa Coring Beton", "Jasa Coring Dinding", "Jasa Coring Lantai",
       "Jasa Coring Plat", "Jasa Coring Kolom", "Jasa Coring Pondasi",
       "Jasa Coring Balok", "Jasa Core Drill", "Jasa Cutting Beton",
       "Jasa Bongkar Beton", "Jasa Injeksi Beton", "Jasa Grouting",
       "Jasa Waterproofing", "Jasa Perbaikan Beton", "Jasa Cor Beton",
-      // JASA — PASANG KONSTRUKSI
       "Jasa Pasang Pagar Panel", "Jasa Pasang Pagar BRC", "Jasa Pasang Pagar Beton",
       "Jasa Pasang Kanopi", "Jasa Pasang Plafon", "Jasa Pasang Plafon Gypsum",
       "Jasa Pasang Plafon PVC", "Jasa Pasang Kusen", "Jasa Pasang Kusen Aluminium",
@@ -142,29 +147,23 @@
       "Jasa Pasang Kansteen", "Jasa Pasang Keramik", "Jasa Pasang Granit",
       "Jasa Pasang Marmer", "Jasa Pasang Kaca", "Jasa Pasang Teralis",
       "Jasa Pasang Railing",
-      // JASA — RENOVASI
       "Jasa Renovasi Rumah", "Jasa Renovasi Bangunan", "Jasa Bangun Rumah",
       "Jasa Bangun Ruko", "Jasa Bangun Gudang", "Jasa Bangun Pagar",
       "Jasa Plester Dinding", "Jasa Acian", "Jasa Pengecatan",
-      // PRODUK — BETON READYMIX
       "Beton Readymix", "Beton Cor", "Beton K-175", "Beton K-200",
       "Beton K-225", "Beton K-250", "Beton K-300", "Beton K-350",
       "Beton K-400", "Beton K-500", "Beton Mutu Tinggi", "Beton Struktural",
-      // PRODUK — PRECAST
       "Pagar Panel Beton", "Pagar Panel Precast", "Pagar Beton Precast",
       "Saluran Precast", "Saluran U-Ditch", "Saluran Box Culvert",
       "Saluran Drainase Precast", "Kansteen Beton", "Kansteen Precast",
       "Paving Block", "Panel Beton Precast", "Road Barrier Beton",
-      // MATERIAL
       "Material Konstruksi", "Material Bangunan", "Besi Beton",
       "Besi Ulir", "Besi Polos", "Besi Wiremesh", "Semen",
       "Pasir Beton", "Pasir Cor", "Agregat", "Split", "Batu Belah",
       "Batu Kali", "Mortar", "Bata Ringan", "Bata Merah", "Batako", "Hebel",
-      // SEWA
       "Sewa Alat Bor", "Sewa Mesin Coring", "Sewa Alat Berat",
       "Sewa Concrete Pump", "Sewa Vibrator Beton", "Sewa Pompa Beton",
       "Sewa Excavator", "Sewa Crane", "Sewa Scaffolding",
-      // BIDANG UMUM
       "Konstruksi", "Jasa Konstruksi", "Kontraktor", "Pondasi",
       "Geoteknik", "Infrastruktur", "Drainase", "Struktur Beton",
       "Teknik Sipil", "Bangunan", "Renovasi", "Pembangunan"
@@ -172,7 +171,7 @@
   };
 
   // ============================================================
-  // CLOUDINARY CONFIG (KEEP dari v5.4)
+  // CLOUDINARY CONFIG
   // ============================================================
   const CLOUDINARY_CONFIG = {
     ENABLED: true,
@@ -291,7 +290,7 @@
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
   // ============================================================
-  // ERROR BOUNDARY (KEEP dari v5.4)
+  // ERROR BOUNDARY
   // ============================================================
   class ErrorBoundary {
     constructor() {
@@ -306,7 +305,7 @@
       } catch (error) {
         const fallback = this.fallbacks.get(fnName);
         if (CONFIG.DEBUG) {
-          console.error(`❌ [Hybrid v5.5] Error in ${fnName}:`, error);
+          console.error(`❌ [Hybrid v5.6] Error in ${fnName}:`, error);
         }
         if (fallback) return typeof fallback === 'function'
           ? fallback(...args) : fallback;
@@ -332,7 +331,7 @@
     end(label) {
       if (!CONFIG.DEBUG || !this.marks[label]) return 0;
       const duration = performance.now() - this.marks[label];
-      console.log(`⏱️ [PERF v5.5-LITE] ${label}: ${duration.toFixed(2)}ms`);
+      console.log(`⏱️ [PERF v5.6-LITE] ${label}: ${duration.toFixed(2)}ms`);
       delete this.marks[label];
       return duration;
     }
@@ -381,7 +380,7 @@
       FIX: "🔧", MATERIAL: "🧱", CTA: "🔘", VERSION: "🔖", WEBP: "🎨",
       KNOWS: "🎓", SYNC: "🔗"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.5-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.6-LITE] ${msg}`);
   }
 
   // ============================================================
@@ -390,6 +389,8 @@
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
       const v = String(window.pageLevelDetectorv22.version);
+      if (v.indexOf("23.9.9") === 0) return { version: v, family: "v23-lite", label: "v23.9.9-lite" };
+      if (v.indexOf("23.9.8") === 0) return { version: v, family: "v23-lite", label: "v23.9.8-lite" };
       if (v.indexOf("23.9.7") === 0) return { version: v, family: "v23-lite", label: "v23.9.7-lite" };
       if (v.indexOf("23.") === 0) return { version: v, family: "v23", label: "v23.0.0" };
       if (v.indexOf("22.") === 0) return { version: v, family: "v22", label: "v22.x" };
@@ -401,6 +402,19 @@
     if (window.pageLevelDetectorV17) return { version: "17.x", family: "v17", label: "v17" };
     if (window.pageLevelDetector) return { version: "legacy", family: "legacy", label: "legacy" };
     return { version: "none", family: "none", label: "none" };
+  }
+
+  // ============================================================
+  // 🔥 FIX-1 (v5.6): GET PLD SCHEMA HINT
+  // Baca attribute yang PLD set — TIDAK menebak sendiri
+  // ============================================================
+  function getPLDSchemaHint() {
+    const primary   = (document.body.getAttribute('data-schema-type-primary')   || '').trim();
+    const secondary = (document.body.getAttribute('data-schema-type-secondary') || '').trim();
+    const note      = (document.body.getAttribute('data-schema-type-note')      || '').trim();
+    const hint = { primary, secondary, note };
+    log(`🔗 PLD hint → primary=${primary || '(none)'} | secondary=${secondary || '(none)'} | note=${note || '(none)'}`, "SCHEMA");
+    return hint;
   }
 
   // ============================================================
@@ -420,19 +434,19 @@
 
     if (!isMoneyLevel) {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'not-money-level';
-      console.log(`⏸️ [AutoSchema Hybrid v5.5-LITE] SKIP: level "${pageLevel}" bukan money level`);
+      console.log(`⏸️ [AutoSchema Hybrid v5.6-LITE] SKIP: level "${pageLevel}" bukan money level`);
       return;
     }
 
     if (contentFocus === 'INFORMASI') {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'money-informasi';
-      console.log(`⏸️ [AutoSchema Hybrid v5.5-LITE] SKIP: money level + INFORMASI`);
+      console.log(`⏸️ [AutoSchema Hybrid v5.6-LITE] SKIP: money level + INFORMASI`);
       return;
     }
 
     window.__AUTOSCHEMA_HYBRID_SKIP_REASON = null;
     if (CONFIG.DEBUG) {
-      console.log(`✅ [AutoSchema Hybrid v5.5-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
+      console.log(`✅ [AutoSchema Hybrid v5.6-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
     }
   })();
 
@@ -644,16 +658,42 @@
     return null;
   }
 
+  // ============================================================
+  // 🔥 FIX-2 (v5.6): SHOULD SKIP PRODUCT SCHEMA — PLD-DRIVEN
+  // Tidak lagi hardcode entity — baca data-schema-type-primary
+  // ============================================================
   function shouldSkipProductSchema(pageLevel, entityType) {
+    const hint = getPLDSchemaHint();
+
+    // 🔥 PRIORITAS 1: PLD hint (SEO 2026)
+    if (hint.primary || hint.secondary) {
+      const wantProduct = (hint.primary === 'Product') || (hint.secondary === 'Product');
+      if (!wantProduct) {
+        log(`⏭️ Product SKIP — PLD primary=${hint.primary || '(none)'}, secondary=${hint.secondary || '(none)'}`, "SKIP");
+        return true;
+      }
+      log(`✅ Product LAYAK — PLD primary=${hint.primary}`, "PRODUCT");
+      return false;
+    }
+
+    // 🔥 PRIORITAS 2: legacy body attribute (untuk PLD lama)
     const bodySkip = document.body.getAttribute('data-product-schema-skip');
-    if (bodySkip !== null) return bodySkip === 'true';
+    if (bodySkip !== null) {
+      return bodySkip === 'true';
+    }
     const bodySchemaType = document.body.getAttribute('data-product-schema-type');
     if (bodySchemaType !== null) {
       return bodySchemaType === 'skip' || bodySchemaType === 'none';
     }
+
+    // 🔥 PRIORITAS 3: fallback entity hardcode (PLD lama tanpa hint)
     if (entityType) {
       const skipEntities = ['jasa', 'sewa', 'desain', 'artikel'];
-      return skipEntities.includes(entityType.toLowerCase());
+      const skip = skipEntities.includes(entityType.toLowerCase());
+      if (skip) {
+        log(`⏭️ Product SKIP (fallback entity) — entity=${entityType}`, "SKIP");
+      }
+      return skip;
     }
     return false;
   }
@@ -686,13 +726,11 @@
   // 🔥 ADD-3: KNOWS_ABOUT dari config (110 item)
   // ============================================================
   function detectKnowsAbout(entityType) {
-    // Prioritas 1: body attribute (kalau ada)
     const bodyKnowsAbout = document.body.getAttribute('data-knows-about');
     if (bodyKnowsAbout) {
       return bodyKnowsAbout.split(',').map(s => s.trim())
         .filter(s => s.length > 0).slice(0, 20);
     }
-    // 🔥 ADD-3: Prioritas 2: dari CONFIG.KNOWS_ABOUT (110 item)
     return CONFIG.KNOWS_ABOUT;
   }
 
@@ -974,7 +1012,7 @@
   }
 
   // ============================================================
-  // INSERT FIGURE AFTER H1 (KEEP dari v5.4)
+  // INSERT FIGURE AFTER H1
   // ============================================================
   function insertFigureAfterH1(container, figure) {
     const isPostBody = container.classList && (
@@ -1162,7 +1200,7 @@
   }
 
   // ============================================================
-  // 🔥 ADD-4: getAreaServed dari CONFIG
+  // AREA SERVED
   // ============================================================
   function getAreaServed() {
     return CONFIG.AREA_SERVED;
@@ -1219,18 +1257,14 @@
   }
 
   // ============================================================
-  // 🔥 ADD-1: getAEDPriceValidUntil — Anti-spoofing
+  // ANTI-SPOOFING: AED
   // ============================================================
   function getAEDPriceValidUntil() {
     const aed = window.AEDMetaDates;
     if (aed && aed.nextUpdate) return aed.nextUpdate;
-    // 🔥 ADD-1: JANGAN spoof — return null
     return null;
   }
 
-  // ============================================================
-  // 🔥 ADD-1: waitForAEDMetaDates — Anti-spoofing
-  // ============================================================
   function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
     return new Promise((resolve) => {
       const controller = new AbortController();
@@ -1272,7 +1306,6 @@
           if (resolved) return;
           resolved = true;
           cleanup();
-          // 🔥 ADD-1: JANGAN spoof — return null
           log("⚠️ AED timeout — dateModified di-skip (anti-spoofing)", "WARN");
           resolve({
             dateModified: null,
@@ -1305,12 +1338,12 @@
   }
 
   // ============================================================
-  // 🚀 MAIN INIT v5.5-LITE
+  // 🚀 MAIN INIT v5.6-LITE
   // ============================================================
   async function init() {
     perf.start('init');
     log("═══════════════════════════════════════════════════");
-    log("AutoSchema Hybrid v5.5-LITE — PRODUCT SCHEMA (SYNC v7.34 & v8.4)");
+    log("AutoSchema Hybrid v5.6-LITE — PRODUCT SCHEMA (PLD-DRIVEN)");
     log(`DEBUG Mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("═══════════════════════════════════════════════════");
 
@@ -1340,12 +1373,22 @@
       log(`📌 Entity Type: ${entityType}`, "PLD");
       log(`📌 Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
 
+      // 🔥 FIX-2 (v5.6): PLD-driven skip check
       if (shouldSkipProductSchema(pageLevel, entityType)) {
-        log(`⏭️ Product schema SKIPPED untuk halaman ini`, "SKIP");
+        log(`⏭️ Product schema SKIPPED untuk halaman ini (PLD-driven)`, "SKIP");
         perf.end('init');
         return;
       }
 
+      // 🔥 FIX-1 (v5.6): Baca PLD hint
+      const hint = getPLDSchemaHint();
+      const wantOffers = /(^|,)with-offers($|,)/.test(hint.note) && !/without-offers/.test(hint.note);
+      const wantAreaServed = /with-areaServed/.test(hint.note);
+      const isProductVariant = /without-offers/.test(hint.note);
+
+      log(`🔗 Build config → offers=${wantOffers} | areaServed=${wantAreaServed} | withoutOffers=${isProductVariant}`, "SCHEMA");
+
+      // Price detection
       const priceResult = detectPriceLayered(pageLevel);
       const detectedOffers = priceResult.offers || [];
       const hasPrice = priceResult.hasPrice;
@@ -1356,6 +1399,7 @@
         log(`⏭️ Tidak ada harga terdeteksi`, "PRICE");
       }
 
+      // Image handling
       let imageUrl = LOGO_IMAGE;
       const isEligible = isImageEligible(pageLevel);
       if (isEligible) {
@@ -1365,7 +1409,7 @@
             const img = fixedFigure.querySelector ? fixedFigure.querySelector('img') : fixedFigure;
             if (img) {
               const candidateSrc = img.src || '';
-              if (/^https?:\/\//i.test(candidateSrc)) imageUrl = candidateSrc;
+              if (/^https?:\/\//.test(candidateSrc)) imageUrl = candidateSrc;
             }
           }
         } catch(e) {
@@ -1383,21 +1427,26 @@
       const productCategory = detectProductCategory();
       const priceValidUntil = getAEDPriceValidUntil();
 
-      const offers = detectedOffers.map(o => ({
-        "@type": "Offer",
-        name: sanitizeText(o.name),
-        url: currentUrl,
-        priceCurrency: "IDR",
-        price: o.price,
-        // 🔥 ADD-1: priceValidUntil hanya kalau ada
-        ...(priceValidUntil && { priceValidUntil: priceValidUntil }),
-        availability: "https://schema.org/InStock",
-        itemCondition: "https://schema.org/NewCondition",
-        // 🔥 ADD-2: @id sync
-        seller: { "@id": CONFIG.LOCALBUSINESS_ID }
-      }));
+      // 🔥 FIX-3 (v5.6): Offers hanya kalau wantOffers = true
+      const offers = (wantOffers && detectedOffers.length > 0)
+        ? detectedOffers.map(o => ({
+            "@type": "Offer",
+            name: sanitizeText(o.name),
+            url: currentUrl,
+            priceCurrency: "IDR",
+            price: o.price,
+            ...(priceValidUntil && { priceValidUntil: priceValidUntil }),
+            availability: "https://schema.org/InStock",
+            itemCondition: "https://schema.org/NewCondition",
+            seller: { "@id": CONFIG.LOCALBUSINESS_ID }
+          }))
+        : [];
 
-      // 🔥 ADD-1, ADD-2, ADD-3, ADD-4, ADD-5: Business object LENGKAP
+      if (!wantOffers && detectedOffers.length > 0) {
+        log(`⏭️ Offers skip — PLD note="${hint.note}" (without-offers)`, "SKIP");
+      }
+
+      // Business object LENGKAP
       const business = {
         "@type": ["LocalBusiness", "GeneralContractor"],
         "@id": CONFIG.LOCALBUSINESS_ID,
@@ -1417,11 +1466,8 @@
           "https://www.facebook.com/betonjayareadymix",
           "https://www.instagram.com/betonjayareadymix"
         ],
-        // 🔥 ADD-4: areaServed Indonesia + kota
         areaServed: areaServed,
-        // 🔥 ADD-3: knowsAbout LENGKAP (110 item)
         knowsAbout: detectKnowsAbout(entityType),
-        // 🔥 ADD-5: contactPoint
         contactPoint: CONFIG.CONTACT_POINT
       };
 
@@ -1432,9 +1478,13 @@
         image: [imageUrl || LOGO_IMAGE],
         description: desc,
         brand: { "@type": "Brand", name: "Beton Jaya Readymix" },
-        category: productCategory,
-        areaServed: areaServed
+        category: productCategory
       };
+
+      // 🔥 FIX-4 (v5.6): areaServed hanya kalau wantAreaServed atau money-child
+      if (wantAreaServed || pageLevel === 'money-child') {
+        product.areaServed = areaServed;
+      }
 
       if (offers.length > 0) {
         const prices = offers.map(o => o.price);
@@ -1446,13 +1496,13 @@
           highPrice: highPrice,
           offerCount: offers.length,
           priceCurrency: "IDR",
-          // 🔥 ADD-1: hanya kalau ada
           ...(priceValidUntil && { priceValidUntil: priceValidUntil }),
           availability: "https://schema.org/InStock",
           offers: offers
         };
       }
 
+      // Variant/Sub-Variant extended properties
       if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
         product.productType = pageLevel === 'variant' ? "Variant" : "Sub-Variant";
         product.material = detectProductMaterial();
@@ -1492,7 +1542,6 @@
         image: imageUrl,
         mainEntity: { "@id": product["@id"] },
         isPartOf: parentUrls,
-        // 🔥 ADD-2: publisher sync
         publisher: { "@id": CONFIG.LOCALBUSINESS_ID }
       };
 
@@ -1512,15 +1561,16 @@
         "@graph": graph
       }, null, indent);
 
-      log("✅ PRODUCT SCHEMA INJECTED (v5.5-LITE)", "SUCCESS");
+      log("✅ PRODUCT SCHEMA INJECTED (v5.6-LITE)", "SUCCESS");
       log(`   Product: ${productName}`, "SUCCESS");
-      log(`   Offers: ${offers.length}`, "PRICE");
+      log(`   Category: ${productCategory}`, "PRODUCT");
+      log(`   Offers: ${offers.length} (wantOffers=${wantOffers})`, "PRICE");
+      log(`   areaServed: ${product.areaServed ? 'YES' : 'NO'}`, "SYNC");
       log(`   knowsAbout: ${business.knowsAbout.length} item`, "KNOWS");
-      log(`   areaServed: ${areaServed.length} area`, "SYNC");
       log(`   Parent: ${parentData.parentName}`, "PARENT");
       log("═══════════════════════════════════════════════════");
     } catch (error) {
-      console.error('❌ [Hybrid v5.5] Fatal error in init:', error);
+      console.error('❌ [Hybrid v5.6] Fatal error in init:', error);
       log(`Fatal error: ${error.message}`, "ERROR");
     } finally {
       perf.end('init');
@@ -1541,6 +1591,11 @@
 
   window.addEventListener('beforeunload', cleanup);
 
-  console.log(`✅ [AutoSchema Hybrid v5.5-LITE] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`✅ [AutoSchema Hybrid v5.6-LITE] Ready — PLD-DRIVEN (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`🔥 FIX-1: getPLDSchemaHint() — baca data-schema-type-note`);
+  console.log(`🔥 FIX-2: shouldSkipProductSchema() — PLD-driven (bukan hardcode)`);
+  console.log(`🔥 FIX-3: Guard offers via note (with-offers vs without-offers)`);
+  console.log(`🔥 FIX-4: wantAreaServed dari note`);
+  console.log(`✅ PRESERVED: Anti-spoofing, @id sync, knowsAbout 110, areaServed 12`);
 
 })();
