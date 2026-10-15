@@ -1,35 +1,30 @@
 /**
- * 📄 Auto-Schema Generator v8.4 — ARTICLE SCHEMA (FINAL — SYNC SERVICE)
+ * 📄 Auto-Schema Generator v8.5 — ARTICLE SCHEMA (FINAL)
  * 
- * 🔥 v8.4 CHANGELOG:
- * ✅ K1-FIX: shouldGenerateArticleSchema() — SEMUA FOKUS dapat Article
- * ✅ K2-FIX: Author = Organization + @id reference ke LocalBusiness
- * ✅ K3-FIX: Anti-spoofing dateModified
- * ✅ M1-FIX: isEditorialContent() — validasi konten
- * ✅ M2-FIX: Image fallback default
- * ✅ M3-FIX: Hapus articleBody (performance)
- * ✅ M5-FIX: Race condition — early exit di init()
- * ✅ SYNC-FIX: @id reference ke #localbusiness (sinkron dgn schema service)
- * ✅ SYNC-FIX: mainEntityOfPage pakai #webpage (sinkron)
+ * 🔥 v8.5 CHANGELOG:
+ * ✅ FIX-1: getArticleType() — deteksi URL pattern Blogger
+ *           /p/ → Article (bukan BlogPosting)
+ *           /YYYY/MM/ → BlogPosting (boleh)
+ * ✅ FIX-2: Semua fitur v8.4 dipertahankan
+ * ✅ FIX-3: Sync @id dengan v7.34 & v5.5 (#localbusiness tanpa slash)
+ * ✅ FIX-4: Log lebih informatif
  * 
- * 🎯 SYARAT ARTICLE SCHEMA (v8.4):
- * 1. Editorial Content — word count >= 300, paragraf >= 3, headings >= 2
- * 2. Author Person — dengan bio URL & kredensial
- * 3. Tanggal Valid — dateModified = datePublished (anti-spoofing)
- * 4. Konten Substansial — bukan halaman tipis / listing produk
+ * 🎯 SYARAT ARTICLE SCHEMA (v8.5):
+ * Layer 1: shouldGenerateArticleSchema() — cek LEVEL halaman
+ * Layer 2: isEditorialContent() — cek KUALITAS konten
  * 
- * Status: FINAL v8.4 — SEO 2026 Ready + Sync Service
+ * Status: FINAL v8.5 — SEO 2026 Ready + Blogger-Aware
  */
 
 (function() {
   "use strict";
 
   // ═══ GUARD GLOBAL ═══
-  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.4") {
-    console.log("[AutoSchema Article v8.4] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.5") {
+    console.log("[AutoSchema Article v8.5] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.4";
+  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.5";
 
   // ============================================================
   // 🔥 AUTO-DETECT DEBUG
@@ -55,12 +50,11 @@
     SITE_URL: "https://www.betonjayareadymix.com",
     CURRENT_YEAR: new Date().getFullYear(),
     
-    // 🔥 SYNC-FIX: @id reference ke LocalBusiness (dari schema service)
+    // 🔥 SYNC-FIX: @id reference (TANPA SLASH) — sync v7.34 & v5.5
     LOCALBUSINESS_ID: "https://www.betonjayareadymix.com#localbusiness",
     WEBPAGE_ID_SUFFIX: "#webpage",
     
-    // 🔥 K2-FIX: Author = Organization (Bisnis)
-    // Cukup pendek — detail lengkap ada di schema service (#localbusiness)
+    // 🔥 K2-FIX: Author = Organization
     AUTHOR: {
       type: "Organization",
       name: "Beton Jaya Readymix",
@@ -87,7 +81,7 @@
     // Skip
     SKIP_WORD_COUNT: 300,
     
-    VERSION: "8.4"
+    VERSION: "8.5"
   };
 
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
@@ -107,9 +101,9 @@
       INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅",
       FOCUS: "🎯", SKIP: "⏭️", BREADCRUMB: "🍞", AED: "⚡",
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
-      IMG: "🖼️", EDITORIAL: "✍️", SYNC: "🔗"
+      IMG: "🖼️", EDITORIAL: "✍️", SYNC: "🔗", URL: "🌐"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema v8.4] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema v8.5] ${msg}`);
   }
 
   // ============================================================
@@ -383,7 +377,6 @@
     }
 
     // 🔥 K1-FIX: Semua Money level → SELALU Article
-    // (termasuk GABUNG/HARGA/COMMERCIAL — semua punya konten editorial)
     const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 
                           'variant', 'sub-variant'];
     if (MONEY_LEVELS.includes(pageLevel)) {
@@ -429,11 +422,39 @@
   }
 
   // ============================================================
-  // 🔧 HELPER: ARTICLE TYPE
+  // 🔥 FIX-1: ARTICLE TYPE — Deteksi URL Pattern Blogger
   // ============================================================
   function getArticleType(pageLevel) {
-    if (pageLevel === 'variant' || pageLevel === 'sub-variant') return 'TechArticle';
-    if (pageLevel === 'pillar') return 'BlogPosting';
+    const path = window.location.pathname;
+    
+    // 🔥 FIX-1: Deteksi URL pattern Blogger
+    const isBloggerPage = path.indexOf('/p/') === 0;         // /p/judul.html = PAGE
+    const isBloggerPost = /\/\d{4}\/\d{2}\//.test(path);     // /2019/08/judul.html = POST
+    
+    // Log untuk debug
+    log(`🌐 URL Pattern: ${isBloggerPage ? 'PAGE (/p/)' : isBloggerPost ? 'POST (/YYYY/MM/)' : 'UNKNOWN'}`, "URL");
+    
+    // Variant/Sub-Variant → TechArticle (semua pattern)
+    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
+      return 'TechArticle';
+    }
+    
+    // Halaman PAGE Blogger (/p/) → selalu Article (bukan BlogPosting)
+    if (isBloggerPage) {
+      log(`📄 Article type: Article (halaman /p/)`, "ARTICLE");
+      return 'Article';
+    }
+    
+    // Halaman POST Blogger (/2019/08/) → boleh BlogPosting untuk pillar
+    if (isBloggerPost) {
+      if (pageLevel === 'pillar') {
+        log(`📄 Article type: BlogPosting (post /YYYY/MM/)`, "ARTICLE");
+        return 'BlogPosting';
+      }
+      return 'Article';
+    }
+    
+    // Fallback: default Article
     return 'Article';
   }
 
@@ -515,7 +536,7 @@
   }
 
   // ============================================================
-  // 🔥 GENERATE ARTICLE SCHEMA (v8.4 — SYNC SERVICE)
+  // 🔥 GENERATE ARTICLE SCHEMA (v8.5)
   // ============================================================
   function generateArticleSchema(data, dates, pageLevel, entityType, parentData, contentFocus, kategori) {
     const articleType = getArticleType(pageLevel);
@@ -583,7 +604,7 @@
       "datePublished": dates.datePublished,
       "dateModified": dates.dateModified,
       
-      // 🔥 SYNC-FIX: mainEntityOfPage pakai #webpage (sinkron dgn service)
+      // 🔥 SYNC-FIX: mainEntityOfPage pakai #webpage
       "mainEntityOfPage": {
         "@id": data.url + CONFIG.WEBPAGE_ID_SUFFIX
       },
@@ -635,11 +656,11 @@
   }
 
   // ============================================================
-  // 🚀 MAIN INIT v8.4
+  // 🚀 MAIN INIT v8.5
   // ============================================================
   async function init() {
     log("════════════════════════════════════");
-    log("Auto-Schema Generator v8.4 — ARTICLE (SYNC SERVICE)");
+    log("Auto-Schema Generator v8.5 — ARTICLE (Blogger-Aware)");
     log(`DEBUG: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("════════════════════════════════════");
 
@@ -690,11 +711,11 @@
     const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     if (aedData) log(`✅ AED ready: ${aedData.dateModified}`, "AED");
 
-    // 🔥 Cek apakah generate Article schema
+    // 🔥 LAYER 1: Cek level (shouldGenerateArticleSchema)
     const articleElem = document.getElementById("auto-schema");
     const shouldGenerate = shouldGenerateArticleSchema(pageLevel, entityType, contentFocus);
 
-    // 🔥 M1-FIX: Validasi editorial content
+    // 🔥 LAYER 2: Cek kualitas konten (isEditorialContent)
     if (shouldGenerate) {
       const articleContent = document.querySelector(".post-body.entry-content")
                           || document.querySelector("article")
@@ -717,14 +738,14 @@
       };
 
       const pageData = extractPageData();
+      const articleType = getArticleType(pageLevel);
 
       articleElem.textContent = JSON.stringify(
         generateArticleSchema(pageData, dates, pageLevel, entityType, parentData, contentFocus, kategori),
         null, 2
       );
 
-      log(`📄 ARTICLE SCHEMA GENERATED (${getArticleType(pageLevel)})`, "ARTICLE");
-      log(`   Author: ${CONFIG.AUTHOR.name} (${CONFIG.AUTHOR.type}) ✅`, "SCHEMA");
+      log(`📄 ARTICLE SCHEMA GENERATED (${articleType})`, "ARTICLE");
       log(`   Publisher: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
       log(`   Author: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
       log(`   mainEntityOfPage: ${pageData.url}${CONFIG.WEBPAGE_ID_SUFFIX} 🔗`, "SYNC");
@@ -736,7 +757,7 @@
     }
 
     log("════════════════════════════════════");
-    log("FINISHED (v8.4)", "SUCCESS");
+    log("FINISHED (v8.5)", "SUCCESS");
     log(`   Page Level: ${pageLevel}`, "SUCCESS");
     log(`   Entity Type: ${entityType}`, "SUCCESS");
     log(`   Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
@@ -754,6 +775,6 @@
     init();
   }
 
-  console.log(`✅ [AutoSchema v8.4] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`✅ [AutoSchema v8.5] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
 
 })();
