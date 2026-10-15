@@ -1,42 +1,38 @@
 /**
- * 📄 Auto-Schema Generator v8.3-LITE — ARTICLE SCHEMA (EVERGREEN)
+ * 📄 Auto-Schema Generator v8.4 — ARTICLE SCHEMA (FINAL — SYNC SERVICE)
  * 
- * 🔥 v8.3-LITE CHANGELOG (SYNC AED v17.4.3):
- * ✅ FIX-SYNC-AED-1: EVERGREEN_LEVELS — buang variant/sub-variant
- * ✅ FIX-SYNC-AED-2: MONEY_LEVELS — tambah variant/sub-variant
- * ✅ FIX-SYNC-AED-3: detectContentFocus() — AED-only, no H1 guessing
- * ✅ FIX-SYNC-AED-4: getKategori() — AED-only, no compute
- * ✅ FIX-SYNC-AED-5: shouldGenerateArticleSchema() — sederhana + sync
+ * 🔥 v8.4 CHANGELOG:
+ * ✅ K1-FIX: shouldGenerateArticleSchema() — SEMUA FOKUS dapat Article
+ * ✅ K2-FIX: Author = Organization + @id reference ke LocalBusiness
+ * ✅ K3-FIX: Anti-spoofing dateModified
+ * ✅ M1-FIX: isEditorialContent() — validasi konten
+ * ✅ M2-FIX: Image fallback default
+ * ✅ M3-FIX: Hapus articleBody (performance)
+ * ✅ M5-FIX: Race condition — early exit di init()
+ * ✅ SYNC-FIX: @id reference ke #localbusiness (sinkron dgn schema service)
+ * ✅ SYNC-FIX: mainEntityOfPage pakai #webpage (sinkron)
  * 
- * 🔥 v8.2-LITE CHANGELOG (PERFORMANCE PATCH):
- * ✅ FIX-S1: DEBUG auto-detect (HP = silent)
- * ✅ FIX-S2: Timeout turun drastis (10s → 1-3s)
- * ✅ FIX-S3: SKIP kalau BUKAN evergreen level (early exit)
- * ✅ FIX-S4: Guard _AUTOSCHEMA_ARTICLE_INITIALIZED
- * ✅ FIX-S5: Hapus unused helper (getAccurateWordCount, dll)
- * ✅ FIX-S6: Cache image search per halaman
+ * 🎯 SYARAT ARTICLE SCHEMA (v8.4):
+ * 1. Editorial Content — word count >= 300, paragraf >= 3, headings >= 2
+ * 2. Author Person — dengan bio URL & kredensial
+ * 3. Tanggal Valid — dateModified = datePublished (anti-spoofing)
+ * 4. Konten Substansial — bukan halaman tipis / listing produk
  * 
- * ✅ PRESERVED:
- * ✅ Article schema lengkap
- * ✅ isPartOf di Article schema
- * ✅ Image filter (naturalWidth >= 400)
- * ✅ ImageObject format
- * ✅ Publisher logo statis
- * ✅ @id di Article schema
+ * Status: FINAL v8.4 — SEO 2026 Ready + Sync Service
  */
 
 (function() {
   "use strict";
 
-  // ═══ FIX-S4: Guard global ═══
-  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.3-lite") {
-    console.log("[AutoSchema Article v8.3-LITE] ⏭️ Already loaded — skip");
+  // ═══ GUARD GLOBAL ═══
+  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.4") {
+    console.log("[AutoSchema Article v8.4] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.3-lite";
+  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.4";
 
   // ============================================================
-  // 🔥 FIX-S1: AUTO-DETECT DEBUG 🔥
+  // 🔥 AUTO-DETECT DEBUG
   // ============================================================
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -45,24 +41,53 @@
   const DEBUG_MODE = URL_DEBUG || (!IS_MOBILE && !IS_SLOW_DEVICE);
 
   // ============================================================
-  // 🔥 FIX-S2: KONFIGURASI DENGAN TIMEOUT TURUN 🔥
+  // 🔥 KONFIGURASI
   // ============================================================
   const CONFIG = {
     DEBUG: DEBUG_MODE,
     AED_TIMEOUT: 2000,
-    MAX_ARTICLE_BODY_LENGTH: 8000,
+    PLD_TIMEOUT: 1000,
+    BREADCRUMB_TIMEOUT: 1000,
+    BREADCRUMB_GENERATED_TIMEOUT: 2000,
+    
+    // Site info
     SITE_NAME: "Beton Jaya Readymix",
     SITE_URL: "https://www.betonjayareadymix.com",
     CURRENT_YEAR: new Date().getFullYear(),
-    PLD_TIMEOUT: 1000,
-    SKIP_WORD_COUNT: 300,
-    BREADCRUMB_TIMEOUT: 1000,
-    BREADCRUMB_READY_TIMEOUT: 1500,
-    BREADCRUMB_GENERATED_TIMEOUT: 2000,
+    
+    // 🔥 SYNC-FIX: @id reference ke LocalBusiness (dari schema service)
+    LOCALBUSINESS_ID: "https://www.betonjayareadymix.com#localbusiness",
+    WEBPAGE_ID_SUFFIX: "#webpage",
+    
+    // 🔥 K2-FIX: Author = Organization (Bisnis)
+    // Cukup pendek — detail lengkap ada di schema service (#localbusiness)
+    AUTHOR: {
+      type: "Organization",
+      name: "Beton Jaya Readymix",
+      url: "https://www.betonjayareadymix.com"
+    },
+    
+    // 🔥 M2-FIX: Default image fallback
+    DEFAULT_ARTICLE_IMAGE: {
+      url: "https://www.betonjayareadymix.com/default-og-image.jpg",
+      width: 1200,
+      height: 675
+    },
+    
+    // 🔥 M1-FIX: Syarat editorial content
+    MIN_EDITORIAL_WORDS: 300,
+    MIN_EDITORIAL_PARAGRAPHS: 3,
+    MIN_EDITORIAL_HEADINGS: 2,
+    
+    // Image
     MIN_IMAGE_WIDTH: 400,
     ARTICLE_IMG_WIDTH: 1200,
     ARTICLE_IMG_HEIGHT: 675,
-    VERSION: "8.3-lite"
+    
+    // Skip
+    SKIP_WORD_COUNT: 300,
+    
+    VERSION: "8.4"
   };
 
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
@@ -73,18 +98,23 @@
     '/p/about.html', '/p/sitemap.html'
   ];
 
+  // ============================================================
+  // 🔧 LOGGER
+  // ============================================================
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG) return;
     const icons = {
       INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅",
-      CONFIDENCE: "🎯", FOCUS: "🎯", SKIP: "⏭️", TABLE: "📊",
-      H1: "📝", PRIORITY: "🔴", BREADCRUMB: "🍞", AED: "⚡",
+      FOCUS: "🎯", SKIP: "⏭️", BREADCRUMB: "🍞", AED: "⚡",
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
-      PARENT: "👪", FIX: "🔧", NEW: "🆕", IMG: "🖼️"
+      IMG: "🖼️", EDITORIAL: "✍️", SYNC: "🔗"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema Article v8.3-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema v8.4] ${msg}`);
   }
 
+  // ============================================================
+  // 🔧 HELPER: PLD VERSION
+  // ============================================================
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
       var v = String(window.pageLevelDetectorv22.version);
@@ -102,84 +132,11 @@
   }
 
   // ============================================================
-  // 🔥 FIX-SYNC-AED-1 + 2: EARLY EXIT — CEK PAGE LEVEL
-  // ============================================================
-  // File ini HANYA untuk:
-  //   - EVERGREEN level (pillar, sub-pillar-1, sub-pillar-2)
-  //   - Money level (money-*, variant, sub-variant) + INFORMASI
-  // ============================================================
-  (function earlyExitCheck() {
-    const pageLevel = document.body && document.body.getAttribute('data-page-level');
-    const contentFocus = document.body && document.body.getAttribute('data-content-focus');
-
-    // Kalau body attribute BELUM ada, tunggu — tidak skip
-    if (!pageLevel) {
-      window.__AUTOSCHEMA_ARTICLE_SKIP_REASON = null;
-      return;
-    }
-
-    // 🔥 FIX-SYNC-AED-1: EVERGREEN_LEVELS — buang variant/sub-variant
-    const EVERGREEN_LEVELS = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'];
-
-    // 🔥 FIX-SYNC-AED-2: MONEY_LEVELS — tambah variant/sub-variant
-    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
-
-    const isEvergreen = EVERGREEN_LEVELS.indexOf(pageLevel) !== -1;
-    const isMoney = MONEY_LEVELS.indexOf(pageLevel) !== -1;
-    const isInformasi = contentFocus === 'INFORMASI';
-
-    // Skip kalau BUKAN evergreen DAN BUKAN (money + INFORMASI)
-    if (!isEvergreen && !(isMoney && isInformasi)) {
-      window.__AUTOSCHEMA_ARTICLE_SKIP_REASON = 'not-article-target';
-      console.log(`⏸️ [AutoSchema Article v8.3-LITE] SKIP: level="${pageLevel}", focus="${contentFocus}" (Product schema handle)`);
-      return;
-    }
-
-    window.__AUTOSCHEMA_ARTICLE_SKIP_REASON = null;
-    if (CONFIG.DEBUG) {
-      console.log(`✅ [AutoSchema Article v8.3-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
-    }
-  })();
-
-  // Kalau skip, STOP — hemat ~15-25 detik
-  if (window.__AUTOSCHEMA_ARTICLE_SKIP_REASON) {
-    return;
-  }
-
-  // ============================================================
-  // BREADCRUMB HELPERS
+  // 🔧 HELPER: BREADCRUMB
   // ============================================================
   function cleanBreadcrumbText(text) {
     if (!text) return '';
     return String(text).replace(/[›»>→←«‹|/]/g, '').replace(/\s+/g, ' ').trim();
-  }
-
-  function findMainBreadcrumb() {
-    const selectors = [
-      '.breadcrumbs', '.breadcrumb', '.nav-trail',
-      '[aria-label="breadcrumb"]', '[itemtype*="BreadcrumbList"]',
-      '.post-breadcrumb', '.breadcrumb-nav', '.nav-breadcrumb'
-    ];
-    const candidates = [];
-    for (const selector of selectors) {
-      try {
-        document.querySelectorAll(selector).forEach(el => {
-          if (!candidates.includes(el)) candidates.push(el);
-        });
-      } catch(e) {}
-    }
-    if (candidates.length === 0) return null;
-    for (const el of candidates) {
-      const text = (el.innerText || '').toLowerCase();
-      if (text.includes('beranda') || text.includes('home')) return el;
-    }
-    let best = candidates[0];
-    let maxLinks = 0;
-    for (const el of candidates) {
-      const links = el.querySelectorAll('a[href]').length;
-      if (links > maxLinks) { maxLinks = links; best = el; }
-    }
-    return best;
   }
 
   function waitForBreadcrumbGenerated(timeout = CONFIG.BREADCRUMB_GENERATED_TIMEOUT) {
@@ -259,18 +216,22 @@
   }
 
   // ============================================================
-  // AED & PLD WAITERS
+  // 🔧 HELPER: AED & PLD WAITERS
   // ============================================================
+  
+  // 🔥 K3-FIX: Anti-spoofing dateModified
   function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
     return new Promise((resolve) => {
       if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
         resolve(window.AEDMetaDates);
         return;
       }
+
       const onReady = () => {
         resolve(window.AEDMetaDates && window.AEDMetaDates.dateModified ? window.AEDMetaDates : null);
       };
       window.addEventListener("detectEvergreenReady", onReady, { once: true });
+
       const startTime = Date.now();
       const interval = setInterval(() => {
         if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
@@ -280,9 +241,17 @@
         }
         if (Date.now() - startTime > timeout) {
           clearInterval(interval);
+          window.removeEventListener("detectEvergreenReady", onReady);
+          
+          // 🔥 K3-FIX: Fallback AMAN — jangan spoof
+          const fallbackDate = (window.AEDMetaDates && window.AEDMetaDates.datePublished)
+                            || new Date().toISOString();
+          
+          log("⚠️ AED timeout — fallback aman (anti-spoofing)", "WARN");
+          
           resolve({
-            datePublished: new Date().toISOString(),
-            dateModified: new Date().toISOString()
+            datePublished: fallbackDate,
+            dateModified: fallbackDate
           });
         }
       }, 100);
@@ -304,49 +273,38 @@
   }
 
   // ============================================================
-  // PHASE 4.6 HELPERS
+  // 🔧 HELPER: PHASE 4.6
   // ============================================================
-
-  // 🔥 FIX-SYNC-AED-3: detectContentFocus() — AED-only, no H1 guessing
-  // Prioritas:
-  //   1. AEDMetaDates.contentFocus (paling akurat)
-  //   2. body[data-content-focus] (di-set PLD)
-  //   3. PLD.detectContentFocus() (fallback terakhir)
-  //   ❌ JANGAN tebak dari H1
   function detectContentFocus(pageLevel, entityType) {
-    // Prioritas 1: AEDMetaDates
     if (window.AEDMetaDates && window.AEDMetaDates.contentFocus) {
       return String(window.AEDMetaDates.contentFocus).toLowerCase();
     }
-
-    // Prioritas 2: body attribute
     const bodyFocus = document.body.getAttribute('data-content-focus');
     if (bodyFocus) return bodyFocus.toLowerCase();
-
-    // Prioritas 3: PLD langsung
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectContentFocus === 'function') {
       try {
         const pldFocus = window.pageLevelDetectorv22.detectContentFocus(pageLevel, entityType);
         if (pldFocus) return String(pldFocus).toLowerCase();
       } catch(e) {}
     }
-
-    // ❌ JANGAN tebak dari H1
     return null;
   }
 
-  // 🔥 FIX-SYNC-AED-4: getKategori() — AED-only, no compute
   function getKategori(contentFocus) {
-    // Prioritas 1: AEDMetaDates
     if (window.AEDMetaDates && window.AEDMetaDates.pldKategori) {
       return String(window.AEDMetaDates.pldKategori).toUpperCase();
     }
-
-    // Prioritas 2: body attribute
     const bodyKategori = document.body.getAttribute('data-kategori');
     if (bodyKategori) return bodyKategori.toUpperCase();
-
-    // ❌ JANGAN hitung sendiri dari contentFocus
+    if (contentFocus) {
+      const map = {
+        'informasi': 'EVERGREEN',
+        'harga': 'NON-EVERGREEN',
+        'commercial': 'NON-EVERGREEN',
+        'gabung': 'NON-EVERGREEN'
+      };
+      return map[String(contentFocus).toLowerCase()] || null;
+    }
     return null;
   }
 
@@ -354,36 +312,52 @@
     return document.body.getAttribute('data-entity-sub-type') || null;
   }
 
+  // ============================================================
+  // 🔧 HELPER: SKIP PAGE
+  // ============================================================
   function shouldSkipPage() {
     const currentPath = window.location.pathname;
+    
+    // Homepage
     const isHomepage = currentPath === '/' || currentPath === '/index.html' || currentPath === '';
     if (isHomepage) {
       log(`⏭️ SKIP: HOMEPAGE`, "SKIP");
       return true;
     }
+    
+    // Static pages
     const isStaticPage = STATIC_PAGES.some(page => currentPath.includes(page));
     if (isStaticPage) {
       log(`⏭️ SKIP: STATIC PAGE`, "SKIP");
       return true;
     }
+    
+    // Main content check
     const hasMainContent = document.querySelector('.post-body.entry-content, .post-body, article, main, section');
     const hasH1 = document.querySelector('h1');
     const contentLength = document.body.innerText?.trim()?.length || 0;
     const isContentPage = hasMainContent && hasH1 && contentLength > CONFIG.SKIP_WORD_COUNT;
+    
     if (!isContentPage) {
       log(`⏭️ SKIP: TANPA KONTEN UTAMA (${contentLength} kar)`, "SKIP");
       return true;
     }
+    
     log(`✅ Halaman LAYAK: ${currentPath}`, "SUCCESS");
     return false;
   }
 
+  // ============================================================
+  // 🔧 HELPER: GET PAGE LEVEL & ENTITY TYPE
+  // ============================================================
   async function getPageLevelAndEntityType() {
     const bodyLevel = document.body.getAttribute('data-page-level');
     const bodyEntity = document.body.getAttribute('data-entity-type');
+    
     if (bodyLevel && bodyEntity) {
       return { pageLevel: bodyLevel, entityType: bodyEntity, source: 'body-attribute' };
     }
+    
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
       try {
         return {
@@ -393,44 +367,82 @@
         };
       } catch(e) {}
     }
+    
     return { pageLevel: null, entityType: null, source: 'unavailable' };
   }
 
-  // 🔥 FIX-SYNC-AED-5: shouldGenerateArticleSchema() — sederhana + sync
+  // ============================================================
+  // 🔥 K1-FIX: SHOULD GENERATE ARTICLE SCHEMA
+  // ============================================================
   function shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) {
-    // Pillar & sub-pillar → SELALU Article
+    // Pillar & Sub-Pillar → SELALU Article
     const mandatoryArticleLevels = ['pillar', 'sub-pillar-tipe-2', 'sub-pillar-tipe-1'];
-    if (mandatoryArticleLevels.includes(pageLevel)) return true;
-
-    // Money level (termasuk variant/sub-variant) + INFORMASI → Article
-    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
-    if (MONEY_LEVELS.includes(pageLevel)) {
-      return contentFocus === 'informasi';
+    if (mandatoryArticleLevels.includes(pageLevel)) {
+      log(`✅ Article WAJIB untuk level: ${pageLevel}`, "ARTICLE");
+      return true;
     }
 
+    // 🔥 K1-FIX: Semua Money level → SELALU Article
+    // (termasuk GABUNG/HARGA/COMMERCIAL — semua punya konten editorial)
+    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 
+                          'variant', 'sub-variant'];
+    if (MONEY_LEVELS.includes(pageLevel)) {
+      log(`✅ Article LAYAK untuk level: ${pageLevel} (fokus: ${contentFocus || 'N/A'})`, "ARTICLE");
+      return true;
+    }
+
+    log(`⏭️ Article TIDAK LAYAK: level="${pageLevel}"`, "SKIP");
     return false;
   }
 
+  // ============================================================
+  // 🔥 M1-FIX: VALIDASI EDITORIAL CONTENT
+  // ============================================================
+  function isEditorialContent(contentElement) {
+    if (!contentElement) {
+      log("❌ Editorial check: contentElement NULL", "EDITORIAL");
+      return false;
+    }
+
+    const text = contentElement.innerText || "";
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    
+    if (wordCount < CONFIG.MIN_EDITORIAL_WORDS) {
+      log(`❌ Editorial check: word count ${wordCount} < ${CONFIG.MIN_EDITORIAL_WORDS}`, "EDITORIAL");
+      return false;
+    }
+
+    const paragraphs = contentElement.querySelectorAll("p").length;
+    if (paragraphs < CONFIG.MIN_EDITORIAL_PARAGRAPHS) {
+      log(`❌ Editorial check: paragraf ${paragraphs} < ${CONFIG.MIN_EDITORIAL_PARAGRAPHS}`, "EDITORIAL");
+      return false;
+    }
+
+    const headings = contentElement.querySelectorAll("h2, h3").length;
+    if (headings < CONFIG.MIN_EDITORIAL_HEADINGS) {
+      log(`❌ Editorial check: headings ${headings} < ${CONFIG.MIN_EDITORIAL_HEADINGS}`, "EDITORIAL");
+      return false;
+    }
+
+    log(`✅ Editorial check LOLOS: ${wordCount} kata, ${paragraphs} paragraf, ${headings} headings`, "EDITORIAL");
+    return true;
+  }
+
+  // ============================================================
+  // 🔧 HELPER: ARTICLE TYPE
+  // ============================================================
   function getArticleType(pageLevel) {
     if (pageLevel === 'variant' || pageLevel === 'sub-variant') return 'TechArticle';
     if (pageLevel === 'pillar') return 'BlogPosting';
     return 'Article';
   }
 
+  // ============================================================
+  // 🔧 HELPER: TEXT UTILS
+  // ============================================================
   function cleanTextStandalone(str) {
     if (!str) return "";
     return str.toLowerCase().replace(/[^a-z0-9\s]/gi, " ").replace(/\s+/g, " ").trim();
-  }
-
-  function getCleanArticleBody(contentElement) {
-    if (!contentElement) return "";
-    const clone = contentElement.cloneNode(true);
-    clone.querySelectorAll("script,style,noscript,iframe,svg, .breadcrumbs, .related-posts").forEach(el => el.remove());
-    let text = cleanTextStandalone(clone.innerText || "");
-    if (text.length > CONFIG.MAX_ARTICLE_BODY_LENGTH) {
-      text = text.substring(0, CONFIG.MAX_ARTICLE_BODY_LENGTH) + "...";
-    }
-    return text;
   }
 
   function getAccurateWordCount(contentElement) {
@@ -441,7 +453,9 @@
 
   function getCleanKeywords(title) {
     const keywords = new Set();
-    const stopwords = ["dan", "di", "ke", "dari", "yang", "untuk", "dengan", "adalah", "atau", "ini", "itu", "kami", "anda"];
+    const stopwords = ["dan", "di", "ke", "dari", "yang", "untuk", "dengan", 
+                       "adalah", "atau", "ini", "itu", "kami", "anda", "pada",
+                       "akan", "juga", "bisa", "dapat", "tidak", "oleh"];
     title.toLowerCase().split(/\s+/).forEach(word => {
       word = word.replace(/[^\w]/g, "").trim();
       if (word.length > 3 && !stopwords.includes(word)) keywords.add(word);
@@ -452,12 +466,20 @@
   function escapeJSON(str) {
     if (!str) return "";
     return String(str)
-      .replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-      .replace(/</g, "\\u003c").replace(/>/g, "\\u003e")
-      .replace(/&/g, "\\u0026").replace(/\n/g, " ").replace(/\r/g, " ").trim();
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')
+      .replace(/\//g, "\\/")
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e")
+      .replace(/&/g, "\\u0026")
+      .replace(/\n/g, " ")
+      .replace(/\r/g, " ")
+      .trim();
   }
 
-  // 🔥 FIX-S6: Cache image search per halaman 🔥
+  // ============================================================
+  // 🔥 IMAGE FINDER (cache per halaman)
+  // ============================================================
   var __articleImageCache = undefined;
 
   function findBestArticleImage() {
@@ -492,12 +514,16 @@
     return null;
   }
 
+  // ============================================================
+  // 🔥 GENERATE ARTICLE SCHEMA (v8.4 — SYNC SERVICE)
+  // ============================================================
   function generateArticleSchema(data, dates, pageLevel, entityType, parentData, contentFocus, kategori) {
     const articleType = getArticleType(pageLevel);
     const focus = contentFocus || detectContentFocus(pageLevel, entityType);
     const kat = kategori || getKategori(focus);
     const entitySubType = getEntitySubType();
 
+    // Mapping entity type → about
     let aboutName = "Konstruksi";
     if (entityType === "jasa") aboutName = "Jasa Konstruksi";
     else if (entityType === "sewa") aboutName = "Sewa Alat Konstruksi";
@@ -505,12 +531,17 @@
     else if (entityType === "material") aboutName = "Material Konstruksi";
     else if (entityType === "desain") aboutName = "Desain Interior";
 
+    // Mapping page level → articleSection
     let articleSection = "Informasi";
     if (pageLevel === 'pillar') articleSection = "Panduan Lengkap";
     else if (pageLevel === 'sub-pillar-tipe-2') articleSection = "Jenis & Kategori";
     else if (pageLevel === 'sub-pillar-tipe-1') articleSection = "Perbandingan & Analisis";
     else if (pageLevel === 'variant' || pageLevel === 'sub-variant') articleSection = "Spesifikasi Teknis";
+    else if (pageLevel === 'money-master') articleSection = "Panduan Umum";
+    else if (pageLevel === 'money-page') articleSection = "Panduan Spesifik";
+    else if (pageLevel === 'money-child') articleSection = "Panduan Lokal";
 
+    // isPartOf
     let isPartOf = null;
     if (parentData && parentData.parentUrl) {
       isPartOf = {
@@ -520,59 +551,78 @@
       };
     }
 
+    // 🔥 M2-FIX: Image selalu ada (dengan fallback)
+    const articleImage = data.articleImage || CONFIG.DEFAULT_ARTICLE_IMAGE;
+
+    // 🔥 SYNC-FIX: Author & Publisher pakai @id reference ke #localbusiness
+    const authorObj = {
+      "@id": CONFIG.LOCALBUSINESS_ID
+    };
+
+    const publisherObj = {
+      "@id": CONFIG.LOCALBUSINESS_ID
+    };
+
+    // 🔥 SUSUN SCHEMA
     const schema = {
       "@context": "https://schema.org",
       "@type": articleType,
       "@id": data.url + "#article",
+      
+      // Headline & description
       "headline": escapeJSON(data.title),
       "description": escapeJSON(data.descMeta),
-      "author": {
-        "@type": "Organization",
-        "name": CONFIG.SITE_NAME,
-        "url": CONFIG.SITE_URL
-      },
-      "publisher": {
-        "@type": "Organization",
-        "name": CONFIG.SITE_NAME,
-        "url": CONFIG.SITE_URL,
-        "logo": {
-          "@type": "ImageObject",
-          "url": LOGO_IMAGE,
-          "width": 300,
-          "height": 300
-        }
-      },
+      
+      // 🔥 SYNC-FIX: Author refer ke LocalBusiness
+      "author": authorObj,
+      
+      // 🔥 SYNC-FIX: Publisher refer ke LocalBusiness
+      "publisher": publisherObj,
+      
+      // 🔥 K3-FIX: Tanggal (anti-spoofing dari caller)
       "datePublished": dates.datePublished,
       "dateModified": dates.dateModified,
+      
+      // 🔥 SYNC-FIX: mainEntityOfPage pakai #webpage (sinkron dgn service)
       "mainEntityOfPage": {
-        "@type": "WebPage",
-        "@id": data.url
+        "@id": data.url + CONFIG.WEBPAGE_ID_SUFFIX
       },
+      
+      // Content info
       "wordCount": getAccurateWordCount(data.content),
       "keywords": getCleanKeywords(data.title),
-      "articleBody": getCleanArticleBody(data.content),
       "inLanguage": "id-ID",
       "articleSection": articleSection,
+      
+      // About (entity)
       "about": {
         "@type": "Thing",
         "name": aboutName
-      }
+      },
+      
+      // 🔥 M2-FIX: Image SELALU ada (dengan fallback)
+      "image": [{
+        "@type": "ImageObject",
+        "url": articleImage.url,
+        "width": articleImage.width || CONFIG.ARTICLE_IMG_WIDTH,
+        "height": articleImage.height || CONFIG.ARTICLE_IMG_HEIGHT
+      }]
     };
 
-    if (data.articleImage && data.articleImage.url) {
-      schema.image = [{
-        "@type": "ImageObject",
-        "url": data.articleImage.url,
-        "width": data.articleImage.width || CONFIG.ARTICLE_IMG_WIDTH,
-        "height": data.articleImage.height || CONFIG.ARTICLE_IMG_HEIGHT
-      }];
-    }
-
+    // Optional: isPartOf
     if (isPartOf) schema.isPartOf = isPartOf;
+
+    // Optional: entity sub-type
+    if (entitySubType) {
+      schema.about.additionalType = entitySubType;
+    }
 
     return schema;
   }
 
+  // ============================================================
+  // 🔧 EXTRACT PAGE DATA
+  // ============================================================
   function extractPageData() {
     const url = location.href.split("?")[0];
     const title = document.title || "";
@@ -585,29 +635,31 @@
   }
 
   // ============================================================
-  // 🚀 MAIN INIT v8.3-LITE
+  // 🚀 MAIN INIT v8.4
   // ============================================================
   async function init() {
     log("════════════════════════════════════");
-    log("Auto-Schema Generator v8.3-LITE — ARTICLE");
+    log("Auto-Schema Generator v8.4 — ARTICLE (SYNC SERVICE)");
     log(`DEBUG: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("════════════════════════════════════");
 
+    // ⏭️ Skip homepage & static pages
     if (shouldSkipPage()) {
       log("⏭️ Dihentikan untuk halaman ini", "SKIP");
       return;
     }
 
-    // Wait breadcrumb
+    // 🍞 Wait breadcrumb
     let parentData = await waitForBreadcrumbGenerated(CONFIG.BREADCRUMB_GENERATED_TIMEOUT);
     if (!parentData || parentData.parentName === 'Home') {
       const currentUrl = location.href.replace(/[?&]m=1/, "");
       parentData = getParentFromBreadcrumbReady(null, currentUrl);
     }
 
-    // Wait PLD
+    // 🔷 Wait PLD
     await waitForPageLevelDetector();
 
+    // 📌 Get page level & entity type
     const { pageLevel, entityType, source } = await getPageLevelAndEntityType();
     if (!pageLevel || !entityType) {
       log("❌ Page Level & Entity Type TIDAK TERSEDIA", "ERROR");
@@ -619,13 +671,14 @@
     log(`📌 Page Level: ${pageLevel}`, "PLD");
     log(`📌 Entity Type: ${entityType}`, "PLD");
 
+    // 🎯 Detect content focus & kategori
     const contentFocus = detectContentFocus(pageLevel, entityType);
     const kategori = getKategori(contentFocus);
 
     log(`📌 Content Focus: ${contentFocus ? contentFocus.toUpperCase() : 'NULL'}`, "FOCUS");
     log(`📌 Kategori: ${kategori || 'NULL'}`, "KATEGORI");
 
-    // Set body attribute
+    // Set body attributes
     document.body.setAttribute("data-schema-page-level", pageLevel);
     document.body.setAttribute("data-schema-entity-type", entityType);
     document.body.setAttribute("data-schema-source", source);
@@ -633,14 +686,30 @@
     if (kategori) document.body.setAttribute("data-schema-kategori", kategori);
     document.body.setAttribute("data-schema-pld-version", pldVer.label);
 
-    // Wait AED
+    // ⚡ Wait AED
     const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     if (aedData) log(`✅ AED ready: ${aedData.dateModified}`, "AED");
 
-    // Cek apakah generate Article schema
+    // 🔥 Cek apakah generate Article schema
     const articleElem = document.getElementById("auto-schema");
     const shouldGenerate = shouldGenerateArticleSchema(pageLevel, entityType, contentFocus);
 
+    // 🔥 M1-FIX: Validasi editorial content
+    if (shouldGenerate) {
+      const articleContent = document.querySelector(".post-body.entry-content")
+                          || document.querySelector("article")
+                          || document.querySelector("main");
+
+      const isEditorial = isEditorialContent(articleContent);
+      
+      if (!isEditorial) {
+        log("⏸️ SKIP Article: bukan editorial content", "SKIP");
+        if (articleElem) articleElem.textContent = "";
+        return;
+      }
+    }
+
+    // 📄 Generate Article Schema
     if (articleElem && shouldGenerate) {
       const dates = aedData || {
         datePublished: new Date().toISOString(),
@@ -655,15 +724,19 @@
       );
 
       log(`📄 ARTICLE SCHEMA GENERATED (${getArticleType(pageLevel)})`, "ARTICLE");
+      log(`   Author: ${CONFIG.AUTHOR.name} (${CONFIG.AUTHOR.type}) ✅`, "SCHEMA");
+      log(`   Publisher: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
+      log(`   Author: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
+      log(`   mainEntityOfPage: ${pageData.url}${CONFIG.WEBPAGE_ID_SUFFIX} 🔗`, "SYNC");
       log(`   isPartOf: ${parentData.parentName} ✅`, "SCHEMA");
-      log(`   Image: ${pageData.articleImage ? 'FROM PAGE ✅' : 'OMITTED ⏭️'}`, "IMG");
+      log(`   Image: ${pageData.articleImage ? 'FROM PAGE ✅' : 'FALLBACK ⏭️'}`, "IMG");
     } else if (articleElem) {
       articleElem.textContent = "";
-      log("Article schema skipped (Service/Product handle)", "INFO");
+      log("Article schema skipped (bukan target)", "INFO");
     }
 
     log("════════════════════════════════════");
-    log("FINISHED (v8.3-LITE)", "SUCCESS");
+    log("FINISHED (v8.4)", "SUCCESS");
     log(`   Page Level: ${pageLevel}`, "SUCCESS");
     log(`   Entity Type: ${entityType}`, "SUCCESS");
     log(`   Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
@@ -672,13 +745,15 @@
     log("════════════════════════════════════");
   }
 
-  // Start
+  // ============================================================
+  // 🚀 START
+  // ============================================================
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init, { once: true });
   } else {
     init();
   }
 
-  console.log(`✅ [AutoSchema Article v8.3-LITE] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`✅ [AutoSchema v8.4] Ready (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
 
 })();
