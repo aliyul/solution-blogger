@@ -1,45 +1,47 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.4.8 — COMPLETE FIX
-    ✅ SINKRON dengan PLD v23.9.9 (entity-aware detectCtaType)
-    ✅ PATOKAN UTAMA: PLD = SOURCE OF TRUTH
-    ✅ CONTENT-AWARE VALIDITY
-    ✅ TIERED WARNING
-    ✅ INLINE WARNING TEXT MERAH
-    ✅ FULL PATTERN SUPPORT (ISO + DD/MM/YYYY)
+ 🧠 Smart Evergreen Detector v17.5.0 — PLD SYNC
+============================================================
+ 🔥🔥🔥 v17.5.0 CHANGELOG 🔥🔥🔥
+ ✅ FIX-PLD-SYNC (BARU): getPageLevelAndEntityType() prioritas
+              ke body attribute (data-page-level + data-entity-type)
+              - PLD v23.9.9 = SOURCE OF TRUTH (sudah set attributes
+                SEBELUM dispatch event pageLevelDetectorv22Ready)
+              - Sebelumnya: AED pakai detectFromDOM() (H1-based)
+                → bisa berbeda dengan level PLD (URL-based)
+              - Sesudah: body attribute → detectFromDOM → detect
+              - Efek: AED 100% konsisten dengan Article, Hybrid, Universal
+              - Tambah log [FIX-PLD-SYNC] untuk tracking
 
-    🔥🔥🔥 v17.4.8 CHANGELOG 🔥🔥🔥
-    ✅ FIX-MINOR-2: getPLDCtaType() — tambah entityType
-              - Sebelumnya: detectCtaType(level, focus) — 2 arg
-              - Sesudah: detectCtaType(level, focus, entityType) — 3 arg
-              - Efek: CTA type akurat untuk jasa (Konsultasi)
-              - Dampak: window.AEDMetaDates.pldCtaType lebih akurat
-    ✅ FIX-MINOR-1: Komentar header v23.9.8 → v23.9.9 (dokumentasi)
+ ✅ PRESERVED dari v17.4.9:
+ ✅ FIX-AUTORUN: detectEvergreen() auto-jalan tiap halaman
+ ✅ FIX-EVENT: dispatchEvent dipindah ke DALAM fungsi
 
-    ✅ PRESERVED dari v17.4.7:
-    ✅ FIX-KRITIS: ISO + DD/MM/YYYY pattern
-    ✅ FIX-MINOR: Guard updateJsonLdFaqYears
-    ✅ Content-aware validity (HARGA=90, COM=180, INFO=365)
-    ✅ Tiered warning (14/21/30 hari)
-    ✅ Inline warning TEXT MERAH + data-nosnippet
+ ✅ PRESERVED dari v17.4.8:
+ ✅ FIX-MINOR-2: getPLDCtaType() — tambah entityType (3 arg)
+ ✅ FIX-MINOR-1: Komentar header v23.9.8 → v23.9.9
+ ✅ FIX-KRITIS: ISO + DD/MM/YYYY pattern
+ ✅ FIX-MINOR: Guard updateJsonLdFaqYears
+ ✅ Content-aware validity (HARGA=90, COM=180, INFO=365)
+ ✅ Tiered warning (14/21/30 hari)
+ ✅ Inline warning TEXT MERAH + data-nosnippet
+ ✅ FIX-SYNC-v4: hasPriceTable() DIHAPUS
+ ✅ FIX-EE-6: Money + INFORMASI = EVERGREEN
+ ✅ FIX-EE-2 s/d EE-5
+ ✅ FIX-SYNC-v3: getKategori dari finalType
+ ✅ FIX-B1 s/d B10: AKTIF
+ ✅ FIX-A1 s/d A21: AKTIF
 
-    ✅ PRESERVED dari v17.4.3-LITE:
-    ✅ FIX-SYNC-v4: hasPriceTable() DIHAPUS
-    ✅ FIX-EE-6: Money + INFORMASI = EVERGREEN
-    ✅ FIX-EE-2 s/d EE-5
-    ✅ FIX-SYNC-v3: getKategori dari finalType
-    ✅ FIX-B1 s/d B10: AKTIF
-    ✅ FIX-A1 s/d A21: AKTIF
-
-    📌 BRAND DEFAULT: "Beton Jaya Readymix"
+ 📌 BRAND DEFAULT: "Beton Jaya Readymix"
+ 📌 KOMPATIBEL: PLD v23.9.9 (SEO DIMENSION — entity-aware)
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.4.8") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.5.0") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.4.8";
+  window.__AED_VERSION = "17.5.0";
 
   // ============================================================
   // 📌 BRAND CONFIG
@@ -104,7 +106,7 @@
   function getValidityByContext(pageLevel, contentFocus) {
     var focus = String(contentFocus || '').toUpperCase();
     var isMoney = MONEY_LEVELS.indexOf(pageLevel) !== -1;
-    
+
     if (isMoney) {
       if (focus === 'HARGA' || focus === 'GABUNG') {
         console.log(`📅 [Validity] ${pageLevel} + ${focus} → 90 hari`);
@@ -125,7 +127,7 @@
       console.log(`📅 [Validity] ${pageLevel} → 365 hari (default)`);
       return 365;
     }
-    
+
     var rule = BASE_PAGE_LEVEL_RULES[pageLevel];
     return rule ? rule.validityDays : 365;
   }
@@ -135,7 +137,7 @@
   // ============================================================
   function getWarningDays(validityDays) {
     if (!WARNING_CONFIG.USE_TIERED) return WARNING_CONFIG.SHOW_DAYS_BEFORE;
-    
+
     var rules = WARNING_CONFIG.TIERED_RULES || [];
     for (var i = 0; i < rules.length; i++) {
       if (validityDays <= rules[i].maxValidity) {
@@ -254,7 +256,7 @@
 
     var anchor = null;
     var selectors = WARNING_CONFIG.INSERT_AFTER_SELECTOR.split(',').map(s => s.trim());
-    
+
     for (var i = 0; i < selectors.length; i++) {
       try {
         var el = document.querySelector(selectors[i]);
@@ -1302,7 +1304,7 @@
       datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.4.8',
+      detectorVersion: detectorVersion || 'v17.5.0',
       detectionConfidence: confidence || null,
       detectionStrategies: strategies || null,
       detectionStrategyCount: strategyCount || null,
@@ -1333,7 +1335,20 @@
   }
 
   // ============================================================
-  // FIX-EE-3: getPageLevelAndEntityType
+  // 🔥 FIX-PLD-SYNC (v17.5.0): getPageLevelAndEntityType
+  // 
+  // PRIORITAS SUMBER (PLD = SOURCE OF TRUTH):
+  //   1. body[data-page-level] + body[data-entity-type]
+  //      → di-set PLD v23.9.9 SEBELUM dispatch event
+  //      → KONSISTEN dengan Article, Hybrid, Universal
+  //   2. PLD.detectFromDOM()  (H1-based — fallback lama)
+  //   3. PLD.detect()         (URL-based — fallback)
+  //   4. Legacy detectors (v20, v19, v18, v17, legacy)
+  //
+  // DAMPAK:
+  //   Sebelumnya AED bisa beda dengan script lain kalau H1
+  //   tidak match URL slug. Sekarang 100% sinkron karena
+  //   semua pakai body attribute yang di-set PLD.
   // ============================================================
   function getPageLevelAndEntityType() {
     let pageLevel = 'pillar';
@@ -1341,8 +1356,22 @@
     let detectorVersion = 'unknown';
     let confidence = null, strategies = null, strategyCount = null;
 
+    // 🔥 FIX-PLD-SYNC: PRIORITAS 1 — body attribute (PLD = SOURCE OF TRUTH)
+    const bodyLevel = document.body.getAttribute('data-page-level');
+    const bodyEntity = document.body.getAttribute('data-entity-type');
+    if (bodyLevel && bodyEntity) {
+      pageLevel = bodyLevel;
+      entityType = bodyEntity;
+      const pldVer = getPLDVersion();
+      detectorVersion = pldVer.label;
+      console.log(`📌 [FIX-PLD-SYNC] body attribute (PLD SOURCE OF TRUTH) → pageLevel=${pageLevel}, entityType=${entityType}`);
+      return { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount };
+    }
+
+    // 🔥 FIX-PLD-SYNC: PRIORITAS 2 — PLD v22/v23 methods (fallback)
     if (window.pageLevelDetectorv22) {
       try {
+        console.log('⚠️ [FIX-PLD-SYNC] body attribute belum ada — fallback ke PLD methods');
         if (typeof window.pageLevelDetectorv22.detectFromDOM === 'function') {
           var domResult = window.pageLevelDetectorv22.detectFromDOM();
           if (domResult) {
@@ -1370,6 +1399,7 @@
       } catch (e) { console.warn("PLD v22/23 error:", e); }
     }
 
+    // Legacy detectors
     if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
       try { pageLevel = window.pageLevelDetectorv20.detect(); entityType = window.pageLevelDetectorv20.detectEntityType(); detectorVersion = 'v20.x'; return { pageLevel, entityType, detectorVersion }; } catch(e) {}
     }
@@ -1396,6 +1426,12 @@
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
       const pldVer = getPLDVersion();
+      // 🔥 FIX-PLD-SYNC: kalau body attribute sudah ada, langsung resolve
+      if (document.body && document.body.getAttribute('data-page-level')) {
+        console.log(`✅ body attribute ready (PLD SOURCE OF TRUTH) — ${pldVer.label}`);
+        resolve();
+        return;
+      }
       if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') { console.log(`✅ PLD ${pldVer.label} ready`); resolve(); return; }
       if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') { console.log("✅ PLD v20.x ready"); resolve(); return; }
       if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') { console.log("✅ PLD v19 ready"); resolve(); return; }
@@ -1412,7 +1448,9 @@
       window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
 
       setTimeout(() => {
-        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || window.pageLevelDetector) { resolve(); }
+        // 🔥 FIX-PLD-SYNC: cek body attribute juga
+        if (document.body && document.body.getAttribute('data-page-level')) { resolve(); }
+        else if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || window.pageLevelDetector) { resolve(); }
         else {
           console.error("❌ PLD not available, using fallback");
           window.pageLevelDetector = { detect: () => 'pillar', detectEntityType: () => 'produk' };
@@ -1454,7 +1492,7 @@
       }
 
       var validity = getValidityByContext(pageLevel, normalizedFocus);
-      
+
       return {
         type: 'non-evergreen',
         validityDays: validity,
@@ -1481,7 +1519,7 @@
     }
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.4.8 — COMPLETE");
+    console.log("🧩 detectEvergreen() v17.5.0 — PLD SYNC");
     await waitForPageLevelDetector();
 
     const { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount } = getPageLevelAndEntityType();
@@ -1515,7 +1553,9 @@
 
     checkAndShowInlineWarning();
 
-    console.log(`🧩 detectEvergreen() v17.4.8 — FINISHED ✅`);
+    // 🔥 FIX-EVENT: dispatch SETELAH selesai
+    window.dispatchEvent(new Event("detectEvergreenReady"));
+    console.log(`🧩 detectEvergreen() v17.5.0 — FINISHED ✅`);
   }
 
   // ============================================================
@@ -1523,15 +1563,14 @@
   // ============================================================
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
-  window.dispatchEvent(new Event("detectEvergreenReady"));
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Smart Evergreen Detector v17.4.8 — READY");
+  console.log("✅ Smart Evergreen Detector v17.5.0 — READY + PLD SYNC");
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("🔥 FIX-MINOR-2: getPLDCtaType() — tambah entityType (3 arg)");
-  console.log("🔥 FIX-MINOR-1: Komentar header v23.9.8 → v23.9.9");
-  console.log("✅ PRESERVED: FIX-KRITIS ISO + DD/MM/YYYY pattern");
-  console.log("✅ PRESERVED: FIX-MINOR Guard updateJsonLdFaqYears");
+  console.log("🔥 FIX-PLD-SYNC: prioritas body attribute (PLD = SOURCE OF TRUTH)");
+  console.log("🔥 FIX-AUTORUN: detectEvergreen() auto-jalan tiap halaman");
+  console.log("🔥 FIX-EVENT: dispatchEvent dipindah ke dalam fungsi");
+  console.log("✅ PRESERVED: FIX-MINOR-2, FIX-MINOR-1, FIX-KRITIS, FIX-MINOR");
   console.log("📅 TIERED WARNING:");
   console.log("   • HARGA (90 hari)        → warning 14 hari");
   console.log("   • COMMERCIAL (180 hari)  → warning 21 hari");
@@ -1547,6 +1586,18 @@
   console.log("   • data-nosnippet: tidak di-index Google");
   console.log("✅ PRESERVED: FIX-SYNC-v4, FIX-EE-2 s/d EE-6, FIX-B1 s/d B10, FIX-A1 s/d A21");
   console.log("🏢 BRAND default: " + DEFAULT_BRAND_NAME);
+  console.log("📌 KOMPATIBEL: PLD v23.9.9 (SEO DIMENSION)");
   console.log("═══════════════════════════════════════════════════════════");
+
+  // ============================================================
+  // 🔥 AUTO-RUN — v17.5.0
+  // ============================================================
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () {
+      setTimeout(function () { detectEvergreen(); }, 100);
+    }, { once: true });
+  } else {
+    setTimeout(function () { detectEvergreen(); }, 100);
+  }
 
 })();
