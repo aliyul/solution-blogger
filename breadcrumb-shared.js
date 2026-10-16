@@ -1,6 +1,10 @@
 /**
  * ============================================================
- * 🍞 Breadcrumb Shared v12.3.5-LITE — MEGA MERGE (FINAL + GABUNG SYNC + AED SYNC)
+ * 🍞 Breadcrumb Shared v12.3.6-LITE — MEGA MERGE (FINAL + GABUNG SYNC + AED SYNC)
+ * 
+ * 🔥 v12.3.6 CHANGELOG:
+ * ✅ PATCH-J: Update komentar AED v17.4.0/v17.4.1 → v17.4.8
+ * ✅ PATCH-K: Hapus duplikasi log getLevelCategory() (baris 26)
  * 
  * FIX FINAL:
  * ✅ TANPA LAZY LOAD — breadcrumb render INSTAN
@@ -17,15 +21,15 @@
  * 
  * 🔥 FIX-SYNC-v1 (dari v12.3.4):
  * ✅ PATCH D: getPageLevelFromPLD() prefer detectFromDOM() (H1 fallback)
- * ✅ PATCH E: EVERGREEN_LEVELS + MONEY_LEVELS konstanta (sinkron AED v17.4.0)
+ * ✅ PATCH E: EVERGREEN_LEVELS + MONEY_LEVELS konstanta (sinkron AED v17.4.8)
  * ✅ PATCH F: getLevelCategory() helper + emit di event & return value
  * 
- * 🔥 FIX-SYNC-v2 (BARU di v12.3.5):
+ * 🔥 FIX-SYNC-v2 (dari v12.3.5):
  * ✅ PATCH G: getLevelCategory(level, contentFocus) — Money + INFORMASI = evergreen
- * ✅ PATCH H: isMoneyLevel/isEvergreenLevel sinkron AED v17.4.1
+ * ✅ PATCH H: isMoneyLevel/isEvergreenLevel sinkron AED v17.4.8
  * ✅ PATCH I: Caller getLevelCategory() diupdate untuk kirim contentFocus
  * 
- * @version 12.3.5-lite
+ * @version 12.3.6-lite
  * ============================================================
  */
 
@@ -33,10 +37,10 @@
     "use strict";
 
     // ═══ GUARD DOUBLE INIT ═══
-    if (window.__BREADCRUMB_VERSION === "12.3.5-lite") {
+    if (window.__BREADCRUMB_VERSION === "12.3.6-lite") {
         return;
     }
-    window.__BREADCRUMB_VERSION = "12.3.5-lite";
+    window.__BREADCRUMB_VERSION = "12.3.6-lite";
 
     // ============================================================
     // DEVICE DETECTION — Silent log di HP
@@ -83,7 +87,7 @@
                 HIERARCHY: '🏛️', COMMERCIAL: '🛒', PARENT_FIX: '🔧',
                 CACHE: '💾', PERF: '⚡', SYNC: '🔗'
             };
-            console.log(`${icons[type] || '📘'} [Breadcrumb v12.3.5-LITE] ${message}`);
+            console.log(`${icons[type] || '📘'} [Breadcrumb v12.3.6-LITE] ${message}`);
         }
 
         // ============================================================
@@ -132,7 +136,7 @@
         for (let i = 0; i < VALID_LEVELS.length; i++) VALID_LEVELS_SET[VALID_LEVELS[i]] = true;
 
         // ============================================================
-        // 🔥 FIX-SYNC-v1 (PATCH E): KONSTANTA SINKRON AED v17.4.1
+        // 🔥 FIX-SYNC-v1 (PATCH E): KONSTANTA SINKRON AED v17.4.8
         // ============================================================
         const EVERGREEN_LEVELS = [
             'pillar',
@@ -327,7 +331,7 @@
 
         // ============================================================
         // 🔥 FIX-SYNC-v2 (PATCH G): Helper baru — cek level kategori
-        // Konsisten dengan AED v17.4.1 & Hybrid v10.1
+        // Konsisten dengan AED v17.4.8 & Hybrid v10.2
         // 
         // ATURAN:
         //   - EVERGREEN_LEVELS → 'evergreen'
@@ -464,7 +468,7 @@
                 }
             }
             if (ENABLE_DEBUG) {
-                console.log(`⚡ [Breadcrumb v12.3.5-LITE] Pre-compiled ${LOCATION_REGEXES.length} location regexes`);
+                console.log(`⚡ [Breadcrumb v12.3.6-LITE] Pre-compiled ${LOCATION_REGEXES.length} location regexes`);
             }
         })();
 
@@ -1025,12 +1029,10 @@
         const isPLDSynced = !!pldLevel;
         log(`PLD Sync: ${isPLDSynced ? '✅ SINKRON' : '❌ FALLBACK'}`, 'PLD');
 
-        // 🔥 FIX-SYNC-v2 (PATCH I): getLevelCategory butuh contentFocus
-        if (pldLevel) {
-            var _focusForLog = getContentFocusFromPLD();
-            const levelCat = getLevelCategory(pldLevel, _focusForLog);
-            log(`Level Category: ${levelCat} (level="${pldLevel}", focus="${_focusForLog}")`, 'SYNC');
-        }
+        // 🔥 PATCH-K (v12.3.6): Duplikasi log getLevelCategory() dihapus
+        // (Log sudah ada di STEP 39 di bawah)
+        const _focusForLog = getContentFocusFromPLD();
+        const levelCat = pldLevel ? getLevelCategory(pldLevel, _focusForLog) : null;
 
         // ============================================================
         // 27. INJECT CURRENT PAGE & AUTO PARENT
@@ -1310,7 +1312,7 @@
         const kategoriFromPLD = getKategoriFromPLD(contentFocusFromPLD);
 
         // ============================================================
-        // 🔥 FIX-SYNC-v2 (PATCH H): isMoneyLevel/isEvergreenLevel sinkron AED v17.4.1
+        // 🔥 FIX-SYNC-v2 (PATCH H): isMoneyLevel/isEvergreenLevel sinkron AED v17.4.8
         // ============================================================
         const _levelForCategory = pldLevel || currentPageType;
         const _focusUpper = String(contentFocusFromPLD || '').toUpperCase();
@@ -1319,7 +1321,7 @@
         // 🔥 FIX-SYNC-v2: getLevelCategory butuh contentFocus
         const levelCategory = getLevelCategory(_levelForCategory, contentFocusFromPLD);
 
-        // 🔥 FIX-SYNC-v2: Money + INFORMASI = evergreen (konsisten AED v17.4.1)
+        // 🔥 FIX-SYNC-v2: Money + INFORMASI = evergreen (konsisten AED v17.4.8)
         const isEvergreenLevel = EVERGREEN_LEVELS_SET[_levelForCategory] === true
                                || (MONEY_LEVELS_SET[_levelForCategory] === true && _isInformationalFocus);
         const isMoneyLevel = MONEY_LEVELS_SET[_levelForCategory] === true && !_isInformationalFocus;
@@ -1345,7 +1347,7 @@
                 selectedLevels: uniqueLevels,
                 currentPageType: currentPageType,
                 entityType: entityType,
-                version: '12.3.5-lite',
+                version: '12.3.6-lite',
                 pldLevel: pldLevel,
                 pldSync: isPLDSynced,
                 // 🔥 FIX-C: Content focus fields
@@ -1363,7 +1365,7 @@
         // ============================================================
         if (CONFIG.DEBUG) {
             const commercialDetected = COMMERCIAL_WORDS.some(w => currentPageTitle.startsWith(w));
-            console.log('📊 BREADCRUMB SUMMARY (v12.3.5-LITE):');
+            console.log('📊 BREADCRUMB SUMMARY (v12.3.6-LITE):');
             console.log(`   Page: "${currentPageTitle}"`);
             console.log(`   Type: ${currentPageType} (level ${TYPE_LEVEL_MAP[currentPageType]})`);
             console.log(`   Entity: ${entityType}`);
@@ -1385,7 +1387,7 @@
             selectedLevels: uniqueLevels,
             currentPageType,
             entityType,
-            version: '12.3.5-lite',
+            version: '12.3.6-lite',
             parentCount: finalParents.length,
             parents: finalParents,
             isVariant: currentPageType === 'variant',
@@ -1413,6 +1415,6 @@
     window.generateBreadcrumbShared = generateBreadcrumbShared;
     window.generateBreadcrumbSharedSync = generateBreadcrumbShared;
 
-    console.log(`✅ [Breadcrumb v12.3.5-LITE] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'}) — LANGSUNG TANPA LAZY LOAD + AED SYNC v17.4.1`);
+    console.log(`✅ [Breadcrumb v12.3.6-LITE] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'}) — LANGSUNG TANPA LAZY LOAD + AED SYNC v17.4.8`);
 
 })();
