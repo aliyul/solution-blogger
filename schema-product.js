@@ -1,15 +1,27 @@
-/* ⚡ AutoSchema Hybrid v5.7-LITE COMPLETE — PRODUCT SCHEMA (PLD-DRIVEN, FULL-STACK)
+/* ⚡ AutoSchema Hybrid v5.7a-LITE COMPLETE — PRODUCT SCHEMA (PLD-DRIVEN, FULL-STACK)
    ✅ SINKRON dengan PLD v23.9.9 (entity-aware detectSchemaType)
-   ✅ SINKRON dengan AED v17.4.7
-   ✅ SINKRON dengan Breadcrumb v12.3.5
-   ✅ SINKRON dengan Auto Schema Article v8.6
+   ✅ SINKRON dengan AED v17.4.8
+   ✅ SINKRON dengan Breadcrumb v12.3.6
+   ✅ SINKRON dengan Auto Schema Article v8.6b
 
-   🔥🔥🔥 v5.7-LITE CHANGELOG 🔥🔥🔥
+   🔥🔥🔥 v5.7a-LITE CHANGELOG 🔥🔥🔥
+   ✅ FIX-11: Hapus author + dateModified di Answer (konsisten AED v17.4.8)
+              - AED v17.4.8 selalu hapus author/dateModified di Answer
+              - Sebelumnya: Hybrid tambah → AED hapus (sia-sia)
+              - Sesudah: Hybrid tidak tambah → AED tidak perlu hapus
+              - Efek: Log AED bersih, tidak ada "illegal properties" warning
+   ✅ FIX-12: ItemList Title Case (nama internal links)
+              - Sebelumnya: "daftar jasa pengeboran" (lowercase)
+              - Sesudah: "Daftar Jasa Pengeboran" (Title Case)
+              - Efek: Lebih rapi di Google & AI Search
+   ✅ Version bump resmi v5.7 → v5.7a (6 tempat)
+
+   ✅ PRESERVED dari v5.7-LITE:
    ✅ FIX-6: FAQPage content-driven + anti-duplikasi static
    ✅ FIX-7: TechArticle node (untuk variant/sub-variant)
    ✅ FIX-8: ItemList internal links (max 8)
-   ✅ FIX-9: Author per Answer + @id sync (FAQ)
-   ✅ FIX-10: Version header resmi v5.7
+   ✅ FIX-9: Author per FAQPage (bukan per Answer)
+   ✅ FIX-10: Version header
 
    ✅ PRESERVED dari v5.6-LITE:
    ✅ FIX-1: getPLDSchemaHint() — baca data-schema-type-primary/secondary/note
@@ -32,21 +44,21 @@
    ✅ Minified production JSON (P16)
 
    📌 PEMBAGIAN TANGGUNG JAWAB (HALAMAN PRODUK/MATERIAL):
-   - v5.7  : WebPage + LocalBusiness + Product + FAQPage + TechArticle + ItemList
-   - v8.6  : Article (untuk pillar/sub-pillar produk)
+   - v5.7a : WebPage + LocalBusiness + Product + FAQPage + TechArticle + ItemList
+   - v8.6b : Article (untuk pillar/sub-pillar produk)
 
-   Status: FINAL v5.7 — PLD-DRIVEN, SEO 2026, AI-READY
+   Status: FINAL v5.7a — PLD-DRIVEN, SEO 2026, AI-READY
 */
 
 (function() {
   "use strict";
 
   // ═══ GUARD GLOBAL ═══
-  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.7-lite") {
-    console.log("[AutoSchema Hybrid v5.7-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.7a-lite") {
+    console.log("[AutoSchema Hybrid v5.7a-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_HYBRID_VERSION = "5.7-lite";
+  window.__AUTOSCHEMA_HYBRID_VERSION = "5.7a-lite";
 
   // ============================================================
   // AUTO-DETECT DEBUG
@@ -68,7 +80,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.7-LITE] 🚫 Blocked external fetch:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.7a-LITE] 🚫 Blocked external fetch:', url);
       return Promise.reject(new Error('Blocked by CORB prevention'));
     }
     return originalFetch.apply(this, args);
@@ -81,7 +93,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.7-LITE] 🚫 Blocked external XHR:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.7a-LITE] 🚫 Blocked external XHR:', url);
       throw new Error('Blocked by CORB prevention');
     }
     return originalXHROpen.call(this, method, url, ...rest);
@@ -313,7 +325,7 @@
       } catch (error) {
         const fallback = this.fallbacks.get(fnName);
         if (CONFIG.DEBUG) {
-          console.error(`❌ [Hybrid v5.7] Error in ${fnName}:`, error);
+          console.error(`❌ [Hybrid v5.7a] Error in ${fnName}:`, error);
         }
         if (fallback) return typeof fallback === 'function'
           ? fallback(...args) : fallback;
@@ -339,7 +351,7 @@
     end(label) {
       if (!CONFIG.DEBUG || !this.marks[label]) return 0;
       const duration = performance.now() - this.marks[label];
-      console.log(`⏱️ [PERF v5.7-LITE] ${label}: ${duration.toFixed(2)}ms`);
+      console.log(`⏱️ [PERF v5.7a-LITE] ${label}: ${duration.toFixed(2)}ms`);
       delete this.marks[label];
       return duration;
     }
@@ -389,7 +401,7 @@
       KNOWS: "🎓", SYNC: "🔗", FAQ: "❓", TECH: "🔬", STATIC: "🗿",
       ARTICLE: "📄"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.7-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.7a-LITE] ${msg}`);
   }
 
   // ============================================================
@@ -442,19 +454,19 @@
 
     if (!isMoneyLevel) {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'not-money-level';
-      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7-LITE] SKIP: level "${pageLevel}" bukan money level`);
+      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7a-LITE] SKIP: level "${pageLevel}" bukan money level`);
       return;
     }
 
     if (contentFocus === 'INFORMASI') {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'money-informasi';
-      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7-LITE] SKIP: money level + INFORMASI`);
+      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7a-LITE] SKIP: money level + INFORMASI`);
       return;
     }
 
     window.__AUTOSCHEMA_HYBRID_SKIP_REASON = null;
     if (CONFIG.DEBUG) {
-      console.log(`✅ [AutoSchema Hybrid v5.7-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
+      console.log(`✅ [AutoSchema Hybrid v5.7a-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
     }
   })();
 
@@ -850,7 +862,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-8 (v5.7): INTERNAL LINKS — Max 8
+  // 🔥 FIX-8 + FIX-12 (v5.7a): INTERNAL LINKS — Max 8 + Title Case
   // ============================================================
   function generateInternalLinks() {
     perf.start('generateInternalLinks');
@@ -869,12 +881,19 @@
     }
     const unique = [...new Set(links)];
     const limited = unique.slice(0, CONFIG.MAX_INTERNAL_LINKS);
-    const result = limited.map((u, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      url: u,
-      name: decodeURIComponent(u.split("/").pop().replace(".html", "").replace(/-/g, " "))
-    }));
+
+    // 🔥 FIX-12 (v5.7a): Title Case names
+    const result = limited.map((u, i) => {
+      const rawName = decodeURIComponent(u.split("/").pop().replace(".html", "").replace(/-/g, " "));
+      const titleCase = rawName.replace(/\b\w/g, l => l.toUpperCase());
+      return {
+        "@type": "ListItem",
+        position: i + 1,
+        url: u,
+        name: titleCase
+      };
+    });
+
     log(`🔗 Internal links: ${result.length} (max ${CONFIG.MAX_INTERNAL_LINKS})`, "SYNC");
     perf.end('generateInternalLinks');
     return result;
@@ -1484,12 +1503,12 @@
   }
 
   // ============================================================
-  // 🚀 MAIN INIT v5.7-LITE
+  // 🚀 MAIN INIT v5.7a-LITE
   // ============================================================
   async function init() {
     perf.start('init');
     log("═══════════════════════════════════════════════════");
-    log("AutoSchema Hybrid v5.7-LITE — PRODUCT SCHEMA (FULL-STACK)");
+    log("AutoSchema Hybrid v5.7a-LITE — PRODUCT SCHEMA (FULL-STACK)");
     log(`DEBUG Mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("═══════════════════════════════════════════════════");
 
@@ -1730,6 +1749,7 @@
       }
 
       // 🔥 FIX-6 (v5.7): FAQPage node
+      // 🔥 FIX-11 (v5.7a): Hapus author + dateModified di Answer (konsisten AED v17.4.8)
       if (wantFAQ) {
         const faqPage = {
           "@type": "FAQPage",
@@ -1744,14 +1764,12 @@
             "name": f.name,
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": f.acceptedAnswer.text,
-              "author": { "@id": CONFIG.LOCALBUSINESS_ID },
-              ...(aed && aed.dateModified && { "dateModified": aed.dateModified })
+              "text": f.acceptedAnswer.text
             }
           }))
         };
         graph.push(faqPage);
-        log(`✅ FAQPage node: ${faqsFromDOM.length} pertanyaan (author=Organization)`, "FAQ");
+        log(`✅ FAQPage node: ${faqsFromDOM.length} pertanyaan (author=Organization, answer clean)`, "FAQ");
       }
 
       // 🔥 FIX-8 (v5.7): ItemList node
@@ -1781,7 +1799,7 @@
         "@graph": graph
       }, null, indent);
 
-      log("✅ PRODUCT SCHEMA INJECTED (v5.7-LITE FULL-STACK)", "SUCCESS");
+      log("✅ PRODUCT SCHEMA INJECTED (v5.7a-LITE FULL-STACK)", "SUCCESS");
       log(`   Schema nodes: ${graph.map(n => n["@type"]).join(' + ')}`, "SCHEMA");
       log(`   Product: ${productName}`, "SUCCESS");
       log(`   Category: ${productCategory}`, "PRODUCT");
@@ -1794,7 +1812,7 @@
       log(`   Parent: ${parentData.parentName}`, "PARENT");
       log("═══════════════════════════════════════════════════");
     } catch (error) {
-      console.error('❌ [Hybrid v5.7] Fatal error in init:', error);
+      console.error('❌ [Hybrid v5.7a] Fatal error in init:', error);
       log(`Fatal error: ${error.message}`, "ERROR");
     } finally {
       perf.end('init');
@@ -1815,12 +1833,14 @@
 
   window.addEventListener('beforeunload', cleanup);
 
-  console.log(`✅ [AutoSchema Hybrid v5.7-LITE] Ready — PLD-DRIVEN FULL-STACK (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`✅ [AutoSchema Hybrid v5.7a-LITE] Ready — PLD-DRIVEN FULL-STACK (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`🔥 FIX-11: Hapus author/dateModified di Answer (konsisten AED v17.4.8)`);
+  console.log(`🔥 FIX-12: ItemList Title Case`);
   console.log(`🔥 FIX-6: FAQPage content-driven + anti-duplikasi static`);
   console.log(`🔥 FIX-7: TechArticle node (untuk variant/sub-variant)`);
   console.log(`🔥 FIX-8: ItemList internal links (max 8)`);
-  console.log(`🔥 FIX-9: Author per Answer + @id sync (FAQ)`);
-  console.log(`🔥 FIX-10: Version header resmi v5.7`);
+  console.log(`🔥 FIX-9: Author per FAQPage (bukan per Answer)`);
+  console.log(`🔥 FIX-10: Version header resmi`);
   console.log(`✅ PRESERVED: FIX-1 s/d FIX-5 (PLD-driven, notes, offers, areaServed)`);
   console.log(`✅ PRESERVED: Anti-spoofing, @id sync, knowsAbout 110, areaServed 12`);
   console.log(`✅ PRESERVED: Variant spec, 4-layer price, insertFigureAfterH1`);
