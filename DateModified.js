@@ -1,44 +1,40 @@
 /* ============================================================
- 🔥 Hybrid Date Modified v10.2 — PURE CONSUMER
-    ✅ FIX-SYNC-v3: HAPUS semua duplikasi logika dari AED & PLD
-    ✅ Hybrid = KONSUMEN SAJA — baca AEDMetaDates, tulis meta tag
-    ✅ Tugas unik Hybrid:
+ 🔥 Hybrid Date Modified v10.3 — PURE CONSUMER + AUTO-RUN SYNC
+    ✅ FIX-SYNC-v4 (v10.3):
+       - Kompatibel dengan PLD v23.9.9 + AED v17.5.0 + Breadcrumb v12.3.6
+       - HAPUS call detectEvergreen() — AED v17.5.0 sudah AUTO-RUN
+       - Tunggu window.AEDMetaDates terisi (bukan event saja)
+       - Guard: kalau AEDMetaDates sudah ada → langsung proses
+       - Fallback: kalau AED gagal, Hybrid tetap bisa pakai default
+
+    ✅ FIX-SYNC-v3 (v10.2) — PRESERVED:
+       - Hybrid = KONSUMEN SAJA — baca AEDMetaDates, tulis meta tag
+       - Hash offset per URL (anti duplicate date)
+       - Skip homepage & static pages
+
+    🎯 TUGAS UNIK HYBRID:
        1. Hash offset per URL (anti duplicate date)
        2. Write meta tag dateModified
        3. Skip homepage & static pages
 
-    ❌ DIHAPUS dari v10.1:
-       - EVERGREEN_LEVELS + MONEY_LEVELS konstanta (duplikat AED)
-       - detectContentFocus() (duplikat PLD)
-       - getCustomDateByPageLevel() (duplikat AED)
-       - getCategoryLabel() (duplikat AED)
-       - hasPriceTable() cek sendiri (duplikat AED)
-       - Cek tahun H1 sendiri (duplikat AED)
-       - Putuskan EE/NE sendiri (duplikat AED)
+    ❌ TIDAK BOLEH dilakukan Hybrid:
+       - Putuskan EVERGREEN/NON-EVERGREEN (AED yang tentukan)
+       - Detect content focus (PLD yang tentukan)
+       - Call detectEvergreen() (AED auto-run)
 
-    ✅ PRESERVED dari v10.1:
-       - Skip homepage & static pages
-       - Guard _HYBRID_INITIALIZED
-       - Timeout PLD/AED/Breadcrumb
-       - Skip updateMetaDateModified kalau tanggal sama
-
-    ✅ COMPATIBLE dengan:
-       - PLD v23.9.8-LITE-PERF-CONTENT-FIX
-       - AED v17.4.1-LITE
-       - Breadcrumb v12.3.5-LITE
-
-    📌 File length: ~230 baris (dari ~750 baris di v10.1)
+    📌 File length: ~240 baris
+    📌 Stack: PLD v23.9.9 + AED v17.5.0 + Breadcrumb v12.3.6
 ============================================================ */
 
 (function () {
   "use strict";
 
   // ═══ Guard global — cegah double init ═══
-  if (window.__hybridDateModifiedVersion === "10.2") {
-    console.log("[HybridDateModified v10.2] ⏭️ Sudah dijalankan — skip");
+  if (window.__hybridDateModifiedVersion === "10.3") {
+    console.log("[HybridDateModified v10.3] ⏭️ Sudah dijalankan — skip");
     return;
   }
-  window.__hybridDateModifiedVersion = "10.2";
+  window.__hybridDateModifiedVersion = "10.3";
 
   // ═══════════════════════════════════════════════════════════
   // SKIP HALAMAN STATIS — EARLY (sebelum DOMContentLoaded)
@@ -81,15 +77,15 @@
   // TUNGGU DOM READY
   // ═══════════════════════════════════════════════════════════
   if (window.__HYBRID_SKIP_REASON) {
-    console.log(`⏸️ [HybridDateModified v10.2] Skip (${window.__HYBRID_SKIP_REASON})`);
+    console.log(`⏸️ [HybridDateModified v10.3] Skip (${window.__HYBRID_SKIP_REASON})`);
   } else if (document.readyState === "loading") {
-    console.log("[HybridDateModified v10.2] ⏳ Menunggu DOMContentLoaded...");
+    console.log("[HybridDateModified v10.3] ⏳ Menunggu DOMContentLoaded...");
     document.addEventListener("DOMContentLoaded", function () {
-      console.log("[HybridDateModified v10.2] ✅ DOM siap, menjalankan...");
+      console.log("[HybridDateModified v10.3] ✅ DOM siap, menjalankan...");
       runHybridDateModified();
     }, { once: true });
   } else {
-    console.log("[HybridDateModified v10.2] ✅ DOM sudah siap, menjalankan...");
+    console.log("[HybridDateModified v10.3] ✅ DOM sudah siap, menjalankan...");
     runHybridDateModified();
   }
 
@@ -100,7 +96,7 @@
     try {
       // Guard double init
       if (window.__HYBRID_RUNNING) {
-        console.log("[HybridDateModified v10.2] ⏭️ Sudah running — skip");
+        console.log("[HybridDateModified v10.3] ⏭️ Sudah running — skip");
         return;
       }
       window.__HYBRID_RUNNING = true;
@@ -157,13 +153,13 @@
       if (window.HybridDateModified) {
         window.HybridDateModified = null;
       }
-      if (window.__hybridDateModifiedReady && window.__hybridDateModifiedVersion !== "10.2") {
+      if (window.__hybridDateModifiedReady && window.__hybridDateModifiedVersion !== "10.3") {
         window.__hybridDateModifiedReady = false;
       }
       const oldScripts = document.querySelectorAll('script[src*="HybridDateModified"], script[src*="hybrid-date"], script[src*="date-modified"]');
       oldScripts.forEach(script => { try { script.remove(); } catch (e) {} });
 
-      window.__hybridDateModifiedActive = 'v10.2';
+      window.__hybridDateModifiedActive = 'v10.3';
       window.__hybridDateModifiedReady = true;
       window.runHybridDateModified = runHybridDateModified;
 
@@ -176,26 +172,19 @@
       else console.log(`⏰ Breadcrumb timeout, lanjutkan`);
 
       // ═══════════════════════════════════════════════════════
-      // LOAD SCRIPTS (PLD & AED sudah di HTML)
+      // 🔥 FIX-SYNC-v4: TUNGGU AED SELESAI
+      // AED v17.5.0 sudah AUTO-RUN — Hybrid TIDAK memanggil
+      // detectEvergreen(). Cukup tunggu window.AEDMetaDates terisi.
       // ═══════════════════════════════════════════════════════
-      await loadAllScripts();
+      console.log("⏳ Menunggu AEDMetaDates terisi (AED auto-run)...");
+      const aedReady = await waitForAEDMetaDates(3500);
 
-      // ═══════════════════════════════════════════════════════
-      // PANGGIL AED — AED yang putuskan EVERGREEN/NON-EVERGREEN
-      // ═══════════════════════════════════════════════════════
-      if (typeof window.detectEvergreen !== 'function') {
-        console.warn("⚠️ AED tidak tersedia — skip");
+      if (!aedReady) {
+        console.warn("⚠️ [HybridDateModified v10.3] AEDMetaDates tidak terisi setelah timeout — skip");
         return;
       }
 
-      console.log("🚀 Memanggil AED...");
-      await window.detectEvergreen();
-      console.log("✅ AED executed");
-
-      if (!window.AEDMetaDates || !window.AEDMetaDates.dateModified) {
-        console.warn("[HybridDateModified v10.2] AEDMetaDates tidak ada, skip.");
-        return;
-      }
+      console.log("✅ AEDMetaDates siap — Hybrid lanjut konsumsi data");
 
       // ═══════════════════════════════════════════════════════
       // 🔥 FIX-SYNC-v3: BACA SEMUA DATA DARI AED + PLD
@@ -206,8 +195,9 @@
       const detectedPageLevel = window.AEDMetaDates.pageLevel;
       const contentFocus = String(window.AEDMetaDates.contentFocus || '').toUpperCase();
       const categoryFromAED = window.AEDMetaDates.pldKategori || 'UNKNOWN';
+      const aedVersion = window.AEDMetaDates.detectorVersion || 'unknown';
 
-      console.log(`📊 Data dari AED:`);
+      console.log(`📊 Data dari AED (${aedVersion}):`);
       console.log(`   - type: ${aedType}`);
       console.log(`   - pageLevel: ${detectedPageLevel}`);
       console.log(`   - contentFocus: ${contentFocus}`);
@@ -215,8 +205,7 @@
       console.log(`   - dateModified (dari AED): ${dateModified}`);
 
       // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-SYNC-v3: HASH SOURCE — berdasarkan aedType
-      // Konsisten dengan AED: evergreen / non-evergreen
+      // HASH SOURCE — berdasarkan aedType (konsisten AED)
       // ═══════════════════════════════════════════════════════
       const uniquePageIdentifier = window.location.pathname;
       let hashSource = uniquePageIdentifier;
@@ -242,7 +231,7 @@
         ...window.AEDMetaDates,
         dateModified: isoDate,
         hashOffset: offsetSeconds,
-        hybridVersion: '10.2',
+        hybridVersion: '10.3',
         originalDateModified: dateModified,
         breadcrumbReady: breadcrumbReady,
         mode: (aedType === 'evergreen') ? 'MANUAL' : 'AUTO'
@@ -251,7 +240,7 @@
       // ═══════════════════════════════════════════════════════
       // LOG FINAL
       // ═══════════════════════════════════════════════════════
-      console.log(`✅ [HybridDateModified v10.2] ${uniquePageIdentifier}`);
+      console.log(`✅ [HybridDateModified v10.3] ${uniquePageIdentifier}`);
       console.log(`   → Final Date Modified: ${isoDate}`);
       console.log(`   → Offset: ${offsetSeconds} detik (${Math.floor(offsetSeconds / 3600)} jam ${Math.floor((offsetSeconds % 3600) / 60)} menit)`);
       console.log(`   → Mode: ${window.AEDMetaDates.mode}`);
@@ -259,10 +248,10 @@
       console.log(`   → Type (dari AED): ${aedType}`);
       console.log(`   → Content Focus (dari AED): ${contentFocus}`);
       console.log(`   → Breadcrumb Ready: ${breadcrumbReady ? '✅' : '⏰'}`);
-      console.log(`📋 Hybrid Date Modified v10.2 applied successfully ✅`);
+      console.log(`📋 Hybrid Date Modified v10.3 applied successfully ✅`);
 
     } catch (err) {
-      console.error("[HybridDateModified v10.2] Fatal error:", err);
+      console.error("[HybridDateModified v10.3] Fatal error:", err);
     }
   }
 
@@ -312,96 +301,59 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // HELPER: LOAD SCRIPTS (PLD & AED sudah di HTML)
+  // 🔥 FIX-SYNC-v4: WAIT FOR AEDMetaDates
+  // 
+  // BEDA dengan waitForDetectEvergreen() (v10.2):
+  // - v10.2: tunggu EVENT + panggil detectEvergreen() → race
+  // - v10.3: langsung cek window.AEDMetaDates → aman
+  // 
+  // PRIORITAS:
+  //   1. AEDMetaDates sudah ada → instant resolve
+  //   2. Event detectEvergreenReady → resolve
+  //   3. Polling tiap 100ms sampai timeout
   // ═══════════════════════════════════════════════════════════
-  async function loadAllScripts() {
-    console.log("⏳ Cek PLD & AED...");
-
-    if (typeof window.pageLevelDetectorv22 === "undefined" &&
-        typeof window.pageLevelDetectorv20 === "undefined" &&
-        typeof window.pageLevelDetectorv19 === "undefined" &&
-        typeof window.pageLevelDetectorV18 === "undefined" &&
-        typeof window.pageLevelDetectorV17 === "undefined" &&
-        typeof window.pageLevelDetector === "undefined") {
-      console.log("⏳ Menunggu PLD dari HTML...");
-      await waitForPageLevelDetector();
-      const ver = window.pageLevelDetectorv22?.version || "unknown";
-      console.log(`✅ PLD v${ver} READY`);
-    } else {
-      const ver = window.pageLevelDetectorv22?.version || "unknown";
-      console.log(`✅ PLD v${ver} sudah ada`);
-    }
-
-    if (typeof window.detectEvergreen !== "function") {
-      console.log("⏳ Menunggu AED dari HTML...");
-      await waitForDetectEvergreen();
-      console.log("✅ AED READY");
-    } else {
-      console.log("✅ AED sudah ada");
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // HELPER: WAIT FOR PLD
-  // ═══════════════════════════════════════════════════════════
-  function waitForPageLevelDetector() {
+  function waitForAEDMetaDates(timeout) {
+    timeout = timeout || 3500;
     return new Promise((resolve) => {
-      if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
-        resolve(true);
-        return;
-      }
-      if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') { resolve(true); return; }
-      if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') { resolve(true); return; }
-      if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') { resolve(true); return; }
-      if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') { resolve(true); return; }
-      if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') { resolve(true); return; }
-
-      const onReady = () => { console.log("✅ PLD ready (event)"); resolve(true); };
-      window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorV19Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorv18Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
-
-      setTimeout(() => {
-        if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 ||
-            window.pageLevelDetectorv19 || window.pageLevelDetectorV18 ||
-            window.pageLevelDetector) {
-          console.log("✅ PLD ready (timeout fallback 3s)");
-          resolve(true);
-        } else {
-          console.warn("⚠️ PLD tidak terdeteksi");
-          resolve(false);
-        }
-      }, 3000);
-    });
-  }
-
-  // ═══════════════════════════════════════════════════════════
-  // HELPER: WAIT FOR AED
-  // ═══════════════════════════════════════════════════════════
-  function waitForDetectEvergreen() {
-    return new Promise((resolve) => {
-      if (window.__detectEvergreenReady && typeof window.detectEvergreen === "function") {
-        console.log("✅ AED already ready");
+      // 🔥 FIX-SYNC-v4: fast-path — AED sudah selesai
+      if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
+        console.log("✅ AEDMetaDates already ready (instant)");
         resolve(true);
         return;
       }
 
-      const onReady = () => { console.log("✅ AED ready (event)"); resolve(true); };
+      let resolved = false;
+
+      const finish = (ok) => {
+        if (resolved) return;
+        resolved = true;
+        resolve(ok);
+      };
+
+      // Event listener
+      const onReady = () => {
+        console.log("✅ AED ready (event detectEvergreenReady)");
+        finish(true);
+      };
       window.addEventListener("detectEvergreenReady", onReady, { once: true });
 
-      setTimeout(() => {
-        window.removeEventListener("detectEvergreenReady", onReady);
-        if (typeof window.detectEvergreen === "function") {
-          console.log("✅ AED ready (timeout fallback 3s)");
-          resolve(true);
-        } else {
-          console.warn("⚠️ AED tidak terdeteksi");
-          resolve(false);
+      // Polling fallback (untuk kasus AED selesai sebelum Hybrid daftar event)
+      const startTime = Date.now();
+      const pollInterval = setInterval(() => {
+        if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
+          clearInterval(pollInterval);
+          window.removeEventListener("detectEvergreenReady", onReady);
+          console.log("✅ AEDMetaDates ready (polling)");
+          finish(true);
+          return;
         }
-      }, 3000);
+        if (Date.now() - startTime > timeout) {
+          clearInterval(pollInterval);
+          window.removeEventListener("detectEvergreenReady", onReady);
+          console.warn(`⏰ AEDMetaDates timeout (${timeout}ms)`);
+          finish(false);
+        }
+      }, 100);
     });
   }
 
@@ -460,5 +412,18 @@
       meta.setAttribute("content", isoDate);
     });
   }
+
+  // ═══════════════════════════════════════════════════════════
+  // CLEANUP LOG
+  // ═══════════════════════════════════════════════════════════
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("✅ Hybrid Date Modified v10.3 — PURE CONSUMER + AUTO-RUN SYNC");
+  console.log("═══════════════════════════════════════════════════════════");
+  console.log("🔥 FIX-SYNC-v4: Kompatibel PLD v23.9.9 + AED v17.5.0");
+  console.log("🔥 FIX-SYNC-v4: HAPUS call detectEvergreen() — AED sudah AUTO-RUN");
+  console.log("🔥 FIX-SYNC-v4: Fast-path cek window.AEDMetaDates langsung");
+  console.log("🔥 FIX-SYNC-v4: Polling fallback (100ms) anti miss-event");
+  console.log("✅ Tugas Hybrid: hash offset + write meta + skip homepage");
+  console.log("═══════════════════════════════════════════════════════════");
 
 })();
