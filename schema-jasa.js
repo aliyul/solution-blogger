@@ -1518,17 +1518,34 @@
         const isEvergreenSvc  = /evergreen-service/.test(schemaNote);
 
         // 🔥 Tentukan node dari PLD (Article = TIDAK dibuat di sini — v8.6b yang bikin)
+       const wantService  = (schemaPrimary === 'Service')  || (schemaSecondary === 'Service');
+           // 🔥 Tentukan node dari PLD (Article = TIDAK dibuat di sini — v8.6c yang bikin)
         const wantService  = (schemaPrimary === 'Service')  || (schemaSecondary === 'Service');
         const wantProduct  = (schemaPrimary === 'Product')  || (schemaSecondary === 'Product');
         const wantCreative = (schemaSecondary === 'CreativeWork');
 
+        // ═══════════════════════════════════════════════════════
+        // 🔥 FIX-23 (v7.36f): Skip FAQ kalau PLD primary=Article
+        // Mencegah DUPLIKAT FAQ dengan Article v8.6c.
+        // Kasus: URL /perbandingan-jasa-* (Universal load karena
+        // ada "jasa", TAPI PLD bilang primary=Article → Article v8.6c
+        // yang handle FAQ. Universal HARUS skip).
+        // ═══════════════════════════════════════════════════════
+        const isArticlePrimary = (schemaPrimary === 'Article');
+
         // 🔥 FIX-20 (v7.36d): Cek FAQPage static dulu
         const hasStaticFAQ = hasStaticFAQPageSchema();
 
-        // 🔥 FIX-14 (v7.36c): FAQ = content-driven
+        // 🔥 FIX-14 (v7.36c): FAQ = content-driven (SEO 2026 + AI Search)
         const faqsFromDOM = extractFaqFromDOM();
-        const wantFAQ = !hasStaticFAQ && faqsFromDOM.length >= 2;
 
+        // 🔥 FIX-23 (v7.36f): Guard tambahan isArticlePrimary
+        const wantFAQ = !isArticlePrimary && !hasStaticFAQ && faqsFromDOM.length >= 2;
+
+        if (isArticlePrimary) {
+          log(`⏭️ FAQPage SKIP — PLD primary=Article (ditangani Article v8.6c)`, "SKIP");
+        }
+         
         // 🔥 FIX-17 (v7.36c): TechArticle
         const wantTechArticle = (schemaSecondary === 'TechArticle') &&
                                 (schemaPrimary === 'Service' || schemaPrimary === 'Product');
