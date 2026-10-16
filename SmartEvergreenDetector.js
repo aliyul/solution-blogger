@@ -1,15 +1,17 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.5.3 — MINI BADGE INTEGRATED
+ 🧠 Smart Evergreen Detector v17.5.4 — AUTHOR BYLINE
 ============================================================
- 🔥🔥🔥 v17.5.3 CHANGELOG 🔥🔥🔥
- ✅ FIX-MINI-BADGE: Mini badge tanggal update terintegrasi
-    di dalam warning element (bukan elemen terpisah)
-    - Tampil otomatis saat warning muncul
-    - Sumber: meta[itemprop="dateModified"] (real)
-    - Hilang saat warning hilang (halaman fresh)
-    - Tidak duplikat dengan .last-updated
-    - SEO-safe: hanya tanggal real, tanpa klaim "verified"
+ 🔥🔥🔥 v17.5.4 CHANGELOG 🔥🔥🔥
+ ✅ FIX-AUTHOR-BYLINE: Auto-enhance byline kosong di Post + Page
+    - Detect byline "By" tanpa nama → enhance
+    - Inject "By: Beton Jaya Readymix" kalau belum ada
+    - Skip kalau author asli sudah ada (best practice E-E-A-T)
+    - Link ke /p/about.html
+    - Dark mode + mobile support
+    - data-nosnippet friendly
 
+ ✅ PRESERVED dari v17.5.3:
+ ✅ FIX-MINI-BADGE: Mini badge tanggal di warning
  ✅ PRESERVED dari v17.5.2:
  ✅ FIX-UX-1: Priority Display
  ✅ FIX-UX-2: Mobile-First
@@ -18,30 +20,55 @@
  ✅ FIX-UX-5: Accessibility
  ✅ FIX-UX-6: Multi-Language
  ✅ FIX-UX-7: Deep Link Edit
-
  ✅ PRESERVED dari v17.5.1:
- ✅ FIX-WARN-TEXT: Text NETRAL
- ✅ FIX-WARN-COLOR: Warna ORANGE
- ✅ FIX-WARN-GUARD: Deteksi warning stuck
-
+ ✅ FIX-WARN-TEXT, FIX-WARN-COLOR, FIX-WARN-GUARD
  ✅ PRESERVED dari v17.5.0:
  ✅ FIX-PLD-SYNC, FIX-AUTORUN, FIX-EVENT
-
  ✅ PRESERVED dari v17.4.x: FIX-MINOR, FIX-KRITIS, FIX-EE, FIX-B, FIX-A
 
  📌 BRAND DEFAULT: "Beton Jaya Readymix"
+ 📌 BIO URL: "/p/about.html"
  📌 KOMPATIBEL: PLD v23.9.9
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.5.3") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.5.4") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.5.3";
+  window.__AED_VERSION = "17.5.4";
 
   var DEFAULT_BRAND_NAME = "Beton Jaya Readymix";
+
+  // ============================================================
+  // 🔥 FIX-AUTHOR-BYLINE v17.5.4
+  // ============================================================
+  const AUTHOR_BYLINE_CONFIG = {
+    ENABLED: true,
+    NAME: 'Beton Jaya Readymix',
+    URL: '/p/about.html',
+    ALWAYS_REPLACE: false,
+    SHOW_AVATAR: true,
+    AVATAR_INITIAL: 'B',
+    BROKEN_PATTERNS: [
+      /^by\s*$/i,
+      /^oleh\s*$/i,
+      /^by\s+admin\s*$/i,
+      /^oleh\s+admin\s*$/i,
+      /^by\s+unknown\s*$/i,
+      /^by\s*[|]\s*$/i
+    ],
+    SELECTORS: [
+      '.post-author', '.byline', '.post-byline', '.author-byline',
+      '.post-header-line-1', '.post-meta', '.entry-meta',
+      '.post-info', '.postinfo', '[class*="author"]', '[class*="byline"]',
+      '[itemprop="author"]'
+    ],
+    EXCLUDE_SELECTORS: [
+      'footer', 'script', '.no-author', '.comment-author', '.comment-meta'
+    ]
+  };
 
   // ============================================================
   // 🔔 INLINE WARNING CONFIG
@@ -59,11 +86,8 @@
     INSERT_AFTER_SELECTOR: '.last-updated, .updated-date, .date-modified, [class*="last-updated"]',
     USE_NOSNIPPET: true,
     STUCK_THRESHOLD_DAYS: 30,
-
-    // 🔥 FIX-MINI-BADGE v17.5.3: config mini badge
     MINI_BADGE_ENABLED: true,
 
-    // 🔥 FIX-UX-6: MULTI-LANGUAGE
     LOCALE: 'id',
     MESSAGES: {
       id: {
@@ -84,7 +108,6 @@
       }
     },
 
-    // 🔥 FIX-UX-1: PRIORITY DISPLAY
     PRIORITY_MAP: {
       'money-child|HARGA':    'critical',
       'money-child|GABUNG':   'critical',
@@ -145,16 +168,13 @@
   const EVERGREEN_LEVELS = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'];
 
   // ============================================================
-  // 🔥 FIX-UX-1: GET PRIORITY
+  // HELPERS
   // ============================================================
   function getPriority(pageLevel, contentFocus) {
     var key = pageLevel + '|' + String(contentFocus || '').toUpperCase();
     return WARNING_CONFIG.PRIORITY_MAP[key] || 'low';
   }
 
-  // ============================================================
-  // 🔥 FIX-UX-6: DETECT LOCALE
-  // ============================================================
   function detectLocale() {
     try {
       var htmlLang = document.documentElement.getAttribute('lang') || '';
@@ -179,9 +199,6 @@
     return msg;
   }
 
-  // ============================================================
-  // 🔥 FIX-UX-7: DETECT ADMIN
-  // ============================================================
   function isAdmin() {
     try {
       if (document.body.getAttribute('data-is-admin') === 'true') return true;
@@ -197,7 +214,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-UX-4/5 + MINI BADGE: INJECT CSS
+  // INJECT CSS
   // ============================================================
   function injectWarningStyles() {
     if (document.getElementById('aed-warning-styles')) return;
@@ -290,12 +307,61 @@
         border-top: 1px solid rgba(0, 0, 0, 0.08);
         letter-spacing: 0.01em;
       }
+
+      /* 🔥 FIX-AUTHOR-BYLINE v17.5.4 */
+      .aed-author-byline {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.9rem;
+        color: #4b5563;
+        margin: 8px 0;
+        font-family: system-ui, -apple-system, sans-serif;
+        line-height: 1.4;
+      }
+      .aed-author-byline .aed-author-avatar {
+        display: inline-block;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #ea580c;
+        color: #fff;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-align: center;
+        line-height: 22px;
+        flex-shrink: 0;
+      }
+      .aed-author-byline .aed-author-label {
+        color: #6b7280;
+        font-weight: 400;
+      }
+      .aed-author-byline a.aed-author-name {
+        color: #ea580c;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      .aed-author-byline a.aed-author-name:hover {
+        text-decoration: underline;
+      }
+      [data-aed-author-enhanced="true"] {
+        display: inline-block;
+      }
+      @media (prefers-color-scheme: dark) {
+        .aed-author-byline { color: #9ca3af; }
+        .aed-author-byline .aed-author-label { color: #6b7280; }
+        .aed-author-byline a.aed-author-name { color: #fb923c; }
+      }
+      @media (max-width: 640px) {
+        .aed-author-byline { font-size: 0.82rem; }
+        .aed-author-byline .aed-author-avatar { width: 18px; height: 18px; line-height: 18px; font-size: 0.65rem; }
+      }
     `;
     document.head.appendChild(style);
   }
 
   // ============================================================
-  // 🎯 CONTENT-AWARE VALIDITY
+  // CONTENT-AWARE VALIDITY
   // ============================================================
   function getValidityByContext(pageLevel, contentFocus) {
     var focus = String(contentFocus || '').toUpperCase();
@@ -320,7 +386,8 @@
     return WARNING_CONFIG.SHOW_DAYS_BEFORE;
   }
 
-  function toISOWithTimezoneLocal(date, offset = "+07:00") {
+  function toISOWithTimezoneLocal(date, offset) {
+    offset = offset || "+07:00";
     if (!date) return null;
     const d = new Date(date);
     if (isNaN(d.getTime())) return null;
@@ -329,7 +396,7 @@
   }
 
   // ============================================================
-  // 🔔 INLINE WARNING — v17.5.3
+  // INLINE WARNING
   // ============================================================
   function formatTanggalIndo(dateStr) {
     if (!dateStr) return '';
@@ -389,7 +456,6 @@
 
     var priority = getPriority(pageLevel, contentFocus);
 
-    // 🔥 FIX-UX-3: ANALYTICS
     var analyticsSummary = {
       url: window.location.pathname,
       pageLevel: pageLevel,
@@ -420,9 +486,6 @@
     createWarningElement(message, severity, priority, daysDiff, modifiedStr);
   }
 
-  // ============================================================
-  // 🔥 FIX-MINI-BADGE v17.5.3: createWarningElement
-  // ============================================================
   function createWarningElement(message, severity, priority, daysDiff, modifiedStr) {
     if (document.getElementById('aed-update-warning')) return;
 
@@ -433,14 +496,11 @@
     warning.setAttribute('data-nosnippet', '');
     warning.setAttribute('data-severity', severity);
     warning.setAttribute('data-priority', priority || 'low');
-
-    // 🔥 FIX-UX-5: ACCESSIBILITY
     warning.setAttribute('role', 'alert');
     warning.setAttribute('aria-live', 'polite');
     warning.setAttribute('aria-atomic', 'true');
     warning.setAttribute('aria-label', 'Status review halaman: ' + message);
 
-    // 🔥 FIX-UX-2: MOBILE-FIRST
     var compactMsg = '';
     if (severity === 'expired' || severity === 'critical') {
       compactMsg = 'ℹ️ ' + (detectLocale() === 'en' ? 'Review due' : 'Review berkala');
@@ -448,7 +508,6 @@
       compactMsg = 'ℹ️ ' + (detectLocale() === 'en' ? 'Review in ' + daysDiff + 'd' : 'Review ' + daysDiff + ' hari');
     }
 
-    // 🔥 BARIS 1: MAIN MESSAGE
     var mainMsg = document.createElement('span');
     mainMsg.className = 'aed-warning-full';
     mainMsg.textContent = message;
@@ -459,7 +518,6 @@
     compactSpan.textContent = compactMsg;
     warning.appendChild(compactSpan);
 
-    // 🔥 BARIS 2: MINI BADGE — Tanggal update terakhir
     if (WARNING_CONFIG.MINI_BADGE_ENABLED && modifiedStr && modifiedStr !== 'unknown') {
       var modText = formatTanggalIndo(modifiedStr);
       if (modText) {
@@ -473,7 +531,6 @@
       }
     }
 
-    // 🔥 FIX-UX-7: EDIT LINK untuk admin
     if (isAdmin()) {
       var editLink = document.createElement('a');
       editLink.href = buildEditLink();
@@ -512,6 +569,127 @@
       }
     }
     console.log('✅ [AED Warning] Ditambahkan — severity:', severity, '| priority:', priority, '| mini-badge:', WARNING_CONFIG.MINI_BADGE_ENABLED ? '✅' : '❌');
+  }
+
+  // ============================================================
+  // 🔥 FIX-AUTHOR-BYLINE v17.5.4
+  // ============================================================
+  function normalizeBylineText(text) {
+    return String(text || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function isBrokenByline(text) {
+    var cleaned = normalizeBylineText(text).toLowerCase();
+    if (!cleaned) return true;
+    if (cleaned.length <= 5 && /^(by|oleh|\s|[-–—|])+$/i.test(cleaned)) return true;
+    for (var i = 0; i < AUTHOR_BYLINE_CONFIG.BROKEN_PATTERNS.length; i++) {
+      if (AUTHOR_BYLINE_CONFIG.BROKEN_PATTERNS[i].test(cleaned)) return true;
+    }
+    return false;
+  }
+
+  function isInsideExclude(el) {
+    for (var i = 0; i < AUTHOR_BYLINE_CONFIG.EXCLUDE_SELECTORS.length; i++) {
+      try {
+        if (el.closest(AUTHOR_BYLINE_CONFIG.EXCLUDE_SELECTORS[i])) return true;
+      } catch (e) {}
+    }
+    return false;
+  }
+
+  function buildAuthorByline() {
+    var wrapper = document.createElement('div');
+    wrapper.className = 'aed-author-byline';
+    wrapper.setAttribute('data-nosnippet', '');
+    wrapper.setAttribute('itemprop', 'author');
+    wrapper.setAttribute('itemscope', '');
+    wrapper.setAttribute('itemtype', 'https://schema.org/Organization');
+
+    if (AUTHOR_BYLINE_CONFIG.SHOW_AVATAR) {
+      var avatar = document.createElement('span');
+      avatar.className = 'aed-author-avatar';
+      avatar.setAttribute('aria-hidden', 'true');
+      avatar.textContent = AUTHOR_BYLINE_CONFIG.AVATAR_INITIAL;
+      wrapper.appendChild(avatar);
+    }
+
+    var label = document.createElement('span');
+    label.className = 'aed-author-label';
+    label.textContent = 'By:';
+    wrapper.appendChild(label);
+
+    var link = document.createElement('a');
+    link.className = 'aed-author-name';
+    link.href = AUTHOR_BYLINE_CONFIG.URL;
+    link.textContent = AUTHOR_BYLINE_CONFIG.NAME;
+    link.setAttribute('itemprop', 'name');
+    link.setAttribute('rel', 'author');
+    wrapper.appendChild(link);
+
+    return wrapper;
+  }
+
+  function findExistingByline() {
+    for (var i = 0; i < AUTHOR_BYLINE_CONFIG.SELECTORS.length; i++) {
+      try {
+        var candidates = document.querySelectorAll(AUTHOR_BYLINE_CONFIG.SELECTORS[i]);
+        for (var j = 0; j < candidates.length; j++) {
+          var el = candidates[j];
+          if (isInsideExclude(el)) continue;
+          var txt = normalizeBylineText(el.innerText);
+          if (txt.length > 200) continue;
+          return el;
+        }
+      } catch (e) {}
+    }
+    return null;
+  }
+
+  function injectAuthorByline() {
+    if (!AUTHOR_BYLINE_CONFIG.ENABLED) return;
+
+    var isPost = /\/\d{4}\/\d{2}\//.test(window.location.pathname);
+    var mode = isPost ? 'POST' : 'PAGE';
+
+    if (document.querySelector('.aed-author-byline')) {
+      console.log('⏭️ [AED Author] Byline AED sudah ada — skip');
+      return;
+    }
+
+    var bylineEl = findExistingByline();
+
+    if (bylineEl) {
+      var currentText = normalizeBylineText(bylineEl.innerText);
+      var broken = isBrokenByline(currentText);
+
+      if (!broken && !AUTHOR_BYLINE_CONFIG.ALWAYS_REPLACE) {
+        console.log('✅ [AED Author] Byline sudah bagus — JANGAN sentuh:', JSON.stringify(currentText));
+        return;
+      }
+
+      if (broken) {
+        console.log('⚠️ [AED Author] Byline kosong/rusak: ' + JSON.stringify(currentText) + ' → enhance');
+      } else {
+        console.log('🔄 [AED Author] ALWAYS_REPLACE aktif → replace');
+      }
+
+      var newByline = buildAuthorByline();
+      bylineEl.innerHTML = '';
+      bylineEl.appendChild(newByline);
+      bylineEl.setAttribute('data-aed-author-enhanced', 'true');
+      console.log('✅ [AED Author] Enhanced byline di ' + mode);
+      return;
+    }
+
+    console.log('ℹ️ [AED Author] Tidak ada byline existing — inject setelah H1');
+    var h1 = document.querySelector('h1');
+    if (h1) {
+      var newByline2 = buildAuthorByline();
+      h1.parentNode.insertBefore(newByline2, h1.nextSibling);
+      console.log('✅ [AED Author] Byline di-inject setelah H1 (' + mode + ')');
+    } else {
+      console.warn('⚠️ [AED Author] Tidak ada H1 — skip');
+    }
   }
 
   // ============================================================
@@ -604,7 +782,7 @@
   }
 
   // ============================================================
-  // FIX-B8 + B2
+  // FIX-B8 + B2: Brand
   // ============================================================
   function normalizeBrandCase(str) {
     if (!str || typeof str !== 'string') return str;
@@ -650,7 +828,7 @@
   }
 
   // ============================================================
-  // FIX-B1 + B8 + B10
+  // FIX-B1 + B8 + B10: Cleanup FAQ
   // ============================================================
   function cleanupFaqSchema(brandName) {
     var cleaned = 0, injected = 0, normalized = 0, entitiesDecoded = 0;
@@ -837,7 +1015,8 @@
     return 'INFORMASI';
   }
 
-  function queryByKeyword(container, keywords, requireYear = true) {
+  function queryByKeyword(container, keywords, requireYear) {
+    if (requireYear === undefined) requireYear = true;
     const results = [];
     if (!container) return results;
     const elements = container.querySelectorAll('p, span, time, li, td, .update-badge, .last-updated, .date-modified');
@@ -1133,7 +1312,7 @@
       datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.5.3',
+      detectorVersion: detectorVersion || 'v17.5.4',
       detectionConfidence: confidence || null,
       isOverridden: isOverridden || false,
       overrideReason: overrideReason || null,
@@ -1152,9 +1331,6 @@
     console.log(`✅ ${finalType.toUpperCase()} ACTIVE | level=${pageLevel} | entity=${entityType} | focus=${contentFocus}`);
   }
 
-  // ============================================================
-  // FIX-PLD-SYNC
-  // ============================================================
   function getPageLevelAndEntityType() {
     let pageLevel = 'pillar', entityType = 'produk', detectorVersion = 'unknown';
     let confidence = null, strategies = null, strategyCount = null;
@@ -1241,9 +1417,6 @@
     return BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
   }
 
-  // ============================================================
-  // FIX-UX-3: FINAL ANALYTICS
-  // ============================================================
   function logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated) {
     var summary = {
       url: window.location.pathname,
@@ -1257,8 +1430,9 @@
       locale: detectLocale(),
       isAdmin: isAdmin(),
       miniBadgeEnabled: WARNING_CONFIG.MINI_BADGE_ENABLED,
+      authorBylineEnabled: AUTHOR_BYLINE_CONFIG.ENABLED,
       timestamp: new Date().toISOString(),
-      aedVersion: '17.5.3'
+      aedVersion: '17.5.4'
     };
     console.log('📊 [AED Final Analytics]', JSON.stringify(summary));
   }
@@ -1266,11 +1440,14 @@
   // ============================================================
   // FUNGSI UTAMA
   // ============================================================
-  async function detectEvergreen({ customDateModified = null } = {}) {
+  async function detectEvergreen(opts) {
+    opts = opts || {};
+    var customDateModified = opts.customDateModified || null;
+
     if (_AED_INITIALIZED) return;
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.5.3 — Mini Badge Integrated");
+    console.log("🧩 detectEvergreen() v17.5.4 — Author Byline");
     await waitForPageLevelDetector();
 
     const { pageLevel, entityType, detectorVersion } = getPageLevelAndEntityType();
@@ -1289,16 +1466,20 @@
     checkAndShowInlineWarning(pageLevel, contentFocus);
     logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated);
 
+    // 🔥 FIX-AUTHOR-BYLINE v17.5.4
+    injectAuthorByline();
+
     window.dispatchEvent(new Event("detectEvergreenReady"));
-    console.log(`🧩 detectEvergreen() v17.5.3 — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.5.4 — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Smart Evergreen Detector v17.5.3 — MINI BADGE INTEGRATED");
+  console.log("✅ Smart Evergreen Detector v17.5.4 — AUTHOR BYLINE");
   console.log("═══════════════════════════════════════════════════════════");
+  console.log("🔥 FIX-AUTHOR-BYLINE: Enhance byline kosong di Post + Page");
   console.log("🔥 FIX-MINI-BADGE: Mini badge tanggal terintegrasi warning");
   console.log("🔥 FIX-UX-1: Priority Display");
   console.log("🔥 FIX-UX-2: Mobile-First");
@@ -1307,7 +1488,9 @@
   console.log("🔥 FIX-UX-5: Accessibility");
   console.log("🔥 FIX-UX-6: Multi-Language");
   console.log("🔥 FIX-UX-7: Deep Link Edit");
-  console.log("✅ PRESERVED: SEMUA fitur v17.5.2 + v17.5.1 + v17.5.0 + v17.4.x");
+  console.log("✅ PRESERVED: SEMUA fitur v17.5.3 + v17.5.2 + v17.5.1 + v17.5.0 + v17.4.x");
+  console.log("📌 Author URL: " + AUTHOR_BYLINE_CONFIG.URL);
+  console.log("📌 Author Name: " + AUTHOR_BYLINE_CONFIG.NAME);
   console.log("═══════════════════════════════════════════════════════════");
 
   if (document.readyState === "loading") {
