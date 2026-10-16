@@ -1,11 +1,15 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.36c-LITE COMPLETE — FINAL
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.36d-LITE COMPLETE — FINAL
    ✅ SINKRON dengan PLD v23.9.9 (entity-aware detectSchemaType)
    ✅ SINKRON dengan AED v17.4.7 (TIERED + CONTENT-AWARE)
    ✅ SINKRON dengan Breadcrumb v12.3.5
    ✅ SINKRON dengan Auto Schema Article v8.6 (Article = milik v8.6)
    ✅ SINKRON dengan Hybrid Product v5.6 (Product fallback)
 
-   🔥🔥🔥 v7.36c-LITE CHANGELOG 🔥🔥🔥
+   🔥🔥🔥 v7.36d-LITE CHANGELOG 🔥🔥🔥
+   ✅ FIX-20: Detect static FAQPage di HTML — anti-duplikasi
+              Kalau ada FAQPage static → SKIP FAQPage dinamis
+
+   ✅ PRESERVED dari v7.36c-LITE:
    ✅ FIX-14: FAQ = content-driven (bukan PLD hint)
    ✅ FIX-15: author per Answer + @id sync
    ✅ FIX-16: Scope .faq-item ke konten utama
@@ -38,22 +42,22 @@
    ✅ Responsive image styles + Cloudinary WebP
 
    📌 PEMBAGIAN TANGGUNG JAWAB:
-   - v7.36c: LocalBusiness + WebPage + Service + Product + FAQPage + TechArticle + CreativeWork + ItemList
+   - v7.36d: LocalBusiness + WebPage + Service + Product + FAQPage(dinamis) + TechArticle + CreativeWork + ItemList
    - v8.6  : Article (PLD primary = Article)
    - v5.6  : Product fallback (halaman product yang PLD tidak tandai)
 
-   Status: FINAL v7.36c — PLD-DRIVEN, SEO 2026, NO-DUPLICATE, AI-READY
+   Status: FINAL v7.36d — PLD-DRIVEN, SEO 2026, NO-DUPLICATE, AI-READY
 */
 
 (function() {
   "use strict";
 
   // ═══ GUARD GLOBAL ═══
-  if (window.__AUTO_SCHEMA_VERSION === "7.36c-lite") {
-    console.log("[AutoSchema v7.36c-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTO_SCHEMA_VERSION === "7.36d-lite") {
+    console.log("[AutoSchema v7.36d-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTO_SCHEMA_VERSION = "7.36c-lite";
+  window.__AUTO_SCHEMA_VERSION = "7.36d-lite";
 
   // ============================================================
   // 🔥 AUTO-DETECT DEBUG MODE
@@ -171,12 +175,12 @@
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", PARENT: "👪", PRICE: "💰",
       FLAG: "🚩", EVENT: "📡", FIX: "🔧", MATERIAL: "🧱", PHASE46: "🆕",
       WEBP: "🎨", KNOWS: "🎓", SYNC: "🔗", RACE: "⚡", FAQ: "❓",
-      ARTICLE: "📄", TECH: "🔬"
+      ARTICLE: "📄", TECH: "🔬", STATIC: "🗿"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.36c-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.36d-LITE] ${msg}`);
   }
 
-  log(`🚀 Auto Schema v7.36c-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
+  log(`🚀 Auto Schema v7.36d-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
   log(`🎓 KNOWS_ABOUT: ${CONFIG.KNOWS_ABOUT.length} item`, "KNOWS");
   log(`🔗 MAX_INTERNAL_LINKS: ${CONFIG.MAX_INTERNAL_LINKS}`, "SYNC");
 
@@ -202,7 +206,7 @@
   })();
 
   if (window.__SCHEMA_SKIP_REASON) {
-    console.log(`⏸️ [AutoSchema v7.36c-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
+    console.log(`⏸️ [AutoSchema v7.36d-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
     return;
   }
 
@@ -953,7 +957,7 @@
       img.style.margin = '0 auto';
       img.style.padding = '0 10px';
       img.style.boxSizing = 'border-box';
-      const styleId = 'responsive-image-style-v736c';
+      const styleId = 'responsive-image-style-v736d';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
@@ -1113,6 +1117,51 @@
     if (entityType === 'material') return document.body.getAttribute('data-product-category') || 'Material Bangunan';
     if (entityType === 'produk') return document.body.getAttribute('data-product-category') || 'Produk Konstruksi';
     return null;
+  }
+
+  // ============================================================
+  // 🔥 FIX-20 (v7.36d): DETECT STATIC FAQPage SCHEMA
+  // Cek apakah sudah ada FAQPage static di HTML
+  // Kalau ada → SKIP FAQPage dinamis (anti-duplikasi)
+  // ============================================================
+  function hasStaticFAQPageSchema() {
+    const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    const OWN_IDS = ['auto-schema-service', 'auto-schema-product', 'auto-schema'];
+
+    for (const s of scripts) {
+      // Skip script kita sendiri
+      if (s.id && OWN_IDS.includes(s.id)) continue;
+
+      let json;
+      try {
+        json = JSON.parse(s.textContent || '{}');
+      } catch (e) {
+        continue; // skip invalid JSON
+      }
+
+      // Cek @type di root
+      if (json['@type'] === 'FAQPage') return true;
+      if (Array.isArray(json['@type']) && json['@type'].includes('FAQPage')) return true;
+
+      // Cek dalam @graph
+      if (Array.isArray(json['@graph'])) {
+        for (const node of json['@graph']) {
+          if (!node) continue;
+          if (node['@type'] === 'FAQPage') return true;
+          if (Array.isArray(node['@type']) && node['@type'].includes('FAQPage')) return true;
+        }
+      }
+
+      // Cek array di root (jarang, tapi kadang ada)
+      if (Array.isArray(json)) {
+        for (const node of json) {
+          if (!node) continue;
+          if (node['@type'] === 'FAQPage') return true;
+          if (Array.isArray(node['@type']) && node['@type'].includes('FAQPage')) return true;
+        }
+      }
+    }
+    return false;
   }
 
   // ============================================================
@@ -1428,13 +1477,13 @@
   }
 
   // ============================================================
-  // 🚀 MAIN FUNCTION v7.36c-LITE
+  // 🚀 MAIN FUNCTION v7.36d-LITE
   // ============================================================
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
       perf.start('init');
       log("═══════════════════════════════════════════════════", "INFO");
-      log("AUTO SCHEMA UNIVERSAL v7.36c-LITE COMPLETE", "INFO");
+      log("AUTO SCHEMA UNIVERSAL v7.36d-LITE COMPLETE", "INFO");
       log("═══════════════════════════════════════════════════", "INFO");
 
       try {
@@ -1477,9 +1526,12 @@
         const wantProduct  = (schemaPrimary === 'Product')  || (schemaSecondary === 'Product');
         const wantCreative = (schemaSecondary === 'CreativeWork');
 
+        // 🔥 FIX-20 (v7.36d): Cek FAQPage static dulu
+        const hasStaticFAQ = hasStaticFAQPageSchema();
+
         // 🔥 FIX-14 (v7.36c): FAQ = content-driven (SEO 2026 + AI Search)
         const faqsFromDOM = extractFaqFromDOM();
-        const wantFAQ = faqsFromDOM.length >= 2;
+        const wantFAQ = !hasStaticFAQ && faqsFromDOM.length >= 2;
 
         // 🔥 FIX-17 (v7.36c): TechArticle = secondary untuk variant/sub-variant
         const wantTechArticle = (schemaSecondary === 'TechArticle') &&
@@ -1488,7 +1540,13 @@
         log(`📌 Level: ${pageLevel} | Entity: ${entityType} | Focus: ${contentFocus}`, "SUCCESS");
         log(`🔗 PLD hint → primary=${schemaPrimary} | secondary=${schemaSecondary} | note=${schemaNote}`, "SCHEMA");
         log(`🔗 Build plan → Service=${wantService} Product=${wantProduct} FAQ=${wantFAQ} Creative=${wantCreative} TechArticle=${wantTechArticle}`, "SCHEMA");
-        log(`❓ FAQ tersedia: ${faqsFromDOM.length} pertanyaan → wantFAQ=${wantFAQ}`, "FAQ");
+
+        // 🔥 FIX-20 (v7.36d): log verifikasi FAQ static
+        if (hasStaticFAQ) {
+          log(`⏭️ FAQPage static sudah ada di HTML — SKIP FAQPage dinamis (hindari duplikasi)`, "STATIC");
+        } else {
+          log(`❓ FAQ tersedia: ${faqsFromDOM.length} pertanyaan → wantFAQ=${wantFAQ}`, "FAQ");
+        }
 
         // 🔥 FIX-18 (v7.36c): LOG VERIFIKASI TechArticle
         if (wantTechArticle) {
@@ -1707,7 +1765,8 @@
         }
 
         // ═══════════════════════════════════════════════════════
-        // FAQ PAGE (min 2 Q&A) — FIX-11 + FIX-14 + FIX-15
+        // FAQ PAGE (min 2 Q&A) — FIX-11 + FIX-14 + FIX-15 + FIX-20
+        // HANYA dibuat kalau TIDAK ADA FAQPage static di HTML
         // ═══════════════════════════════════════════════════════
         if (wantFAQ) {
           const faqPage = {
@@ -1764,7 +1823,7 @@
         log(`   Internal links: ${internalLinks.length} (max ${CONFIG.MAX_INTERNAL_LINKS})`, "SYNC");
         log(`   Breadcrumb source: ${parentData.source}`, "BREADCRUMB");
         log(`   PLD version: ${pldVer.label}`, "PLD");
-        log(`   FAQ: ${wantFAQ ? faqsFromDOM.length + ' pertanyaan' : 'skip'}`, "FAQ");
+        log(`   FAQ: ${hasStaticFAQ ? 'static (skip dynamic)' : (wantFAQ ? faqsFromDOM.length + ' pertanyaan (dynamic)' : 'skip')}`, "FAQ");
         log(`   TechArticle: ${wantTechArticle ? 'CREATED ✅' : 'skip ⏭️'}`, "TECH");
         log(`   Article node: HANDLED BY v8.6 ⏭️`, "ARTICLE");
         log("═══════════════════════════════════════════════════", "SUCCESS");
@@ -1784,14 +1843,15 @@
   window.addEventListener('beforeunload', cleanup);
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Auto Schema v7.36c-LITE — READY (PLD-DRIVEN, SEO 2026, AI-READY)");
+  console.log("✅ Auto Schema v7.36d-LITE — READY (PLD-DRIVEN, SEO 2026, AI-READY)");
   console.log("═══════════════════════════════════════════════════════════");
+  console.log("🔥 FIX-20: Detect static FAQPage — anti-duplikasi (BARU)");
   console.log("🔥 FIX-14: FAQ content-driven (semua level)");
   console.log("🔥 FIX-15: author per Answer + @id sync");
   console.log("🔥 FIX-16: scope .faq-item ke konten utama");
   console.log("🔥 FIX-17: TechArticle node (secondary untuk variant/sub-variant)");
   console.log("🔥 FIX-18: Log verifikasi TechArticle");
-  console.log("🔥 FIX-19: Version header resmi v7.36c");
+  console.log("🔥 FIX-19: Version header resmi");
   console.log("✅ PRESERVED: FIX-10 s/d FIX-13 (no-duplicate, FAQ, CreativeWork)");
   console.log("✅ PRESERVED: FIX-5 s/d FIX-9 (PLD-driven, notes, FAQ extraction)");
   console.log("✅ PRESERVED: FIX-1 s/d FIX-4 (ServiceType, ItemList, AED, anti-race)");
