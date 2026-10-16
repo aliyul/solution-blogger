@@ -1,37 +1,50 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.5.2 — UX ENHANCED
+ 🧠 Smart Evergreen Detector v17.5.3 — MINI BADGE INTEGRATED
 ============================================================
- 🔥🔥🔥 v17.5.2 CHANGELOG 🔥🔥🔥
- ✅ FIX-UX-1: PRIORITY DISPLAY — Warning sesuai prioritas
- ✅ FIX-UX-2: MOBILE-FIRST — Compact di HP
- ✅ FIX-UX-3: ANALYTICS — Log summary ke console
- ✅ FIX-UX-4: DARK MODE — Support prefers-color-scheme
- ✅ FIX-UX-5: ACCESSIBILITY — ARIA role + aria-live
- ✅ FIX-UX-6: MULTI-LANGUAGE — ID + EN config
- ✅ FIX-UX-7: DEEP LINK — Tombol "Edit" untuk admin
+ 🔥🔥🔥 v17.5.3 CHANGELOG 🔥🔥🔥
+ ✅ FIX-MINI-BADGE: Mini badge tanggal update terintegrasi
+    di dalam warning element (bukan elemen terpisah)
+    - Tampil otomatis saat warning muncul
+    - Sumber: meta[itemprop="dateModified"] (real)
+    - Hilang saat warning hilang (halaman fresh)
+    - Tidak duplikat dengan .last-updated
+    - SEO-safe: hanya tanggal real, tanpa klaim "verified"
+
+ ✅ PRESERVED dari v17.5.2:
+ ✅ FIX-UX-1: Priority Display
+ ✅ FIX-UX-2: Mobile-First
+ ✅ FIX-UX-3: Analytics
+ ✅ FIX-UX-4: Dark Mode
+ ✅ FIX-UX-5: Accessibility
+ ✅ FIX-UX-6: Multi-Language
+ ✅ FIX-UX-7: Deep Link Edit
+
  ✅ PRESERVED dari v17.5.1:
- ✅ FIX-WARN-TEXT: Text NETRAL (SEO-safe)
+ ✅ FIX-WARN-TEXT: Text NETRAL
  ✅ FIX-WARN-COLOR: Warna ORANGE
- ✅ FIX-WARN-GUARD: Deteksi warning stuck > 30 hari
+ ✅ FIX-WARN-GUARD: Deteksi warning stuck
+
  ✅ PRESERVED dari v17.5.0:
  ✅ FIX-PLD-SYNC, FIX-AUTORUN, FIX-EVENT
+
  ✅ PRESERVED dari v17.4.x: FIX-MINOR, FIX-KRITIS, FIX-EE, FIX-B, FIX-A
+
  📌 BRAND DEFAULT: "Beton Jaya Readymix"
  📌 KOMPATIBEL: PLD v23.9.9
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.5.2") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.5.3") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.5.2";
+  window.__AED_VERSION = "17.5.3";
 
   var DEFAULT_BRAND_NAME = "Beton Jaya Readymix";
 
   // ============================================================
-  // 🔔 INLINE WARNING CONFIG — SOFT + UX ENHANCED
+  // 🔔 INLINE WARNING CONFIG
   // ============================================================
   const WARNING_CONFIG = {
     ENABLED: true,
@@ -47,26 +60,31 @@
     USE_NOSNIPPET: true,
     STUCK_THRESHOLD_DAYS: 30,
 
-    // 🔥 FIX-UX-6 v17.5.2: MULTI-LANGUAGE
+    // 🔥 FIX-MINI-BADGE v17.5.3: config mini badge
+    MINI_BADGE_ENABLED: true,
+
+    // 🔥 FIX-UX-6: MULTI-LANGUAGE
     LOCALE: 'id',
     MESSAGES: {
       id: {
-        expired:  'ℹ️ Review berkala diperlukan — halaman ini melewati jadwal review',
-        critical: 'ℹ️ Review berkala: jadwal review halaman ini adalah hari ini',
-        warning:  'ℹ️ Review berkala: halaman akan di-review dalam {days} hari',
-        editBtn:  'Edit →',
-        stale:    '⚠️ Konten perlu segera di-review'
+        expired:    'ℹ️ Review berkala diperlukan — halaman ini melewati jadwal review',
+        critical:   'ℹ️ Review berkala: jadwal review halaman ini adalah hari ini',
+        warning:    'ℹ️ Review berkala: halaman akan di-review dalam {days} hari',
+        stale:      '⚠️ Konten perlu segera di-review',
+        miniBadge:  '📅 Terakhir diperbarui: {date}',
+        editBtn:    'Edit →'
       },
       en: {
-        expired:  'ℹ️ Periodic review needed — this page passed its review schedule',
-        critical: 'ℹ️ Periodic review: this page is due for review today',
-        warning:  'ℹ️ Periodic review: page will be reviewed in {days} days',
-        editBtn:  'Edit →',
-        stale:    '⚠️ Content needs immediate review'
+        expired:    'ℹ️ Periodic review needed — this page passed its review schedule',
+        critical:   'ℹ️ Periodic review: this page is due for review today',
+        warning:    'ℹ️ Periodic review: page will be reviewed in {days} days',
+        stale:      '⚠️ Content needs immediate review',
+        miniBadge:  '📅 Last updated: {date}',
+        editBtn:    'Edit →'
       }
     },
 
-    // 🔥 FIX-UX-1 v17.5.2: PRIORITY DISPLAY
+    // 🔥 FIX-UX-1: PRIORITY DISPLAY
     PRIORITY_MAP: {
       'money-child|HARGA':    'critical',
       'money-child|GABUNG':   'critical',
@@ -127,7 +145,7 @@
   const EVERGREEN_LEVELS = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'];
 
   // ============================================================
-  // 🔥 FIX-UX-1 v17.5.2: GET PRIORITY
+  // 🔥 FIX-UX-1: GET PRIORITY
   // ============================================================
   function getPriority(pageLevel, contentFocus) {
     var key = pageLevel + '|' + String(contentFocus || '').toUpperCase();
@@ -135,7 +153,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-UX-6 v17.5.2: DETECT LOCALE
+  // 🔥 FIX-UX-6: DETECT LOCALE
   // ============================================================
   function detectLocale() {
     try {
@@ -162,7 +180,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-UX-7 v17.5.2: DETECT ADMIN
+  // 🔥 FIX-UX-7: DETECT ADMIN
   // ============================================================
   function isAdmin() {
     try {
@@ -179,7 +197,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-UX-4/5 v17.5.2: INJECT CSS (DARK MODE + MOBILE + A11Y)
+  // 🔥 FIX-UX-4/5 + MINI BADGE: INJECT CSS
   // ============================================================
   function injectWarningStyles() {
     if (document.getElementById('aed-warning-styles')) return;
@@ -199,6 +217,9 @@
         #aed-update-warning .aed-edit-link {
           font-size: 0.78rem !important;
           padding: 3px 8px !important;
+        }
+        #aed-update-warning .aed-mini-badge {
+          font-size: 0.72rem !important;
         }
       }
       @media (min-width: 641px) {
@@ -222,6 +243,10 @@
           background: #292524 !important;
           color: #fbbf24 !important;
           border-color: #f59e0b !important;
+        }
+        #aed-update-warning .aed-mini-badge {
+          color: #9ca3af !important;
+          border-top-color: rgba(255,255,255,0.1) !important;
         }
       }
 
@@ -253,6 +278,18 @@
         background: #f97316;
         color: #fff;
       }
+
+      /* 🔥 FIX-MINI-BADGE v17.5.3: MINI BADGE */
+      #aed-update-warning .aed-mini-badge {
+        display: block;
+        font-weight: normal;
+        font-size: 0.78rem;
+        opacity: 0.85;
+        margin-top: 6px;
+        padding-top: 6px;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        letter-spacing: 0.01em;
+      }
     `;
     document.head.appendChild(style);
   }
@@ -263,7 +300,6 @@
   function getValidityByContext(pageLevel, contentFocus) {
     var focus = String(contentFocus || '').toUpperCase();
     var isMoney = MONEY_LEVELS.indexOf(pageLevel) !== -1;
-
     if (isMoney) {
       if (focus === 'HARGA' || focus === 'GABUNG') return 90;
       if (focus === 'COMMERCIAL') return 180;
@@ -293,7 +329,7 @@
   }
 
   // ============================================================
-  // 🔔 INLINE WARNING — v17.5.2
+  // 🔔 INLINE WARNING — v17.5.3
   // ============================================================
   function formatTanggalIndo(dateStr) {
     if (!dateStr) return '';
@@ -351,8 +387,9 @@
       return;
     }
 
-    // 🔥 FIX-UX-3: ANALYTICS LOG
     var priority = getPriority(pageLevel, contentFocus);
+
+    // 🔥 FIX-UX-3: ANALYTICS
     var analyticsSummary = {
       url: window.location.pathname,
       pageLevel: pageLevel,
@@ -367,7 +404,6 @@
     };
     console.log('📊 [AED Analytics]', JSON.stringify(analyticsSummary));
 
-    // 🔥 FIX-WARN-GUARD: stuck detection
     if (severity === 'expired' && Math.abs(daysDiff) > WARNING_CONFIG.STUCK_THRESHOLD_DAYS) {
       console.warn('🚨 [AED WARNING STUCK]', Math.abs(daysDiff), 'hari — AED auto-update mungkin tidak berjalan');
       document.body.setAttribute('data-aed-warning-stuck', 'true');
@@ -381,10 +417,13 @@
     var message = getMessage(messageKey, messageReplace);
     console.log('ℹ️ [AED Warning]', message, '| priority:', priority);
 
-    createWarningElement(message, severity, priority, daysDiff);
+    createWarningElement(message, severity, priority, daysDiff, modifiedStr);
   }
 
-  function createWarningElement(message, severity, priority, daysDiff) {
+  // ============================================================
+  // 🔥 FIX-MINI-BADGE v17.5.3: createWarningElement
+  // ============================================================
+  function createWarningElement(message, severity, priority, daysDiff, modifiedStr) {
     if (document.getElementById('aed-update-warning')) return;
 
     injectWarningStyles();
@@ -401,7 +440,7 @@
     warning.setAttribute('aria-atomic', 'true');
     warning.setAttribute('aria-label', 'Status review halaman: ' + message);
 
-    // 🔥 FIX-UX-2: MOBILE-FIRST — tampilkan versi compact
+    // 🔥 FIX-UX-2: MOBILE-FIRST
     var compactMsg = '';
     if (severity === 'expired' || severity === 'critical') {
       compactMsg = 'ℹ️ ' + (detectLocale() === 'en' ? 'Review due' : 'Review berkala');
@@ -409,9 +448,30 @@
       compactMsg = 'ℹ️ ' + (detectLocale() === 'en' ? 'Review in ' + daysDiff + 'd' : 'Review ' + daysDiff + ' hari');
     }
 
-    warning.innerHTML = 
-      '<span class="aed-warning-full">' + message + '</span>' +
-      '<span class="aed-warning-compact">' + compactMsg + '</span>';
+    // 🔥 BARIS 1: MAIN MESSAGE
+    var mainMsg = document.createElement('span');
+    mainMsg.className = 'aed-warning-full';
+    mainMsg.textContent = message;
+    warning.appendChild(mainMsg);
+
+    var compactSpan = document.createElement('span');
+    compactSpan.className = 'aed-warning-compact';
+    compactSpan.textContent = compactMsg;
+    warning.appendChild(compactSpan);
+
+    // 🔥 BARIS 2: MINI BADGE — Tanggal update terakhir
+    if (WARNING_CONFIG.MINI_BADGE_ENABLED && modifiedStr && modifiedStr !== 'unknown') {
+      var modText = formatTanggalIndo(modifiedStr);
+      if (modText) {
+        var miniBadge = document.createElement('span');
+        miniBadge.className = 'aed-mini-badge';
+        miniBadge.setAttribute('data-nosnippet', '');
+        miniBadge.setAttribute('data-source', 'dateModified');
+        miniBadge.textContent = getMessage('miniBadge', { date: modText });
+        warning.appendChild(miniBadge);
+        console.log('📅 [AED Mini Badge] Terakhir diperbarui:', modText);
+      }
+    }
 
     // 🔥 FIX-UX-7: EDIT LINK untuk admin
     if (isAdmin()) {
@@ -451,7 +511,7 @@
         document.body.insertBefore(warning, document.body.firstChild);
       }
     }
-    console.log('✅ [AED Warning] Ditambahkan — severity:', severity, '| priority:', priority);
+    console.log('✅ [AED Warning] Ditambahkan — severity:', severity, '| priority:', priority, '| mini-badge:', WARNING_CONFIG.MINI_BADGE_ENABLED ? '✅' : '❌');
   }
 
   // ============================================================
@@ -501,7 +561,7 @@
   }
 
   // ============================================================
-  // FIX-B9 + B10: Deteksi properti ilegal
+  // FIX-B9 + B10
   // ============================================================
   function detectIllegalFaqProps() {
     var hasIllegal = false;
@@ -544,7 +604,7 @@
   }
 
   // ============================================================
-  // FIX-B8 + B2: Brand normalization
+  // FIX-B8 + B2
   // ============================================================
   function normalizeBrandCase(str) {
     if (!str || typeof str !== 'string') return str;
@@ -590,7 +650,7 @@
   }
 
   // ============================================================
-  // FIX-B1 + B8 + B10: Cleanup FAQ schema
+  // FIX-B1 + B8 + B10
   // ============================================================
   function cleanupFaqSchema(brandName) {
     var cleaned = 0, injected = 0, normalized = 0, entitiesDecoded = 0;
@@ -653,7 +713,7 @@
   }
 
   // ============================================================
-  // Helper deteksi versi PLD
+  // PLD HELPERS
   // ============================================================
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
@@ -679,9 +739,6 @@
     return result;
   }
 
-  // ============================================================
-  // PLD HELPER
-  // ============================================================
   function getPLDContentFocus(pageLevel, entityType) {
     if (!window.pageLevelDetectorv22 || typeof window.pageLevelDetectorv22.detectContentFocus !== "function") return null;
     return _cachePLD("contentfocus|" + pageLevel + "|" + entityType, function () {
@@ -715,9 +772,6 @@
     });
   }
 
-  // ============================================================
-  // FIX-SYNC-v3: getKategori
-  // ============================================================
   function getKategori(pageLevel, contentFocus, finalType) {
     if (finalType) return (finalType === 'evergreen') ? 'EVERGREEN' : 'NON-EVERGREEN';
     var normalizedFocus = String(contentFocus || '').toUpperCase();
@@ -732,7 +786,7 @@
   }
 
   // ============================================================
-  // FIX-EE-4: detectContentTypeByH1
+  // FIX-EE-4
   // ============================================================
   function detectContentTypeByH1() {
     const h1 = document.querySelector('h1');
@@ -1079,7 +1133,7 @@
       datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.5.2',
+      detectorVersion: detectorVersion || 'v17.5.3',
       detectionConfidence: confidence || null,
       isOverridden: isOverridden || false,
       overrideReason: overrideReason || null,
@@ -1099,7 +1153,7 @@
   }
 
   // ============================================================
-  // FIX-PLD-SYNC: getPageLevelAndEntityType
+  // FIX-PLD-SYNC
   // ============================================================
   function getPageLevelAndEntityType() {
     let pageLevel = 'pillar', entityType = 'produk', detectorVersion = 'unknown';
@@ -1188,7 +1242,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-UX-3: FINAL ANALYTICS
+  // FIX-UX-3: FINAL ANALYTICS
   // ============================================================
   function logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated) {
     var summary = {
@@ -1202,8 +1256,9 @@
       priority: getPriority(pageLevel, contentFocus),
       locale: detectLocale(),
       isAdmin: isAdmin(),
+      miniBadgeEnabled: WARNING_CONFIG.MINI_BADGE_ENABLED,
       timestamp: new Date().toISOString(),
-      aedVersion: '17.5.2'
+      aedVersion: '17.5.3'
     };
     console.log('📊 [AED Final Analytics]', JSON.stringify(summary));
   }
@@ -1215,7 +1270,7 @@
     if (_AED_INITIALIZED) return;
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.5.2 — UX Enhanced");
+    console.log("🧩 detectEvergreen() v17.5.3 — Mini Badge Integrated");
     await waitForPageLevelDetector();
 
     const { pageLevel, entityType, detectorVersion } = getPageLevelAndEntityType();
@@ -1235,23 +1290,24 @@
     logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated);
 
     window.dispatchEvent(new Event("detectEvergreenReady"));
-    console.log(`🧩 detectEvergreen() v17.5.2 — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.5.3 — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Smart Evergreen Detector v17.5.2 — UX ENHANCED");
+  console.log("✅ Smart Evergreen Detector v17.5.3 — MINI BADGE INTEGRATED");
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("🔥 FIX-UX-1: Priority Display (critical/high/medium/low)");
-  console.log("🔥 FIX-UX-2: Mobile-First (compact di HP)");
-  console.log("🔥 FIX-UX-3: Analytics (log summary ke console)");
-  console.log("🔥 FIX-UX-4: Dark Mode (prefers-color-scheme)");
-  console.log("🔥 FIX-UX-5: Accessibility (ARIA role + live)");
-  console.log("🔥 FIX-UX-6: Multi-Language (ID + EN)");
-  console.log("🔥 FIX-UX-7: Deep Link Edit (untuk admin)");
-  console.log("✅ PRESERVED: SEMUA fitur v17.5.1 + v17.5.0 + v17.4.x");
+  console.log("🔥 FIX-MINI-BADGE: Mini badge tanggal terintegrasi warning");
+  console.log("🔥 FIX-UX-1: Priority Display");
+  console.log("🔥 FIX-UX-2: Mobile-First");
+  console.log("🔥 FIX-UX-3: Analytics");
+  console.log("🔥 FIX-UX-4: Dark Mode");
+  console.log("🔥 FIX-UX-5: Accessibility");
+  console.log("🔥 FIX-UX-6: Multi-Language");
+  console.log("🔥 FIX-UX-7: Deep Link Edit");
+  console.log("✅ PRESERVED: SEMUA fitur v17.5.2 + v17.5.1 + v17.5.0 + v17.4.x");
   console.log("═══════════════════════════════════════════════════════════");
 
   if (document.readyState === "loading") {
