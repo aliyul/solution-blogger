@@ -1,45 +1,51 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.36-LITE COMPLETE — FINAL
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.36b-LITE COMPLETE — FINAL
    ✅ SINKRON dengan PLD v23.9.9 (entity-aware detectSchemaType)
    ✅ SINKRON dengan AED v17.4.7 (TIERED + CONTENT-AWARE)
    ✅ SINKRON dengan Breadcrumb v12.3.5
-   ✅ SINKRON dengan Article v8.5 (@id reference)
+   ✅ SINKRON dengan Auto Schema Article v8.6 (Article = milik v8.6)
+   ✅ SINKRON dengan Hybrid Product v5.6 (Product fallback)
 
-   🔥🔥🔥 v7.36-LITE CHANGELOG 🔥🔥🔥
-   ✅ FIX-5: PLD-DRIVEN schema decision (Service/Product/Article/FAQ)
-   ✅ FIX-6: Respect data-schema-type-note (with-offers, with-areaServed)
-   ✅ FIX-7: Article node untuk pillar/sub-pillar informasional
+   🔥🔥🔥 v7.36b-LITE CHANGELOG 🔥🔥🔥
+   ✅ FIX-10: REMOVE Article node — ditangani Auto Schema Article v8.6
+   ✅ FIX-11: KEEP FAQPage — bisa pair dengan Service/Product/Article
+   ✅ FIX-12: KEEP CreativeWork — secondary untuk entity desain
+   ✅ FIX-13: KEEP Service + Product + LocalBusiness + WebPage + ItemList
+
+   ✅ PRESERVED dari v7.36-LITE:
+   ✅ FIX-5: PLD-DRIVEN schema decision
+   ✅ FIX-6: Respect data-schema-type-note
    ✅ FIX-8: FAQPage extraction dari DOM (min 2 Q&A)
    ✅ FIX-9: CreativeWork node untuk entity desain
-
-   ✅ PRESERVED dari v7.35-LITE:
    ✅ FIX-1: extractServiceType() — support – — - | : &
-   ✅ FIX-2: ItemList max 8 (dari 40)
-   ✅ FIX-3: Guard anti-race-condition di waitForAEDMetaDates
-   ✅ FIX-4: Support AED v17.4.7 (content-aware + tiered warning)
+   ✅ FIX-2: ItemList max 8
+   ✅ FIX-3: Guard anti-race-condition AED
+   ✅ FIX-4: Support AED v17.4.7
    ✅ Anti-spoofing dateModified (fallback = null)
-   ✅ KNOWS_ABOUT — 1 array LENGKAP (110 item)
+   ✅ KNOWS_ABOUT — 110 item LENGKAP
    ✅ areaServed — Indonesia + 11 kota prioritas
-   ✅ Filter URL placeholder {{LINK_1}}, {{LINK_2}}
    ✅ contactPoint di LocalBusiness
-   ✅ Sync @id dengan Article v8.5 (#localbusiness)
    ✅ 4-layer price detection
    ✅ Breadcrumb DOM fallback
-   ✅ ErrorBoundary
-   ✅ Responsive image styles
-   ✅ Cloudinary WebP
+   ✅ ErrorBoundary + DOMCache
+   ✅ Responsive image styles + Cloudinary WebP
 
-   Status: FINAL v7.36 — COMPLETE (PLD-DRIVEN, SEO 2026)
+   📌 PEMBAGIAN TANGGUNG JAWAB:
+   - v7.36b: LocalBusiness + WebPage + Service + Product + FAQPage + CreativeWork + ItemList
+   - v8.6  : Article (PLD primary = Article)
+   - v5.6  : Product fallback (halaman product yang PLD tidak tandai)
+
+   Status: FINAL v7.36b — PLD-DRIVEN, SEO 2026, NO-DUPLICATE
 */
 
 (function() {
   "use strict";
 
   // ═══ GUARD GLOBAL ═══
-  if (window.__AUTO_SCHEMA_VERSION === "7.36-lite") {
-    console.log("[AutoSchema v7.36-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTO_SCHEMA_VERSION === "7.36b-lite") {
+    console.log("[AutoSchema v7.36b-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTO_SCHEMA_VERSION = "7.36-lite";
+  window.__AUTO_SCHEMA_VERSION = "7.36b-lite";
 
   // ============================================================
   // 🔥 AUTO-DETECT DEBUG MODE
@@ -69,14 +75,12 @@
     CACHE_DOM_ELEMENTS: true,
     BATCH_DOM_UPDATES: true,
     MAX_ELEMENTS_TO_SCAN: 100,
-    
-    // 🔥 FIX-2: ItemList max 8
     MAX_INTERNAL_LINKS: 8,
-    
-    // 🔥 SYNC: @id reference ke LocalBusiness
+
+    // 🔥 SYNC: @id reference
     LOCALBUSINESS_ID: "https://www.betonjayareadymix.com#localbusiness",
-    
-    // 🔥 areaServed LENGKAP
+
+    // 🔥 areaServed
     AREA_SERVED: [
       { "@type": "Country", "name": "Indonesia" },
       { "@type": "AdministrativeArea", "name": "DKI Jakarta" },
@@ -91,8 +95,8 @@
       { "@type": "AdministrativeArea", "name": "Kabupaten Karawang" },
       { "@type": "AdministrativeArea", "name": "Kota Surabaya" }
     ],
-    
-    // 🔥 KNOWS_ABOUT — 110 item LENGKAP
+
+    // 🔥 KNOWS_ABOUT — 110 item
     KNOWS_ABOUT: [
       "Jasa Bor Sumur", "Jasa Bor Horizontal", "Jasa Bor Manual",
       "Jasa Bor Hidrolik", "Jasa Bor Rotary", "Jasa Bor Auger",
@@ -136,7 +140,7 @@
       "Geoteknik", "Infrastruktur", "Drainase", "Struktur Beton",
       "Teknik Sipil", "Bangunan", "Renovasi", "Pembangunan"
     ],
-    
+
     CONTACT_POINT: {
       "@type": "ContactPoint",
       "telephone": "+6281299842508",
@@ -158,12 +162,13 @@
       PERF: "⏱️", CACHE: "💾", CORB: "🚫", COMMERCIAL: "🛒",
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", PARENT: "👪", PRICE: "💰",
       FLAG: "🚩", EVENT: "📡", FIX: "🔧", MATERIAL: "🧱", PHASE46: "🆕",
-      WEBP: "🎨", KNOWS: "🎓", SYNC: "🔗", RACE: "⚡", FAQ: "❓"
+      WEBP: "🎨", KNOWS: "🎓", SYNC: "🔗", RACE: "⚡", FAQ: "❓",
+      ARTICLE: "📄"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.36-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.36b-LITE] ${msg}`);
   }
 
-  log(`🚀 Auto Schema v7.36-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
+  log(`🚀 Auto Schema v7.36b-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
   log(`🎓 KNOWS_ABOUT: ${CONFIG.KNOWS_ABOUT.length} item`, "KNOWS");
   log(`🔗 MAX_INTERNAL_LINKS: ${CONFIG.MAX_INTERNAL_LINKS}`, "SYNC");
 
@@ -189,7 +194,7 @@
   })();
 
   if (window.__SCHEMA_SKIP_REASON) {
-    console.log(`⏸️ [AutoSchema v7.36-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
+    console.log(`⏸️ [AutoSchema v7.36b-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
     return;
   }
 
@@ -676,20 +681,6 @@
     return null;
   }
 
-  function getSchemaType() {
-    perf.start('getSchemaType');
-    const bodyPrimary = document.body.getAttribute('data-schema-type-primary');
-    const bodySecondary = document.body.getAttribute('data-schema-type-secondary');
-    if (bodyPrimary) {
-      const result = { primary: bodyPrimary, secondary: bodySecondary || 'FAQPage' };
-      log(`🔗 Schema Type: ${result.primary} + ${result.secondary}`, "SCHEMA");
-      perf.end('getSchemaType');
-      return result;
-    }
-    perf.end('getSchemaType');
-    return null;
-  }
-
   function getCtaType() {
     perf.start('getCtaType');
     const bodyCtaType = document.body.getAttribute('data-cta-type');
@@ -954,7 +945,7 @@
       img.style.margin = '0 auto';
       img.style.padding = '0 10px';
       img.style.boxSizing = 'border-box';
-      const styleId = 'responsive-image-style-v736';
+      const styleId = 'responsive-image-style-v736b';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
@@ -1081,7 +1072,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-1: SERVICE TYPE EXTRACTOR — Support – — - | : &
+  // 🔥 FIX-1: SERVICE TYPE EXTRACTOR
   // ============================================================
   function extractServiceType(title, entityType) {
     let serviceType = title
@@ -1117,8 +1108,7 @@
   }
 
   // ============================================================
-  // 🔥 BARU v7.36: extractFaqFromDOM()
-  // Cari Q&A dari DOM (h2/h3/h4 pertanyaan + jawaban berikutnya)
+  // FAQ EXTRACTION (dari DOM)
   // ============================================================
   function extractFaqFromDOM() {
     perf.start('extractFaqFromDOM');
@@ -1358,7 +1348,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-2: INTERNAL LINKS — Max 8 (dari 40)
+  // 🔥 FIX-2: INTERNAL LINKS — Max 8
   // ============================================================
   function generateInternalLinks() {
     perf.start('generateInternalLinks');
@@ -1389,13 +1379,13 @@
   }
 
   // ============================================================
-  // 🚀 MAIN FUNCTION v7.36-LITE
+  // 🚀 MAIN FUNCTION v7.36b-LITE
   // ============================================================
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
       perf.start('init');
       log("═══════════════════════════════════════════════════", "INFO");
-      log("AUTO SCHEMA UNIVERSAL v7.36-LITE COMPLETE", "INFO");
+      log("AUTO SCHEMA UNIVERSAL v7.36b-LITE COMPLETE", "INFO");
       log("═══════════════════════════════════════════════════", "INFO");
 
       try {
@@ -1423,27 +1413,28 @@
         const ctaType      = getCtaType();
         const h1Pattern    = getH1Pattern();
 
-        // 🔥 BARU v7.36: baca schema hint dari PLD (SEO 2026)
+        // 🔥 Baca schema hint dari PLD (SEO 2026)
         const schemaPrimary   = (document.body.getAttribute('data-schema-type-primary')   || '').trim();
         const schemaSecondary = (document.body.getAttribute('data-schema-type-secondary') || '').trim();
         const schemaNote      = (document.body.getAttribute('data-schema-type-note')      || '').trim();
 
-        // 🔥 BARU v7.36: parse note flags
+        // 🔥 Parse note flags
         const wantOffers      = /(^|,)with-offers($|,)/.test(schemaNote) && !/without-offers/.test(schemaNote);
         const wantAreaServed  = /with-areaServed/.test(schemaNote);
         const isEvergreenSvc  = /evergreen-service/.test(schemaNote);
-        const isProductPillar = /product-pillar/.test(schemaNote);
 
-        // 🔥 BARU v7.36: tentukan node dari PLD
+        // 🔥 Tentukan node dari PLD (Article = TIDAK dibuat di sini — v8.6 yang bikin)
         const wantService  = (schemaPrimary === 'Service')  || (schemaSecondary === 'Service');
         const wantProduct  = (schemaPrimary === 'Product')  || (schemaSecondary === 'Product');
-        const wantArticle  = (schemaPrimary === 'Article')  || (schemaSecondary === 'TechArticle');
         const wantCreative = (schemaSecondary === 'CreativeWork');
         const wantFAQ      = (schemaSecondary === 'FAQPage');
 
+        // ⚠️ wantArticle SENGAJA TIDAK ADA — ditangani v8.6
+
         log(`📌 Level: ${pageLevel} | Entity: ${entityType} | Focus: ${contentFocus}`, "SUCCESS");
         log(`🔗 PLD hint → primary=${schemaPrimary} | secondary=${schemaSecondary} | note=${schemaNote}`, "SCHEMA");
-        log(`🔗 Build plan → Service=${wantService} Product=${wantProduct} Article=${wantArticle} FAQ=${wantFAQ} Creative=${wantCreative}`, "SCHEMA");
+        log(`🔗 Build plan → Service=${wantService} Product=${wantProduct} FAQ=${wantFAQ} Creative=${wantCreative}`, "SCHEMA");
+        log(`📄 Article node → HANDLED BY v8.6 (skip di Universal)`, "ARTICLE");
 
         // ===== STEP 5: PRICE (4 LAYERS) =====
         const priceResult = detectPriceLayered(pageLevel);
@@ -1474,7 +1465,7 @@
           document.querySelector("article p, main p")?.innerText?.substring(0, 200) || title;
 
         const knowsAbout = CONFIG.KNOWS_ABOUT;
-        
+
         const dateModified = (aed && aed.dateModified) ? aed.dateModified : undefined;
         const priceValidUntil = (aed && aed.nextUpdate) ? aed.nextUpdate : undefined;
 
@@ -1510,7 +1501,7 @@
         ];
 
         // ═══════════════════════════════════════════════════════
-        // SERVICE NODE (dari PLD: primary/secondary = Service)
+        // SERVICE NODE
         // ═══════════════════════════════════════════════════════
         if (wantService) {
           const serviceType = extractServiceType(title, entityType);
@@ -1547,7 +1538,7 @@
         }
 
         // ═══════════════════════════════════════════════════════
-        // PRODUCT NODE (dari PLD: primary/secondary = Product)
+        // PRODUCT NODE
         // ═══════════════════════════════════════════════════════
         if (wantProduct) {
           const category = document.body.getAttribute('data-product-category')
@@ -1603,24 +1594,10 @@
         }
 
         // ═══════════════════════════════════════════════════════
-        // ARTICLE NODE
+        // ⚠️ ARTICLE NODE — DIHAPUS (FIX-10 v7.36b)
+        // Article ditangani oleh Auto Schema Article v8.6
         // ═══════════════════════════════════════════════════════
-        if (wantArticle && !wantService && !wantProduct) {
-          const articleNode = {
-            "@type": "Article",
-            "@id": cleanUrl + "#article",
-            "headline": title,
-            "description": description,
-            "image": [pageImage],
-            "author": { "@id": CONFIG.LOCALBUSINESS_ID },
-            "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
-            "mainEntityOfPage": { "@id": cleanUrl + "#webpage" },
-            "inLanguage": "id",
-            ...(dateModified && { "datePublished": dateModified, "dateModified": dateModified })
-          };
-          graph.push(articleNode);
-          log(`✅ Article node${isProductPillar ? ' (product-pillar)' : ''}`, "SCHEMA");
-        }
+        // (blok `if (wantArticle && !wantService && !wantProduct)` dihapus)
 
         // ═══════════════════════════════════════════════════════
         // CREATIVE WORK (untuk desain portfolio)
@@ -1639,7 +1616,8 @@
         }
 
         // ═══════════════════════════════════════════════════════
-        // FAQ PAGE (min 2 Q&A)
+        // FAQ PAGE (min 2 Q&A) — TETAP DI UNIVERSAL (FIX-11)
+        // FAQ bisa pair dengan Service/Product/Article
         // ═══════════════════════════════════════════════════════
         if (wantFAQ) {
           const faqs = extractFaqFromDOM();
@@ -1686,6 +1664,7 @@
         log(`   Internal links: ${internalLinks.length} (max ${CONFIG.MAX_INTERNAL_LINKS})`, "SYNC");
         log(`   Breadcrumb source: ${parentData.source}`, "BREADCRUMB");
         log(`   PLD version: ${pldVer.label}`, "PLD");
+        log(`   Article node: HANDLED BY v8.6 ⏭️`, "ARTICLE");
         log("═══════════════════════════════════════════════════", "SUCCESS");
 
         perf.end('init');
@@ -1703,18 +1682,17 @@
   window.addEventListener('beforeunload', cleanup);
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Auto Schema v7.36-LITE — READY (PLD-DRIVEN, SEO 2026)");
+  console.log("✅ Auto Schema v7.36b-LITE — READY (PLD-DRIVEN, SEO 2026, NO-DUPLICATE)");
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("🔥 FIX-5: PLD-DRIVEN schema decision (Service/Product/Article/FAQ)");
-  console.log("🔥 FIX-6: Respect data-schema-type-note (with-offers, with-areaServed)");
-  console.log("🔥 FIX-7: Article node untuk pillar/sub-pillar informasional");
-  console.log("🔥 FIX-8: FAQPage extraction dari DOM (min 2 Q&A)");
-  console.log("🔥 FIX-9: CreativeWork node untuk entity desain");
+  console.log("🔥 FIX-10: REMOVE Article node — ditangani Auto Schema Article v8.6");
+  console.log("🔥 FIX-11: KEEP FAQPage — bisa pair dengan Service/Product/Article");
+  console.log("🔥 FIX-12: KEEP CreativeWork — secondary untuk entity desain");
+  console.log("🔥 FIX-13: KEEP Service + Product + LocalBusiness + WebPage + ItemList");
+  console.log("✅ PRESERVED: FIX-5 s/d FIX-9 (PLD-driven, notes, FAQ extraction)");
   console.log("✅ PRESERVED: FIX-1 (extractServiceType), FIX-2 (ItemList max 8)");
   console.log("✅ PRESERVED: FIX-3 (anti-race AED), FIX-4 (AED v17.4.7)");
   console.log("✅ KNOWS_ABOUT: 110 item | areaServed: Indonesia + 11 kota");
   console.log("✅ 4-layer price detection | Breadcrumb DOM fallback");
-  console.log("✅ ErrorBoundary + DOMCache | Cloudinary WebP");
   console.log("✅ Konsisten dengan PLD v23.9.9 (entity-aware detectSchemaType)");
   console.log("═══════════════════════════════════════════════════════════");
 
