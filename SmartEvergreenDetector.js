@@ -1,25 +1,24 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.5.5 — BYLINE FIX
+ 🧠 Smart Evergreen Detector v17.5.6 — CSS FIX + PAGE BYLINE
 ============================================================
- 🔥🔥🔥 v17.5.5 CHANGELOG 🔥🔥🔥
- ✅ FIX-DOUBLE-BYLINE: Hilangkan duplikasi byline
-    - Detect byline Blogger "By" standalone → HIDE container
-    - Expand SELECTORS (address, .post-header, [rel=author])
-    - Expand EXCLUDE_SELECTORS (#comments, .post-footer, dll)
-    - Step 3: Selector detect → Hide broken → Inject AED
-    - Efek: Cuma 1 byline (AED punya) di halaman
+ 🔥🔥🔥 v17.5.6 CHANGELOG 🔥🔥🔥
+ ✅ FIX-CSS-LOAD: injectWarningStyles() di awal detectEvergreen()
+    - Sebelumnya: CSS hanya load saat warning muncul
+    - Efek: "BBy" tanpa spasi di halaman fresh (no warning)
+    - Sesudah: CSS SELALU load → byline rapi di semua halaman
+ ✅ FIX-CSS-MARGIN: margin-right eksplisit (tidak andalkan gap)
+ ✅ FIX-PARTIAL-HIDE: Partial hide untuk template user
+    - Detect .title-secondary → hide "By" + icon
+    - PERTAHANKAN timestamp
+ ✅ FIX-PAGE-BYLINE: Page dapat byline via inject setelah H1
 
- ✅ PRESERVED dari v17.5.4:
- ✅ FIX-AUTHOR-BYLINE: Enhance byline kosong di Post + Page
- ✅ PRESERVED dari v17.5.3:
- ✅ FIX-MINI-BADGE: Mini badge tanggal di warning
- ✅ PRESERVED dari v17.5.2:
- ✅ FIX-UX-1 s/d UX-7
- ✅ PRESERVED dari v17.5.1:
- ✅ FIX-WARN-TEXT, FIX-WARN-COLOR, FIX-WARN-GUARD
- ✅ PRESERVED dari v17.5.0:
- ✅ FIX-PLD-SYNC, FIX-AUTORUN, FIX-EVENT
- ✅ PRESERVED dari v17.4.x: FIX-MINOR, FIX-KRITIS, FIX-EE, FIX-B, FIX-A
+ ✅ PRESERVED dari v17.5.5: FIX-DOUBLE-BYLINE
+ ✅ PRESERVED dari v17.5.4: FIX-AUTHOR-BYLINE
+ ✅ PRESERVED dari v17.5.3: FIX-MINI-BADGE
+ ✅ PRESERVED dari v17.5.2: FIX-UX-1 s/d UX-7
+ ✅ PRESERVED dari v17.5.1: FIX-WARN-*
+ ✅ PRESERVED dari v17.5.0: FIX-PLD-SYNC, FIX-AUTORUN, FIX-EVENT
+ ✅ PRESERVED dari v17.4.x: SEMUA FIX
 
  📌 BRAND DEFAULT: "Beton Jaya Readymix"
  📌 BIO URL: "/p/about.html"
@@ -27,17 +26,17 @@
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.5.5") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.5.6") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.5.5";
+  window.__AED_VERSION = "17.5.6";
 
   var DEFAULT_BRAND_NAME = "Beton Jaya Readymix";
 
   // ============================================================
-  // 🔥 FIX-AUTHOR-BYLINE v17.5.5
+  // 🔥 FIX-AUTHOR-BYLINE v17.5.6
   // ============================================================
   const AUTHOR_BYLINE_CONFIG = {
     ENABLED: true,
@@ -211,7 +210,7 @@
   }
 
   // ============================================================
-  // INJECT CSS
+  // 🔥 FIX-CSS-LOAD + FIX-CSS-MARGIN v17.5.6
   // ============================================================
   function injectWarningStyles() {
     if (document.getElementById('aed-warning-styles')) return;
@@ -305,19 +304,21 @@
         letter-spacing: 0.01em;
       }
 
-      /* 🔥 FIX-AUTHOR-BYLINE v17.5.5 */
+      /* 🔥 FIX-AUTHOR-BYLINE v17.5.6 — CSS selalu load */
       .aed-author-byline {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px;
         font-size: 0.9rem;
         color: #4b5563;
-        margin: 8px 0;
+        margin: 8px 0 !important;
         font-family: system-ui, -apple-system, sans-serif;
         line-height: 1.4;
+        white-space: nowrap;
+        flex-wrap: wrap;
       }
       .aed-author-byline .aed-author-avatar {
-        display: inline-block;
+        display: inline-block !important;
         width: 22px;
         height: 22px;
         border-radius: 50%;
@@ -328,10 +329,14 @@
         text-align: center;
         line-height: 22px;
         flex-shrink: 0;
+        margin-right: 6px !important;
+        vertical-align: middle;
       }
       .aed-author-byline .aed-author-label {
         color: #6b7280;
         font-weight: 400;
+        margin-right: 6px !important;
+        vertical-align: middle;
       }
       .aed-author-byline a.aed-author-name {
         color: #ea580c;
@@ -344,7 +349,9 @@
       [data-aed-author-enhanced="true"] {
         display: inline-block;
       }
-      [data-aed-hidden="true"] {
+      [data-aed-hidden="true"],
+      [data-aed-hidden="partial"],
+      [data-aed-hidden="full"] {
         display: none !important;
       }
       @media (prefers-color-scheme: dark) {
@@ -353,11 +360,13 @@
         .aed-author-byline a.aed-author-name { color: #fb923c; }
       }
       @media (max-width: 640px) {
-        .aed-author-byline { font-size: 0.82rem; }
-        .aed-author-byline .aed-author-avatar { width: 18px; height: 18px; line-height: 18px; font-size: 0.65rem; }
+        .aed-author-byline { font-size: 0.82rem; gap: 6px; }
+        .aed-author-byline .aed-author-avatar { width: 18px; height: 18px; line-height: 18px; font-size: 0.65rem; margin-right: 4px !important; }
+        .aed-author-byline .aed-author-label { margin-right: 4px !important; }
       }
     `;
     document.head.appendChild(style);
+    console.log('✅ [AED] Styles injected (warning + author byline)');
   }
 
   // ============================================================
@@ -568,11 +577,11 @@
         document.body.insertBefore(warning, document.body.firstChild);
       }
     }
-    console.log('✅ [AED Warning] Ditambahkan — severity:', severity, '| priority:', priority, '| mini-badge:', WARNING_CONFIG.MINI_BADGE_ENABLED ? '✅' : '❌');
+    console.log('✅ [AED Warning] Ditambahkan — severity:', severity, '| priority:', priority);
   }
 
   // ============================================================
-  // 🔥 FIX-AUTHOR-BYLINE v17.5.5
+  // 🔥 FIX-AUTHOR-BYLINE v17.5.6
   // ============================================================
   function normalizeBylineText(text) {
     return String(text || '').replace(/\s+/g, ' ').trim();
@@ -647,7 +656,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-v17.5.5: HIDE existing broken byline (Blogger default)
+  // 🔥 FIX-v17.5.6: PARTIAL HIDE untuk template user
   // ============================================================
   function hideExistingBylineNearH1() {
     var h1 = document.querySelector('h1');
@@ -655,61 +664,101 @@
     var h1Rect = h1.getBoundingClientRect();
     var hidden = 0;
 
-    var allEls = document.querySelectorAll('span, div, p, em, i, b, small, address, a');
-    for (var i = 0; i < allEls.length; i++) {
-      var el = allEls[i];
-      if (isInsideExclude(el)) continue;
-      if (el.querySelector('.aed-author-byline')) continue;
-      if (el.getAttribute('data-aed-hidden') === 'true') continue;
-      if (el === document.body || el === document.documentElement) continue;
+    var CONTAINER_SELECTORS = [
+      '.title-secondary',
+      '.post-header-line-1',
+      '.post-header',
+      '.post-meta',
+      '.entry-meta',
+      '.post-info',
+      '.byline',
+      'address'
+    ];
 
-      // Ambil text node langsung (bukan children)
-      var ownText = '';
-      for (var j = 0; j < el.childNodes.length; j++) {
-        var n = el.childNodes[j];
-        if (n.nodeType === 3) ownText += n.textContent;
-      }
-      ownText = normalizeBylineText(ownText);
+    for (var i = 0; i < CONTAINER_SELECTORS.length; i++) {
+      var containers = document.querySelectorAll(CONTAINER_SELECTORS[i]);
+      for (var j = 0; j < containers.length; j++) {
+        var parent = containers[j];
+        if (isInsideExclude(parent)) continue;
+        if (parent.getAttribute('data-aed-hidden')) continue;
+        if (parent.querySelector('.aed-author-byline')) continue;
 
-      // Cocokkan "By" / "By:" / "Oleh" standalone
-      if (!/^(by|oleh)[:.\s\-|]*$/i.test(ownText)) continue;
+        var rect = parent.getBoundingClientRect();
+        if (rect.top < h1Rect.top - 50) continue;
+        if (rect.top > h1Rect.bottom + 400) continue;
 
-      // Cek posisi dekat H1 (dalam 350px ke bawah)
-      var elRect = el.getBoundingClientRect();
-      if (elRect.top < h1Rect.top - 50) continue;
-      if (elRect.top > h1Rect.bottom + 350) continue;
-      if (elRect.width === 0 && elRect.height === 0) continue;
+        var hasAuthorEl = parent.querySelector('.post-author, .vcard, [itemprop="author"], .g-profile');
+        var hasByText = /\b(by|oleh)\b/i.test(parent.innerText || '');
+        if (!hasAuthorEl && !hasByText) continue;
 
-      // Cari container yang tepat (parent dengan text total < 200 char)
-      var container = el;
-      var containerTxt = '';
-      for (var d = 0; d < 4; d++) {
-        if (!container.parentElement) break;
-        var p = container.parentElement;
-        if (p === document.body || p === document.documentElement) break;
-        var pTxt = normalizeBylineText(p.innerText);
-        if (pTxt.length <= 200) {
-          container = p;
-          containerTxt = pTxt;
-        } else {
+        var hasTimestamp = parent.querySelector('.post-timestamp, [itemprop="datePublished"], time, .timestamp-link');
+        var hasComments = parent.querySelector('.post-comment-link, .comment-link');
+        var hasLabels = parent.querySelector('.post-labels, .entry-labels');
+
+        // FULL HIDE
+        if (!hasTimestamp && !hasComments && !hasLabels) {
+          parent.style.display = 'none';
+          parent.setAttribute('data-aed-hidden', 'full');
+          console.log('✅ [AED Author] Full hide byline container');
+          hidden++;
           break;
         }
+
+        // PARTIAL HIDE
+        console.log('🔧 [AED Author] PARTIAL HIDE (timestamp dipertahankan)');
+
+        parent.querySelectorAll('.post-author, .vcard, [itemprop="author"]').forEach(function(el) {
+          if (el.querySelector && el.querySelector('.aed-author-byline')) return;
+          el.style.display = 'none';
+          el.setAttribute('data-aed-hidden', 'true');
+        });
+
+        parent.querySelectorAll('.fa-user, i.fa-user, span[class*="fa-user"], .fa-user-o, .fa-user-circle')
+          .forEach(function(ic) {
+            if (ic.querySelector && ic.querySelector('.aed-author-byline')) return;
+            ic.style.display = 'none';
+            ic.setAttribute('data-aed-hidden', 'true');
+          });
+
+        var walker = document.createTreeWalker(parent, NodeFilter.SHOW_TEXT, null, false);
+        var textNodes = [];
+        var n;
+        while (n = walker.nextNode()) textNodes.push(n);
+        textNodes.forEach(function(tnode) {
+          var parentEl = tnode.parentElement;
+          if (parentEl && parentEl.querySelector && parentEl.querySelector('.aed-author-byline')) return;
+          if (/^\s*(by|oleh)[\s:.\-]*$/i.test(tnode.textContent)) {
+            tnode.textContent = '';
+          }
+        });
+
+        parent.querySelectorAll('span, em, i, b, small').forEach(function(el) {
+          if (el.getAttribute('data-aed-hidden') === 'true') return;
+          if (el.querySelector && el.querySelector('.aed-author-byline')) return;
+          var ownText = '';
+          for (var c = 0; c < el.childNodes.length; c++) {
+            if (el.childNodes[c].nodeType === 3) ownText += el.childNodes[c].textContent;
+          }
+          ownText = normalizeBylineText(ownText);
+          if (/^(by|oleh)[:.\s\-|]*$/i.test(ownText)) {
+            el.style.display = 'none';
+            el.setAttribute('data-aed-hidden', 'true');
+          }
+        });
+
+        parent.setAttribute('data-aed-hidden', 'partial');
+        console.log('✅ [AED Author] Partial hide berhasil');
+        hidden++;
+        break;
       }
-
-      if (!containerTxt) containerTxt = normalizeBylineText(container.innerText);
-
-      container.style.display = 'none';
-      container.setAttribute('data-aed-hidden', 'true');
-      console.log('🗑️ [AED Author] Hidden existing byline: ' + JSON.stringify(containerTxt.substring(0, 60)));
-      hidden++;
-      break;
+      if (hidden > 0) break;
     }
 
     return hidden;
   }
 
   // ============================================================
-  // 🔥 FIX-v17.5.5: injectAuthorByline dengan 3-step logic
+  // 🔥 FIX-v17.5.6: injectAuthorByline 3-step logic
   // ============================================================
   function injectAuthorByline() {
     if (!AUTHOR_BYLINE_CONFIG.ENABLED) return;
@@ -722,7 +771,7 @@
       return;
     }
 
-    // STEP 1: Coba selector-based detection
+    // STEP 1: Selector-based detect
     var bylineEl = findExistingByline();
 
     if (bylineEl) {
@@ -735,7 +784,7 @@
       }
 
       if (broken) {
-        console.log('⚠️ [AED Author] Byline kosong/rusak (selector): ' + JSON.stringify(currentText) + ' → enhance');
+        console.log('⚠️ [AED Author] Byline kosong/rusak: ' + JSON.stringify(currentText) + ' → enhance');
       } else {
         console.log('🔄 [AED Author] ALWAYS_REPLACE aktif → replace');
       }
@@ -748,14 +797,14 @@
       return;
     }
 
-    // STEP 2: Hide existing broken byline near H1
+    // STEP 2: Hide existing broken
     var hiddenCount = hideExistingBylineNearH1();
     if (hiddenCount > 0) {
       console.log('✅ [AED Author] Cleaned ' + hiddenCount + ' existing broken byline');
     }
 
     // STEP 3: Inject AED byline setelah H1
-    console.log('ℹ️ [AED Author] Inject byline baru setelah H1');
+    console.log('ℹ️ [AED Author] Inject byline baru setelah H1 (' + mode + ')');
     var h1 = document.querySelector('h1');
     if (h1) {
       var newByline2 = buildAuthorByline();
@@ -1386,7 +1435,7 @@
       datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.5.5',
+      detectorVersion: detectorVersion || 'v17.5.6',
       detectionConfidence: confidence || null,
       isOverridden: isOverridden || false,
       overrideReason: overrideReason || null,
@@ -1506,7 +1555,7 @@
       miniBadgeEnabled: WARNING_CONFIG.MINI_BADGE_ENABLED,
       authorBylineEnabled: AUTHOR_BYLINE_CONFIG.ENABLED,
       timestamp: new Date().toISOString(),
-      aedVersion: '17.5.5'
+      aedVersion: '17.5.6'
     };
     console.log('📊 [AED Final Analytics]', JSON.stringify(summary));
   }
@@ -1521,7 +1570,11 @@
     if (_AED_INITIALIZED) return;
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.5.5 — Byline Fix");
+    console.log("🧩 detectEvergreen() v17.5.6 — CSS Fix + Page Byline");
+
+    // 🔥 FIX-CSS-LOAD v17.5.6: load CSS di awal (selalu)
+    injectWarningStyles();
+
     await waitForPageLevelDetector();
 
     const { pageLevel, entityType, detectorVersion } = getPageLevelAndEntityType();
@@ -1540,26 +1593,25 @@
     checkAndShowInlineWarning(pageLevel, contentFocus);
     logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated);
 
-    // 🔥 FIX-AUTHOR-BYLINE v17.5.5
+    // 🔥 FIX-AUTHOR-BYLINE v17.5.6
     injectAuthorByline();
 
     window.dispatchEvent(new Event("detectEvergreenReady"));
-    console.log(`🧩 detectEvergreen() v17.5.5 — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.5.6 — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Smart Evergreen Detector v17.5.5 — BYLINE FIX");
+  console.log("✅ Smart Evergreen Detector v17.5.6 — CSS FIX + PAGE BYLINE");
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("🔥 FIX-DOUBLE-BYLINE: Hide byline Blogger lama + inject AED");
-  console.log("🔥 FIX-AUTHOR-BYLINE: Enhance byline kosong di Post + Page");
-  console.log("🔥 FIX-MINI-BADGE: Mini badge tanggal terintegrasi warning");
-  console.log("🔥 FIX-UX-1 s/d UX-7: Priority, Mobile, Analytics, Dark, A11y, i18n, Deep Link");
-  console.log("✅ PRESERVED: SEMUA fitur v17.5.4 + v17.5.3 + v17.5.2 + v17.5.1 + v17.5.0 + v17.4.x");
+  console.log("🔥 FIX-CSS-LOAD: CSS selalu load (termasuk halaman fresh)");
+  console.log("🔥 FIX-CSS-MARGIN: Spasi byline fix (tidak 'BBy' lagi)");
+  console.log("🔥 FIX-PARTIAL-HIDE: Fix double byline di Post template user");
+  console.log("🔥 FIX-PAGE-BYLINE: Page dapat byline via inject setelah H1");
+  console.log("✅ PRESERVED: SEMUA fitur v17.5.5 + v17.5.4 + v17.5.3 + v17.5.2 + v17.5.1 + v17.5.0 + v17.4.x");
   console.log("📌 Author URL: " + AUTHOR_BYLINE_CONFIG.URL);
-  console.log("📌 Author Name: " + AUTHOR_BYLINE_CONFIG.NAME);
   console.log("═══════════════════════════════════════════════════════════");
 
   if (document.readyState === "loading") {
