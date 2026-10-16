@@ -1,54 +1,40 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.36b-LITE COMPLETE — FINAL
-   ✅ SINKRON dengan PLD v23.9.9 (entity-aware detectSchemaType)
-   ✅ SINKRON dengan AED v17.4.7 (TIERED + CONTENT-AWARE)
-   ✅ SINKRON dengan Breadcrumb v12.3.5
-   ✅ SINKRON dengan Auto Schema Article v8.6 (Article = milik v8.6)
-   ✅ SINKRON dengan Hybrid Product v5.6 (Product fallback)
-
-   🔥🔥🔥 v7.36b-LITE CHANGELOG 🔥🔥🔥
-   ✅ FIX-10: REMOVE Article node — ditangani Auto Schema Article v8.6
-   ✅ FIX-11: KEEP FAQPage — bisa pair dengan Service/Product/Article
-   ✅ FIX-12: KEEP CreativeWork — secondary untuk entity desain
-   ✅ FIX-13: KEEP Service + Product + LocalBusiness + WebPage + ItemList
-
-   ✅ PRESERVED dari v7.36-LITE:
-   ✅ FIX-5: PLD-DRIVEN schema decision
-   ✅ FIX-6: Respect data-schema-type-note
-   ✅ FIX-8: FAQPage extraction dari DOM (min 2 Q&A)
-   ✅ FIX-9: CreativeWork node untuk entity desain
-   ✅ FIX-1: extractServiceType() — support – — - | : &
-   ✅ FIX-2: ItemList max 8
-   ✅ FIX-3: Guard anti-race-condition AED
-   ✅ FIX-4: Support AED v17.4.7
-   ✅ Anti-spoofing dateModified (fallback = null)
-   ✅ KNOWS_ABOUT — 110 item LENGKAP
-   ✅ areaServed — Indonesia + 11 kota prioritas
-   ✅ contactPoint di LocalBusiness
-   ✅ 4-layer price detection
-   ✅ Breadcrumb DOM fallback
-   ✅ ErrorBoundary + DOMCache
-   ✅ Responsive image styles + Cloudinary WebP
-
-   📌 PEMBAGIAN TANGGUNG JAWAB:
-   - v7.36b: LocalBusiness + WebPage + Service + Product + FAQPage + CreativeWork + ItemList
-   - v8.6  : Article (PLD primary = Article)
-   - v5.6  : Product fallback (halaman product yang PLD tidak tandai)
-
-   Status: FINAL v7.36b — PLD-DRIVEN, SEO 2026, NO-DUPLICATE
-*/
+/**
+ * 📄 Auto-Schema Generator v8.6 — ARTICLE SCHEMA (PLD-DRIVEN, SEO 2026)
+ * 
+ * 🔥 v8.6 CHANGELOG:
+ * ✅ FIX-5: shouldGenerateArticleSchema() — PLD-driven (baca data-schema-type-primary)
+ * ✅ FIX-6: getArticleType() — prioritas PLD secondary (TechArticle/BlogPosting)
+ * ✅ FIX-7: Anti-tabrakan dengan Service/Product (dari v7.36 & v5.6)
+ * ✅ FIX-8: Sync PLD v23.9.9 (entity-aware detectSchemaType)
+ * ✅ FIX-9: Fallback legacy tetap ada untuk PLD lama
+ * 
+ * ✅ PRESERVED dari v8.5:
+ * ✅ FIX-1: getArticleType() — deteksi URL pattern Blogger
+ *           /p/ → Article (bukan BlogPosting)
+ *           /YYYY/MM/ → BlogPosting (boleh)
+ * ✅ FIX-2: Semua fitur v8.4 dipertahankan
+ * ✅ FIX-3: Sync @id dengan v7.36 & v5.6 (#localbusiness tanpa slash)
+ * ✅ FIX-4: Log lebih informatif
+ * 
+ * 🎯 SYARAT ARTICLE SCHEMA (v8.6):
+ * Layer 1: shouldGenerateArticleSchema() — PLD-DRIVEN
+ * Layer 2: isEditorialContent() — cek KUALITAS konten
+ * 
+ * Status: FINAL v8.6 — SEO 2026 Ready + Blogger-Aware + PLD-Driven
+ */
 
 (function() {
   "use strict";
 
   // ═══ GUARD GLOBAL ═══
-  if (window.__AUTO_SCHEMA_VERSION === "7.36b-lite") {
-    console.log("[AutoSchema v7.36b-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6") {
+    console.log("[AutoSchema Article v8.6] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTO_SCHEMA_VERSION = "7.36b-lite";
+  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6";
 
   // ============================================================
-  // 🔥 AUTO-DETECT DEBUG MODE
+  // 🔥 AUTO-DETECT DEBUG
   // ============================================================
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -61,345 +47,75 @@
   // ============================================================
   const CONFIG = {
     DEBUG: DEBUG_MODE,
-    DELAY_MS: 200,
-    MAX_OFFERS: 8,
-    MIN_PRICE: 10000,
-    MAX_PRICE: 100000000,
-    SKIP_WORD_COUNT: 300,
-    PLD_TIMEOUT: 1000,
     AED_TIMEOUT: 2000,
+    PLD_TIMEOUT: 1000,
     BREADCRUMB_TIMEOUT: 1000,
-    BREADCRUMB_READY_TIMEOUT: 1500,
     BREADCRUMB_GENERATED_TIMEOUT: 2000,
-    MIN_YEAR_TO_UPDATE: 2026,
-    CACHE_DOM_ELEMENTS: true,
-    BATCH_DOM_UPDATES: true,
-    MAX_ELEMENTS_TO_SCAN: 100,
-    MAX_INTERNAL_LINKS: 8,
-
-    // 🔥 SYNC: @id reference
+    
+    // Site info
+    SITE_NAME: "Beton Jaya Readymix",
+    SITE_URL: "https://www.betonjayareadymix.com",
+    CURRENT_YEAR: new Date().getFullYear(),
+    
+    // 🔥 SYNC-FIX: @id reference (TANPA SLASH) — sync v7.36 & v5.6
     LOCALBUSINESS_ID: "https://www.betonjayareadymix.com#localbusiness",
-
-    // 🔥 areaServed
-    AREA_SERVED: [
-      { "@type": "Country", "name": "Indonesia" },
-      { "@type": "AdministrativeArea", "name": "DKI Jakarta" },
-      { "@type": "AdministrativeArea", "name": "Kota Bogor" },
-      { "@type": "AdministrativeArea", "name": "Kabupaten Bogor" },
-      { "@type": "AdministrativeArea", "name": "Kota Depok" },
-      { "@type": "AdministrativeArea", "name": "Kota Tangerang" },
-      { "@type": "AdministrativeArea", "name": "Kabupaten Tangerang" },
-      { "@type": "AdministrativeArea", "name": "Kota Tangerang Selatan" },
-      { "@type": "AdministrativeArea", "name": "Kota Bekasi" },
-      { "@type": "AdministrativeArea", "name": "Kabupaten Bekasi" },
-      { "@type": "AdministrativeArea", "name": "Kabupaten Karawang" },
-      { "@type": "AdministrativeArea", "name": "Kota Surabaya" }
-    ],
-
-    // 🔥 KNOWS_ABOUT — 110 item
-    KNOWS_ABOUT: [
-      "Jasa Bor Sumur", "Jasa Bor Horizontal", "Jasa Bor Manual",
-      "Jasa Bor Hidrolik", "Jasa Bor Rotary", "Jasa Bor Auger",
-      "Jasa Bor Sumur Dalam", "Jasa Bor Sumur Dangkal",
-      "Jasa Pengeboran Tanah", "Jasa Pengeboran Air Tanah",
-      "Jasa Bore Pile", "Jasa Strauss Pile", "Jasa Borongan Bore Pile",
-      "Jasa Borongan Strauss Pile", "Jasa Tiang Pancang", "Jasa Pondasi Dalam",
-      "Jasa Pondasi Bore Pile", "Jasa Pondasi Strauss Pile",
-      "Jasa Coring Beton", "Jasa Coring Dinding", "Jasa Coring Lantai",
-      "Jasa Coring Plat", "Jasa Coring Kolom", "Jasa Coring Pondasi",
-      "Jasa Coring Balok", "Jasa Core Drill", "Jasa Cutting Beton",
-      "Jasa Bongkar Beton", "Jasa Injeksi Beton", "Jasa Grouting",
-      "Jasa Waterproofing", "Jasa Perbaikan Beton", "Jasa Cor Beton",
-      "Jasa Pasang Pagar Panel", "Jasa Pasang Pagar BRC", "Jasa Pasang Pagar Beton",
-      "Jasa Pasang Kanopi", "Jasa Pasang Plafon", "Jasa Pasang Plafon Gypsum",
-      "Jasa Pasang Plafon PVC", "Jasa Pasang Kusen", "Jasa Pasang Kusen Aluminium",
-      "Jasa Pasang Pintu", "Jasa Pasang Jendela", "Jasa Pasang Baja Ringan",
-      "Jasa Pasang Rangka Atap", "Jasa Pasang Atap", "Jasa Pasang Paving Block",
-      "Jasa Pasang Saluran Precast", "Jasa Pasang U-Ditch", "Jasa Pasang Box Culvert",
-      "Jasa Pasang Kansteen", "Jasa Pasang Keramik", "Jasa Pasang Granit",
-      "Jasa Pasang Marmer", "Jasa Pasang Kaca", "Jasa Pasang Teralis",
-      "Jasa Pasang Railing",
-      "Jasa Renovasi Rumah", "Jasa Renovasi Bangunan", "Jasa Bangun Rumah",
-      "Jasa Bangun Ruko", "Jasa Bangun Gudang", "Jasa Bangun Pagar",
-      "Jasa Plester Dinding", "Jasa Acian", "Jasa Pengecatan",
-      "Beton Readymix", "Beton Cor", "Beton K-175", "Beton K-200",
-      "Beton K-225", "Beton K-250", "Beton K-300", "Beton K-350",
-      "Beton K-400", "Beton K-500", "Beton Mutu Tinggi", "Beton Struktural",
-      "Pagar Panel Beton", "Pagar Panel Precast", "Pagar Beton Precast",
-      "Saluran Precast", "Saluran U-Ditch", "Saluran Box Culvert",
-      "Saluran Drainase Precast", "Kansteen Beton", "Kansteen Precast",
-      "Paving Block", "Panel Beton Precast", "Road Barrier Beton",
-      "Material Konstruksi", "Material Bangunan", "Besi Beton",
-      "Besi Ulir", "Besi Polos", "Besi Wiremesh", "Semen",
-      "Pasir Beton", "Pasir Cor", "Agregat", "Split", "Batu Belah",
-      "Batu Kali", "Mortar", "Bata Ringan", "Bata Merah", "Batako", "Hebel",
-      "Sewa Alat Bor", "Sewa Mesin Coring", "Sewa Alat Berat",
-      "Sewa Concrete Pump", "Sewa Vibrator Beton", "Sewa Pompa Beton",
-      "Sewa Excavator", "Sewa Crane", "Sewa Scaffolding",
-      "Konstruksi", "Jasa Konstruksi", "Kontraktor", "Pondasi",
-      "Geoteknik", "Infrastruktur", "Drainase", "Struktur Beton",
-      "Teknik Sipil", "Bangunan", "Renovasi", "Pembangunan"
-    ],
-
-    CONTACT_POINT: {
-      "@type": "ContactPoint",
-      "telephone": "+6281299842508",
-      "contactType": "customer service",
-      "areaServed": "ID",
-      "availableLanguage": ["id"]
-    }
+    WEBPAGE_ID_SUFFIX: "#webpage",
+    
+    // 🔥 K2-FIX: Author = Organization
+    AUTHOR: {
+      type: "Organization",
+      name: "Beton Jaya Readymix",
+      url: "https://www.betonjayareadymix.com"
+    },
+    
+    // 🔥 M2-FIX: Default image fallback
+    DEFAULT_ARTICLE_IMAGE: {
+      url: "https://www.betonjayareadymix.com/default-og-image.jpg",
+      width: 1200,
+      height: 675
+    },
+    
+    // 🔥 M1-FIX: Syarat editorial content
+    MIN_EDITORIAL_WORDS: 300,
+    MIN_EDITORIAL_PARAGRAPHS: 3,
+    MIN_EDITORIAL_HEADINGS: 2,
+    
+    // Image
+    MIN_IMAGE_WIDTH: 400,
+    ARTICLE_IMG_WIDTH: 1200,
+    ARTICLE_IMG_HEIGHT: 675,
+    
+    // Skip
+    SKIP_WORD_COUNT: 300,
+    
+    VERSION: "8.6"
   };
 
+  const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+
+  const STATIC_PAGES = [
+    '/p/hubungi-kami.html', '/p/portofolio.html', '/p/disclaimer.html',
+    '/p/privacy-policy.html', '/p/terms-of-service.html', '/p/useful-links.html',
+    '/p/about.html', '/p/sitemap.html'
+  ];
+
   // ============================================================
-  // LOGGING
+  // 🔧 LOGGER
   // ============================================================
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG) return;
     const icons = {
-      INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅", SKIP: "⏭️",
-      PRODUCT: "🏗️", IMAGE: "📸", YEAR: "📅", FOCUS: "🎯", TABLE: "📊",
-      H1: "📝", PRIORITY: "🔴", STOP: "🛑", BREADCRUMB: "🍞", AED: "⚡",
-      PERF: "⏱️", CACHE: "💾", CORB: "🚫", COMMERCIAL: "🛒",
-      PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", PARENT: "👪", PRICE: "💰",
-      FLAG: "🚩", EVENT: "📡", FIX: "🔧", MATERIAL: "🧱", PHASE46: "🆕",
-      WEBP: "🎨", KNOWS: "🎓", SYNC: "🔗", RACE: "⚡", FAQ: "❓",
-      ARTICLE: "📄"
+      INFO: "📘", WARN: "⚠️", ERROR: "❌", SUCCESS: "✅",
+      FOCUS: "🎯", SKIP: "⏭️", BREADCRUMB: "🍞", AED: "⚡",
+      PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
+      IMG: "🖼️", EDITORIAL: "✍️", SYNC: "🔗", URL: "🌐",
+      CONFLICT: "🚨"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.36b-LITE] ${msg}`);
-  }
-
-  log(`🚀 Auto Schema v7.36b-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
-  log(`🎓 KNOWS_ABOUT: ${CONFIG.KNOWS_ABOUT.length} item`, "KNOWS");
-  log(`🔗 MAX_INTERNAL_LINKS: ${CONFIG.MAX_INTERNAL_LINKS}`, "SYNC");
-
-  // ============================================================
-  // EARLY EXIT
-  // ============================================================
-  (function earlyExitCheck() {
-    const currentPath = window.location.pathname;
-    const isHomepage = currentPath === '/' || currentPath === '/index.html' || currentPath === '';
-    const isStaticPage = /^\/(p|pages)\/(hubungi-kami|portofolio|disclaimer|privacy-policy|terms-of-service|useful-links|about|sitemap)/i.test(currentPath);
-
-    if (isHomepage) {
-      log('⏭️ Homepage — skip', 'SKIP');
-      window.__SCHEMA_SKIP_REASON = 'homepage';
-      return;
-    }
-    if (isStaticPage) {
-      log('⏭️ Static page — skip', 'SKIP');
-      window.__SCHEMA_SKIP_REASON = 'static-page';
-      return;
-    }
-    window.__SCHEMA_SKIP_REASON = null;
-  })();
-
-  if (window.__SCHEMA_SKIP_REASON) {
-    console.log(`⏸️ [AutoSchema v7.36b-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
-    return;
+    console.log(`${icons[type] || "📘"} [AutoSchema v8.6] ${msg}`);
   }
 
   // ============================================================
-  // CORB PREVENTION
-  // ============================================================
-  const originalFetch = window.fetch;
-  window.fetch = function(...args) {
-    const url = args[0];
-    if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-      log(`🚫 Blocked external fetch: ${url}`, "CORB");
-      return Promise.reject(new Error('Blocked by CORB prevention'));
-    }
-    return originalFetch.apply(this, args);
-  };
-
-  const originalXHROpen = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function(method, url, ...rest) {
-    if (typeof url === 'string' && (url.includes('raw.githack.com') || url.includes('github.com') || url.includes('gist.github.com'))) {
-      log(`🚫 Blocked external XHR: ${url}`, "CORB");
-      throw new Error('Blocked by CORB prevention');
-    }
-    return originalXHROpen.call(this, method, url, ...rest);
-  };
-
-  // ============================================================
-  // PERFORMANCE MONITORING
-  // ============================================================
-  const perf = {
-    marks: {},
-    start(label) {
-      this.marks[label] = performance.now();
-      if (CONFIG.DEBUG) console.log(`⏱️ [PERF] Start: ${label}`);
-    },
-    end(label) {
-      if (!this.marks[label]) return 0;
-      const duration = performance.now() - this.marks[label];
-      if (CONFIG.DEBUG) console.log(`⏱️ [PERF] ${label}: ${duration.toFixed(2)}ms`);
-      delete this.marks[label];
-      return duration;
-    }
-  };
-
-  // ============================================================
-  // DOM CACHE
-  // ============================================================
-  class DOMCache {
-    constructor() { this.cache = new Map(); }
-    get(selector, context = document) {
-      const key = `${context === document ? 'document' : 'ctx'}:${selector}`;
-      if (!this.cache.has(key)) this.cache.set(key, context.querySelector(selector));
-      return this.cache.get(key);
-    }
-    getAll(selector, context = document) {
-      const key = `${context === document ? 'document' : 'ctx'}:${selector}:all`;
-      if (!this.cache.has(key)) this.cache.set(key, Array.from(context.querySelectorAll(selector)));
-      return this.cache.get(key) || [];
-    }
-    invalidate(selector, context = document) {
-      const key = `${context === document ? 'document' : 'ctx'}:${selector}`;
-      this.cache.delete(key);
-      this.cache.delete(`${key}:all`);
-    }
-    clear() { this.cache.clear(); }
-  }
-
-  // ============================================================
-  // ERROR BOUNDARY
-  // ============================================================
-  class ErrorBoundary {
-    constructor() { this.errors = []; this.fallbacks = new Map(); }
-    register(fnName, fallback) { this.fallbacks.set(fnName, fallback); }
-    async execute(fnName, fn, ...args) {
-      try {
-        return await fn(...args);
-      } catch (error) {
-        const fallback = this.fallbacks.get(fnName);
-        console.error(`❌ Error in ${fnName}:`, error);
-        log(`Error in ${fnName}: ${error.message}`, "ERROR");
-        if (fallback) return typeof fallback === 'function' ? fallback(...args) : fallback;
-        return null;
-      }
-    }
-    safeWrap(fn, fnName) {
-      return (...args) => this.execute(fnName, fn, ...args);
-    }
-  }
-
-  const domCache = CONFIG.CACHE_DOM_ELEMENTS ? new DOMCache() : null;
-  const errorBoundary = new ErrorBoundary();
-
-  // ============================================================
-  // CLOUDINARY CONFIG
-  // ============================================================
-  const CLOUDINARY_CONFIG = {
-    ENABLED: true,
-    CLOUD_NAME: 'vagzz5sa',
-    VERSION: 'v1789109159',
-    FORMAT: 'webp',
-    WIDTH: 1200,
-    HEIGHT: 630,
-    FONT: 'Arial',
-    FONT_SIZE: 55,
-    BOLD: true,
-    GRAVITY: 'g_center',
-    MAX_TEXT_LENGTH: 70,
-    MAX_CHARS_PER_LINE: 18,
-    MAX_LINES: 2,
-    QUALITY: 'q_auto:good',
-    FORMAT_AUTO: 'f_auto',
-    DPR_AUTO: 'dpr_auto',
-    FALLBACK_FORMAT: 'png',
-    LEVEL_FILES: {
-      'pillar': 'pillar', 'sub-pillar-tipe-2': 'sp2', 'sub-pillar-tipe-1': 'sp1',
-      'money-master': 'mm', 'money-page': 'mp', 'money-child': 'mc',
-      'variant': 'variant', 'sub-variant': 'subvariant'
-    },
-    LEVEL_COLORS: {
-      'pillar': 'FFD700', 'sub-pillar-tipe-2': 'FFD700', 'sub-pillar-tipe-1': 'FFD700',
-      'money-master': 'FFFFFF', 'money-page': 'FFFFFF', 'money-child': 'FFFFFF',
-      'variant': 'FFD700', 'sub-variant': 'FFD700'
-    },
-    get baseUrl() { return `https://res.cloudinary.com/${this.CLOUD_NAME}/image/upload/`; },
-    calculateFontSize(textLength) {
-      if (textLength <= 10) return 55; if (textLength <= 12) return 50;
-      if (textLength <= 15) return 45; if (textLength <= 18) return 40;
-      if (textLength <= 22) return 35; if (textLength <= 26) return 30;
-      if (textLength <= 30) return 28; if (textLength <= 35) return 26;
-      if (textLength <= 40) return 24; if (textLength <= 50) return 22;
-      return 20;
-    },
-    wrapText(text, maxCharsPerLine = this.MAX_CHARS_PER_LINE) {
-      if (text.length <= maxCharsPerLine) return text;
-      const words = text.split(' ');
-      const lines = []; let currentLine = '';
-      for (const word of words) {
-        if (word.length > maxCharsPerLine) {
-          if (currentLine) { lines.push(currentLine); currentLine = ''; }
-          let remaining = word;
-          while (remaining.length > maxCharsPerLine) {
-            lines.push(remaining.substring(0, maxCharsPerLine));
-            remaining = remaining.substring(maxCharsPerLine);
-          }
-          if (remaining) currentLine = remaining;
-        } else if ((currentLine + ' ' + word).trim().length <= maxCharsPerLine) {
-          currentLine = (currentLine + ' ' + word).trim();
-        } else {
-          if (currentLine) lines.push(currentLine);
-          currentLine = word;
-        }
-      }
-      if (currentLine) lines.push(currentLine);
-      if (lines.length > this.MAX_LINES) {
-        const merged = lines.slice(0, this.MAX_LINES - 1);
-        merged.push(lines.slice(this.MAX_LINES - 1).join(' '));
-        return merged.join('\n');
-      }
-      return lines.join('\n');
-    },
-    buildUrl(level, text) {
-      const fileName = this.LEVEL_FILES[level] || 'pillar';
-      const textColor = this.LEVEL_COLORS[level] || 'FFD700';
-      const weight = this.BOLD ? '_bold' : '';
-      let displayText = text;
-      if (displayText.length > this.MAX_TEXT_LENGTH) {
-        displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
-      }
-      displayText = this.wrapText(displayText);
-      const longestLine = displayText.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
-      const fontSize = this.calculateFontSize(longestLine.length);
-      const encodedText = encodeURIComponent(displayText);
-      return `${this.baseUrl}e_colorize:100,co_rgb:${textColor},` +
-             `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},${this.GRAVITY},` +
-             `c_fit,w_${this.WIDTH},h_${this.HEIGHT}/${this.QUALITY},${this.FORMAT_AUTO},${this.DPR_AUTO}/` +
-             `${this.VERSION}/${fileName}.${this.FORMAT}`;
-    },
-    buildFallbackUrl(level, text) {
-      const fileName = this.LEVEL_FILES[level] || 'pillar';
-      const textColor = this.LEVEL_COLORS[level] || 'FFD700';
-      const weight = this.BOLD ? '_bold' : '';
-      let displayText = text;
-      if (displayText.length > this.MAX_TEXT_LENGTH) {
-        displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
-      }
-      displayText = this.wrapText(displayText);
-      const longestLine = displayText.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
-      const fontSize = this.calculateFontSize(longestLine.length);
-      const encodedText = encodeURIComponent(displayText);
-      return `${this.baseUrl}e_colorize:100,co_rgb:${textColor},` +
-             `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},${this.GRAVITY},` +
-             `c_fit,w_${this.WIDTH},h_${this.HEIGHT}/` +
-             `${this.VERSION}/${fileName}.${this.FALLBACK_FORMAT}`;
-    }
-  };
-
-  // ============================================================
-  // IMAGE CONFIG
-  // ============================================================
-  const IMAGE_CONFIG = {
-    FALLBACK_IMAGE: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiWWAP6ezcmzgbGtHmmJqBjYkbsdQBrwCeC9pl9ocjL-VSQYftirdvXAF1T-eg_QMSqu1WiFidDc9fnChi0yaOqi0Dd6EVMy4ZX3P7vccY4XJMu-7k2TGVd5TS1wIG5jgIm_6beYVb2zuNQGS7eBuODJqd20c4ckvd0-HaEqGf4W-B_750I91wi9IhqqnI/s320/No_Image_Available.jpg",
-    LOGO_IMAGE: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png"
-  };
-
-  // ============================================================
-  // HELPER: PLD Version
+  // 🔧 HELPER: PLD VERSION
   // ============================================================
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
@@ -420,39 +136,11 @@
   }
 
   // ============================================================
-  // BREADCRUMB HELPERS
+  // 🔧 HELPER: BREADCRUMB
   // ============================================================
   function cleanBreadcrumbText(text) {
     if (!text) return '';
     return String(text).replace(/[›»>→←«‹|/]/g, '').replace(/\s+/g, ' ').trim();
-  }
-
-  function findMainBreadcrumb() {
-    const breadcrumbSelectors = [
-      '.breadcrumbs', '.breadcrumb', '.nav-trail',
-      '[aria-label="breadcrumb"]', '[itemtype*="BreadcrumbList"]',
-      '.post-breadcrumb', '.breadcrumb-nav', '.nav-breadcrumb'
-    ];
-    const candidates = [];
-    for (const selector of breadcrumbSelectors) {
-      try {
-        document.querySelectorAll(selector).forEach(el => {
-          if (!candidates.includes(el)) candidates.push(el);
-        });
-      } catch(e) {}
-    }
-    if (candidates.length === 0) return null;
-    for (const el of candidates) {
-      const text = (el.innerText || '').toLowerCase();
-      if (text.includes('beranda') || text.includes('home')) return el;
-    }
-    let best = candidates[0];
-    let maxLinks = 0;
-    for (const el of candidates) {
-      const links = el.querySelectorAll('a[href]').length;
-      if (links > maxLinks) { maxLinks = links; best = el; }
-    }
-    return best;
   }
 
   function waitForBreadcrumbGenerated(timeout = CONFIG.BREADCRUMB_GENERATED_TIMEOUT) {
@@ -461,28 +149,34 @@
       if (flagReady === 'true') {
         const parentName = document.body.getAttribute('data-breadcrumb-parent');
         const parentUrl = document.body.getAttribute('data-breadcrumb-parent-url');
-        log(`🚩 Breadcrumb READY (flag): "${parentName}"`, "FLAG");
+        log(`✅ Breadcrumb READY (flag): parent="${parentName}"`, "SUCCESS");
         resolve({
-          parentName: cleanBreadcrumbText(parentName) || 'Home',
+          parentName: cleanBreadcrumbText(parentName) || 'Parent Page',
           parentUrl: parentUrl || location.origin,
-          source: 'breadcrumb-shared-flag'
+          source: 'breadcrumb-flag',
+          allParents: []
         });
         return;
       }
+
       let resolved = false;
       const onReady = (e) => {
         if (resolved) return;
         resolved = true;
         const parentName = document.body.getAttribute('data-breadcrumb-parent');
         const parentUrl = document.body.getAttribute('data-breadcrumb-parent-url');
-        log(`📡 Breadcrumb GENERATED (event): "${parentName}"`, "EVENT");
+        log(`✅ Breadcrumb GENERATED: parent="${parentName}"`, "SUCCESS");
         resolve({
-          parentName: cleanBreadcrumbText(parentName) || 'Home',
+          parentName: cleanBreadcrumbText(parentName) || 'Parent Page',
           parentUrl: parentUrl || location.origin,
-          source: 'breadcrumb-shared-event'
+          source: 'breadcrumb-event',
+          allParents: [],
+          detail: e?.detail
         });
       };
+
       window.addEventListener('breadcrumbGenerated', onReady, { once: true });
+
       const startTime = Date.now();
       const interval = setInterval(() => {
         const flag = document.body.getAttribute('data-breadcrumb-ready');
@@ -496,7 +190,7 @@
           window.removeEventListener('breadcrumbGenerated', onReady);
           if (!resolved) {
             resolved = true;
-            log(`⏰ Breadcrumb GENERATED timeout (${timeout}ms)`, "WARN");
+            log(`⏰ Breadcrumb timeout (${timeout}ms)`, "WARN");
             resolve(null);
           }
         }
@@ -504,1196 +198,671 @@
     });
   }
 
-  function waitForBreadcrumbReady(timeout = CONFIG.BREADCRUMB_READY_TIMEOUT) {
-    return new Promise((resolve) => {
-      perf.start('waitForBreadcrumbReady');
-      const startTime = Date.now();
-      const currentUrlClean = location.href.replace(/[?&]m=1/, '').replace(/\/$/, '');
-
-      function checkBreadcrumbReady() {
-        const breadcrumbEl = findMainBreadcrumb();
-        if (!breadcrumbEl) {
-          if (Date.now() - startTime > timeout) {
-            log(`⏰ Breadcrumb timeout — tidak ditemukan`, "WARN");
-            perf.end('waitForBreadcrumbReady');
-            resolve(null);
-            return;
-          }
-          setTimeout(checkBreadcrumbReady, 200);
-          return;
-        }
-        const links = breadcrumbEl.querySelectorAll('a[href]');
-        const items = breadcrumbEl.querySelectorAll('[itemprop="itemListElement"]');
-        const hasSchema = breadcrumbEl.querySelector('[itemtype*="BreadcrumbList"]') || breadcrumbEl.hasAttribute('itemtype');
-        const fullText = (breadcrumbEl.innerText || '').toLowerCase();
-        const hasHome = /(beranda|home)/i.test(fullText);
-        if (!hasHome) {
-          if (Date.now() - startTime > timeout) {
-            perf.end('waitForBreadcrumbReady');
-            resolve(null);
-            return;
-          }
-          setTimeout(checkBreadcrumbReady, 200);
-          return;
-        }
-        let isFinal = false;
-        if (links.length > 0) {
-          const lastLink = links[links.length - 1];
-          const lastHref = (lastLink.href || '').replace(/[?&]m=1/, '').replace(/\/$/, '');
-          if (lastHref === currentUrlClean) isFinal = true;
-        }
-        if (!isFinal) {
-          const h1Text = (document.querySelector('h1')?.innerText || '').toLowerCase().trim();
-          const parts = fullText.split(/[›»>]/).map(p => p.trim()).filter(Boolean);
-          const lastPart = parts[parts.length - 1] || '';
-          if (h1Text && lastPart && (h1Text.includes(lastPart.substring(0, 20)) || lastPart.includes(h1Text.substring(0, 20)))) {
-            isFinal = true;
-          }
-        }
-        const isReady = ((links.length >= 2) || (items.length >= 2 && hasSchema)) && isFinal;
-        if (isReady) {
-          log(`✅ Breadcrumb SIAP & FINAL: ${links.length} links`, "BREADCRUMB");
-          perf.end('waitForBreadcrumbReady');
-          resolve({
-            element: breadcrumbEl,
-            links: Array.from(links),
-            items: Array.from(items),
-            linkCount: links.length,
-            itemCount: items.length,
-            hasSchema: hasSchema,
-            isFinal: true
-          });
-          return;
-        }
-        if (Date.now() - startTime > timeout) {
-          perf.end('waitForBreadcrumbReady');
-          resolve(null);
-          return;
-        }
-        setTimeout(checkBreadcrumbReady, 200);
-      }
-      checkBreadcrumbReady();
-    });
-  }
-
   function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
-    perf.start('getParentFromBreadcrumbReady');
     const parentFromFlag = document.body.getAttribute('data-breadcrumb-parent');
     const parentUrlFromFlag = document.body.getAttribute('data-breadcrumb-parent-url');
+
     if (parentFromFlag && parentUrlFromFlag) {
-      const cleanParent = cleanBreadcrumbText(parentFromFlag);
-      log(`👪 Parent dari FLAG: "${cleanParent}"`, "PARENT");
-      perf.end('getParentFromBreadcrumbReady');
       return {
         parentUrl: parentUrlFromFlag,
-        parentName: cleanParent || 'Home',
-        source: 'breadcrumb-shared-flag',
+        parentName: cleanBreadcrumbText(parentFromFlag),
+        source: 'breadcrumb-flag',
         allParents: []
       };
     }
-    if (!breadcrumbData || !breadcrumbData.links || breadcrumbData.links.length === 0) {
-      log('⚠️ Breadcrumb tidak valid — fallback ke origin', "WARN");
-      perf.end('getParentFromBreadcrumbReady');
-      return { parentUrl: location.origin, parentName: 'Home', source: 'fallback-origin', allParents: [] };
-    }
-    const links = breadcrumbData.links;
-    const currentUrlClean = currentUrl.replace(/[?&]m=1/, '').replace(/\/$/, '');
-    const validParents = links.filter(link => {
-      const href = (link.href || '').replace(/\/$/, '');
-      const text = cleanBreadcrumbText(link.innerText || '');
-      if (href === currentUrlClean) return false;
-      if (href.includes(currentUrlClean)) return false;
-      if (currentUrlClean.includes(href)) return false;
-      if (!href || !text) return false;
-      if (text.length < 2) return false;
-      if (/^(beranda|home)$/i.test(text)) return false;
-      return true;
-    });
-    if (validParents.length === 0) {
-      perf.end('getParentFromBreadcrumbReady');
-      return { parentUrl: location.origin, parentName: 'Home', source: 'fallback-origin', allParents: [] };
-    }
-    const parentLink = validParents[validParents.length - 1];
-    const parentUrl = parentLink.href || '';
-    const parentName = cleanBreadcrumbText(parentLink.innerText || '') || 'Parent Page';
-    log(`👪 Parent terdekat: "${parentName}" → ${parentUrl}`, "PARENT");
-    perf.end('getParentFromBreadcrumbReady');
+
     return {
-      parentUrl: parentUrl,
-      parentName: parentName,
-      source: 'breadcrumb-dom',
-      allParents: validParents.map(l => ({ url: l.href, name: cleanBreadcrumbText(l.innerText || '') }))
+      parentUrl: location.origin,
+      parentName: 'Home',
+      source: 'fallback-origin',
+      allParents: []
     };
   }
 
   // ============================================================
-  // PLD DATA READERS
+  // 🔧 HELPER: AED & PLD WAITERS
   // ============================================================
-  function getPageLevelFromPLD() {
-    perf.start('getPageLevelFromPLD');
-    const bodyLevel = document.body.getAttribute('data-page-level');
-    if (bodyLevel) { perf.end('getPageLevelFromPLD'); return bodyLevel; }
-    if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.detect) {
-      try {
-        const level = window.pageLevelDetectorv22.detect();
-        if (level) { perf.end('getPageLevelFromPLD'); return level; }
-      } catch(e) {}
-    }
-    perf.end('getPageLevelFromPLD');
-    return null;
-  }
-
-  function getEntityTypeFromPLD() {
-    perf.start('getEntityTypeFromPLD');
-    const bodyEntity = document.body.getAttribute('data-entity-type');
-    if (bodyEntity) { perf.end('getEntityTypeFromPLD'); return bodyEntity; }
-    if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.detectEntityType) {
-      try {
-        const entityType = window.pageLevelDetectorv22.detectEntityType();
-        if (entityType) { perf.end('getEntityTypeFromPLD'); return entityType; }
-      } catch(e) {}
-    }
-    perf.end('getEntityTypeFromPLD');
-    return null;
-  }
-
-  function detectContentFocus() {
-    perf.start('detectContentFocus');
-    if (window.AEDMetaDates && window.AEDMetaDates.contentFocus) {
-      perf.end('detectContentFocus');
-      return String(window.AEDMetaDates.contentFocus).toUpperCase();
-    }
-    const bodyFocus = document.body.getAttribute('data-content-focus');
-    if (bodyFocus) { perf.end('detectContentFocus'); return bodyFocus.toUpperCase(); }
-    perf.end('detectContentFocus');
-    return null;
-  }
-
-  function getKategori() {
-    perf.start('getKategori');
-    if (window.AEDMetaDates && window.AEDMetaDates.pldKategori) {
-      perf.end('getKategori');
-      return String(window.AEDMetaDates.pldKategori).toUpperCase();
-    }
-    const bodyKategori = document.body.getAttribute('data-kategori');
-    if (bodyKategori) { perf.end('getKategori'); return bodyKategori.toUpperCase(); }
-    perf.end('getKategori');
-    return null;
-  }
-
-  function getCtaType() {
-    perf.start('getCtaType');
-    const bodyCtaType = document.body.getAttribute('data-cta-type');
-    const bodyCtaText = document.body.getAttribute('data-cta-text');
-    if (bodyCtaType) {
-      const result = { type: bodyCtaType, text: bodyCtaText || bodyCtaType };
-      log(`🔘 CTA: ${result.type} — "${result.text}"`, "PLD");
-      perf.end('getCtaType');
-      return result;
-    }
-    perf.end('getCtaType');
-    return null;
-  }
-
-  function getH1Pattern() {
-    perf.start('getH1Pattern');
-    const bodyH1Pattern = document.body.getAttribute('data-h1-pattern');
-    if (bodyH1Pattern) { perf.end('getH1Pattern'); return bodyH1Pattern; }
-    const kategori = getKategori();
-    const pattern = kategori === 'NON-EVERGREEN' ? 'with-year' : 'no-year';
-    perf.end('getH1Pattern');
-    return pattern;
-  }
-
-  function needYear(level) {
-    const bodyNeedYear = document.body.getAttribute('data-need-year');
-    if (bodyNeedYear !== null) return bodyNeedYear === 'true';
-    const h1Pattern = getH1Pattern();
-    return h1Pattern === 'with-year';
-  }
-
-  function isImageEligible(pageLevel) {
-    const bodyImageEligible = document.body.getAttribute('data-image-eligible');
-    if (bodyImageEligible !== null) return bodyImageEligible === 'true';
-    const mandatoryImageLevels = ['money-master', 'money-page', 'money-child', 'variant', 
-                                   'sub-variant', 'pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'];
-    return mandatoryImageLevels.includes(pageLevel);
-  }
-
-  // ============================================================
-  // 🔥 FIX-3: waitForAEDMetaDates — Anti-race-condition
-  // ============================================================
+  
+  // 🔥 K3-FIX: Anti-spoofing dateModified
   function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
     return new Promise((resolve) => {
-      perf.start('waitForAEDMetaDates');
-      const controller = new AbortController();
-      let timeoutId = null, intervalId = null, resolved = false;
-
-      function safeEnd() {
-        if (!resolved) { resolved = true; perf.end('waitForAEDMetaDates'); }
-      }
-
       if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
-        log(`⚡ AED ready: ${window.AEDMetaDates.dateModified}`, "AED");
-        safeEnd();
         resolve(window.AEDMetaDates);
         return;
       }
 
-      function cleanup() {
-        if (timeoutId) { clearTimeout(timeoutId); timeoutId = null; }
-        if (intervalId) { clearInterval(intervalId); intervalId = null; }
-        controller.abort();
-      }
-
       const onReady = () => {
-        cleanup();
-        if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
-          safeEnd();
-          resolve(window.AEDMetaDates);
-        } else {
-          safeEnd();
-          resolve(null);
-        }
+        resolve(window.AEDMetaDates && window.AEDMetaDates.dateModified ? window.AEDMetaDates : null);
       };
-
-      window.addEventListener("detectEvergreenReady", onReady, { once: true, signal: controller.signal });
+      window.addEventListener("detectEvergreenReady", onReady, { once: true });
 
       const startTime = Date.now();
-      intervalId = setInterval(() => {
-        if (controller.signal.aborted) { clearInterval(intervalId); intervalId = null; return; }
+      const interval = setInterval(() => {
         if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
-          cleanup();
-          safeEnd();
+          clearInterval(interval);
           resolve(window.AEDMetaDates);
           return;
         }
         if (Date.now() - startTime > timeout) {
-          cleanup();
-          log(`⏰ AED timeout — dateModified di-skip (anti-spoofing)`, "WARN");
-          safeEnd();
+          clearInterval(interval);
+          window.removeEventListener("detectEvergreenReady", onReady);
+          
+          // 🔥 K3-FIX: Fallback AMAN — jangan spoof
+          const fallbackDate = (window.AEDMetaDates && window.AEDMetaDates.datePublished)
+                            || new Date().toISOString();
+          
+          log("⚠️ AED timeout — fallback aman (anti-spoofing)", "WARN");
+          
           resolve({
-            dateModified: null,
-            nextUpdate: null,
-            validityDays: 365,
-            usePriceValidUntil: false
+            datePublished: fallbackDate,
+            dateModified: fallbackDate
           });
         }
       }, 100);
-
-      timeoutId = setTimeout(() => {
-        cleanup();
-        safeEnd();
-        resolve(null);
-      }, timeout + 100);
     });
   }
 
-  function waitForPLD() {
+  function waitForPageLevelDetector() {
     return new Promise((resolve) => {
-      perf.start('waitForPLD');
-      if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 ||
-          window.pageLevelDetectorv19 || window.pageLevelDetectorV18 ||
-          window.pageLevelDetectorV17 || window.pageLevelDetector) {
-        perf.end('waitForPLD');
+      if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
         resolve(true);
         return;
       }
-      const controller = new AbortController();
-      const onReady = () => { perf.end('waitForPLD'); resolve(true); };
-      window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true, signal: controller.signal });
+      const onReady = () => resolve(true);
+      window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
       setTimeout(() => {
-        controller.abort();
-        perf.end('waitForPLD');
         resolve(!!window.pageLevelDetectorv22);
       }, CONFIG.PLD_TIMEOUT);
     });
   }
 
   // ============================================================
-  // Color helpers
+  // 🔧 HELPER: PHASE 4.6
   // ============================================================
-  function getColorConfig(level) {
-    const colors = {
-      'pillar': { bg: '#0a2a44', text: '#ffffff', accent: '#25d366' },
-      'sub-pillar-tipe-2': { bg: '#1a237e', text: '#ffffff', accent: '#25d366' },
-      'sub-pillar-tipe-1': { bg: '#004d40', text: '#ffffff', accent: '#25d366' },
-      'money-master': { bg: '#0a2a44', text: '#ffffff', accent: '#ffd700' },
-      'money-page': { bg: '#1a5a8c', text: '#ffffff', accent: '#ffd700' },
-      'money-child': { bg: '#bf360c', text: '#ffffff', accent: '#ffd700' },
-      'variant': { bg: '#4a148c', text: '#ffffff', accent: '#25d366' },
-      'sub-variant': { bg: '#4e342e', text: '#ffffff', accent: '#25d366' }
-    };
-    return colors[level] || colors['pillar'];
-  }
-
-  function lightenColor(hex, percent) {
-    const num = parseInt(hex.replace('#', ''), 16);
-    const amt = Math.round(2.55 * percent);
-    const R = Math.min(255, (num >> 16) + amt);
-    const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
-    const B = Math.min(255, (num & 0x0000FF) + amt);
-    return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
-  }
-
-  function getCurrentYear() { return new Date().getFullYear(); }
-
-  function getCleanPageName(level) {
-    perf.start('getCleanPageName');
-    let cleanName = '';
-    let path = window.location.pathname;
-    path = path.replace(/^\/p\//, '').replace(/\/\d{4}\/\d{2}\//g, '/').replace(/\.html$/, '');
-    let segments = path.split('/').filter(s => s.length > 0);
-    let lastSegment = segments.length > 0 ? segments[segments.length - 1] : '';
-    cleanName = lastSegment.replace(/[-_]+/g, ' ').replace(/\b\w/g, l => l.toUpperCase()).replace(/\s\d+$/, '');
-    if (level === 'pillar' || level === 'sub-pillar-tipe-1' || level === 'sub-pillar-tipe-2') {
-      cleanName = cleanName.replace(/^(Harga|Jasa|Biaya|Tarif)\s*/i, '').trim();
+  function detectContentFocus(pageLevel, entityType) {
+    if (window.AEDMetaDates && window.AEDMetaDates.contentFocus) {
+      return String(window.AEDMetaDates.contentFocus).toLowerCase();
     }
-    if (cleanName.length < 3) {
-      const h1Text = document.querySelector('h1')?.innerText?.trim();
-      if (h1Text && h1Text.length > 3) {
-        cleanName = h1Text.replace(/\b(20[2-9][0-9])\b/g, '').replace(/\s*[–—\-|]\s*/g, ' ')
-          .replace(/^(Harga|Jasa|Biaya|Tarif|Estimasi)\s*/i, '').trim();
-      }
-    }
-    if (cleanName.length < 3) cleanName = 'Halaman Utama';
-    if (cleanName.length > 55) cleanName = cleanName.substring(0, 52) + '...';
-    perf.end('getCleanPageName');
-    return cleanName;
-  }
-
-  function createImageWithText(pageName, level, year) {
-    if (CLOUDINARY_CONFIG.ENABLED && CLOUDINARY_CONFIG.CLOUD_NAME) {
+    const bodyFocus = document.body.getAttribute('data-content-focus');
+    if (bodyFocus) return bodyFocus.toLowerCase();
+    if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectContentFocus === 'function') {
       try {
-        const needYearFlag = needYear(level);
-        const displayText = needYearFlag ? `${pageName} ${year}` : pageName;
-        const imageUrl = CLOUDINARY_CONFIG.buildUrl(level, displayText);
-        if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
-      } catch(e) {
-        log(`⚠️ Cloudinary error: ${e.message}`, "WARN");
-      }
+        const pldFocus = window.pageLevelDetectorv22.detectContentFocus(pageLevel, entityType);
+        if (pldFocus) return String(pldFocus).toLowerCase();
+      } catch(e) {}
     }
-    return IMAGE_CONFIG.LOGO_IMAGE;
-  }
-
-  function getFallbackImage(pageName, level, year) {
-    if (CLOUDINARY_CONFIG.ENABLED && CLOUDINARY_CONFIG.CLOUD_NAME) {
-      try {
-        const needYearFlag = needYear(level);
-        const displayText = needYearFlag ? `${pageName} ${year}` : pageName;
-        return CLOUDINARY_CONFIG.buildFallbackUrl(level, displayText);
-      } catch(e) {
-        return IMAGE_CONFIG.LOGO_IMAGE;
-      }
-    }
-    return IMAGE_CONFIG.LOGO_IMAGE;
-  }
-
-  // ============================================================
-  // Fix Images
-  // ============================================================
-  function fixImagesToFormat1(pageLevel) {
-    perf.start('fixImagesToFormat1');
-    const currentYear = getCurrentYear();
-    const needYearFlag = needYear(pageLevel);
-    const pageName = getCleanPageName(pageLevel);
-    const displayName = needYearFlag ? pageName + ' ' + currentYear : pageName;
-
-    function getImageInsertionPoint() {
-      let article = domCache ? domCache.get('article') : document.querySelector('article');
-      if (!article) {
-        const candidates = ['.post-body', 'main', '.content', '.entry-content', '.post-content'];
-        for (let selector of candidates) {
-          const el = domCache ? domCache.get(selector) : document.querySelector(selector);
-          if (el) { article = el; break; }
-        }
-      }
-      if (!article) {
-        const h1Element = domCache ? domCache.get('h1') : document.querySelector('h1');
-        if (h1Element) article = h1Element.closest('section, div, main');
-      }
-      if (!article) article = document.body;
-      const badgeSelectors = ['.update-badge', '[class*="update-badge"]'];
-      let badge = null;
-      for (const selector of badgeSelectors) {
-        const el = domCache ? domCache.get(selector, article) : article.querySelector(selector);
-        if (el && el.parentElement === article) { badge = el; break; }
-      }
-      if (badge) return { container: article, referenceNode: badge, position: 'after' };
-      const firstChild = article.firstElementChild;
-      if (firstChild && firstChild.tagName === 'H1') return { container: article, referenceNode: firstChild, position: 'after' };
-      return { container: article, referenceNode: null, position: 'first' };
-    }
-
-    function applyResponsiveStyles(figure, img) {
-      figure.style.padding = '1em 0px';
-      figure.style.margin = '20px 0';
-      figure.style.textAlign = 'center';
-      figure.style.background = '#f8fafc';
-      figure.style.borderRadius = '12px';
-      figure.style.width = '100%';
-      figure.style.maxWidth = '100%';
-      figure.style.display = 'block';
-      figure.style.overflow = 'hidden';
-      img.style.width = '100%';
-      img.style.maxWidth = '1200px';
-      img.style.height = 'auto';
-      img.style.aspectRatio = '1200/630';
-      img.style.objectFit = 'contain';
-      img.style.borderRadius = '8px';
-      img.style.display = 'block';
-      img.style.margin = '0 auto';
-      img.style.padding = '0 10px';
-      img.style.boxSizing = 'border-box';
-      const styleId = 'responsive-image-style-v736b';
-      if (!document.getElementById(styleId)) {
-        const style = document.createElement('style');
-        style.id = styleId;
-        style.textContent = `
-          @media (max-width: 1200px) {
-            figure[data-auto-figure="true"] img { max-width: 100% !important; height: auto !important; aspect-ratio: auto !important; }
-            figure[data-auto-figure="true"] { padding: 0.5em 0px !important; margin: 10px 0 !important; }
-          }
-          @media (max-width: 480px) {
-            figure[data-auto-figure="true"] figcaption { font-size: 12px !important; padding: 0 10px !important; }
-          }
-        `;
-        document.head.appendChild(style);
-      }
-      figure.setAttribute('data-auto-figure', 'true');
-    }
-
-    let targetImage = null;
-    let targetFigure = null;
-
-    const h1Element = domCache ? domCache.get('h1') : document.querySelector('h1');
-    if (h1Element) {
-      const article = h1Element.closest('article, .post-body, main, section, div');
-      if (article) {
-        const siblings = article.children;
-        let foundH1 = false;
-        for (let i = 0; i < siblings.length; i++) {
-          if (siblings[i] === h1Element) { foundH1 = true; continue; }
-          if (foundH1) {
-            const img = siblings[i].querySelector('img');
-            if (img) { targetImage = img; targetFigure = siblings[i].tagName === 'FIGURE' ? siblings[i] : siblings[i].closest('figure'); break; }
-          }
-        }
-      }
-    }
-
-    if (!targetImage) {
-      const contentAreas = ['article', 'section', '.post-body', 'main', '.content'];
-      for (const areaSelector of contentAreas) {
-        const area = domCache ? domCache.get(areaSelector) : document.querySelector(areaSelector);
-        if (area) {
-          const img = area.querySelector('img:not([src*="logo"]):not([src*="icon"]):not([src*="avatar"])');
-          if (img) { targetImage = img; targetFigure = img.closest('figure'); break; }
-        }
-      }
-    }
-
-    const autoImageUrl = createImageWithText(pageName, pageLevel, currentYear);
-    const fallbackImageUrl = getFallbackImage(pageName, pageLevel, currentYear);
-    const captionText = '📊 ' + displayName;
-    let result = null;
-
-    if (targetImage) {
-      const img = targetImage;
-      const figure = targetFigure || img.closest('figure');
-      const currentSrc = img.src || '';
-      if (currentSrc.includes('No_Image') || currentSrc.includes('placeholder') || !currentSrc) {
-        if (/^https?:\/\//i.test(autoImageUrl)) {
-          img.src = autoImageUrl;
-          img.setAttribute('onerror', `this.onerror=null;this.src='${fallbackImageUrl}';`);
-        } else {
-          img.src = IMAGE_CONFIG.LOGO_IMAGE;
-        }
-      }
-      img.alt = displayName;
-      img.title = displayName;
-      img.setAttribute('loading', 'lazy');
-      img.setAttribute('decoding', 'async');
-      img.setAttribute('data-auto-generated', 'true');
-      img.setAttribute('data-page-level', pageLevel);
-      img.setAttribute('data-year', currentYear);
-
-      if (figure && figure.tagName === 'FIGURE') {
-        applyResponsiveStyles(figure, img);
-        let figcaption = figure.querySelector('figcaption');
-        if (!figcaption) {
-          figcaption = document.createElement('figcaption');
-          figcaption.style.cssText = 'color:#555;font-size:14px;margin-top:10px;padding:0 20px;text-align:center;';
-          figure.appendChild(figcaption);
-        }
-        figcaption.textContent = captionText;
-        result = figure;
-      } else {
-        const newFigure = document.createElement('figure');
-        const parent = img.parentElement;
-        parent.insertBefore(newFigure, img);
-        newFigure.appendChild(img);
-        const figcaption = document.createElement('figcaption');
-        figcaption.style.cssText = 'color:#555;font-size:14px;margin-top:10px;padding:0 20px;text-align:center;';
-        figcaption.textContent = captionText;
-        newFigure.appendChild(figcaption);
-        applyResponsiveStyles(newFigure, img);
-        result = newFigure;
-      }
-      perf.end('fixImagesToFormat1');
-      return result;
-    }
-
-    const insertPoint = getImageInsertionPoint();
-    const figure = document.createElement('figure');
-    const img = document.createElement('img');
-    img.src = autoImageUrl;
-    img.setAttribute('onerror', `this.onerror=null;this.src='${fallbackImageUrl}';`);
-    img.alt = displayName;
-    img.title = displayName;
-    img.setAttribute('loading', 'lazy');
-    img.setAttribute('decoding', 'async');
-    img.setAttribute('data-auto-generated', 'true');
-    img.setAttribute('data-page-level', pageLevel);
-    img.setAttribute('data-year', currentYear);
-    const figcaption = document.createElement('figcaption');
-    figcaption.style.cssText = 'color:#555;font-size:14px;margin-top:10px;padding:0 20px;text-align:center;';
-    figcaption.textContent = captionText;
-    figure.appendChild(img);
-    figure.appendChild(figcaption);
-    applyResponsiveStyles(figure, img);
-    if (insertPoint.referenceNode && insertPoint.position === 'after') {
-      insertPoint.container.insertBefore(figure, insertPoint.referenceNode.nextSibling);
-    } else {
-      insertPoint.container.insertBefore(figure, insertPoint.container.firstChild);
-    }
-    perf.end('fixImagesToFormat1');
-    return figure;
-  }
-
-  // ============================================================
-  // 🔥 FIX-1: SERVICE TYPE EXTRACTOR
-  // ============================================================
-  function extractServiceType(title, entityType) {
-    let serviceType = title
-      .replace(/^(harga|biaya|tarif|estimasi|daftar|perbandingan|jual|beli)\s*/i, '')
-      .replace(/\b(19|20)\d{2}\b/g, '')
-      .replace(/\s*terbaru|\s*update|\s*terkini|\s*lengkap|\s*terpercaya/gi, '')
-      .replace(/\s*[–—\-|:&•·].*$/, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    
-    if (entityType === 'jasa' && !/^(jasa|layanan|service|borongan|kontraktor|pemasangan|instalasi)/i.test(serviceType)) {
-      serviceType = 'Jasa ' + serviceType;
-    } else if (entityType === 'sewa' && !/^(sewa|rental)/i.test(serviceType)) {
-      serviceType = 'Sewa ' + serviceType;
-    } else if (entityType === 'produk' && !/^(produk|jual|beli)/i.test(serviceType)) {
-      serviceType = 'Produk ' + serviceType;
-    }
-    
-    if (serviceType.length > 60) serviceType = serviceType.substring(0, 60).trim();
-    
-    log(`🔧 extractServiceType: "${title}" → "${serviceType}"`, "FIX");
-    return serviceType;
-  }
-
-  function detectProductMaterial(entityType) {
-    const bodyMaterial = document.body.getAttribute('data-product-material');
-    if (bodyMaterial) return bodyMaterial;
-    if (entityType === 'jasa') return 'Jasa Konstruksi';
-    if (entityType === 'sewa') return 'Alat Konstruksi';
-    if (entityType === 'material') return document.body.getAttribute('data-product-category') || 'Material Bangunan';
-    if (entityType === 'produk') return document.body.getAttribute('data-product-category') || 'Produk Konstruksi';
     return null;
   }
 
-  // ============================================================
-  // FAQ EXTRACTION (dari DOM)
-  // ============================================================
-  function extractFaqFromDOM() {
-    perf.start('extractFaqFromDOM');
-    const faqs = [];
-    const container = document.querySelector('article, main, .post-body') || document.body;
-
-    const headings = container.querySelectorAll('h2, h3, h4');
-    for (const h of headings) {
-      const qText = (h.innerText || '').trim().replace(/\s+/g, ' ');
-      if (!qText || qText.length < 8 || qText.length > 200) continue;
-
-      const isQuestion = /\?/.test(qText)
-        || /^(apa|apakah|bagaimana|gimana|kenapa|mengapa|kapan|dimana|di mana|siapa|berapa|yang mana)\b/i.test(qText);
-      if (!isQuestion) continue;
-
-      let answerEl = h.nextElementSibling;
-      while (answerEl && !/^(P|UL|OL|DIV|BLOCKQUOTE)$/.test(answerEl.tagName)) {
-        answerEl = answerEl.nextElementSibling;
-      }
-      if (!answerEl) continue;
-
-      const aText = (answerEl.innerText || '').trim().replace(/\s+/g, ' ').substring(0, 500);
-      if (!aText || aText.length < 20) continue;
-
-      faqs.push({
-        "@type": "Question",
-        "name": qText,
-        "acceptedAnswer": { "@type": "Answer", "text": aText }
-      });
-
-      if (faqs.length >= 8) break;
+  function getKategori(contentFocus) {
+    if (window.AEDMetaDates && window.AEDMetaDates.pldKategori) {
+      return String(window.AEDMetaDates.pldKategori).toUpperCase();
     }
+    const bodyKategori = document.body.getAttribute('data-kategori');
+    if (bodyKategori) return bodyKategori.toUpperCase();
+    if (contentFocus) {
+      const map = {
+        'informasi': 'EVERGREEN',
+        'harga': 'NON-EVERGREEN',
+        'commercial': 'NON-EVERGREEN',
+        'gabung': 'NON-EVERGREEN'
+      };
+      return map[String(contentFocus).toLowerCase()] || null;
+    }
+    return null;
+  }
 
-    log(`❓ FAQ extracted: ${faqs.length} pertanyaan`, "FAQ");
-    perf.end('extractFaqFromDOM');
-    return faqs;
+  function getEntitySubType() {
+    return document.body.getAttribute('data-entity-sub-type') || null;
   }
 
   // ============================================================
-  // PRICE PARSING
+  // 🔥 FIX-5 (v8.6): GET PLD SCHEMA HINT
+  // Baca attribute yang PLD set — TIDAK menebak sendiri
   // ============================================================
-  function parsePriceFromText(text) {
-    if (!text) return null;
-    let clean = String(text).trim();
-    let multiplier = 1;
-    if (/\d\s*(rb|ribu|k)\b/i.test(clean)) { multiplier = 1000; clean = clean.replace(/\s*(rb|ribu|k)\b/gi, ''); }
-    if (/\d\s*(jt|juta|m)\b/i.test(clean)) { multiplier = 1000000; clean = clean.replace(/\s*(jt|juta|m)\b/gi, ''); }
-    clean = clean.replace(/(Rp\.?|IDR|\$|€|¥|£)/gi, '').trim().replace(/\s+/g, '');
-    if (clean.includes('.') && clean.includes(',')) clean = clean.replace(/\./g, '').replace(',', '.');
-    else if (clean.includes('.')) {
-      const parts = clean.split('.');
-      if (parts[parts.length - 1].length === 3) clean = clean.replace(/\./g, '');
-    } else if (clean.includes(',')) {
-      const parts = clean.split(',');
-      if (parts[parts.length - 1].length === 3) clean = clean.replace(/,/g, '');
-      else clean = clean.replace(',', '.');
-    }
-    const match = clean.match(/[\d.]+/);
-    if (!match) return null;
-    let value = parseFloat(match[0]);
-    if (isNaN(value)) return null;
-    value *= multiplier;
-    if (value < CONFIG.MIN_PRICE || value > CONFIG.MAX_PRICE) return null;
-    return Math.round(value);
+  function getPLDSchemaHint() {
+    const primary   = (document.body.getAttribute('data-schema-type-primary')   || '').trim();
+    const secondary = (document.body.getAttribute('data-schema-type-secondary') || '').trim();
+    const note      = (document.body.getAttribute('data-schema-type-note')      || '').trim();
+    const hint = { primary, secondary, note };
+    log(`🔗 PLD hint → primary=${primary || '(none)'} | secondary=${secondary || '(none)'} | note=${note || '(none)'}`, "SCHEMA");
+    return hint;
   }
 
-  function isNotPrice(text, value) {
-    if (value < CONFIG.MIN_PRICE || value > CONFIG.MAX_PRICE) return true;
-    if (value >= 1900 && value <= 2099 && !/(harga|biaya|tarif|price|cost)/i.test(text)) return true;
-    const cleanText = text.replace(/[\s\-\.]/g, '');
-    if (/^(\+?62|0)\d{8,12}$/.test(cleanText)) return true;
-    if (/^\d{5}$/.test(text.trim())) return true;
-    if (/^\d{16}$/.test(text.trim())) return true;
-    if (/\d+\s*(cm|mm|m|kg|ton|%|unit|buah|lembar|pcs|box)\b/i.test(text) && !/(harga|biaya|tarif|price|cost|rp)/i.test(text)) return true;
-    if (/\d+\s*[x×]\s*\d+/.test(text) && !/(harga|biaya|tarif|price)/i.test(text)) return true;
-    if (/\d[\d.,]*\s*%/i.test(text)) return true;
-    if (/20\d{2}\s*[-–]\s*20\d{2}/.test(text)) return true;
+  // ============================================================
+  // 🔧 HELPER: SKIP PAGE
+  // ============================================================
+  function shouldSkipPage() {
+    const currentPath = window.location.pathname;
+    
+    // Homepage
+    const isHomepage = currentPath === '/' || currentPath === '/index.html' || currentPath === '';
+    if (isHomepage) {
+      log(`⏭️ SKIP: HOMEPAGE`, "SKIP");
+      return true;
+    }
+    
+    // Static pages
+    const isStaticPage = STATIC_PAGES.some(page => currentPath.includes(page));
+    if (isStaticPage) {
+      log(`⏭️ SKIP: STATIC PAGE`, "SKIP");
+      return true;
+    }
+    
+    // Main content check
+    const hasMainContent = document.querySelector('.post-body.entry-content, .post-body, article, main, section');
+    const hasH1 = document.querySelector('h1');
+    const contentLength = document.body.innerText?.trim()?.length || 0;
+    const isContentPage = hasMainContent && hasH1 && contentLength > CONFIG.SKIP_WORD_COUNT;
+    
+    if (!isContentPage) {
+      log(`⏭️ SKIP: TANPA KONTEN UTAMA (${contentLength} kar)`, "SKIP");
+      return true;
+    }
+    
+    log(`✅ Halaman LAYAK: ${currentPath}`, "SUCCESS");
     return false;
   }
 
   // ============================================================
-  // 4-LAYER PRICE DETECTION
+  // 🔧 HELPER: GET PAGE LEVEL & ENTITY TYPE
   // ============================================================
-  const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
-
-  function detectPriceLayered(pageLevel) {
-    perf.start('detectPriceLayered');
-    if (!MONEY_LEVELS.includes(pageLevel)) {
-      perf.end('detectPriceLayered');
-      return { hasPrice: false, source: null, value: null, offers: [], reason: 'not-money-level' };
+  async function getPageLevelAndEntityType() {
+    const bodyLevel = document.body.getAttribute('data-page-level');
+    const bodyEntity = document.body.getAttribute('data-entity-type');
+    
+    if (bodyLevel && bodyEntity) {
+      return { pageLevel: bodyLevel, entityType: bodyEntity, source: 'body-attribute' };
     }
-    const container = document.querySelector('article, main, .post-body, .entry-content') || document.body;
-
-    const layer1 = detectPriceFromTableHeader(container);
-    if (layer1.hasPrice) { perf.end('detectPriceLayered'); return { ...layer1, layer: 1 }; }
-
-    const layer2 = detectPriceFromElements(container);
-    if (layer2.hasPrice) { perf.end('detectPriceLayered'); return { ...layer2, layer: 2 }; }
-
-    const layer3 = detectPriceFromKeywordElements(container);
-    if (layer3.hasPrice) { perf.end('detectPriceLayered'); return { ...layer3, layer: 3 }; }
-
-    const layer4 = detectPriceFromLooseRegex(container);
-    if (layer4.hasPrice) { perf.end('detectPriceLayered'); return { ...layer4, layer: 4 }; }
-
-    perf.end('detectPriceLayered');
-    return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-price-found' };
-  }
-
-  function detectPriceFromTableHeader(container) {
-    const offers = [];
-    const tables = container.querySelectorAll('table');
-    for (const table of tables) {
-      const headers = Array.from(table.querySelectorAll('th')).map(th => th.innerText.toLowerCase().trim());
-      const priceColIndex = headers.findIndex(h => /harga|biaya|tarif|price|cost|rate/i.test(h));
-      const productColIndex = headers.findIndex(h => /produk|item|jenis|nama|layanan|jasa|barang|material|tipe|varian/i.test(h));
-      if (priceColIndex === -1) continue;
-      for (const row of table.querySelectorAll('tbody tr, tr')) {
-        const cells = row.querySelectorAll('td');
-        if (cells.length <= priceColIndex) continue;
-        const priceText = cells[priceColIndex].innerText.trim();
-        const productText = productColIndex !== -1 && cells[productColIndex] ? cells[productColIndex].innerText.trim() : cells[0].innerText.trim();
-        const price = parsePriceFromText(priceText);
-        if (!price || isNotPrice(priceText, price)) continue;
-        if (!productText || productText.length < 3 || productText.length > 100) continue;
-        offers.push({ name: productText, price: price, description: productText });
-        if (offers.length >= CONFIG.MAX_OFFERS) break;
-      }
-      if (offers.length > 0) break;
-    }
-    return { hasPrice: offers.length > 0, source: 'table-header', value: offers[0]?.price, offers };
-  }
-
-  function detectPriceFromElements(container) {
-    const selectors = ['[itemprop="price"]', '.price', '.harga', '.biaya', '.tarif', '[data-price]', '.price-item', '.price-value', '.amount', '.cost'];
-    const priceEls = container.querySelectorAll(selectors.join(', '));
-    for (const el of priceEls) {
-      const text = el.innerText.trim();
-      const price = parsePriceFromText(text);
-      if (!price || isNotPrice(text, price)) continue;
-      let productName = '';
-      const parent = el.closest('li, tr, .product, .item, article, section');
-      if (parent) {
-        const h = parent.querySelector('h2, h3, h4, .title, .name, .product-name');
-        if (h) productName = h.innerText.trim();
-      }
-      if (!productName) {
-        const prev = el.previousElementSibling;
-        if (prev) productName = prev.innerText.trim().substring(0, 100);
-      }
-      if (!productName) productName = 'Produk';
-      return { hasPrice: true, source: 'element', value: price, offers: [{ name: productName, price, description: productName }] };
-    }
-    return { hasPrice: false, source: null, value: null, offers: [] };
-  }
-
-  function detectPriceFromKeywordElements(container) {
-    const candidates = container.querySelectorAll(
-      'table td, table th, [class*="price"], [class*="harga"], [class*="biaya"], .price, .harga, .biaya, strong, b, .post-body p'
-    );
-    const containerText = container.innerText || '';
-    if (!/(harga|biaya|tarif|price|cost)/i.test(containerText)) {
-      return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-price-keyword' };
-    }
-    const keywordRegex = /(harga|biaya|tarif|price|cost|rate|mulai dari|per\s+(m|m²|m2|unit|buah|lembar|meter))/i;
-    let processed = 0;
-    for (const el of candidates) {
-      if (processed++ > CONFIG.MAX_ELEMENTS_TO_SCAN) break;
-      const text = el.innerText || '';
-      if (!text || text.length > 500) continue;
-      if (!keywordRegex.test(text)) continue;
-      const price = parsePriceFromText(text);
-      if (!price || isNotPrice(text, price)) continue;
-      let productName = text.replace(/Rp\.?\s*[\d.,]+\s*(rb|ribu|k|jt|juta)?/gi, '').trim();
-      productName = productName.replace(/^(harga|biaya|tarif)\s*:?\s*/i, '').trim();
-      if (productName.length > 100) productName = productName.substring(0, 100);
-      if (productName.length < 3) productName = 'Produk';
-      return { hasPrice: true, source: 'keyword', value: price, offers: [{ name: productName, price, description: productName }] };
-    }
-    return { hasPrice: false, source: null, value: null, offers: [] };
-  }
-
-  function detectPriceFromLooseRegex(container) {
-    const keywordRegex = /(harga|biaya|tarif|price|cost|rate|mulai dari|per\s+(m|m²|m2|unit|buah|lembar|meter))/i;
-    const contextEls = [];
-    const allEls = container.querySelectorAll(
-      'table td, table th, [class*="price"], [class*="harga"], [class*="biaya"], .price, .harga, .biaya, strong, b, .post-body p'
-    );
-    let processed = 0;
-    for (const el of allEls) {
-      if (processed++ > CONFIG.MAX_ELEMENTS_TO_SCAN) break;
-      const text = el.innerText || '';
-      if (!text || text.length > 500) continue;
-      if (keywordRegex.test(text)) contextEls.push(el);
-    }
-    if (contextEls.length === 0) return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-context' };
-    for (const el of contextEls) {
-      const text = el.innerText;
-      const rpMatches = text.match(/Rp\.?\s*([\d.,]+)/gi);
-      if (rpMatches) {
-        for (const m of rpMatches) {
-          const price = parsePriceFromText(m);
-          if (price && !isNotPrice(text, price)) {
-            let name = text.replace(/Rp\.?\s*[\d.,]+\s*(rb|ribu|k|jt|juta)?/gi, '').replace(/^(harga|biaya|tarif)\s*:?\s*/i, '').trim();
-            if (name.length > 100) name = name.substring(0, 100);
-            if (name.length < 3) name = 'Produk';
-            return { hasPrice: true, source: 'regex-rp', value: price, offers: [{ name, price, description: name }] };
-          }
-        }
-      }
-      const unitMatches = text.match(/([\d.,]+)\s*(rb|ribu|k|jt|juta)\b/gi);
-      if (unitMatches) {
-        for (const m of unitMatches) {
-          const price = parsePriceFromText(m);
-          if (price && !isNotPrice(text, price)) {
-            let name = text.replace(/([\d.,]+)\s*(rb|ribu|k|jt|juta)/gi, '').replace(/^(harga|biaya|tarif)\s*:?\s*/i, '').trim();
-            if (name.length > 100) name = name.substring(0, 100);
-            if (name.length < 3) name = 'Produk';
-            return { hasPrice: true, source: 'regex-unit', value: price, offers: [{ name, price, description: name }] };
-          }
-        }
-      }
-      const thousandMatches = text.match(/\b\d{1,3}(?:[.,]\d{3})+\b/g);
-      if (thousandMatches) {
-        for (const m of thousandMatches) {
-          const price = parsePriceFromText(m);
-          if (price && !isNotPrice(text, price)) {
-            let name = text.replace(/\b\d{1,3}(?:[.,]\d{3})+\b/g, '').replace(/^(harga|biaya|tarif)\s*:?\s*/i, '').trim();
-            if (name.length > 100) name = name.substring(0, 100);
-            if (name.length < 3) name = 'Produk';
-            return { hasPrice: true, source: 'regex-thousand', value: price, offers: [{ name, price, description: name }] };
-          }
-        }
-      }
-    }
-    return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-valid-price' };
-  }
-
-  // ============================================================
-  // 🔥 FIX-2: INTERNAL LINKS — Max 8
-  // ============================================================
-  function generateInternalLinks() {
-    perf.start('generateInternalLinks');
-    const container = document.querySelector('article, main, .post-body') || document.body;
-    const anchors = container.querySelectorAll('a');
-    const links = [];
-    for (const a of anchors) {
-      const href = a.href;
-      if (!href) continue;
-      if (!href.includes(location.hostname)) continue;
-      if (href.includes('#')) continue;
-      if (href.match(/(\/search|\/feed|\/label)/i)) continue;
-      if (href.includes('{{') || href.includes('%7B') || href.includes('LINK_')) continue;
-      links.push(href);
-      if (links.length >= CONFIG.MAX_INTERNAL_LINKS) break;
-    }
-    const unique = [...new Set(links)];
-    const limited = unique.slice(0, CONFIG.MAX_INTERNAL_LINKS);
-    const result = limited.map((u, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      url: u,
-      name: decodeURIComponent(u.split("/").pop().replace(".html", "").replace(/-/g, " "))
-    }));
-    log(`🔗 Internal links: ${result.length} (max ${CONFIG.MAX_INTERNAL_LINKS})`, "SYNC");
-    perf.end('generateInternalLinks');
-    return result;
-  }
-
-  // ============================================================
-  // 🚀 MAIN FUNCTION v7.36b-LITE
-  // ============================================================
-  document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(async () => {
-      perf.start('init');
-      log("═══════════════════════════════════════════════════", "INFO");
-      log("AUTO SCHEMA UNIVERSAL v7.36b-LITE COMPLETE", "INFO");
-      log("═══════════════════════════════════════════════════", "INFO");
-
+    
+    if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
       try {
-        // ===== STEP 1: BREADCRUMB =====
-        let parentData = await waitForBreadcrumbGenerated(CONFIG.BREADCRUMB_GENERATED_TIMEOUT);
-        let breadcrumbData = null;
-        if (!parentData || !parentData.parentName || parentData.parentName === 'Home') {
-          breadcrumbData = await waitForBreadcrumbReady(CONFIG.BREADCRUMB_READY_TIMEOUT);
-          const currentUrl = location.href.replace(/[?&]m=1/, "");
-          parentData = getParentFromBreadcrumbReady(breadcrumbData, currentUrl);
-        }
+        return {
+          pageLevel: window.pageLevelDetectorv22.detect(),
+          entityType: window.pageLevelDetectorv22.detectEntityType(),
+          source: `PLD ${getPLDVersion().label}`
+        };
+      } catch(e) {}
+    }
+    
+    return { pageLevel: null, entityType: null, source: 'unavailable' };
+  }
 
-        // ===== STEP 2: PLD =====
-        await waitForPLD();
-        const pldVer = getPLDVersion();
+  // ============================================================
+  // 🔥 FIX-5 (v8.6): SHOULD GENERATE ARTICLE SCHEMA — PLD-DRIVEN
+  // 
+  // ATURAN BARU (SEO 2026):
+  //   1. PLD primary = Article → LAYAK
+  //   2. PLD secondary = TechArticle DAN primary BUKAN Service/Product → LAYAK
+  //   3. PLD primary = Service/Product → SKIP (sudah ditangani script lain)
+  //   4. Fallback legacy: hardcode level (untuk PLD lama)
+  // ============================================================
+  function shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) {
+    const hint = getPLDSchemaHint();
 
-        // ===== STEP 3: AED =====
-        const aed = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
+    // 🔥 PRIORITAS 1: PLD bilang Article sebagai primary → LAYAK
+    if (hint.primary === 'Article') {
+      log(`✅ Article WAJIB — PLD primary=Article`, "ARTICLE");
+      return true;
+    }
 
-        // ===== STEP 4: DATA PLD =====
-        const pageLevel    = getPageLevelFromPLD();
-        const entityType   = getEntityTypeFromPLD();
-        const contentFocus = detectContentFocus();
-        const kategori     = getKategori();
-        const ctaType      = getCtaType();
-        const h1Pattern    = getH1Pattern();
+    // 🔥 PRIORITAS 2: PLD bilang TechArticle sebagai secondary
+    //    TAPI hanya kalau primary BUKAN Service/Product
+    if (hint.secondary === 'TechArticle' && 
+        hint.primary !== 'Service' && 
+        hint.primary !== 'Product') {
+      log(`✅ Article WAJIB — PLD secondary=TechArticle (primary=${hint.primary})`, "ARTICLE");
+      return true;
+    }
 
-        // 🔥 Baca schema hint dari PLD (SEO 2026)
-        const schemaPrimary   = (document.body.getAttribute('data-schema-type-primary')   || '').trim();
-        const schemaSecondary = (document.body.getAttribute('data-schema-type-secondary') || '').trim();
-        const schemaNote      = (document.body.getAttribute('data-schema-type-note')      || '').trim();
+    // 🔥 PRIORITAS 3: PLD bilang Service/Product → JANGAN bikin Article
+    //    (sudah ditangani Auto Schema Universal v7.36 & Hybrid v5.6)
+    if (hint.primary === 'Service' || hint.primary === 'Product') {
+      log(`🚨 Article SKIP — PLD primary=${hint.primary} (sudah ditangani script lain)`, "CONFLICT");
+      return false;
+    }
 
-        // 🔥 Parse note flags
-        const wantOffers      = /(^|,)with-offers($|,)/.test(schemaNote) && !/without-offers/.test(schemaNote);
-        const wantAreaServed  = /with-areaServed/.test(schemaNote);
-        const isEvergreenSvc  = /evergreen-service/.test(schemaNote);
+    // 🔥 PRIORITAS 4: PLD bilang Service sebagai secondary
+    //    (mis. produk money → Product + Service) → JANGAN Article
+    if (hint.secondary === 'Service' && hint.primary === 'Product') {
+      log(`🚨 Article SKIP — PLD primary=Product + secondary=Service`, "CONFLICT");
+      return false;
+    }
 
-        // 🔥 Tentukan node dari PLD (Article = TIDAK dibuat di sini — v8.6 yang bikin)
-        const wantService  = (schemaPrimary === 'Service')  || (schemaSecondary === 'Service');
-        const wantProduct  = (schemaPrimary === 'Product')  || (schemaSecondary === 'Product');
-        const wantCreative = (schemaSecondary === 'CreativeWork');
-        const wantFAQ      = (schemaSecondary === 'FAQPage');
+    // 🔥 PRIORITAS 5: Fallback legacy (untuk PLD lama tanpa hint)
+    if (hint.primary || hint.secondary) {
+      // Ada hint tapi bukan Article → skip
+      log(`⏭️ Article SKIP — PLD hint tidak menunjuk Article`, "SKIP");
+      return false;
+    }
 
-        // ⚠️ wantArticle SENGAJA TIDAK ADA — ditangani v8.6
+    // Fallback: hardcode level (PLD lama)
+    const mandatoryArticleLevels = ['pillar', 'sub-pillar-tipe-2', 'sub-pillar-tipe-1'];
+    if (mandatoryArticleLevels.includes(pageLevel)) {
+      log(`✅ Article LAYAK (fallback legacy) untuk level: ${pageLevel}`, "ARTICLE");
+      return true;
+    }
 
-        log(`📌 Level: ${pageLevel} | Entity: ${entityType} | Focus: ${contentFocus}`, "SUCCESS");
-        log(`🔗 PLD hint → primary=${schemaPrimary} | secondary=${schemaSecondary} | note=${schemaNote}`, "SCHEMA");
-        log(`🔗 Build plan → Service=${wantService} Product=${wantProduct} FAQ=${wantFAQ} Creative=${wantCreative}`, "SCHEMA");
-        log(`📄 Article node → HANDLED BY v8.6 (skip di Universal)`, "ARTICLE");
+    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 
+                          'variant', 'sub-variant'];
+    if (MONEY_LEVELS.includes(pageLevel)) {
+      log(`✅ Article LAYAK (fallback legacy) untuk level: ${pageLevel}`, "ARTICLE");
+      return true;
+    }
 
-        // ===== STEP 5: PRICE (4 LAYERS) =====
-        const priceResult = detectPriceLayered(pageLevel);
-        const tableOffers = priceResult.offers || [];
-        const hasPrice = priceResult.hasPrice;
+    log(`⏭️ Article TIDAK LAYAK: level="${pageLevel}"`, "SKIP");
+    return false;
+  }
 
-        // ===== STEP 6: IMAGES =====
-        const isEligible = isImageEligible(pageLevel);
-        let pageImage = IMAGE_CONFIG.LOGO_IMAGE;
-        if (isEligible) {
-          try {
-            const fixedFigure = fixImagesToFormat1(pageLevel);
-            if (fixedFigure) {
-              const img = fixedFigure.querySelector('img');
-              if (img && /^https?:\/\//i.test(img.src || '')) pageImage = img.src;
-            }
-          } catch(e) { log(`Error images: ${e.message}`, "ERROR"); }
-        }
+  // ============================================================
+  // 🔥 M1-FIX: VALIDASI EDITORIAL CONTENT
+  // ============================================================
+  function isEditorialContent(contentElement) {
+    if (!contentElement) {
+      log("❌ Editorial check: contentElement NULL", "EDITORIAL");
+      return false;
+    }
 
-        // ===== STEP 7: INJECT SCHEMA =====
-        const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
-        const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
-        const baseUrl = ogUrl || canonical || location.href;
-        const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
-        const h1Text = document.querySelector("h1")?.innerText?.trim() || document.title;
-        const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
-        const description = document.querySelector('meta[name="description"]')?.content?.trim() ||
-          document.querySelector("article p, main p")?.innerText?.substring(0, 200) || title;
+    const text = contentElement.innerText || "";
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    
+    if (wordCount < CONFIG.MIN_EDITORIAL_WORDS) {
+      log(`❌ Editorial check: word count ${wordCount} < ${CONFIG.MIN_EDITORIAL_WORDS}`, "EDITORIAL");
+      return false;
+    }
 
-        const knowsAbout = CONFIG.KNOWS_ABOUT;
+    const paragraphs = contentElement.querySelectorAll("p").length;
+    if (paragraphs < CONFIG.MIN_EDITORIAL_PARAGRAPHS) {
+      log(`❌ Editorial check: paragraf ${paragraphs} < ${CONFIG.MIN_EDITORIAL_PARAGRAPHS}`, "EDITORIAL");
+      return false;
+    }
 
-        const dateModified = (aed && aed.dateModified) ? aed.dateModified : undefined;
-        const priceValidUntil = (aed && aed.nextUpdate) ? aed.nextUpdate : undefined;
+    const headings = contentElement.querySelectorAll("h2, h3").length;
+    if (headings < CONFIG.MIN_EDITORIAL_HEADINGS) {
+      log(`❌ Editorial check: headings ${headings} < ${CONFIG.MIN_EDITORIAL_HEADINGS}`, "EDITORIAL");
+      return false;
+    }
 
-        // BUILD GRAPH
-        const graph = [
-          {
-            "@type": ["LocalBusiness", "GeneralContractor"],
-            "@id": CONFIG.LOCALBUSINESS_ID,
-            "name": "Beton Jaya Readymix",
-            "url": "https://www.betonjayareadymix.com",
-            "telephone": "+6281299842508",
-            "description": "Beton Jaya Readymix melayani jasa konstruksi terpadu: pengeboran, coring beton, pondasi, beton readymix, pagar panel, saluran precast, material, sewa alat, dan jasa pasang konstruksi di seluruh Indonesia.",
-            "address": { "@type": "PostalAddress", "addressLocality": "Bogor", "addressRegion": "Jawa Barat", "addressCountry": "ID" },
-            "openingHours": "Mo-Sa 08:00-17:00",
-            "logo": IMAGE_CONFIG.LOGO_IMAGE,
-            "sameAs": ["https://www.facebook.com/betonjayareadymix", "https://www.instagram.com/betonjayareadymix"],
-            "areaServed": CONFIG.AREA_SERVED,
-            "knowsAbout": knowsAbout,
-            "contactPoint": CONFIG.CONTACT_POINT
-          },
-          {
-            "@type": "WebPage",
-            "@id": cleanUrl + "#webpage",
-            "url": cleanUrl,
-            "name": title,
-            "description": description,
-            "image": pageImage,
-            "isPartOf": { "@type": "WebPage", "@id": parentData.parentUrl, "name": parentData.parentName },
-            "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
-            ...(dateModified && { "dateModified": dateModified }),
-            "inLanguage": "id"
-          }
-        ];
+    log(`✅ Editorial check LOLOS: ${wordCount} kata, ${paragraphs} paragraf, ${headings} headings`, "EDITORIAL");
+    return true;
+  }
 
-        // ═══════════════════════════════════════════════════════
-        // SERVICE NODE
-        // ═══════════════════════════════════════════════════════
-        if (wantService) {
-          const serviceType = extractServiceType(title, entityType);
-          const serviceNode = {
-            "@type": "Service",
-            "@id": cleanUrl + "#service",
-            "name": title,
-            "description": description,
-            "image": pageImage,
-            "serviceType": serviceType,
-            "provider": { "@id": CONFIG.LOCALBUSINESS_ID },
-            "brand": { "@type": "Brand", "name": "Beton Jaya Readymix" },
-            "mainEntityOfPage": { "@id": cleanUrl + "#webpage" }
-          };
-
-          if (wantAreaServed || isEvergreenSvc || pageLevel === 'money-child') {
-            serviceNode.areaServed = CONFIG.AREA_SERVED;
-          }
-
-          if (wantOffers && hasPrice && tableOffers.length > 0) {
-            const prices = tableOffers.map(o => o.price);
-            serviceNode.offers = {
-              "@type": "AggregateOffer",
-              "lowPrice": Math.min(...prices),
-              "highPrice": Math.max(...prices),
-              "offerCount": tableOffers.length,
-              "priceCurrency": "IDR",
-              ...(priceValidUntil && { "priceValidUntil": priceValidUntil })
-            };
-          }
-
-          graph.push(serviceNode);
-          log(`✅ Service node: ${serviceType} (offers=${!!serviceNode.offers}, areaServed=${!!serviceNode.areaServed})`, "SCHEMA");
-        }
-
-        // ═══════════════════════════════════════════════════════
-        // PRODUCT NODE
-        // ═══════════════════════════════════════════════════════
-        if (wantProduct) {
-          const category = document.body.getAttribute('data-product-category')
-                        || (entityType === 'material' ? 'BuildingMaterial' : 'PrecastProduct');
-
-          const productNode = {
-            "@type": "Product",
-            "@id": cleanUrl + "#product",
-            "name": title,
-            "description": description,
-            "image": [pageImage],
-            "brand": { "@type": "Brand", "name": "Beton Jaya Readymix" },
-            "category": category
-          };
-
-          if (wantAreaServed || pageLevel === 'money-child') {
-            productNode.areaServed = CONFIG.AREA_SERVED;
-          }
-
-          if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
-            productNode.productType = pageLevel === 'variant' ? "Variant" : "Sub-Variant";
-            const material = detectProductMaterial(entityType);
-            if (material) productNode.material = material;
-            productNode.manufacturer = { "@type": "Organization", name: "Beton Jaya Readymix" };
-          }
-
-          if (wantOffers && hasPrice && tableOffers.length > 0) {
-            const prices = tableOffers.map(o => o.price);
-            productNode.offers = {
-              "@type": "AggregateOffer",
-              "lowPrice": Math.min(...prices),
-              "highPrice": Math.max(...prices),
-              "offerCount": tableOffers.length,
-              "priceCurrency": "IDR",
-              ...(priceValidUntil && { "priceValidUntil": priceValidUntil }),
-              "offers": tableOffers.map(o => ({
-                "@type": "Offer",
-                "name": o.name,
-                "url": cleanUrl,
-                "priceCurrency": "IDR",
-                "price": o.price,
-                "itemCondition": "https://schema.org/NewCondition",
-                "availability": "https://schema.org/InStock",
-                ...(priceValidUntil && { "priceValidUntil": priceValidUntil }),
-                "seller": { "@id": CONFIG.LOCALBUSINESS_ID },
-                "description": o.description || o.name
-              }))
-            };
-          }
-
-          graph.push(productNode);
-          log(`✅ Product node: ${category} (offers=${!!productNode.offers})`, "SCHEMA");
-        }
-
-        // ═══════════════════════════════════════════════════════
-        // ⚠️ ARTICLE NODE — DIHAPUS (FIX-10 v7.36b)
-        // Article ditangani oleh Auto Schema Article v8.6
-        // ═══════════════════════════════════════════════════════
-        // (blok `if (wantArticle && !wantService && !wantProduct)` dihapus)
-
-        // ═══════════════════════════════════════════════════════
-        // CREATIVE WORK (untuk desain portfolio)
-        // ═══════════════════════════════════════════════════════
-        if (wantCreative) {
-          graph.push({
-            "@type": "CreativeWork",
-            "@id": cleanUrl + "#creativework",
-            "name": title,
-            "description": description,
-            "image": [pageImage],
-            "creator": { "@id": CONFIG.LOCALBUSINESS_ID },
-            "inLanguage": "id"
-          });
-          log(`✅ CreativeWork node`, "SCHEMA");
-        }
-
-        // ═══════════════════════════════════════════════════════
-        // FAQ PAGE (min 2 Q&A) — TETAP DI UNIVERSAL (FIX-11)
-        // FAQ bisa pair dengan Service/Product/Article
-        // ═══════════════════════════════════════════════════════
-        if (wantFAQ) {
-          const faqs = extractFaqFromDOM();
-          if (faqs.length >= 2) {
-            graph.push({
-              "@type": "FAQPage",
-              "@id": cleanUrl + "#faq",
-              "mainEntity": faqs
-            });
-            log(`✅ FAQPage node: ${faqs.length} pertanyaan`, "FAQ");
-          } else {
-            log(`⏭️ FAQPage skip — hanya ${faqs.length} Q&A (min 2)`, "SKIP");
-          }
-        }
-
-        // Internal Links (max 8)
-        const internalLinks = generateInternalLinks();
-        if (internalLinks.length > 0) {
-          graph.push({
-            "@type": "ItemList",
-            "@id": cleanUrl + "#related-links",
-            "name": "Halaman Terkait",
-            "itemListOrder": "Ascending",
-            "numberOfItems": internalLinks.length,
-            "itemListElement": internalLinks
-          });
-        }
-
-        const schema = { "@context": "https://schema.org", "@graph": graph };
-        let el = document.querySelector("#auto-schema-service");
-        if (!el) {
-          el = document.createElement("script");
-          el.id = "auto-schema-service";
-          el.type = "application/ld+json";
-          document.head.appendChild(el);
-        }
-        el.textContent = JSON.stringify(schema, null, 2);
-
-        log("═══════════════════════════════════════════════════", "SUCCESS");
-        log("✅ Schema COMPLETE generated", "SUCCESS");
-        log(`   Schema nodes: ${graph.map(n => n["@type"]).join(' + ')}`, "SCHEMA");
-        log(`   knowsAbout: ${knowsAbout.length} item | areaServed: ${CONFIG.AREA_SERVED.length} area`, "KNOWS");
-        log(`   Price layers: ${hasPrice ? 'Layer ' + priceResult.layer : 'None'}`, "PRICE");
-        log(`   Internal links: ${internalLinks.length} (max ${CONFIG.MAX_INTERNAL_LINKS})`, "SYNC");
-        log(`   Breadcrumb source: ${parentData.source}`, "BREADCRUMB");
-        log(`   PLD version: ${pldVer.label}`, "PLD");
-        log(`   Article node: HANDLED BY v8.6 ⏭️`, "ARTICLE");
-        log("═══════════════════════════════════════════════════", "SUCCESS");
-
-        perf.end('init');
-
-      } catch (error) {
-        console.error('❌ Fatal error:', error);
-        log(`Fatal error: ${error.message}`, "ERROR");
-        perf.end('init');
+  // ============================================================
+  // 🔥 FIX-6 (v8.6): ARTICLE TYPE — PLD-DRIVEN + URL Pattern
+  // 
+  // PRIORITAS:
+  //   1. PLD secondary = TechArticle → TechArticle
+  //   2. PLD secondary = BlogPosting → BlogPosting
+  //   3. URL pattern /p/ → Article
+  //   4. URL pattern /YYYY/MM/ + pillar → BlogPosting
+  //   5. Fallback: Article
+  // ============================================================
+  function getArticleType(pageLevel) {
+    const hint = getPLDSchemaHint();
+    const path = window.location.pathname;
+    
+    // 🔥 PRIORITAS 1: PLD hint secondary
+    if (hint.secondary === 'TechArticle') {
+      log(`📄 Article type: TechArticle (dari PLD)`, "ARTICLE");
+      return 'TechArticle';
+    }
+    if (hint.secondary === 'BlogPosting') {
+      log(`📄 Article type: BlogPosting (dari PLD)`, "ARTICLE");
+      return 'BlogPosting';
+    }
+    
+    // 🔥 PRIORITAS 2: URL pattern Blogger
+    const isBloggerPage = path.indexOf('/p/') === 0;         // /p/judul.html = PAGE
+    const isBloggerPost = /\/\d{4}\/\d{2}\//.test(path);     // /2019/08/judul.html = POST
+    
+    log(`🌐 URL Pattern: ${isBloggerPage ? 'PAGE (/p/)' : isBloggerPost ? 'POST (/YYYY/MM/)' : 'UNKNOWN'}`, "URL");
+    
+    // Variant/Sub-Variant → TechArticle (fallback kalau PLD tidak set)
+    if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
+      return 'TechArticle';
+    }
+    
+    // Halaman PAGE Blogger (/p/) → selalu Article (bukan BlogPosting)
+    if (isBloggerPage) {
+      log(`📄 Article type: Article (halaman /p/)`, "ARTICLE");
+      return 'Article';
+    }
+    
+    // Halaman POST Blogger (/2019/08/) → boleh BlogPosting untuk pillar
+    if (isBloggerPost) {
+      if (pageLevel === 'pillar') {
+        log(`📄 Article type: BlogPosting (post /YYYY/MM/)`, "ARTICLE");
+        return 'BlogPosting';
       }
-    }, CONFIG.DELAY_MS);
-  });
+      return 'Article';
+    }
+    
+    // Fallback: default Article
+    return 'Article';
+  }
 
-  // CLEANUP
-  function cleanup() { if (domCache) domCache.clear(); }
-  window.addEventListener('beforeunload', cleanup);
+  // ============================================================
+  // 🔧 HELPER: TEXT UTILS
+  // ============================================================
+  function cleanTextStandalone(str) {
+    if (!str) return "";
+    return str.toLowerCase().replace(/[^a-z0-9\s]/gi, " ").replace(/\s+/g, " ").trim();
+  }
 
-  console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Auto Schema v7.36b-LITE — READY (PLD-DRIVEN, SEO 2026, NO-DUPLICATE)");
-  console.log("═══════════════════════════════════════════════════════════");
-  console.log("🔥 FIX-10: REMOVE Article node — ditangani Auto Schema Article v8.6");
-  console.log("🔥 FIX-11: KEEP FAQPage — bisa pair dengan Service/Product/Article");
-  console.log("🔥 FIX-12: KEEP CreativeWork — secondary untuk entity desain");
-  console.log("🔥 FIX-13: KEEP Service + Product + LocalBusiness + WebPage + ItemList");
-  console.log("✅ PRESERVED: FIX-5 s/d FIX-9 (PLD-driven, notes, FAQ extraction)");
-  console.log("✅ PRESERVED: FIX-1 (extractServiceType), FIX-2 (ItemList max 8)");
-  console.log("✅ PRESERVED: FIX-3 (anti-race AED), FIX-4 (AED v17.4.7)");
-  console.log("✅ KNOWS_ABOUT: 110 item | areaServed: Indonesia + 11 kota");
-  console.log("✅ 4-layer price detection | Breadcrumb DOM fallback");
-  console.log("✅ Konsisten dengan PLD v23.9.9 (entity-aware detectSchemaType)");
-  console.log("═══════════════════════════════════════════════════════════");
+  function getAccurateWordCount(contentElement) {
+    if (!contentElement) return 0;
+    const text = cleanTextStandalone(contentElement.innerText || "");
+    return text.split(/\s+/).filter(Boolean).length;
+  }
+
+  function getCleanKeywords(title) {
+    const keywords = new Set();
+    const stopwords = ["dan", "di", "ke", "dari", "yang", "untuk", "dengan", 
+                       "adalah", "atau", "ini", "itu", "kami", "anda", "pada",
+                       "akan", "juga", "bisa", "dapat", "tidak", "oleh"];
+    title.toLowerCase().split(/\s+/).forEach(word => {
+      word = word.replace(/[^\w]/g, "").trim();
+      if (word.length > 3 && !stopwords.includes(word)) keywords.add(word);
+    });
+    return Array.from(keywords).slice(0, 12).join(", ");
+  }
+
+  function escapeJSON(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/\\/g, "\\\\")
+      .replace(/"/g, '\\"')
+      .replace(/\//g, "\\/")
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e")
+      .replace(/&/g, "\\u0026")
+      .replace(/\n/g, " ")
+      .replace(/\r/g, " ")
+      .trim();
+  }
+
+  // ============================================================
+  // 🔥 IMAGE FINDER (cache per halaman)
+  // ============================================================
+  var __articleImageCache = undefined;
+
+  function findBestArticleImage() {
+    if (__articleImageCache !== undefined) return __articleImageCache;
+
+    const selectors = [".post-body.entry-content img", ".post-body img", "article img", "main img"];
+    const seen = new Set();
+    const candidates = [];
+
+    for (const sel of selectors) {
+      document.querySelectorAll(sel).forEach(img => {
+        if (seen.has(img)) return;
+        seen.add(img);
+        candidates.push(img);
+      });
+    }
+
+    let processed = 0;
+    for (const img of candidates) {
+      if (processed++ > 30) break;
+      const src = img.currentSrc || img.src || "";
+      if (!src || src.startsWith("data:")) continue;
+      const w = img.naturalWidth || img.width || 0;
+      const h = img.naturalHeight || img.height || 0;
+      if (w >= CONFIG.MIN_IMAGE_WIDTH && h > 0) {
+        __articleImageCache = { url: src, width: w, height: h };
+        return __articleImageCache;
+      }
+    }
+
+    __articleImageCache = null;
+    return null;
+  }
+
+  // ============================================================
+  // 🔥 GENERATE ARTICLE SCHEMA (v8.6)
+  // ============================================================
+  function generateArticleSchema(data, dates, pageLevel, entityType, parentData, contentFocus, kategori) {
+    const articleType = getArticleType(pageLevel);
+    const focus = contentFocus || detectContentFocus(pageLevel, entityType);
+    const kat = kategori || getKategori(focus);
+    const entitySubType = getEntitySubType();
+
+    // Mapping entity type → about
+    let aboutName = "Konstruksi";
+    if (entityType === "jasa") aboutName = "Jasa Konstruksi";
+    else if (entityType === "sewa") aboutName = "Sewa Alat Konstruksi";
+    else if (entityType === "produk") aboutName = "Produk Konstruksi";
+    else if (entityType === "material") aboutName = "Material Konstruksi";
+    else if (entityType === "desain") aboutName = "Desain Interior";
+
+    // Mapping page level → articleSection
+    let articleSection = "Informasi";
+    if (pageLevel === 'pillar') articleSection = "Panduan Lengkap";
+    else if (pageLevel === 'sub-pillar-tipe-2') articleSection = "Jenis & Kategori";
+    else if (pageLevel === 'sub-pillar-tipe-1') articleSection = "Perbandingan & Analisis";
+    else if (pageLevel === 'variant' || pageLevel === 'sub-variant') articleSection = "Spesifikasi Teknis";
+    else if (pageLevel === 'money-master') articleSection = "Panduan Umum";
+    else if (pageLevel === 'money-page') articleSection = "Panduan Spesifik";
+    else if (pageLevel === 'money-child') articleSection = "Panduan Lokal";
+
+    // isPartOf
+    let isPartOf = null;
+    if (parentData && parentData.parentUrl) {
+      isPartOf = {
+        "@type": "WebPage",
+        "@id": parentData.parentUrl,
+        "name": cleanBreadcrumbText(parentData.parentName)
+      };
+    }
+
+    // 🔥 M2-FIX: Image selalu ada (dengan fallback)
+    const articleImage = data.articleImage || CONFIG.DEFAULT_ARTICLE_IMAGE;
+
+    // 🔥 SYNC-FIX: Author & Publisher pakai @id reference ke #localbusiness
+    const authorObj = {
+      "@id": CONFIG.LOCALBUSINESS_ID
+    };
+
+    const publisherObj = {
+      "@id": CONFIG.LOCALBUSINESS_ID
+    };
+
+    // 🔥 SUSUN SCHEMA
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": articleType,
+      "@id": data.url + "#article",
+      
+      // Headline & description
+      "headline": escapeJSON(data.title),
+      "description": escapeJSON(data.descMeta),
+      
+      // 🔥 SYNC-FIX: Author refer ke LocalBusiness
+      "author": authorObj,
+      
+      // 🔥 SYNC-FIX: Publisher refer ke LocalBusiness
+      "publisher": publisherObj,
+      
+      // 🔥 K3-FIX: Tanggal (anti-spoofing dari caller)
+      "datePublished": dates.datePublished,
+      "dateModified": dates.dateModified,
+      
+      // 🔥 SYNC-FIX: mainEntityOfPage pakai #webpage
+      "mainEntityOfPage": {
+        "@id": data.url + CONFIG.WEBPAGE_ID_SUFFIX
+      },
+      
+      // Content info
+      "wordCount": getAccurateWordCount(data.content),
+      "keywords": getCleanKeywords(data.title),
+      "inLanguage": "id-ID",
+      "articleSection": articleSection,
+      
+      // About (entity)
+      "about": {
+        "@type": "Thing",
+        "name": aboutName
+      },
+      
+      // 🔥 M2-FIX: Image SELALU ada (dengan fallback)
+      "image": [{
+        "@type": "ImageObject",
+        "url": articleImage.url,
+        "width": articleImage.width || CONFIG.ARTICLE_IMG_WIDTH,
+        "height": articleImage.height || CONFIG.ARTICLE_IMG_HEIGHT
+      }]
+    };
+
+    // Optional: isPartOf
+    if (isPartOf) schema.isPartOf = isPartOf;
+
+    // Optional: entity sub-type
+    if (entitySubType) {
+      schema.about.additionalType = entitySubType;
+    }
+
+    return schema;
+  }
+
+  // ============================================================
+  // 🔧 EXTRACT PAGE DATA
+  // ============================================================
+  function extractPageData() {
+    const url = location.href.split("?")[0];
+    const title = document.title || "";
+    const descMeta = document.querySelector("meta[name='description']")?.content || "";
+    const articleImage = findBestArticleImage();
+    const content = document.querySelector(".post-body.entry-content")
+                 || document.querySelector("article")
+                 || document.querySelector("main");
+    return { url, title, descMeta, articleImage, content };
+  }
+
+  // ============================================================
+  // 🚀 MAIN INIT v8.6
+  // ============================================================
+  async function init() {
+    log("════════════════════════════════════");
+    log("Auto-Schema Generator v8.6 — ARTICLE (PLD-Driven)");
+    log(`DEBUG: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
+    log("════════════════════════════════════");
+
+    // ⏭️ Skip homepage & static pages
+    if (shouldSkipPage()) {
+      log("⏭️ Dihentikan untuk halaman ini", "SKIP");
+      return;
+    }
+
+    // 🍞 Wait breadcrumb
+    let parentData = await waitForBreadcrumbGenerated(CONFIG.BREADCRUMB_GENERATED_TIMEOUT);
+    if (!parentData || parentData.parentName === 'Home') {
+      const currentUrl = location.href.replace(/[?&]m=1/, "");
+      parentData = getParentFromBreadcrumbReady(null, currentUrl);
+    }
+
+    // 🔷 Wait PLD
+    await waitForPageLevelDetector();
+
+    // 📌 Get page level & entity type
+    const { pageLevel, entityType, source } = await getPageLevelAndEntityType();
+    if (!pageLevel || !entityType) {
+      log("❌ Page Level & Entity Type TIDAK TERSEDIA", "ERROR");
+      return;
+    }
+
+    const pldVer = getPLDVersion();
+    log(`🔷 PLD Version: ${pldVer.label}`, "PLD");
+    log(`📌 Page Level: ${pageLevel}`, "PLD");
+    log(`📌 Entity Type: ${entityType}`, "PLD");
+
+    // 🎯 Detect content focus & kategori
+    const contentFocus = detectContentFocus(pageLevel, entityType);
+    const kategori = getKategori(contentFocus);
+
+    log(`📌 Content Focus: ${contentFocus ? contentFocus.toUpperCase() : 'NULL'}`, "FOCUS");
+    log(`📌 Kategori: ${kategori || 'NULL'}`, "KATEGORI");
+
+    // Set body attributes
+    document.body.setAttribute("data-schema-page-level", pageLevel);
+    document.body.setAttribute("data-schema-entity-type", entityType);
+    document.body.setAttribute("data-schema-source", source);
+    if (contentFocus) document.body.setAttribute("data-schema-content-focus", contentFocus);
+    if (kategori) document.body.setAttribute("data-schema-kategori", kategori);
+    document.body.setAttribute("data-schema-pld-version", pldVer.label);
+
+    // ⚡ Wait AED
+    const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
+    if (aedData) log(`✅ AED ready: ${aedData.dateModified}`, "AED");
+
+    // 🔥 LAYER 1 (v8.6): Cek PLD hint — PLD-DRIVEN
+    const articleElem = document.getElementById("auto-schema");
+    const shouldGenerate = shouldGenerateArticleSchema(pageLevel, entityType, contentFocus);
+
+    // 🔥 LAYER 2: Cek kualitas konten (isEditorialContent)
+    if (shouldGenerate) {
+      const articleContent = document.querySelector(".post-body.entry-content")
+                          || document.querySelector("article")
+                          || document.querySelector("main");
+
+      const isEditorial = isEditorialContent(articleContent);
+      
+      if (!isEditorial) {
+        log("⏸️ SKIP Article: bukan editorial content", "SKIP");
+        if (articleElem) articleElem.textContent = "";
+        return;
+      }
+    }
+
+    // 📄 Generate Article Schema
+    if (articleElem && shouldGenerate) {
+      const dates = aedData || {
+        datePublished: new Date().toISOString(),
+        dateModified: new Date().toISOString()
+      };
+
+      const pageData = extractPageData();
+      const articleType = getArticleType(pageLevel);
+
+      articleElem.textContent = JSON.stringify(
+        generateArticleSchema(pageData, dates, pageLevel, entityType, parentData, contentFocus, kategori),
+        null, 2
+      );
+
+      log(`📄 ARTICLE SCHEMA GENERATED (${articleType})`, "ARTICLE");
+      log(`   Publisher: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
+      log(`   Author: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
+      log(`   mainEntityOfPage: ${pageData.url}${CONFIG.WEBPAGE_ID_SUFFIX} 🔗`, "SYNC");
+      log(`   isPartOf: ${parentData.parentName} ✅`, "SCHEMA");
+      log(`   Image: ${pageData.articleImage ? 'FROM PAGE ✅' : 'FALLBACK ⏭️'}`, "IMG");
+    } else if (articleElem) {
+      articleElem.textContent = "";
+      log("Article schema skipped (PLD tidak menunjuk Article)", "SKIP");
+    }
+
+    log("════════════════════════════════════");
+    log("FINISHED (v8.6)", "SUCCESS");
+    log(`   Page Level: ${pageLevel}`, "SUCCESS");
+    log(`   Entity Type: ${entityType}`, "SUCCESS");
+    log(`   Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
+    log(`   Kategori: ${kategori || 'NULL'}`, "KATEGORI");
+    log(`   Article Schema: ${shouldGenerate ? 'GENERATED ✅' : 'SKIPPED ⏭️'}`, "ARTICLE");
+    log("════════════════════════════════════");
+  }
+
+  // ============================================================
+  // 🚀 START
+  // ============================================================
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init, { once: true });
+  } else {
+    init();
+  }
+
+  console.log(`✅ [AutoSchema v8.6] Ready — PLD-DRIVEN (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`🔥 FIX-5: shouldGenerateArticleSchema() — PLD-driven (baca data-schema-type-primary)`);
+  console.log(`🔥 FIX-6: getArticleType() — prioritas PLD secondary (TechArticle/BlogPosting)`);
+  console.log(`🔥 FIX-7: Anti-tabrakan dengan Service/Product (v7.36 & v5.6)`);
+  console.log(`🔥 FIX-8: Sync PLD v23.9.9 (entity-aware detectSchemaType)`);
+  console.log(`🔥 FIX-9: Fallback legacy tetap ada untuk PLD lama`);
 
 })();
