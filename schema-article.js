@@ -1,37 +1,38 @@
 /**
- * 📄 Auto-Schema Generator v8.6 — ARTICLE SCHEMA (PLD-DRIVEN, SEO 2026)
+ * 📄 Auto-Schema Generator v8.6b — ARTICLE SCHEMA (CLOUDINARY + H1 TITLE)
  * 
- * 🔥 v8.6 CHANGELOG:
- * ✅ FIX-5: shouldGenerateArticleSchema() — PLD-driven (baca data-schema-type-primary)
- * ✅ FIX-6: getArticleType() — prioritas PLD secondary (TechArticle/BlogPosting)
- * ✅ FIX-7: Anti-tabrakan dengan Service/Product (dari v7.36 & v5.6)
+ * 🔥 v8.6b CHANGELOG:
+ * ✅ FIX-A: Cloudinary image fallback (konsisten Universal v7.36e)
+ *           - buildCloudinaryArticleImage() helper baru
+ *           - Tidak insert figure ke DOM (hanya URL untuk schema)
+ *           - Bebas dari konflik dengan Universal/Hybrid
+ * ✅ FIX-B: Title source dari H1 (bukan document.title)
+ *           - Sinkron dengan Universal v7.36e
+ *           - URL Cloudinary identik → image WebPage == image Article
+ * 
+ * ✅ PRESERVED dari v8.6:
+ * ✅ FIX-5: shouldGenerateArticleSchema() — PLD-driven
+ * ✅ FIX-6: getArticleType() — prioritas PLD secondary
+ * ✅ FIX-7: Anti-tabrakan dengan Service/Product
  * ✅ FIX-8: Sync PLD v23.9.9 (entity-aware detectSchemaType)
  * ✅ FIX-9: Fallback legacy tetap ada untuk PLD lama
  * 
- * ✅ PRESERVED dari v8.5:
- * ✅ FIX-1: getArticleType() — deteksi URL pattern Blogger
- *           /p/ → Article (bukan BlogPosting)
- *           /YYYY/MM/ → BlogPosting (boleh)
- * ✅ FIX-2: Semua fitur v8.4 dipertahankan
- * ✅ FIX-3: Sync @id dengan v7.36 & v5.6 (#localbusiness tanpa slash)
- * ✅ FIX-4: Log lebih informatif
- * 
- * 🎯 SYARAT ARTICLE SCHEMA (v8.6):
+ * 🎯 SYARAT ARTICLE SCHEMA (v8.6b):
  * Layer 1: shouldGenerateArticleSchema() — PLD-DRIVEN
  * Layer 2: isEditorialContent() — cek KUALITAS konten
  * 
- * Status: FINAL v8.6 — SEO 2026 Ready + Blogger-Aware + PLD-Driven
+ * Status: FINAL v8.6b — SEO 2026 Ready + Blogger-Aware + PLD-Driven
  */
 
 (function() {
   "use strict";
 
   // ═══ GUARD GLOBAL ═══
-  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6") {
-    console.log("[AutoSchema Article v8.6] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6b") {
+    console.log("[AutoSchema Article v8.6b] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6";
+  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6b";
 
   // ============================================================
   // 🔥 AUTO-DETECT DEBUG
@@ -51,44 +52,44 @@
     PLD_TIMEOUT: 1000,
     BREADCRUMB_TIMEOUT: 1000,
     BREADCRUMB_GENERATED_TIMEOUT: 2000,
-    
+
     // Site info
     SITE_NAME: "Beton Jaya Readymix",
     SITE_URL: "https://www.betonjayareadymix.com",
     CURRENT_YEAR: new Date().getFullYear(),
-    
-    // 🔥 SYNC-FIX: @id reference (TANPA SLASH) — sync v7.36 & v5.6
+
+    // 🔥 SYNC-FIX: @id reference (TANPA SLASH)
     LOCALBUSINESS_ID: "https://www.betonjayareadymix.com#localbusiness",
     WEBPAGE_ID_SUFFIX: "#webpage",
-    
+
     // 🔥 K2-FIX: Author = Organization
     AUTHOR: {
       type: "Organization",
       name: "Beton Jaya Readymix",
       url: "https://www.betonjayareadymix.com"
     },
-    
-    // 🔥 M2-FIX: Default image fallback
+
+    // 🔥 FIX-A (v8.6b): Default image = LOGO (bukan placeholder yang mungkin 404)
     DEFAULT_ARTICLE_IMAGE: {
-      url: "https://www.betonjayareadymix.com/default-og-image.jpg",
+      url: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png",
       width: 1200,
-      height: 675
+      height: 630
     },
-    
+
     // 🔥 M1-FIX: Syarat editorial content
     MIN_EDITORIAL_WORDS: 300,
     MIN_EDITORIAL_PARAGRAPHS: 3,
     MIN_EDITORIAL_HEADINGS: 2,
-    
+
     // Image
     MIN_IMAGE_WIDTH: 400,
     ARTICLE_IMG_WIDTH: 1200,
     ARTICLE_IMG_HEIGHT: 675,
-    
+
     // Skip
     SKIP_WORD_COUNT: 300,
-    
-    VERSION: "8.6"
+
+    VERSION: "8.6b"
   };
 
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
@@ -109,9 +110,9 @@
       FOCUS: "🎯", SKIP: "⏭️", BREADCRUMB: "🍞", AED: "⚡",
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
       IMG: "🖼️", EDITORIAL: "✍️", SYNC: "🔗", URL: "🌐",
-      CONFLICT: "🚨"
+      CONFLICT: "🚨", CLOUD: "☁️"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema v8.6] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema v8.6b] ${msg}`);
   }
 
   // ============================================================
@@ -222,7 +223,7 @@
   // ============================================================
   // 🔧 HELPER: AED & PLD WAITERS
   // ============================================================
-  
+
   // 🔥 K3-FIX: Anti-spoofing dateModified
   function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
     return new Promise((resolve) => {
@@ -246,13 +247,13 @@
         if (Date.now() - startTime > timeout) {
           clearInterval(interval);
           window.removeEventListener("detectEvergreenReady", onReady);
-          
+
           // 🔥 K3-FIX: Fallback AMAN — jangan spoof
           const fallbackDate = (window.AEDMetaDates && window.AEDMetaDates.datePublished)
                             || new Date().toISOString();
-          
+
           log("⚠️ AED timeout — fallback aman (anti-spoofing)", "WARN");
-          
+
           resolve({
             datePublished: fallbackDate,
             dateModified: fallbackDate
@@ -318,7 +319,6 @@
 
   // ============================================================
   // 🔥 FIX-5 (v8.6): GET PLD SCHEMA HINT
-  // Baca attribute yang PLD set — TIDAK menebak sendiri
   // ============================================================
   function getPLDSchemaHint() {
     const primary   = (document.body.getAttribute('data-schema-type-primary')   || '').trim();
@@ -334,32 +334,32 @@
   // ============================================================
   function shouldSkipPage() {
     const currentPath = window.location.pathname;
-    
+
     // Homepage
     const isHomepage = currentPath === '/' || currentPath === '/index.html' || currentPath === '';
     if (isHomepage) {
       log(`⏭️ SKIP: HOMEPAGE`, "SKIP");
       return true;
     }
-    
+
     // Static pages
     const isStaticPage = STATIC_PAGES.some(page => currentPath.includes(page));
     if (isStaticPage) {
       log(`⏭️ SKIP: STATIC PAGE`, "SKIP");
       return true;
     }
-    
+
     // Main content check
     const hasMainContent = document.querySelector('.post-body.entry-content, .post-body, article, main, section');
     const hasH1 = document.querySelector('h1');
     const contentLength = document.body.innerText?.trim()?.length || 0;
     const isContentPage = hasMainContent && hasH1 && contentLength > CONFIG.SKIP_WORD_COUNT;
-    
+
     if (!isContentPage) {
       log(`⏭️ SKIP: TANPA KONTEN UTAMA (${contentLength} kar)`, "SKIP");
       return true;
     }
-    
+
     log(`✅ Halaman LAYAK: ${currentPath}`, "SUCCESS");
     return false;
   }
@@ -370,11 +370,11 @@
   async function getPageLevelAndEntityType() {
     const bodyLevel = document.body.getAttribute('data-page-level');
     const bodyEntity = document.body.getAttribute('data-entity-type');
-    
+
     if (bodyLevel && bodyEntity) {
       return { pageLevel: bodyLevel, entityType: bodyEntity, source: 'body-attribute' };
     }
-    
+
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') {
       try {
         return {
@@ -384,18 +384,12 @@
         };
       } catch(e) {}
     }
-    
+
     return { pageLevel: null, entityType: null, source: 'unavailable' };
   }
 
   // ============================================================
   // 🔥 FIX-5 (v8.6): SHOULD GENERATE ARTICLE SCHEMA — PLD-DRIVEN
-  // 
-  // ATURAN BARU (SEO 2026):
-  //   1. PLD primary = Article → LAYAK
-  //   2. PLD secondary = TechArticle DAN primary BUKAN Service/Product → LAYAK
-  //   3. PLD primary = Service/Product → SKIP (sudah ditangani script lain)
-  //   4. Fallback legacy: hardcode level (untuk PLD lama)
   // ============================================================
   function shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) {
     const hint = getPLDSchemaHint();
@@ -408,22 +402,20 @@
 
     // 🔥 PRIORITAS 2: PLD bilang TechArticle sebagai secondary
     //    TAPI hanya kalau primary BUKAN Service/Product
-    if (hint.secondary === 'TechArticle' && 
-        hint.primary !== 'Service' && 
+    if (hint.secondary === 'TechArticle' &&
+        hint.primary !== 'Service' &&
         hint.primary !== 'Product') {
       log(`✅ Article WAJIB — PLD secondary=TechArticle (primary=${hint.primary})`, "ARTICLE");
       return true;
     }
 
     // 🔥 PRIORITAS 3: PLD bilang Service/Product → JANGAN bikin Article
-    //    (sudah ditangani Auto Schema Universal v7.36 & Hybrid v5.6)
     if (hint.primary === 'Service' || hint.primary === 'Product') {
       log(`🚨 Article SKIP — PLD primary=${hint.primary} (sudah ditangani script lain)`, "CONFLICT");
       return false;
     }
 
     // 🔥 PRIORITAS 4: PLD bilang Service sebagai secondary
-    //    (mis. produk money → Product + Service) → JANGAN Article
     if (hint.secondary === 'Service' && hint.primary === 'Product') {
       log(`🚨 Article SKIP — PLD primary=Product + secondary=Service`, "CONFLICT");
       return false;
@@ -431,7 +423,6 @@
 
     // 🔥 PRIORITAS 5: Fallback legacy (untuk PLD lama tanpa hint)
     if (hint.primary || hint.secondary) {
-      // Ada hint tapi bukan Article → skip
       log(`⏭️ Article SKIP — PLD hint tidak menunjuk Article`, "SKIP");
       return false;
     }
@@ -443,7 +434,7 @@
       return true;
     }
 
-    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 
+    const MONEY_LEVELS = ['money-master', 'money-page', 'money-child',
                           'variant', 'sub-variant'];
     if (MONEY_LEVELS.includes(pageLevel)) {
       log(`✅ Article LAYAK (fallback legacy) untuk level: ${pageLevel}`, "ARTICLE");
@@ -465,7 +456,7 @@
 
     const text = contentElement.innerText || "";
     const wordCount = text.split(/\s+/).filter(Boolean).length;
-    
+
     if (wordCount < CONFIG.MIN_EDITORIAL_WORDS) {
       log(`❌ Editorial check: word count ${wordCount} < ${CONFIG.MIN_EDITORIAL_WORDS}`, "EDITORIAL");
       return false;
@@ -489,18 +480,11 @@
 
   // ============================================================
   // 🔥 FIX-6 (v8.6): ARTICLE TYPE — PLD-DRIVEN + URL Pattern
-  // 
-  // PRIORITAS:
-  //   1. PLD secondary = TechArticle → TechArticle
-  //   2. PLD secondary = BlogPosting → BlogPosting
-  //   3. URL pattern /p/ → Article
-  //   4. URL pattern /YYYY/MM/ + pillar → BlogPosting
-  //   5. Fallback: Article
   // ============================================================
   function getArticleType(pageLevel) {
     const hint = getPLDSchemaHint();
     const path = window.location.pathname;
-    
+
     // 🔥 PRIORITAS 1: PLD hint secondary
     if (hint.secondary === 'TechArticle') {
       log(`📄 Article type: TechArticle (dari PLD)`, "ARTICLE");
@@ -510,24 +494,24 @@
       log(`📄 Article type: BlogPosting (dari PLD)`, "ARTICLE");
       return 'BlogPosting';
     }
-    
+
     // 🔥 PRIORITAS 2: URL pattern Blogger
-    const isBloggerPage = path.indexOf('/p/') === 0;         // /p/judul.html = PAGE
-    const isBloggerPost = /\/\d{4}\/\d{2}\//.test(path);     // /2019/08/judul.html = POST
-    
+    const isBloggerPage = path.indexOf('/p/') === 0;
+    const isBloggerPost = /\/\d{4}\/\d{2}\//.test(path);
+
     log(`🌐 URL Pattern: ${isBloggerPage ? 'PAGE (/p/)' : isBloggerPost ? 'POST (/YYYY/MM/)' : 'UNKNOWN'}`, "URL");
-    
+
     // Variant/Sub-Variant → TechArticle (fallback kalau PLD tidak set)
     if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
       return 'TechArticle';
     }
-    
-    // Halaman PAGE Blogger (/p/) → selalu Article (bukan BlogPosting)
+
+    // Halaman PAGE Blogger (/p/) → selalu Article
     if (isBloggerPage) {
       log(`📄 Article type: Article (halaman /p/)`, "ARTICLE");
       return 'Article';
     }
-    
+
     // Halaman POST Blogger (/2019/08/) → boleh BlogPosting untuk pillar
     if (isBloggerPost) {
       if (pageLevel === 'pillar') {
@@ -536,8 +520,7 @@
       }
       return 'Article';
     }
-    
-    // Fallback: default Article
+
     return 'Article';
   }
 
@@ -557,7 +540,7 @@
 
   function getCleanKeywords(title) {
     const keywords = new Set();
-    const stopwords = ["dan", "di", "ke", "dari", "yang", "untuk", "dengan", 
+    const stopwords = ["dan", "di", "ke", "dari", "yang", "untuk", "dengan",
                        "adalah", "atau", "ini", "itu", "kami", "anda", "pada",
                        "akan", "juga", "bisa", "dapat", "tidak", "oleh"];
     title.toLowerCase().split(/\s+/).forEach(word => {
@@ -619,7 +602,56 @@
   }
 
   // ============================================================
-  // 🔥 GENERATE ARTICLE SCHEMA (v8.6)
+  // 🔥 FIX-A (v8.6b): CLOUDINARY IMAGE GENERATOR
+  // Konsisten dengan Universal v7.36e (sp1/sp2/pillar.webp)
+  // HANYA return URL string — TIDAK insert figure ke DOM
+  // ============================================================
+  const CLOUDINARY_ARTICLE_CONFIG = {
+    CLOUD_NAME: 'vagzz5sa',
+    VERSION: 'v1789109159',
+    FONT: 'Arial',
+    WIDTH: 1200,
+    HEIGHT: 630,
+    QUALITY: 'q_auto:good',
+    FORMAT: 'f_auto',
+    DPR: 'dpr_auto',
+    COLOR: 'FFD700',
+    LEVEL_FILES: {
+      'pillar': 'pillar',
+      'sub-pillar-tipe-2': 'sp2',
+      'sub-pillar-tipe-1': 'sp1',
+      'money-master': 'mm',
+      'money-page': 'mp',
+      'money-child': 'mc',
+      'variant': 'variant',
+      'sub-variant': 'subvariant'
+    }
+  };
+
+  function buildCloudinaryArticleImage(title, pageLevel) {
+    try {
+      const cfg = CLOUDINARY_ARTICLE_CONFIG;
+      const fileName = cfg.LEVEL_FILES[pageLevel] || 'sp1';
+      const cleanTitle = String(title || 'Artikel')
+        .substring(0, 40)
+        .replace(/[^\w\s-]/g, '')
+        .trim();
+      const encodedText = encodeURIComponent(cleanTitle);
+
+      return `https://res.cloudinary.com/${cfg.CLOUD_NAME}/image/upload/` +
+             `e_colorize:100,co_rgb:${cfg.COLOR},` +
+             `l_text:${cfg.FONT}_40_bold:${encodedText},g_center,` +
+             `c_fit,w_${cfg.WIDTH},h_${cfg.HEIGHT}/` +
+             `${cfg.QUALITY},${cfg.FORMAT},${cfg.DPR}/` +
+             `${cfg.VERSION}/${fileName}.webp`;
+    } catch (e) {
+      log(`⚠️ buildCloudinaryArticleImage error: ${e.message}`, "WARN");
+      return null;
+    }
+  }
+
+  // ============================================================
+  // 🔥 GENERATE ARTICLE SCHEMA (v8.6b)
   // ============================================================
   function generateArticleSchema(data, dates, pageLevel, entityType, parentData, contentFocus, kategori) {
     const articleType = getArticleType(pageLevel);
@@ -655,8 +687,28 @@
       };
     }
 
-    // 🔥 M2-FIX: Image selalu ada (dengan fallback)
-    const articleImage = data.articleImage || CONFIG.DEFAULT_ARTICLE_IMAGE;
+    // 🔥 FIX-A (v8.6b): Image logic — Cloudinary fallback kalau tidak ada image dari page
+    let articleImage = data.articleImage;
+    let imageSource = 'none';
+
+    if (!articleImage) {
+      // 🔥 FIX-B (v8.6b): pakai H1 yang sama dengan Universal → URL identik
+      const titleForImage = data.h1Title || data.title || 'Artikel';
+      const cloudUrl = buildCloudinaryArticleImage(titleForImage, pageLevel);
+
+      if (cloudUrl) {
+        articleImage = { url: cloudUrl, width: 1200, height: 630 };
+        imageSource = 'cloudinary';
+        log(`☁️ Image: Cloudinary fallback (${pageLevel})`, "CLOUD");
+      } else {
+        articleImage = CONFIG.DEFAULT_ARTICLE_IMAGE;
+        imageSource = 'default-logo';
+        log(`📸 Image: DEFAULT LOGO fallback`, "IMG");
+      }
+    } else {
+      imageSource = 'from-page';
+      log(`📸 Image: FROM PAGE`, "IMG");
+    }
 
     // 🔥 SYNC-FIX: Author & Publisher pakai @id reference ke #localbusiness
     const authorObj = {
@@ -672,39 +724,39 @@
       "@context": "https://schema.org",
       "@type": articleType,
       "@id": data.url + "#article",
-      
+
       // Headline & description
       "headline": escapeJSON(data.title),
       "description": escapeJSON(data.descMeta),
-      
+
       // 🔥 SYNC-FIX: Author refer ke LocalBusiness
       "author": authorObj,
-      
+
       // 🔥 SYNC-FIX: Publisher refer ke LocalBusiness
       "publisher": publisherObj,
-      
+
       // 🔥 K3-FIX: Tanggal (anti-spoofing dari caller)
       "datePublished": dates.datePublished,
       "dateModified": dates.dateModified,
-      
+
       // 🔥 SYNC-FIX: mainEntityOfPage pakai #webpage
       "mainEntityOfPage": {
         "@id": data.url + CONFIG.WEBPAGE_ID_SUFFIX
       },
-      
+
       // Content info
       "wordCount": getAccurateWordCount(data.content),
       "keywords": getCleanKeywords(data.title),
       "inLanguage": "id-ID",
       "articleSection": articleSection,
-      
+
       // About (entity)
       "about": {
         "@type": "Thing",
         "name": aboutName
       },
-      
-      // 🔥 M2-FIX: Image SELALU ada (dengan fallback)
+
+      // 🔥 FIX-A (v8.6b): Image SELALU ada (dengan Cloudinary fallback)
       "image": [{
         "@type": "ImageObject",
         "url": articleImage.url,
@@ -721,29 +773,46 @@
       schema.about.additionalType = entitySubType;
     }
 
+    // Return with debug info
+    schema.__debug = { imageSource, entityType, pageLevel };
+
     return schema;
   }
 
   // ============================================================
   // 🔧 EXTRACT PAGE DATA
+  // 🔥 FIX-B (v8.6b): title dari H1 (bukan document.title)
   // ============================================================
   function extractPageData() {
     const url = location.href.split("?")[0];
-    const title = document.title || "";
+
+    // 🔥 FIX-B: H1 sebagai primary source (sinkron dengan Universal)
+    const h1El = document.querySelector('h1');
+    const h1Title = (h1El?.innerText || h1El?.textContent || '').trim();
+    const title = h1Title || document.title || "";
+
     const descMeta = document.querySelector("meta[name='description']")?.content || "";
     const articleImage = findBestArticleImage();
     const content = document.querySelector(".post-body.entry-content")
                  || document.querySelector("article")
                  || document.querySelector("main");
-    return { url, title, descMeta, articleImage, content };
+
+    return {
+      url,
+      title,
+      h1Title,        // ← FIX-B: ekspos h1Title untuk Cloudinary
+      descMeta,
+      articleImage,
+      content
+    };
   }
 
   // ============================================================
-  // 🚀 MAIN INIT v8.6
+  // 🚀 MAIN INIT v8.6b
   // ============================================================
   async function init() {
     log("════════════════════════════════════");
-    log("Auto-Schema Generator v8.6 — ARTICLE (PLD-Driven)");
+    log("Auto-Schema Generator v8.6b — ARTICLE (Cloudinary + H1 Title)");
     log(`DEBUG: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("════════════════════════════════════");
 
@@ -794,7 +863,7 @@
     const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     if (aedData) log(`✅ AED ready: ${aedData.dateModified}`, "AED");
 
-    // 🔥 LAYER 1 (v8.6): Cek PLD hint — PLD-DRIVEN
+    // 🔥 LAYER 1 (v8.6b): Cek PLD hint — PLD-DRIVEN
     const articleElem = document.getElementById("auto-schema");
     const shouldGenerate = shouldGenerateArticleSchema(pageLevel, entityType, contentFocus);
 
@@ -805,7 +874,7 @@
                           || document.querySelector("main");
 
       const isEditorial = isEditorialContent(articleContent);
-      
+
       if (!isEditorial) {
         log("⏸️ SKIP Article: bukan editorial content", "SKIP");
         if (articleElem) articleElem.textContent = "";
@@ -823,24 +892,28 @@
       const pageData = extractPageData();
       const articleType = getArticleType(pageLevel);
 
-      articleElem.textContent = JSON.stringify(
-        generateArticleSchema(pageData, dates, pageLevel, entityType, parentData, contentFocus, kategori),
-        null, 2
-      );
+      const schemaObj = generateArticleSchema(pageData, dates, pageLevel, entityType, parentData, contentFocus, kategori);
+
+      // Remove debug before stringify
+      const debugInfo = schemaObj.__debug || {};
+      delete schemaObj.__debug;
+
+      articleElem.textContent = JSON.stringify(schemaObj, null, 2);
 
       log(`📄 ARTICLE SCHEMA GENERATED (${articleType})`, "ARTICLE");
       log(`   Publisher: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
       log(`   Author: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
       log(`   mainEntityOfPage: ${pageData.url}${CONFIG.WEBPAGE_ID_SUFFIX} 🔗`, "SYNC");
       log(`   isPartOf: ${parentData.parentName} ✅`, "SCHEMA");
-      log(`   Image: ${pageData.articleImage ? 'FROM PAGE ✅' : 'FALLBACK ⏭️'}`, "IMG");
+      log(`   Image source: ${debugInfo.imageSource || 'unknown'}`, "IMG");
+      log(`   Title (H1): "${pageData.h1Title?.substring(0, 50) || '(empty)'}"`, "URL");
     } else if (articleElem) {
       articleElem.textContent = "";
       log("Article schema skipped (PLD tidak menunjuk Article)", "SKIP");
     }
 
     log("════════════════════════════════════");
-    log("FINISHED (v8.6)", "SUCCESS");
+    log("FINISHED (v8.6b)", "SUCCESS");
     log(`   Page Level: ${pageLevel}`, "SUCCESS");
     log(`   Entity Type: ${entityType}`, "SUCCESS");
     log(`   Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
@@ -858,11 +931,13 @@
     init();
   }
 
-  console.log(`✅ [AutoSchema v8.6] Ready — PLD-DRIVEN (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
-  console.log(`🔥 FIX-5: shouldGenerateArticleSchema() — PLD-driven (baca data-schema-type-primary)`);
-  console.log(`🔥 FIX-6: getArticleType() — prioritas PLD secondary (TechArticle/BlogPosting)`);
-  console.log(`🔥 FIX-7: Anti-tabrakan dengan Service/Product (v7.36 & v5.6)`);
-  console.log(`🔥 FIX-8: Sync PLD v23.9.9 (entity-aware detectSchemaType)`);
+  console.log(`✅ [AutoSchema v8.6b] Ready — PLD-DRIVEN (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`🔥 FIX-A: Cloudinary image fallback (konsisten Universal v7.36e)`);
+  console.log(`🔥 FIX-B: Title source dari H1 (sinkron dengan Universal)`);
+  console.log(`🔥 FIX-5: shouldGenerateArticleSchema() — PLD-driven`);
+  console.log(`🔥 FIX-6: getArticleType() — prioritas PLD secondary`);
+  console.log(`🔥 FIX-7: Anti-tabrakan dengan Service/Product (v7.36e & v5.7)`);
+  console.log(`🔥 FIX-8: Sync PLD v23.9.9`);
   console.log(`🔥 FIX-9: Fallback legacy tetap ada untuk PLD lama`);
 
 })();
