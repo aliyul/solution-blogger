@@ -1,14 +1,17 @@
 /**
- * 📄 Auto-Schema Generator v8.6b — ARTICLE SCHEMA (CLOUDINARY + H1 TITLE)
+ * 📄 Auto-Schema Generator v8.6c — ARTICLE SCHEMA + FAQ (CLOUDINARY + H1 TITLE)
  * 
- * 🔥 v8.6b CHANGELOG:
+ * 🔥 v8.6c CHANGELOG:
+ * ✅ FIX-C: FAQPage handling — konsumsi `secondary=FAQPage` dari PLD
+ *           - Tambah hasStaticFAQPageSchema() — anti-duplikasi
+ *           - Tambah extractFaqFromDOM() — content-driven
+ *           - Tambah generateFaqSchema() — bikin FAQPage node
+ *           - Struktur @graph: [Article, FAQPage (opsional)]
+ *           - Skip kalau Universal/Hybrid/static sudah bikin FAQ
+ * 
+ * ✅ PRESERVED dari v8.6b:
  * ✅ FIX-A: Cloudinary image fallback (konsisten Universal v7.36e)
- *           - buildCloudinaryArticleImage() helper baru
- *           - Tidak insert figure ke DOM (hanya URL untuk schema)
- *           - Bebas dari konflik dengan Universal/Hybrid
- * ✅ FIX-B: Title source dari H1 (bukan document.title)
- *           - Sinkron dengan Universal v7.36e
- *           - URL Cloudinary identik → image WebPage == image Article
+ * ✅ FIX-B: Title source dari H1 (sinkron dengan Universal)
  * 
  * ✅ PRESERVED dari v8.6:
  * ✅ FIX-5: shouldGenerateArticleSchema() — PLD-driven
@@ -17,22 +20,23 @@
  * ✅ FIX-8: Sync PLD v23.9.9 (entity-aware detectSchemaType)
  * ✅ FIX-9: Fallback legacy tetap ada untuk PLD lama
  * 
- * 🎯 SYARAT ARTICLE SCHEMA (v8.6b):
+ * 🎯 SYARAT ARTICLE + FAQ SCHEMA (v8.6c):
  * Layer 1: shouldGenerateArticleSchema() — PLD-DRIVEN
  * Layer 2: isEditorialContent() — cek KUALITAS konten
+ * Layer 3: FAQ content-driven + anti-duplikasi static
  * 
- * Status: FINAL v8.6b — SEO 2026 Ready + Blogger-Aware + PLD-Driven
+ * Status: FINAL v8.6c — SEO 2026 Ready + Blogger-Aware + PLD-Driven
  */
 
 (function() {
   "use strict";
 
   // ═══ GUARD GLOBAL ═══
-  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6b") {
-    console.log("[AutoSchema Article v8.6b] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6c") {
+    console.log("[AutoSchema Article v8.6c] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6b";
+  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6c";
 
   // ============================================================
   // 🔥 AUTO-DETECT DEBUG
@@ -81,6 +85,10 @@
     MIN_EDITORIAL_PARAGRAPHS: 3,
     MIN_EDITORIAL_HEADINGS: 2,
 
+    // 🔥 FIX-C (v8.6c): FAQ config
+    MAX_FAQ_ITEMS: 8,
+    MIN_FAQ_FOR_SCHEMA: 2,
+
     // Image
     MIN_IMAGE_WIDTH: 400,
     ARTICLE_IMG_WIDTH: 1200,
@@ -89,7 +97,7 @@
     // Skip
     SKIP_WORD_COUNT: 300,
 
-    VERSION: "8.6b"
+    VERSION: "8.6c"
   };
 
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
@@ -110,9 +118,9 @@
       FOCUS: "🎯", SKIP: "⏭️", BREADCRUMB: "🍞", AED: "⚡",
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
       IMG: "🖼️", EDITORIAL: "✍️", SYNC: "🔗", URL: "🌐",
-      CONFLICT: "🚨", CLOUD: "☁️"
+      CONFLICT: "🚨", CLOUD: "☁️", FAQ: "❓", STATIC: "🗿"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema v8.6b] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema v8.6c] ${msg}`);
   }
 
   // ============================================================
@@ -603,8 +611,6 @@
 
   // ============================================================
   // 🔥 FIX-A (v8.6b): CLOUDINARY IMAGE GENERATOR
-  // Konsisten dengan Universal v7.36e (sp1/sp2/pillar.webp)
-  // HANYA return URL string — TIDAK insert figure ke DOM
   // ============================================================
   const CLOUDINARY_ARTICLE_CONFIG = {
     CLOUD_NAME: 'vagzz5sa',
@@ -651,7 +657,129 @@
   }
 
   // ============================================================
-  // 🔥 GENERATE ARTICLE SCHEMA (v8.6b)
+  // 🔥 FIX-C (v8.6c): DETECT STATIC FAQPage SCHEMA
+  // Cek apakah sudah ada FAQPage di script LAIN (bukan punya kita)
+  // Prioritas: skip kalau Universal/Hybrid/static manual sudah bikin FAQ
+  // ============================================================
+  function hasStaticFAQPageSchema() {
+    const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    const OWN_IDS = ['auto-schema'];  // ← Hanya article punya kita
+
+    for (const s of scripts) {
+      if (s.id && OWN_IDS.includes(s.id)) continue;
+
+      let json;
+      try {
+        json = JSON.parse(s.textContent || '{}');
+      } catch (e) {
+        continue;
+      }
+
+      // Cek @type di root
+      if (json['@type'] === 'FAQPage') return true;
+      if (Array.isArray(json['@type']) && json['@type'].includes('FAQPage')) return true;
+
+      // Cek dalam @graph
+      if (Array.isArray(json['@graph'])) {
+        for (const node of json['@graph']) {
+          if (!node) continue;
+          if (node['@type'] === 'FAQPage') return true;
+          if (Array.isArray(node['@type']) && node['@type'].includes('FAQPage')) return true;
+        }
+      }
+
+      // Cek array di root
+      if (Array.isArray(json)) {
+        for (const node of json) {
+          if (!node) continue;
+          if (node['@type'] === 'FAQPage') return true;
+          if (Array.isArray(node['@type']) && node['@type'].includes('FAQPage')) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // ============================================================
+  // 🔥 FIX-C (v8.6c): FAQ EXTRACTION (content-driven + scoped)
+  // ============================================================
+  function extractFaqFromDOM() {
+    const faqs = [];
+
+    // Scope ke konten utama (hindari sidebar/footer FAQ)
+    const mainContainer = document.querySelector('article, main, .post-body, .entry-content') || document.body;
+    const faqItems = mainContainer.querySelectorAll('.faq-item');
+
+    // ═══════════════════════════════════════════════════════
+    // PRIORITAS 1: scan .faq-item (FAQ ASLI)
+    // ═══════════════════════════════════════════════════════
+    if (faqItems.length > 0) {
+      log(`📋 Ditemukan ${faqItems.length} .faq-item`, 'FAQ');
+      for (const item of faqItems) {
+        const h = item.querySelector('h2, h3, h4');
+        if (!h) continue;
+        const qText = (h.innerText || '').trim().replace(/\s+/g, ' ');
+        if (!qText || qText.length < 8 || qText.length > 200) continue;
+
+        const p = item.querySelector('p');
+        if (!p) continue;
+        const aText = (p.innerText || '').trim().replace(/\s+/g, ' ').substring(0, 500);
+        if (!aText || aText.length < 20) continue;
+
+        faqs.push({
+          "@type": "Question",
+          "name": qText,
+          "acceptedAnswer": { "@type": "Answer", "text": aText }
+        });
+        if (faqs.length >= CONFIG.MAX_FAQ_ITEMS) break;
+      }
+      log(`✅ FAQ dari .faq-item: ${faqs.length} pertanyaan`, 'FAQ');
+      return faqs;
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // PRIORITAS 2: fallback scan H3/H4
+    // ═══════════════════════════════════════════════════════
+    const container = document.querySelector('article, main, .post-body') || document.body;
+    const headings = container.querySelectorAll('h3, h4');
+
+    for (const h of headings) {
+      const qText = (h.innerText || '').trim().replace(/\s+/g, ' ');
+      if (!qText || qText.length < 8 || qText.length > 200) continue;
+
+      // Filter: buang heading yang diawali nomor section
+      if (/^\d+\.\s/.test(qText)) continue;
+      if (/^section\s+\d/i.test(qText)) continue;
+
+      // Filter: harus benar-benar pertanyaan
+      const isQuestion = /\?$/.test(qText)
+        || /^(apa|apakah|bagaimana|gimana|kenapa|mengapa|kapan|dimana|di mana|siapa|berapa|yang mana)\b/i.test(qText);
+
+      if (!isQuestion) continue;
+
+      let answerEl = h.nextElementSibling;
+      while (answerEl && !/^(P|UL|OL|DIV|BLOCKQUOTE)$/.test(answerEl.tagName)) {
+        answerEl = answerEl.nextElementSibling;
+      }
+      if (!answerEl) continue;
+
+      const aText = (answerEl.innerText || '').trim().replace(/\s+/g, ' ').substring(0, 500);
+      if (!aText || aText.length < 20) continue;
+
+      faqs.push({
+        "@type": "Question",
+        "name": qText,
+        "acceptedAnswer": { "@type": "Answer", "text": aText }
+      });
+      if (faqs.length >= CONFIG.MAX_FAQ_ITEMS) break;
+    }
+
+    log(`❓ FAQ extracted (fallback H3/H4): ${faqs.length} pertanyaan`, "FAQ");
+    return faqs;
+  }
+
+  // ============================================================
+  // 🔥 FIX-A (v8.6b): GENERATE ARTICLE SCHEMA
   // ============================================================
   function generateArticleSchema(data, dates, pageLevel, entityType, parentData, contentFocus, kategori) {
     const articleType = getArticleType(pageLevel);
@@ -687,12 +815,11 @@
       };
     }
 
-    // 🔥 FIX-A (v8.6b): Image logic — Cloudinary fallback kalau tidak ada image dari page
+    // Image logic — Cloudinary fallback kalau tidak ada image dari page
     let articleImage = data.articleImage;
     let imageSource = 'none';
 
     if (!articleImage) {
-      // 🔥 FIX-B (v8.6b): pakai H1 yang sama dengan Universal → URL identik
       const titleForImage = data.h1Title || data.title || 'Artikel';
       const cloudUrl = buildCloudinaryArticleImage(titleForImage, pageLevel);
 
@@ -710,53 +837,38 @@
       log(`📸 Image: FROM PAGE`, "IMG");
     }
 
-    // 🔥 SYNC-FIX: Author & Publisher pakai @id reference ke #localbusiness
-    const authorObj = {
-      "@id": CONFIG.LOCALBUSINESS_ID
-    };
+    // Author & Publisher @id reference ke #localbusiness
+    const authorObj = { "@id": CONFIG.LOCALBUSINESS_ID };
+    const publisherObj = { "@id": CONFIG.LOCALBUSINESS_ID };
 
-    const publisherObj = {
-      "@id": CONFIG.LOCALBUSINESS_ID
-    };
-
-    // 🔥 SUSUN SCHEMA
+    // SUSUN ARTICLE SCHEMA
     const schema = {
-      "@context": "https://schema.org",
       "@type": articleType,
       "@id": data.url + "#article",
 
-      // Headline & description
       "headline": escapeJSON(data.title),
       "description": escapeJSON(data.descMeta),
 
-      // 🔥 SYNC-FIX: Author refer ke LocalBusiness
       "author": authorObj,
-
-      // 🔥 SYNC-FIX: Publisher refer ke LocalBusiness
       "publisher": publisherObj,
 
-      // 🔥 K3-FIX: Tanggal (anti-spoofing dari caller)
       "datePublished": dates.datePublished,
       "dateModified": dates.dateModified,
 
-      // 🔥 SYNC-FIX: mainEntityOfPage pakai #webpage
       "mainEntityOfPage": {
         "@id": data.url + CONFIG.WEBPAGE_ID_SUFFIX
       },
 
-      // Content info
       "wordCount": getAccurateWordCount(data.content),
       "keywords": getCleanKeywords(data.title),
       "inLanguage": "id-ID",
       "articleSection": articleSection,
 
-      // About (entity)
       "about": {
         "@type": "Thing",
         "name": aboutName
       },
 
-      // 🔥 FIX-A (v8.6b): Image SELALU ada (dengan Cloudinary fallback)
       "image": [{
         "@type": "ImageObject",
         "url": articleImage.url,
@@ -765,28 +877,45 @@
       }]
     };
 
-    // Optional: isPartOf
     if (isPartOf) schema.isPartOf = isPartOf;
+    if (entitySubType) schema.about.additionalType = entitySubType;
 
-    // Optional: entity sub-type
-    if (entitySubType) {
-      schema.about.additionalType = entitySubType;
-    }
-
-    // Return with debug info
     schema.__debug = { imageSource, entityType, pageLevel };
 
     return schema;
   }
 
   // ============================================================
+  // 🔥 FIX-C (v8.6c): GENERATE FAQ SCHEMA
+  // ============================================================
+  function generateFaqSchema(faqs, data, dates) {
+    return {
+      "@type": "FAQPage",
+      "@id": data.url + "#faq",
+      "author": {
+        "@type": "Organization",
+        "@id": CONFIG.LOCALBUSINESS_ID,
+        "name": "Beton Jaya Readymix"
+      },
+      "mainEntity": faqs.map(f => ({
+        "@type": "Question",
+        "name": f.name,
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": f.acceptedAnswer.text
+        }
+      }))
+    };
+  }
+
+  // ============================================================
   // 🔧 EXTRACT PAGE DATA
-  // 🔥 FIX-B (v8.6b): title dari H1 (bukan document.title)
+  // 🔥 FIX-B (v8.6b): title dari H1
   // ============================================================
   function extractPageData() {
     const url = location.href.split("?")[0];
 
-    // 🔥 FIX-B: H1 sebagai primary source (sinkron dengan Universal)
+    // H1 sebagai primary source (sinkron dengan Universal)
     const h1El = document.querySelector('h1');
     const h1Title = (h1El?.innerText || h1El?.textContent || '').trim();
     const title = h1Title || document.title || "";
@@ -800,7 +929,7 @@
     return {
       url,
       title,
-      h1Title,        // ← FIX-B: ekspos h1Title untuk Cloudinary
+      h1Title,
       descMeta,
       articleImage,
       content
@@ -808,11 +937,11 @@
   }
 
   // ============================================================
-  // 🚀 MAIN INIT v8.6b
+  // 🚀 MAIN INIT v8.6c
   // ============================================================
   async function init() {
     log("════════════════════════════════════");
-    log("Auto-Schema Generator v8.6b — ARTICLE (Cloudinary + H1 Title)");
+    log("Auto-Schema Generator v8.6c — ARTICLE + FAQ");
     log(`DEBUG: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("════════════════════════════════════");
 
@@ -863,7 +992,7 @@
     const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     if (aedData) log(`✅ AED ready: ${aedData.dateModified}`, "AED");
 
-    // 🔥 LAYER 1 (v8.6b): Cek PLD hint — PLD-DRIVEN
+    // 🔥 LAYER 1: Cek PLD hint — PLD-DRIVEN
     const articleElem = document.getElementById("auto-schema");
     const shouldGenerate = shouldGenerateArticleSchema(pageLevel, entityType, contentFocus);
 
@@ -879,6 +1008,28 @@
         log("⏸️ SKIP Article: bukan editorial content", "SKIP");
         if (articleElem) articleElem.textContent = "";
         return;
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // 🔥 FIX-C (v8.6c): FAQ DETECTION
+    // ═══════════════════════════════════════════════════════
+    const hasStaticFAQ = hasStaticFAQPageSchema();
+    let faqsFromDOM = [];
+    let wantFAQ = false;
+
+    if (shouldGenerate) {
+      if (hasStaticFAQ) {
+        log(`⏭️ FAQPage static sudah ada di script lain — SKIP FAQ dinamis`, "STATIC");
+      } else {
+        faqsFromDOM = extractFaqFromDOM();
+        wantFAQ = faqsFromDOM.length >= CONFIG.MIN_FAQ_FOR_SCHEMA;
+
+        if (wantFAQ) {
+          log(`❓ FAQ tersedia: ${faqsFromDOM.length} pertanyaan → wantFAQ=true`, "FAQ");
+        } else {
+          log(`❓ FAQ tidak cukup: ${faqsFromDOM.length} pertanyaan (min ${CONFIG.MIN_FAQ_FOR_SCHEMA}) → skip`, "FAQ");
+        }
       }
     }
 
@@ -898,27 +1049,46 @@
       const debugInfo = schemaObj.__debug || {};
       delete schemaObj.__debug;
 
-      articleElem.textContent = JSON.stringify(schemaObj, null, 2);
+      // ═══════════════════════════════════════════════════════
+      // 🔥 FIX-C (v8.6c): BUILD @graph [Article, FAQPage?]
+      // ═══════════════════════════════════════════════════════
+      const graph = [schemaObj];
 
-      log(`📄 ARTICLE SCHEMA GENERATED (${articleType})`, "ARTICLE");
+      if (wantFAQ && faqsFromDOM.length >= CONFIG.MIN_FAQ_FOR_SCHEMA) {
+        const faqSchema = generateFaqSchema(faqsFromDOM, pageData, dates);
+        graph.push(faqSchema);
+        log(`✅ FAQPage node ditambah ke @graph: ${faqsFromDOM.length} pertanyaan`, "FAQ");
+      }
+
+      articleElem.textContent = JSON.stringify({
+        "@context": "https://schema.org",
+        "@graph": graph
+      }, null, 2);
+
+      log(`📄 SCHEMA GENERATED (${articleType}${wantFAQ ? ' + FAQPage' : ''})`, "ARTICLE");
+      log(`   Graph nodes: ${graph.map(n => n["@type"]).join(' + ')}`, "SCHEMA");
       log(`   Publisher: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
       log(`   Author: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
       log(`   mainEntityOfPage: ${pageData.url}${CONFIG.WEBPAGE_ID_SUFFIX} 🔗`, "SYNC");
       log(`   isPartOf: ${parentData.parentName} ✅`, "SCHEMA");
       log(`   Image source: ${debugInfo.imageSource || 'unknown'}`, "IMG");
       log(`   Title (H1): "${pageData.h1Title?.substring(0, 50) || '(empty)'}"`, "URL");
+      if (wantFAQ) {
+        log(`   FAQ: ${faqsFromDOM.length} pertanyaan`, "FAQ");
+      }
     } else if (articleElem) {
       articleElem.textContent = "";
       log("Article schema skipped (PLD tidak menunjuk Article)", "SKIP");
     }
 
     log("════════════════════════════════════");
-    log("FINISHED (v8.6b)", "SUCCESS");
+    log("FINISHED (v8.6c)", "SUCCESS");
     log(`   Page Level: ${pageLevel}`, "SUCCESS");
     log(`   Entity Type: ${entityType}`, "SUCCESS");
     log(`   Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
     log(`   Kategori: ${kategori || 'NULL'}`, "KATEGORI");
     log(`   Article Schema: ${shouldGenerate ? 'GENERATED ✅' : 'SKIPPED ⏭️'}`, "ARTICLE");
+    log(`   FAQ Schema: ${wantFAQ ? 'GENERATED ✅' : (hasStaticFAQ ? 'STATIC ⏭️' : 'SKIPPED ⏭️')}`, "FAQ");
     log("════════════════════════════════════");
   }
 
@@ -931,12 +1101,13 @@
     init();
   }
 
-  console.log(`✅ [AutoSchema v8.6b] Ready — PLD-DRIVEN (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`✅ [AutoSchema v8.6c] Ready — PLD-DRIVEN + FAQ (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`🔥 FIX-C: FAQPage handling (konsumsi secondary=FAQPage + anti-duplikasi)`);
   console.log(`🔥 FIX-A: Cloudinary image fallback (konsisten Universal v7.36e)`);
   console.log(`🔥 FIX-B: Title source dari H1 (sinkron dengan Universal)`);
   console.log(`🔥 FIX-5: shouldGenerateArticleSchema() — PLD-driven`);
   console.log(`🔥 FIX-6: getArticleType() — prioritas PLD secondary`);
-  console.log(`🔥 FIX-7: Anti-tabrakan dengan Service/Product (v7.36e & v5.7)`);
+  console.log(`🔥 FIX-7: Anti-tabrakan dengan Service/Product (v7.36e & v5.7a)`);
   console.log(`🔥 FIX-8: Sync PLD v23.9.9`);
   console.log(`🔥 FIX-9: Fallback legacy tetap ada untuk PLD lama`);
 
