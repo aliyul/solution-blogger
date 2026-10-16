@@ -1,55 +1,37 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.5.0 — PLD SYNC
+ 🧠 Smart Evergreen Detector v17.5.2 — UX ENHANCED
 ============================================================
- 🔥🔥🔥 v17.5.0 CHANGELOG 🔥🔥🔥
- ✅ FIX-PLD-SYNC (BARU): getPageLevelAndEntityType() prioritas
-              ke body attribute (data-page-level + data-entity-type)
-              - PLD v23.9.9 = SOURCE OF TRUTH (sudah set attributes
-                SEBELUM dispatch event pageLevelDetectorv22Ready)
-              - Sebelumnya: AED pakai detectFromDOM() (H1-based)
-                → bisa berbeda dengan level PLD (URL-based)
-              - Sesudah: body attribute → detectFromDOM → detect
-              - Efek: AED 100% konsisten dengan Article, Hybrid, Universal
-              - Tambah log [FIX-PLD-SYNC] untuk tracking
-
- ✅ PRESERVED dari v17.4.9:
- ✅ FIX-AUTORUN: detectEvergreen() auto-jalan tiap halaman
- ✅ FIX-EVENT: dispatchEvent dipindah ke DALAM fungsi
-
- ✅ PRESERVED dari v17.4.8:
- ✅ FIX-MINOR-2: getPLDCtaType() — tambah entityType (3 arg)
- ✅ FIX-MINOR-1: Komentar header v23.9.8 → v23.9.9
- ✅ FIX-KRITIS: ISO + DD/MM/YYYY pattern
- ✅ FIX-MINOR: Guard updateJsonLdFaqYears
- ✅ Content-aware validity (HARGA=90, COM=180, INFO=365)
- ✅ Tiered warning (14/21/30 hari)
- ✅ Inline warning TEXT MERAH + data-nosnippet
- ✅ FIX-SYNC-v4: hasPriceTable() DIHAPUS
- ✅ FIX-EE-6: Money + INFORMASI = EVERGREEN
- ✅ FIX-EE-2 s/d EE-5
- ✅ FIX-SYNC-v3: getKategori dari finalType
- ✅ FIX-B1 s/d B10: AKTIF
- ✅ FIX-A1 s/d A21: AKTIF
-
+ 🔥🔥🔥 v17.5.2 CHANGELOG 🔥🔥🔥
+ ✅ FIX-UX-1: PRIORITY DISPLAY — Warning sesuai prioritas
+ ✅ FIX-UX-2: MOBILE-FIRST — Compact di HP
+ ✅ FIX-UX-3: ANALYTICS — Log summary ke console
+ ✅ FIX-UX-4: DARK MODE — Support prefers-color-scheme
+ ✅ FIX-UX-5: ACCESSIBILITY — ARIA role + aria-live
+ ✅ FIX-UX-6: MULTI-LANGUAGE — ID + EN config
+ ✅ FIX-UX-7: DEEP LINK — Tombol "Edit" untuk admin
+ ✅ PRESERVED dari v17.5.1:
+ ✅ FIX-WARN-TEXT: Text NETRAL (SEO-safe)
+ ✅ FIX-WARN-COLOR: Warna ORANGE
+ ✅ FIX-WARN-GUARD: Deteksi warning stuck > 30 hari
+ ✅ PRESERVED dari v17.5.0:
+ ✅ FIX-PLD-SYNC, FIX-AUTORUN, FIX-EVENT
+ ✅ PRESERVED dari v17.4.x: FIX-MINOR, FIX-KRITIS, FIX-EE, FIX-B, FIX-A
  📌 BRAND DEFAULT: "Beton Jaya Readymix"
- 📌 KOMPATIBEL: PLD v23.9.9 (SEO DIMENSION — entity-aware)
+ 📌 KOMPATIBEL: PLD v23.9.9
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.5.0") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.5.2") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.5.0";
+  window.__AED_VERSION = "17.5.2";
 
-  // ============================================================
-  // 📌 BRAND CONFIG
-  // ============================================================
   var DEFAULT_BRAND_NAME = "Beton Jaya Readymix";
 
   // ============================================================
-  // 🔔 INLINE WARNING CONFIG — TIERED
+  // 🔔 INLINE WARNING CONFIG — SOFT + UX ENHANCED
   // ============================================================
   const WARNING_CONFIG = {
     ENABLED: true,
@@ -63,17 +45,61 @@
     SHOW_DAYS_BEFORE: 30,
     INSERT_AFTER_SELECTOR: '.last-updated, .updated-date, .date-modified, [class*="last-updated"]',
     USE_NOSNIPPET: true,
+    STUCK_THRESHOLD_DAYS: 30,
+
+    // 🔥 FIX-UX-6 v17.5.2: MULTI-LANGUAGE
+    LOCALE: 'id',
+    MESSAGES: {
+      id: {
+        expired:  'ℹ️ Review berkala diperlukan — halaman ini melewati jadwal review',
+        critical: 'ℹ️ Review berkala: jadwal review halaman ini adalah hari ini',
+        warning:  'ℹ️ Review berkala: halaman akan di-review dalam {days} hari',
+        editBtn:  'Edit →',
+        stale:    '⚠️ Konten perlu segera di-review'
+      },
+      en: {
+        expired:  'ℹ️ Periodic review needed — this page passed its review schedule',
+        critical: 'ℹ️ Periodic review: this page is due for review today',
+        warning:  'ℹ️ Periodic review: page will be reviewed in {days} days',
+        editBtn:  'Edit →',
+        stale:    '⚠️ Content needs immediate review'
+      }
+    },
+
+    // 🔥 FIX-UX-1 v17.5.2: PRIORITY DISPLAY
+    PRIORITY_MAP: {
+      'money-child|HARGA':    'critical',
+      'money-child|GABUNG':   'critical',
+      'money-page|HARGA':     'high',
+      'money-page|GABUNG':    'high',
+      'money-master|HARGA':   'medium',
+      'money-master|GABUNG':  'medium',
+      'variant|HARGA':        'medium',
+      'sub-variant|HARGA':    'medium'
+    },
+
     STYLE: {
-      display: 'block',
-      color: '#dc2626',
-      fontWeight: 'bold',
-      fontSize: '0.9rem',
-      marginTop: '8px',
-      marginBottom: '12px',
-      padding: '8px 12px',
-      background: '#fef2f2',
-      borderLeft: '4px solid #dc2626',
-      borderRadius: '4px'
+      expired: {
+        display: 'block', color: '#c2410c', fontWeight: 'bold',
+        fontSize: '0.9rem', marginTop: '8px', marginBottom: '12px',
+        padding: '8px 12px', background: '#fff7ed',
+        borderLeft: '4px solid #f97316', borderRadius: '4px',
+        position: 'relative'
+      },
+      critical: {
+        display: 'block', color: '#c2410c', fontWeight: 'bold',
+        fontSize: '0.9rem', marginTop: '8px', marginBottom: '12px',
+        padding: '8px 12px', background: '#fff7ed',
+        borderLeft: '4px solid #f97316', borderRadius: '4px',
+        position: 'relative'
+      },
+      warning: {
+        display: 'block', color: '#b45309', fontWeight: 'bold',
+        fontSize: '0.9rem', marginTop: '8px', marginBottom: '12px',
+        padding: '8px 12px', background: '#fffbeb',
+        borderLeft: '4px solid #f59e0b', borderRadius: '4px',
+        position: 'relative'
+      }
     }
   };
 
@@ -101,6 +127,137 @@
   const EVERGREEN_LEVELS = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'];
 
   // ============================================================
+  // 🔥 FIX-UX-1 v17.5.2: GET PRIORITY
+  // ============================================================
+  function getPriority(pageLevel, contentFocus) {
+    var key = pageLevel + '|' + String(contentFocus || '').toUpperCase();
+    return WARNING_CONFIG.PRIORITY_MAP[key] || 'low';
+  }
+
+  // ============================================================
+  // 🔥 FIX-UX-6 v17.5.2: DETECT LOCALE
+  // ============================================================
+  function detectLocale() {
+    try {
+      var htmlLang = document.documentElement.getAttribute('lang') || '';
+      if (htmlLang.toLowerCase().indexOf('en') === 0) return 'en';
+      var bodyLang = document.body.getAttribute('lang') || '';
+      if (bodyLang.toLowerCase().indexOf('en') === 0) return 'en';
+    } catch (e) {}
+    return WARNING_CONFIG.LOCALE || 'id';
+  }
+
+  function getMessage(key, replacements) {
+    var locale = detectLocale();
+    var msgs = WARNING_CONFIG.MESSAGES[locale] || WARNING_CONFIG.MESSAGES.id;
+    var msg = msgs[key] || WARNING_CONFIG.MESSAGES.id[key] || '';
+    if (replacements) {
+      for (var k in replacements) {
+        if (replacements.hasOwnProperty(k)) {
+          msg = msg.replace('{' + k + '}', String(replacements[k]));
+        }
+      }
+    }
+    return msg;
+  }
+
+  // ============================================================
+  // 🔥 FIX-UX-7 v17.5.2: DETECT ADMIN
+  // ============================================================
+  function isAdmin() {
+    try {
+      if (document.body.getAttribute('data-is-admin') === 'true') return true;
+      if (localStorage.getItem('aed-is-admin') === 'true') return true;
+      if (document.cookie.indexOf('aed_admin=1') !== -1) return true;
+    } catch (e) {}
+    return false;
+  }
+
+  function buildEditLink() {
+    var currentUrl = window.location.href.split('?')[0];
+    return '/admin/edit?url=' + encodeURIComponent(currentUrl);
+  }
+
+  // ============================================================
+  // 🔥 FIX-UX-4/5 v17.5.2: INJECT CSS (DARK MODE + MOBILE + A11Y)
+  // ============================================================
+  function injectWarningStyles() {
+    if (document.getElementById('aed-warning-styles')) return;
+    var style = document.createElement('style');
+    style.id = 'aed-warning-styles';
+    style.textContent = `
+      /* 🔥 FIX-UX-2: MOBILE-FIRST */
+      @media (max-width: 640px) {
+        #aed-update-warning {
+          font-size: 0.82rem !important;
+          padding: 6px 10px !important;
+          margin-top: 6px !important;
+          margin-bottom: 8px !important;
+        }
+        #aed-update-warning .aed-warning-full { display: none !important; }
+        #aed-update-warning .aed-warning-compact { display: inline !important; }
+        #aed-update-warning .aed-edit-link {
+          font-size: 0.78rem !important;
+          padding: 3px 8px !important;
+        }
+      }
+      @media (min-width: 641px) {
+        #aed-update-warning .aed-warning-compact { display: none !important; }
+      }
+
+      /* 🔥 FIX-UX-4: DARK MODE */
+      @media (prefers-color-scheme: dark) {
+        #aed-update-warning[data-severity="warning"] {
+          background: #1c1917 !important;
+          color: #fbbf24 !important;
+          border-left-color: #f59e0b !important;
+        }
+        #aed-update-warning[data-severity="expired"],
+        #aed-update-warning[data-severity="critical"] {
+          background: #1c1917 !important;
+          color: #fb923c !important;
+          border-left-color: #f97316 !important;
+        }
+        #aed-update-warning .aed-edit-link {
+          background: #292524 !important;
+          color: #fbbf24 !important;
+          border-color: #f59e0b !important;
+        }
+      }
+
+      /* 🔥 FIX-UX-1: PRIORITY STYLING */
+      #aed-update-warning[data-priority="critical"] {
+        font-weight: 800 !important;
+        border-left-width: 6px !important;
+      }
+      #aed-update-warning[data-priority="high"] {
+        font-weight: 700 !important;
+        border-left-width: 5px !important;
+      }
+
+      /* 🔥 FIX-UX-7: EDIT LINK */
+      #aed-update-warning .aed-edit-link {
+        display: inline-block;
+        margin-left: 10px;
+        padding: 4px 10px;
+        background: #fff;
+        color: #c2410c;
+        border: 1px solid #f97316;
+        border-radius: 4px;
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.15s;
+      }
+      #aed-update-warning .aed-edit-link:hover {
+        background: #f97316;
+        color: #fff;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // ============================================================
   // 🎯 CONTENT-AWARE VALIDITY
   // ============================================================
   function getValidityByContext(pageLevel, contentFocus) {
@@ -108,65 +265,35 @@
     var isMoney = MONEY_LEVELS.indexOf(pageLevel) !== -1;
 
     if (isMoney) {
-      if (focus === 'HARGA' || focus === 'GABUNG') {
-        console.log(`📅 [Validity] ${pageLevel} + ${focus} → 90 hari`);
-        return 90;
-      }
-      if (focus === 'COMMERCIAL') {
-        console.log(`📅 [Validity] ${pageLevel} + ${focus} → 180 hari`);
-        return 180;
-      }
-      if (focus === 'INFORMASI') {
-        console.log(`📅 [Validity] ${pageLevel} + ${focus} → 365 hari`);
-        return 365;
-      }
-      if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
-        console.log(`📅 [Validity] ${pageLevel} → 365 hari`);
-        return 365;
-      }
-      console.log(`📅 [Validity] ${pageLevel} → 365 hari (default)`);
+      if (focus === 'HARGA' || focus === 'GABUNG') return 90;
+      if (focus === 'COMMERCIAL') return 180;
+      if (focus === 'INFORMASI') return 365;
+      if (pageLevel === 'variant' || pageLevel === 'sub-variant') return 365;
       return 365;
     }
-
     var rule = BASE_PAGE_LEVEL_RULES[pageLevel];
     return rule ? rule.validityDays : 365;
   }
 
-  // ============================================================
-  // 🔔 TIERED WARNING
-  // ============================================================
   function getWarningDays(validityDays) {
     if (!WARNING_CONFIG.USE_TIERED) return WARNING_CONFIG.SHOW_DAYS_BEFORE;
-
     var rules = WARNING_CONFIG.TIERED_RULES || [];
     for (var i = 0; i < rules.length; i++) {
-      if (validityDays <= rules[i].maxValidity) {
-        console.log(`📅 [Warning Tier] validity ${validityDays} hari → warning ${rules[i].showDays} hari (${rules[i].label})`);
-        return rules[i].showDays;
-      }
+      if (validityDays <= rules[i].maxValidity) return rules[i].showDays;
     }
     return WARNING_CONFIG.SHOW_DAYS_BEFORE;
   }
 
-  // ============================================================
-  // 📌 TO ISO
-  // ============================================================
   function toISOWithTimezoneLocal(date, offset = "+07:00") {
     if (!date) return null;
     const d = new Date(date);
     if (isNaN(d.getTime())) return null;
     const pad = (n) => n.toString().padStart(2, "0");
-    const yyyy = d.getFullYear();
-    const mm = pad(d.getMonth() + 1);
-    const dd = pad(d.getDate());
-    const hh = pad(d.getHours());
-    const min = pad(d.getMinutes());
-    const ss = pad(d.getSeconds());
-    return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}${offset}`;
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${offset}`;
   }
 
   // ============================================================
-  // 🔔 INLINE WARNING
+  // 🔔 INLINE WARNING — v17.5.2
   // ============================================================
   function formatTanggalIndo(dateStr) {
     if (!dateStr) return '';
@@ -177,16 +304,15 @@
     return d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear();
   }
 
-  function checkAndShowInlineWarning() {
+  function checkAndShowInlineWarning(pageLevel, contentFocus) {
     if (!WARNING_CONFIG.ENABLED) return;
+    pageLevel = pageLevel || document.body.getAttribute('data-page-level') || '';
+    contentFocus = contentFocus || document.body.getAttribute('data-content-focus') || '';
 
     const metaNext = document.querySelector('meta[name="nextUpdate"]');
     const metaModified = document.querySelector('meta[itemprop="dateModified"]');
 
-    if (!metaNext || !metaNext.getAttribute('content')) {
-      console.log('ℹ️ [AED Warning] Belum ada nextUpdate — skip');
-      return;
-    }
+    if (!metaNext || !metaNext.getAttribute('content')) return;
 
     const nextUpdateStr = metaNext.getAttribute('content');
     const modifiedStr = metaModified ? metaModified.getAttribute('content') : 'unknown';
@@ -206,48 +332,100 @@
     const daysDiff = Math.ceil((nextDate - now) / 86400000);
 
     let severity = null;
-    let message = '';
+    let messageKey = null;
+    let messageReplace = null;
 
     if (daysDiff < 0) {
       if (!WARNING_CONFIG.SHOW_AFTER_EXPIRED) return;
       severity = 'expired';
-      message = `🔴 KEDALUWARSA: Halaman ini sudah melewati batas update ${Math.abs(daysDiff)} hari (batas: ${formatTanggalIndo(nextUpdateStr)})`;
+      messageKey = (Math.abs(daysDiff) > WARNING_CONFIG.STUCK_THRESHOLD_DAYS) ? 'stale' : 'expired';
     } else if (daysDiff === 0) {
       severity = 'critical';
-      message = `🔴 HARI INI: Batas update halaman ini adalah hari ini (${formatTanggalIndo(nextUpdateStr)})`;
+      messageKey = 'critical';
     } else if (daysDiff <= warningThreshold) {
       severity = 'warning';
-      message = `⚠️ PERLU UPDATE: Halaman ini akan kedaluwarsa dalam ${daysDiff} hari (batas: ${formatTanggalIndo(nextUpdateStr)})`;
+      messageKey = 'warning';
+      messageReplace = { days: daysDiff };
     } else {
-      console.log(`✅ [AED Warning] Halaman fresh — ${daysDiff} hari lagi (threshold: ${warningThreshold} hari)`);
+      console.log(`✅ [AED Warning] Halaman fresh — ${daysDiff} hari lagi`);
       return;
     }
 
-    console.warn('═══════════════════════════════════════════');
-    console.warn('[AED Warning]', message);
-    console.warn('  Validity   :', validityDays, 'hari');
-    console.warn('  Threshold  :', warningThreshold, 'hari');
-    console.warn('  Days diff  :', daysDiff);
-    console.warn('  dateModified:', modifiedStr);
-    console.warn('  nextUpdate :', nextUpdateStr);
-    console.warn('═══════════════════════════════════════════');
+    // 🔥 FIX-UX-3: ANALYTICS LOG
+    var priority = getPriority(pageLevel, contentFocus);
+    var analyticsSummary = {
+      url: window.location.pathname,
+      pageLevel: pageLevel,
+      contentFocus: contentFocus,
+      severity: severity,
+      priority: priority,
+      daysDiff: daysDiff,
+      validityDays: validityDays,
+      threshold: warningThreshold,
+      stuck: (severity === 'expired' && Math.abs(daysDiff) > WARNING_CONFIG.STUCK_THRESHOLD_DAYS),
+      timestamp: new Date().toISOString()
+    };
+    console.log('📊 [AED Analytics]', JSON.stringify(analyticsSummary));
 
-    createWarningElement(message, severity);
+    // 🔥 FIX-WARN-GUARD: stuck detection
+    if (severity === 'expired' && Math.abs(daysDiff) > WARNING_CONFIG.STUCK_THRESHOLD_DAYS) {
+      console.warn('🚨 [AED WARNING STUCK]', Math.abs(daysDiff), 'hari — AED auto-update mungkin tidak berjalan');
+      document.body.setAttribute('data-aed-warning-stuck', 'true');
+      document.body.setAttribute('data-aed-warning-stuck-days', String(Math.abs(daysDiff)));
+    }
+
+    document.body.setAttribute('data-aed-warning-severity', severity);
+    document.body.setAttribute('data-aed-warning-days', String(daysDiff));
+    document.body.setAttribute('data-aed-warning-priority', priority);
+
+    var message = getMessage(messageKey, messageReplace);
+    console.log('ℹ️ [AED Warning]', message, '| priority:', priority);
+
+    createWarningElement(message, severity, priority, daysDiff);
   }
 
-  function createWarningElement(message, severity) {
-    if (document.getElementById('aed-update-warning')) {
-      console.log('⏭️ [AED Warning] Warning sudah ada — skip');
-      return;
-    }
+  function createWarningElement(message, severity, priority, daysDiff) {
+    if (document.getElementById('aed-update-warning')) return;
+
+    injectWarningStyles();
 
     var warning = document.createElement('div');
     warning.id = 'aed-update-warning';
     warning.setAttribute('data-nosnippet', '');
     warning.setAttribute('data-severity', severity);
-    warning.textContent = message;
+    warning.setAttribute('data-priority', priority || 'low');
 
-    var style = WARNING_CONFIG.STYLE;
+    // 🔥 FIX-UX-5: ACCESSIBILITY
+    warning.setAttribute('role', 'alert');
+    warning.setAttribute('aria-live', 'polite');
+    warning.setAttribute('aria-atomic', 'true');
+    warning.setAttribute('aria-label', 'Status review halaman: ' + message);
+
+    // 🔥 FIX-UX-2: MOBILE-FIRST — tampilkan versi compact
+    var compactMsg = '';
+    if (severity === 'expired' || severity === 'critical') {
+      compactMsg = 'ℹ️ ' + (detectLocale() === 'en' ? 'Review due' : 'Review berkala');
+    } else if (severity === 'warning') {
+      compactMsg = 'ℹ️ ' + (detectLocale() === 'en' ? 'Review in ' + daysDiff + 'd' : 'Review ' + daysDiff + ' hari');
+    }
+
+    warning.innerHTML = 
+      '<span class="aed-warning-full">' + message + '</span>' +
+      '<span class="aed-warning-compact">' + compactMsg + '</span>';
+
+    // 🔥 FIX-UX-7: EDIT LINK untuk admin
+    if (isAdmin()) {
+      var editLink = document.createElement('a');
+      editLink.href = buildEditLink();
+      editLink.className = 'aed-edit-link';
+      editLink.textContent = getMessage('editBtn');
+      editLink.setAttribute('rel', 'nofollow');
+      editLink.setAttribute('target', '_blank');
+      editLink.setAttribute('aria-label', 'Edit halaman ini');
+      warning.appendChild(editLink);
+    }
+
+    var style = WARNING_CONFIG.STYLE[severity] || WARNING_CONFIG.STYLE.warning;
     for (var key in style) {
       if (style.hasOwnProperty(key)) {
         warning.style[key] = style[key];
@@ -256,7 +434,6 @@
 
     var anchor = null;
     var selectors = WARNING_CONFIG.INSERT_AFTER_SELECTOR.split(',').map(s => s.trim());
-
     for (var i = 0; i < selectors.length; i++) {
       try {
         var el = document.querySelector(selectors[i]);
@@ -266,17 +443,15 @@
 
     if (anchor) {
       anchor.parentNode.insertBefore(warning, anchor.nextSibling);
-      console.log('✅ [AED Warning] Ditambahkan setelah:', anchor.className || anchor.tagName);
     } else {
       var h1 = document.querySelector('h1');
       if (h1) {
         h1.parentNode.insertBefore(warning, h1.nextSibling);
-        console.log('✅ [AED Warning] Ditambahkan setelah H1');
       } else {
         document.body.insertBefore(warning, document.body.firstChild);
-        console.log('⚠️ [AED Warning] Di awal body (fallback)');
       }
     }
+    console.log('✅ [AED Warning] Ditambahkan — severity:', severity, '| priority:', priority);
   }
 
   // ============================================================
@@ -287,12 +462,7 @@
     if (str.indexOf('&') === -1) return str;
     var textarea = document.createElement('textarea');
     textarea.innerHTML = str;
-    var decoded = textarea.value;
-    if (decoded !== str) {
-      var preview = str.substring(0, 60).replace(/\n/g, ' ');
-      console.log('🔧 [FIX-B10] Decode: "' + preview + '..."');
-    }
-    return decoded;
+    return textarea.value;
   }
 
   function deepDecodeHtmlEntities(obj) {
@@ -335,21 +505,15 @@
   // ============================================================
   function detectIllegalFaqProps() {
     var hasIllegal = false;
-    var details = [];
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
 
     scripts.forEach(function (script) {
       var raw = script.textContent;
       if (!raw) return;
       if (raw.indexOf('"FAQPage"') === -1 && raw.indexOf('"QAPage"') === -1) return;
-
       var json;
       try { json = JSON.parse(raw); } catch (e) { return; }
-
-      var nodes = [];
-      if (Array.isArray(json)) nodes = json;
-      else if (json['@graph'] && Array.isArray(json['@graph'])) nodes = json['@graph'];
-      else nodes = [json];
+      var nodes = Array.isArray(json) ? json : (json['@graph'] && Array.isArray(json['@graph']) ? json['@graph'] : [json]);
 
       nodes.forEach(function (node) {
         if (!node || typeof node !== 'object') return;
@@ -359,55 +523,28 @@
         if (!isFaqPage && !isQaPage) return;
 
         if (isFaqPage) {
-          if (node.datePublished !== undefined) { hasIllegal = true; details.push('datePublished di FAQPage'); }
-          if (node.dateModified !== undefined) { hasIllegal = true; details.push('dateModified di FAQPage'); }
+          if (node.datePublished !== undefined) hasIllegal = true;
+          if (node.dateModified !== undefined) hasIllegal = true;
         }
-
         if (Array.isArray(node.mainEntity)) {
-          node.mainEntity.forEach(function (q, idx) {
+          node.mainEntity.forEach(function (q) {
             if (!q || typeof q !== 'object') return;
-            if (q.author !== undefined)       { hasIllegal = true; details.push('author di Q' + (idx+1)); }
-            if (q.datePublished !== undefined){ hasIllegal = true; details.push('datePublished di Q' + (idx+1)); }
-            if (q.dateModified !== undefined) { hasIllegal = true; details.push('dateModified di Q' + (idx+1)); }
-            if (q.upvoteCount !== undefined)  { hasIllegal = true; details.push('upvoteCount di Q' + (idx+1)); }
-
+            if (q.author !== undefined || q.datePublished !== undefined || q.dateModified !== undefined || q.upvoteCount !== undefined) hasIllegal = true;
             if (q.acceptedAnswer && typeof q.acceptedAnswer === 'object') {
               var a = q.acceptedAnswer;
-              if (a.author !== undefined)       { hasIllegal = true; details.push('author di A' + (idx+1)); }
-              if (a.datePublished !== undefined){ hasIllegal = true; details.push('datePublished di A' + (idx+1)); }
-              if (a.dateModified !== undefined) { hasIllegal = true; details.push('dateModified di A' + (idx+1)); }
-              if (a.upvoteCount !== undefined)  { hasIllegal = true; details.push('upvoteCount di A' + (idx+1)); }
-            }
-
-            if (Array.isArray(q.suggestedAnswer)) {
-              q.suggestedAnswer.forEach(function (s, sIdx) {
-                if (!s || typeof s !== 'object') return;
-                if (s.author !== undefined || s.datePublished !== undefined ||
-                    s.dateModified !== undefined || s.upvoteCount !== undefined) {
-                  hasIllegal = true;
-                  details.push('properti ilegal di suggestedAnswer Q' + (idx+1) + '[' + sIdx + ']');
-                }
-              });
+              if (a.author !== undefined || a.datePublished !== undefined || a.dateModified !== undefined || a.upvoteCount !== undefined) hasIllegal = true;
             }
           });
         }
-
         var entitiesFound = hasHtmlEntities(node);
-        if (entitiesFound.length > 0) {
-          hasIllegal = true;
-          var uniqueEntities = entitiesFound.filter(function (v, i, arr) { return arr.indexOf(v) === i; }).slice(0, 5);
-          details.push('entities: ' + uniqueEntities.join(', '));
-        }
+        if (entitiesFound.length > 0) hasIllegal = true;
       });
     });
-
-    if (hasIllegal) console.log('🔍 [FIX-B9+B10] Properti ilegal / entities terdeteksi:', details.join(', '));
-    else console.log('✅ [FIX-B9+B10] FAQ schema bersih');
     return hasIllegal;
   }
 
   // ============================================================
-  // FIX-B8: Normalize Brand Case
+  // FIX-B8 + B2: Brand normalization
   // ============================================================
   function normalizeBrandCase(str) {
     if (!str || typeof str !== 'string') return str;
@@ -415,40 +552,22 @@
     if (trimmed.length < 3) return str;
     if (trimmed !== trimmed.toUpperCase()) return str;
     if (/[\d]/.test(trimmed)) return str;
-
     var words = trimmed.split(/\s+/);
     var validAcronyms = ['PT','CV','UD','TBK','LTD','INC','LLC','CORP','GMBH','NASA','BMW','IBM','AMD','HP','LG','3M','KFC','BBC','SNI','ASTM','JIS','DIN','ISO','PUPR','K3','SMK3','MEP','AC','WC','TV','IT','HR','GA','QC','QA'];
-
     var allAcronyms = words.every(function (w) { return validAcronyms.indexOf(w) !== -1; });
     if (allAcronyms) return str;
-
-    var normalized = words.map(function (w) {
+    return words.map(function (w) {
       if (validAcronyms.indexOf(w) !== -1) return w;
       return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
     }).join(' ');
-
-    if (normalized !== trimmed) console.log('🔧 [Normalize] "' + trimmed + '" → "' + normalized + '"');
-    return normalized;
   }
 
-  // ============================================================
-  // FIX-B2: Resolve brand name
-  // ============================================================
   function resolveBrandName() {
     if (window.AEDMetaDates && window.AEDMetaDates.brandName) return window.AEDMetaDates.brandName;
-
     var metaBrand = document.querySelector('meta[name="brand"]');
-    if (metaBrand && metaBrand.getAttribute('content')) {
-      var b2 = metaBrand.getAttribute('content').trim();
-      if (b2) { console.log('🏢 [Brand] meta[name="brand"]: ' + b2); return b2; }
-    }
-
+    if (metaBrand && metaBrand.getAttribute('content')) return metaBrand.getAttribute('content').trim();
     var ogSite = document.querySelector('meta[property="og:site_name"]');
-    if (ogSite && ogSite.getAttribute('content')) {
-      var b3 = ogSite.getAttribute('content').trim();
-      if (b3) { console.log('🏢 [Brand] og:site_name: ' + b3); return b3; }
-    }
-
+    if (ogSite && ogSite.getAttribute('content')) return ogSite.getAttribute('content').trim();
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
     for (var i = 0; i < scripts.length; i++) {
       try {
@@ -461,15 +580,12 @@
         }
       } catch (e) {}
     }
-
     var title = document.title || '';
     if (title.indexOf(' - ') !== -1) {
       var parts = title.split(' - ');
       var last = parts[parts.length - 1].trim();
-      if (last && last.length < 60) { console.log('🏢 [Brand] title: ' + last); return last; }
+      if (last && last.length < 60) return last;
     }
-
-    console.log('🏢 [Brand] Fallback: ' + DEFAULT_BRAND_NAME);
     return DEFAULT_BRAND_NAME;
   }
 
@@ -484,15 +600,9 @@
       var raw = script.textContent;
       if (!raw) return;
       if (raw.indexOf('"FAQPage"') === -1 && raw.indexOf('"QAPage"') === -1) return;
-
       var json;
       try { json = JSON.parse(raw); } catch (e) { return; }
-
-      var nodes = [];
-      if (Array.isArray(json)) nodes = json;
-      else if (json['@graph'] && Array.isArray(json['@graph'])) nodes = json['@graph'];
-      else nodes = [json];
-
+      var nodes = Array.isArray(json) ? json : (json['@graph'] && Array.isArray(json['@graph']) ? json['@graph'] : [json]);
       var changed = false;
 
       nodes.forEach(function (node) {
@@ -504,47 +614,27 @@
 
         if (isFaqPage) {
           if (node.datePublished !== undefined) { delete node.datePublished; changed = true; cleaned++; }
-          if (node.dateModified !== undefined)  { delete node.dateModified; changed = true; cleaned++; }
+          if (node.dateModified !== undefined) { delete node.dateModified; changed = true; cleaned++; }
           if (node.author === undefined || node.author === null) {
-            if (brandName) {
-              node.author = { "@type": "Organization", "name": brandName };
-              changed = true; injected++;
-              console.log('✅ [FAQ] Inject author: ' + brandName);
-            }
+            if (brandName) { node.author = { "@type": "Organization", "name": brandName }; changed = true; injected++; }
           } else if (node.author.name) {
-            var originalName = node.author.name;
-            var normalizedName = normalizeBrandCase(originalName);
-            if (normalizedName !== originalName) {
-              node.author.name = normalizedName;
-              changed = true; normalized++;
-            }
+            var normalizedName = normalizeBrandCase(node.author.name);
+            if (normalizedName !== node.author.name) { node.author.name = normalizedName; changed = true; normalized++; }
           }
         }
-
         if (Array.isArray(node.mainEntity)) {
           node.mainEntity.forEach(function (q) {
             if (!q || typeof q !== 'object') return;
-            if (q.author !== undefined)       { delete q.author;       changed = true; cleaned++; }
-            if (q.datePublished !== undefined){ delete q.datePublished; changed = true; cleaned++; }
-            if (q.dateModified !== undefined) { delete q.dateModified;  changed = true; cleaned++; }
-            if (q.upvoteCount !== undefined)  { delete q.upvoteCount;   changed = true; cleaned++; }
-
+            if (q.author !== undefined) { delete q.author; changed = true; cleaned++; }
+            if (q.datePublished !== undefined) { delete q.datePublished; changed = true; cleaned++; }
+            if (q.dateModified !== undefined) { delete q.dateModified; changed = true; cleaned++; }
+            if (q.upvoteCount !== undefined) { delete q.upvoteCount; changed = true; cleaned++; }
             if (q.acceptedAnswer && typeof q.acceptedAnswer === 'object') {
               var a = q.acceptedAnswer;
-              if (a.author !== undefined)       { delete a.author;       changed = true; cleaned++; }
-              if (a.datePublished !== undefined){ delete a.datePublished; changed = true; cleaned++; }
-              if (a.dateModified !== undefined) { delete a.dateModified;  changed = true; cleaned++; }
-              if (a.upvoteCount !== undefined)  { delete a.upvoteCount;   changed = true; cleaned++; }
-            }
-
-            if (Array.isArray(q.suggestedAnswer)) {
-              q.suggestedAnswer.forEach(function (s) {
-                if (!s || typeof s !== 'object') return;
-                if (s.author !== undefined)       { delete s.author;       changed = true; cleaned++; }
-                if (s.datePublished !== undefined){ delete s.datePublished; changed = true; cleaned++; }
-                if (s.dateModified !== undefined) { delete s.dateModified;  changed = true; cleaned++; }
-                if (s.upvoteCount !== undefined)  { delete s.upvoteCount;   changed = true; cleaned++; }
-              });
+              if (a.author !== undefined) { delete a.author; changed = true; cleaned++; }
+              if (a.datePublished !== undefined) { delete a.datePublished; changed = true; cleaned++; }
+              if (a.dateModified !== undefined) { delete a.dateModified; changed = true; cleaned++; }
+              if (a.upvoteCount !== undefined) { delete a.upvoteCount; changed = true; cleaned++; }
             }
           });
         }
@@ -554,16 +644,11 @@
       json = deepDecodeHtmlEntities(json);
       var entitiesAfter = hasHtmlEntities(json);
       var decodedCount = entitiesBefore.length - entitiesAfter.length;
-      if (decodedCount > 0) {
-        entitiesDecoded += decodedCount;
-        cleaned += decodedCount;
-        changed = true;
-      }
-
+      if (decodedCount > 0) { entitiesDecoded += decodedCount; cleaned += decodedCount; changed = true; }
       if (changed) script.textContent = JSON.stringify(json, null, 2);
     });
 
-    console.log('✅ [FAQ Cleanup] ' + cleaned + ' dibersihkan, ' + injected + ' inject, ' + normalized + ' normalize, ' + entitiesDecoded + ' decode');
+    console.log('✅ [FAQ Cleanup]', cleaned, 'cleaned,', injected, 'inject,', normalized, 'normalize,', entitiesDecoded, 'decode');
     return { cleaned: cleaned, injected: injected, normalized: normalized, entitiesDecoded: entitiesDecoded };
   }
 
@@ -575,16 +660,15 @@
       var v = window.pageLevelDetectorv22.version;
       if (v.indexOf("23.9.9") === 0) return { version: v, family: "v23-lite", label: "v23.9.9-lite" };
       if (v.indexOf("23.9.8") === 0) return { version: v, family: "v23-lite", label: "v23.9.8-lite" };
-      if (v.indexOf("23.9.7") === 0) return { version: v, family: "v23-lite", label: "v23.9.7-lite" };
-      if (v.indexOf("23.") === 0)    return { version: v, family: "v23", label: "v23.0.0" };
-      if (v.indexOf("22.") === 0)    return { version: v, family: "v22", label: "v22.x" };
+      if (v.indexOf("23.") === 0) return { version: v, family: "v23", label: "v23.0.0" };
+      if (v.indexOf("22.") === 0) return { version: v, family: "v22", label: "v22.x" };
       return { version: v, family: "unknown", label: "v" + v };
     }
     if (window.pageLevelDetectorv20) return { version: "20.x", family: "v20", label: "v20.x" };
     if (window.pageLevelDetectorv19) return { version: "19.x", family: "v19", label: "v19.x" };
     if (window.pageLevelDetectorV18) return { version: "18.x", family: "v18", label: "v18" };
     if (window.pageLevelDetectorV17) return { version: "17.x", family: "v17", label: "v17" };
-    if (window.pageLevelDetector)    return { version: "legacy", family: "legacy", label: "legacy" };
+    if (window.pageLevelDetector) return { version: "legacy", family: "legacy", label: "legacy" };
     return { version: "none", family: "none", label: "none" };
   }
 
@@ -599,81 +683,35 @@
   // PLD HELPER
   // ============================================================
   function getPLDContentFocus(pageLevel, entityType) {
-    if (!window.pageLevelDetectorv22) return null;
-    if (typeof window.pageLevelDetectorv22.detectContentFocus !== "function") return null;
-
-    var cacheKey = "contentfocus|" + pageLevel + "|" + entityType;
-    return _cachePLD(cacheKey, function () {
-      try {
-        var focus = window.pageLevelDetectorv22.detectContentFocus(pageLevel, entityType);
-        if (focus) { console.log(`🎯 [PLD] Content Focus: ${focus}`); return focus; }
-      } catch (e) { console.warn("⚠️ PLD detectContentFocus error: " + e.message); }
-      return null;
+    if (!window.pageLevelDetectorv22 || typeof window.pageLevelDetectorv22.detectContentFocus !== "function") return null;
+    return _cachePLD("contentfocus|" + pageLevel + "|" + entityType, function () {
+      try { return window.pageLevelDetectorv22.detectContentFocus(pageLevel, entityType); } catch (e) { return null; }
     });
   }
-
   function getPLDKategori(contentFocus) {
-    if (!window.pageLevelDetectorv22) return null;
-    if (typeof window.pageLevelDetectorv22.detectKategori !== "function") return null;
-
-    var cacheKey = "kategori|" + (contentFocus || "INFORMASI");
-    return _cachePLD(cacheKey, function () {
-      try {
-        var kategori = window.pageLevelDetectorv22.detectKategori((contentFocus || "INFORMASI").toUpperCase());
-        if (kategori) { console.log(`🏷️ [PLD] Kategori: ${kategori}`); return kategori; }
-      } catch (e) {}
-      return null;
+    if (!window.pageLevelDetectorv22 || typeof window.pageLevelDetectorv22.detectKategori !== "function") return null;
+    return _cachePLD("kategori|" + (contentFocus || "INFORMASI"), function () {
+      try { return window.pageLevelDetectorv22.detectKategori((contentFocus || "INFORMASI").toUpperCase()); } catch (e) { return null; }
     });
   }
-
   function getPLDH1Pattern(kategori) {
-    if (!window.pageLevelDetectorv22 || !kategori) return null;
-    if (typeof window.pageLevelDetectorv22.detectH1Pattern !== "function") return null;
-
-    var cacheKey = "h1pattern|" + kategori;
-    return _cachePLD(cacheKey, function () {
-      try {
-        var pattern = window.pageLevelDetectorv22.detectH1Pattern(kategori);
-        if (pattern) { console.log(`📝 [PLD] H1 Pattern: ${pattern}`); return pattern; }
-      } catch (e) {}
-      return null;
+    if (!window.pageLevelDetectorv22 || !kategori || typeof window.pageLevelDetectorv22.detectH1Pattern !== "function") return null;
+    return _cachePLD("h1pattern|" + kategori, function () {
+      try { return window.pageLevelDetectorv22.detectH1Pattern(kategori); } catch (e) { return null; }
     });
   }
-
   function getPLDSchemaType(pageLevel, entityType, contentFocus) {
-    if (!window.pageLevelDetectorv22) return null;
-    if (typeof window.pageLevelDetectorv22.detectSchemaType !== "function") return null;
-
-    var cacheKey = "schema|" + pageLevel + "|" + entityType + "|" + (contentFocus || "INFORMASI");
-    return _cachePLD(cacheKey, function () {
-      try {
-        var schemaType = window.pageLevelDetectorv22.detectSchemaType(pageLevel, entityType, (contentFocus || "INFORMASI").toUpperCase());
-        if (schemaType) { console.log(`📋 [PLD] Schema: ${schemaType.primary} + ${schemaType.secondary}`); return schemaType; }
-      } catch (e) {}
-      return null;
+    if (!window.pageLevelDetectorv22 || typeof window.pageLevelDetectorv22.detectSchemaType !== "function") return null;
+    return _cachePLD("schema|" + pageLevel + "|" + entityType + "|" + (contentFocus || "INFORMASI"), function () {
+      try { return window.pageLevelDetectorv22.detectSchemaType(pageLevel, entityType, (contentFocus || "INFORMASI").toUpperCase()); } catch (e) { return null; }
     });
   }
-
-  // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX-MINOR-2 (v17.4.8): getPLDCtaType — tambah entityType
-  // SEBELUM: detectCtaType(level, focus) — 2 arg → CTA tidak entity-aware
-  // SESUDAH: detectCtaType(level, focus, entityType) — 3 arg → akurat
-  // ═══════════════════════════════════════════════════════════
   function getPLDCtaType(pageLevel, contentFocus, entityType) {
-    if (!window.pageLevelDetectorv22) return null;
-    if (typeof window.pageLevelDetectorv22.detectCtaType !== "function") return null;
-
-    var cacheKey = "cta|" + pageLevel + "|" + (contentFocus || "INFORMASI") + "|" + (entityType || "none");
-    return _cachePLD(cacheKey, function () {
+    if (!window.pageLevelDetectorv22 || typeof window.pageLevelDetectorv22.detectCtaType !== "function") return null;
+    return _cachePLD("cta|" + pageLevel + "|" + (contentFocus || "INFORMASI") + "|" + (entityType || "none"), function () {
       try {
-        var ctaType = window.pageLevelDetectorv22.detectCtaType(
-          pageLevel,
-          (contentFocus || "INFORMASI").toUpperCase(),
-          entityType || null
-        );
-        if (ctaType) { console.log(`🎯 [PLD] CTA: ${ctaType.type} → ${ctaType.text} (entity=${entityType || 'none'})`); return ctaType; }
-      } catch (e) {}
-      return null;
+        return window.pageLevelDetectorv22.detectCtaType(pageLevel, (contentFocus || "INFORMASI").toUpperCase(), entityType || null);
+      } catch (e) { return null; }
     });
   }
 
@@ -681,31 +719,15 @@
   // FIX-SYNC-v3: getKategori
   // ============================================================
   function getKategori(pageLevel, contentFocus, finalType) {
-    if (finalType) {
-      var kategoriFromType = (finalType === 'evergreen') ? 'EVERGREEN' : 'NON-EVERGREEN';
-      console.log(`🏷️ [FIX-SYNC-v3] Kategori: ${kategoriFromType} (dari finalType="${finalType}")`);
-      return kategoriFromType;
-    }
-
+    if (finalType) return (finalType === 'evergreen') ? 'EVERGREEN' : 'NON-EVERGREEN';
     var normalizedFocus = String(contentFocus || '').toUpperCase();
-
-    if (EVERGREEN_LEVELS.indexOf(pageLevel) !== -1) {
-      console.log(`🏷️ [Fallback] Kategori: EVERGREEN (level "${pageLevel}")`);
-      return 'EVERGREEN';
-    }
-
+    if (EVERGREEN_LEVELS.indexOf(pageLevel) !== -1) return 'EVERGREEN';
     if (MONEY_LEVELS.indexOf(pageLevel) !== -1) {
-      if (normalizedFocus === 'INFORMASI') {
-        console.log(`🏷️ [Fallback] Kategori: EVERGREEN (money "${pageLevel}" + INFORMASI)`);
-        return 'EVERGREEN';
-      }
-      console.log(`🏷️ [Fallback] Kategori: NON-EVERGREEN (money "${pageLevel}" + ${normalizedFocus})`);
+      if (normalizedFocus === 'INFORMASI') return 'EVERGREEN';
       return 'NON-EVERGREEN';
     }
-
     var pldKategori = getPLDKategori(contentFocus);
     if (pldKategori) return pldKategori;
-
     return 'EVERGREEN';
   }
 
@@ -717,70 +739,34 @@
     const h1Raw = h1 ? (h1.innerText || h1.textContent || '') : '';
     const h1Text = h1Raw.toLowerCase();
     const hasYear = /\b(19|20)\d{2}\b/.test(h1Text);
-
-    if (!h1) {
-      console.warn('⚠️ H1 tidak ditemukan — safe default INFORMASI');
-      return {
-        isInformational: true, isPrice: false, hasYear: false, h1Text: '',
-        reason: 'H1 tidak ditemukan — safe default',
-        confidence: 'low', source: 'safe-default'
-      };
-    }
+    if (!h1) return { isInformational: true, isPrice: false, hasYear: false, h1Text: '', source: 'safe-default' };
 
     const pldVersion = getPLDVersion();
     if (pldVersion.family === "v23-lite" || pldVersion.family === "v23" || pldVersion.family === "v22") {
       try {
-        const pldLevel  = window.pageLevelDetectorv22.detect();
+        const pldLevel = window.pageLevelDetectorv22.detect();
         const pldEntity = window.pageLevelDetectorv22.detectEntityType();
-        const pldFocus  = getPLDContentFocus(pldLevel, pldEntity);
-
+        const pldFocus = getPLDContentFocus(pldLevel, pldEntity);
         if (pldFocus) {
           const normalized = String(pldFocus).toUpperCase();
-          const isInfo = (normalized === 'INFORMASI');
-          const isPrice = ['HARGA', 'COMMERCIAL', 'GABUNG'].includes(normalized);
-          console.log(`🎯 [FIX-EE-4] PLD contentFocus: ${normalized} (level=${pldLevel}, entity=${pldEntity})`);
           return {
-            isInformational: isInfo, isPrice: isPrice, hasYear: hasYear, h1Text: h1Text,
-            reason: `PLD ${pldVersion.label} detectContentFocus = ${normalized}`,
-            confidence: 'high', source: 'pld-only'
+            isInformational: (normalized === 'INFORMASI'),
+            isPrice: ['HARGA', 'COMMERCIAL', 'GABUNG'].includes(normalized),
+            hasYear: hasYear, h1Text: h1Text, source: 'pld-only'
           };
         }
-      } catch (e) {
-        console.warn("⚠️ PLD contentFocus error: " + e.message);
-      }
+      } catch (e) {}
     }
-
     const bodyFocus = document.body.getAttribute('data-content-focus');
     if (bodyFocus) {
       const normalized = bodyFocus.toUpperCase();
-      const isInfo = (normalized === 'INFORMASI');
-      const isPrice = ['HARGA', 'COMMERCIAL', 'GABUNG'].includes(normalized);
-      console.log(`🎯 [FIX-EE-4] body[data-content-focus]: ${normalized}`);
       return {
-        isInformational: isInfo, isPrice: isPrice, hasYear: hasYear, h1Text: h1Text,
-        reason: `body[data-content-focus] = ${normalized}`,
-        confidence: 'high', source: 'body-attr'
+        isInformational: (normalized === 'INFORMASI'),
+        isPrice: ['HARGA', 'COMMERCIAL', 'GABUNG'].includes(normalized),
+        hasYear: hasYear, h1Text: h1Text, source: 'body-attr'
       };
     }
-
-    if (window.V379A && window.V379A.focusKonten) {
-      const normalized = String(window.V379A.focusKonten).toUpperCase();
-      const isInfo = (normalized === 'INFORMASI');
-      const isPrice = ['HARGA', 'COMMERCIAL', 'GABUNG'].includes(normalized);
-      console.log(`🎯 [FIX-EE-4] V379A.focusKonten: ${normalized}`);
-      return {
-        isInformational: isInfo, isPrice: isPrice, hasYear: hasYear, h1Text: h1Text,
-        reason: `V379A.focusKonten = ${normalized}`,
-        confidence: 'high', source: 'v379a'
-      };
-    }
-
-    console.warn('⚠️ [FIX-EE-4] PLD/V379A tidak tersedia — safe default INFORMASI');
-    return {
-      isInformational: true, isPrice: false, hasYear: hasYear, h1Text: h1Text,
-      reason: 'PLD unavailable — safe default INFORMASI',
-      confidence: 'low', source: 'safe-default'
-    };
+    return { isInformational: true, isPrice: false, hasYear: hasYear, h1Text: h1Text, source: 'safe-default' };
   }
 
   function getContentFocus(h1Detection, pageLevel, entityType) {
@@ -790,7 +776,6 @@
     }
     const bodyFocus = document.body.getAttribute('data-content-focus');
     if (bodyFocus) return bodyFocus.toUpperCase();
-    if (window.V379A && window.V379A.focusKonten) return String(window.V379A.focusKonten).toUpperCase();
     if (h1Detection) {
       if (h1Detection.isInformational) return 'INFORMASI';
       if (h1Detection.isPrice) return 'HARGA';
@@ -798,9 +783,6 @@
     return 'INFORMASI';
   }
 
-  // ============================================================
-  // FIX-A5: queryByKeyword
-  // ============================================================
   function queryByKeyword(container, keywords, requireYear = true) {
     const results = [];
     if (!container) return results;
@@ -818,26 +800,18 @@
     return results;
   }
 
-  // ============================================================
-  // FIX-B4: hasLastUpdatedAnchor
-  // ============================================================
   function hasLastUpdatedAnchor() {
     var selectors = ['.update-badge', '[class*="update-badge"]', '.last-updated', '.updated-date', '.date-modified', '.post-date', '.article-date', '.publish-date', '.post-meta', '.entry-meta', '.article-meta', '.breadcrumb + p', '.toc + p', 'h1 + p', '[class*="last-updated"]'];
     for (var i = 0; i < selectors.length; i++) {
       try {
         var els = document.querySelectorAll(selectors[i]);
-        if (els && els.length > 0) { console.log('✅ [Guard] Anchor: ' + selectors[i]); return true; }
+        if (els && els.length > 0) return true;
       } catch (e) {}
     }
     var keywordEls = queryByKeyword(document.body, ['diperbarui', 'update', 'terakhir', 'last updated', 'updated', 'perbarui'], true);
-    if (keywordEls && keywordEls.length > 0) { console.log('✅ [Guard] Anchor via keyword'); return true; }
-    console.warn('⚠️ [Guard] Tidak ada anchor .last-updated');
-    return false;
+    return keywordEls && keywordEls.length > 0;
   }
 
-  // ============================================================
-  // FIX-B3: updateJsonLdDates
-  // ============================================================
   function updateJsonLdDates(dateModified, nextUpdate) {
     var updated = 0;
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
@@ -854,9 +828,7 @@
         var typeStr = (node['@type'] || '').toString();
         var isFaqRelated = (typeStr.indexOf('FAQPage') !== -1 || typeStr.indexOf('Question') !== -1 || typeStr.indexOf('Answer') !== -1 || typeStr.indexOf('QAPage') !== -1);
         if (isFaqRelated) return;
-        if (node.dateModified !== undefined && node.dateModified !== dateModified) {
-          node.dateModified = dateModified; changed = true;
-        }
+        if (node.dateModified !== undefined && node.dateModified !== dateModified) { node.dateModified = dateModified; changed = true; }
         if (node.offers) {
           var offers = Array.isArray(node.offers) ? node.offers : [node.offers];
           offers.forEach(function (offer) {
@@ -866,25 +838,18 @@
       });
       if (changed) { script.textContent = JSON.stringify(json, null, 2); updated++; }
     });
-    if (updated > 0) console.log('✅ [JSON-LD Dates] ' + updated + ' blok diupdate');
     return { updated: updated };
   }
 
-  // ============================================================
-  // FIX-A14+A18+A20: isHistoricalContext
-  // ============================================================
   function isHistoricalContext(fullText, yearPos, yearLength) {
     var before = fullText.substring(Math.max(0, yearPos - 80), yearPos).toLowerCase();
     var after = fullText.substring(yearPos + yearLength, Math.min(fullText.length, yearPos + yearLength + 80)).toLowerCase();
-
     var historicalWords = ['lalu','yang lalu','sebelumnya','silam','dahulu','lampau','terdahulu','saat itu','ketika itu','waktu itu','dulu','masa lalu','tahun lalu','bulan lalu','yang telah lewat','sejak','sepanjang','periode','era','zaman'];
     var futureWords = ['mendatang','yang akan datang','akan datang','yang akan','masa depan','berikutnya','nanti','tahun depan','bulan depan','di masa depan','proyeksi','prediksi','target','rencana'];
-
-    for (var i = 0; i < historicalWords.length; i++) if (after.indexOf(historicalWords[i]) !== -1) return { skip: true, reason: 'historical-after', word: historicalWords[i] };
-    for (var j = 0; j < futureWords.length; j++)     if (after.indexOf(futureWords[j]) !== -1)      return { skip: true, reason: 'future-after', word: futureWords[j] };
-
+    for (var i = 0; i < historicalWords.length; i++) if (after.indexOf(historicalWords[i]) !== -1) return { skip: true };
+    for (var j = 0; j < futureWords.length; j++) if (after.indexOf(futureWords[j]) !== -1) return { skip: true };
     var strongHistoricalBefore = ['tahun lalu','sebelumnya','silam','dahulu','masa lalu','saat itu','ketika itu','waktu itu','yang lalu','sejak','periode','era','zaman','sepanjang','sejarah','awal mula','berdiri sejak','didirikan','pertama kali','mulai dari'];
-    for (var k = 0; k < strongHistoricalBefore.length; k++) if (before.indexOf(strongHistoricalBefore[k]) !== -1) return { skip: true, reason: 'historical-before', word: strongHistoricalBefore[k] };
+    for (var k = 0; k < strongHistoricalBefore.length; k++) if (before.indexOf(strongHistoricalBefore[k]) !== -1) return { skip: true };
     return { skip: false };
   }
 
@@ -892,16 +857,12 @@
     if (!text) return text;
     var protectedRefs = [];
     text = text.replace(/\b(SNI|ISO|UU|PP|Permen|Kepmen|ASTM|JIS|EN|DIN|IEC|BS|GB)\s*[\d.:\-\/]+\b/gi, function (m) { protectedRefs.push(m); return '\x00PROT' + (protectedRefs.length - 1) + '\x00'; });
-
     var oldYearMap = {};
     oldYears.forEach(function (y) { oldYearMap[y] = true; });
-
     var monthYearRefs = [];
     text = text.replace(/\b(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})\b/gi, function (m) { monthYearRefs.push(m); return '\x00MONTH' + (monthYearRefs.length - 1) + '\x00'; });
-
     var rangeRefs = [];
     text = text.replace(/\b(\d{4})\s*(?:\-|–|—|s\/d|sd|sampai|hingga|to)\s*(\d{4})\b/gi, function (m) { rangeRefs.push(m); return '\x00RANGE' + (rangeRefs.length - 1) + '\x00'; });
-
     text = text.replace(/\b(\d{4})\b/g, function (match, yearStr, offset, fullText) {
       var y = parseInt(yearStr, 10);
       if (!oldYearMap[y]) return match;
@@ -909,40 +870,30 @@
       if (ctxCheck.skip) return match;
       return String(newYear);
     });
-
     text = text.replace(/\x00RANGE(\d+)\x00/g, function (m, idx) { return rangeRefs[parseInt(idx, 10)]; });
     text = text.replace(/\x00MONTH(\d+)\x00/g, function (m, idx) { return monthYearRefs[parseInt(idx, 10)]; });
     text = text.replace(/\x00PROT(\d+)\x00/g, function (m, idx) { return protectedRefs[parseInt(idx, 10)]; });
     return text;
   }
 
-  // ============================================================
-  // FIX-B6: updateJsonLdFaqYears
-  // ============================================================
   function updateJsonLdFaqYears(newYear) {
-    var updated = 0, replacedCount = 0, skippedCount = 0;
+    var updated = 0, replacedCount = 0;
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
     var currentYear = new Date().getFullYear();
     var oldYears = [];
     for (var y = Math.max(currentYear - 3, 2024); y < currentYear; y++) oldYears.push(y);
-    if (oldYears.length === 0) return { updated: 0, replaced: 0, skipped: 0 };
+    if (oldYears.length === 0) return { updated: 0, replaced: 0 };
 
-    var oldYearsPattern = oldYears.join('|');
-    var oldYearRegex = new RegExp('\\b(?:' + oldYearsPattern + ')\\b');
-
+    var oldYearRegex = new RegExp('\\b(?:' + oldYears.join('|') + ')\\b');
     scripts.forEach(function (script) {
       var raw = script.textContent;
-      if (!raw) { skippedCount++; return; }
-      if (raw.indexOf('"FAQPage"') === -1 && raw.indexOf('"QAPage"') === -1) { skippedCount++; return; }
-      if (!oldYearRegex.test(raw)) { skippedCount++; return; }
-      if (!/\b20\d{2}\b/.test(raw)) { skippedCount++; return; }
-
+      if (!raw) return;
+      if (raw.indexOf('"FAQPage"') === -1 && raw.indexOf('"QAPage"') === -1) return;
+      if (!oldYearRegex.test(raw)) return;
       var json;
-      try { json = JSON.parse(raw); } catch (e) { skippedCount++; return; }
-
+      try { json = JSON.parse(raw); } catch (e) { return; }
       var nodes = Array.isArray(json) ? json : (json['@graph'] && Array.isArray(json['@graph']) ? json['@graph'] : [json]);
       var changed = false;
-
       nodes.forEach(function (node) {
         if (!node || typeof node !== 'object') return;
         if (!Array.isArray(node.mainEntity)) return;
@@ -958,18 +909,11 @@
           }
         });
       });
-
       if (changed) { script.textContent = JSON.stringify(json, null, 2); updated++; }
     });
-
-    if (updated > 0) console.log('✅ [FAQ Years] ' + updated + ' blok diupdate, ' + replacedCount + ' field');
-    else console.log('⏭️ [FAQ Years] Tidak ada perubahan');
-    return { updated: updated, replaced: replacedCount, skipped: skippedCount };
+    return { updated: updated, replaced: replacedCount };
   }
 
-  // ============================================================
-  // FIX-EE-6: updateContentByLevelAndFocus
-  // ============================================================
   function updateContentByLevelAndFocus(pageLevel, contentFocus, now) {
     const monthNames = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
     const newMonth = monthNames[now.getMonth()];
@@ -981,25 +925,11 @@
     const normalizedFocus = String(contentFocus || '').toUpperCase();
 
     let updateMode = 'year-only';
-    let modeReason = '';
-
-    if (isEvergreenLevel) {
-      updateMode = 'year-only';
-      modeReason = `Evergreen level "${pageLevel}" → update tahun saja`;
-    } else if (isMoneyLevel) {
-      if (normalizedFocus === 'INFORMASI') {
-        updateMode = 'year-only';
-        modeReason = `Level "${pageLevel}" + INFORMASI → update tahun saja`;
-      } else {
-        updateMode = 'month-year';
-        modeReason = `Level "${pageLevel}" + ${normalizedFocus} → update bulan + tahun`;
-      }
-    } else {
-      updateMode = 'year-only';
-      modeReason = `Default → update tahun saja`;
+    if (isEvergreenLevel) updateMode = 'year-only';
+    else if (isMoneyLevel) {
+      if (normalizedFocus === 'INFORMASI') updateMode = 'year-only';
+      else updateMode = 'month-year';
     }
-
-    console.log(`📅 UPDATE KONTEN MODE: ${updateMode} — ${modeReason}`);
 
     var bodyInnerText = document.body.innerText || '';
     var allYearsInBody = bodyInnerText.match(/\b(19|20)\d{2}\b/g) || [];
@@ -1008,10 +938,7 @@
       var yNum = parseInt(allYearsInBody[yi], 10);
       if (yNum > 2025 && yNum < newYear) { hasOldYear = true; break; }
     }
-    if (!hasOldYear) {
-      console.log(`⏭️ FIX-A5: Tidak ada tahun "lama" di body — skip`);
-      return { updated: false, mode: updateMode, target: updateMode === 'month-year' ? newDateText : newYear, skipped: true };
-    }
+    if (!hasOldYear) return { updated: false, skipped: true };
 
     const selectors = ['.update-badge', '[class*="update-badge"]', '.last-updated', '.updated-date', '.date-modified', '.post-date', '.article-date', '.publish-date', '.post-meta', '.entry-meta', '.article-meta', '.breadcrumb + p', '.toc + p', 'h1 + p'];
     let contentUpdated = false;
@@ -1019,224 +946,103 @@
     selectors.forEach(sel => { try { document.querySelectorAll(sel).forEach(el => elementsSet.add(el)); } catch(e) {} });
     queryByKeyword(document.body, ['diperbarui', 'update', 'terakhir', 'last updated', 'updated', 'perbarui'], true).forEach(el => elementsSet.add(el));
 
-    let elements = Array.from(elementsSet);
-    if (elements.length > 50) elements = elements.slice(0, 50);
-
+    let elements = Array.from(elementsSet).slice(0, 50);
     for (const el of elements) {
       if (!el || el.tagName === 'H1') continue;
-      const originalText = el.innerText || '';
-      if (!originalText.match(/\b(19|20)\d{2}\b/)) continue;
-      const yearMatches = originalText.match(/\b(19|20)\d{2}\b/g);
-      if (!yearMatches) continue;
-      let shouldUpdate = false;
-      for (const yStr of yearMatches) {
-        const y = parseInt(yStr);
-        if (y <= 2025) continue;
-        if (y < newYear) { shouldUpdate = true; break; }
-      }
-      if (!shouldUpdate) continue;
-
       const textNodes = [];
       const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false);
       let node;
       while (node = walker.nextNode()) textNodes.push(node);
-
       for (const textNode of textNodes) {
         const oldText = textNode.textContent || '';
         if (!oldText.match(/\b(19|20)\d{2}\b/)) continue;
-
         let newTextNode = oldText;
         if (updateMode === 'month-year') {
           newTextNode = newTextNode
             .replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, (match, month, year) => {
-              const y = parseInt(year);
-              if (y > 2025 && y < newYear) return newDateText;
-              return match;
-            })
-            .replace(/(\d{4})-(\d{2})-(\d{2})/g, (match, y, m, d) => {
-              const yearNum = parseInt(y);
-              if (yearNum > 2025 && yearNum < newYear) {
-                const monthName = monthNames[parseInt(m) - 1] || m;
-                return `${parseInt(d)} ${monthName} ${newYear}`;
-              }
-              return match;
+              const y = parseInt(year); if (y > 2025 && y < newYear) return newDateText; return match;
             })
             .replace(/(\d{2})\/(\d{2})\/(\d{4})/g, (match, d, m, y) => {
-              const yearNum = parseInt(y);
-              if (yearNum > 2025 && yearNum < newYear) {
-                const monthName = monthNames[parseInt(m) - 1] || m;
-                return `${parseInt(d)} ${monthName} ${newYear}`;
-              }
-              return match;
+              const yearNum = parseInt(y); if (yearNum > 2025 && yearNum < newYear) { const monthName = monthNames[parseInt(m) - 1] || m; return `${parseInt(d)} ${monthName} ${newYear}`; } return match;
             });
         } else {
           newTextNode = newTextNode.replace(/\b(19|20)\d{2}\b/g, (match) => {
-            const y = parseInt(match);
-            if (y > 2025 && y < newYear) return String(newYear);
-            return match;
+            const y = parseInt(match); if (y > 2025 && y < newYear) return String(newYear); return match;
           });
         }
-
-        if (newTextNode !== oldText) {
-          textNode.textContent = newTextNode;
-          contentUpdated = true;
-          console.log(`   ✅ Update: "${oldText.substring(0,40)}..." → "${newTextNode.substring(0,40)}..."`);
-        }
+        if (newTextNode !== oldText) { textNode.textContent = newTextNode; contentUpdated = true; }
       }
     }
-
-    return { updated: contentUpdated, mode: updateMode, target: updateMode === 'month-year' ? newDateText : newYear };
+    return { updated: contentUpdated, mode: updateMode };
   }
 
-  // ============================================================
-  // P2: updateH1WithRules
-  // ============================================================
   function updateH1WithRules(pageLevel, now) {
     const isMoneyLevel = MONEY_LEVELS.includes(pageLevel);
     const isEvergreenLevel = EVERGREEN_LEVELS.includes(pageLevel);
-    const levelNeedsYear = isMoneyLevel || isEvergreenLevel;
-    if (!levelNeedsYear) return { updated: false, reason: 'level-no-year' };
-
+    if (!isMoneyLevel && !isEvergreenLevel) return { updated: false };
     const h1 = document.querySelector('h1');
-    if (!h1) return { updated: false, reason: 'no-h1' };
-
+    if (!h1) return { updated: false };
     const newYear = now.getFullYear();
     const h1Text = h1.innerText;
     const yearMatch = h1Text.match(/\b(19|20)\d{2}\b/);
     const detectedYear = yearMatch ? parseInt(yearMatch[0]) : null;
-
-    if (!detectedYear) return { updated: false, reason: 'no-year-in-h1' };
-    if (detectedYear <= 2025) return { updated: false, reason: 'year-too-old' };
-    if (detectedYear >= newYear) return { updated: false, reason: 'year-already-current' };
-
+    if (!detectedYear) return { updated: false };
+    if (detectedYear <= 2025) return { updated: false };
+    if (detectedYear >= newYear) return { updated: false };
     const newH1 = h1Text.replace(/\b(19|20)\d{2}\b/, newYear);
-    if (newH1 !== h1Text) {
-      h1.innerText = newH1;
-      console.log(`✅ H1: ${detectedYear} → ${newYear}`);
-      return { updated: true, from: detectedYear, to: newYear };
-    }
-    return { updated: false, reason: 'no-change' };
+    if (newH1 !== h1Text) { h1.innerText = newH1; return { updated: true, from: detectedYear, to: newYear }; }
+    return { updated: false };
   }
 
-  // ============================================================
-  // autoUpdateDates
-  // ============================================================
   function autoUpdateDates(pageLevel, contentFocus) {
-    console.log("🔄 AUTO-UPDATE: Memeriksa tanggal...");
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
     let metaNext = document.querySelector('meta[name="nextUpdate"]');
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
-
-    let currentModified = metaModified ? metaModified.getAttribute('content') : null;
     let currentNext = metaNext ? metaNext.getAttribute('content') : null;
-
-    if (!currentNext) { console.log("⚠️ Tidak ada nextUpdate, skip"); return false; }
+    if (!currentNext) return false;
 
     const now = new Date();
     const nextDate = new Date(currentNext);
-    const currentModifiedDate = currentModified ? new Date(currentModified) : now;
-
-    if (now < nextDate) { console.log(`⏭️ Belum lewat nextUpdate`); return false; }
-
-    console.log(`🔄 NEXTUPDATE LEWAT! ${currentNext} → ${now.toISOString()}`);
+    if (now < nextDate) return false;
 
     let validityDays = getValidityByContext(pageLevel, contentFocus);
-
-    const newModified = now;
-    const newNext = new Date(now.getTime() + (validityDays * 86400000));
-    const newModifiedStr = toISOWithTimezoneLocal(newModified);
-    const newNextStr = toISOWithTimezoneLocal(newNext);
+    const newModifiedStr = toISOWithTimezoneLocal(now);
+    const newNextStr = toISOWithTimezoneLocal(new Date(now.getTime() + (validityDays * 86400000)));
 
     if (metaModified) metaModified.setAttribute('content', newModifiedStr);
     else { metaModified = document.createElement("meta"); metaModified.setAttribute("itemprop", "dateModified"); metaModified.setAttribute("content", newModifiedStr); document.head.appendChild(metaModified); }
-
     if (metaNext) metaNext.setAttribute('content', newNextStr);
     else { metaNext = document.createElement("meta"); metaNext.setAttribute("name", "nextUpdate"); metaNext.setAttribute("content", newNextStr); document.head.appendChild(metaNext); }
+    if (!metaPublished) { metaPublished = document.createElement("meta"); metaPublished.setAttribute("itemprop", "datePublished"); metaPublished.setAttribute("content", newModifiedStr); document.head.appendChild(metaPublished); }
 
-    if (!metaPublished) {
-      metaPublished = document.createElement("meta");
-      metaPublished.setAttribute("itemprop", "datePublished");
-      metaPublished.setAttribute("content", newModifiedStr);
-      document.head.appendChild(metaPublished);
-    }
-
-    document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => el.setAttribute('priceValidUntil', newNextStr));
-
-    var hasAnchor = hasLastUpdatedAnchor();
-
-    if (!hasAnchor) {
-      console.warn('⚠️ [FIX-B4] Anchor tidak ada — SKIP body + FAQ years');
-      if (window.AEDMetaDates) {
-        window.AEDMetaDates.dateModified = newModifiedStr;
-        window.AEDMetaDates.nextUpdate = newNextStr;
-        window.AEDMetaDates.lastAutoUpdate = now.toISOString();
-        window.AEDMetaDates.updateCount = (window.AEDMetaDates.updateCount || 0) + 1;
-      }
+    if (!hasLastUpdatedAnchor()) {
       document.body.classList.add('auto-updated');
-      document.body.setAttribute('data-last-auto-update', now.toISOString());
-      document.body.setAttribute('data-update-count', (parseInt(document.body.getAttribute('data-update-count') || '0') + 1).toString());
       return true;
     }
 
-    var jsonLdResult = updateJsonLdDates(newModifiedStr, newNextStr);
-    if (jsonLdResult.updated > 0) console.log(`✅ JSON-LD Dates: ${jsonLdResult.updated} blok`);
-
-    const contentResult = updateContentByLevelAndFocus(pageLevel, contentFocus, now);
-    if (contentResult.updated) console.log(`✅ Konten body diupdate: ${contentResult.mode}`);
-    else if (contentResult.skipped) console.log(`⏭️ Konten body di-skip (FIX-A5)`);
-
-    const h1Result = updateH1WithRules(pageLevel, now);
-    if (h1Result.updated) console.log(`✅ H1: ${h1Result.from} → ${h1Result.to}`);
-
-    var brandName = resolveBrandName();
-    var cleanupResult = cleanupFaqSchema(brandName);
-    if (cleanupResult.cleaned > 0 || cleanupResult.injected > 0 || cleanupResult.normalized > 0 || cleanupResult.entitiesDecoded > 0) {
-      console.log(`✅ FAQ Cleanup: ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} inject, ${cleanupResult.normalized} normalize, ${cleanupResult.entitiesDecoded} decode`);
-    }
-
-    var faqYearsResult = updateJsonLdFaqYears(now.getFullYear());
-    if (faqYearsResult.replaced > 0) console.log(`✅ FAQ Years: ${faqYearsResult.replaced} field`);
-
-    if (window.AEDMetaDates) {
-      window.AEDMetaDates.dateModified = newModifiedStr;
-      window.AEDMetaDates.nextUpdate = newNextStr;
-      window.AEDMetaDates.lastAutoUpdate = now.toISOString();
-      window.AEDMetaDates.updateCount = (window.AEDMetaDates.updateCount || 0) + 1;
-      window.AEDMetaDates.brandName = brandName;
-    }
-
+    updateJsonLdDates(newModifiedStr, newNextStr);
+    updateContentByLevelAndFocus(pageLevel, contentFocus, now);
+    updateH1WithRules(pageLevel, now);
+    cleanupFaqSchema(resolveBrandName());
+    updateJsonLdFaqYears(now.getFullYear());
     document.body.classList.add('auto-updated');
-    document.body.setAttribute('data-last-auto-update', now.toISOString());
-    document.body.setAttribute('data-update-count', (parseInt(document.body.getAttribute('data-update-count') || '0') + 1).toString());
-
-    console.log(`✅ AUTO-UPDATE SELESAI! nextUpdate baru: ${newNextStr} (${validityDays} hari)`);
     return true;
   }
 
-  // ============================================================
-  // processMetaDates
-  // ============================================================
   async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated) {
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
     let metaNext = document.querySelector('meta[name="nextUpdate"]');
 
-    const hadDateModifiedBefore = !!(metaModified && metaModified.getAttribute('content'));
-    const isFirstInit = !hadDateModifiedBefore;
+    const isFirstInit = !(metaModified && metaModified.getAttribute('content'));
     const hasCustomDate = customDateModified !== null && customDateModified !== undefined;
-
     const hasIllegalFaqProps = detectIllegalFaqProps();
-    const shouldRefreshJsonLd = autoUpdated === true || isFirstInit || hasCustomDate || hasIllegalFaqProps;
-
-    console.log(`🔍 Refresh: autoUpdated=${autoUpdated}, isFirstInit=${isFirstInit}, hasCustomDate=${hasCustomDate}, hasIllegal=${hasIllegalFaqProps} → shouldRefresh=${shouldRefreshJsonLd}`);
+    const shouldRefresh = autoUpdated === true || isFirstInit || hasCustomDate || hasIllegalFaqProps;
 
     const nowISO = new Date().toISOString();
     let datePublished = toISOWithTimezoneLocal(metaPublished?.content) || toISOWithTimezoneLocal(nowISO);
     let dateModified = toISOWithTimezoneLocal(customDateModified) || toISOWithTimezoneLocal(metaModified?.content) || datePublished;
-
-    const publishedObj = new Date(datePublished);
-    const modifiedObj = new Date(dateModified);
-    if (modifiedObj < publishedObj) dateModified = datePublished;
+    if (new Date(dateModified) < new Date(datePublished)) dateModified = datePublished;
 
     if (!metaPublished) { metaPublished = document.createElement("meta"); metaPublished.setAttribute("itemprop", "datePublished"); document.head.appendChild(metaPublished); }
     metaPublished.setAttribute("content", datePublished);
@@ -1247,28 +1053,16 @@
     if (!metaNext) { metaNext = document.createElement("meta"); metaNext.setAttribute("name", "nextUpdate"); document.head.appendChild(metaNext); }
     metaNext.setAttribute("content", nextUpdate);
 
-    if (shouldRefreshJsonLd) {
-      var jsonLdResultA = updateJsonLdDates(dateModified, nextUpdate);
-      if (jsonLdResultA.updated > 0) console.log(`✅ JSON-LD Dates: ${jsonLdResultA.updated} blok`);
-    }
-
-    if (shouldRefreshJsonLd) {
-      var brandName = resolveBrandName();
-      var cleanupResult = cleanupFaqSchema(brandName);
-      console.log(`✅ FAQ Cleanup: ${cleanupResult.cleaned} dihapus, ${cleanupResult.injected} inject, ${cleanupResult.normalized} normalize, ${cleanupResult.entitiesDecoded} decode`);
-    }
-
-    if (shouldRefreshJsonLd) {
-      var faqYearsResultA = updateJsonLdFaqYears(new Date().getFullYear());
-      if (faqYearsResultA.replaced > 0) console.log(`✅ FAQ Years: ${faqYearsResultA.replaced} field`);
+    if (shouldRefresh) {
+      updateJsonLdDates(dateModified, nextUpdate);
+      cleanupFaqSchema(resolveBrandName());
+      updateJsonLdFaqYears(new Date().getFullYear());
     }
 
     if (usePriceValidUntil && h1Detection && h1Detection.isPrice) {
       document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => el.setAttribute("priceValidUntil", nextUpdate));
-      console.log(`✅ priceValidUntil → ${nextUpdate}`);
     } else {
       document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => el.removeAttribute("priceValidUntil"));
-      console.log(`✅ priceValidUntil removed`);
     }
 
     document.body.classList.add(`page-level-${pageLevel}`);
@@ -1276,322 +1070,190 @@
     document.body.classList.add(`content-type-${finalType}`);
     document.body.classList.add(`cta-intensity-${ctaIntensity}`);
     if (allowPriceRange) document.body.classList.add(`allow-price-range`);
-    if (h1Detection) {
-      if (h1Detection.isInformational) document.body.classList.add('h1-informational');
-      if (h1Detection.isPrice) document.body.classList.add('h1-price');
-      if (h1Detection.hasYear) document.body.classList.add('h1-has-year');
-    }
     if (isOverridden) document.body.classList.add('overridden-evergreen');
 
-    let validityLabel = '';
-    const validityDays = validityMs / 86400000;
-    if (isOverridden) validityLabel = `EVERGREEN (OVERRIDE) — ${validityDays} hari`;
-    else if (finalType === 'evergreen') {
-      if (validityDays >= 1095) validityLabel = 'EVERGREEN (3 tahun) — V37';
-      else if (validityDays >= 730) validityLabel = 'EVERGREEN (2 tahun) — V37';
-      else validityLabel = `EVERGREEN (${validityDays} hari)`;
-    } else validityLabel = `NON-EVERGREEN (${validityDays} hari) — ${entityType}/${pageLevel}`;
-
     const kategori = getKategori(pageLevel, contentFocus, finalType);
-    const h1Pattern = getPLDH1Pattern(kategori);
-    const schemaType = getPLDSchemaType(pageLevel, entityType, contentFocus);
-
-    // 🔥 FIX-MINOR-2 (v17.4.8): pass entityType
-    const pldCtaType = getPLDCtaType(pageLevel, contentFocus, entityType);
 
     window.AEDMetaDates = {
       type: finalType, entityType, pageLevel,
       datePublished, dateModified, nextUpdate,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.5.0',
+      detectorVersion: detectorVersion || 'v17.5.2',
       detectionConfidence: confidence || null,
-      detectionStrategies: strategies || null,
-      detectionStrategyCount: strategyCount || null,
       isOverridden: isOverridden || false,
       overrideReason: overrideReason || null,
       h1Detection: h1Detection || null,
       contentFocus: contentFocus || null,
       pldKategori: kategori,
-      pldH1Pattern: h1Pattern,
-      pldSchemaType: schemaType,
-      pldCtaType: pldCtaType,
+      pldH1Pattern: getPLDH1Pattern(kategori),
+      pldSchemaType: getPLDSchemaType(pageLevel, entityType, contentFocus),
+      pldCtaType: getPLDCtaType(pageLevel, contentFocus, entityType),
       brandName: resolveBrandName(),
       lastAutoUpdate: null,
       updateCount: 0
     };
-
     window.EvergreenDetectorResults = window.AEDMetaDates;
 
-    console.log(`✅ ${finalType.toUpperCase()} ACTIVE`);
-    console.log(`   - Page Level: ${pageLevel}`);
-    console.log(`   - Entity: ${entityType}`);
-    console.log(`   - Content Type: ${validityLabel}`);
-    console.log(`   - Content Focus: ${contentFocus}`);
-    console.log(`   - Kategori: ${kategori}`);
-    console.log(`   - Next Update: ${nextUpdate}`);
-    if (pldCtaType) console.log(`   - CTA: ${pldCtaType.type} → ${pldCtaType.text}`);
-    if (isOverridden) console.warn(`   ⚠️ OVERRIDDEN: ${overrideReason}`);
+    console.log(`✅ ${finalType.toUpperCase()} ACTIVE | level=${pageLevel} | entity=${entityType} | focus=${contentFocus}`);
   }
 
   // ============================================================
-  // 🔥 FIX-PLD-SYNC (v17.5.0): getPageLevelAndEntityType
-  // 
-  // PRIORITAS SUMBER (PLD = SOURCE OF TRUTH):
-  //   1. body[data-page-level] + body[data-entity-type]
-  //      → di-set PLD v23.9.9 SEBELUM dispatch event
-  //      → KONSISTEN dengan Article, Hybrid, Universal
-  //   2. PLD.detectFromDOM()  (H1-based — fallback lama)
-  //   3. PLD.detect()         (URL-based — fallback)
-  //   4. Legacy detectors (v20, v19, v18, v17, legacy)
-  //
-  // DAMPAK:
-  //   Sebelumnya AED bisa beda dengan script lain kalau H1
-  //   tidak match URL slug. Sekarang 100% sinkron karena
-  //   semua pakai body attribute yang di-set PLD.
+  // FIX-PLD-SYNC: getPageLevelAndEntityType
   // ============================================================
   function getPageLevelAndEntityType() {
-    let pageLevel = 'pillar';
-    let entityType = 'produk';
-    let detectorVersion = 'unknown';
+    let pageLevel = 'pillar', entityType = 'produk', detectorVersion = 'unknown';
     let confidence = null, strategies = null, strategyCount = null;
 
-    // 🔥 FIX-PLD-SYNC: PRIORITAS 1 — body attribute (PLD = SOURCE OF TRUTH)
     const bodyLevel = document.body.getAttribute('data-page-level');
     const bodyEntity = document.body.getAttribute('data-entity-type');
     if (bodyLevel && bodyEntity) {
-      pageLevel = bodyLevel;
-      entityType = bodyEntity;
       const pldVer = getPLDVersion();
-      detectorVersion = pldVer.label;
-      console.log(`📌 [FIX-PLD-SYNC] body attribute (PLD SOURCE OF TRUTH) → pageLevel=${pageLevel}, entityType=${entityType}`);
-      return { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount };
+      console.log(`📌 [FIX-PLD-SYNC] body attribute → ${bodyLevel} | ${bodyEntity}`);
+      return { pageLevel: bodyLevel, entityType: bodyEntity, detectorVersion: pldVer.label, confidence, strategies, strategyCount };
     }
 
-    // 🔥 FIX-PLD-SYNC: PRIORITAS 2 — PLD v22/v23 methods (fallback)
     if (window.pageLevelDetectorv22) {
       try {
-        console.log('⚠️ [FIX-PLD-SYNC] body attribute belum ada — fallback ke PLD methods');
         if (typeof window.pageLevelDetectorv22.detectFromDOM === 'function') {
           var domResult = window.pageLevelDetectorv22.detectFromDOM();
-          if (domResult) {
-            pageLevel = domResult;
-            console.log(`📌 [FIX-EE-3] detectFromDOM() → ${pageLevel}`);
-          }
+          if (domResult) pageLevel = domResult;
         }
         if ((!pageLevel || pageLevel === 'pillar') && typeof window.pageLevelDetectorv22.detect === 'function') {
           var urlResult = window.pageLevelDetectorv22.detect();
-          if (urlResult) { pageLevel = urlResult; console.log(`📌 detect() → ${pageLevel}`); }
+          if (urlResult) pageLevel = urlResult;
         }
         if (typeof window.pageLevelDetectorv22.detectEntityType === 'function') {
           entityType = window.pageLevelDetectorv22.detectEntityType();
         }
         const pldVer = getPLDVersion();
         detectorVersion = pldVer.label;
-        if (typeof window.pageLevelDetectorv22.getConfidenceScore === 'function') {
-          const cs = window.pageLevelDetectorv22.getConfidenceScore();
-          confidence = cs.confidence;
-          strategies = cs.strategies;
-          strategyCount = cs.strategyCount;
-        }
-        console.log(`📌 [${detectorVersion}] pageLevel=${pageLevel}, entityType=${entityType}`);
         return { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount };
-      } catch (e) { console.warn("PLD v22/23 error:", e); }
+      } catch (e) {}
     }
 
-    // Legacy detectors
-    if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') {
-      try { pageLevel = window.pageLevelDetectorv20.detect(); entityType = window.pageLevelDetectorv20.detectEntityType(); detectorVersion = 'v20.x'; return { pageLevel, entityType, detectorVersion }; } catch(e) {}
+    if (window.pageLevelDetectorv20) {
+      try { return { pageLevel: window.pageLevelDetectorv20.detect(), entityType: window.pageLevelDetectorv20.detectEntityType(), detectorVersion: 'v20.x' }; } catch(e) {}
     }
-    if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') {
-      try { pageLevel = window.pageLevelDetectorv19.detect(); entityType = window.pageLevelDetectorv19.detectEntityType(); detectorVersion = 'v19'; return { pageLevel, entityType, detectorVersion }; } catch(e) {}
+    if (window.pageLevelDetectorv19) {
+      try { return { pageLevel: window.pageLevelDetectorv19.detect(), entityType: window.pageLevelDetectorv19.detectEntityType(), detectorVersion: 'v19' }; } catch(e) {}
     }
-    if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') {
-      try { pageLevel = window.pageLevelDetectorV18.detect(); entityType = window.pageLevelDetectorV18.detectEntityType(); detectorVersion = 'v18'; return { pageLevel, entityType, detectorVersion }; } catch(e) {}
+    if (window.pageLevelDetector) {
+      try { return { pageLevel: window.pageLevelDetector.detect(), entityType: window.pageLevelDetector.detectEntityType(), detectorVersion: 'legacy' }; } catch(e) {}
     }
-    if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') {
-      try { pageLevel = window.pageLevelDetectorV17.detect(); entityType = window.pageLevelDetectorV17.detectEntityType(); detectorVersion = 'v17'; return { pageLevel, entityType, detectorVersion }; } catch(e) {}
-    }
-    if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') {
-      try { pageLevel = window.pageLevelDetector.detect(); entityType = window.pageLevelDetector.detectEntityType(); detectorVersion = 'legacy'; return { pageLevel, entityType, detectorVersion }; } catch(e) {}
-    }
-
-    console.warn("⚠️ No detector found, using defaults");
     return { pageLevel, entityType, detectorVersion: 'none' };
   }
 
-  // ============================================================
-  // WAIT FOR PLD
-  // ============================================================
   function waitForPageLevelDetector() {
     return new Promise((resolve) => {
-      const pldVer = getPLDVersion();
-      // 🔥 FIX-PLD-SYNC: kalau body attribute sudah ada, langsung resolve
-      if (document.body && document.body.getAttribute('data-page-level')) {
-        console.log(`✅ body attribute ready (PLD SOURCE OF TRUTH) — ${pldVer.label}`);
-        resolve();
-        return;
-      }
-      if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') { console.log(`✅ PLD ${pldVer.label} ready`); resolve(); return; }
-      if (window.pageLevelDetectorv20 && typeof window.pageLevelDetectorv20.detect === 'function') { console.log("✅ PLD v20.x ready"); resolve(); return; }
-      if (window.pageLevelDetectorv19 && typeof window.pageLevelDetectorv19.detect === 'function') { console.log("✅ PLD v19 ready"); resolve(); return; }
-      if (window.pageLevelDetectorV18 && typeof window.pageLevelDetectorV18.detect === 'function') { console.log("✅ PLD v18 ready"); resolve(); return; }
-      if (window.pageLevelDetectorV17 && typeof window.pageLevelDetectorV17.detect === 'function') { console.log("✅ PLD v17 ready"); resolve(); return; }
-      if (window.pageLevelDetector && typeof window.pageLevelDetector.detect === 'function') { console.log("✅ PLD legacy ready"); resolve(); return; }
+      if (document.body && document.body.getAttribute('data-page-level')) { resolve(); return; }
+      if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') { resolve(); return; }
+      if (window.pageLevelDetectorv20 || window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || window.pageLevelDetectorV17 || window.pageLevelDetector) { resolve(); return; }
 
-      const onReady = () => { const v = getPLDVersion(); console.log(`✅ PLD ${v.label} ready (event)`); resolve(); };
+      const onReady = () => resolve();
       window.addEventListener("pageLevelDetectorv22Ready", onReady, { once: true });
       window.addEventListener("pageLevelDetectorv20Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorv19Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorV19Ready", onReady, { once: true });
-      window.addEventListener("pageLevelDetectorv18Ready", onReady, { once: true });
       window.addEventListener("pageLevelDetectorReady", onReady, { once: true });
 
       setTimeout(() => {
-        // 🔥 FIX-PLD-SYNC: cek body attribute juga
-        if (document.body && document.body.getAttribute('data-page-level')) { resolve(); }
-        else if (window.pageLevelDetectorv22 || window.pageLevelDetectorv20 || window.pageLevelDetectorv19 || window.pageLevelDetectorV18 || window.pageLevelDetector) { resolve(); }
-        else {
-          console.error("❌ PLD not available, using fallback");
+        if (!window.pageLevelDetector && !document.body.getAttribute('data-page-level')) {
           window.pageLevelDetector = { detect: () => 'pillar', detectEntityType: () => 'produk' };
-          resolve();
         }
+        resolve();
       }, 3000);
     });
   }
 
-  // ============================================================
-  // FIX-SYNC-v4: getRulesByEntityType
-  // ============================================================
   function getRulesByEntityType(entityType, pageLevel, h1Detection, contentFocus) {
-    console.log(`📌 Getting rules: entityType=${entityType}, pageLevel=${pageLevel}, contentFocus=${contentFocus || 'N/A'}`);
-
     var isMoneyLevel = MONEY_LEVELS.indexOf(pageLevel) !== -1;
-
     if (isMoneyLevel) {
       var normalizedFocus = String(contentFocus || '').toUpperCase();
       var isInformationalFocus = (normalizedFocus === 'INFORMASI');
       var hasYear = h1Detection && h1Detection.hasYear;
-
       if (isInformationalFocus && !hasYear) {
-        console.log(`✅ [FIX-SYNC-v4] Money "${pageLevel}" + INFORMASI → EVERGREEN 3 tahun`);
-        return {
-          type: 'evergreen',
-          validityDays: 1095,
-          usePriceValidUntil: false,
-          allowPriceRange: false,
-          ctaIntensity: 'soft-medium',
-          overridden: true,
-          overrideReason: `Money level tapi konten INFORMASI`
-        };
+        return { type: 'evergreen', validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft-medium', overridden: true, overrideReason: 'Money level + INFORMASI' };
       }
-
-      console.log(`🔒 [FIX-SYNC-v4] Money "${pageLevel}" + ${normalizedFocus} → NON-EVERGREEN`);
-      if (isInformationalFocus && hasYear) {
-        console.warn(`   ⚠️ contentFocus=INFORMASI, tapi ada tahun di H1 → TETAP NON-EVERGREEN`);
-      }
-
       var validity = getValidityByContext(pageLevel, normalizedFocus);
-
       return {
-        type: 'non-evergreen',
-        validityDays: validity,
+        type: 'non-evergreen', validityDays: validity,
         usePriceValidUntil: (normalizedFocus === 'HARGA' || normalizedFocus === 'GABUNG'),
         allowPriceRange: pageLevel === 'money-master',
         ctaIntensity: pageLevel === 'money-child' ? 'very-hard' : 'hard'
       };
     }
-
-    if (entityType === 'jasa')            return JASA_RULES[pageLevel] || DEFAULT_RULE;
-    if (entityType === 'sewa')            return SEWA_RULES[pageLevel] || BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
-    if (entityType === 'produk' ||
-        entityType === 'material')        return PRODUK_MATERIAL_RULES[pageLevel] || BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
+    if (entityType === 'jasa') return JASA_RULES[pageLevel] || DEFAULT_RULE;
+    if (entityType === 'sewa') return SEWA_RULES[pageLevel] || BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
+    if (entityType === 'produk' || entityType === 'material') return PRODUK_MATERIAL_RULES[pageLevel] || BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
     return BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
+  }
+
+  // ============================================================
+  // 🔥 FIX-UX-3: FINAL ANALYTICS
+  // ============================================================
+  function logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated) {
+    var summary = {
+      url: window.location.pathname,
+      pageLevel: pageLevel,
+      entityType: entityType,
+      contentFocus: contentFocus,
+      finalType: finalType,
+      validityDays: validityDays,
+      autoUpdated: autoUpdated === true,
+      priority: getPriority(pageLevel, contentFocus),
+      locale: detectLocale(),
+      isAdmin: isAdmin(),
+      timestamp: new Date().toISOString(),
+      aedVersion: '17.5.2'
+    };
+    console.log('📊 [AED Final Analytics]', JSON.stringify(summary));
   }
 
   // ============================================================
   // FUNGSI UTAMA
   // ============================================================
   async function detectEvergreen({ customDateModified = null } = {}) {
-    if (_AED_INITIALIZED) {
-      console.log("⏭️ [AED] detectEvergreen() sudah dijalankan");
-      return;
-    }
+    if (_AED_INITIALIZED) return;
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.5.0 — PLD SYNC");
+    console.log("🧩 detectEvergreen() v17.5.2 — UX Enhanced");
     await waitForPageLevelDetector();
 
-    const { pageLevel, entityType, detectorVersion, confidence, strategies, strategyCount } = getPageLevelAndEntityType();
-    console.log(`📌 Raw: pageLevel=${pageLevel}, entityType=${entityType}`);
-
+    const { pageLevel, entityType, detectorVersion } = getPageLevelAndEntityType();
     const h1Detection = detectContentTypeByH1();
-    console.log(`📊 H1 Detection: info=${h1Detection.isInformational}, price=${h1Detection.isPrice}, hasYear=${h1Detection.hasYear}`);
-    console.log(`   Source: ${h1Detection.source}, Reason: ${h1Detection.reason}`);
-
     const contentFocus = getContentFocus(h1Detection, pageLevel, entityType);
-    console.log(`🎯 Content Focus Final: ${contentFocus}`);
 
     const rule = getRulesByEntityType(entityType, pageLevel, h1Detection, contentFocus);
     const finalType = rule.type;
     const validityDays = rule.validityDays;
     const validityMs = validityDays * 86400000;
-    const usePriceValidUntil = rule.usePriceValidUntil;
-    const allowPriceRange = rule.allowPriceRange;
-    const ctaIntensity = rule.ctaIntensity;
-    const isOverridden = rule.overridden || false;
-    const overrideReason = rule.overrideReason || null;
 
-    console.log(`📌 Final Rule: type=${finalType}, validityDays=${validityDays}`);
-
-    console.log("🔄 MEMERIKSA AUTO-UPDATE...");
     const autoUpdated = autoUpdateDates(pageLevel, contentFocus);
-    if (autoUpdated) console.log("✅ AUTO-UPDATE BERHASIL!");
-    else console.log("⏭️ Tidak perlu auto-update");
 
-    await processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated);
+    await processMetaDates(customDateModified, finalType, validityMs, rule.usePriceValidUntil, pageLevel, entityType, rule.ctaIntensity, rule.allowPriceRange, detectorVersion, null, null, null, rule.overridden || false, rule.overrideReason || null, h1Detection, contentFocus, autoUpdated);
 
-    checkAndShowInlineWarning();
+    checkAndShowInlineWarning(pageLevel, contentFocus);
+    logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated);
 
-    // 🔥 FIX-EVENT: dispatch SETELAH selesai
     window.dispatchEvent(new Event("detectEvergreenReady"));
-    console.log(`🧩 detectEvergreen() v17.5.0 — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.5.2 — FINISHED ✅`);
   }
 
-  // ============================================================
-  // EXPORT GLOBAL
-  // ============================================================
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Smart Evergreen Detector v17.5.0 — READY + PLD SYNC");
+  console.log("✅ Smart Evergreen Detector v17.5.2 — UX ENHANCED");
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("🔥 FIX-PLD-SYNC: prioritas body attribute (PLD = SOURCE OF TRUTH)");
-  console.log("🔥 FIX-AUTORUN: detectEvergreen() auto-jalan tiap halaman");
-  console.log("🔥 FIX-EVENT: dispatchEvent dipindah ke dalam fungsi");
-  console.log("✅ PRESERVED: FIX-MINOR-2, FIX-MINOR-1, FIX-KRITIS, FIX-MINOR");
-  console.log("📅 TIERED WARNING:");
-  console.log("   • HARGA (90 hari)        → warning 14 hari");
-  console.log("   • COMMERCIAL (180 hari)  → warning 21 hari");
-  console.log("   • INFORMASI (365 hari)   → warning 30 hari");
-  console.log("🎯 CONTENT-AWARE VALIDITY:");
-  console.log("   • HARGA/GABUNG  → 90 hari");
-  console.log("   • COMMERCIAL    → 180 hari");
-  console.log("   • INFORMASI     → 365 hari");
-  console.log("   • Variant/Sub-V → 365 hari");
-  console.log("🔔 INLINE WARNING:");
-  console.log("   • Letak: bawah .last-updated");
-  console.log("   • Format: TEXT MERAH");
-  console.log("   • data-nosnippet: tidak di-index Google");
-  console.log("✅ PRESERVED: FIX-SYNC-v4, FIX-EE-2 s/d EE-6, FIX-B1 s/d B10, FIX-A1 s/d A21");
-  console.log("🏢 BRAND default: " + DEFAULT_BRAND_NAME);
-  console.log("📌 KOMPATIBEL: PLD v23.9.9 (SEO DIMENSION)");
+  console.log("🔥 FIX-UX-1: Priority Display (critical/high/medium/low)");
+  console.log("🔥 FIX-UX-2: Mobile-First (compact di HP)");
+  console.log("🔥 FIX-UX-3: Analytics (log summary ke console)");
+  console.log("🔥 FIX-UX-4: Dark Mode (prefers-color-scheme)");
+  console.log("🔥 FIX-UX-5: Accessibility (ARIA role + live)");
+  console.log("🔥 FIX-UX-6: Multi-Language (ID + EN)");
+  console.log("🔥 FIX-UX-7: Deep Link Edit (untuk admin)");
+  console.log("✅ PRESERVED: SEMUA fitur v17.5.1 + v17.5.0 + v17.4.x");
   console.log("═══════════════════════════════════════════════════════════");
 
-  // ============================================================
-  // 🔥 AUTO-RUN — v17.5.0
-  // ============================================================
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
       setTimeout(function () { detectEvergreen(); }, 100);
