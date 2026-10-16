@@ -1,9 +1,14 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.36b-LITE COMPLETE — FINAL
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.36c-LITE COMPLETE — FINAL
    ✅ SINKRON dengan PLD v23.9.9 (entity-aware detectSchemaType)
    ✅ SINKRON dengan AED v17.4.7 (TIERED + CONTENT-AWARE)
    ✅ SINKRON dengan Breadcrumb v12.3.5
    ✅ SINKRON dengan Auto Schema Article v8.6 (Article = milik v8.6)
    ✅ SINKRON dengan Hybrid Product v5.6 (Product fallback)
+
+      🔥🔥🔥 v7.36c-LITE CHANGELOG 🔥🔥🔥
+   ✅ FIX-14: FAQ = content-driven (bukan PLD hint)
+   ✅ FIX-15: author per Answer + @id sync
+   ✅ FIX-16: Scope .faq-item ke konten utama
 
    🔥🔥🔥 v7.36b-LITE CHANGELOG 🔥🔥🔥
    ✅ FIX-10: REMOVE Article node — ditangani Auto Schema Article v8.6
@@ -41,11 +46,11 @@
   "use strict";
 
   // ═══ GUARD GLOBAL ═══
-  if (window.__AUTO_SCHEMA_VERSION === "7.36b-lite") {
-    console.log("[AutoSchema v7.36b-LITE] ⏭️ Already loaded — skip");
-    return;
-  }
-  window.__AUTO_SCHEMA_VERSION = "7.36b-lite";
+  if (window.__AUTO_SCHEMA_VERSION === "7.36c-lite") {
+  console.log("[AutoSchema v7.36c-LITE] ⏭️ Already loaded — skip");
+  return;
+}
+window.__AUTO_SCHEMA_VERSION = "7.36c-lite";
 
   // ============================================================
   // 🔥 AUTO-DETECT DEBUG MODE
@@ -165,7 +170,7 @@
       WEBP: "🎨", KNOWS: "🎓", SYNC: "🔗", RACE: "⚡", FAQ: "❓",
       ARTICLE: "📄"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.36b-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.36c-LITE] ${msg}`);
   }
 
   log(`🚀 Auto Schema v7.36b-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
@@ -194,7 +199,7 @@
   })();
 
   if (window.__SCHEMA_SKIP_REASON) {
-    console.log(`⏸️ [AutoSchema v7.36b-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
+    console.log(`⏸️ [AutoSchema v7.36c-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
     return;
   }
 
@@ -1107,30 +1112,28 @@
     return null;
   }
 
-  // ============================================================
-  // FAQ EXTRACTION (dari DOM)
-  // ============================================================
-  function extractFaqFromDOM() {
-    perf.start('extractFaqFromDOM');
-    const faqs = [];
-    const container = document.querySelector('article, main, .post-body') || document.body;
+ function extractFaqFromDOM() {
+  perf.start('extractFaqFromDOM');
+  const faqs = [];
 
-    const headings = container.querySelectorAll('h2, h3, h4');
-    for (const h of headings) {
+  // ═══════════════════════════════════════════════════════
+  // 🔥 PRIORITAS 1: scan .faq-item (FAQ ASLI)
+  // ═══════════════════════════════════════════════════════
+  // 🔥 FIX-16 (v7.36c): scope ke konten utama (hindari sidebar/footer FAQ)
+   const mainContainer = document.querySelector('article, main, .post-body, .entry-content') || document.body;
+   const faqItems = mainContainer.querySelectorAll('.faq-item');
+  if (faqItems.length > 0) {
+    log(`📋 Ditemukan ${faqItems.length} .faq-item`, 'FAQ');
+    for (const item of faqItems) {
+      const h = item.querySelector('h2, h3, h4');
+      if (!h) continue;
       const qText = (h.innerText || '').trim().replace(/\s+/g, ' ');
       if (!qText || qText.length < 8 || qText.length > 200) continue;
 
-      const isQuestion = /\?/.test(qText)
-        || /^(apa|apakah|bagaimana|gimana|kenapa|mengapa|kapan|dimana|di mana|siapa|berapa|yang mana)\b/i.test(qText);
-      if (!isQuestion) continue;
-
-      let answerEl = h.nextElementSibling;
-      while (answerEl && !/^(P|UL|OL|DIV|BLOCKQUOTE)$/.test(answerEl.tagName)) {
-        answerEl = answerEl.nextElementSibling;
-      }
-      if (!answerEl) continue;
-
-      const aText = (answerEl.innerText || '').trim().replace(/\s+/g, ' ').substring(0, 500);
+      // Cari <p> pertama di dalam .faq-item
+      const p = item.querySelector('p');
+      if (!p) continue;
+      const aText = (p.innerText || '').trim().replace(/\s+/g, ' ').substring(0, 500);
       if (!aText || aText.length < 20) continue;
 
       faqs.push({
@@ -1138,15 +1141,54 @@
         "name": qText,
         "acceptedAnswer": { "@type": "Answer", "text": aText }
       });
-
       if (faqs.length >= 8) break;
     }
-
-    log(`❓ FAQ extracted: ${faqs.length} pertanyaan`, "FAQ");
+    log(`✅ FAQ dari .faq-item: ${faqs.length} pertanyaan`, 'FAQ');
     perf.end('extractFaqFromDOM');
-    return faqs;
+    return faqs;  // ← STOP, jangan fallback
   }
 
+  // ═══════════════════════════════════════════════════════
+  // 🔥 PRIORITAS 2: fallback scan H2/H3/H4 (kalau tidak ada .faq-item)
+  // ═══════════════════════════════════════════════════════
+  const container = document.querySelector('article, main, .post-body') || document.body;
+  const headings = container.querySelectorAll('h3, h4');  // ← HANYA H3/H4, buang H2
+
+  for (const h of headings) {
+    const qText = (h.innerText || '').trim().replace(/\s+/g, ' ');
+    if (!qText || qText.length < 8 || qText.length > 200) continue;
+
+    // 🔥 FILTER: BUANG heading yang diawali nomor section
+    if (/^\d+\.\s/.test(qText)) continue;  // "1. Apa Itu..." → skip
+    if (/^section\s+\d/i.test(qText)) continue;
+
+    // 🔥 FILTER: harus benar-benar pertanyaan
+    const isQuestion = /\?$/.test(qText)  // akhiri tanya
+      || /^(apa|apakah|bagaimana|gimana|kenapa|mengapa|kapan|dimana|di mana|siapa|berapa|yang mana)\b/i.test(qText);
+
+    if (!isQuestion) continue;
+
+    let answerEl = h.nextElementSibling;
+    while (answerEl && !/^(P|UL|OL|DIV|BLOCKQUOTE)$/.test(answerEl.tagName)) {
+      answerEl = answerEl.nextElementSibling;
+    }
+    if (!answerEl) continue;
+
+    const aText = (answerEl.innerText || '').trim().replace(/\s+/g, ' ').substring(0, 500);
+    if (!aText || aText.length < 20) continue;
+
+    faqs.push({
+      "@type": "Question",
+      "name": qText,
+      "acceptedAnswer": { "@type": "Answer", "text": aText }
+    });
+    if (faqs.length >= 8) break;
+  }
+
+  log(`❓ FAQ extracted (fallback H3/H4): ${faqs.length} pertanyaan`, "FAQ");
+  perf.end('extractFaqFromDOM');
+  return faqs;
+}
   // ============================================================
   // PRICE PARSING
   // ============================================================
@@ -1385,7 +1427,7 @@
     setTimeout(async () => {
       perf.start('init');
       log("═══════════════════════════════════════════════════", "INFO");
-      log("AUTO SCHEMA UNIVERSAL v7.36b-LITE COMPLETE", "INFO");
+      log("AUTO SCHEMA UNIVERSAL v7.36c-LITE COMPLETE", "INFO");
       log("═══════════════════════════════════════════════════", "INFO");
 
       try {
@@ -1424,11 +1466,18 @@
         const isEvergreenSvc  = /evergreen-service/.test(schemaNote);
 
         // 🔥 Tentukan node dari PLD (Article = TIDAK dibuat di sini — v8.6 yang bikin)
-        const wantService  = (schemaPrimary === 'Service')  || (schemaSecondary === 'Service');
-        const wantProduct  = (schemaPrimary === 'Product')  || (schemaSecondary === 'Product');
-        const wantCreative = (schemaSecondary === 'CreativeWork');
-        const wantFAQ      = (schemaSecondary === 'FAQPage');
-
+         const wantService  = (schemaPrimary === 'Service')  || (schemaSecondary === 'Service');
+         const wantProduct  = (schemaPrimary === 'Product')  || (schemaSecondary === 'Product');
+         const wantCreative = (schemaSecondary === 'CreativeWork');
+         
+         // 🔥 FIX-14 (v7.36c): FAQ = content-driven (SEO 2026 + AI Search)
+         // FAQPage dibuat KAPAN SAJA ada ≥2 FAQ nyata di konten (.faq-item)
+         // Tidak bergantung PLD hint — FAQ valid di semua level
+         const faqsFromDOM = extractFaqFromDOM();
+         const wantFAQ = faqsFromDOM.length >= 2;
+         
+         log(`❓ FAQ tersedia: ${faqsFromDOM.length} pertanyaan → wantFAQ=${wantFAQ}`, "FAQ");
+                  
         // ⚠️ wantArticle SENGAJA TIDAK ADA — ditangani v8.6
 
         log(`📌 Level: ${pageLevel} | Entity: ${entityType} | Focus: ${contentFocus}`, "SUCCESS");
@@ -1620,19 +1669,29 @@
         // FAQ bisa pair dengan Service/Product/Article
         // ═══════════════════════════════════════════════════════
         if (wantFAQ) {
-          const faqs = extractFaqFromDOM();
-          if (faqs.length >= 2) {
-            graph.push({
-              "@type": "FAQPage",
-              "@id": cleanUrl + "#faq",
-              "mainEntity": faqs
-            });
-            log(`✅ FAQPage node: ${faqs.length} pertanyaan`, "FAQ");
-          } else {
-            log(`⏭️ FAQPage skip — hanya ${faqs.length} Q&A (min 2)`, "SKIP");
-          }
-        }
-
+        const faqPage = {
+          "@type": "FAQPage",
+          "@id": cleanUrl + "#faq",
+          "author": {
+            "@type": "Organization",
+            "@id": CONFIG.LOCALBUSINESS_ID,
+            "name": "Beton Jaya Readymix"
+          },
+          "mainEntity": faqsFromDOM.map(f => ({
+            "@type": "Question",
+            "name": f.name,
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": f.acceptedAnswer.text,
+              "author": { "@id": CONFIG.LOCALBUSINESS_ID },   // 🔥 FIX-15: author per Answer
+              ...(dateModified && { "dateModified": dateModified })
+            }
+          }))
+        };
+        graph.push(faqPage);
+        log(`✅ FAQPage node: ${faqsFromDOM.length} pertanyaan (author=Organization, sync #localbusiness)`, "FAQ");
+      }
+               
         // Internal Links (max 8)
         const internalLinks = generateInternalLinks();
         if (internalLinks.length > 0) {
@@ -1664,6 +1723,7 @@
         log(`   Internal links: ${internalLinks.length} (max ${CONFIG.MAX_INTERNAL_LINKS})`, "SYNC");
         log(`   Breadcrumb source: ${parentData.source}`, "BREADCRUMB");
         log(`   PLD version: ${pldVer.label}`, "PLD");
+        log(`   FAQ: ${wantFAQ ? faqsFromDOM.length + ' pertanyaan' : 'skip'}`, "FAQ");
         log(`   Article node: HANDLED BY v8.6 ⏭️`, "ARTICLE");
         log("═══════════════════════════════════════════════════", "SUCCESS");
 
@@ -1682,6 +1742,10 @@
   window.addEventListener('beforeunload', cleanup);
 
   console.log("═══════════════════════════════════════════════════════════");
+  console.log("✅ Auto Schema v7.36c-LITE — READY (PLD-DRIVEN, SEO 2026, NO-DUPLICATE)");
+   console.log("🔥 FIX-14: FAQ content-driven (semua level)");
+   console.log("🔥 FIX-15: author per Answer + @id sync");
+   console.log("🔥 FIX-16: scope .faq-item ke konten utama");
   console.log("✅ Auto Schema v7.36b-LITE — READY (PLD-DRIVEN, SEO 2026, NO-DUPLICATE)");
   console.log("═══════════════════════════════════════════════════════════");
   console.log("🔥 FIX-10: REMOVE Article node — ditangani Auto Schema Article v8.6");
