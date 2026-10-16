@@ -1,80 +1,43 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.36e-LITE COMPLETE — FINAL
-   ✅ SINKRON dengan PLD v23.9.9 (entity-aware detectSchemaType)
-   ✅ SINKRON dengan AED v17.4.8 (TIERED + CONTENT-AWARE)
-   ✅ SINKRON dengan Breadcrumb v12.3.6
-   ✅ SINKRON dengan Auto Schema Article v8.6b
-   ✅ SINKRON dengan Hybrid Product v5.7a
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.36f-LITE COMPLETE — JASA/SEWA ONLY
+   ✅ SINKRON dengan PLD v23.9.9
+   ✅ SINKRON dengan AED v17.4.9
+   ✅ SINKRON dengan Article v8.6d
+   ✅ SINKRON dengan Hybrid v5.7b
 
-   🔥🔥🔥 v7.36e-LITE CHANGELOG 🔥🔥🔥
-   ✅ FIX-21: Hapus author + dateModified di Answer (konsisten AED v17.4.8)
-              - AED v17.4.8 selalu hapus author/dateModified di Answer
-              - Sebelumnya: Universal tambah → AED hapus (sia-sia)
-              - Sesudah: Universal tidak tambah → AED tidak perlu hapus
-              - Efek: Log AED bersih, tidak ada "illegal properties" warning
-   ✅ FIX-22: ItemList Title Case (nama internal links)
-              - Sebelumnya: "daftar jasa pengeboran" (lowercase)
-              - Sesudah: "Daftar Jasa Pengeboran" (Title Case)
-              - Efek: Lebih rapi di Google & AI Search
-   ✅ Version bump resmi v7.36d → v7.36e (6 tempat)
+   🔥🔥🔥 v7.36f-LITE CHANGELOG 🔥🔥🔥
+   ✅ FIX-24: Entity guard — HANYA jasa/sewa
+              - Tambah cek entity !== jasa/sewa → SKIP di init()
+              - Sebelumnya: jalan di SEMUA halaman (kecuali homepage/static)
+              - Sesudah: SKIP kalau entity bukan jasa/sewa
+              - Efek: Universal TIDAK bocor ke halaman product/article
+              - Catatan: LocalBusiness + WebPage di halaman product/article
+                         sekarang di-handle Hybrid v5.7b & Article v8.6d
 
-   ✅ PRESERVED dari v7.36d-LITE:
-   ✅ FIX-20: Detect static FAQPage — anti-duplikasi
-   ✅ FIX-17: TechArticle node (secondary untuk variant/sub-variant)
-   ✅ FIX-18: Log verifikasi TechArticle
-   ✅ FIX-16: Scope .faq-item ke konten utama
-   ✅ FIX-15: author per FAQPage (bukan per Answer)
-   ✅ FIX-14: FAQ content-driven
-   ✅ FIX-13: KEEP Service + Product + LocalBusiness + WebPage + ItemList
-   ✅ FIX-12: KEEP CreativeWork
-   ✅ FIX-11: KEEP FAQPage
-   ✅ FIX-10: REMOVE Article node (ditangani v8.6b)
-   ✅ FIX-9: CreativeWork node
-   ✅ FIX-8: FAQPage extraction dari DOM
-   ✅ FIX-6: Respect data-schema-type-note
-   ✅ FIX-5: PLD-DRIVEN schema decision
-   ✅ FIX-4: Support AED v17.4.7+
-   ✅ FIX-3: Guard anti-race-condition AED
-   ✅ FIX-2: ItemList max 8
-   ✅ FIX-1: extractServiceType() — support – — - | : &
-   ✅ Anti-spoofing dateModified
-   ✅ KNOWS_ABOUT — 110 item
-   ✅ areaServed — Indonesia + 11 kota
-   ✅ contactPoint di LocalBusiness
-   ✅ 4-layer price detection
-   ✅ Breadcrumb DOM fallback
-   ✅ ErrorBoundary + DOMCache
-   ✅ Responsive image styles + Cloudinary WebP
-
-   📌 PEMBAGIAN TANGGUNG JAWAB:
-   - v7.36e: LocalBusiness + WebPage + Service + Product + FAQPage + TechArticle + CreativeWork + ItemList
-   - v8.6b : Article (PLD primary = Article)
-   - v5.7a : Product fallback (halaman product yang PLD tidak tandai)
-
-   Status: FINAL v7.36e — PLD-DRIVEN, SEO 2026, NO-DUPLICATE, AI-READY
+   ✅ PRESERVED dari v7.36e-LITE:
+   ✅ FIX-21: Hapus author + dateModified di Answer
+   ✅ FIX-22: ItemList Title Case
+   ✅ FIX-20: Detect static FAQPage
+   ✅ FIX-17: TechArticle node
+   ✅ FIX-14 s/d FIX-16: FAQ content-driven + scoped
+   ✅ FIX-5 s/d FIX-13: PLD-driven, notes, CreativeWork, dll
+   ✅ FIX-1 s/d FIX-4: ServiceType, ItemList, AED, anti-race
 */
 
 (function() {
   "use strict";
 
-  // ═══ GUARD GLOBAL ═══
-  if (window.__AUTO_SCHEMA_VERSION === "7.36e-lite") {
-    console.log("[AutoSchema v7.36e-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTO_SCHEMA_VERSION === "7.36f-lite") {
+    console.log("[AutoSchema v7.36f-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTO_SCHEMA_VERSION = "7.36e-lite";
+  window.__AUTO_SCHEMA_VERSION = "7.36f-lite";
 
-  // ============================================================
-  // 🔥 AUTO-DETECT DEBUG MODE
-  // ============================================================
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
                          (navigator.deviceMemory && navigator.deviceMemory <= 4);
   const URL_DEBUG = window.location.search.indexOf('schema-debug=1') !== -1;
   const DEBUG_MODE = URL_DEBUG || (!IS_MOBILE && !IS_SLOW_DEVICE);
 
-  // ============================================================
-  // 🔥 KONFIGURASI
-  // ============================================================
   const CONFIG = {
     DEBUG: DEBUG_MODE,
     DELAY_MS: 200,
@@ -93,10 +56,8 @@
     MAX_ELEMENTS_TO_SCAN: 100,
     MAX_INTERNAL_LINKS: 8,
 
-    // 🔥 SYNC: @id reference
     LOCALBUSINESS_ID: "https://www.betonjayareadymix.com#localbusiness",
 
-    // 🔥 areaServed
     AREA_SERVED: [
       { "@type": "Country", "name": "Indonesia" },
       { "@type": "AdministrativeArea", "name": "DKI Jakarta" },
@@ -112,7 +73,6 @@
       { "@type": "AdministrativeArea", "name": "Kota Surabaya" }
     ],
 
-    // 🔥 KNOWS_ABOUT — 110 item
     KNOWS_ABOUT: [
       "Jasa Bor Sumur", "Jasa Bor Horizontal", "Jasa Bor Manual",
       "Jasa Bor Hidrolik", "Jasa Bor Rotary", "Jasa Bor Auger",
@@ -166,9 +126,6 @@
     }
   };
 
-  // ============================================================
-  // LOGGING
-  // ============================================================
   function log(msg, type = "INFO") {
     if (!CONFIG.DEBUG) return;
     const icons = {
@@ -181,16 +138,12 @@
       WEBP: "🎨", KNOWS: "🎓", SYNC: "🔗", RACE: "⚡", FAQ: "❓",
       ARTICLE: "📄", TECH: "🔬", STATIC: "🗿"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.36e-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.36f-LITE] ${msg}`);
   }
 
-  log(`🚀 Auto Schema v7.36e-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
-  log(`🎓 KNOWS_ABOUT: ${CONFIG.KNOWS_ABOUT.length} item`, "KNOWS");
-  log(`🔗 MAX_INTERNAL_LINKS: ${CONFIG.MAX_INTERNAL_LINKS}`, "SYNC");
+  log(`🚀 Auto Schema v7.36f-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
 
-  // ============================================================
-  // EARLY EXIT
-  // ============================================================
+  // Early exit — homepage & static only (entity check di init)
   (function earlyExitCheck() {
     const currentPath = window.location.pathname;
     const isHomepage = currentPath === '/' || currentPath === '/index.html' || currentPath === '';
@@ -210,13 +163,10 @@
   })();
 
   if (window.__SCHEMA_SKIP_REASON) {
-    console.log(`⏸️ [AutoSchema v7.36e-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
+    console.log(`⏸️ [AutoSchema v7.36f-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
     return;
   }
 
-  // ============================================================
-  // CORB PREVENTION
-  // ============================================================
   const originalFetch = window.fetch;
   window.fetch = function(...args) {
     const url = args[0];
@@ -236,9 +186,6 @@
     return originalXHROpen.call(this, method, url, ...rest);
   };
 
-  // ============================================================
-  // PERFORMANCE MONITORING
-  // ============================================================
   const perf = {
     marks: {},
     start(label) {
@@ -254,9 +201,6 @@
     }
   };
 
-  // ============================================================
-  // DOM CACHE
-  // ============================================================
   class DOMCache {
     constructor() { this.cache = new Map(); }
     get(selector, context = document) {
@@ -277,9 +221,6 @@
     clear() { this.cache.clear(); }
   }
 
-  // ============================================================
-  // ERROR BOUNDARY
-  // ============================================================
   class ErrorBoundary {
     constructor() { this.errors = []; this.fallbacks = new Map(); }
     register(fnName, fallback) { this.fallbacks.set(fnName, fallback); }
@@ -302,9 +243,6 @@
   const domCache = CONFIG.CACHE_DOM_ELEMENTS ? new DOMCache() : null;
   const errorBoundary = new ErrorBoundary();
 
-  // ============================================================
-  // CLOUDINARY CONFIG
-  // ============================================================
   const CLOUDINARY_CONFIG = {
     ENABLED: true,
     CLOUD_NAME: 'vagzz5sa',
@@ -406,17 +344,11 @@
     }
   };
 
-  // ============================================================
-  // IMAGE CONFIG
-  // ============================================================
   const IMAGE_CONFIG = {
     FALLBACK_IMAGE: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiWWAP6ezcmzgbGtHmmJqBjYkbsdQBrwCeC9pl9ocjL-VSQYftirdvXAF1T-eg_QMSqu1WiFidDc9fnChi0yaOqi0Dd6EVMy4ZX3P7vccY4XJMu-7k2TGVd5TS1wIG5jgIm_6beYVb2zuNQGS7eBuODJqd20c4ckvd0-HaEqGf4W-B_750I91wi9IhqqnI/s320/No_Image_Available.jpg",
     LOGO_IMAGE: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png"
   };
 
-  // ============================================================
-  // HELPER: PLD Version
-  // ============================================================
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
       var v = String(window.pageLevelDetectorv22.version);
@@ -435,40 +367,9 @@
     return { version: "none", family: "none", label: "none" };
   }
 
-  // ============================================================
-  // BREADCRUMB HELPERS
-  // ============================================================
   function cleanBreadcrumbText(text) {
     if (!text) return '';
     return String(text).replace(/[›»>→←«‹|/]/g, '').replace(/\s+/g, ' ').trim();
-  }
-
-  function findMainBreadcrumb() {
-    const breadcrumbSelectors = [
-      '.breadcrumbs', '.breadcrumb', '.nav-trail',
-      '[aria-label="breadcrumb"]', '[itemtype*="BreadcrumbList"]',
-      '.post-breadcrumb', '.breadcrumb-nav', '.nav-breadcrumb'
-    ];
-    const candidates = [];
-    for (const selector of breadcrumbSelectors) {
-      try {
-        document.querySelectorAll(selector).forEach(el => {
-          if (!candidates.includes(el)) candidates.push(el);
-        });
-      } catch(e) {}
-    }
-    if (candidates.length === 0) return null;
-    for (const el of candidates) {
-      const text = (el.innerText || '').toLowerCase();
-      if (text.includes('beranda') || text.includes('home')) return el;
-    }
-    let best = candidates[0];
-    let maxLinks = 0;
-    for (const el of candidates) {
-      const links = el.querySelectorAll('a[href]').length;
-      if (links > maxLinks) { maxLinks = links; best = el; }
-    }
-    return best;
   }
 
   function waitForBreadcrumbGenerated(timeout = CONFIG.BREADCRUMB_GENERATED_TIMEOUT) {
@@ -592,6 +493,34 @@
     });
   }
 
+  function findMainBreadcrumb() {
+    const breadcrumbSelectors = [
+      '.breadcrumbs', '.breadcrumb', '.nav-trail',
+      '[aria-label="breadcrumb"]', '[itemtype*="BreadcrumbList"]',
+      '.post-breadcrumb', '.breadcrumb-nav', '.nav-breadcrumb'
+    ];
+    const candidates = [];
+    for (const selector of breadcrumbSelectors) {
+      try {
+        document.querySelectorAll(selector).forEach(el => {
+          if (!candidates.includes(el)) candidates.push(el);
+        });
+      } catch(e) {}
+    }
+    if (candidates.length === 0) return null;
+    for (const el of candidates) {
+      const text = (el.innerText || '').toLowerCase();
+      if (text.includes('beranda') || text.includes('home')) return el;
+    }
+    let best = candidates[0];
+    let maxLinks = 0;
+    for (const el of candidates) {
+      const links = el.querySelectorAll('a[href]').length;
+      if (links > maxLinks) { maxLinks = links; best = el; }
+    }
+    return best;
+  }
+
   function getParentFromBreadcrumbReady(breadcrumbData, currentUrl) {
     perf.start('getParentFromBreadcrumbReady');
     const parentFromFlag = document.body.getAttribute('data-breadcrumb-parent');
@@ -608,7 +537,6 @@
       };
     }
     if (!breadcrumbData || !breadcrumbData.links || breadcrumbData.links.length === 0) {
-      log('⚠️ Breadcrumb tidak valid — fallback ke origin', "WARN");
       perf.end('getParentFromBreadcrumbReady');
       return { parentUrl: location.origin, parentName: 'Home', source: 'fallback-origin', allParents: [] };
     }
@@ -632,7 +560,6 @@
     const parentLink = validParents[validParents.length - 1];
     const parentUrl = parentLink.href || '';
     const parentName = cleanBreadcrumbText(parentLink.innerText || '') || 'Parent Page';
-    log(`👪 Parent terdekat: "${parentName}" → ${parentUrl}`, "PARENT");
     perf.end('getParentFromBreadcrumbReady');
     return {
       parentUrl: parentUrl,
@@ -642,9 +569,6 @@
     };
   }
 
-  // ============================================================
-  // PLD DATA READERS
-  // ============================================================
   function getPageLevelFromPLD() {
     perf.start('getPageLevelFromPLD');
     const bodyLevel = document.body.getAttribute('data-page-level');
@@ -731,14 +655,11 @@
   function isImageEligible(pageLevel) {
     const bodyImageEligible = document.body.getAttribute('data-image-eligible');
     if (bodyImageEligible !== null) return bodyImageEligible === 'true';
-    const mandatoryImageLevels = ['money-master', 'money-page', 'money-child', 'variant', 
+    const mandatoryImageLevels = ['money-master', 'money-page', 'money-child', 'variant',
                                    'sub-variant', 'pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'];
     return mandatoryImageLevels.includes(pageLevel);
   }
 
-  // ============================================================
-  // 🔥 FIX-3: waitForAEDMetaDates — Anti-race-condition
-  // ============================================================
   function waitForAEDMetaDates(timeout = CONFIG.AED_TIMEOUT) {
     return new Promise((resolve) => {
       perf.start('waitForAEDMetaDates');
@@ -826,32 +747,6 @@
     });
   }
 
-  // ============================================================
-  // Color helpers
-  // ============================================================
-  function getColorConfig(level) {
-    const colors = {
-      'pillar': { bg: '#0a2a44', text: '#ffffff', accent: '#25d366' },
-      'sub-pillar-tipe-2': { bg: '#1a237e', text: '#ffffff', accent: '#25d366' },
-      'sub-pillar-tipe-1': { bg: '#004d40', text: '#ffffff', accent: '#25d366' },
-      'money-master': { bg: '#0a2a44', text: '#ffffff', accent: '#ffd700' },
-      'money-page': { bg: '#1a5a8c', text: '#ffffff', accent: '#ffd700' },
-      'money-child': { bg: '#bf360c', text: '#ffffff', accent: '#ffd700' },
-      'variant': { bg: '#4a148c', text: '#ffffff', accent: '#25d366' },
-      'sub-variant': { bg: '#4e342e', text: '#ffffff', accent: '#25d366' }
-    };
-    return colors[level] || colors['pillar'];
-  }
-
-  function lightenColor(hex, percent) {
-    const num = parseInt(hex.replace('#', ''), 16);
-    const amt = Math.round(2.55 * percent);
-    const R = Math.min(255, (num >> 16) + amt);
-    const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
-    const B = Math.min(255, (num & 0x0000FF) + amt);
-    return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
-  }
-
   function getCurrentYear() { return new Date().getFullYear(); }
 
   function getCleanPageName(level) {
@@ -905,9 +800,6 @@
     return IMAGE_CONFIG.LOGO_IMAGE;
   }
 
-  // ============================================================
-  // Fix Images
-  // ============================================================
   function fixImagesToFormat1(pageLevel) {
     perf.start('fixImagesToFormat1');
     const currentYear = getCurrentYear();
@@ -961,7 +853,7 @@
       img.style.margin = '0 auto';
       img.style.padding = '0 10px';
       img.style.boxSizing = 'border-box';
-      const styleId = 'responsive-image-style-v736e';
+      const styleId = 'responsive-image-style-v736f';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
@@ -1087,9 +979,6 @@
     return figure;
   }
 
-  // ============================================================
-  // 🔥 FIX-1: SERVICE TYPE EXTRACTOR
-  // ============================================================
   function extractServiceType(title, entityType) {
     let serviceType = title
       .replace(/^(harga|biaya|tarif|estimasi|daftar|perbandingan|jual|beli)\s*/i, '')
@@ -1098,17 +987,15 @@
       .replace(/\s*[–—\-|:&•·].*$/, '')
       .replace(/\s+/g, ' ')
       .trim();
-    
+
     if (entityType === 'jasa' && !/^(jasa|layanan|service|borongan|kontraktor|pemasangan|instalasi)/i.test(serviceType)) {
       serviceType = 'Jasa ' + serviceType;
     } else if (entityType === 'sewa' && !/^(sewa|rental)/i.test(serviceType)) {
       serviceType = 'Sewa ' + serviceType;
-    } else if (entityType === 'produk' && !/^(produk|jual|beli)/i.test(serviceType)) {
-      serviceType = 'Produk ' + serviceType;
     }
-    
+
     if (serviceType.length > 60) serviceType = serviceType.substring(0, 60).trim();
-    
+
     log(`🔧 extractServiceType: "${title}" → "${serviceType}"`, "FIX");
     return serviceType;
   }
@@ -1123,9 +1010,6 @@
     return null;
   }
 
-  // ============================================================
-  // 🔥 FIX-20: DETECT STATIC FAQPage SCHEMA
-  // ============================================================
   function hasStaticFAQPageSchema() {
     const scripts = document.querySelectorAll('script[type="application/ld+json"]');
     const OWN_IDS = ['auto-schema-service', 'auto-schema-product', 'auto-schema'];
@@ -1134,11 +1018,7 @@
       if (s.id && OWN_IDS.includes(s.id)) continue;
 
       let json;
-      try {
-        json = JSON.parse(s.textContent || '{}');
-      } catch (e) {
-        continue;
-      }
+      try { json = JSON.parse(s.textContent || '{}'); } catch (e) { continue; }
 
       if (json['@type'] === 'FAQPage') return true;
       if (Array.isArray(json['@type']) && json['@type'].includes('FAQPage')) return true;
@@ -1162,9 +1042,6 @@
     return false;
   }
 
-  // ============================================================
-  // 🔥 FIX-14 + FIX-16: FAQ EXTRACTION (content-driven + scoped)
-  // ============================================================
   function extractFaqFromDOM() {
     perf.start('extractFaqFromDOM');
     const faqs = [];
@@ -1234,9 +1111,40 @@
     return faqs;
   }
 
-  // ============================================================
-  // PRICE PARSING
-  // ============================================================
+  function generateInternalLinks() {
+    perf.start('generateInternalLinks');
+    const container = document.querySelector('article, main, .post-body') || document.body;
+    const anchors = container.querySelectorAll('a');
+    const links = [];
+    for (const a of anchors) {
+      const href = a.href;
+      if (!href) continue;
+      if (!href.includes(location.hostname)) continue;
+      if (href.includes('#')) continue;
+      if (href.match(/(\/search|\/feed|\/label)/i)) continue;
+      if (href.includes('{{') || href.includes('%7B') || href.includes('LINK_')) continue;
+      links.push(href);
+      if (links.length >= CONFIG.MAX_INTERNAL_LINKS) break;
+    }
+    const unique = [...new Set(links)];
+    const limited = unique.slice(0, CONFIG.MAX_INTERNAL_LINKS);
+
+    const result = limited.map((u, i) => {
+      const rawName = decodeURIComponent(u.split("/").pop().replace(".html", "").replace(/-/g, " "));
+      const titleCase = rawName.replace(/\b\w/g, l => l.toUpperCase());
+      return {
+        "@type": "ListItem",
+        position: i + 1,
+        url: u,
+        name: titleCase
+      };
+    });
+
+    log(`🔗 Internal links: ${result.length} (max ${CONFIG.MAX_INTERNAL_LINKS})`, "SYNC");
+    perf.end('generateInternalLinks');
+    return result;
+  }
+
   function parsePriceFromText(text) {
     if (!text) return null;
     let clean = String(text).trim();
@@ -1276,9 +1184,6 @@
     return false;
   }
 
-  // ============================================================
-  // 4-LAYER PRICE DETECTION
-  // ============================================================
   const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
 
   function detectPriceLayered(pageLevel) {
@@ -1434,56 +1339,25 @@
     return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-valid-price' };
   }
 
-  // ============================================================
-  // 🔥 FIX-2 + FIX-22: INTERNAL LINKS — Max 8 + Title Case
-  // ============================================================
-  function generateInternalLinks() {
-    perf.start('generateInternalLinks');
-    const container = document.querySelector('article, main, .post-body') || document.body;
-    const anchors = container.querySelectorAll('a');
-    const links = [];
-    for (const a of anchors) {
-      const href = a.href;
-      if (!href) continue;
-      if (!href.includes(location.hostname)) continue;
-      if (href.includes('#')) continue;
-      if (href.match(/(\/search|\/feed|\/label)/i)) continue;
-      if (href.includes('{{') || href.includes('%7B') || href.includes('LINK_')) continue;
-      links.push(href);
-      if (links.length >= CONFIG.MAX_INTERNAL_LINKS) break;
-    }
-    const unique = [...new Set(links)];
-    const limited = unique.slice(0, CONFIG.MAX_INTERNAL_LINKS);
-
-    // 🔥 FIX-22 (v7.36e): Title Case names
-    const result = limited.map((u, i) => {
-      const rawName = decodeURIComponent(u.split("/").pop().replace(".html", "").replace(/-/g, " "));
-      const titleCase = rawName.replace(/\b\w/g, l => l.toUpperCase());
-      return {
-        "@type": "ListItem",
-        position: i + 1,
-        url: u,
-        name: titleCase
-      };
-    });
-
-    log(`🔗 Internal links: ${result.length} (max ${CONFIG.MAX_INTERNAL_LINKS})`, "SYNC");
-    perf.end('generateInternalLinks');
-    return result;
-  }
-
-  // ============================================================
-  // 🚀 MAIN FUNCTION v7.36e-LITE
-  // ============================================================
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
       perf.start('init');
       log("═══════════════════════════════════════════════════", "INFO");
-      log("AUTO SCHEMA UNIVERSAL v7.36e-LITE COMPLETE", "INFO");
+      log("AUTO SCHEMA UNIVERSAL v7.36f-LITE — JASA/SEWA ONLY", "INFO");
       log("═══════════════════════════════════════════════════", "INFO");
 
       try {
-        // ===== STEP 1: BREADCRUMB =====
+        await waitForPLD();
+
+        // 🔥 FIX-24: ENTITY GUARD — HANYA jasa/sewa
+        const entityTypeCheck = getEntityTypeFromPLD() || document.body.getAttribute('data-entity-type');
+        if (entityTypeCheck && entityTypeCheck !== 'jasa' && entityTypeCheck !== 'sewa') {
+          log(`⏭️ SKIP Universal — entity="${entityTypeCheck}" (bukan jasa/sewa)`, "SKIP");
+          perf.end('init');
+          return;
+        }
+        log(`✅ Universal LAYAK — entity="${entityTypeCheck}"`, "SUCCESS");
+
         let parentData = await waitForBreadcrumbGenerated(CONFIG.BREADCRUMB_GENERATED_TIMEOUT);
         let breadcrumbData = null;
         if (!parentData || !parentData.parentName || parentData.parentName === 'Home') {
@@ -1492,14 +1366,9 @@
           parentData = getParentFromBreadcrumbReady(breadcrumbData, currentUrl);
         }
 
-        // ===== STEP 2: PLD =====
-        await waitForPLD();
         const pldVer = getPLDVersion();
-
-        // ===== STEP 3: AED =====
         const aed = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
 
-        // ===== STEP 4: DATA PLD =====
         const pageLevel    = getPageLevelFromPLD();
         const entityType   = getEntityTypeFromPLD();
         const contentFocus = detectContentFocus();
@@ -1507,75 +1376,34 @@
         const ctaType      = getCtaType();
         const h1Pattern    = getH1Pattern();
 
-        // 🔥 Baca schema hint dari PLD (SEO 2026)
         const schemaPrimary   = (document.body.getAttribute('data-schema-type-primary')   || '').trim();
         const schemaSecondary = (document.body.getAttribute('data-schema-type-secondary') || '').trim();
         const schemaNote      = (document.body.getAttribute('data-schema-type-note')      || '').trim();
 
-        // 🔥 Parse note flags
         const wantOffers      = /(^|,)with-offers($|,)/.test(schemaNote) && !/without-offers/.test(schemaNote);
         const wantAreaServed  = /with-areaServed/.test(schemaNote);
         const isEvergreenSvc  = /evergreen-service/.test(schemaNote);
 
-        // 🔥 Tentukan node dari PLD (Article = TIDAK dibuat di sini — v8.6b yang bikin)
-       const wantService  = (schemaPrimary === 'Service')  || (schemaSecondary === 'Service');
-           // 🔥 Tentukan node dari PLD (Article = TIDAK dibuat di sini — v8.6c yang bikin)
         const wantService  = (schemaPrimary === 'Service')  || (schemaSecondary === 'Service');
         const wantProduct  = (schemaPrimary === 'Product')  || (schemaSecondary === 'Product');
         const wantCreative = (schemaSecondary === 'CreativeWork');
 
-        // ═══════════════════════════════════════════════════════
-        // 🔥 FIX-23 (v7.36f): Skip FAQ kalau PLD primary=Article
-        // Mencegah DUPLIKAT FAQ dengan Article v8.6c.
-        // Kasus: URL /perbandingan-jasa-* (Universal load karena
-        // ada "jasa", TAPI PLD bilang primary=Article → Article v8.6c
-        // yang handle FAQ. Universal HARUS skip).
-        // ═══════════════════════════════════════════════════════
         const isArticlePrimary = (schemaPrimary === 'Article');
-
-        // 🔥 FIX-20 (v7.36d): Cek FAQPage static dulu
         const hasStaticFAQ = hasStaticFAQPageSchema();
-
-        // 🔥 FIX-14 (v7.36c): FAQ = content-driven (SEO 2026 + AI Search)
         const faqsFromDOM = extractFaqFromDOM();
-
-        // 🔥 FIX-23 (v7.36f): Guard tambahan isArticlePrimary
         const wantFAQ = !isArticlePrimary && !hasStaticFAQ && faqsFromDOM.length >= 2;
 
-        if (isArticlePrimary) {
-          log(`⏭️ FAQPage SKIP — PLD primary=Article (ditangani Article v8.6c)`, "SKIP");
-        }
-         
-        // 🔥 FIX-17 (v7.36c): TechArticle
         const wantTechArticle = (schemaSecondary === 'TechArticle') &&
                                 (schemaPrimary === 'Service' || schemaPrimary === 'Product');
 
         log(`📌 Level: ${pageLevel} | Entity: ${entityType} | Focus: ${contentFocus}`, "SUCCESS");
         log(`🔗 PLD hint → primary=${schemaPrimary} | secondary=${schemaSecondary} | note=${schemaNote}`, "SCHEMA");
-        log(`🔗 Build plan → Service=${wantService} Product=${wantProduct} FAQ=${wantFAQ} Creative=${wantCreative} TechArticle=${wantTechArticle}`, "SCHEMA");
+        log(`🔗 Build plan → Service=${wantService} Product=${wantProduct} FAQ=${wantFAQ}`, "SCHEMA");
 
-        if (hasStaticFAQ) {
-          log(`⏭️ FAQPage static sudah ada di HTML — SKIP FAQPage dinamis (hindari duplikasi)`, "STATIC");
-        } else {
-          log(`❓ FAQ tersedia: ${faqsFromDOM.length} pertanyaan → wantFAQ=${wantFAQ}`, "FAQ");
-        }
-
-        if (wantTechArticle) {
-          log(`📄 TechArticle LAYAK — level=${pageLevel}, entity=${entityType}, primary=${schemaPrimary}`, "TECH");
-        } else if (schemaSecondary === 'TechArticle') {
-          log(`⏭️ TechArticle SKIP — primary=${schemaPrimary} (bukan Service/Product)`, "SKIP");
-        } else if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
-          log(`⏭️ TechArticle SKIP — PLD tidak set secondary=TechArticle`, "SKIP");
-        }
-
-        log(`📄 Article node → HANDLED BY v8.6b (skip di Universal)`, "ARTICLE");
-
-        // ===== STEP 5: PRICE (4 LAYERS) =====
         const priceResult = detectPriceLayered(pageLevel);
         const tableOffers = priceResult.offers || [];
         const hasPrice = priceResult.hasPrice;
 
-        // ===== STEP 6: IMAGES =====
         const isEligible = isImageEligible(pageLevel);
         let pageImage = IMAGE_CONFIG.LOGO_IMAGE;
         if (isEligible) {
@@ -1588,7 +1416,6 @@
           } catch(e) { log(`Error images: ${e.message}`, "ERROR"); }
         }
 
-        // ===== STEP 7: INJECT SCHEMA =====
         const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
         const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
         const baseUrl = ogUrl || canonical || location.href;
@@ -1599,11 +1426,9 @@
           document.querySelector("article p, main p")?.innerText?.substring(0, 200) || title;
 
         const knowsAbout = CONFIG.KNOWS_ABOUT;
-
         const dateModified = (aed && aed.dateModified) ? aed.dateModified : undefined;
         const priceValidUntil = (aed && aed.nextUpdate) ? aed.nextUpdate : undefined;
 
-        // BUILD GRAPH
         const graph = [
           {
             "@type": ["LocalBusiness", "GeneralContractor"],
@@ -1611,7 +1436,7 @@
             "name": "Beton Jaya Readymix",
             "url": "https://www.betonjayareadymix.com",
             "telephone": "+6281299842508",
-            "description": "Beton Jaya Readymix melayani jasa konstruksi terpadu: pengeboran, coring beton, pondasi, beton readymix, pagar panel, saluran precast, material, sewa alat, dan jasa pasang konstruksi di seluruh Indonesia.",
+            "description": "Beton Jaya Readymix melayani jasa konstruksi terpadu.",
             "address": { "@type": "PostalAddress", "addressLocality": "Bogor", "addressRegion": "Jawa Barat", "addressCountry": "ID" },
             "openingHours": "Mo-Sa 08:00-17:00",
             "logo": IMAGE_CONFIG.LOGO_IMAGE,
@@ -1634,9 +1459,6 @@
           }
         ];
 
-        // ═══════════════════════════════════════════════════════
-        // SERVICE NODE
-        // ═══════════════════════════════════════════════════════
         if (wantService) {
           const serviceType = extractServiceType(title, entityType);
           const serviceNode = {
@@ -1668,12 +1490,9 @@
           }
 
           graph.push(serviceNode);
-          log(`✅ Service node: ${serviceType} (offers=${!!serviceNode.offers}, areaServed=${!!serviceNode.areaServed})`, "SCHEMA");
+          log(`✅ Service node: ${serviceType}`, "SCHEMA");
         }
 
-        // ═══════════════════════════════════════════════════════
-        // PRODUCT NODE
-        // ═══════════════════════════════════════════════════════
         if (wantProduct) {
           const category = document.body.getAttribute('data-product-category')
                         || (entityType === 'material' ? 'BuildingMaterial' : 'PrecastProduct');
@@ -1690,13 +1509,6 @@
 
           if (wantAreaServed || pageLevel === 'money-child') {
             productNode.areaServed = CONFIG.AREA_SERVED;
-          }
-
-          if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
-            productNode.productType = pageLevel === 'variant' ? "Variant" : "Sub-Variant";
-            const material = detectProductMaterial(entityType);
-            if (material) productNode.material = material;
-            productNode.manufacturer = { "@type": "Organization", name: "Beton Jaya Readymix" };
           }
 
           if (wantOffers && hasPrice && tableOffers.length > 0) {
@@ -1724,16 +1536,9 @@
           }
 
           graph.push(productNode);
-          log(`✅ Product node: ${category} (offers=${!!productNode.offers})`, "SCHEMA");
+          log(`✅ Product node: ${category}`, "SCHEMA");
         }
 
-        // ═══════════════════════════════════════════════════════
-        // ⚠️ ARTICLE NODE — DIHAPUS (FIX-10)
-        // ═══════════════════════════════════════════════════════
-
-        // ═══════════════════════════════════════════════════════
-        // 🔥 FIX-17: TECHARTICLE NODE
-        // ═══════════════════════════════════════════════════════
         if (wantTechArticle) {
           const techArticleNode = {
             "@type": "TechArticle",
@@ -1742,9 +1547,7 @@
             "description": description,
             "image": [pageImage],
             "articleSection": "Spesifikasi Teknis",
-            "about": {
-              "@id": cleanUrl + (wantService ? "#service" : "#product")
-            },
+            "about": { "@id": cleanUrl + (wantService ? "#service" : "#product") },
             "mainEntityOfPage": { "@id": cleanUrl + "#webpage" },
             "author": { "@id": CONFIG.LOCALBUSINESS_ID },
             "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
@@ -1752,12 +1555,9 @@
             ...(dateModified && { "dateModified": dateModified })
           };
           graph.push(techArticleNode);
-          log(`✅ TechArticle node — spesifikasi teknis untuk ${schemaPrimary}`, "TECH");
+          log(`✅ TechArticle node`, "TECH");
         }
 
-        // ═══════════════════════════════════════════════════════
-        // CREATIVE WORK (untuk desain portfolio)
-        // ═══════════════════════════════════════════════════════
         if (wantCreative) {
           graph.push({
             "@type": "CreativeWork",
@@ -1771,11 +1571,6 @@
           log(`✅ CreativeWork node`, "SCHEMA");
         }
 
-        // ═══════════════════════════════════════════════════════
-        // FAQ PAGE (min 2 Q&A) — FIX-11 + FIX-14 + FIX-15 + FIX-20 + FIX-21
-        // HANYA dibuat kalau TIDAK ADA FAQPage static di HTML
-        // 🔥 FIX-21 (v7.36e): Hapus author + dateModified di Answer
-        // ═══════════════════════════════════════════════════════
         if (wantFAQ) {
           const faqPage = {
             "@type": "FAQPage",
@@ -1795,10 +1590,9 @@
             }))
           };
           graph.push(faqPage);
-          log(`✅ FAQPage node: ${faqsFromDOM.length} pertanyaan (author=Organization, answer clean)`, "FAQ");
+          log(`✅ FAQPage node: ${faqsFromDOM.length} pertanyaan`, "FAQ");
         }
 
-        // Internal Links (max 8)
         const internalLinks = generateInternalLinks();
         if (internalLinks.length > 0) {
           graph.push({
@@ -1823,15 +1617,11 @@
 
         log("═══════════════════════════════════════════════════", "SUCCESS");
         log("✅ Schema COMPLETE generated", "SUCCESS");
+        log(`   Entity guard: entity="${entityType}" ✅`, "FIX");
         log(`   Schema nodes: ${graph.map(n => n["@type"]).join(' + ')}`, "SCHEMA");
-        log(`   knowsAbout: ${knowsAbout.length} item | areaServed: ${CONFIG.AREA_SERVED.length} area`, "KNOWS");
-        log(`   Price layers: ${hasPrice ? 'Layer ' + priceResult.layer : 'None'}`, "PRICE");
-        log(`   Internal links: ${internalLinks.length} (max ${CONFIG.MAX_INTERNAL_LINKS})`, "SYNC");
-        log(`   Breadcrumb source: ${parentData.source}`, "BREADCRUMB");
+        log(`   knowsAbout: ${knowsAbout.length} item`, "KNOWS");
+        log(`   Internal links: ${internalLinks.length}`, "SYNC");
         log(`   PLD version: ${pldVer.label}`, "PLD");
-        log(`   FAQ: ${hasStaticFAQ ? 'static (skip dynamic)' : (wantFAQ ? faqsFromDOM.length + ' pertanyaan (dynamic)' : 'skip')}`, "FAQ");
-        log(`   TechArticle: ${wantTechArticle ? 'CREATED ✅' : 'skip ⏭️'}`, "TECH");
-        log(`   Article node: HANDLED BY v8.6b ⏭️`, "ARTICLE");
         log("═══════════════════════════════════════════════════", "SUCCESS");
 
         perf.end('init');
@@ -1844,26 +1634,20 @@
     }, CONFIG.DELAY_MS);
   });
 
-  // CLEANUP
   function cleanup() { if (domCache) domCache.clear(); }
   window.addEventListener('beforeunload', cleanup);
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Auto Schema v7.36e-LITE — READY (PLD-DRIVEN, SEO 2026, AI-READY)");
+  console.log("✅ Auto Schema v7.36f-LITE — JASA/SEWA ONLY");
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("🔥 FIX-21: Hapus author/dateModified di Answer (konsisten AED v17.4.8)");
+  console.log("🔥 FIX-24: Entity guard — hanya jasa/sewa");
+  console.log("🔥 FIX-21: Hapus author/dateModified di Answer");
   console.log("🔥 FIX-22: ItemList Title Case");
-  console.log("🔥 FIX-20: Detect static FAQPage — anti-duplikasi");
-  console.log("🔥 FIX-17: TechArticle node (secondary untuk variant/sub-variant)");
-  console.log("🔥 FIX-14: FAQ content-driven (semua level)");
-  console.log("🔥 FIX-15: author per FAQPage (bukan per Answer)");
-  console.log("🔥 FIX-16: scope .faq-item ke konten utama");
-  console.log("🔥 FIX-10: REMOVE Article node — ditangani Auto Schema Article v8.6b");
-  console.log("✅ PRESERVED: FIX-5 s/d FIX-13 (PLD-driven, notes, FAQ, CreativeWork)");
-  console.log("✅ PRESERVED: FIX-1 s/d FIX-4 (ServiceType, ItemList, AED, anti-race)");
-  console.log("✅ KNOWS_ABOUT: 110 item | areaServed: Indonesia + 11 kota");
-  console.log("✅ 4-layer price detection | Breadcrumb DOM fallback");
-  console.log("✅ Konsisten dengan PLD v23.9.9 (entity-aware detectSchemaType)");
+  console.log("🔥 FIX-20: Detect static FAQPage");
+  console.log("🔥 FIX-17: TechArticle node");
+  console.log("🔥 FIX-14: FAQ content-driven");
+  console.log("✅ PRESERVED: FIX-1 s/d FIX-13");
+  console.log("✅ KNOWS_ABOUT: 110 item | areaServed: 12 kota");
   console.log("═══════════════════════════════════════════════════════════");
 
 })();
