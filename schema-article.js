@@ -1,22 +1,32 @@
 /**
- * 📄 Auto-Schema Generator v8.6d — ARTICLE SCHEMA + FAQ + BASE LAYER
+ * 📄 Auto-Schema Generator v8.6e — ARTICLE SCHEMA + FAQ + BASE LAYER
  *
- * 🔥 v8.6d CHANGELOG:
+ * 🔥 v8.6e CHANGELOG:
+ * ✅ FIX-E: Sinkronisasi Entity Base Layer dengan Universal v7.36g & Hybrid v5.7c
+ *          - Tambah AREA_SERVED + CONTACT_POINT ke generateLocalBusinessNode()
+ *          - Tambah Dynamic KNOWS_ABOUT (Pillar = Full 110, Money = 5-15 relevan)
+ *          - Efek: Entity profile di halaman Pillar/Sub-pillar jadi 100% lengkap
+ *
+ * ✅ PRESERVED dari v8.6d:
  * ✅ FIX-D: Tambah LocalBusiness + WebPage node ke @graph
- *           - Universal v7.36f sekarang JASA/SEWA-only
- *           - Article harus inject base layer sendiri
- *           - Hindari dangling @id reference (#localbusiness, #webpage)
- * ✅ PRESERVED dari v8.6c: FIX-C FAQ, FIX-A Cloudinary, FIX-B H1 Title, FIX-5 s/d FIX-9
+ * ✅ FIX-C: FAQPage handling — konsumsi `secondary=FAQPage` dari PLD
+ * ✅ FIX-A: Cloudinary image fallback
+ * ✅ FIX-B: Title source dari H1
+ * ✅ FIX-5: shouldGenerateArticleSchema() — PLD-driven
+ * ✅ FIX-6: getArticleType() — prioritas PLD secondary
+ * ✅ FIX-7: Anti-tabrakan dengan Service/Product
+ * ✅ FIX-8: Sync PLD v23.9.9 (entity-aware detectSchemaType)
+ * ✅ FIX-9: Fallback legacy tetap ada untuk PLD lama
  */
 
 (function() {
   "use strict";
 
-  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6d") {
-    console.log("[AutoSchema Article v8.6d] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6e") {
+    console.log("[AutoSchema Article v8.6e] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6d";
+  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6e";
 
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -61,10 +71,78 @@
     ARTICLE_IMG_WIDTH: 1200,
     ARTICLE_IMG_HEIGHT: 675,
     SKIP_WORD_COUNT: 300,
-    VERSION: "8.6d"
+    VERSION: "8.6e"
   };
 
-  const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
+  // 🔥 FIX-E v8.6e: Sync dengan Universal & Hybrid
+  const AREA_SERVED = [
+    { "@type": "Country", "name": "Indonesia" },
+    { "@type": "AdministrativeArea", "name": "DKI Jakarta" },
+    { "@type": "AdministrativeArea", "name": "Kota Bogor" },
+    { "@type": "AdministrativeArea", "name": "Kabupaten Bogor" },
+    { "@type": "AdministrativeArea", "name": "Kota Depok" },
+    { "@type": "AdministrativeArea", "name": "Kota Tangerang" },
+    { "@type": "AdministrativeArea", "name": "Kabupaten Tangerang" },
+    { "@type": "AdministrativeArea", "name": "Kota Tangerang Selatan" },
+    { "@type": "AdministrativeArea", "name": "Kota Bekasi" },
+    { "@type": "AdministrativeArea", "name": "Kabupaten Bekasi" },
+    { "@type": "AdministrativeArea", "name": "Kabupaten Karawang" },
+    { "@type": "AdministrativeArea", "name": "Kota Surabaya" }
+  ];
+
+  const CONTACT_POINT = {
+    "@type": "ContactPoint",
+    "telephone": "+6281299842508",
+    "contactType": "customer service",
+    "areaServed": "ID",
+    "availableLanguage": ["id"]
+  };
+
+  const KNOWS_ABOUT = [
+    "Jasa Bor Sumur", "Jasa Bor Horizontal", "Jasa Bor Manual",
+    "Jasa Bor Hidrolik", "Jasa Bor Rotary", "Jasa Bor Auger",
+    "Jasa Bor Sumur Dalam", "Jasa Bor Sumur Dangkal",
+    "Jasa Pengeboran Tanah", "Jasa Pengeboran Air Tanah",
+    "Jasa Bore Pile", "Jasa Strauss Pile", "Jasa Borongan Bore Pile",
+    "Jasa Borongan Strauss Pile", "Jasa Tiang Pancang", "Jasa Pondasi Dalam",
+    "Jasa Pondasi Bore Pile", "Jasa Pondasi Strauss Pile",
+    "Jasa Coring Beton", "Jasa Coring Dinding", "Jasa Coring Lantai",
+    "Jasa Coring Plat", "Jasa Coring Kolom", "Jasa Coring Pondasi",
+    "Jasa Coring Balok", "Jasa Core Drill", "Jasa Cutting Beton",
+    "Jasa Bongkar Beton", "Jasa Injeksi Beton", "Jasa Grouting",
+    "Jasa Waterproofing", "Jasa Perbaikan Beton", "Jasa Cor Beton",
+    "Jasa Pasang Pagar Panel", "Jasa Pasang Pagar BRC", "Jasa Pasang Pagar Beton",
+    "Jasa Pasang Kanopi", "Jasa Pasang Plafon", "Jasa Pasang Plafon Gypsum",
+    "Jasa Pasang Plafon PVC", "Jasa Pasang Kusen", "Jasa Pasang Kusen Aluminium",
+    "Jasa Pasang Pintu", "Jasa Pasang Jendela", "Jasa Pasang Baja Ringan",
+    "Jasa Pasang Rangka Atap", "Jasa Pasang Atap", "Jasa Pasang Paving Block",
+    "Jasa Pasang Saluran Precast", "Jasa Pasang U-Ditch", "Jasa Pasang Box Culvert",
+    "Jasa Pasang Kansteen", "Jasa Pasang Keramik", "Jasa Pasang Granit",
+    "Jasa Pasang Marmer", "Jasa Pasang Kaca", "Jasa Pasang Teralis",
+    "Jasa Pasang Railing",
+    "Jasa Renovasi Rumah", "Jasa Renovasi Bangunan", "Jasa Bangun Rumah",
+    "Jasa Bangun Ruko", "Jasa Bangun Gudang", "Jasa Bangun Pagar",
+    "Jasa Plester Dinding", "Jasa Acian", "Jasa Pengecatan",
+    "Beton Readymix", "Beton Cor", "Beton K-175", "Beton K-200",
+    "Beton K-225", "Beton K-250", "Beton K-300", "Beton K-350",
+    "Beton K-400", "Beton K-500", "Beton Mutu Tinggi", "Beton Struktural",
+    "Pagar Panel Beton", "Pagar Panel Precast", "Pagar Beton Precast",
+    "Saluran Precast", "Saluran U-Ditch", "Saluran Box Culvert",
+    "Saluran Drainase Precast", "Kansteen Beton", "Kansteen Precast",
+    "Paving Block", "Panel Beton Precast", "Road Barrier Beton",
+    "Material Konstruksi", "Material Bangunan", "Besi Beton",
+    "Besi Ulir", "Besi Polos", "Besi Wiremesh", "Semen",
+    "Pasir Beton", "Pasir Cor", "Agregat", "Split", "Batu Belah",
+    "Batu Kali", "Mortar", "Bata Ringan", "Bata Merah", "Batako", "Hebel",
+    "Sewa Alat Bor", "Sewa Mesin Coring", "Sewa Alat Berat",
+    "Sewa Concrete Pump", "Sewa Vibrator Beton", "Sewa Pompa Beton",
+    "Sewa Excavator", "Sewa Crane", "Sewa Scaffolding",
+    "Konstruksi", "Jasa Konstruksi", "Kontraktor", "Pondasi",
+    "Geoteknik", "Infrastruktur", "Drainase", "Struktur Beton",
+    "Teknik Sipil", "Bangunan", "Renovasi", "Pembangunan"
+  ];
+
+  const LOGO_IMAGE = CONFIG.DEFAULT_ARTICLE_IMAGE.url;
 
   const STATIC_PAGES = [
     '/p/hubungi-kami.html', '/p/portofolio.html', '/p/disclaimer.html',
@@ -79,9 +157,9 @@
       FOCUS: "🎯", SKIP: "⏭️", BREADCRUMB: "🍞", AED: "⚡",
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
       IMG: "🖼️", EDITORIAL: "✍️", SYNC: "🔗", URL: "🌐",
-      CONFLICT: "🚨", CLOUD: "☁️", FAQ: "❓", STATIC: "🗿"
+      CONFLICT: "🚨", CLOUD: "☁️", FAQ: "❓", STATIC: "🗿", KNOWS: "🎓"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema v8.6d] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema v8.6e] ${msg}`);
   }
 
   function getPLDVersion() {
@@ -662,6 +740,42 @@
     return faqs;
   }
 
+  // 🔥 FIX-E v8.6e: DYNAMIC KNOWS ABOUT
+  function getPageKeywordsForSchema() {
+    var h1 = document.querySelector('h1') ? (document.querySelector('h1').innerText || '').toLowerCase() : '';
+    var slug = window.location.pathname.replace(/\.html$/, '').replace(/-/g, ' ').split('/').pop().toLowerCase();
+    var text = (h1 + ' ' + slug);
+    
+    text = text.replace(/\b(jasa|harga|biaya|terbaru|update|di|ke|dari|dan|yang|untuk|dengan|adalah|atau|ini|itu|kami|anda|pada|akan|juga|bisa|dapat|tidak|oleh|terbaik|murah|berkualitas|profesional|indonesia|jakarta|bogor|depok|tangerang|bekasi|jabodetabek)\b/g, ' ');
+    
+    return text.split(/\s+/).filter(function(w) { return w.length > 3; });
+  }
+
+  function getDynamicKnowsAbout(fullList, pageLevel, entityType) {
+    if (['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].indexOf(pageLevel) !== -1) {
+      return fullList; 
+    }
+    
+    var keywords = getPageKeywordsForSchema();
+    if (keywords.length === 0) return fullList.slice(0, 12);
+    
+    var matched = fullList.filter(function(item) {
+      var itemLower = item.toLowerCase();
+      return keywords.some(function(kw) {
+        return itemLower.indexOf(kw) !== -1;
+      });
+    });
+    
+    if (matched.length < 3) {
+      var specific = fullList.filter(function(i) { 
+        return i.toLowerCase().indexOf(entityType) !== -1; 
+      });
+      if (specific.length >= 3) return specific.slice(0, 10);
+      return fullList.slice(0, 10); 
+    }
+    return matched.slice(0, 15);
+  }
+
   function generateArticleSchema(data, dates, pageLevel, entityType, parentData, contentFocus, kategori) {
     const articleType = getArticleType(pageLevel);
     const focus = contentFocus || detectContentFocus(pageLevel, entityType);
@@ -781,9 +895,12 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX-D (v8.6d): LOCALBUSINESS + WEBPAGE BASE LAYER
+  // 🔥 FIX-E v8.6e: LOCALBUSINESS DENGAN KNOWS ABOUT DINAMIS
   // ═══════════════════════════════════════════════════════════
-  function generateLocalBusinessNode() {
+  function generateLocalBusinessNode(pageLevel, entityType) {
+    const dynamicKnowsAbout = getDynamicKnowsAbout(KNOWS_ABOUT, pageLevel, entityType);
+    log(`🎓 Dynamic knowsAbout: ${dynamicKnowsAbout.length} item (dari total ${KNOWS_ABOUT.length})`, "KNOWS");
+
     return {
       "@type": ["LocalBusiness", "GeneralContractor"],
       "@id": CONFIG.LOCALBUSINESS_ID,
@@ -802,7 +919,10 @@
       "sameAs": [
         "https://www.facebook.com/betonjayareadymix",
         "https://www.instagram.com/betonjayareadymix"
-      ]
+      ],
+      "areaServed": AREA_SERVED,            // 🔥 FIX-E: Ditambahkan
+      "knowsAbout": dynamicKnowsAbout,      // 🔥 FIX-E: Ditambahkan
+      "contactPoint": CONTACT_POINT         // 🔥 FIX-E: Ditambahkan
     };
   }
 
@@ -850,7 +970,7 @@
 
   async function init() {
     log("════════════════════════════════════");
-    log("Auto-Schema Generator v8.6d — ARTICLE + FAQ + BASE LAYER");
+    log("Auto-Schema Generator v8.6e — ARTICLE + FAQ + BASE LAYER");
     log(`DEBUG: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("════════════════════════════════════");
 
@@ -945,9 +1065,9 @@
       delete schemaObj.__debug;
 
       // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-D (v8.6d): BASE LAYER + ARTICLE + FAQ
+      // 🔥 FIX-E (v8.6e): BASE LAYER + ARTICLE + FAQ
       // ═══════════════════════════════════════════════════════
-      const localBusinessNode = generateLocalBusinessNode();
+      const localBusinessNode = generateLocalBusinessNode(pageLevel, entityType);
       const webpageNode = generateWebPageNode(pageData, parentData, dates);
 
       const graph = [localBusinessNode, webpageNode, schemaObj];
@@ -981,7 +1101,7 @@
     }
 
     log("════════════════════════════════════");
-    log("FINISHED (v8.6d)", "SUCCESS");
+    log("FINISHED (v8.6e)", "SUCCESS");
     log(`   Page Level: ${pageLevel}`, "SUCCESS");
     log(`   Entity Type: ${entityType}`, "SUCCESS");
     log(`   Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
@@ -997,11 +1117,11 @@
     init();
   }
 
-  console.log(`✅ [AutoSchema v8.6d] Ready — PLD-DRIVEN + FAQ + BASE LAYER`);
+  console.log(`✅ [AutoSchema v8.6e] Ready — PLD-DRIVEN + FAQ + BASE LAYER SYNC`);
+  console.log(`🔥 FIX-E: Sync areaServed, contactPoint, & Dynamic knowsAbout di LocalBusiness`);
   console.log(`🔥 FIX-D: LocalBusiness + WebPage ditambah ke @graph`);
   console.log(`🔥 FIX-C: FAQPage handling (konsumsi secondary=FAQPage + anti-duplikasi)`);
   console.log(`🔥 FIX-A: Cloudinary image fallback`);
   console.log(`🔥 FIX-B: Title source dari H1`);
-  console.log(`🔥 FIX-5 s/d FIX-9: PLD-driven + fallback legacy`);
 
 })();
