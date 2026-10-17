@@ -1349,7 +1349,7 @@ if (hint.secondary === 'TechArticle') {
   console.log(`🩹 FIX-H6: GABUNG support — generate Article untuk MP GABUNG (tertiary/contentFocus/note)`);
   console.log(`🩹 FIX-H7: hasStaticArticleSchema() — anti-duplikat Article static`);
   console.log(`🩹 FIX-H8: Baca data-schema-type-tertiary dari PLD v23.9.11+`);
-  console.log(`🩹 FIX-H9: Cross-script FAQ detection via body flag`);
+    console.log(`🩹 FIX-H9 REVISED: Cross-script FAQ — body flag + SKIP Service/Product primary`);
   console.log(`✅ PRESERVED: FIX-F2, FIX-H1, FIX-H2, FIX-H3, FIX-H4`);
   console.log(`✅ PRESERVED: FIX-A s/d FIX-G4 dari v8.6f`);
 
