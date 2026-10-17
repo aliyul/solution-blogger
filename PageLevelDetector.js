@@ -4313,7 +4313,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     // ═══════════════════════════════════════════════════════════
     // 3) PRODUK / MATERIAL → Product sebagai primary
     // ═══════════════════════════════════════════════════════════
-    else if (isProductEntity) {
+  else if (isProductEntity) {
       if (isEvergreen) {
         // Pillar & sub-pillar produk: informasional (katalog/daftar)
         primary   = 'Article';
@@ -4331,6 +4331,8 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
           if (level === 'money-child') {
             note = 'with-areaServed';
           }
+          // 🔥 FIX-v23.9.9a: with-offers untuk Product commercial money
+          note = note ? (note + ',with-offers') : 'with-offers';
         } else if (isInfoOnly) {
           primary   = 'Article';
           secondary = 'FAQPage';
@@ -4343,7 +4345,6 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
         secondary = 'FAQPage';
       }
     }
-
     // ═══════════════════════════════════════════════════════════
     // 4) ARTIKEL → Article sebagai primary
     // ═══════════════════════════════════════════════════════════
