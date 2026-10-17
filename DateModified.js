@@ -256,16 +256,17 @@
       //   - Consumer harus baca dateModifiedFinal (bukan dateModified)
       //   - Signal via __HYBRID_DATE_FINAL_READY + event
       // ═══════════════════════════════════════════════════════
-      window.AEDMetaDates = {
-        ...window.AEDMetaDates,
-        dateModifiedFinal: isoDate,             // ✅ Field BARU (offset — untuk meta tag & schema)
-        // dateModified: TIDAK di-overwrite — tetap AED original
-        hashOffset: offsetSeconds,
-        hybridVersion: '10.3a',
-        originalDateModified: dateModified,     // preserved for reference
-        breadcrumbReady: breadcrumbReady,
-        mode: (aedType === 'evergreen') ? 'MANUAL' : 'AUTO'
-      };
+   // 🔥 FIX-SYNC-v6: MUTATE object lama — JANGAN reassign
+     // Alasan: consumer (Article/Product/Universal) sudah memegang
+     // referensi ke object ini lewat `aedData`/`aed`/`finalAed`.
+     // Kalau di-reassign, referensi lama tetap kosong → bug stale.
+     window.AEDMetaDates.dateModifiedFinal    = isoDate;           // field BARU (offset)
+     window.AEDMetaDates.hashOffset           = offsetSeconds;
+     window.AEDMetaDates.hybridVersion        = '10.3a';
+     window.AEDMetaDates.originalDateModified = dateModified;      // preserved for reference
+     window.AEDMetaDates.breadcrumbReady      = breadcrumbReady;
+     window.AEDMetaDates.mode                 = (aedType === 'evergreen') ? 'MANUAL' : 'AUTO';
+     // dateModified: TIDAK disentuh — tetap AED original
 
       // 🔥 Signal ke consumer (Article/Hybrid/Universal)
       //    bahwa dateModifiedFinal siap dibaca
