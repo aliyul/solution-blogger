@@ -1,55 +1,63 @@
 /**
- * 📄 Auto-Schema Generator v8.6g — ARTICLE SCHEMA + FAQ + BASE LAYER
+ * 📄 Auto-Schema Generator v8.7 — ARTICLE SCHEMA + FAQ + BASE LAYER
  *
- * 🩹 v8.6g CHANGELOG (PATCH):
+ * 🩹 v8.7 CHANGELOG (CRITICAL PATCH):
+ * ✅ FIX-H5: TechArticle untuk VARIANT — HAPUS kondisi `primary !== 'Service'/'Product'`
+ *            - Sebelumnya: JASA VARIANT (Service+TechArticle) → SKIP → hilang TechArticle
+ *            - Sebelumnya: PRODUK VARIANT (Product+TechArticle) → SKIP → hilang TechArticle
+ *            - Sekarang: TechArticle di-generate untuk semua primary
+ *            - Efek: Variant detail teknis dapat schema TechArticle yang benar
+ * ✅ FIX-H6: GABUNG support — generate Article untuk MP GABUNG
+ *            - Detect via: tertiary='Article' OR contentFocus='GABUNG' OR note includes 'with-offers'
+ *            - Sinkron dengan Prompt B Section 39 (GABUNG = 3 schema)
+ *            - Efek: jasa/produk MP GABUNG dapat Article schema (editorial freshness)
+ * ✅ FIX-H7: hasStaticArticleSchema() — anti-duplikat
+ *            - Cek Article/BlogPosting/TechArticle/NewsArticle static di HTML
+ *            - Skip generate dinamis jika static sudah ada
+ *            - Efek: cegah duplikat @type Article
+ * ✅ FIX-H8: Baca `data-schema-type-tertiary` dari PLD v23.9.11+
+ *            - PLD baru set tertiary untuk GABUNG
+ *            - Fallback ke contentFocus + note jika tertiary kosong
+ * ✅ FIX-H9: Cross-script FAQ detection — body flag
+ *            - Set `data-faq-schema-generated=true` setelah generate FAQ
+ *            - Cek flag sebelum generate FAQ (prevent duplicate dengan Universal/Hybrid)
+ *            - Efek: 100% aman dari duplikat FAQ antar script
+ *
+ * ✅ PRESERVED dari v8.6g:
  * ✅ FIX-F2: Re-read `window.AEDMetaDates` SETELAH `hybridDateFinalReady`
- *            - Sebelumnya: pakai `aedData` (referensi lama)
- *            - Hybrid v10.3a lama reassign object → `aedData.dateModifiedFinal` undefined
- *            - Sekarang: baca ulang dari `window.AEDMetaDates` (selalu object aktif)
- *            - Efek: schema dateModified == meta tag dateModified ✅
- * ✅ FIX-H1: Hapus `escapeJSON()` pre-stringify
- *            - Sebelumnya: escape manual → JSON.stringify escape lagi = double-escape
- *            - Efek: headline & description schema mengandung literal `\/`, `\"`, `\u003c`
- *            - Sekarang: biarkan JSON.stringify yang escape
- * ✅ FIX-H2: `safeStringify()` — proteksi `</script>`, U+2028, U+2029
- *            - `JSON.stringify().replace(/</g, '\\u003c')` + line separators
- *            - Mencegah script-tag breakout & invalid JSONP
+ * ✅ FIX-H1: Hapus `escapeJSON()` pre-stringify — fix double-escape
+ * ✅ FIX-H2: `safeStringify()` — proteksi </script>, U+2028, U+2029
  * ✅ FIX-H3: `HYBRID_FINAL_TIMEOUT` 500 → 1500 ms
- *            - Sinkron dengan Hybrid yang wait breadcrumb 2s + AED 3.5s
- *            - Sebelumnya: schema bisa generate sebelum dateModifiedFinal siap
- * ✅ FIX-H4: Urutan canonical / og:url diseragamkan
- *            - Sebelumnya: `canonical || ogUrl` (bisa beda @id)
- *            - Sekarang: `ogUrl || canonical || location.href`
- *            - Sinkron dengan Product v5.7d & Universal v7.36h
+ * ✅ FIX-H4: Urutan canonical / og:url diseragamkan (ogUrl || canonical)
  *
  * ✅ PRESERVED dari v8.6f:
- * ✅ FIX-F: Sync dateModifiedFinal dari HybridDateModified v10.3a (via waitForHybridDateFinal)
- * ✅ FIX-E: Sinkronisasi Entity Base Layer dengan Universal v7.36g & Hybrid v5.7d
+ * ✅ FIX-F: Sync dateModifiedFinal dari HybridDateModified v10.3a
+ * ✅ FIX-E: Sinkronisasi Entity Base Layer
  * ✅ FIX-D: LocalBusiness + WebPage node ke @graph
  * ✅ FIX-C: FAQPage handling — konsumsi `secondary=FAQPage` dari PLD
  * ✅ FIX-A: Cloudinary image fallback
  * ✅ FIX-B: Title source dari H1
- * ✅ FIX-G1: OWN_IDS lengkap (auto-schema-service, auto-schema-product, auto-schema)
- * ✅ FIX-G2: Create-if-not-exists untuk #auto-schema element
+ * ✅ FIX-G1: OWN_IDS lengkap
+ * ✅ FIX-G2: Create-if-not-exists untuk #auto-schema
  * ✅ FIX-G3: URL cleaning (strip ?m=1 & trailing slash)
- * ✅ FIX-G4: LEVEL_COLORS Cloudinary (money=FFFFFF, pillar=FFD700)
+ * ✅ FIX-G4: LEVEL_COLORS Cloudinary
  *
  * 🔥 SINKRON dengan:
- * - PLD v23.9.9a
+ * - PLD v23.9.10 / v23.9.11+ (dengan tertiary support)
  * - AED v17.5.6
  * - HybridDateModified v10.3a-fix6 (mutate-safe)
- * - Hybrid v5.7d-LITE
- * - Universal v7.36h-LITE
+ * - Hybrid v5.7e-LITE
+ * - Universal v7.36i-LITE
  */
 
 (function() {
   "use strict";
 
-  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6g") {
-    console.log("[AutoSchema Article v8.6g] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.7") {
+    console.log("[AutoSchema Article v8.7] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6g";
+  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.7";
 
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -60,7 +68,7 @@
   const CONFIG = {
     DEBUG: DEBUG_MODE,
     AED_TIMEOUT: 2000,
-    // 🔥 FIX-H3: 500 → 1500 ms (Hybrid: breadcrumb 2s + AED 3.5s)
+    // FIX-H3: 500 → 1500 ms (Hybrid: breadcrumb 2s + AED 3.5s)
     HYBRID_FINAL_TIMEOUT: 1500,
     PLD_TIMEOUT: 1000,
     BREADCRUMB_TIMEOUT: 1000,
@@ -96,7 +104,7 @@
     ARTICLE_IMG_WIDTH: 1200,
     ARTICLE_IMG_HEIGHT: 675,
     SKIP_WORD_COUNT: 300,
-    VERSION: "8.6g"
+    VERSION: "8.7"
   };
 
   const AREA_SERVED = [
@@ -180,18 +188,19 @@
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
       IMG: "🖼️", EDITORIAL: "✍️", SYNC: "🔗", URL: "🌐",
       CONFLICT: "🚨", CLOUD: "☁️", FAQ: "❓", STATIC: "🗿", KNOWS: "🎓",
-      HYBRID: "🕐", JSON: "🧩"
+      HYBRID: "🕐", JSON: "🧩", FIX: "🔧", GABUNG: "🔀", GATE: "🚦"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema v8.6g] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema v8.7] ${msg}`);
   }
 
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
       var v = String(window.pageLevelDetectorv22.version);
+      if (v.indexOf("23.9.11") === 0) return { version: v, family: "v23-lite", label: "v23.9.11-lite" };
+      if (v.indexOf("23.9.10") === 0) return { version: v, family: "v23-lite", label: "v23.9.10-lite" };
       if (v.indexOf("23.9.9a") === 0) return { version: v, family: "v23-lite", label: "v23.9.9a-lite" };
       if (v.indexOf("23.9.9") === 0) return { version: v, family: "v23-lite", label: "v23.9.9-lite" };
       if (v.indexOf("23.9.8") === 0) return { version: v, family: "v23-lite", label: "v23.9.8-lite" };
-      if (v.indexOf("23.9.7") === 0) return { version: v, family: "v23-lite", label: "v23.9.7-lite" };
       if (v.indexOf("23.") === 0) return { version: v, family: "v23", label: "v23.0.0" };
       if (v.indexOf("22.") === 0) return { version: v, family: "v22", label: "v22.x" };
       return { version: v, family: "unknown", label: "v" + v };
@@ -323,7 +332,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX-F / FIX-F2: WAIT FOR HYBRID dateModifiedFinal
+  // FIX-F / FIX-F2: WAIT FOR HYBRID dateModifiedFinal
   // ═══════════════════════════════════════════════════════════
   function waitForHybridDateFinal(timeout = CONFIG.HYBRID_FINAL_TIMEOUT) {
     return new Promise((resolve) => {
@@ -416,12 +425,14 @@
     return document.body.getAttribute('data-entity-sub-type') || null;
   }
 
+  // FIX-H8: PLD hint — tambahkan tertiary
   function getPLDSchemaHint() {
     const primary   = (document.body.getAttribute('data-schema-type-primary')   || '').trim();
     const secondary = (document.body.getAttribute('data-schema-type-secondary') || '').trim();
+    const tertiary  = (document.body.getAttribute('data-schema-type-tertiary')  || '').trim();
     const note      = (document.body.getAttribute('data-schema-type-note')      || '').trim();
-    const hint = { primary, secondary, note };
-    log(`🔗 PLD hint → primary=${primary || '(none)'} | secondary=${secondary || '(none)'} | note=${note || '(none)'}`, "SCHEMA");
+    const hint = { primary, secondary, tertiary, note };
+    log(`🔗 PLD hint → primary=${primary || '(none)'} | secondary=${secondary || '(none)'} | tertiary=${tertiary || '(none)'} | note=${note || '(none)'}`, "SCHEMA");
     return hint;
   }
 
@@ -475,42 +486,75 @@
     return { pageLevel: null, entityType: null, source: 'unavailable' };
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // FIX-H5 + FIX-H6 + FIX-H8: shouldGenerateArticleSchema — REVISI TOTAL
+  // ═══════════════════════════════════════════════════════════
   function shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) {
     const hint = getPLDSchemaHint();
+    const bodyFocus = (document.body.getAttribute('data-content-focus') || contentFocus || '').toUpperCase();
 
+    // ─── FIX-H7: Cek static Article dulu (anti-duplikat) ───
+    if (hasStaticArticleSchema()) {
+      log(`⏭️ Article SKIP — static Article/TechnArticle sudah ada di HTML`, "STATIC");
+      return false;
+    }
+
+    // ─── PRIMARY 1: PLD primary = Article ───
     if (hint.primary === 'Article') {
       log(`✅ Article WAJIB — PLD primary=Article`, "ARTICLE");
       return true;
     }
 
-    if (hint.secondary === 'TechArticle' &&
-        hint.primary !== 'Service' &&
-        hint.primary !== 'Product') {
-      log(`✅ Article WAJIB — PLD secondary=TechArticle (primary=${hint.primary})`, "ARTICLE");
+    // ─── PRIMARY 2: PLD secondary = TechArticle (FIX-H5: hapus syarat primary !== Service/Product) ───
+    // JASA VARIANT (Service+TechArticle) → generate
+    // PRODUK VARIANT (Product+TechArticle) → generate
+    if (hint.secondary === 'TechArticle') {
+      log(`✅ TechArticle WAJIB — PLD secondary=TechArticle (primary=${hint.primary})`, "ARTICLE");
       return true;
     }
 
-    if (hint.primary === 'Service' || hint.primary === 'Product') {
-      log(`🚨 Article SKIP — PLD primary=${hint.primary} (sudah ditangani script lain)`, "CONFLICT");
-      return false;
+    // ─── PRIMARY 3: GABUNG — 3rd schema Article (FIX-H6 + FIX-H8) ───
+    // Detection priority:
+    //   1. tertiary = 'Article' (PLD v23.9.11+)
+    //   2. contentFocus = 'GABUNG' + note includes 'with-offers'
+    //   3. contentFocus = 'GABUNG' saja (fallback)
+    const tertiaryArticle = (hint.tertiary === 'Article');
+    const noteWithOffers = /(^|,)with-offers($|,)/.test(hint.note) && !/without-offers/.test(hint.note);
+    const isGabungFocus = (bodyFocus === 'GABUNG');
+
+    if (tertiaryArticle) {
+      log(`✅ Article WAJIB — PLD tertiary=Article (GABUNG explicit)`, "GABUNG");
+      return true;
+    }
+    if (isGabungFocus && noteWithOffers) {
+      log(`✅ Article WAJIB — GABUNG + with-offers hint (fallback)`, "GABUNG");
+      return true;
+    }
+    if (isGabungFocus) {
+      log(`✅ Article WAJIB — contentFocus=GABUNG (fallback)`, "GABUNG");
+      return true;
     }
 
-    if (hint.secondary === 'Service' && hint.primary === 'Product') {
-      log(`🚨 Article SKIP — PLD primary=Product + secondary=Service`, "CONFLICT");
-      return false;
-    }
-
-    if (hint.primary || hint.secondary) {
-      log(`⏭️ Article SKIP — PLD hint tidak menunjuk Article`, "SKIP");
-      return false;
-    }
-
+    // ─── PRIMARY 4: PILLAR/SP fallback ───
     const mandatoryArticleLevels = ['pillar', 'sub-pillar-tipe-2', 'sub-pillar-tipe-1'];
     if (mandatoryArticleLevels.includes(pageLevel)) {
       log(`✅ Article LAYAK (fallback legacy) untuk level: ${pageLevel}`, "ARTICLE");
       return true;
     }
 
+    // ─── PRIMARY 5: SKIP untuk Service/Product non-GABUNG ───
+    if (hint.primary === 'Service' || hint.primary === 'Product') {
+      log(`⏭️ Article SKIP — primary=${hint.primary}, focus=${bodyFocus} (bukan GABUNG)`, "SKIP");
+      return false;
+    }
+
+    // ─── PRIMARY 6: PLD hint tidak menunjuk Article ───
+    if (hint.primary || hint.secondary) {
+      log(`⏭️ Article SKIP — PLD hint tidak menunjuk Article`, "SKIP");
+      return false;
+    }
+
+    // ─── PRIMARY 7: Legacy fallback untuk MONEY levels ───
     const MONEY_LEVELS = ['money-master', 'money-page', 'money-child',
                           'variant', 'sub-variant'];
     if (MONEY_LEVELS.includes(pageLevel)) {
@@ -613,15 +657,7 @@
     return Array.from(keywords).slice(0, 12).join(", ");
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX-H2: safeStringify — ganti escapeJSON
-  //
-  // JSON.stringify() SUDAH meng-escape `"`, `\`, dan karakter
-  // kontrol. Yang perlu kita tambah hanya:
-  //   - `</script>` protection → `\u003c` untuk `<`
-  //   - U+2028 / U+2029 → line/paragraph separator (valid JSON,
-  //     tapi ilegal dalam JS string literal & JSONP)
-  // ═══════════════════════════════════════════════════════════
+  // FIX-H2: safeStringify — ganti escapeJSON
   function safeStringify(obj, indent) {
     const json = JSON.stringify(obj, null, indent);
     return json
@@ -664,7 +700,6 @@
     return null;
   }
 
-  // 🔥 FIX-G4: LEVEL_COLORS sync dengan Hybrid/Universal
   const CLOUDINARY_ARTICLE_CONFIG = {
     CLOUD_NAME: 'vagzz5sa',
     VERSION: 'v1789109159',
@@ -714,7 +749,7 @@
     }
   }
 
-  // 🔥 FIX-G1: OWN_IDS lengkap — sinkron dengan Hybrid & Universal
+  // FIX-G1: OWN_IDS lengkap
   function hasStaticFAQPageSchema() {
     const scripts = document.querySelectorAll('script[type="application/ld+json"]');
     const OWN_IDS = ['auto-schema-service', 'auto-schema-product', 'auto-schema'];
@@ -745,6 +780,65 @@
           if (!node) continue;
           if (node['@type'] === 'FAQPage') return true;
           if (Array.isArray(node['@type']) && node['@type'].includes('FAQPage')) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // FIX-H7: hasStaticArticleSchema — anti-duplikat Article
+  // ═══════════════════════════════════════════════════════════
+  function hasStaticArticleSchema() {
+    const ARTICLE_TYPES = ['Article', 'TechArticle', 'BlogPosting', 'NewsArticle',
+                           'ScholarlyArticle', 'Report', 'Review'];
+    const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    const OWN_IDS = ['auto-schema-service', 'auto-schema-product'];
+
+    for (const s of scripts) {
+      // Skip script dari Universal/Hybrid (bukan Article)
+      if (s.id && OWN_IDS.includes(s.id)) continue;
+      // Skip #auto-schema (script ini sendiri saat re-run)
+      if (s.id === 'auto-schema') continue;
+
+      let json;
+      try {
+        json = JSON.parse(s.textContent || '{}');
+      } catch (e) {
+        continue;
+      }
+
+      // Direct @type
+      if (typeof json['@type'] === 'string' && ARTICLE_TYPES.includes(json['@type'])) return true;
+      if (Array.isArray(json['@type'])) {
+        for (const t of json['@type']) {
+          if (ARTICLE_TYPES.includes(t)) return true;
+        }
+      }
+
+      // @graph nodes
+      if (Array.isArray(json['@graph'])) {
+        for (const node of json['@graph']) {
+          if (!node) continue;
+          if (typeof node['@type'] === 'string' && ARTICLE_TYPES.includes(node['@type'])) return true;
+          if (Array.isArray(node['@type'])) {
+            for (const t of node['@type']) {
+              if (ARTICLE_TYPES.includes(t)) return true;
+            }
+          }
+        }
+      }
+
+      // Array of nodes
+      if (Array.isArray(json)) {
+        for (const node of json) {
+          if (!node) continue;
+          if (typeof node['@type'] === 'string' && ARTICLE_TYPES.includes(node['@type'])) return true;
+          if (Array.isArray(node['@type'])) {
+            for (const t of node['@type']) {
+              if (ARTICLE_TYPES.includes(t)) return true;
+            }
+          }
         }
       }
     }
@@ -907,7 +1001,7 @@
     const authorObj = { "@id": CONFIG.LOCALBUSINESS_ID };
     const publisherObj = { "@id": CONFIG.LOCALBUSINESS_ID };
 
-    // 🔥 FIX-H1: tidak pakai escapeJSON — biarkan JSON.stringify() yang escape
+    // FIX-H1: tidak pakai escapeJSON — biarkan JSON.stringify() yang escape
     const schema = {
       "@type": articleType,
       "@id": data.url + "#article",
@@ -1001,7 +1095,7 @@
   }
 
   function generateWebPageNode(pageData, parentData, dates) {
-    // 🔥 FIX-H1: tidak pakai escapeJSON
+    // FIX-H1: tidak pakai escapeJSON
     return {
       "@type": "WebPage",
       "@id": pageData.url + CONFIG.WEBPAGE_ID_SUFFIX,
@@ -1020,7 +1114,7 @@
     };
   }
 
-  // 🔥 FIX-G3 + FIX-H4: URL cleaning + urutan ogUrl → canonical (sinkron Product/Universal)
+  // FIX-G3 + FIX-H4: URL cleaning + urutan ogUrl → canonical
   function extractPageData() {
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
     const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
@@ -1049,7 +1143,7 @@
 
   async function init() {
     log("════════════════════════════════════");
-    log("Auto-Schema Generator v8.6g — ARTICLE + FAQ + BASE LAYER");
+    log("Auto-Schema Generator v8.7 — ARTICLE + FAQ + BASE LAYER");
     log(`DEBUG: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("════════════════════════════════════");
 
@@ -1093,7 +1187,7 @@
     const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     if (aedData) log(`✅ AED ready: ${aedData.dateModified}`, "AED");
 
-    // 🔥 FIX-F / FIX-F2: Wait for Hybrid offset, max 1500ms
+    // FIX-F / FIX-F2: Wait for Hybrid offset, max 1500ms
     const hybridReady = await waitForHybridDateFinal(CONFIG.HYBRID_FINAL_TIMEOUT);
     if (hybridReady) {
       log(`✅ Hybrid offset READY`, "HYBRID");
@@ -1101,25 +1195,7 @@
       log(`⏰ Hybrid offset timeout — pakai AED dateModified`, "HYBRID");
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // 🔥 FIX-F2: Re-read `window.AEDMetaDates` SETELAH event
-    //
-    // SEBELUMNYA (v8.6f):
-    //   const effectiveDates = aedData ? {
-    //     dateModified: aedData.dateModifiedFinal || aedData.dateModified
-    //   } : ...
-    //   → Kalau Hybrid v10.3a buggy (reassign object), `aedData.dateModifiedFinal`
-    //     = undefined → fallback ke AED original → schema ≠ meta tag
-    //
-    // SEKARANG (v8.6g):
-    //   const finalAed = window.AEDMetaDates || aedData;
-    //   → Selalu baca object AKTIF di window
-    //   → Kalau Hybrid sudah mutate in-place, `finalAed.dateModifiedFinal` terisi
-    //   → Kalau Hybrid masih buggy reassign, `window.AEDMetaDates` = object baru
-    //     yang punya `dateModifiedFinal` → tetap benar
-    //
-    // Efek: schema dateModified == meta tag dateModified ✅ (belt-and-suspenders)
-    // ═══════════════════════════════════════════════════════════
+    // FIX-F2: Re-read `window.AEDMetaDates` SETELAH event
     const finalAed = window.AEDMetaDates || aedData;
     const effectiveDates = finalAed ? {
       datePublished: finalAed.datePublished,
@@ -1136,7 +1212,7 @@
       log(`📅 Schema dateModified = AED original: ${effectiveDates.dateModified}`, "AED");
     }
 
-    // 🔥 FIX-G2: Create-if-not-exists untuk #auto-schema element
+    // FIX-G2: Create-if-not-exists untuk #auto-schema element
     let articleElem = document.getElementById("auto-schema");
     if (!articleElem) {
       articleElem = document.createElement("script");
@@ -1147,6 +1223,7 @@
     }
 
     const shouldGenerate = shouldGenerateArticleSchema(pageLevel, entityType, contentFocus);
+    log(`🚦 Article decision: ${shouldGenerate ? 'GENERATE' : 'SKIP'}`, "GATE");
 
     if (shouldGenerate) {
       const articleContent = document.querySelector(".post-body.entry-content")
@@ -1163,12 +1240,16 @@
     }
 
     const hasStaticFAQ = hasStaticFAQPageSchema();
+    // FIX-H9: Cross-script FAQ detection via body flag
+    const faqAlreadyGenerated = document.body.getAttribute('data-faq-schema-generated') === 'true';
     let faqsFromDOM = [];
     let wantFAQ = false;
 
     if (shouldGenerate) {
       if (hasStaticFAQ) {
         log(`⏭️ FAQPage static sudah ada di script lain — SKIP FAQ dinamis`, "STATIC");
+      } else if (faqAlreadyGenerated) {
+        log(`⏭️ FAQPage sudah di-generate script lain (flag) — SKIP FAQ dinamis`, "STATIC");
       } else {
         faqsFromDOM = extractFaqFromDOM();
         wantFAQ = faqsFromDOM.length >= CONFIG.MIN_FAQ_FOR_SCHEMA;
@@ -1201,9 +1282,11 @@
         const faqSchema = generateFaqSchema(faqsFromDOM, pageData, dates);
         graph.push(faqSchema);
         log(`✅ FAQPage node ditambah ke @graph: ${faqsFromDOM.length} pertanyaan`, "FAQ");
+        // FIX-H9: Set flag untuk prevent duplikat dengan script lain
+        document.body.setAttribute('data-faq-schema-generated', 'true');
       }
 
-      // 🔥 FIX-H2: safeStringify dengan </script>, U+2028, U+2029 protection
+      // FIX-H2: safeStringify dengan </script>, U+2028, U+2029 protection
       articleElem.textContent = safeStringify({
         "@context": "https://schema.org",
         "@graph": graph
@@ -1229,13 +1312,13 @@
     }
 
     log("════════════════════════════════════");
-    log("FINISHED (v8.6g)", "SUCCESS");
+    log("FINISHED (v8.7)", "SUCCESS");
     log(`   Page Level: ${pageLevel}`, "SUCCESS");
     log(`   Entity Type: ${entityType}`, "SUCCESS");
     log(`   Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
     log(`   Kategori: ${kategori || 'NULL'}`, "KATEGORI");
     log(`   Article Schema: ${shouldGenerate ? 'GENERATED ✅' : 'SKIPPED ⏭️'}`, "ARTICLE");
-    log(`   FAQ Schema: ${wantFAQ ? 'GENERATED ✅' : (hasStaticFAQ ? 'STATIC ⏭️' : 'SKIPPED ⏭️')}`, "FAQ");
+    log(`   FAQ Schema: ${wantFAQ ? 'GENERATED ✅' : (hasStaticFAQ ? 'STATIC ⏭️' : (faqAlreadyGenerated ? 'FLAG ⏭️' : 'SKIPPED ⏭️'))}`, "FAQ");
     log("════════════════════════════════════");
   }
 
@@ -1245,12 +1328,13 @@
     init();
   }
 
-  console.log(`✅ [AutoSchema v8.6g] Ready — PLD-DRIVEN + FAQ + BASE LAYER SYNC`);
-  console.log(`🩹 FIX-F2: Re-read AEDMetaDates setelah hybridDateFinalReady — schema dateModified == meta tag`);
-  console.log(`🩹 FIX-H1: Hapus escapeJSON() pre-stringify — fix double-escape`);
-  console.log(`🩹 FIX-H2: safeStringify() — proteksi </script>, U+2028, U+2029`);
-  console.log(`🩹 FIX-H3: HYBRID_FINAL_TIMEOUT 500 → 1500 ms`);
-  console.log(`🩹 FIX-H4: ogUrl || canonical order — sinkron dengan Product/Universal`);
+  console.log(`✅ [AutoSchema v8.7] Ready — PLD-DRIVEN + FAQ + GABUNG + BASE LAYER SYNC`);
+  console.log(`🩹 FIX-H5: TechArticle untuk VARIANT — hapus kondisi primary !== 'Service'/'Product'`);
+  console.log(`🩹 FIX-H6: GABUNG support — generate Article untuk MP GABUNG (tertiary/contentFocus/note)`);
+  console.log(`🩹 FIX-H7: hasStaticArticleSchema() — anti-duplikat Article static`);
+  console.log(`🩹 FIX-H8: Baca data-schema-type-tertiary dari PLD v23.9.11+`);
+  console.log(`🩹 FIX-H9: Cross-script FAQ detection via body flag`);
+  console.log(`✅ PRESERVED: FIX-F2, FIX-H1, FIX-H2, FIX-H3, FIX-H4`);
   console.log(`✅ PRESERVED: FIX-A s/d FIX-G4 dari v8.6f`);
 
 })();
