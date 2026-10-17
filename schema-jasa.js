@@ -1,22 +1,20 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.36f-LITE COMPLETE — JASA/SEWA ONLY
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.36g-LITE COMPLETE — JASA/SEWA (DYNAMIC KNOWS ABOUT)
    ✅ SINKRON dengan PLD v23.9.9
-   ✅ SINKRON dengan AED v17.4.9
+   ✅ SINKRON dengan AED v17.5.x
    ✅ SINKRON dengan Article v8.6d
-   ✅ SINKRON dengan Hybrid v5.7b
+   ✅ SINKRON dengan Hybrid v5.7c
 
-   🔥🔥🔥 v7.36f-LITE CHANGELOG 🔥🔥🔥
+   🔥🔥🔥 v7.36g-LITE CHANGELOG 🔥🔥🔥
+   ✅ FIX-25: DYNAMIC KNOWS ABOUT (SEO 2026)
+              - Filter 110 item knowsAbout jadi 5-15 item spesifik
+              - Berdasarkan kecocokan H1 & URL Slug
+              - Halaman Pillar tetap pakai full 110 item
+              - Halaman spesifik (money/variant) jadi sangat relevan
+              - Efek: Entity signal lebih tajam, hemat ukuran halaman
+
+   ✅ PRESERVED dari v7.36f-LITE:
    ✅ FIX-24: Entity guard — HANYA jasa/sewa
-              - Tambah cek entity !== jasa/sewa → SKIP di init()
-              - Sebelumnya: jalan di SEMUA halaman (kecuali homepage/static)
-              - Sesudah: SKIP kalau entity bukan jasa/sewa
-              - Efek: Universal TIDAK bocor ke halaman product/article
-              - Catatan: LocalBusiness + WebPage di halaman product/article
-                         sekarang di-handle Hybrid v5.7b & Article v8.6d
-
-   ✅ PRESERVED dari v7.36e-LITE:
-   ✅ FIX-21: Hapus author + dateModified di Answer
-   ✅ FIX-22: ItemList Title Case
-   ✅ FIX-20: Detect static FAQPage
+   ✅ FIX-21 s/d FIX-23: Hapus author di Answer, ItemList Title Case, dll
    ✅ FIX-17: TechArticle node
    ✅ FIX-14 s/d FIX-16: FAQ content-driven + scoped
    ✅ FIX-5 s/d FIX-13: PLD-driven, notes, CreativeWork, dll
@@ -26,11 +24,11 @@
 (function() {
   "use strict";
 
-  if (window.__AUTO_SCHEMA_VERSION === "7.36f-lite") {
-    console.log("[AutoSchema v7.36f-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTO_SCHEMA_VERSION === "7.36g-lite") {
+    console.log("[AutoSchema v7.36g-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTO_SCHEMA_VERSION = "7.36f-lite";
+  window.__AUTO_SCHEMA_VERSION = "7.36g-lite";
 
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -138,10 +136,10 @@
       WEBP: "🎨", KNOWS: "🎓", SYNC: "🔗", RACE: "⚡", FAQ: "❓",
       ARTICLE: "📄", TECH: "🔬", STATIC: "🗿"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.36f-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.36g-LITE] ${msg}`);
   }
 
-  log(`🚀 Auto Schema v7.36f-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
+  log(`🚀 Auto Schema v7.36g-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
 
   // Early exit — homepage & static only (entity check di init)
   (function earlyExitCheck() {
@@ -163,7 +161,7 @@
   })();
 
   if (window.__SCHEMA_SKIP_REASON) {
-    console.log(`⏸️ [AutoSchema v7.36f-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
+    console.log(`⏸️ [AutoSchema v7.36g-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
     return;
   }
 
@@ -853,7 +851,7 @@
       img.style.margin = '0 auto';
       img.style.padding = '0 10px';
       img.style.boxSizing = 'border-box';
-      const styleId = 'responsive-image-style-v736f';
+      const styleId = 'responsive-image-style-v736g';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
@@ -1339,11 +1337,57 @@
     return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-valid-price' };
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX-25 (v7.36g): DYNAMIC KNOWS ABOUT (SEO 2026)
+  // ═══════════════════════════════════════════════════════════
+  function getPageKeywordsForSchema() {
+    var h1 = document.querySelector('h1') ? (document.querySelector('h1').innerText || '').toLowerCase() : '';
+    var slug = window.location.pathname.replace(/\.html$/, '').replace(/-/g, ' ').split('/').pop().toLowerCase();
+    var text = (h1 + ' ' + slug);
+    
+    text = text.replace(/\b(jasa|harga|biaya|terbaru|update|di|ke|dari|dan|yang|untuk|dengan|adalah|atau|ini|itu|kami|anda|pada|akan|juga|bisa|dapat|tidak|oleh|terbaik|murah|berkualitas|profesional|indonesia|jakarta|bogor|depok|tangerang|bekasi|jabodetabek)\b/g, ' ');
+    
+    return text.split(/\s+/).filter(function(w) { return w.length > 3; });
+  }
+
+  function getDynamicKnowsAbout(fullList, pageLevel, entityType) {
+    // 1. Halaman Broad (Pillar/Sub-pillar) = Tampilkan Full
+    if (['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].indexOf(pageLevel) !== -1) {
+      return fullList; 
+    }
+    
+    // 2. Halaman Spesifik (Money/Variant) = Filter Berdasarkan Topik
+    var keywords = getPageKeywordsForSchema();
+    
+    if (keywords.length === 0) {
+      return fullList.slice(0, 12); // Fallback
+    }
+    
+    var matched = fullList.filter(function(item) {
+      var itemLower = item.toLowerCase();
+      return keywords.some(function(kw) {
+        return itemLower.indexOf(kw) !== -1;
+      });
+    });
+    
+    // 3. Jika hasil filter terlalu sedikit, ambil default
+    if (matched.length < 3) {
+      var specific = fullList.filter(function(i) { 
+        return i.toLowerCase().indexOf(entityType) !== -1; 
+      });
+      if (specific.length >= 3) return specific.slice(0, 10);
+      return fullList.slice(0, 10); 
+    }
+    
+    // 4. Batasi maksimal 15 item
+    return matched.slice(0, 15);
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(async () => {
       perf.start('init');
       log("═══════════════════════════════════════════════════", "INFO");
-      log("AUTO SCHEMA UNIVERSAL v7.36f-LITE — JASA/SEWA ONLY", "INFO");
+      log("AUTO SCHEMA UNIVERSAL v7.36g-LITE — JASA/SEWA ONLY", "INFO");
       log("═══════════════════════════════════════════════════", "INFO");
 
       try {
@@ -1425,7 +1469,10 @@
         const description = document.querySelector('meta[name="description"]')?.content?.trim() ||
           document.querySelector("article p, main p")?.innerText?.substring(0, 200) || title;
 
-        const knowsAbout = CONFIG.KNOWS_ABOUT;
+        // 🔥 FIX-25: Dynamic knowsAbout
+        const knowsAbout = getDynamicKnowsAbout(CONFIG.KNOWS_ABOUT, pageLevel, entityType);
+        log(`🎓 Dynamic knowsAbout: ${knowsAbout.length} item (dari total ${CONFIG.KNOWS_ABOUT.length})`, "KNOWS");
+
         const dateModified = (aed && aed.dateModified) ? aed.dateModified : undefined;
         const priceValidUntil = (aed && aed.nextUpdate) ? aed.nextUpdate : undefined;
 
@@ -1442,7 +1489,7 @@
             "logo": IMAGE_CONFIG.LOGO_IMAGE,
             "sameAs": ["https://www.facebook.com/betonjayareadymix", "https://www.instagram.com/betonjayareadymix"],
             "areaServed": CONFIG.AREA_SERVED,
-            "knowsAbout": knowsAbout,
+            "knowsAbout": knowsAbout, // 🔥 TERAPKAN DINAMIS
             "contactPoint": CONFIG.CONTACT_POINT
           },
           {
@@ -1638,16 +1685,14 @@
   window.addEventListener('beforeunload', cleanup);
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Auto Schema v7.36f-LITE — JASA/SEWA ONLY");
+  console.log("✅ Auto Schema v7.36g-LITE — JASA/SEWA ONLY (DYNAMIC KNOWS ABOUT)");
   console.log("═══════════════════════════════════════════════════════════");
+  console.log("🔥 FIX-25: Dynamic knowsAbout — filter 110 item jadi 5-15 relevan");
   console.log("🔥 FIX-24: Entity guard — hanya jasa/sewa");
-  console.log("🔥 FIX-21: Hapus author/dateModified di Answer");
-  console.log("🔥 FIX-22: ItemList Title Case");
-  console.log("🔥 FIX-20: Detect static FAQPage");
+  console.log("🔥 FIX-21 s/d FIX-23: Hapus author/dateModified di Answer, dll");
   console.log("🔥 FIX-17: TechArticle node");
   console.log("🔥 FIX-14: FAQ content-driven");
   console.log("✅ PRESERVED: FIX-1 s/d FIX-13");
-  console.log("✅ KNOWS_ABOUT: 110 item | areaServed: 12 kota");
   console.log("═══════════════════════════════════════════════════════════");
 
 })();
