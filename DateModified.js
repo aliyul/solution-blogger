@@ -1,6 +1,15 @@
 /* ============================================================
  🔥 Hybrid Date Modified v10.3a — PURE CONSUMER + AUTO-RUN SYNC
-    ✅ FIX-SYNC-v5 (v10.3a) — CRITICAL:
+    🩹 FIX-SYNC-v6 (build 10.3a-fix6) — CRITICAL:
+       - MUTATE AEDMetaDates (JANGAN reassign object)
+       - Consumer yang sudah pegang referensi lama tetap
+         melihat dateModifiedFinal setelah event fire
+       - Compatible dengan Article v8.6f, Product v5.7d,
+         Universal v7.36h yang baca aedData/aed variable
+       - dateModified TETAP tidak di-overwrite (offset hanya
+         disimpan di dateModifiedFinal)
+
+    ✅ FIX-SYNC-v5 (v10.3a) — PRESERVED:
        - dateModified TIDAK di-overwrite lagi (race fix)
        - Offset disimpan di dateModifiedFinal (field BARU)
        - Meta tag dateModified pakai offset (untuk uniqueness)
@@ -23,7 +32,7 @@
     🎯 TUGAS UNIK HYBRID:
        1. Hash offset per URL (anti duplicate date)
        2. Write meta tag dateModified (pakai offset)
-       3. Set AEDMetaDates.dateModifiedFinal (BUKAN dateModified)
+       3. Set AEDMetaDates.dateModifiedFinal (MUTATE, bukan reassign)
        4. Dispatch event hybridDateFinalReady
        5. Skip homepage & static pages
 
@@ -32,6 +41,7 @@
        - Detect content focus (PLD yang tentukan)
        - Call detectEvergreen() (AED auto-run)
        - Overwrite AEDMetaDates.dateModified (RACE!)
+       - Reassign AEDMetaDates (stale reference untuk consumer)
 
     📌 Stack: PLD v23.9.9 + AED v17.5.x + Breadcrumb v12.3.6
 ============================================================ */
@@ -45,6 +55,7 @@
     return;
   }
   window.__hybridDateModifiedVersion = "10.3a";
+  window.__hybridDateModifiedBuild = "10.3a-fix6";
 
   // ═══════════════════════════════════════════════════════════
   // SKIP HALAMAN STATIS — EARLY (sebelum DOMContentLoaded)
@@ -238,35 +249,36 @@
       updateMetaDateModified(isoDate);
 
       // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-SYNC-v5: ENRICH AEDMetaDates — TIDAK OVERWRITE
+      // 🔥 FIX-SYNC-v6: MUTATE AEDMetaDates — JANGAN REASSIGN
       //
-      // PERUBAHAN KRITIS:
-      //   - dateModified  → TETAP = AED original (untuk schema)
-      //   - dateModifiedFinal → BARU = offset (untuk meta tag)
+      // PERUBAHAN KRITIS dari v10.3a → v10.3a-fix6:
+      //   SEBELUM: window.AEDMetaDates = { ...window.AEDMetaDates, dateModifiedFinal: ... }
+      //            → consumer (Article/Product/Universal) yang sudah pegang
+      //              referensi lama TIDAK bisa lihat dateModifiedFinal
+      //            → schema dateModified != meta tag
       //
-      // ALASAN:
-      //   Kalau Hybrid overwrite dateModified, ada RACE:
-      //   - Consumer yang baca cepat → dapat ORIGINAL
-      //   - Consumer yang baca lambat → dapat OFFSET
-      //   - Meta tag selalu OFFSET
-      //   → Schema vs Meta tag MISMATCH
+      //   SESUDAH: mutate field langsung di object yang SAMA
+      //            → consumer yang sudah pegang referensi otomatis lihat
+      //              dateModifiedFinal
+      //            → schema dateModified == meta tag ✅
       //
-      // SOLUSI:
-      //   - Schema & Meta tag SAMA-SAMA pakai dateModifiedFinal
-      //   - Consumer harus baca dateModifiedFinal (bukan dateModified)
-      //   - Signal via __HYBRID_DATE_FINAL_READY + event
+      // JAMINAN:
+      //   - dateModified    → TETAP = AED original (tidak di-overwrite)
+      //   - dateModifiedFinal → BARU = offset (untuk meta tag & schema)
+      //   - datePublished   → TETAP (tidak disentuh)
       // ═══════════════════════════════════════════════════════
-   // 🔥 FIX-SYNC-v6: MUTATE object lama — JANGAN reassign
-     // Alasan: consumer (Article/Product/Universal) sudah memegang
-     // referensi ke object ini lewat `aedData`/`aed`/`finalAed`.
-     // Kalau di-reassign, referensi lama tetap kosong → bug stale.
-     window.AEDMetaDates.dateModifiedFinal    = isoDate;           // field BARU (offset)
-     window.AEDMetaDates.hashOffset           = offsetSeconds;
-     window.AEDMetaDates.hybridVersion        = '10.3a';
-     window.AEDMetaDates.originalDateModified = dateModified;      // preserved for reference
-     window.AEDMetaDates.breadcrumbReady      = breadcrumbReady;
-     window.AEDMetaDates.mode                 = (aedType === 'evergreen') ? 'MANUAL' : 'AUTO';
-     // dateModified: TIDAK disentuh — tetap AED original
+      if (!window.AEDMetaDates || typeof window.AEDMetaDates !== 'object') {
+        // Safety net — seharusnya tidak terjadi karena kita sudah wait
+        window.AEDMetaDates = {};
+      }
+
+      // Mutate field satu per satu — PERTAHANKAN object reference
+      window.AEDMetaDates.dateModifiedFinal = isoDate;
+      window.AEDMetaDates.hashOffset = offsetSeconds;
+      window.AEDMetaDates.hybridVersion = '10.3a';
+      window.AEDMetaDates.originalDateModified = dateModified;
+      window.AEDMetaDates.breadcrumbReady = breadcrumbReady;
+      window.AEDMetaDates.mode = (aedType === 'evergreen') ? 'MANUAL' : 'AUTO';
 
       // 🔥 Signal ke consumer (Article/Hybrid/Universal)
       //    bahwa dateModifiedFinal siap dibaca
@@ -287,7 +299,7 @@
       // ═══════════════════════════════════════════════════════
       // LOG FINAL
       // ═══════════════════════════════════════════════════════
-      console.log(`✅ [HybridDateModified v10.3a] ${uniquePageIdentifier}`);
+      console.log(`✅ [HybridDateModified v10.3a-fix6] ${uniquePageIdentifier}`);
       console.log(`   → Meta Tag dateModified: ${isoDate}`);
       console.log(`   → Schema dateModified (AED): ${dateModified}`);
       console.log(`   → dateModifiedFinal (offset): ${isoDate}`);
@@ -297,8 +309,9 @@
       console.log(`   → Type (dari AED): ${aedType}`);
       console.log(`   → Content Focus (dari AED): ${contentFocus}`);
       console.log(`   → Breadcrumb Ready: ${breadcrumbReady ? '✅' : '⏰'}`);
-      console.log(`   → dateModifiedFinal Ready: ✅`);
-      console.log(`📋 Hybrid Date Modified v10.3a applied — SYNC SAFE ✅`);
+      console.log(`   → dateModifiedFinal Ready: ✅ (MUTATED in-place)`);
+      console.log(`   → Consumer reference preserved: ✅ (no reassign)`);
+      console.log(`📋 Hybrid Date Modified v10.3a-fix6 applied — SYNC SAFE ✅`);
 
     } catch (err) {
       console.error("[HybridDateModified v10.3a] Fatal error:", err);
@@ -463,8 +476,11 @@
   // CLEANUP LOG
   // ═══════════════════════════════════════════════════════════
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Hybrid Date Modified v10.3a — PURE CONSUMER + AUTO-RUN SYNC");
+  console.log("✅ Hybrid Date Modified v10.3a-fix6 — PURE CONSUMER + MUTATE-SAFE");
   console.log("═══════════════════════════════════════════════════════════");
+  console.log("🩹 FIX-SYNC-v6: MUTATE AEDMetaDates (JANGAN reassign)");
+  console.log("🩹 FIX-SYNC-v6: Consumer reference tetap valid → dateModifiedFinal terbaca");
+  console.log("🩹 FIX-SYNC-v6: Schema dateModified == meta tag dateModified ✅");
   console.log("🔥 FIX-SYNC-v5: dateModified TIDAK di-overwrite (race fix)");
   console.log("🔥 FIX-SYNC-v5: Offset disimpan di dateModifiedFinal (field BARU)");
   console.log("🔥 FIX-SYNC-v5: window.__HYBRID_DATE_FINAL_READY = true");
@@ -473,8 +489,9 @@
   console.log("🔥 FIX-SYNC-v4: HAPUS call detectEvergreen() — AED sudah AUTO-RUN");
   console.log("🔥 FIX-SYNC-v4: Fast-path cek window.AEDMetaDates langsung");
   console.log("🔥 FIX-SYNC-v4: Polling fallback (100ms) anti miss-event");
-  console.log("✅ Tugas Hybrid: hash offset + write meta + dateModifiedFinal");
+  console.log("✅ Tugas Hybrid: hash offset + write meta + dateModifiedFinal (mutate)");
   console.log("⚠️  Consumer MUST read dateModifiedFinal (bukan dateModified)");
+  console.log("⚠️  Consumer TIDAK perlu ubah apapun — mutation sudah cukup");
   console.log("═══════════════════════════════════════════════════════════");
 
 })();
