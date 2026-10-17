@@ -1,20 +1,34 @@
 /**
- * 📄 Auto-Schema Generator v8.6f — ARTICLE SCHEMA + FAQ + BASE LAYER
+ * 📄 Auto-Schema Generator v8.6g — ARTICLE SCHEMA + FAQ + BASE LAYER
  *
- * 🔥 v8.6f CHANGELOG:
- * ✅ FIX-F: Sync dateModifiedFinal dari HybridDateModified v10.3a
- *          - Baca `dateModifiedFinal` (bukan `dateModified`)
- *          - Wait event `hybridDateFinalReady` max 500ms
- *          - Fallback ke `dateModified` kalau event tidak fire
+ * 🩹 v8.6g CHANGELOG (PATCH):
+ * ✅ FIX-F2: Re-read `window.AEDMetaDates` SETELAH `hybridDateFinalReady`
+ *            - Sebelumnya: pakai `aedData` (referensi lama)
+ *            - Hybrid v10.3a lama reassign object → `aedData.dateModifiedFinal` undefined
+ *            - Sekarang: baca ulang dari `window.AEDMetaDates` (selalu object aktif)
+ *            - Efek: schema dateModified == meta tag dateModified ✅
+ * ✅ FIX-H1: Hapus `escapeJSON()` pre-stringify
+ *            - Sebelumnya: escape manual → JSON.stringify escape lagi = double-escape
+ *            - Efek: headline & description schema mengandung literal `\/`, `\"`, `\u003c`
+ *            - Sekarang: biarkan JSON.stringify yang escape
+ * ✅ FIX-H2: `safeStringify()` — proteksi `</script>`, U+2028, U+2029
+ *            - `JSON.stringify().replace(/</g, '\\u003c')` + line separators
+ *            - Mencegah script-tag breakout & invalid JSONP
+ * ✅ FIX-H3: `HYBRID_FINAL_TIMEOUT` 500 → 1500 ms
+ *            - Sinkron dengan Hybrid yang wait breadcrumb 2s + AED 3.5s
+ *            - Sebelumnya: schema bisa generate sebelum dateModifiedFinal siap
+ * ✅ FIX-H4: Urutan canonical / og:url diseragamkan
+ *            - Sebelumnya: `canonical || ogUrl` (bisa beda @id)
+ *            - Sekarang: `ogUrl || canonical || location.href`
+ *            - Sinkron dengan Product v5.7d & Universal v7.36h
  *
- * ✅ PRESERVED dari v8.6e:
+ * ✅ PRESERVED dari v8.6f:
+ * ✅ FIX-F: Sync dateModifiedFinal dari HybridDateModified v10.3a (via waitForHybridDateFinal)
  * ✅ FIX-E: Sinkronisasi Entity Base Layer dengan Universal v7.36g & Hybrid v5.7d
  * ✅ FIX-D: LocalBusiness + WebPage node ke @graph
  * ✅ FIX-C: FAQPage handling — konsumsi `secondary=FAQPage` dari PLD
  * ✅ FIX-A: Cloudinary image fallback
  * ✅ FIX-B: Title source dari H1
- *
- * ✅ FIX BARU dari audit v8.6e → v8.6f:
  * ✅ FIX-G1: OWN_IDS lengkap (auto-schema-service, auto-schema-product, auto-schema)
  * ✅ FIX-G2: Create-if-not-exists untuk #auto-schema element
  * ✅ FIX-G3: URL cleaning (strip ?m=1 & trailing slash)
@@ -23,19 +37,19 @@
  * 🔥 SINKRON dengan:
  * - PLD v23.9.9a
  * - AED v17.5.6
- * - HybridDateModified v10.3a
- * - Hybrid v5.7d
- * - Universal v7.36g
+ * - HybridDateModified v10.3a-fix6 (mutate-safe)
+ * - Hybrid v5.7d-LITE
+ * - Universal v7.36h-LITE
  */
 
 (function() {
   "use strict";
 
-  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6f") {
-    console.log("[AutoSchema Article v8.6f] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6g") {
+    console.log("[AutoSchema Article v8.6g] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6f";
+  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6g";
 
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -46,7 +60,8 @@
   const CONFIG = {
     DEBUG: DEBUG_MODE,
     AED_TIMEOUT: 2000,
-    HYBRID_FINAL_TIMEOUT: 500,
+    // 🔥 FIX-H3: 500 → 1500 ms (Hybrid: breadcrumb 2s + AED 3.5s)
+    HYBRID_FINAL_TIMEOUT: 1500,
     PLD_TIMEOUT: 1000,
     BREADCRUMB_TIMEOUT: 1000,
     BREADCRUMB_GENERATED_TIMEOUT: 2000,
@@ -81,7 +96,7 @@
     ARTICLE_IMG_WIDTH: 1200,
     ARTICLE_IMG_HEIGHT: 675,
     SKIP_WORD_COUNT: 300,
-    VERSION: "8.6f"
+    VERSION: "8.6g"
   };
 
   const AREA_SERVED = [
@@ -165,9 +180,9 @@
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
       IMG: "🖼️", EDITORIAL: "✍️", SYNC: "🔗", URL: "🌐",
       CONFLICT: "🚨", CLOUD: "☁️", FAQ: "❓", STATIC: "🗿", KNOWS: "🎓",
-      HYBRID: "🕐"
+      HYBRID: "🕐", JSON: "🧩"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema v8.6f] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema v8.6g] ${msg}`);
   }
 
   function getPLDVersion() {
@@ -308,7 +323,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX-F v8.6f: WAIT FOR HYBRID dateModifiedFinal
+  // 🔥 FIX-F / FIX-F2: WAIT FOR HYBRID dateModifiedFinal
   // ═══════════════════════════════════════════════════════════
   function waitForHybridDateFinal(timeout = CONFIG.HYBRID_FINAL_TIMEOUT) {
     return new Promise((resolve) => {
@@ -598,18 +613,21 @@
     return Array.from(keywords).slice(0, 12).join(", ");
   }
 
-  function escapeJSON(str) {
-    if (!str) return "";
-    return String(str)
-      .replace(/\\/g, "\\\\")
-      .replace(/"/g, '\\"')
-      .replace(/\//g, "\\/")
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX-H2: safeStringify — ganti escapeJSON
+  //
+  // JSON.stringify() SUDAH meng-escape `"`, `\`, dan karakter
+  // kontrol. Yang perlu kita tambah hanya:
+  //   - `</script>` protection → `\u003c` untuk `<`
+  //   - U+2028 / U+2029 → line/paragraph separator (valid JSON,
+  //     tapi ilegal dalam JS string literal & JSONP)
+  // ═══════════════════════════════════════════════════════════
+  function safeStringify(obj, indent) {
+    const json = JSON.stringify(obj, null, indent);
+    return json
       .replace(/</g, "\\u003c")
-      .replace(/>/g, "\\u003e")
-      .replace(/&/g, "\\u0026")
-      .replace(/\n/g, " ")
-      .replace(/\r/g, " ")
-      .trim();
+      .replace(/\u2028/g, "\\u2028")
+      .replace(/\u2029/g, "\\u2029");
   }
 
   var __articleImageCache = undefined;
@@ -666,7 +684,6 @@
       'variant': 'variant',
       'sub-variant': 'subvariant'
     },
-    // 🔥 FIX-G4: pakai LEVEL_COLORS (bukan hardcoded FFD700)
     LEVEL_COLORS: {
       'pillar': 'FFD700', 'sub-pillar-tipe-2': 'FFD700', 'sub-pillar-tipe-1': 'FFD700',
       'money-master': 'FFFFFF', 'money-page': 'FFFFFF', 'money-child': 'FFFFFF',
@@ -890,12 +907,13 @@
     const authorObj = { "@id": CONFIG.LOCALBUSINESS_ID };
     const publisherObj = { "@id": CONFIG.LOCALBUSINESS_ID };
 
+    // 🔥 FIX-H1: tidak pakai escapeJSON — biarkan JSON.stringify() yang escape
     const schema = {
       "@type": articleType,
       "@id": data.url + "#article",
 
-      "headline": escapeJSON(data.title),
-      "description": escapeJSON(data.descMeta),
+      "headline": data.title,
+      "description": data.descMeta,
 
       "author": authorObj,
       "publisher": publisherObj,
@@ -983,12 +1001,13 @@
   }
 
   function generateWebPageNode(pageData, parentData, dates) {
+    // 🔥 FIX-H1: tidak pakai escapeJSON
     return {
       "@type": "WebPage",
       "@id": pageData.url + CONFIG.WEBPAGE_ID_SUFFIX,
       "url": pageData.url,
-      "name": escapeJSON(pageData.title),
-      "description": escapeJSON(pageData.descMeta),
+      "name": pageData.title,
+      "description": pageData.descMeta,
       "inLanguage": "id",
       "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
       "isPartOf": parentData && parentData.parentUrl ? {
@@ -1001,11 +1020,11 @@
     };
   }
 
-  // 🔥 FIX-G3: URL cleaning — strip ?m=1 & trailing slash
+  // 🔥 FIX-G3 + FIX-H4: URL cleaning + urutan ogUrl → canonical (sinkron Product/Universal)
   function extractPageData() {
-    const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
     const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
-    const rawUrl = canonical || ogUrl || location.href;
+    const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
+    const rawUrl = ogUrl || canonical || location.href;
     const url = rawUrl.replace(/[?&]m=1/, '').replace(/\/$/, '');
 
     const h1El = document.querySelector('h1');
@@ -1030,7 +1049,7 @@
 
   async function init() {
     log("════════════════════════════════════");
-    log("Auto-Schema Generator v8.6f — ARTICLE + FAQ + BASE LAYER");
+    log("Auto-Schema Generator v8.6g — ARTICLE + FAQ + BASE LAYER");
     log(`DEBUG: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("════════════════════════════════════");
 
@@ -1074,7 +1093,7 @@
     const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     if (aedData) log(`✅ AED ready: ${aedData.dateModified}`, "AED");
 
-    // 🔥 FIX-F v8.6f: Wait for Hybrid offset, max 500ms
+    // 🔥 FIX-F / FIX-F2: Wait for Hybrid offset, max 1500ms
     const hybridReady = await waitForHybridDateFinal(CONFIG.HYBRID_FINAL_TIMEOUT);
     if (hybridReady) {
       log(`✅ Hybrid offset READY`, "HYBRID");
@@ -1082,17 +1101,37 @@
       log(`⏰ Hybrid offset timeout — pakai AED dateModified`, "HYBRID");
     }
 
-    // 🔥 FIX-F v8.6f: Prefer dateModifiedFinal (offset) untuk sync meta tag
-    const effectiveDates = aedData ? {
-      datePublished: aedData.datePublished,
-      dateModified: aedData.dateModifiedFinal || aedData.dateModified
+    // ═══════════════════════════════════════════════════════════
+    // 🔥 FIX-F2: Re-read `window.AEDMetaDates` SETELAH event
+    //
+    // SEBELUMNYA (v8.6f):
+    //   const effectiveDates = aedData ? {
+    //     dateModified: aedData.dateModifiedFinal || aedData.dateModified
+    //   } : ...
+    //   → Kalau Hybrid v10.3a buggy (reassign object), `aedData.dateModifiedFinal`
+    //     = undefined → fallback ke AED original → schema ≠ meta tag
+    //
+    // SEKARANG (v8.6g):
+    //   const finalAed = window.AEDMetaDates || aedData;
+    //   → Selalu baca object AKTIF di window
+    //   → Kalau Hybrid sudah mutate in-place, `finalAed.dateModifiedFinal` terisi
+    //   → Kalau Hybrid masih buggy reassign, `window.AEDMetaDates` = object baru
+    //     yang punya `dateModifiedFinal` → tetap benar
+    //
+    // Efek: schema dateModified == meta tag dateModified ✅ (belt-and-suspenders)
+    // ═══════════════════════════════════════════════════════════
+    const finalAed = window.AEDMetaDates || aedData;
+    const effectiveDates = finalAed ? {
+      datePublished: finalAed.datePublished,
+      dateModified: finalAed.dateModifiedFinal || finalAed.dateModified
     } : {
       datePublished: new Date().toISOString(),
       dateModified: new Date().toISOString()
     };
 
-    if (aedData && aedData.dateModifiedFinal) {
+    if (finalAed && finalAed.dateModifiedFinal) {
       log(`📅 Schema dateModified = dateModifiedFinal (offset): ${effectiveDates.dateModified}`, "HYBRID");
+      log(`   (source: window.AEDMetaDates — re-read setelah event)`, "HYBRID");
     } else {
       log(`📅 Schema dateModified = AED original: ${effectiveDates.dateModified}`, "AED");
     }
@@ -1164,10 +1203,11 @@
         log(`✅ FAQPage node ditambah ke @graph: ${faqsFromDOM.length} pertanyaan`, "FAQ");
       }
 
-      articleElem.textContent = JSON.stringify({
+      // 🔥 FIX-H2: safeStringify dengan </script>, U+2028, U+2029 protection
+      articleElem.textContent = safeStringify({
         "@context": "https://schema.org",
         "@graph": graph
-      }, null, 2);
+      }, 2);
 
       log(`📄 SCHEMA GENERATED (${articleType}${wantFAQ ? ' + FAQPage' : ''})`, "ARTICLE");
       log(`   Graph nodes: ${graph.map(n => n["@type"]).join(' + ')}`, "SCHEMA");
@@ -1189,7 +1229,7 @@
     }
 
     log("════════════════════════════════════");
-    log("FINISHED (v8.6f)", "SUCCESS");
+    log("FINISHED (v8.6g)", "SUCCESS");
     log(`   Page Level: ${pageLevel}`, "SUCCESS");
     log(`   Entity Type: ${entityType}`, "SUCCESS");
     log(`   Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
@@ -1205,12 +1245,12 @@
     init();
   }
 
-  console.log(`✅ [AutoSchema v8.6f] Ready — PLD-DRIVEN + FAQ + BASE LAYER SYNC`);
-  console.log(`🔥 FIX-F: Sync dateModifiedFinal dari HybridDateModified v10.3a`);
-  console.log(`🔥 FIX-G1: OWN_IDS lengkap (auto-schema-service, auto-schema-product, auto-schema)`);
-  console.log(`🔥 FIX-G2: Create-if-not-exists #auto-schema`);
-  console.log(`🔥 FIX-G3: URL cleaning (strip ?m=1 & trailing slash)`);
-  console.log(`🔥 FIX-G4: LEVEL_COLORS Cloudinary (money=FFFFFF, pillar=FFD700)`);
-  console.log(`✅ PRESERVED: FIX-A s/d FIX-E dari v8.6e`);
+  console.log(`✅ [AutoSchema v8.6g] Ready — PLD-DRIVEN + FAQ + BASE LAYER SYNC`);
+  console.log(`🩹 FIX-F2: Re-read AEDMetaDates setelah hybridDateFinalReady — schema dateModified == meta tag`);
+  console.log(`🩹 FIX-H1: Hapus escapeJSON() pre-stringify — fix double-escape`);
+  console.log(`🩹 FIX-H2: safeStringify() — proteksi </script>, U+2028, U+2029`);
+  console.log(`🩹 FIX-H3: HYBRID_FINAL_TIMEOUT 500 → 1500 ms`);
+  console.log(`🩹 FIX-H4: ogUrl || canonical order — sinkron dengan Product/Universal`);
+  console.log(`✅ PRESERVED: FIX-A s/d FIX-G4 dari v8.6f`);
 
 })();
