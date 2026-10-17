@@ -1,18 +1,23 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.36g-LITE COMPLETE — JASA/SEWA (DYNAMIC KNOWS ABOUT)
-   ✅ SINKRON dengan PLD v23.9.9
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.36h-LITE COMPLETE — JASA/SEWA (DYNAMIC KNOWS ABOUT + HYBRID DATE SYNC)
+   ✅ SINKRON dengan PLD v23.9.9a
    ✅ SINKRON dengan AED v17.5.x
-   ✅ SINKRON dengan Article v8.6d
-   ✅ SINKRON dengan Hybrid v5.7c
+   ✅ SINKRON dengan Article v8.6f
+   ✅ SINKRON dengan Hybrid v5.7d
+   ✅ SINKRON dengan HybridDateModified v10.3a
 
-   🔥🔥🔥 v7.36g-LITE CHANGELOG 🔥🔥🔥
-   ✅ FIX-25: DYNAMIC KNOWS ABOUT (SEO 2026)
-              - Filter 110 item knowsAbout jadi 5-15 item spesifik
-              - Berdasarkan kecocokan H1 & URL Slug
-              - Halaman Pillar tetap pakai full 110 item
-              - Halaman spesifik (money/variant) jadi sangat relevan
-              - Efek: Entity signal lebih tajam, hemat ukuran halaman
+   🔥🔥🔥 v7.36h-LITE CHANGELOG 🔥🔥🔥
+   ✅ FIX-26: HYBRID DATE SYNC (v10.3a compatible)
+              - Wait event `hybridDateFinalReady` max 500ms
+              - Baca `AEDMetaDates.dateModifiedFinal` (bukan dateModified)
+              - Fallback ke dateModified kalau event tidak fire
+              - Effect: TechArticle dateModified = meta tag dateModified
 
-   ✅ PRESERVED dari v7.36f-LITE:
+   ✅ FIX-27: URL CLEANING — strip trailing slash
+              - Sinkron dengan Article v8.6f & Hybrid v5.7d
+              - @id consistency antar script
+
+   ✅ PRESERVED dari v7.36g-LITE:
+   ✅ FIX-25: Dynamic knowsAbout (SEO 2026)
    ✅ FIX-24: Entity guard — HANYA jasa/sewa
    ✅ FIX-21 s/d FIX-23: Hapus author di Answer, ItemList Title Case, dll
    ✅ FIX-17: TechArticle node
@@ -24,11 +29,11 @@
 (function() {
   "use strict";
 
-  if (window.__AUTO_SCHEMA_VERSION === "7.36g-lite") {
-    console.log("[AutoSchema v7.36g-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTO_SCHEMA_VERSION === "7.36h-lite") {
+    console.log("[AutoSchema v7.36h-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTO_SCHEMA_VERSION = "7.36g-lite";
+  window.__AUTO_SCHEMA_VERSION = "7.36h-lite";
 
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -45,6 +50,7 @@
     SKIP_WORD_COUNT: 300,
     PLD_TIMEOUT: 1000,
     AED_TIMEOUT: 2000,
+    HYBRID_FINAL_TIMEOUT: 500,
     BREADCRUMB_TIMEOUT: 1000,
     BREADCRUMB_READY_TIMEOUT: 1500,
     BREADCRUMB_GENERATED_TIMEOUT: 2000,
@@ -134,12 +140,12 @@
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", PARENT: "👪", PRICE: "💰",
       FLAG: "🚩", EVENT: "📡", FIX: "🔧", MATERIAL: "🧱", PHASE46: "🆕",
       WEBP: "🎨", KNOWS: "🎓", SYNC: "🔗", RACE: "⚡", FAQ: "❓",
-      ARTICLE: "📄", TECH: "🔬", STATIC: "🗿"
+      ARTICLE: "📄", TECH: "🔬", STATIC: "🗿", HYBRID: "🕐"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.36g-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.36h-LITE] ${msg}`);
   }
 
-  log(`🚀 Auto Schema v7.36g-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
+  log(`🚀 Auto Schema v7.36h-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
 
   // Early exit — homepage & static only (entity check di init)
   (function earlyExitCheck() {
@@ -161,7 +167,7 @@
   })();
 
   if (window.__SCHEMA_SKIP_REASON) {
-    console.log(`⏸️ [AutoSchema v7.36g-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
+    console.log(`⏸️ [AutoSchema v7.36h-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
     return;
   }
 
@@ -350,6 +356,7 @@
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
       var v = String(window.pageLevelDetectorv22.version);
+      if (v.indexOf("23.9.9a") === 0) return { version: v, family: "v23-lite", label: "v23.9.9a-lite" };
       if (v.indexOf("23.9.9") === 0) return { version: v, family: "v23-lite", label: "v23.9.9-lite" };
       if (v.indexOf("23.9.8") === 0) return { version: v, family: "v23-lite", label: "v23.9.8-lite" };
       if (v.indexOf("23.9.7") === 0) return { version: v, family: "v23-lite", label: "v23.9.7-lite" };
@@ -724,6 +731,49 @@
     });
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX-26 v7.36h: WAIT FOR HYBRID dateModifiedFinal
+  // ═══════════════════════════════════════════════════════════
+  function waitForHybridDateFinal(timeout = CONFIG.HYBRID_FINAL_TIMEOUT) {
+    return new Promise((resolve) => {
+      if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
+        log(`✅ Hybrid dateModifiedFinal READY (instant)`, "HYBRID");
+        resolve(true);
+        return;
+      }
+
+      let resolved = false;
+      const finish = (ok) => {
+        if (resolved) return;
+        resolved = true;
+        resolve(ok);
+      };
+
+      const onReady = () => {
+        log(`✅ Hybrid dateModifiedFinal READY (event)`, "HYBRID");
+        finish(true);
+      };
+      window.addEventListener('hybridDateFinalReady', onReady, { once: true });
+
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
+          clearInterval(interval);
+          window.removeEventListener('hybridDateFinalReady', onReady);
+          log(`✅ Hybrid dateModifiedFinal READY (polling)`, "HYBRID");
+          finish(true);
+          return;
+        }
+        if (Date.now() - startTime > timeout) {
+          clearInterval(interval);
+          window.removeEventListener('hybridDateFinalReady', onReady);
+          log(`⏰ Hybrid dateModifiedFinal timeout (${timeout}ms) — fallback ke AED dateModified`, "WARN");
+          finish(false);
+        }
+      }, 100);
+    });
+  }
+
   function waitForPLD() {
     return new Promise((resolve) => {
       perf.start('waitForPLD');
@@ -851,7 +901,7 @@
       img.style.margin = '0 auto';
       img.style.padding = '0 10px';
       img.style.boxSizing = 'border-box';
-      const styleId = 'responsive-image-style-v736g';
+      const styleId = 'responsive-image-style-v736h';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
@@ -1337,49 +1387,42 @@
     return { hasPrice: false, source: null, value: null, offers: [], reason: 'no-valid-price' };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX-25 (v7.36g): DYNAMIC KNOWS ABOUT (SEO 2026)
-  // ═══════════════════════════════════════════════════════════
   function getPageKeywordsForSchema() {
     var h1 = document.querySelector('h1') ? (document.querySelector('h1').innerText || '').toLowerCase() : '';
     var slug = window.location.pathname.replace(/\.html$/, '').replace(/-/g, ' ').split('/').pop().toLowerCase();
     var text = (h1 + ' ' + slug);
-    
+
     text = text.replace(/\b(jasa|harga|biaya|terbaru|update|di|ke|dari|dan|yang|untuk|dengan|adalah|atau|ini|itu|kami|anda|pada|akan|juga|bisa|dapat|tidak|oleh|terbaik|murah|berkualitas|profesional|indonesia|jakarta|bogor|depok|tangerang|bekasi|jabodetabek)\b/g, ' ');
-    
+
     return text.split(/\s+/).filter(function(w) { return w.length > 3; });
   }
 
   function getDynamicKnowsAbout(fullList, pageLevel, entityType) {
-    // 1. Halaman Broad (Pillar/Sub-pillar) = Tampilkan Full
     if (['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].indexOf(pageLevel) !== -1) {
-      return fullList; 
+      return fullList;
     }
-    
-    // 2. Halaman Spesifik (Money/Variant) = Filter Berdasarkan Topik
+
     var keywords = getPageKeywordsForSchema();
-    
+
     if (keywords.length === 0) {
-      return fullList.slice(0, 12); // Fallback
+      return fullList.slice(0, 12);
     }
-    
+
     var matched = fullList.filter(function(item) {
       var itemLower = item.toLowerCase();
       return keywords.some(function(kw) {
         return itemLower.indexOf(kw) !== -1;
       });
     });
-    
-    // 3. Jika hasil filter terlalu sedikit, ambil default
+
     if (matched.length < 3) {
-      var specific = fullList.filter(function(i) { 
-        return i.toLowerCase().indexOf(entityType) !== -1; 
+      var specific = fullList.filter(function(i) {
+        return i.toLowerCase().indexOf(entityType) !== -1;
       });
       if (specific.length >= 3) return specific.slice(0, 10);
-      return fullList.slice(0, 10); 
+      return fullList.slice(0, 10);
     }
-    
-    // 4. Batasi maksimal 15 item
+
     return matched.slice(0, 15);
   }
 
@@ -1387,13 +1430,13 @@
     setTimeout(async () => {
       perf.start('init');
       log("═══════════════════════════════════════════════════", "INFO");
-      log("AUTO SCHEMA UNIVERSAL v7.36g-LITE — JASA/SEWA ONLY", "INFO");
+      log("AUTO SCHEMA UNIVERSAL v7.36h-LITE — JASA/SEWA ONLY", "INFO");
       log("═══════════════════════════════════════════════════", "INFO");
 
       try {
         await waitForPLD();
 
-        // 🔥 FIX-24: ENTITY GUARD — HANYA jasa/sewa
+        // Entity guard — HANYA jasa/sewa
         const entityTypeCheck = getEntityTypeFromPLD() || document.body.getAttribute('data-entity-type');
         if (entityTypeCheck && entityTypeCheck !== 'jasa' && entityTypeCheck !== 'sewa') {
           log(`⏭️ SKIP Universal — entity="${entityTypeCheck}" (bukan jasa/sewa)`, "SKIP");
@@ -1412,6 +1455,17 @@
 
         const pldVer = getPLDVersion();
         const aed = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
+
+        // 🔥 FIX-26: Wait for Hybrid offset
+        const hybridReady = await waitForHybridDateFinal(CONFIG.HYBRID_FINAL_TIMEOUT);
+        if (hybridReady) {
+          log(`✅ Hybrid offset READY — pakai dateModifiedFinal`, "HYBRID");
+        } else {
+          log(`⏰ Hybrid offset timeout — pakai AED dateModified`, "HYBRID");
+        }
+
+        // 🔥 FIX-26: Prefer dateModifiedFinal
+        const effectiveDateModified = (aed && (aed.dateModifiedFinal || aed.dateModified)) || undefined;
 
         const pageLevel    = getPageLevelFromPLD();
         const entityType   = getEntityTypeFromPLD();
@@ -1460,20 +1514,21 @@
           } catch(e) { log(`Error images: ${e.message}`, "ERROR"); }
         }
 
+        // 🔥 FIX-27: URL cleaning — strip ?m=1 & trailing slash
         const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
         const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
         const baseUrl = ogUrl || canonical || location.href;
-        const cleanUrl = baseUrl.replace(/[?&]m=1/, "");
+        const cleanUrl = baseUrl.replace(/[?&]m=1/, "").replace(/\/$/, "");
+
         const h1Text = document.querySelector("h1")?.innerText?.trim() || document.title;
         const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
         const description = document.querySelector('meta[name="description"]')?.content?.trim() ||
           document.querySelector("article p, main p")?.innerText?.substring(0, 200) || title;
 
-        // 🔥 FIX-25: Dynamic knowsAbout
         const knowsAbout = getDynamicKnowsAbout(CONFIG.KNOWS_ABOUT, pageLevel, entityType);
         log(`🎓 Dynamic knowsAbout: ${knowsAbout.length} item (dari total ${CONFIG.KNOWS_ABOUT.length})`, "KNOWS");
 
-        const dateModified = (aed && aed.dateModified) ? aed.dateModified : undefined;
+        const dateModified = effectiveDateModified;
         const priceValidUntil = (aed && aed.nextUpdate) ? aed.nextUpdate : undefined;
 
         const graph = [
@@ -1489,7 +1544,7 @@
             "logo": IMAGE_CONFIG.LOGO_IMAGE,
             "sameAs": ["https://www.facebook.com/betonjayareadymix", "https://www.instagram.com/betonjayareadymix"],
             "areaServed": CONFIG.AREA_SERVED,
-            "knowsAbout": knowsAbout, // 🔥 TERAPKAN DINAMIS
+            "knowsAbout": knowsAbout,
             "contactPoint": CONFIG.CONTACT_POINT
           },
           {
@@ -1602,7 +1657,7 @@
             ...(dateModified && { "dateModified": dateModified })
           };
           graph.push(techArticleNode);
-          log(`✅ TechArticle node`, "TECH");
+          log(`✅ TechArticle node — dateModified=${dateModified || 'skip'}`, "TECH");
         }
 
         if (wantCreative) {
@@ -1667,6 +1722,7 @@
         log(`   Entity guard: entity="${entityType}" ✅`, "FIX");
         log(`   Schema nodes: ${graph.map(n => n["@type"]).join(' + ')}`, "SCHEMA");
         log(`   knowsAbout: ${knowsAbout.length} item`, "KNOWS");
+        log(`   TechArticle dateModified: ${dateModified || '(skip)'}`, "HYBRID");
         log(`   Internal links: ${internalLinks.length}`, "SYNC");
         log(`   PLD version: ${pldVer.label}`, "PLD");
         log("═══════════════════════════════════════════════════", "SUCCESS");
@@ -1685,8 +1741,10 @@
   window.addEventListener('beforeunload', cleanup);
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Auto Schema v7.36g-LITE — JASA/SEWA ONLY (DYNAMIC KNOWS ABOUT)");
+  console.log("✅ Auto Schema v7.36h-LITE — JASA/SEWA ONLY (HYBRID DATE SYNC)");
   console.log("═══════════════════════════════════════════════════════════");
+  console.log("🔥 FIX-26: Hybrid dateModifiedFinal sync — wait event 500ms");
+  console.log("🔥 FIX-27: URL cleaning — strip trailing slash");
   console.log("🔥 FIX-25: Dynamic knowsAbout — filter 110 item jadi 5-15 relevan");
   console.log("🔥 FIX-24: Entity guard — hanya jasa/sewa");
   console.log("🔥 FIX-21 s/d FIX-23: Hapus author/dateModified di Answer, dll");
