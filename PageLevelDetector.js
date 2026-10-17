@@ -4,6 +4,22 @@
 BASE: v23.9.7-LITE-PERF-B2N
 PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
        + ENTITY-AWARE SCHEMA TYPE (v23.9.9)
+       + FIX-TERTIARY (Patch silent v23.9.10, versi TIDAK diubah)
+
+🩹 FIX-TERTIARY (PATCH DIAM — VERSI TETAP 23.9.10):
+   ✅ detectSchemaType() sekarang return `tertiary` field
+   ✅ GABUNG → tertiary = 'Article' (Service & Product money)
+   ✅ setSchemaAttributes() set `data-schema-type-tertiary`
+   ✅ Konsumen (Article v8.7) bisa detect GABUNG secara eksplisit
+   ✅ Backward compatible — konsumen lama tidak terpengaruh
+   ✅ Version tidak diubah agar tidak memicu reload cache
+
+🎯 ALASAN PATCH DIAM:
+   - PLD v23.9.10 tidak beri sinyal "butuh Article" untuk GABUNG
+   - Article v8.6g jadi tidak bisa generate Article di MP GABUNG
+   - Schema stack jadi 2 (Service/Product + FAQPage) — padahal Prompt B
+     Section 39 wajibkan 3 (Product + Article + FAQPage)
+   - Fix minimal, backward compatible, tanpa breaking change
 
 🔥 PRINSIP:
    ✅ JASA  : Broad-to-narrow (verb = base, target = spec)
@@ -11,7 +27,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
    ✅ MATERIAL: Frasa utuh (noun-based) + Compound-aware
    ✅ DESAIN: Frasa utuh (khusus) + Compound-aware
    ✅ SEWA  : PATCH SEWA v3
-
+   
 🎯 PERUBAHAN v23.9.8:
    ✅ COMPOUND_LIBRARY: 1 konsep = 1 layer
    ✅ countSemanticUnits(): bukan word count
@@ -4238,10 +4254,13 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
      - Article = halaman informasional
      - FAQPage / TechArticle / CreativeWork = pelengkap (secondary)
      ═══════════════════════════════════════════════════════════ */
-  function detectSchemaType(level, entityType, contentFocus) {
-    var primary = 'WebPage';
+    function detectSchemaType(level, entityType, contentFocus) {
+    // 🩹 FIX-TERTIARY (v23.9.10 patch — versi tidak diubah):
+    //    Tambah `tertiary` field untuk GABUNG
+    var primary   = 'WebPage';
     var secondary = '';
-    var note = '';
+    var tertiary  = '';   // 🩹 FIX-TERTIARY: NEW
+    var note      = '';
 
     // ─── Klasifikasi level ───
     var isEvergreen  = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].indexOf(level) !== -1;
@@ -4253,6 +4272,8 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
                         contentFocus === 'COMMERCIAL' ||
                         contentFocus === 'GABUNG');
     var isInfoOnly   = (contentFocus === 'INFORMASI');
+    // 🩹 FIX-TERTIARY: flag eksplisit GABUNG
+    var isGabungFocus = (contentFocus === 'GABUNG');
 
     // ─── Klasifikasi entity ───
     var isServiceEntity  = (entityType === 'jasa' || entityType === 'sewa');
@@ -4265,12 +4286,10 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     // ═══════════════════════════════════════════════════════════
     if (isServiceEntity) {
       if (isEvergreen) {
-        // Pillar & sub-pillar: halaman induk layanan
         primary   = 'Service';
         secondary = 'FAQPage';
         note      = 'evergreen-service';
       } else if (isVariant) {
-        // Variant/sub-variant: spesifikasi teknis layanan
         primary   = 'Service';
         secondary = 'TechArticle';
         if (isCommercial) {
@@ -4279,13 +4298,12 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
           note = 'without-offers';
         }
       } else if (isMoneyLevel) {
-        // Money: halaman penawaran layanan
         primary   = 'Service';
-        // 🩹 FIX-PLD-SCHEMA-1 (v23.9.10): secondary 'Product' → 'FAQPage'
-        //    - 'Product' misleading → Universal bikin Product PrecastProduct (SALAH)
-        //    - 'FAQPage' akurat → jasa money biasanya punya seksi FAQ
-        //    - Sinkron dengan Universal v7.36i FIX-30
         secondary = 'FAQPage';
+        // 🩹 FIX-TERTIARY: GABUNG → tambah Article sebagai tertiary
+        if (isGabungFocus) {
+          tertiary = 'Article';
+        }
         if (level === 'money-child') {
           note = 'with-areaServed';
         }
@@ -4293,14 +4311,13 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
           note = note ? (note + ',with-offers') : 'with-offers';
         }
       } else {
-        // Fallback
         primary   = 'Service';
         secondary = 'FAQPage';
       }
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 2) DESAIN → Service + CreativeWork (jasa desain)
+    // 2) DESAIN → Service + CreativeWork
     // ═══════════════════════════════════════════════════════════
     else if (isDesignEntity) {
       if (isEvergreen) {
@@ -4314,6 +4331,10 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       } else if (isMoneyLevel) {
         primary   = 'Service';
         secondary = 'CreativeWork';
+        // 🩹 FIX-TERTIARY: GABUNG → tambah Article sebagai tertiary
+        if (isGabungFocus) {
+          tertiary = 'Article';
+        }
         if (level === 'money-child') {
           note = 'with-areaServed';
         }
@@ -4331,26 +4352,24 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     // ═══════════════════════════════════════════════════════════
     else if (isProductEntity) {
       if (isEvergreen) {
-        // Pillar & sub-pillar produk: informasional (katalog/daftar)
         primary   = 'Article';
         secondary = 'FAQPage';
         note      = 'product-pillar';
       } else if (isVariant) {
-        // Variant/sub-variant: spesifikasi produk
         primary   = 'Product';
         secondary = 'TechArticle';
         note      = 'without-offers';
       } else if (isMoneyLevel) {
         if (isCommercial) {
           primary   = 'Product';
-          // 🩹 FIX-PLD-SCHEMA-2 (v23.9.10): secondary 'Service' → 'FAQPage'
-          //    - 'Service' tidak dikonsumsi Product v5.7d → dead hint
-          //    - 'FAQPage' akurat + konsisten dengan jasa/sewa money
           secondary = 'FAQPage';
+          // 🩹 FIX-TERTIARY: GABUNG → tambah Article sebagai tertiary
+          if (isGabungFocus) {
+            tertiary = 'Article';
+          }
           if (level === 'money-child') {
             note = 'with-areaServed';
           }
-          // 🔥 FIX-v23.9.9a: with-offers untuk Product commercial money
           note = note ? (note + ',with-offers') : 'with-offers';
         } else if (isInfoOnly) {
           primary   = 'Article';
@@ -4388,9 +4407,11 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       } else if (isMoneyLevel) {
         if (isCommercial) {
           primary   = 'Product';
-          // 🩹 FIX-PLD-SCHEMA-3 (v23.9.10): secondary 'Service' → 'FAQPage'
-          //    - Defensive consistency — sinkron dengan fix 1 & 2
           secondary = 'FAQPage';
+          // 🩹 FIX-TERTIARY: GABUNG → tambah Article sebagai tertiary
+          if (isGabungFocus) {
+            tertiary = 'Article';
+          }
         } else {
           primary   = 'Article';
           secondary = 'FAQPage';
@@ -4401,16 +4422,19 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     }
 
     // ─── Log (kalau DEBUG aktif) ───
+    // 🩹 FIX-TERTIARY: tampilkan tertiary di log
     if (CONFIG.DEBUG) {
       log('🔗 detectSchemaType: level=' + level +
           ', entity=' + entityType +
           ', focus=' + contentFocus +
           ' → primary=' + primary +
           ', secondary=' + secondary +
+          (tertiary ? ', tertiary=' + tertiary : '') +
           (note ? ', note=' + note : ''), 'SCHEMA');
     }
 
-    return { primary: primary, secondary: secondary, note: note };
+    // 🩹 FIX-TERTIARY: return tertiary juga
+    return { primary: primary, secondary: secondary, tertiary: tertiary, note: note };
   }
        
   /* ═══════════════════════════════════════════════════════════
@@ -4538,10 +4562,13 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       document.body.setAttribute("data-schema-type-primary",   schemaType.primary   || '');
       document.body.setAttribute("data-schema-type-secondary", schemaType.secondary || '');
 
+      // 🩹 FIX-TERTIARY (v23.9.10 patch): set tertiary — dipakai Article v8.7
+      //    untuk detect GABUNG secara eksplisit (tertiary='Article')
+      document.body.setAttribute("data-schema-type-tertiary",  schemaType.tertiary  || '');
+
       // 🔥 FIX-WAJIB: set note — dipakai Auto Schema untuk
       //    keputusan offers / areaServed / without-offers
       document.body.setAttribute("data-schema-type-note", schemaType.note || '');
-
       // ═══════════════════════════════════════════════════════
       // 🔥 CTA TYPE — entity-aware
       // ═══════════════════════════════════════════════════════
@@ -4897,8 +4924,12 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       } catch (e2) {}
     }
 
-    console.log("═══════════════════════════════════════════════════════════");
+        console.log("═══════════════════════════════════════════════════════════");
     console.log("✅ Page Level Detector v23.9.10 — SEO DIMENSION");
+    console.log("🩹 FIX-TERTIARY: tertiary schema support (silent patch)");
+    console.log("   → GABUNG: tertiary='Article' (Service & Product)");
+    console.log("   → data-schema-type-tertiary attribute");
+    console.log("   → Konsumen Article v8.7 detect GABUNG eksplisit");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🎯 PRINSIP:");
     console.log("   ✅ JASA     : Broad-to-narrow (verb = base, target = spec)");
