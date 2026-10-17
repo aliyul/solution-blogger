@@ -505,14 +505,21 @@
       return true;
     }
 
-    // ─── PRIMARY 2: PLD secondary = TechArticle (FIX-H5: hapus syarat primary !== Service/Product) ───
-    // JASA VARIANT (Service+TechArticle) → generate
-    // PRODUK VARIANT (Product+TechArticle) → generate
-    if (hint.secondary === 'TechArticle') {
-      log(`✅ TechArticle WAJIB — PLD secondary=TechArticle (primary=${hint.primary})`, "ARTICLE");
-      return true;
-    }
-
+    // ─── FIX-H5 REVISED: TechArticle di-handle Universal/Hybrid → SKIP ───
+// Rationale:
+//   - JASA/SEWA/DESAIN variant → Universal yang generate TechArticle
+//   - PRODUK/MATERIAL variant → Hybrid yang generate TechArticle
+//   - Article v8.7 HANYA handle Article/BlogPosting (bukan TechArticle)
+//   - Kalau Article generate TechArticle → DUPLIKAT dengan Universal/Hybrid
+if (hint.secondary === 'TechArticle') {
+  const ENTITIES_HANDLED_BY_OTHER = ['jasa', 'sewa', 'desain', 'produk', 'material'];
+  if (ENTITIES_HANDLED_BY_OTHER.includes(entityType)) {
+    log(`⏭️ TechArticle di-handle Universal/Hybrid (entity=${entityType}) — SKIP`, "SKIP");
+    return false;
+  }
+  log(`✅ TechArticle — entity "${entityType}" tidak di-handle script lain`, "ARTICLE");
+  return true;
+}
     // ─── PRIMARY 3: GABUNG — 3rd schema Article (FIX-H6 + FIX-H8) ───
     // Detection priority:
     //   1. tertiary = 'Article' (PLD v23.9.11+)
