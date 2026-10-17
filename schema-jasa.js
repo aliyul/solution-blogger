@@ -1,53 +1,35 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.36i-LITE COMPLETE — JASA/SEWA/DESAIN (DYNAMIC KNOWS ABOUT + HYBRID DATE SYNC)
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.36j-LITE COMPLETE — JASA/SEWA/DESAIN (DYNAMIC KNOWS ABOUT + HYBRID DATE SYNC)
    ✅ SINKRON dengan PLD v23.9.9a
    ✅ SINKRON dengan AED v17.5.6
-   ✅ SINKRON dengan Article v8.6g
-   ✅ SINKRON dengan Hybrid v5.7d
+   ✅ SINKRON dengan Article v8.8
+   ✅ SINKRON dengan Hybrid v5.7f
    ✅ SINKRON dengan HybridDateModified v10.3a-fix6
 
-   🩹🩹🩹 v7.36i-LITE CHANGELOG 🩹🩹🩹
-   ✅ FIX-28: RE-READ AEDMetaDates (belt-and-suspenders untuk FIX-26)
-              - Setelah `hybridDateFinalReady`, baca ulang `window.AEDMetaDates`
-              - Sebelumnya: pakai variabel `aed` lama (bisa stale kalau Hybrid buggy)
-              - Efek: TechArticle dateModified == meta tag dateModified
-   ✅ FIX-29: ENTITY GUARD include `desain`
-              - Sebelumnya: hanya jasa/sewa → halaman desain kosong tanpa schema
-              - Sekarang: desain ikut → Service + CreativeWork / Service + FAQPage
-              - Sinkron dengan PLD detectSchemaType() yang return Service untuk desain
-   ✅ FIX-30: wantProduct entity-restricted
-              - Sebelumnya: PLD return `Service + Product` di jasa money → Universal
-                bikin Product PrecastProduct (SALAH untuk entity jasa)
-              - Sekarang: wantProduct = true HANYA kalau entity produk/material
-              - Efek: jasa/sewa/desain tidak pernah bikin Product node
-   ✅ FIX-31: HYBRID_FINAL_TIMEOUT 500 → 1500 ms
-              - Sinkron dengan Hybrid yang wait breadcrumb 2s + AED 3.5s
-   ✅ FIX-32: PLD getter fallback v20/v19/legacy
-              - Sebelumnya: hanya cek v22 → null kalau PLD legacy
-              - Sekarang: cascade v22 → v20 → v19 → legacy + null guard di init
-   ✅ FIX-33: safeStringify() — proteksi </script>, U+2028, U+2029
-              - Sebelumnya: JSON.stringify() raw → rawan script-tag breakout
-   ✅ FIX-34: WebPage node tambah datePublished
+   🩹🩹🩹 v7.36j-LITE CHANGELOG 🩹🩹🩹
+   ✅ FIX-35: Perbaikan URL Image Cloudinary (GSC Merchant Listings)
+              - Sebelumnya: wrapText menggunakan `\n` (enter) → encodeURIComponent menghasilkan `%0A`
+              - Efek: Google Search Console menolak URL gambar dengan error "URL tidak valid"
+              - Sekarang: Teks digabung dengan spasi (bukan enter) + safety net `.replace(/%0A/gi, '%20')`
+              - Hasil: URL gambar valid 100% di Google Merchant, tampilan gambar tetap rapi.
 
-   ✅ PRESERVED dari v7.36h-LITE:
-   ✅ FIX-26: Hybrid dateModifiedFinal sync (wait event 500ms → 1500ms)
-   ✅ FIX-27: URL cleaning — strip trailing slash
-   ✅ FIX-25: Dynamic knowsAbout (SEO 2026)
-   ✅ FIX-24: Entity guard — jasa/sewa (extended ke desain)
-   ✅ FIX-21 s/d FIX-23: Hapus author di Answer, ItemList Title Case, dll
-   ✅ FIX-17: TechArticle node
-   ✅ FIX-14 s/d FIX-16: FAQ content-driven + scoped
-   ✅ FIX-5 s/d FIX-13: PLD-driven, notes, CreativeWork, dll
-   ✅ FIX-1 s/d FIX-4: ServiceType, ItemList, AED, anti-race
+   ✅ PRESERVED dari v7.36i-LITE:
+   ✅ FIX-28: RE-READ AEDMetaDates (belt-and-suspenders untuk FIX-26)
+   ✅ FIX-29: ENTITY GUARD include `desain`
+   ✅ FIX-30: wantProduct entity-restricted
+   ✅ FIX-31: HYBRID_FINAL_TIMEOUT 500 → 1500 ms
+   ✅ FIX-32: PLD getter fallback v20/v19/legacy
+   ✅ FIX-33: safeStringify() — proteksi </script>, U+2028, U+2029
+   ✅ FIX-34: WebPage node tambah datePublished
 */
 
 (function() {
   "use strict";
 
-  if (window.__AUTO_SCHEMA_VERSION === "7.36i-lite") {
-    console.log("[AutoSchema v7.36i-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTO_SCHEMA_VERSION === "7.36j-lite") {
+    console.log("[AutoSchema v7.36j-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTO_SCHEMA_VERSION = "7.36i-lite";
+  window.__AUTO_SCHEMA_VERSION = "7.36j-lite";
 
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -64,7 +46,6 @@
     SKIP_WORD_COUNT: 300,
     PLD_TIMEOUT: 1000,
     AED_TIMEOUT: 2000,
-    // 🩹 FIX-31: 500 → 1500 ms (sinkron Hybrid yang wait breadcrumb 2s + AED 3.5s)
     HYBRID_FINAL_TIMEOUT: 1500,
     BREADCRUMB_TIMEOUT: 1000,
     BREADCRUMB_READY_TIMEOUT: 1500,
@@ -158,10 +139,10 @@
       ARTICLE: "📄", TECH: "🔬", STATIC: "🗿", HYBRID: "🕐", DESIGN: "🎨",
       JSON: "🧩"
     };
-    console.log(`${icons[type] || "📘"} [Schema v7.36i-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [Schema v7.36j-LITE] ${msg}`);
   }
 
-  log(`🚀 Auto Schema v7.36i-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
+  log(`🚀 Auto Schema v7.36j-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
 
   // Early exit — homepage & static only (entity check di init)
   (function earlyExitCheck() {
@@ -183,7 +164,7 @@
   })();
 
   if (window.__SCHEMA_SKIP_REASON) {
-    console.log(`⏸️ [AutoSchema v7.36i-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
+    console.log(`⏸️ [AutoSchema v7.36j-LITE] Skip (${window.__SCHEMA_SKIP_REASON})`);
     return;
   }
 
@@ -324,9 +305,9 @@
       if (lines.length > this.MAX_LINES) {
         const merged = lines.slice(0, this.MAX_LINES - 1);
         merged.push(lines.slice(this.MAX_LINES - 1).join(' '));
-        return merged.join('\n');
+        return merged.join(' '); // ✅ FIX-35: Spasi bukan \n
       }
-      return lines.join('\n');
+      return lines.join(' '); // ✅ FIX-35: Spasi bukan \n
     },
     buildUrl(level, text) {
       const fileName = this.LEVEL_FILES[level] || 'pillar';
@@ -337,9 +318,9 @@
         displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
       }
       displayText = this.wrapText(displayText);
-      const longestLine = displayText.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
+      const longestLine = displayText; // ✅ FIX-35: Tidak perlu split \n
       const fontSize = this.calculateFontSize(longestLine.length);
-      const encodedText = encodeURIComponent(displayText);
+      const encodedText = encodeURIComponent(displayText).replace(/%0A/gi, '%20'); // ✅ FIX-35: Safety net
       return `${this.baseUrl}e_colorize:100,co_rgb:${textColor},` +
              `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},${this.GRAVITY},` +
              `c_fit,w_${this.WIDTH},h_${this.HEIGHT}/${this.QUALITY},${this.FORMAT_AUTO},${this.DPR_AUTO}/` +
@@ -354,9 +335,9 @@
         displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
       }
       displayText = this.wrapText(displayText);
-      const longestLine = displayText.split('\n').reduce((a, b) => a.length > b.length ? a : b, '');
+      const longestLine = displayText; // ✅ FIX-35: Tidak perlu split \n
       const fontSize = this.calculateFontSize(longestLine.length);
-      const encodedText = encodeURIComponent(displayText);
+      const encodedText = encodeURIComponent(displayText).replace(/%0A/gi, '%20'); // ✅ FIX-35: Safety net
       return `${this.baseUrl}e_colorize:100,co_rgb:${textColor},` +
              `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},${this.GRAVITY},` +
              `c_fit,w_${this.WIDTH},h_${this.HEIGHT}/` +
@@ -369,7 +350,6 @@
     LOGO_IMAGE: "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png"
   };
 
-  // 🩹 FIX-33: safeStringify — proteksi </script>, U+2028, U+2029
   function safeStringify(obj, indent) {
     const json = JSON.stringify(obj, null, indent);
     return json
@@ -599,7 +579,6 @@
     };
   }
 
-  // 🩹 FIX-32: PLD getter fallback v22 → v20 → v19 → legacy
   function getPageLevelFromPLD() {
     perf.start('getPageLevelFromPLD');
     const bodyLevel = document.body.getAttribute('data-page-level');
@@ -633,7 +612,6 @@
     return null;
   }
 
-  // 🩹 FIX-32: PLD getter fallback v22 → v20 → v19 → legacy
   function getEntityTypeFromPLD() {
     perf.start('getEntityTypeFromPLD');
     const bodyEntity = document.body.getAttribute('data-entity-type');
@@ -796,9 +774,6 @@
     });
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🩹 FIX-26 / FIX-31: WAIT FOR HYBRID dateModifiedFinal
-  // ═══════════════════════════════════════════════════════════
   function waitForHybridDateFinal(timeout = CONFIG.HYBRID_FINAL_TIMEOUT) {
     return new Promise((resolve) => {
       if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
@@ -966,7 +941,7 @@
       img.style.margin = '0 auto';
       img.style.padding = '0 10px';
       img.style.boxSizing = 'border-box';
-      const styleId = 'responsive-image-style-v736i';
+      const styleId = 'responsive-image-style-v736j';
       if (!document.getElementById(styleId)) {
         const style = document.createElement('style');
         style.id = styleId;
@@ -1495,7 +1470,7 @@
     setTimeout(async () => {
       perf.start('init');
       log("═══════════════════════════════════════════════════", "INFO");
-      log("AUTO SCHEMA UNIVERSAL v7.36i-LITE — JASA/SEWA/DESAIN ONLY", "INFO");
+      log("AUTO SCHEMA UNIVERSAL v7.36j-LITE — JASA/SEWA/DESAIN ONLY", "INFO");
       log("═══════════════════════════════════════════════════", "INFO");
 
       try {
@@ -1532,17 +1507,6 @@
           log(`⏰ Hybrid offset timeout — pakai AED dateModified`, "HYBRID");
         }
 
-        // ═══════════════════════════════════════════════════════
-        // 🩹 FIX-28: RE-READ AEDMetaDates setelah event
-        //
-        // SEBELUMNYA: pakai `aed` (variabel lama) → bisa stale
-        //             kalau Hybrid v10.3a buggy reassign object
-        // SEKARANG: baca `window.AEDMetaDates` (selalu object aktif)
-        //           → kalau Hybrid sudah mutate, `dateModifiedFinal` terisi
-        //           → kalau Hybrid reassign, `window.AEDMetaDates` = object baru
-        //             yang punya `dateModifiedFinal` → tetap benar
-        // Belt-and-suspenders untuk TechArticle dateModified
-        // ═══════════════════════════════════════════════════════
         const finalAed = window.AEDMetaDates || aed;
         const effectiveDateModified = (finalAed && (finalAed.dateModifiedFinal || finalAed.dateModified)) || undefined;
 
@@ -1577,9 +1541,6 @@
 
         const wantService  = (schemaPrimary === 'Service')  || (schemaSecondary === 'Service');
 
-        // 🩹 FIX-30: wantProduct HANYA untuk entity produk/material
-        // (Universal entity guard hanya jasa/sewa/desain → selalu false,
-        //  tapi defensive untuk future)
         const wantProduct  = (schemaPrimary === 'Product' || schemaSecondary === 'Product') &&
                              (entityType === 'produk' || entityType === 'material');
         const wantCreative = (schemaSecondary === 'CreativeWork');
@@ -1612,8 +1573,6 @@
           } catch(e) { log(`Error images: ${e.message}`, "ERROR"); }
         }
 
-        // 🩹 FIX-27: URL cleaning — strip ?m=1 & trailing slash
-        // 🩹 FIX-11: ogUrl || canonical order (sinkron Article/Product)
         const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
         const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
         const baseUrl = ogUrl || canonical || location.href;
@@ -1631,7 +1590,6 @@
         const priceValidUntil = (finalAed && finalAed.nextUpdate) ? finalAed.nextUpdate : undefined;
         const datePublished = finalAed && finalAed.datePublished ? finalAed.datePublished : undefined;
 
-        // 🩹 FIX-34: WebPage node + datePublished
         const graph = [
           {
             "@type": ["LocalBusiness", "GeneralContractor"],
@@ -1697,7 +1655,6 @@
           log(`✅ Service node: ${serviceType}`, "SCHEMA");
         }
 
-        // 🩹 FIX-30: wantProduct sudah entity-restricted
         if (wantProduct) {
           const category = document.body.getAttribute('data-product-category')
                         || (entityType === 'material' ? 'BuildingMaterial' : 'PrecastProduct');
@@ -1819,7 +1776,6 @@
           document.head.appendChild(el);
         }
 
-        // 🩹 FIX-33: safeStringify dengan </script>, U+2028, U+2029 protection
         el.textContent = safeStringify(schema, 2);
 
         log("═══════════════════════════════════════════════════", "SUCCESS");
@@ -1846,8 +1802,9 @@
   window.addEventListener('beforeunload', cleanup);
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Auto Schema v7.36i-LITE — JASA/SEWA/DESAIN (HYBRID DATE SYNC)");
+  console.log("✅ Auto Schema v7.36j-LITE — JASA/SEWA/DESAIN (HYBRID DATE SYNC)");
   console.log("═══════════════════════════════════════════════════════════");
+  console.log("🩹 FIX-35: URL image bersih dari %0A (Validasi GSC Merchant)");
   console.log("🩹 FIX-28: Re-read AEDMetaDates — TechArticle dateModified == meta tag");
   console.log("🩹 FIX-29: Entity guard include desain — halaman desain dapat schema");
   console.log("🩹 FIX-30: wantProduct entity-restricted — anti Product salah di jasa/sewa");
