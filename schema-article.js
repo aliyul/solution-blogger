@@ -1,54 +1,44 @@
 /**
- * 📄 Auto-Schema Generator v8.7 — ARTICLE SCHEMA + FAQ + BASE LAYER
+ * 📄 Auto-Schema Generator v8.8 — ARTICLE SCHEMA + FAQ + BASE LAYER
  *
- * 🩹 v8.7 CHANGELOG (CRITICAL PATCH):
- * ✅ FIX-H5: TechArticle untuk VARIANT — HAPUS kondisi `primary !== 'Service'/'Product'`
- *            - Sebelumnya: JASA VARIANT (Service+TechArticle) → SKIP → hilang TechArticle
- *            - Sebelumnya: PRODUK VARIANT (Product+TechArticle) → SKIP → hilang TechArticle
- *            - Sekarang: TechArticle di-generate untuk semua primary
- *            - Efek: Variant detail teknis dapat schema TechArticle yang benar
- * ✅ FIX-H6: GABUNG support — generate Article untuk MP GABUNG
- *            - Detect via: tertiary='Article' OR contentFocus='GABUNG' OR note includes 'with-offers'
- *            - Sinkron dengan Prompt B Section 39 (GABUNG = 3 schema)
- *            - Efek: jasa/produk MP GABUNG dapat Article schema (editorial freshness)
- * ✅ FIX-H7: hasStaticArticleSchema() — anti-duplikat
- *            - Cek Article/BlogPosting/TechArticle/NewsArticle static di HTML
- *            - Skip generate dinamis jika static sudah ada
- *            - Efek: cegah duplikat @type Article
- * ✅ FIX-H8: Baca `data-schema-type-tertiary` dari PLD v23.9.11+
- *            - PLD baru set tertiary untuk GABUNG
- *            - Fallback ke contentFocus + note jika tertiary kosong
-  * ✅ FIX-H9: Cross-script FAQ detection — body flag + primary guard
- *            - Set `data-faq-schema-generated=true` setelah generate FAQ
- *            - Cek flag sebelum generate FAQ (prevent duplicate dengan Universal/Hybrid)
- *            - 🩹 REVISED: SKIP FAQ untuk primary=Service/Product (GABUNG)
- *              → Biarkan Universal/Hybrid yang handle FAQ untuk money pages
- *              → Article v8.7 hanya generate FAQ untuk primary=Article (PILLAR/SP)
- *            - Efek: 100% aman dari duplikat FAQ antar script (semua skenario)
+ * 🩹 v8.8 CHANGELOG (CRITICAL PATCH — GABUNG BASE LAYER):
+ * ✅ FIX-H10: Anti-duplikat base layer untuk halaman GABUNG
+ *            - Sebelumnya: GABUNG → Article buat LocalBusiness + WebPage
+ *              padahal Universal/Hybrid sudah buat → DUPLIKAT @graph + property collision
+ *            - Sekarang: jika primary=Service/Product DAN GABUNG confirmed
+ *              → Article SKIP LocalBusiness + WebPage, hanya kirim node Article
+ *            - Efek: @graph bersih, tidak ada duplikat base layer
+ *
+ * ✅ PRESERVED dari v8.7:
+ * ✅ FIX-H5: TechArticle untuk VARIANT
+ * ✅ FIX-H6: GABUNG support (tertiary/contentFocus/note)
+ * ✅ FIX-H7: hasStaticArticleSchema() anti-duplikat
+ * ✅ FIX-H8: Baca data-schema-type-tertiary
+ * ✅ FIX-H9: Cross-script FAQ detection
  *
  * ✅ PRESERVED dari v8.6g:
- * ✅ FIX-F2: Re-read `window.AEDMetaDates` SETELAH `hybridDateFinalReady`
- * ✅ FIX-H1: Hapus `escapeJSON()` pre-stringify — fix double-escape
- * ✅ FIX-H2: `safeStringify()` — proteksi </script>, U+2028, U+2029
- * ✅ FIX-H3: `HYBRID_FINAL_TIMEOUT` 500 → 1500 ms
- * ✅ FIX-H4: Urutan canonical / og:url diseragamkan (ogUrl || canonical)
+ * ✅ FIX-F2: Re-read AEDMetaDates setelah hybridDateFinalReady
+ * ✅ FIX-H1: Hapus escapeJSON() pre-stringify
+ * ✅ FIX-H2: safeStringify()
+ * ✅ FIX-H3: HYBRID_FINAL_TIMEOUT 1500 ms
+ * ✅ FIX-H4: Canonical / og:url order
  *
  * ✅ PRESERVED dari v8.6f:
- * ✅ FIX-F: Sync dateModifiedFinal dari HybridDateModified v10.3a
- * ✅ FIX-E: Sinkronisasi Entity Base Layer
- * ✅ FIX-D: LocalBusiness + WebPage node ke @graph
- * ✅ FIX-C: FAQPage handling — konsumsi `secondary=FAQPage` dari PLD
- * ✅ FIX-A: Cloudinary image fallback
- * ✅ FIX-B: Title source dari H1
+ * ✅ FIX-F: Sync dateModifiedFinal
+ * ✅ FIX-E: Entity Base Layer
+ * ✅ FIX-D: LocalBusiness + WebPage node
+ * ✅ FIX-C: FAQPage dari PLD
+ * ✅ FIX-A: Cloudinary fallback
+ * ✅ FIX-B: Title source H1
  * ✅ FIX-G1: OWN_IDS lengkap
- * ✅ FIX-G2: Create-if-not-exists untuk #auto-schema
- * ✅ FIX-G3: URL cleaning (strip ?m=1 & trailing slash)
- * ✅ FIX-G4: LEVEL_COLORS Cloudinary
+ * ✅ FIX-G2: Create-if-not-exists #auto-schema
+ * ✅ FIX-G3: URL cleaning
+ * ✅ FIX-G4: LEVEL_COLORS
  *
  * 🔥 SINKRON dengan:
- * - PLD v23.9.10 / v23.9.11+ (dengan tertiary support)
+ * - PLD v23.9.10 / v23.9.11+ (tertiary support)
  * - AED v17.5.6
- * - HybridDateModified v10.3a-fix6 (mutate-safe)
+ * - HybridDateModified v10.3a-fix6
  * - Hybrid v5.7e-LITE
  * - Universal v7.36i-LITE
  */
@@ -56,11 +46,11 @@
 (function() {
   "use strict";
 
-  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.7") {
-    console.log("[AutoSchema Article v8.7] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.8") {
+    console.log("[AutoSchema Article v8.8] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.7";
+  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.8";
 
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -71,7 +61,6 @@
   const CONFIG = {
     DEBUG: DEBUG_MODE,
     AED_TIMEOUT: 2000,
-    // FIX-H3: 500 → 1500 ms (Hybrid: breadcrumb 2s + AED 3.5s)
     HYBRID_FINAL_TIMEOUT: 1500,
     PLD_TIMEOUT: 1000,
     BREADCRUMB_TIMEOUT: 1000,
@@ -107,7 +96,7 @@
     ARTICLE_IMG_WIDTH: 1200,
     ARTICLE_IMG_HEIGHT: 675,
     SKIP_WORD_COUNT: 300,
-    VERSION: "8.7"
+    VERSION: "8.8"
   };
 
   const AREA_SERVED = [
@@ -193,7 +182,7 @@
       CONFLICT: "🚨", CLOUD: "☁️", FAQ: "❓", STATIC: "🗿", KNOWS: "🎓",
       HYBRID: "🕐", JSON: "🧩", FIX: "🔧", GABUNG: "🔀", GATE: "🚦"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema v8.7] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema v8.8] ${msg}`);
   }
 
   function getPLDVersion() {
@@ -439,6 +428,43 @@
     return hint;
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // FIX-H10: Anti-duplikat base layer untuk halaman GABUNG
+  // ───────────────────────────────────────────────────────────────
+  // KONDISI SKIP (HARUS SEMUA TERPENUHI):
+  //   1. primary = 'Service' atau 'Product'
+  //   2. Ada konfirmasi GABUNG eksplisit:
+  //      - tertiary = 'Article' (PLD v23.9.10+), ATAU
+  //      - data-content-focus = 'GABUNG' (fallback)
+  //
+  // RATIONALE:
+  //   - Non-GABUNG Service/Product sudah SKIP di GATE (PRIMARY 5)
+  //   - PILLAR tetap generate base layer (primary='Article' atau entity=artikel)
+  //   - Hanya GABUNG yang skip → Universal/Hybrid handle base layer
+  // ═══════════════════════════════════════════════════════════════
+  function shouldSkipBaseLayer() {
+    const hint = getPLDSchemaHint();
+
+    // Guard 1: primary harus Service/Product
+    if (hint.primary !== 'Service' && hint.primary !== 'Product') {
+      return false;
+    }
+
+    // Guard 2: harus ada konfirmasi GABUNG eksplisit
+    const bodyFocus = (document.body.getAttribute('data-content-focus') || '').toUpperCase();
+    const isGabungConfirmed =
+      hint.tertiary === 'Article' ||
+      bodyFocus === 'GABUNG';
+
+    if (!isGabungConfirmed) {
+      log(`⚠️ primary=${hint.primary} tapi GABUNG tidak terkonfirmasi — base layer tetap di-generate`, "WARN");
+      return false;
+    }
+
+    log(`🛡️ Base layer SKIP — GABUNG confirmed (primary=${hint.primary}, tertiary=${hint.tertiary || '-'}, focus=${bodyFocus})`, "GABUNG");
+    return true;
+  }
+
   function shouldSkipPage() {
     const currentPath = window.location.pathname;
 
@@ -489,16 +515,16 @@
     return { pageLevel: null, entityType: null, source: 'unavailable' };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // FIX-H5 + FIX-H6 + FIX-H8: shouldGenerateArticleSchema — REVISI TOTAL
-  // ═══════════════════════════════════════════════════════════
+  // ═══════════════════════════════════════════════════════════════
+  // FIX-H5 + FIX-H6 + FIX-H8: shouldGenerateArticleSchema
+  // ═══════════════════════════════════════════════════════════════
   function shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) {
     const hint = getPLDSchemaHint();
     const bodyFocus = (document.body.getAttribute('data-content-focus') || contentFocus || '').toUpperCase();
 
     // ─── FIX-H7: Cek static Article dulu (anti-duplikat) ───
     if (hasStaticArticleSchema()) {
-      log(`⏭️ Article SKIP — static Article/TechnArticle sudah ada di HTML`, "STATIC");
+      log(`⏭️ Article SKIP — static Article/TechArticle sudah ada di HTML`, "STATIC");
       return false;
     }
 
@@ -509,25 +535,17 @@
     }
 
     // ─── FIX-H5 REVISED: TechArticle di-handle Universal/Hybrid → SKIP ───
-// Rationale:
-//   - JASA/SEWA/DESAIN variant → Universal yang generate TechArticle
-//   - PRODUK/MATERIAL variant → Hybrid yang generate TechArticle
-//   - Article v8.7 HANYA handle Article/BlogPosting (bukan TechArticle)
-//   - Kalau Article generate TechArticle → DUPLIKAT dengan Universal/Hybrid
-if (hint.secondary === 'TechArticle') {
-  const ENTITIES_HANDLED_BY_OTHER = ['jasa', 'sewa', 'desain', 'produk', 'material'];
-  if (ENTITIES_HANDLED_BY_OTHER.includes(entityType)) {
-    log(`⏭️ TechArticle di-handle Universal/Hybrid (entity=${entityType}) — SKIP`, "SKIP");
-    return false;
-  }
-  log(`✅ TechArticle — entity "${entityType}" tidak di-handle script lain`, "ARTICLE");
-  return true;
-}
+    if (hint.secondary === 'TechArticle') {
+      const ENTITIES_HANDLED_BY_OTHER = ['jasa', 'sewa', 'desain', 'produk', 'material'];
+      if (ENTITIES_HANDLED_BY_OTHER.includes(entityType)) {
+        log(`⏭️ TechArticle di-handle Universal/Hybrid (entity=${entityType}) — SKIP`, "SKIP");
+        return false;
+      }
+      log(`✅ TechArticle — entity "${entityType}" tidak di-handle script lain`, "ARTICLE");
+      return true;
+    }
+
     // ─── PRIMARY 3: GABUNG — 3rd schema Article (FIX-H6 + FIX-H8) ───
-    // Detection priority:
-    //   1. tertiary = 'Article' (PLD v23.9.11+)
-    //   2. contentFocus = 'GABUNG' + note includes 'with-offers'
-    //   3. contentFocus = 'GABUNG' saja (fallback)
     const tertiaryArticle = (hint.tertiary === 'Article');
     const noteWithOffers = /(^|,)with-offers($|,)/.test(hint.note) && !/without-offers/.test(hint.note);
     const isGabungFocus = (bodyFocus === 'GABUNG');
@@ -796,9 +814,7 @@ if (hint.secondary === 'TechArticle') {
     return false;
   }
 
-  // ═══════════════════════════════════════════════════════════
   // FIX-H7: hasStaticArticleSchema — anti-duplikat Article
-  // ═══════════════════════════════════════════════════════════
   function hasStaticArticleSchema() {
     const ARTICLE_TYPES = ['Article', 'TechArticle', 'BlogPosting', 'NewsArticle',
                            'ScholarlyArticle', 'Report', 'Review'];
@@ -806,9 +822,7 @@ if (hint.secondary === 'TechArticle') {
     const OWN_IDS = ['auto-schema-service', 'auto-schema-product'];
 
     for (const s of scripts) {
-      // Skip script dari Universal/Hybrid (bukan Article)
       if (s.id && OWN_IDS.includes(s.id)) continue;
-      // Skip #auto-schema (script ini sendiri saat re-run)
       if (s.id === 'auto-schema') continue;
 
       let json;
@@ -818,7 +832,6 @@ if (hint.secondary === 'TechArticle') {
         continue;
       }
 
-      // Direct @type
       if (typeof json['@type'] === 'string' && ARTICLE_TYPES.includes(json['@type'])) return true;
       if (Array.isArray(json['@type'])) {
         for (const t of json['@type']) {
@@ -826,7 +839,6 @@ if (hint.secondary === 'TechArticle') {
         }
       }
 
-      // @graph nodes
       if (Array.isArray(json['@graph'])) {
         for (const node of json['@graph']) {
           if (!node) continue;
@@ -839,7 +851,6 @@ if (hint.secondary === 'TechArticle') {
         }
       }
 
-      // Array of nodes
       if (Array.isArray(json)) {
         for (const node of json) {
           if (!node) continue;
@@ -1001,17 +1012,16 @@ if (hint.secondary === 'TechArticle') {
       } else {
         articleImage = CONFIG.DEFAULT_ARTICLE_IMAGE;
         imageSource = 'default-logo';
-        log(`📸 Image: DEFAULT LOGO fallback`, "IMG");
+        log(`🖼️ Image: DEFAULT LOGO fallback`, "IMG");
       }
     } else {
       imageSource = 'from-page';
-      log(`📸 Image: FROM PAGE`, "IMG");
+      log(`🖼️ Image: FROM PAGE`, "IMG");
     }
 
     const authorObj = { "@id": CONFIG.LOCALBUSINESS_ID };
     const publisherObj = { "@id": CONFIG.LOCALBUSINESS_ID };
 
-    // FIX-H1: tidak pakai escapeJSON — biarkan JSON.stringify() yang escape
     const schema = {
       "@type": articleType,
       "@id": data.url + "#article",
@@ -1105,7 +1115,6 @@ if (hint.secondary === 'TechArticle') {
   }
 
   function generateWebPageNode(pageData, parentData, dates) {
-    // FIX-H1: tidak pakai escapeJSON
     return {
       "@type": "WebPage",
       "@id": pageData.url + CONFIG.WEBPAGE_ID_SUFFIX,
@@ -1152,10 +1161,10 @@ if (hint.secondary === 'TechArticle') {
   }
 
   async function init() {
-    log("════════════════════════════════════");
-    log("Auto-Schema Generator v8.7 — ARTICLE + FAQ + BASE LAYER");
+    log("══════════════════════════════════════════════════");
+    log("Auto-Schema Generator v8.8 — ARTICLE + FAQ + BASE LAYER");
     log(`DEBUG: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
-    log("════════════════════════════════════");
+    log("══════════════════════════════════════════════════");
 
     if (shouldSkipPage()) {
       log("⏭️ Dihentikan untuk halaman ini", "SKIP");
@@ -1249,7 +1258,7 @@ if (hint.secondary === 'TechArticle') {
       }
     }
 
-        const hasStaticFAQ = hasStaticFAQPageSchema();
+    const hasStaticFAQ = hasStaticFAQPageSchema();
     // FIX-H9 REVISED: Cross-script FAQ — body flag + primary guard
     const faqAlreadyGenerated = document.body.getAttribute('data-faq-schema-generated') === 'true';
     const _hintForFAQ = getPLDSchemaHint();
@@ -1263,9 +1272,6 @@ if (hint.secondary === 'TechArticle') {
       } else if (faqAlreadyGenerated) {
         log(`⏭️ FAQPage sudah di-generate script lain (flag) — SKIP FAQ dinamis`, "STATIC");
       } else if (isServiceOrProductPrimary) {
-        // ✅ FIX-H9 REVISED: Untuk Service/Product (termasuk GABUNG),
-        //    FAQ di-handle Universal/Hybrid → Article v8.7 SKIP
-        //    Ini mencegah duplikat FAQ di skenario GABUNG tanpa static HTML
         log(`⏭️ primary=${_hintForFAQ.primary} — FAQ di-handle Universal/Hybrid → SKIP`, "SKIP");
       } else {
         faqsFromDOM = extractFaqFromDOM();
@@ -1278,6 +1284,7 @@ if (hint.secondary === 'TechArticle') {
         }
       }
     }
+
     if (articleElem && shouldGenerate) {
       const dates = effectiveDates;
 
@@ -1289,10 +1296,24 @@ if (hint.secondary === 'TechArticle') {
       const debugInfo = schemaObj.__debug || {};
       delete schemaObj.__debug;
 
-      const localBusinessNode = generateLocalBusinessNode(pageLevel, entityType);
-      const webpageNode = generateWebPageNode(pageData, parentData, dates);
+      // ═══════════════════════════════════════════════════════════
+      // FIX-H10: Conditional base layer
+      // ─────────────────────────────────────────────────────────────
+      // - GABUNG (primary=Service/Product + tertiary/focus=GABUNG):
+      //     → SKIP LocalBusiness + WebPage (di-handle Universal/Hybrid)
+      // - PILLAR / lainnya:
+      //     → Generate LocalBusiness + WebPage seperti biasa
+      // ═══════════════════════════════════════════════════════════
+      const skipBase = shouldSkipBaseLayer();
 
-      const graph = [localBusinessNode, webpageNode, schemaObj];
+      let graph;
+      if (skipBase) {
+        graph = [schemaObj];
+      } else {
+        const localBusinessNode = generateLocalBusinessNode(pageLevel, entityType);
+        const webpageNode = generateWebPageNode(pageData, parentData, dates);
+        graph = [localBusinessNode, webpageNode, schemaObj];
+      }
 
       if (wantFAQ && faqsFromDOM.length >= CONFIG.MIN_FAQ_FOR_SCHEMA) {
         const faqSchema = generateFaqSchema(faqsFromDOM, pageData, dates);
@@ -1310,7 +1331,11 @@ if (hint.secondary === 'TechArticle') {
 
       log(`📄 SCHEMA GENERATED (${articleType}${wantFAQ ? ' + FAQPage' : ''})`, "ARTICLE");
       log(`   Graph nodes: ${graph.map(n => n["@type"]).join(' + ')}`, "SCHEMA");
-      log(`   Base layer: LocalBusiness + WebPage ✅`, "SCHEMA");
+      if (skipBase) {
+        log(`   Base layer: SKIPPED (GABUNG) — referensi via @id ✅`, "GABUNG");
+      } else {
+        log(`   Base layer: LocalBusiness + WebPage ✅`, "SCHEMA");
+      }
       log(`   Publisher: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
       log(`   Author: ${CONFIG.LOCALBUSINESS_ID} 🔗`, "SYNC");
       log(`   mainEntityOfPage: ${pageData.url}${CONFIG.WEBPAGE_ID_SUFFIX} 🔗`, "SYNC");
@@ -1327,15 +1352,15 @@ if (hint.secondary === 'TechArticle') {
       log("Article schema skipped (PLD tidak menunjuk Article)", "SKIP");
     }
 
-    log("════════════════════════════════════");
-    log("FINISHED (v8.7)", "SUCCESS");
+    log("══════════════════════════════════════════════════");
+    log("FINISHED (v8.8)", "SUCCESS");
     log(`   Page Level: ${pageLevel}`, "SUCCESS");
     log(`   Entity Type: ${entityType}`, "SUCCESS");
     log(`   Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
     log(`   Kategori: ${kategori || 'NULL'}`, "KATEGORI");
     log(`   Article Schema: ${shouldGenerate ? 'GENERATED ✅' : 'SKIPPED ⏭️'}`, "ARTICLE");
     log(`   FAQ Schema: ${wantFAQ ? 'GENERATED ✅' : (hasStaticFAQ ? 'STATIC ⏭️' : (faqAlreadyGenerated ? 'FLAG ⏭️' : 'SKIPPED ⏭️'))}`, "FAQ");
-    log("════════════════════════════════════");
+    log("══════════════════════════════════════════════════");
   }
 
   if (document.readyState === "loading") {
@@ -1344,12 +1369,9 @@ if (hint.secondary === 'TechArticle') {
     init();
   }
 
-  console.log(`✅ [AutoSchema v8.7] Ready — PLD-DRIVEN + FAQ + GABUNG + BASE LAYER SYNC`);
-  console.log(`🩹 FIX-H5: TechArticle untuk VARIANT — hapus kondisi primary !== 'Service'/'Product'`);
-  console.log(`🩹 FIX-H6: GABUNG support — generate Article untuk MP GABUNG (tertiary/contentFocus/note)`);
-  console.log(`🩹 FIX-H7: hasStaticArticleSchema() — anti-duplikat Article static`);
-  console.log(`🩹 FIX-H8: Baca data-schema-type-tertiary dari PLD v23.9.11+`);
-    console.log(`🩹 FIX-H9 REVISED: Cross-script FAQ — body flag + SKIP Service/Product primary`);
+  console.log(`✅ [AutoSchema v8.8] Ready — PLD-DRIVEN + FAQ + GABUNG + BASE LAYER SYNC`);
+  console.log(`🩹 FIX-H10: Anti-duplikat base layer GABUNG — SKIP LocalBusiness+WebPage saat GABUNG`);
+  console.log(`✅ PRESERVED: FIX-H5, FIX-H6, FIX-H7, FIX-H8, FIX-H9`);
   console.log(`✅ PRESERVED: FIX-F2, FIX-H1, FIX-H2, FIX-H3, FIX-H4`);
   console.log(`✅ PRESERVED: FIX-A s/d FIX-G4 dari v8.6f`);
 
