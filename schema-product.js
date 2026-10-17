@@ -1,18 +1,25 @@
-/* ⚡ AutoSchema Hybrid v5.7d-LITE COMPLETE — PRODUCT SCHEMA (DYNAMIC KNOWS ABOUT + HYBRID DATE SYNC)
-   ✅ SINKRON dengan PLD v23.9.9a
-   ✅ SINKRON dengan AED v17.5.x
-   ✅ SINKRON dengan HybridDateModified v10.3a
-   ✅ SINKRON dengan Article v8.6f
-   ✅ SINKRON dengan Universal v7.36g
+/* ⚡ AutoSchema Hybrid v5.7e-LITE COMPLETE — PRODUCT SCHEMA (DYNAMIC KNOWS ABOUT + HYBRID DATE SYNC)
+   ✅ SINKRON dengan PLD v23.9.10
+   ✅ SINKRON dengan AED v17.5.6
+   ✅ SINKRON dengan HybridDateModified v10.3a-fix6
+   ✅ SINKRON dengan Article v8.6g
+   ✅ SINKRON dengan Universal v7.36i-LITE
 
-   🔥🔥🔥 v5.7d-LITE CHANGELOG 🔥🔥🔥
-   ✅ FIX-15: HYBRID DATE SYNC (v10.3a compatible)
-              - Wait event `hybridDateFinalReady` max 500ms
-              - Baca `AEDMetaDates.dateModifiedFinal` (bukan dateModified)
-              - Fallback ke dateModified kalau event tidak fire
-              - Effect: TechArticle dateModified = meta tag dateModified
+   🩹🩹🩹 v5.7e-LITE CHANGELOG 🩹🩹🩹
+   ✅ FIX-16: HYBRID_FINAL_TIMEOUT 500 → 1500 ms
+              - Sebelumnya: product schema generate sebelum HybridDateModified
+                fire event → dateModifiedFinal tidak terbaca
+              - Efek: schema dateModified ≠ meta tag dateModified
+              - Sekarang: sinkron dengan Universal v7.36i FIX-31 & Article v8.6g FIX-H3
+   ✅ FIX-17: safeStringify() — proteksi </script>, U+2028, U+2029
+              - Sebelumnya: JSON.stringify() raw → rawan script-tag breakout
+              - Sekarang: karakter `<` di-escape jadi `\u003c`
+   ✅ FIX-18: getPLDVersion support v23.9.10
+              - Sebelumnya: v23.9.10 → label fallback "v23.0.0"
+              - Sekarang: label "v23.9.10-lite"
 
-   ✅ PRESERVED dari v5.7c-LITE:
+   ✅ PRESERVED dari v5.7d-LITE:
+   ✅ FIX-15: Hybrid dateModifiedFinal sync (wait event 500ms → 1500ms)
    ✅ FIX-14: Dynamic knowsAbout (SEO 2026)
    ✅ FIX-13: Entity guard — HANYA produk/material
    ✅ FIX-11: Hapus author + dateModified di Answer
@@ -29,11 +36,11 @@
 (function() {
   "use strict";
 
-  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.7d-lite") {
-    console.log("[AutoSchema Hybrid v5.7d-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.7e-lite") {
+    console.log("[AutoSchema Hybrid v5.7e-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_HYBRID_VERSION = "5.7d-lite";
+  window.__AUTOSCHEMA_HYBRID_VERSION = "5.7e-lite";
 
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -49,7 +56,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.7d-LITE] 🚫 Blocked external fetch:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.7e-LITE] 🚫 Blocked external fetch:', url);
       return Promise.reject(new Error('Blocked by CORB prevention'));
     }
     return originalFetch.apply(this, args);
@@ -62,7 +69,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.7d-LITE] 🚫 Blocked external XHR:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.7e-LITE] 🚫 Blocked external XHR:', url);
       throw new Error('Blocked by CORB prevention');
     }
     return originalXHROpen.call(this, method, url, ...rest);
@@ -76,7 +83,8 @@
     MAX_PRICE: 100000000,
     PLD_TIMEOUT: 1000,
     AED_TIMEOUT: 2000,
-    HYBRID_FINAL_TIMEOUT: 500,
+    // 🩹 FIX-16: 500 → 1500 ms (sinkron Universal v7.36i FIX-31 & Article v8.6g FIX-H3)
+    HYBRID_FINAL_TIMEOUT: 1500,
     BREADCRUMB_TIMEOUT: 1000,
     BREADCRUMB_READY_TIMEOUT: 1500,
     BREADCRUMB_GENERATED_TIMEOUT: 2000,
@@ -271,6 +279,15 @@
 
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
+  // 🩹 FIX-17: safeStringify — proteksi </script>, U+2028, U+2029
+  function safeStringify(obj, indent) {
+    const json = JSON.stringify(obj, null, indent);
+    return json
+      .replace(/</g, "\\u003c")
+      .replace(/\u2028/g, "\\u2028")
+      .replace(/\u2029/g, "\\u2029");
+  }
+
   class ErrorBoundary {
     constructor() { this.fallbacks = new Map(); }
     register(fnName, fallback) { this.fallbacks.set(fnName, fallback); }
@@ -279,7 +296,7 @@
         return await fn(...args);
       } catch (error) {
         const fallback = this.fallbacks.get(fnName);
-        if (CONFIG.DEBUG) console.error(`❌ [Hybrid v5.7d] Error in ${fnName}:`, error);
+        if (CONFIG.DEBUG) console.error(`❌ [Hybrid v5.7e] Error in ${fnName}:`, error);
         if (fallback) return typeof fallback === 'function' ? fallback(...args) : fallback;
         return null;
       }
@@ -297,7 +314,7 @@
     end(label) {
       if (!CONFIG.DEBUG || !this.marks[label]) return 0;
       const duration = performance.now() - this.marks[label];
-      console.log(`⏱️ [PERF v5.7d-LITE] ${label}: ${duration.toFixed(2)}ms`);
+      console.log(`⏱️ [PERF v5.7e-LITE] ${label}: ${duration.toFixed(2)}ms`);
       delete this.marks[label];
       return duration;
     }
@@ -336,12 +353,14 @@
       KNOWS: "🎓", SYNC: "🔗", FAQ: "❓", TECH: "🔬", STATIC: "🗿",
       ARTICLE: "📄", HYBRID: "🕐"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.7d-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.7e-LITE] ${msg}`);
   }
 
+  // 🩹 FIX-18: getPLDVersion support v23.9.10
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
       const v = String(window.pageLevelDetectorv22.version);
+      if (v.indexOf("23.9.10") === 0) return { version: v, family: "v23-lite", label: "v23.9.10-lite" };
       if (v.indexOf("23.9.9a") === 0) return { version: v, family: "v23-lite", label: "v23.9.9a-lite" };
       if (v.indexOf("23.9.9") === 0) return { version: v, family: "v23-lite", label: "v23.9.9-lite" };
       if (v.indexOf("23.9.8") === 0) return { version: v, family: "v23-lite", label: "v23.9.8-lite" };
@@ -381,19 +400,19 @@
 
     if (!isMoneyLevel) {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'not-money-level';
-      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7d-LITE] SKIP: level "${pageLevel}" bukan money level`);
+      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7e-LITE] SKIP: level "${pageLevel}" bukan money level`);
       return;
     }
 
     if (contentFocus === 'INFORMASI') {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'money-informasi';
-      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7d-LITE] SKIP: money level + INFORMASI`);
+      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7e-LITE] SKIP: money level + INFORMASI`);
       return;
     }
 
     window.__AUTOSCHEMA_HYBRID_SKIP_REASON = null;
     if (CONFIG.DEBUG) {
-      console.log(`✅ [AutoSchema Hybrid v5.7d-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
+      console.log(`✅ [AutoSchema Hybrid v5.7e-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
     }
   })();
 
@@ -1391,7 +1410,7 @@
     });
   }
 
-  // 🔥 FIX-15: Wait for Hybrid dateModifiedFinal
+  // 🩹 FIX-16: Wait for Hybrid dateModifiedFinal (timeout 1500ms)
   function waitForHybridDateFinal(timeout = CONFIG.HYBRID_FINAL_TIMEOUT) {
     return new Promise((resolve) => {
       if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
@@ -1455,7 +1474,7 @@
   async function init() {
     perf.start('init');
     log("═══════════════════════════════════════════════════");
-    log("AutoSchema Hybrid v5.7d-LITE — PRODUCT SCHEMA (DYNAMIC KNOWS ABOUT + HYBRID DATE SYNC)");
+    log("AutoSchema Hybrid v5.7e-LITE — PRODUCT SCHEMA (DYNAMIC KNOWS ABOUT + HYBRID DATE SYNC)");
     log(`DEBUG Mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("═══════════════════════════════════════════════════");
 
@@ -1470,7 +1489,7 @@
 
       const aed = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
 
-      // 🔥 FIX-15: Wait for Hybrid offset
+      // 🩹 FIX-16: Wait for Hybrid offset (timeout 1500ms)
       const hybridReady = await waitForHybridDateFinal(CONFIG.HYBRID_FINAL_TIMEOUT);
       if (hybridReady) {
         log(`✅ Hybrid offset READY — pakai dateModifiedFinal`, "HYBRID");
@@ -1478,8 +1497,15 @@
         log(`⏰ Hybrid offset timeout — pakai AED dateModified`, "HYBRID");
       }
 
-      // 🔥 FIX-15: Prefer dateModifiedFinal
-      const effectiveDateModified = (aed && (aed.dateModifiedFinal || aed.dateModified)) || null;
+      // Re-read AEDMetaDates setelah event (belt-and-suspenders)
+      const finalAed = window.AEDMetaDates || aed;
+      const effectiveDateModified = (finalAed && (finalAed.dateModifiedFinal || finalAed.dateModified)) || null;
+
+      if (finalAed && finalAed.dateModifiedFinal) {
+        log(`📅 TechArticle dateModified = dateModifiedFinal: ${effectiveDateModified}`, "HYBRID");
+      } else {
+        log(`📅 TechArticle dateModified = AED original: ${effectiveDateModified || '(skip)'}`, "AED");
+      }
 
       const pldVer = getPLDVersion();
       const pageLevel = getPageLevelFromPLD();
@@ -1730,13 +1756,14 @@
         document.head.appendChild(existingScript);
       }
 
+      // 🩹 FIX-17: pakai safeStringify (proteksi </script>, U+2028, U+2029)
       const indent = CONFIG.DEBUG ? 2 : 0;
-      existingScript.textContent = JSON.stringify({
+      existingScript.textContent = safeStringify({
         "@context": "https://schema.org",
         "@graph": graph
-      }, null, indent);
+      }, indent);
 
-      log("✅ PRODUCT SCHEMA INJECTED (v5.7d-LITE HYBRID DATE SYNC)", "SUCCESS");
+      log("✅ PRODUCT SCHEMA INJECTED (v5.7e-LITE HYBRID DATE SYNC)", "SUCCESS");
       log(`   Schema nodes: ${graph.map(n => n["@type"]).join(' + ')}`, "SCHEMA");
       log(`   Product: ${productName}`, "SUCCESS");
       log(`   Entity guard: entity="${entityType}" ✅`, "FIX");
@@ -1747,7 +1774,7 @@
       log(`   Internal links: ${internalLinks.length}`, "SYNC");
       log("═══════════════════════════════════════════════════");
     } catch (error) {
-      console.error('❌ [Hybrid v5.7d] Fatal error in init:', error);
+      console.error('❌ [Hybrid v5.7e] Fatal error in init:', error);
       log(`Fatal error: ${error.message}`, "ERROR");
     } finally {
       perf.end('init');
@@ -1768,8 +1795,11 @@
 
   window.addEventListener('beforeunload', cleanup);
 
-  console.log(`✅ [AutoSchema Hybrid v5.7d-LITE] Ready — HYBRID DATE SYNC (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
-  console.log(`🔥 FIX-15: Hybrid dateModifiedFinal sync — wait event 500ms`);
+  console.log(`✅ [AutoSchema Hybrid v5.7e-LITE] Ready — HYBRID DATE SYNC (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`🩹 FIX-16: HYBRID_FINAL_TIMEOUT 500 → 1500 ms`);
+  console.log(`🩹 FIX-17: safeStringify() — proteksi </script>, U+2028, U+2029`);
+  console.log(`🩹 FIX-18: getPLDVersion support v23.9.10`);
+  console.log(`🔥 FIX-15: Hybrid dateModifiedFinal sync — wait event`);
   console.log(`🔥 FIX-14: Dynamic knowsAbout — filter 110 item jadi 5-15 relevan`);
   console.log(`🔥 FIX-13: Entity guard — hanya produk/material`);
   console.log(`🔥 FIX-11: Hapus author/dateModified di Answer`);
