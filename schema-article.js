@@ -1,32 +1,41 @@
 /**
- * 📄 Auto-Schema Generator v8.6e — ARTICLE SCHEMA + FAQ + BASE LAYER
+ * 📄 Auto-Schema Generator v8.6f — ARTICLE SCHEMA + FAQ + BASE LAYER
  *
- * 🔥 v8.6e CHANGELOG:
- * ✅ FIX-E: Sinkronisasi Entity Base Layer dengan Universal v7.36g & Hybrid v5.7c
- *          - Tambah AREA_SERVED + CONTACT_POINT ke generateLocalBusinessNode()
- *          - Tambah Dynamic KNOWS_ABOUT (Pillar = Full 110, Money = 5-15 relevan)
- *          - Efek: Entity profile di halaman Pillar/Sub-pillar jadi 100% lengkap
+ * 🔥 v8.6f CHANGELOG:
+ * ✅ FIX-F: Sync dateModifiedFinal dari HybridDateModified v10.3a
+ *          - Baca `dateModifiedFinal` (bukan `dateModified`)
+ *          - Wait event `hybridDateFinalReady` max 500ms
+ *          - Fallback ke `dateModified` kalau event tidak fire
  *
- * ✅ PRESERVED dari v8.6d:
- * ✅ FIX-D: Tambah LocalBusiness + WebPage node ke @graph
+ * ✅ PRESERVED dari v8.6e:
+ * ✅ FIX-E: Sinkronisasi Entity Base Layer dengan Universal v7.36g & Hybrid v5.7d
+ * ✅ FIX-D: LocalBusiness + WebPage node ke @graph
  * ✅ FIX-C: FAQPage handling — konsumsi `secondary=FAQPage` dari PLD
  * ✅ FIX-A: Cloudinary image fallback
  * ✅ FIX-B: Title source dari H1
- * ✅ FIX-5: shouldGenerateArticleSchema() — PLD-driven
- * ✅ FIX-6: getArticleType() — prioritas PLD secondary
- * ✅ FIX-7: Anti-tabrakan dengan Service/Product
- * ✅ FIX-8: Sync PLD v23.9.9 (entity-aware detectSchemaType)
- * ✅ FIX-9: Fallback legacy tetap ada untuk PLD lama
+ *
+ * ✅ FIX BARU dari audit v8.6e → v8.6f:
+ * ✅ FIX-G1: OWN_IDS lengkap (auto-schema-service, auto-schema-product, auto-schema)
+ * ✅ FIX-G2: Create-if-not-exists untuk #auto-schema element
+ * ✅ FIX-G3: URL cleaning (strip ?m=1 & trailing slash)
+ * ✅ FIX-G4: LEVEL_COLORS Cloudinary (money=FFFFFF, pillar=FFD700)
+ *
+ * 🔥 SINKRON dengan:
+ * - PLD v23.9.9a
+ * - AED v17.5.6
+ * - HybridDateModified v10.3a
+ * - Hybrid v5.7d
+ * - Universal v7.36g
  */
 
 (function() {
   "use strict";
 
-  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6e") {
-    console.log("[AutoSchema Article v8.6e] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_ARTICLE_VERSION === "8.6f") {
+    console.log("[AutoSchema Article v8.6f] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6e";
+  window.__AUTOSCHEMA_ARTICLE_VERSION = "8.6f";
 
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -37,6 +46,7 @@
   const CONFIG = {
     DEBUG: DEBUG_MODE,
     AED_TIMEOUT: 2000,
+    HYBRID_FINAL_TIMEOUT: 500,
     PLD_TIMEOUT: 1000,
     BREADCRUMB_TIMEOUT: 1000,
     BREADCRUMB_GENERATED_TIMEOUT: 2000,
@@ -61,7 +71,7 @@
     },
 
     MIN_EDITORIAL_WORDS: 300,
-    MIN_EDITORIAL_PARAGRAPHS: 3,
+    MIN_EDITORIAL_PARAGRAPHS: 2,
     MIN_EDITORIAL_HEADINGS: 2,
 
     MAX_FAQ_ITEMS: 8,
@@ -71,10 +81,9 @@
     ARTICLE_IMG_WIDTH: 1200,
     ARTICLE_IMG_HEIGHT: 675,
     SKIP_WORD_COUNT: 300,
-    VERSION: "8.6e"
+    VERSION: "8.6f"
   };
 
-  // 🔥 FIX-E v8.6e: Sync dengan Universal & Hybrid
   const AREA_SERVED = [
     { "@type": "Country", "name": "Indonesia" },
     { "@type": "AdministrativeArea", "name": "DKI Jakarta" },
@@ -142,8 +151,6 @@
     "Teknik Sipil", "Bangunan", "Renovasi", "Pembangunan"
   ];
 
-  const LOGO_IMAGE = CONFIG.DEFAULT_ARTICLE_IMAGE.url;
-
   const STATIC_PAGES = [
     '/p/hubungi-kami.html', '/p/portofolio.html', '/p/disclaimer.html',
     '/p/privacy-policy.html', '/p/terms-of-service.html', '/p/useful-links.html',
@@ -157,14 +164,16 @@
       FOCUS: "🎯", SKIP: "⏭️", BREADCRUMB: "🍞", AED: "⚡",
       PLD: "🔷", KATEGORI: "🏷️", SCHEMA: "🔗", ARTICLE: "📄",
       IMG: "🖼️", EDITORIAL: "✍️", SYNC: "🔗", URL: "🌐",
-      CONFLICT: "🚨", CLOUD: "☁️", FAQ: "❓", STATIC: "🗿", KNOWS: "🎓"
+      CONFLICT: "🚨", CLOUD: "☁️", FAQ: "❓", STATIC: "🗿", KNOWS: "🎓",
+      HYBRID: "🕐"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema v8.6e] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema v8.6f] ${msg}`);
   }
 
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
       var v = String(window.pageLevelDetectorv22.version);
+      if (v.indexOf("23.9.9a") === 0) return { version: v, family: "v23-lite", label: "v23.9.9a-lite" };
       if (v.indexOf("23.9.9") === 0) return { version: v, family: "v23-lite", label: "v23.9.9-lite" };
       if (v.indexOf("23.9.8") === 0) return { version: v, family: "v23-lite", label: "v23.9.8-lite" };
       if (v.indexOf("23.9.7") === 0) return { version: v, family: "v23-lite", label: "v23.9.7-lite" };
@@ -293,6 +302,49 @@
             datePublished: fallbackDate,
             dateModified: fallbackDate
           });
+        }
+      }, 100);
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX-F v8.6f: WAIT FOR HYBRID dateModifiedFinal
+  // ═══════════════════════════════════════════════════════════
+  function waitForHybridDateFinal(timeout = CONFIG.HYBRID_FINAL_TIMEOUT) {
+    return new Promise((resolve) => {
+      if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
+        log(`✅ Hybrid dateModifiedFinal READY (instant): ${window.AEDMetaDates.dateModifiedFinal}`, "HYBRID");
+        resolve(true);
+        return;
+      }
+
+      let resolved = false;
+      const finish = (ok) => {
+        if (resolved) return;
+        resolved = true;
+        resolve(ok);
+      };
+
+      const onReady = () => {
+        log(`✅ Hybrid dateModifiedFinal READY (event)`, "HYBRID");
+        finish(true);
+      };
+      window.addEventListener('hybridDateFinalReady', onReady, { once: true });
+
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
+          clearInterval(interval);
+          window.removeEventListener('hybridDateFinalReady', onReady);
+          log(`✅ Hybrid dateModifiedFinal READY (polling)`, "HYBRID");
+          finish(true);
+          return;
+        }
+        if (Date.now() - startTime > timeout) {
+          clearInterval(interval);
+          window.removeEventListener('hybridDateFinalReady', onReady);
+          log(`⏰ Hybrid dateModifiedFinal timeout (${timeout}ms) — fallback ke AED dateModified`, "WARN");
+          finish(false);
         }
       }, 100);
     });
@@ -594,6 +646,7 @@
     return null;
   }
 
+  // 🔥 FIX-G4: LEVEL_COLORS sync dengan Hybrid/Universal
   const CLOUDINARY_ARTICLE_CONFIG = {
     CLOUD_NAME: 'vagzz5sa',
     VERSION: 'v1789109159',
@@ -603,7 +656,6 @@
     QUALITY: 'q_auto:good',
     FORMAT: 'f_auto',
     DPR: 'dpr_auto',
-    COLOR: 'FFD700',
     LEVEL_FILES: {
       'pillar': 'pillar',
       'sub-pillar-tipe-2': 'sp2',
@@ -613,6 +665,12 @@
       'money-child': 'mc',
       'variant': 'variant',
       'sub-variant': 'subvariant'
+    },
+    // 🔥 FIX-G4: pakai LEVEL_COLORS (bukan hardcoded FFD700)
+    LEVEL_COLORS: {
+      'pillar': 'FFD700', 'sub-pillar-tipe-2': 'FFD700', 'sub-pillar-tipe-1': 'FFD700',
+      'money-master': 'FFFFFF', 'money-page': 'FFFFFF', 'money-child': 'FFFFFF',
+      'variant': 'FFD700', 'sub-variant': 'FFD700'
     }
   };
 
@@ -620,6 +678,7 @@
     try {
       const cfg = CLOUDINARY_ARTICLE_CONFIG;
       const fileName = cfg.LEVEL_FILES[pageLevel] || 'sp1';
+      const textColor = cfg.LEVEL_COLORS[pageLevel] || 'FFD700';
       const cleanTitle = String(title || 'Artikel')
         .substring(0, 40)
         .replace(/[^\w\s-]/g, '')
@@ -627,7 +686,7 @@
       const encodedText = encodeURIComponent(cleanTitle);
 
       return `https://res.cloudinary.com/${cfg.CLOUD_NAME}/image/upload/` +
-             `e_colorize:100,co_rgb:${cfg.COLOR},` +
+             `e_colorize:100,co_rgb:${textColor},` +
              `l_text:${cfg.FONT}_40_bold:${encodedText},g_center,` +
              `c_fit,w_${cfg.WIDTH},h_${cfg.HEIGHT}/` +
              `${cfg.QUALITY},${cfg.FORMAT},${cfg.DPR}/` +
@@ -638,9 +697,10 @@
     }
   }
 
+  // 🔥 FIX-G1: OWN_IDS lengkap — sinkron dengan Hybrid & Universal
   function hasStaticFAQPageSchema() {
     const scripts = document.querySelectorAll('script[type="application/ld+json"]');
-    const OWN_IDS = ['auto-schema'];
+    const OWN_IDS = ['auto-schema-service', 'auto-schema-product', 'auto-schema'];
 
     for (const s of scripts) {
       if (s.id && OWN_IDS.includes(s.id)) continue;
@@ -740,38 +800,37 @@
     return faqs;
   }
 
-  // 🔥 FIX-E v8.6e: DYNAMIC KNOWS ABOUT
   function getPageKeywordsForSchema() {
     var h1 = document.querySelector('h1') ? (document.querySelector('h1').innerText || '').toLowerCase() : '';
     var slug = window.location.pathname.replace(/\.html$/, '').replace(/-/g, ' ').split('/').pop().toLowerCase();
     var text = (h1 + ' ' + slug);
-    
+
     text = text.replace(/\b(jasa|harga|biaya|terbaru|update|di|ke|dari|dan|yang|untuk|dengan|adalah|atau|ini|itu|kami|anda|pada|akan|juga|bisa|dapat|tidak|oleh|terbaik|murah|berkualitas|profesional|indonesia|jakarta|bogor|depok|tangerang|bekasi|jabodetabek)\b/g, ' ');
-    
+
     return text.split(/\s+/).filter(function(w) { return w.length > 3; });
   }
 
   function getDynamicKnowsAbout(fullList, pageLevel, entityType) {
     if (['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].indexOf(pageLevel) !== -1) {
-      return fullList; 
+      return fullList;
     }
-    
+
     var keywords = getPageKeywordsForSchema();
     if (keywords.length === 0) return fullList.slice(0, 12);
-    
+
     var matched = fullList.filter(function(item) {
       var itemLower = item.toLowerCase();
       return keywords.some(function(kw) {
         return itemLower.indexOf(kw) !== -1;
       });
     });
-    
+
     if (matched.length < 3) {
-      var specific = fullList.filter(function(i) { 
-        return i.toLowerCase().indexOf(entityType) !== -1; 
+      var specific = fullList.filter(function(i) {
+        return i.toLowerCase().indexOf(entityType) !== -1;
       });
       if (specific.length >= 3) return specific.slice(0, 10);
-      return fullList.slice(0, 10); 
+      return fullList.slice(0, 10);
     }
     return matched.slice(0, 15);
   }
@@ -894,9 +953,6 @@
     };
   }
 
-  // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX-E v8.6e: LOCALBUSINESS DENGAN KNOWS ABOUT DINAMIS
-  // ═══════════════════════════════════════════════════════════
   function generateLocalBusinessNode(pageLevel, entityType) {
     const dynamicKnowsAbout = getDynamicKnowsAbout(KNOWS_ABOUT, pageLevel, entityType);
     log(`🎓 Dynamic knowsAbout: ${dynamicKnowsAbout.length} item (dari total ${KNOWS_ABOUT.length})`, "KNOWS");
@@ -920,9 +976,9 @@
         "https://www.facebook.com/betonjayareadymix",
         "https://www.instagram.com/betonjayareadymix"
       ],
-      "areaServed": AREA_SERVED,            // 🔥 FIX-E: Ditambahkan
-      "knowsAbout": dynamicKnowsAbout,      // 🔥 FIX-E: Ditambahkan
-      "contactPoint": CONTACT_POINT         // 🔥 FIX-E: Ditambahkan
+      "areaServed": AREA_SERVED,
+      "knowsAbout": dynamicKnowsAbout,
+      "contactPoint": CONTACT_POINT
     };
   }
 
@@ -945,8 +1001,12 @@
     };
   }
 
+  // 🔥 FIX-G3: URL cleaning — strip ?m=1 & trailing slash
   function extractPageData() {
-    const url = location.href.split("?")[0];
+    const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
+    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
+    const rawUrl = canonical || ogUrl || location.href;
+    const url = rawUrl.replace(/[?&]m=1/, '').replace(/\/$/, '');
 
     const h1El = document.querySelector('h1');
     const h1Title = (h1El?.innerText || h1El?.textContent || '').trim();
@@ -970,7 +1030,7 @@
 
   async function init() {
     log("════════════════════════════════════");
-    log("Auto-Schema Generator v8.6e — ARTICLE + FAQ + BASE LAYER");
+    log("Auto-Schema Generator v8.6f — ARTICLE + FAQ + BASE LAYER");
     log(`DEBUG: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("════════════════════════════════════");
 
@@ -1014,7 +1074,39 @@
     const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     if (aedData) log(`✅ AED ready: ${aedData.dateModified}`, "AED");
 
-    const articleElem = document.getElementById("auto-schema");
+    // 🔥 FIX-F v8.6f: Wait for Hybrid offset, max 500ms
+    const hybridReady = await waitForHybridDateFinal(CONFIG.HYBRID_FINAL_TIMEOUT);
+    if (hybridReady) {
+      log(`✅ Hybrid offset READY`, "HYBRID");
+    } else {
+      log(`⏰ Hybrid offset timeout — pakai AED dateModified`, "HYBRID");
+    }
+
+    // 🔥 FIX-F v8.6f: Prefer dateModifiedFinal (offset) untuk sync meta tag
+    const effectiveDates = aedData ? {
+      datePublished: aedData.datePublished,
+      dateModified: aedData.dateModifiedFinal || aedData.dateModified
+    } : {
+      datePublished: new Date().toISOString(),
+      dateModified: new Date().toISOString()
+    };
+
+    if (aedData && aedData.dateModifiedFinal) {
+      log(`📅 Schema dateModified = dateModifiedFinal (offset): ${effectiveDates.dateModified}`, "HYBRID");
+    } else {
+      log(`📅 Schema dateModified = AED original: ${effectiveDates.dateModified}`, "AED");
+    }
+
+    // 🔥 FIX-G2: Create-if-not-exists untuk #auto-schema element
+    let articleElem = document.getElementById("auto-schema");
+    if (!articleElem) {
+      articleElem = document.createElement("script");
+      articleElem.type = "application/ld+json";
+      articleElem.id = "auto-schema";
+      document.head.appendChild(articleElem);
+      log(`🆕 Created #auto-schema element (was missing)`, "SCHEMA");
+    }
+
     const shouldGenerate = shouldGenerateArticleSchema(pageLevel, entityType, contentFocus);
 
     if (shouldGenerate) {
@@ -1026,7 +1118,7 @@
 
       if (!isEditorial) {
         log("⏸️ SKIP Article: bukan editorial content", "SKIP");
-        if (articleElem) articleElem.textContent = "";
+        articleElem.textContent = "";
         return;
       }
     }
@@ -1051,10 +1143,7 @@
     }
 
     if (articleElem && shouldGenerate) {
-      const dates = aedData || {
-        datePublished: new Date().toISOString(),
-        dateModified: new Date().toISOString()
-      };
+      const dates = effectiveDates;
 
       const pageData = extractPageData();
       const articleType = getArticleType(pageLevel);
@@ -1064,9 +1153,6 @@
       const debugInfo = schemaObj.__debug || {};
       delete schemaObj.__debug;
 
-      // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-E (v8.6e): BASE LAYER + ARTICLE + FAQ
-      // ═══════════════════════════════════════════════════════
       const localBusinessNode = generateLocalBusinessNode(pageLevel, entityType);
       const webpageNode = generateWebPageNode(pageData, parentData, dates);
 
@@ -1092,6 +1178,8 @@
       log(`   isPartOf: ${parentData.parentName} ✅`, "SCHEMA");
       log(`   Image source: ${debugInfo.imageSource || 'unknown'}`, "IMG");
       log(`   Title (H1): "${pageData.h1Title?.substring(0, 50) || '(empty)'}"`, "URL");
+      log(`   datePublished: ${dates.datePublished}`, "HYBRID");
+      log(`   dateModified: ${dates.dateModified}`, "HYBRID");
       if (wantFAQ) {
         log(`   FAQ: ${faqsFromDOM.length} pertanyaan`, "FAQ");
       }
@@ -1101,7 +1189,7 @@
     }
 
     log("════════════════════════════════════");
-    log("FINISHED (v8.6e)", "SUCCESS");
+    log("FINISHED (v8.6f)", "SUCCESS");
     log(`   Page Level: ${pageLevel}`, "SUCCESS");
     log(`   Entity Type: ${entityType}`, "SUCCESS");
     log(`   Content Focus: ${contentFocus || 'NULL'}`, "FOCUS");
@@ -1117,11 +1205,12 @@
     init();
   }
 
-  console.log(`✅ [AutoSchema v8.6e] Ready — PLD-DRIVEN + FAQ + BASE LAYER SYNC`);
-  console.log(`🔥 FIX-E: Sync areaServed, contactPoint, & Dynamic knowsAbout di LocalBusiness`);
-  console.log(`🔥 FIX-D: LocalBusiness + WebPage ditambah ke @graph`);
-  console.log(`🔥 FIX-C: FAQPage handling (konsumsi secondary=FAQPage + anti-duplikasi)`);
-  console.log(`🔥 FIX-A: Cloudinary image fallback`);
-  console.log(`🔥 FIX-B: Title source dari H1`);
+  console.log(`✅ [AutoSchema v8.6f] Ready — PLD-DRIVEN + FAQ + BASE LAYER SYNC`);
+  console.log(`🔥 FIX-F: Sync dateModifiedFinal dari HybridDateModified v10.3a`);
+  console.log(`🔥 FIX-G1: OWN_IDS lengkap (auto-schema-service, auto-schema-product, auto-schema)`);
+  console.log(`🔥 FIX-G2: Create-if-not-exists #auto-schema`);
+  console.log(`🔥 FIX-G3: URL cleaning (strip ?m=1 & trailing slash)`);
+  console.log(`🔥 FIX-G4: LEVEL_COLORS Cloudinary (money=FFFFFF, pillar=FFD700)`);
+  console.log(`✅ PRESERVED: FIX-A s/d FIX-E dari v8.6e`);
 
 })();
