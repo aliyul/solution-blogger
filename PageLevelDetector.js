@@ -1,5 +1,5 @@
 /* ============================================================
-🧠 Page Level Detector v23.9.9 — SEO DIMENSION
+🧠 Page Level Detector v23.9.10 — SEO DIMENSION
 ============================================================
 BASE: v23.9.7-LITE-PERF-B2N
 PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
@@ -40,8 +40,8 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 (function () {
   "use strict";
 
-  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.9-seo-dimension") {
-    console.warn("⚠️ [PLD v23.9.9-SEO-DIMENSION] Already loaded!");
+  if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.10-seo-dimension") {
+    console.warn("⚠️ [PLD v23.9.10-SEO-DIMENSION] Already loaded!");
     return;
   }
 
@@ -111,9 +111,9 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       DOM: "🌐", EEAT: "🔐", STRUCTURE: "📐", SNIPPET: "⭐",
       TIER: "🎚️", DOMAIN: "🌍", SUBCAT: "📂", PERF: "⚡"
     };
-   console.log((icons[type] || "📘") + " [PLD v23.9.9-SEO-DIMENSION] " + message);  }
+   console.log((icons[type] || "📘") + " [PLD v23.9.10-SEO-DIMENSION] " + message);  }
 
-  log('📦 PLD v23.9.9-SEO-DIMENSION — Compound-Aware + Location-Parallel + Entity-Aware', 'EXTERNAL');
+  log('📦 PLD v23.9.10-SEO-DIMENSION — Compound-Aware + Location-Parallel + Entity-Aware', 'EXTERNAL');
   // ═══════════════════════════════════════════════════════════
   // KONSTANTA
   // ═══════════════════════════════════════════════════════════
@@ -4637,7 +4637,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
   // ═══════════════════════════════════════════════════════════
   function initializeCore() {
     if (_CORE_INITIALIZED) return;
-    if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.9-seo-dimension") {
+    if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version === "23.9.10-seo-dimension") {
       _CORE_INITIALIZED = true;
       return;
     }
@@ -4668,7 +4668,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     }
 
     window.pageLevelDetectorv22 = {
-      version: "23.9.9-seo-dimension",
+      version: "23.9.10-seo-dimension",
       CONFIG: CONFIG,
 
       // ─── API UTAMA ───
@@ -4898,7 +4898,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     }
 
     console.log("═══════════════════════════════════════════════════════════");
-    console.log("✅ Page Level Detector v23.9.9 — SEO DIMENSION");
+    console.log("✅ Page Level Detector v23.9.10 — SEO DIMENSION");
     console.log("═══════════════════════════════════════════════════════════");
     console.log("🎯 PRINSIP:");
     console.log("   ✅ JASA     : Broad-to-narrow (verb = base, target = spec)");
@@ -5125,7 +5125,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
   // GLOBAL HELPERS
   // ═══════════════════════════════════════════════════════════
   if (typeof window !== "undefined") {
-    window.PLD_VERSION = "23.9.9-seo-dimension";
+    window.PLD_VERSION = "23.9.10-seo-dimension";
     window.getPLDInfo = function() {
       if (!window.pageLevelDetectorv22) {
         console.error("❌ PLD belum ready.");
