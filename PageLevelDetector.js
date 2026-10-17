@@ -4208,23 +4208,35 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
   }
 
    /* ═══════════════════════════════════════════════════════════
-     🔥 detectSchemaType() — REVISI v23.9.9 (SEO 2026 ENTITY-AWARE)
+     🔥 detectSchemaType() — REVISI v23.9.10 (SEO 2026 ENTITY-AWARE)
      
-     PERUBAHAN dari v23.9.8:
-     ✅ entityType SEKARANG DIPAKAI (sebelumnya di-ignore = bug)
-     ✅ JASA/SEWA → Service sebagai primary
-     ✅ PRODUK/MATERIAL → Product sebagai primary
-     ✅ DESAIN → Service + CreativeWork
-     ✅ ARTIKEL → Article
-     ✅ contentFocus memengaruhi note (with-offers, with-areaServed)
-     ✅ Secondary schema tetap relevan (FAQPage / TechArticle / Product)
+     PERUBAHAN dari v23.9.9:
+     🩹 FIX-PLD-SCHEMA-1: JASA/SEWA money → secondary 'Product' → 'FAQPage'
+        - Sebelumnya: 'Product' misleading → Universal bikin Product PrecastProduct (SALAH)
+        - Sekarang: 'FAQPage' akurat → jasa money biasanya punya seksi FAQ
+     
+     🩹 FIX-PLD-SCHEMA-2: PRODUK/MATERIAL money commercial → secondary 'Service' → 'FAQPage'
+        - Sebelumnya: 'Service' tidak dikonsumsi Product v5.7d → dead hint
+        - Sekarang: 'FAQPage' konsisten + bisa di-consume di masa depan
+     
+     🩹 FIX-PLD-SCHEMA-3: FALLBACK money commercial → secondary 'Service' → 'FAQPage'
+        - Defensive consistency — sinkron dengan fix 1 & 2
+     
+     ✅ TIDAK BERUBAH dari v23.9.9:
+     - entityType SEKARANG DIPAKAI (sebelumnya di-ignore = bug)
+     - JASA/SEWA → Service sebagai primary
+     - PRODUK/MATERIAL → Product sebagai primary
+     - DESAIN → Service + CreativeWork
+     - ARTIKEL → Article
+     - contentFocus memengaruhi note (with-offers, with-areaServed)
+     - Secondary schema tetap relevan (FAQPage / TechArticle / CreativeWork)
      
      PRINSIP SEO 2026:
      - Schema harus match ENTITY + CONTENT, bukan hanya LEVEL
      - Service = halaman yang menawarkan jasa
      - Product = halaman yang menawarkan barang/material
      - Article = halaman informasional
-     - FAQPage / TechArticle = pelengkap (secondary)
+     - FAQPage / TechArticle / CreativeWork = pelengkap (secondary)
      ═══════════════════════════════════════════════════════════ */
   function detectSchemaType(level, entityType, contentFocus) {
     var primary = 'WebPage';
@@ -4269,7 +4281,11 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       } else if (isMoneyLevel) {
         // Money: halaman penawaran layanan
         primary   = 'Service';
-        secondary = 'Product';
+        // 🩹 FIX-PLD-SCHEMA-1 (v23.9.10): secondary 'Product' → 'FAQPage'
+        //    - 'Product' misleading → Universal bikin Product PrecastProduct (SALAH)
+        //    - 'FAQPage' akurat → jasa money biasanya punya seksi FAQ
+        //    - Sinkron dengan Universal v7.36i FIX-30
+        secondary = 'FAQPage';
         if (level === 'money-child') {
           note = 'with-areaServed';
         }
@@ -4313,7 +4329,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     // ═══════════════════════════════════════════════════════════
     // 3) PRODUK / MATERIAL → Product sebagai primary
     // ═══════════════════════════════════════════════════════════
-  else if (isProductEntity) {
+    else if (isProductEntity) {
       if (isEvergreen) {
         // Pillar & sub-pillar produk: informasional (katalog/daftar)
         primary   = 'Article';
@@ -4327,7 +4343,10 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       } else if (isMoneyLevel) {
         if (isCommercial) {
           primary   = 'Product';
-          secondary = 'Service';
+          // 🩹 FIX-PLD-SCHEMA-2 (v23.9.10): secondary 'Service' → 'FAQPage'
+          //    - 'Service' tidak dikonsumsi Product v5.7d → dead hint
+          //    - 'FAQPage' akurat + konsisten dengan jasa/sewa money
+          secondary = 'FAQPage';
           if (level === 'money-child') {
             note = 'with-areaServed';
           }
@@ -4345,6 +4364,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
         secondary = 'FAQPage';
       }
     }
+
     // ═══════════════════════════════════════════════════════════
     // 4) ARTIKEL → Article sebagai primary
     // ═══════════════════════════════════════════════════════════
@@ -4368,7 +4388,9 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       } else if (isMoneyLevel) {
         if (isCommercial) {
           primary   = 'Product';
-          secondary = 'Service';
+          // 🩹 FIX-PLD-SCHEMA-3 (v23.9.10): secondary 'Service' → 'FAQPage'
+          //    - Defensive consistency — sinkron dengan fix 1 & 2
+          secondary = 'FAQPage';
         } else {
           primary   = 'Article';
           secondary = 'FAQPage';
@@ -4390,7 +4412,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 
     return { primary: primary, secondary: secondary, note: note };
   }
-   
+       
   /* ═══════════════════════════════════════════════════════════
      🔥 detectCtaType() — REVISI v23.9.9 (ENTITY-AWARE)
      
