@@ -1,17 +1,19 @@
-/* ⚡ AutoSchema Hybrid v5.7b-LITE COMPLETE — PRODUCT SCHEMA (ENTITY-GUARDED)
+/* ⚡ AutoSchema Hybrid v5.7c-LITE COMPLETE — PRODUCT SCHEMA (DYNAMIC KNOWS ABOUT)
    ✅ SINKRON dengan PLD v23.9.9
-   ✅ SINKRON dengan AED v17.4.9
+   ✅ SINKRON dengan AED v17.5.x
    ✅ SINKRON dengan Auto Schema Article v8.6d
    ✅ SINKRON dengan Universal v7.36f
 
-   🔥🔥🔥 v5.7b-LITE CHANGELOG 🔥🔥🔥
-   ✅ FIX-13: Entity guard — HANYA produk/material
-              - Tambah cek entityType !== 'produk' && !== 'material' → SKIP
-              - Sebelumnya: hanya guard by level + PLD hint
-              - Sesudah: skip semua entity non-produk/material (jasa/sewa/desain/artikel)
-              - Efek: Product schema TIDAK bocor ke halaman jasa/sewa/article
+   🔥🔥🔥 v5.7c-LITE CHANGELOG 🔥🔥🔥
+   ✅ FIX-14: DYNAMIC KNOWS ABOUT (SEO 2026)
+              - Filter 110 item knowsAbout jadi 5-15 item spesifik
+              - Berdasarkan kecocokan H1 & URL Slug
+              - Halaman Pillar tetap pakai full 110 item
+              - Halaman spesifik (money/variant) jadi sangat relevan
+              - Efek: Entity signal lebih tajam, hemat ukuran halaman
 
-   ✅ PRESERVED dari v5.7a-LITE:
+   ✅ PRESERVED dari v5.7b-LITE:
+   ✅ FIX-13: Entity guard — HANYA produk/material
    ✅ FIX-11: Hapus author + dateModified di Answer
    ✅ FIX-12: ItemList Title Case
    ✅ FIX-6: FAQPage content-driven + anti-duplikasi static
@@ -19,18 +21,18 @@
    ✅ FIX-8: ItemList internal links (max 8)
    ✅ FIX-9: Author per FAQPage
    ✅ FIX-1 s/d FIX-5: PLD-driven, notes, offers, areaServed
-   ✅ Anti-spoofing, @id sync, knowsAbout 110, areaServed 12
+   ✅ Anti-spoofing, @id sync, areaServed 12
    ✅ Variant spec, 4-layer price, insertFigureAfterH1
 */
 
 (function() {
   "use strict";
 
-  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.7b-lite") {
-    console.log("[AutoSchema Hybrid v5.7b-LITE] ⏭️ Already loaded — skip");
+  if (window.__AUTOSCHEMA_HYBRID_VERSION === "5.7c-lite") {
+    console.log("[AutoSchema Hybrid v5.7c-LITE] ⏭️ Already loaded — skip");
     return;
   }
-  window.__AUTOSCHEMA_HYBRID_VERSION = "5.7b-lite";
+  window.__AUTOSCHEMA_HYBRID_VERSION = "5.7c-lite";
 
   const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile|Opera Mini|IEMobile/i.test(navigator.userAgent);
   const IS_SLOW_DEVICE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
@@ -46,7 +48,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.7b-LITE] 🚫 Blocked external fetch:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.7c-LITE] 🚫 Blocked external fetch:', url);
       return Promise.reject(new Error('Blocked by CORB prevention'));
     }
     return originalFetch.apply(this, args);
@@ -59,7 +61,7 @@
       url.includes('github.com') ||
       url.includes('gist.github.com')
     )) {
-      if (DEBUG_MODE) console.warn('[Hybrid v5.7b-LITE] 🚫 Blocked external XHR:', url);
+      if (DEBUG_MODE) console.warn('[Hybrid v5.7c-LITE] 🚫 Blocked external XHR:', url);
       throw new Error('Blocked by CORB prevention');
     }
     return originalXHROpen.call(this, method, url, ...rest);
@@ -275,7 +277,7 @@
         return await fn(...args);
       } catch (error) {
         const fallback = this.fallbacks.get(fnName);
-        if (CONFIG.DEBUG) console.error(`❌ [Hybrid v5.7b] Error in ${fnName}:`, error);
+        if (CONFIG.DEBUG) console.error(`❌ [Hybrid v5.7c] Error in ${fnName}:`, error);
         if (fallback) return typeof fallback === 'function' ? fallback(...args) : fallback;
         return null;
       }
@@ -293,7 +295,7 @@
     end(label) {
       if (!CONFIG.DEBUG || !this.marks[label]) return 0;
       const duration = performance.now() - this.marks[label];
-      console.log(`⏱️ [PERF v5.7b-LITE] ${label}: ${duration.toFixed(2)}ms`);
+      console.log(`⏱️ [PERF v5.7c-LITE] ${label}: ${duration.toFixed(2)}ms`);
       delete this.marks[label];
       return duration;
     }
@@ -332,7 +334,7 @@
       KNOWS: "🎓", SYNC: "🔗", FAQ: "❓", TECH: "🔬", STATIC: "🗿",
       ARTICLE: "📄"
     };
-    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.7b-LITE] ${msg}`);
+    console.log(`${icons[type] || "📘"} [AutoSchema Hybrid v5.7c-LITE] ${msg}`);
   }
 
   function getPLDVersion() {
@@ -377,19 +379,19 @@
 
     if (!isMoneyLevel) {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'not-money-level';
-      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7b-LITE] SKIP: level "${pageLevel}" bukan money level`);
+      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7c-LITE] SKIP: level "${pageLevel}" bukan money level`);
       return;
     }
 
     if (contentFocus === 'INFORMASI') {
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'money-informasi';
-      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7b-LITE] SKIP: money level + INFORMASI`);
+      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7c-LITE] SKIP: money level + INFORMASI`);
       return;
     }
 
     window.__AUTOSCHEMA_HYBRID_SKIP_REASON = null;
     if (CONFIG.DEBUG) {
-      console.log(`✅ [AutoSchema Hybrid v5.7b-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
+      console.log(`✅ [AutoSchema Hybrid v5.7c-LITE] LAYAK: level=${pageLevel}, focus=${contentFocus}`);
     }
   })();
 
@@ -654,13 +656,50 @@
 
   function getCurrentYear() { return new Date().getFullYear(); }
 
-  function detectKnowsAbout(entityType) {
-    const bodyKnowsAbout = document.body.getAttribute('data-knows-about');
-    if (bodyKnowsAbout) {
-      return bodyKnowsAbout.split(',').map(s => s.trim())
-        .filter(s => s.length > 0).slice(0, 20);
+  // ═══════════════════════════════════════════════════════════
+  // 🔥 FIX-14 (v5.7c): DYNAMIC KNOWS ABOUT (SEO 2026)
+  // ═══════════════════════════════════════════════════════════
+  function getPageKeywordsForSchema() {
+    var h1 = document.querySelector('h1') ? (document.querySelector('h1').innerText || '').toLowerCase() : '';
+    var slug = window.location.pathname.replace(/\.html$/, '').replace(/-/g, ' ').split('/').pop().toLowerCase();
+    var text = (h1 + ' ' + slug);
+    
+    text = text.replace(/\b(jasa|harga|biaya|terbaru|update|di|ke|dari|dan|yang|untuk|dengan|adalah|atau|ini|itu|kami|anda|pada|akan|juga|bisa|dapat|tidak|oleh|terbaik|murah|berkualitas|profesional|indonesia|jakarta|bogor|depok|tangerang|bekasi|jabodetabek)\b/g, ' ');
+    
+    return text.split(/\s+/).filter(function(w) { return w.length > 3; });
+  }
+
+  function getDynamicKnowsAbout(fullList, pageLevel, entityType) {
+    // 1. Halaman Broad (Pillar/Sub-pillar) = Tampilkan Full
+    if (['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'].indexOf(pageLevel) !== -1) {
+      return fullList; 
     }
-    return CONFIG.KNOWS_ABOUT;
+    
+    // 2. Halaman Spesifik (Money/Variant) = Filter Berdasarkan Topik
+    var keywords = getPageKeywordsForSchema();
+    
+    if (keywords.length === 0) {
+      return fullList.slice(0, 12); // Fallback
+    }
+    
+    var matched = fullList.filter(function(item) {
+      var itemLower = item.toLowerCase();
+      return keywords.some(function(kw) {
+        return itemLower.indexOf(kw) !== -1;
+      });
+    });
+    
+    // 3. Jika hasil filter terlalu sedikit, ambil default
+    if (matched.length < 3) {
+      var specific = fullList.filter(function(i) { 
+        return i.toLowerCase().indexOf(entityType) !== -1; 
+      });
+      if (specific.length >= 3) return specific.slice(0, 10);
+      return fullList.slice(0, 10); 
+    }
+    
+    // 4. Batasi maksimal 15 item
+    return matched.slice(0, 15);
   }
 
   function hasStaticFAQPageSchema() {
@@ -1384,7 +1423,7 @@
   async function init() {
     perf.start('init');
     log("═══════════════════════════════════════════════════");
-    log("AutoSchema Hybrid v5.7b-LITE — PRODUCT SCHEMA (ENTITY-GUARDED)");
+    log("AutoSchema Hybrid v5.7c-LITE — PRODUCT SCHEMA (DYNAMIC KNOWS ABOUT)");
     log(`DEBUG Mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT (HP)'}`);
     log("═══════════════════════════════════════════════════");
 
@@ -1488,6 +1527,10 @@
           }))
         : [];
 
+      // 🔥 FIX-14: Dynamic knowsAbout
+      const dynamicKnows = getDynamicKnowsAbout(CONFIG.KNOWS_ABOUT, pageLevel, entityType);
+      log(`🎓 Dynamic knowsAbout: ${dynamicKnows.length} item (dari total ${CONFIG.KNOWS_ABOUT.length})`, "KNOWS");
+
       const business = {
         "@type": ["LocalBusiness", "GeneralContractor"],
         "@id": CONFIG.LOCALBUSINESS_ID,
@@ -1508,7 +1551,7 @@
           "https://www.instagram.com/betonjayareadymix"
         ],
         areaServed: areaServed,
-        knowsAbout: detectKnowsAbout(entityType),
+        knowsAbout: dynamicKnows, // 🔥 TERAPKAN DINAMIS
         contactPoint: CONFIG.CONTACT_POINT
       };
 
@@ -1652,7 +1695,7 @@
         "@graph": graph
       }, null, indent);
 
-      log("✅ PRODUCT SCHEMA INJECTED (v5.7b-LITE ENTITY-GUARDED)", "SUCCESS");
+      log("✅ PRODUCT SCHEMA INJECTED (v5.7c-LITE DYNAMIC KNOWS ABOUT)", "SUCCESS");
       log(`   Schema nodes: ${graph.map(n => n["@type"]).join(' + ')}`, "SCHEMA");
       log(`   Product: ${productName}`, "SUCCESS");
       log(`   Entity guard: entity="${entityType}" ✅`, "FIX");
@@ -1662,7 +1705,7 @@
       log(`   Internal links: ${internalLinks.length}`, "SYNC");
       log("═══════════════════════════════════════════════════");
     } catch (error) {
-      console.error('❌ [Hybrid v5.7b] Fatal error in init:', error);
+      console.error('❌ [Hybrid v5.7c] Fatal error in init:', error);
       log(`Fatal error: ${error.message}`, "ERROR");
     } finally {
       perf.end('init');
@@ -1683,7 +1726,8 @@
 
   window.addEventListener('beforeunload', cleanup);
 
-  console.log(`✅ [AutoSchema Hybrid v5.7b-LITE] Ready — ENTITY-GUARDED (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`✅ [AutoSchema Hybrid v5.7c-LITE] Ready — DYNAMIC KNOWS ABOUT (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`🔥 FIX-14: Dynamic knowsAbout — filter 110 item jadi 5-15 relevan`);
   console.log(`🔥 FIX-13: Entity guard — hanya produk/material`);
   console.log(`🔥 FIX-11: Hapus author/dateModified di Answer`);
   console.log(`🔥 FIX-12: ItemList Title Case`);
