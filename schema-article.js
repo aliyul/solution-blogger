@@ -18,10 +18,13 @@
  * ✅ FIX-H8: Baca `data-schema-type-tertiary` dari PLD v23.9.11+
  *            - PLD baru set tertiary untuk GABUNG
  *            - Fallback ke contentFocus + note jika tertiary kosong
- * ✅ FIX-H9: Cross-script FAQ detection — body flag
+  * ✅ FIX-H9: Cross-script FAQ detection — body flag + primary guard
  *            - Set `data-faq-schema-generated=true` setelah generate FAQ
  *            - Cek flag sebelum generate FAQ (prevent duplicate dengan Universal/Hybrid)
- *            - Efek: 100% aman dari duplikat FAQ antar script
+ *            - 🩹 REVISED: SKIP FAQ untuk primary=Service/Product (GABUNG)
+ *              → Biarkan Universal/Hybrid yang handle FAQ untuk money pages
+ *              → Article v8.7 hanya generate FAQ untuk primary=Article (PILLAR/SP)
+ *            - Efek: 100% aman dari duplikat FAQ antar script (semua skenario)
  *
  * ✅ PRESERVED dari v8.6g:
  * ✅ FIX-F2: Re-read `window.AEDMetaDates` SETELAH `hybridDateFinalReady`
@@ -1246,9 +1249,11 @@ if (hint.secondary === 'TechArticle') {
       }
     }
 
-    const hasStaticFAQ = hasStaticFAQPageSchema();
-    // FIX-H9: Cross-script FAQ detection via body flag
+        const hasStaticFAQ = hasStaticFAQPageSchema();
+    // FIX-H9 REVISED: Cross-script FAQ — body flag + primary guard
     const faqAlreadyGenerated = document.body.getAttribute('data-faq-schema-generated') === 'true';
+    const _hintForFAQ = getPLDSchemaHint();
+    const isServiceOrProductPrimary = (_hintForFAQ.primary === 'Service' || _hintForFAQ.primary === 'Product');
     let faqsFromDOM = [];
     let wantFAQ = false;
 
@@ -1257,18 +1262,22 @@ if (hint.secondary === 'TechArticle') {
         log(`⏭️ FAQPage static sudah ada di script lain — SKIP FAQ dinamis`, "STATIC");
       } else if (faqAlreadyGenerated) {
         log(`⏭️ FAQPage sudah di-generate script lain (flag) — SKIP FAQ dinamis`, "STATIC");
+      } else if (isServiceOrProductPrimary) {
+        // ✅ FIX-H9 REVISED: Untuk Service/Product (termasuk GABUNG),
+        //    FAQ di-handle Universal/Hybrid → Article v8.7 SKIP
+        //    Ini mencegah duplikat FAQ di skenario GABUNG tanpa static HTML
+        log(`⏭️ primary=${_hintForFAQ.primary} — FAQ di-handle Universal/Hybrid → SKIP`, "SKIP");
       } else {
         faqsFromDOM = extractFaqFromDOM();
         wantFAQ = faqsFromDOM.length >= CONFIG.MIN_FAQ_FOR_SCHEMA;
 
         if (wantFAQ) {
-          log(`❓ FAQ tersedia: ${faqsFromDOM.length} pertanyaan → wantFAQ=true`, "FAQ");
+          log(`❓ FAQ tersedia: ${faqsFromDOM.length} pertanyaan → wantFAQ=true (Article primary)`, "FAQ");
         } else {
           log(`❓ FAQ tidak cukup: ${faqsFromDOM.length} pertanyaan (min ${CONFIG.MIN_FAQ_FOR_SCHEMA}) → skip`, "FAQ");
         }
       }
     }
-
     if (articleElem && shouldGenerate) {
       const dates = effectiveDates;
 
