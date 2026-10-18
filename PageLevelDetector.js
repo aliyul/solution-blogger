@@ -3211,31 +3211,27 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
         var _hasLocMin = isLocation(text);
         var _specCountMin = _sisaMin.length + _perUnitCount;
 
-           // ... strip noise, normalizeCompound, strip per-unit ...
-    _tempMin = _tempMin.replace(/\s+/g, ' ').trim();
+           // 🔥 PATCH-SEGMENT: audience segment ≠ spec teknis
+    // "rumahan/komersial/industri" = segment page (money-page),
+    // BUKAN variant. Spec teknis (manual/hidrolik/rotary/artesis)
+    // tetap variant.
+    var _PURE_SEGMENT = ["rumahan","komersial","industri",
+                         "residential","commercial","industrial"];
+    var _sisaTanpaSegment = _sisaMin.filter(function(w) {
+      return _PURE_SEGMENT.indexOf(w) === -1;
+    });
+    var _hanyaSegment = (
+      _sisaMin.length >= 1
+      && _sisaTanpaSegment.length === 0   // semua sisa = segment
+      && _perUnitCount === 0              // tidak ada per-unit
+    );
 
-    var _sisaMin = _tempMin.split(/\s+/).filter(function(w) { return w.length > 2; });
-    var _hasLocMin = isLocation(text);
-    var _specCountMin = _sisaMin.length + _perUnitCount;
-
-    // 👇👇👇 PATCH DISISIPKAN DI SINI 👇👇👇
-    //     (di antara dua baris ini)
-
-    if (_specCountMin === 0) {
-      if (_hasLocMin) {
-        // fall through
-      } else {
-        return "money-master";
-      }
-    } else if (!_hasLocMin) {
-      var _levelMin = decideLevelByLayers(_specCountMin);
-      if (_levelMin === "variant" && isSubVariant(text, "jasa")) {
-        return "sub-variant";
-      }
-      return _levelMin;
+    if (_hanyaSegment) {
+      if (_hasLocMin) return "money-child";  // segment + lokasi
+      return "money-page";                    // segment murni
     }
-  }
-           
+    // 🔥 END PATCH-SEGMENT
+             
         if (_specCountMin === 0) {
           if (_hasLocMin) {
             // fall through
