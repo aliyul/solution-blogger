@@ -1,18 +1,19 @@
-/* ⚡ AutoSchema Hybrid v5.7f-LITE COMPLETE — PRODUCT SCHEMA (DYNAMIC KNOWS ABOUT + HYBRID DATE SYNC)
+/* ⚡ AutoSchema Hybrid v5.7f-LITE-PATCH — PRODUCT SCHEMA (DYNAMIC KNOWS ABOUT + HYBRID DATE SYNC)
    ✅ SINKRON dengan PLD v23.9.10
    ✅ SINKRON dengan AED v17.5.6
    ✅ SINKRON dengan HybridDateModified v10.3a-fix6
    ✅ SINKRON dengan Article v8.8
    ✅ SINKRON dengan Universal v7.36i-LITE
 
-   🩹🩹🩹 v5.7f-LITE CHANGELOG 🩹🩹🩹
-   ✅ FIX-19: Perbaikan URL Image Cloudinary (GSC Merchant Listings)
-              - Sebelumnya: wrapText menggunakan `\n` (enter) → encodeURIComponent menghasilkan `%0A`
-              - Efek: Google Search Console menolak URL gambar dengan error "URL tidak valid"
-              - Sekarang: Teks digabung dengan spasi (bukan enter) + safety net `.replace(/%0A/gi, '%20')`
-              - Hasil: URL gambar valid 100% di Google Merchant, tampilan gambar tetap rapi.
+   🩹🩹🩹 v5.7f-LITE-PATCH CHANGELOG 🩹🩹🩹
+   ✅ PATCH-L: Remove ALL optional chaining (?.)
+              - Compatible Chrome 49+ (const/let/arrow/async-await OK)
+              - Fix for Chrome 55-79 (where ?. causes SyntaxError)
+              - Behavior IDENTICAL on Chrome 80+ (no regression)
+              - Semantics preserved 100%: (x?.y) → (x && x.y)
 
-   ✅ PRESERVED dari v5.7e-LITE:
+   ✅ PRESERVED dari v5.7f-LITE:
+   ✅ FIX-19: Perbaikan URL Image Cloudinary (GSC Merchant Listings)
    ✅ FIX-16: HYBRID_FINAL_TIMEOUT 500 → 1500 ms
    ✅ FIX-17: safeStringify() — proteksi </script>, U+2028, U+2029
    ✅ FIX-18: getPLDVersion support v23.9.10
@@ -230,9 +231,9 @@
       if (lines.length > this.MAX_LINES) {
         const merged = lines.slice(0, this.MAX_LINES - 1);
         merged.push(lines.slice(this.MAX_LINES - 1).join(' '));
-        return merged.join(' '); // ✅ FIX-19: Spasi bukan \n
+        return merged.join(' ');
       }
-      return lines.join(' '); // ✅ FIX-19: Spasi bukan \n
+      return lines.join(' ');
     },
     buildUrl(level, text) {
       const fileName = this.LEVEL_FILES[level] || 'pillar';
@@ -243,9 +244,9 @@
         displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
       }
       displayText = this.wrapText(displayText);
-      const longestLine = displayText; // ✅ FIX-19: Tidak perlu split \n
+      const longestLine = displayText;
       const fontSize = this.calculateFontSize(longestLine.length);
-      const encodedText = encodeURIComponent(displayText).replace(/%0A/gi, '%20'); // ✅ FIX-19: Safety net
+      const encodedText = encodeURIComponent(displayText).replace(/%0A/gi, '%20');
       return `${this.baseUrl}` +
              `e_colorize:100,co_rgb:${textColor},` +
              `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},` +
@@ -263,9 +264,9 @@
         displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
       }
       displayText = this.wrapText(displayText);
-      const longestLine = displayText; // ✅ FIX-19: Tidak perlu split \n
+      const longestLine = displayText;
       const fontSize = this.calculateFontSize(longestLine.length);
-      const encodedText = encodeURIComponent(displayText).replace(/%0A/gi, '%20'); // ✅ FIX-19: Safety net
+      const encodedText = encodeURIComponent(displayText).replace(/%0A/gi, '%20');
       return `${this.baseUrl}` +
              `e_colorize:100,co_rgb:${textColor},` +
              `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},` +
@@ -277,7 +278,6 @@
 
   const LOGO_IMAGE = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoqm9gyMvfaLicIFnsDY4FL6_CLvPrQP8OI0dZnsH7K8qXUjQOMvQFKiz1bhZXecspCavj6IYl0JTKXVM9dP7QZbDHTWCTCozK3skRLD_IYuoapOigfOfewD7QizOodmVahkbWeNoSdGBCVFU9aFT6RmWns-oSAn64nbjOKrWe4ALkcNN9jteq5AgimyU/s300/beton-jaya-readymix-logo.png";
 
-  // 🩹 FIX-17: safeStringify — proteksi </script>, U+2028, U+2029
   function safeStringify(obj, indent) {
     const json = JSON.stringify(obj, null, indent);
     return json
@@ -417,9 +417,12 @@
     return;
   }
 
+  // 🔥 PATCH-L: getCleanUrl() — remove ?.
   function getCleanUrl() {
-    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
-    const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
+    const _ogMetaEl = document.querySelector('meta[property="og:url"]');
+    const ogUrl = _ogMetaEl && _ogMetaEl.content ? _ogMetaEl.content.trim() : null;
+    const _canonicalEl = document.querySelector('link[rel="canonical"]');
+    const canonical = _canonicalEl && _canonicalEl.href ? _canonicalEl.href.trim() : null;
     const baseUrl = ogUrl || canonical || location.href;
     return baseUrl.replace(/[?&]m=1/, "").replace(/\/$/, "");
   }
@@ -457,6 +460,7 @@
     return best;
   }
 
+  // 🔥 PATCH-L: waitForBreadcrumbGenerated() — remove ?. on e?.detail
   function waitForBreadcrumbGenerated(timeout = CONFIG.BREADCRUMB_GENERATED_TIMEOUT) {
     const flagReady = document.body.getAttribute('data-breadcrumb-ready');
     if (flagReady === 'true') {
@@ -493,7 +497,8 @@
           parentUrl: parentUrl || location.origin,
           source: 'breadcrumb-event',
           allParents: [],
-          detail: e?.detail
+          // 🔥 PATCH-L: e?.detail → e && e.detail
+          detail: e && e.detail ? e.detail : null
         });
       };
 
@@ -1299,13 +1304,15 @@
 
   function getAreaServed() { return CONFIG.AREA_SERVED; }
 
+  // 🔥 PATCH-L: detectProductName() — remove ?.
   function detectProductName() {
     const h1El = document.querySelector('h1');
-    const h1 = h1El?.innerText?.trim();
+    const h1 = h1El && h1El.innerText ? h1El.innerText.trim() : null;
     if (h1 && h1.length < 120 && h1.length > 3) {
       return h1.replace(/\b(20[2-9][0-9])\b/g, '').replace(/\s{2,}/g, ' ').trim();
     }
-    const metaTitle = document.querySelector('meta[property="og:title"]')?.content;
+    const _metaTitleEl = document.querySelector('meta[property="og:title"]');
+    const metaTitle = _metaTitleEl && _metaTitleEl.content ? _metaTitleEl.content : null;
     if (metaTitle) return metaTitle.substring(0, 120);
     const docTitle = document.title.replace(/\b(20[2-9][0-9])\b/g, '').trim();
     if (docTitle.length > 3) return docTitle.substring(0, 120);
@@ -1407,9 +1414,10 @@
     });
   }
 
+  // 🔥 PATCH-L: waitForHybridDateFinal() — remove ?. (2 instances)
   function waitForHybridDateFinal(timeout = CONFIG.HYBRID_FINAL_TIMEOUT) {
     return new Promise((resolve) => {
-      if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
+      if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates && window.AEDMetaDates.dateModifiedFinal) {
         log(`✅ Hybrid dateModifiedFinal READY (instant)`, "HYBRID");
         resolve(true);
         return;
@@ -1430,7 +1438,7 @@
 
       const startTime = Date.now();
       const interval = setInterval(() => {
-        if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
+        if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates && window.AEDMetaDates.dateModifiedFinal) {
           clearInterval(interval);
           window.removeEventListener('hybridDateFinalReady', onReady);
           log(`✅ Hybrid dateModifiedFinal READY (polling)`, "HYBRID");
@@ -1567,8 +1575,14 @@
 
       const currentUrl = getCleanUrl();
       const productName = detectProductName();
-      const desc = document.querySelector('meta[name="description"]')?.content?.trim() ||
-                   document.querySelector("article p, main p, section p")?.innerText?.trim()?.substring(0, 300) ||
+
+      // 🔥 PATCH-L: desc block — remove ?. (5 instances)
+      const _descMetaEl = document.querySelector('meta[name="description"]');
+      const _descP = document.querySelector("article p, main p, section p");
+      const _descFromMeta = _descMetaEl && _descMetaEl.content ? _descMetaEl.content.trim() : null;
+      const _descFromP = _descP && _descP.innerText ? _descP.innerText.trim() : null;
+      const desc = _descFromMeta ||
+                   (_descFromP ? _descFromP.substring(0, 300) : null) ||
                    `Produk ${productName} berkualitas dari Beton Jaya Readymix`;
 
       const areaServed = getAreaServed();
@@ -1788,7 +1802,8 @@
 
   window.addEventListener('beforeunload', cleanup);
 
-  console.log(`✅ [AutoSchema Hybrid v5.7f-LITE] Ready — HYBRID DATE SYNC (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`✅ [AutoSchema Hybrid v5.7f-LITE-PATCH] Ready — HYBRID DATE SYNC + NO ?. (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`);
+  console.log(`🩹 PATCH-L: Remove ALL optional chaining — Chrome 49+ compatible`);
   console.log(`🩹 FIX-19: URL image bersih dari %0A (Validasi GSC Merchant)`);
   console.log(`🩹 FIX-16: HYBRID_FINAL_TIMEOUT 500 → 1500 ms`);
   console.log(`🩹 FIX-17: safeStringify() — proteksi </script>, U+2028, U+2029`);
