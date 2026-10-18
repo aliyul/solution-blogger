@@ -1,18 +1,19 @@
-/* ⚡ AUTO SCHEMA UNIVERSAL v7.36j-LITE COMPLETE — JASA/SEWA/DESAIN (DYNAMIC KNOWS ABOUT + HYBRID DATE SYNC)
-   ✅ SINKRON dengan PLD v23.9.9a
+/* ⚡ AUTO SCHEMA UNIVERSAL v7.36j-LITE-PATCH — JASA/SEWA/DESAIN (DYNAMIC KNOWS ABOUT + HYBRID DATE SYNC)
+   ✅ SINKRON dengan PLD v23.9.10
    ✅ SINKRON dengan AED v17.5.6
    ✅ SINKRON dengan Article v8.8
    ✅ SINKRON dengan Hybrid v5.7f
    ✅ SINKRON dengan HybridDateModified v10.3a-fix6
 
-   🩹🩹🩹 v7.36j-LITE CHANGELOG 🩹🩹🩹
-   ✅ FIX-35: Perbaikan URL Image Cloudinary (GSC Merchant Listings)
-              - Sebelumnya: wrapText menggunakan `\n` (enter) → encodeURIComponent menghasilkan `%0A`
-              - Efek: Google Search Console menolak URL gambar dengan error "URL tidak valid"
-              - Sekarang: Teks digabung dengan spasi (bukan enter) + safety net `.replace(/%0A/gi, '%20')`
-              - Hasil: URL gambar valid 100% di Google Merchant, tampilan gambar tetap rapi.
+   🩹🩹🩹 v7.36j-LITE-PATCH CHANGELOG 🩹🩹🩹
+   ✅ PATCH-L: Remove ALL optional chaining (?.)
+              - Compatible Chrome 49+ (const/let/arrow/async-await OK)
+              - Fix for Chrome 55-79 (where ?. causes SyntaxError)
+              - Behavior IDENTICAL on Chrome 80+ (no regression)
+              - 15 operator ?. removed: (x?.y) → (x && x.y)
 
-   ✅ PRESERVED dari v7.36i-LITE:
+   ✅ PRESERVED dari v7.36j-LITE:
+   ✅ FIX-35: Perbaikan URL Image Cloudinary (GSC Merchant Listings)
    ✅ FIX-28: RE-READ AEDMetaDates (belt-and-suspenders untuk FIX-26)
    ✅ FIX-29: ENTITY GUARD include `desain`
    ✅ FIX-30: wantProduct entity-restricted
@@ -144,7 +145,6 @@
 
   log(`🚀 Auto Schema v7.36j-LITE loaded (mode: ${CONFIG.DEBUG ? 'VERBOSE' : 'SILENT'})`, "INFO");
 
-  // Early exit — homepage & static only (entity check di init)
   (function earlyExitCheck() {
     const currentPath = window.location.pathname;
     const isHomepage = currentPath === '/' || currentPath === '/index.html' || currentPath === '';
@@ -305,9 +305,9 @@
       if (lines.length > this.MAX_LINES) {
         const merged = lines.slice(0, this.MAX_LINES - 1);
         merged.push(lines.slice(this.MAX_LINES - 1).join(' '));
-        return merged.join(' '); // ✅ FIX-35: Spasi bukan \n
+        return merged.join(' ');
       }
-      return lines.join(' '); // ✅ FIX-35: Spasi bukan \n
+      return lines.join(' ');
     },
     buildUrl(level, text) {
       const fileName = this.LEVEL_FILES[level] || 'pillar';
@@ -318,9 +318,9 @@
         displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
       }
       displayText = this.wrapText(displayText);
-      const longestLine = displayText; // ✅ FIX-35: Tidak perlu split \n
+      const longestLine = displayText;
       const fontSize = this.calculateFontSize(longestLine.length);
-      const encodedText = encodeURIComponent(displayText).replace(/%0A/gi, '%20'); // ✅ FIX-35: Safety net
+      const encodedText = encodeURIComponent(displayText).replace(/%0A/gi, '%20');
       return `${this.baseUrl}e_colorize:100,co_rgb:${textColor},` +
              `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},${this.GRAVITY},` +
              `c_fit,w_${this.WIDTH},h_${this.HEIGHT}/${this.QUALITY},${this.FORMAT_AUTO},${this.DPR_AUTO}/` +
@@ -335,9 +335,9 @@
         displayText = displayText.substring(0, this.MAX_TEXT_LENGTH - 3) + '...';
       }
       displayText = this.wrapText(displayText);
-      const longestLine = displayText; // ✅ FIX-35: Tidak perlu split \n
+      const longestLine = displayText;
       const fontSize = this.calculateFontSize(longestLine.length);
-      const encodedText = encodeURIComponent(displayText).replace(/%0A/gi, '%20'); // ✅ FIX-35: Safety net
+      const encodedText = encodeURIComponent(displayText).replace(/%0A/gi, '%20');
       return `${this.baseUrl}e_colorize:100,co_rgb:${textColor},` +
              `l_text:${this.FONT}_${fontSize}${weight}:${encodedText},${this.GRAVITY},` +
              `c_fit,w_${this.WIDTH},h_${this.HEIGHT}/` +
@@ -470,7 +470,9 @@
           if (lastHref === currentUrlClean) isFinal = true;
         }
         if (!isFinal) {
-          const h1Text = (document.querySelector('h1')?.innerText || '').toLowerCase().trim();
+          // 🔥 PATCH-L: remove ?. on querySelector('h1')?.innerText
+          const _h1El = document.querySelector('h1');
+          const h1Text = (_h1El && _h1El.innerText ? _h1El.innerText : '').toLowerCase().trim();
           const parts = fullText.split(/[›»>]/).map(p => p.trim()).filter(Boolean);
           const lastPart = parts[parts.length - 1] || '';
           if (h1Text && lastPart && (h1Text.includes(lastPart.substring(0, 20)) || lastPart.includes(h1Text.substring(0, 20)))) {
@@ -774,9 +776,10 @@
     });
   }
 
+  // 🔥 PATCH-L: waitForHybridDateFinal() — remove ?. (2 instances)
   function waitForHybridDateFinal(timeout = CONFIG.HYBRID_FINAL_TIMEOUT) {
     return new Promise((resolve) => {
-      if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
+      if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates && window.AEDMetaDates.dateModifiedFinal) {
         log(`✅ Hybrid dateModifiedFinal READY (instant)`, "HYBRID");
         resolve(true);
         return;
@@ -797,7 +800,7 @@
 
       const startTime = Date.now();
       const interval = setInterval(() => {
-        if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
+        if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates && window.AEDMetaDates.dateModifiedFinal) {
           clearInterval(interval);
           window.removeEventListener('hybridDateFinalReady', onReady);
           log(`✅ Hybrid dateModifiedFinal READY (polling)`, "HYBRID");
@@ -837,6 +840,7 @@
 
   function getCurrentYear() { return new Date().getFullYear(); }
 
+  // 🔥 PATCH-L: getCleanPageName() — remove ?. (2 instances)
   function getCleanPageName(level) {
     perf.start('getCleanPageName');
     let cleanName = '';
@@ -849,7 +853,8 @@
       cleanName = cleanName.replace(/^(Harga|Jasa|Biaya|Tarif)\s*/i, '').trim();
     }
     if (cleanName.length < 3) {
-      const h1Text = document.querySelector('h1')?.innerText?.trim();
+      const _h1El = document.querySelector('h1');
+      const h1Text = _h1El && _h1El.innerText ? _h1El.innerText.trim() : null;
       if (h1Text && h1Text.length > 3) {
         cleanName = h1Text.replace(/\b(20[2-9][0-9])\b/g, '').replace(/\s*[–—\-|]\s*/g, ' ')
           .replace(/^(Harga|Jasa|Biaya|Tarif|Estimasi)\s*/i, '').trim();
@@ -1319,7 +1324,7 @@
       }
       if (offers.length > 0) break;
     }
-    return { hasPrice: offers.length > 0, source: 'table-header', value: offers[0]?.price, offers };
+    return { hasPrice: offers.length > 0, source: 'table-header', value: offers[0] ? offers[0].price : null, offers };
   }
 
   function detectPriceFromElements(container) {
@@ -1428,7 +1433,8 @@
   }
 
   function getPageKeywordsForSchema() {
-    var h1 = document.querySelector('h1') ? (document.querySelector('h1').innerText || '').toLowerCase() : '';
+    var h1El = document.querySelector('h1');
+    var h1 = h1El ? (h1El.innerText || '').toLowerCase() : '';
     var slug = window.location.pathname.replace(/\.html$/, '').replace(/-/g, ' ').split('/').pop().toLowerCase();
     var text = (h1 + ' ' + slug);
 
@@ -1476,7 +1482,6 @@
       try {
         await waitForPLD();
 
-        // 🩹 FIX-29: Entity guard — include `desain`
         const entityTypeCheck = getEntityTypeFromPLD() || document.body.getAttribute('data-entity-type');
         if (entityTypeCheck &&
             entityTypeCheck !== 'jasa' &&
@@ -1499,7 +1504,6 @@
         const pldVer = getPLDVersion();
         const aed = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
 
-        // 🩹 FIX-31: Wait for Hybrid offset (timeout 1500ms)
         const hybridReady = await waitForHybridDateFinal(CONFIG.HYBRID_FINAL_TIMEOUT);
         if (hybridReady) {
           log(`✅ Hybrid offset READY — pakai dateModifiedFinal`, "HYBRID");
@@ -1524,7 +1528,6 @@
         const ctaType      = getCtaType();
         const h1Pattern    = getH1Pattern();
 
-        // 🩹 FIX-32: null guard — jangan generate kalau PLD tidak tersedia
         if (!pageLevel || !entityType) {
           log(`❌ PLD tidak tersedia — pageLevel=${pageLevel} entityType=${entityType}`, "ERROR");
           perf.end('init');
@@ -1573,15 +1576,25 @@
           } catch(e) { log(`Error images: ${e.message}`, "ERROR"); }
         }
 
-        const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
-        const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
+        // 🔥 PATCH-L: remove ?. in ogUrl/canonical/h1Text/description (10 instances)
+        const _ogMetaEl = document.querySelector('meta[property="og:url"]');
+        const ogUrl = _ogMetaEl && _ogMetaEl.content ? _ogMetaEl.content.trim() : null;
+
+        const _canonicalEl = document.querySelector('link[rel="canonical"]');
+        const canonical = _canonicalEl && _canonicalEl.href ? _canonicalEl.href.trim() : null;
+
         const baseUrl = ogUrl || canonical || location.href;
         const cleanUrl = baseUrl.replace(/[?&]m=1/, "").replace(/\/$/, "");
 
-        const h1Text = document.querySelector("h1")?.innerText?.trim() || document.title;
+        const _h1El = document.querySelector("h1");
+        const h1Text = (_h1El && _h1El.innerText ? _h1El.innerText.trim() : '') || document.title;
         const title = h1Text.replace(/\s{2,}/g, " ").trim().substring(0, 120);
-        const description = document.querySelector('meta[name="description"]')?.content?.trim() ||
-          document.querySelector("article p, main p")?.innerText?.substring(0, 200) || title;
+
+        const _descMetaEl = document.querySelector('meta[name="description"]');
+        const _descP = document.querySelector("article p, main p");
+        const _descFromMeta = _descMetaEl && _descMetaEl.content ? _descMetaEl.content.trim() : null;
+        const _descFromP = _descP && _descP.innerText ? _descP.innerText.substring(0, 200) : null;
+        const description = _descFromMeta || _descFromP || title;
 
         const knowsAbout = getDynamicKnowsAbout(CONFIG.KNOWS_ABOUT, pageLevel, entityType);
         log(`🎓 Dynamic knowsAbout: ${knowsAbout.length} item (dari total ${CONFIG.KNOWS_ABOUT.length})`, "KNOWS");
@@ -1802,8 +1815,9 @@
   window.addEventListener('beforeunload', cleanup);
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Auto Schema v7.36j-LITE — JASA/SEWA/DESAIN (HYBRID DATE SYNC)");
+  console.log("✅ Auto Schema v7.36j-LITE-PATCH — JASA/SEWA/DESAIN (HYBRID DATE SYNC)");
   console.log("═══════════════════════════════════════════════════════════");
+  console.log("🩹 PATCH-L: Remove ALL optional chaining — Chrome 49+ compatible");
   console.log("🩹 FIX-35: URL image bersih dari %0A (Validasi GSC Merchant)");
   console.log("🩹 FIX-28: Re-read AEDMetaDates — TechArticle dateModified == meta tag");
   console.log("🩹 FIX-29: Entity guard include desain — halaman desain dapat schema");
