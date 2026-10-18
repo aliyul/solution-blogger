@@ -544,13 +544,13 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "rumah tinggal", "skala kecil", "skala besar", "skala menengah",
       "proyek besar", "proyek kecil", "lahan sempit",
       // Multi-word umum
-      "sumur dalam", "sumur dangkal", "sumur artesis", "sumur resapan",
+      "sumur dalam", "sumur dangkal", "sumur resapan",
       "air bersih", "air kotor", "air limbah",
       "besi beton", "baja ringan", "baja berat",
       "k3 konstruksi", "uji tanah",
       "air permukaan", "air bawah tanah", "air sumur",
       "sumur gali", "sumur pantek", "sumur bor dalam",
-      "sumur bor dangkal", "sumur bor artesis",
+      "sumur bor dangkal",
       "pondasi tiang", "pondasi telapak", "pondasi strauss",
       "tiang bor mini", "bor pile mini",
       "baja tulangan", "besi tulangan",
@@ -3210,27 +3210,6 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
         var _sisaMin = _tempMin.split(/\s+/).filter(function(w) { return w.length > 2; });
         var _hasLocMin = isLocation(text);
         var _specCountMin = _sisaMin.length + _perUnitCount;
-
-           // 🔥 PATCH-SEGMENT: audience segment ≠ spec teknis
-    // "rumahan/komersial/industri" = segment page (money-page),
-    // BUKAN variant. Spec teknis (manual/hidrolik/rotary/artesis)
-    // tetap variant.
-    var _PURE_SEGMENT = ["rumahan","komersial","industri",
-                         "residential","commercial","industrial"];
-    var _sisaTanpaSegment = _sisaMin.filter(function(w) {
-      return _PURE_SEGMENT.indexOf(w) === -1;
-    });
-    var _hanyaSegment = (
-      _sisaMin.length >= 1
-      && _sisaTanpaSegment.length === 0   // semua sisa = segment
-      && _perUnitCount === 0              // tidak ada per-unit
-    );
-
-    if (_hanyaSegment) {
-      if (_hasLocMin) return "money-child";  // segment + lokasi
-      return "money-page";                    // segment murni
-    }
-    // 🔥 END PATCH-SEGMENT
              
         if (_specCountMin === 0) {
           if (_hasLocMin) {
@@ -4969,7 +4948,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 
     // 🔥 REGRESSION TEST v9.3 — SEO DIMENSION
     try {
-            var _testCases = [
+       var _testCases = [
         // ═══ JASA ═══
         ["jasa bor",                        "money-master",      "jasa"],
         ["jasa cor",                        "money-master",      "jasa"],
@@ -4981,7 +4960,9 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
         ["jasa cor dak",                    "money-page",        "jasa"],
         ["jasa pasang keramik",             "money-page",        "jasa"],
         ["jasa bor sumur dalam",            "money-page",        "jasa"],
-        ["jasa bor sumur dalam 30 meter",   "sub-variant",       "jasa"],        ["jasa bor jakarta",                "money-child",       "jasa"],
+        ["jasa bor sumur artesis",          "variant",           "jasa"],
+        ["jasa bor sumur dalam 30 meter",   "sub-variant",       "jasa"],        
+        ["jasa bor jakarta",                "money-child",       "jasa"],
         ["jasa bor air tanah jakarta",      "money-child",       "jasa"],
         ["jasa bor air tanah surabaya",     "money-child",       "jasa"],
         ["jasa bor air tanah bogor",        "money-child",       "jasa"],
