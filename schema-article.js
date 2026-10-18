@@ -1,28 +1,26 @@
 /**
- * 📄 Auto-Schema Generator v8.8 — ARTICLE SCHEMA + FAQ + BASE LAYER
+ * 📄 Auto-Schema Generator v8.8-PATCH — ARTICLE SCHEMA + FAQ + BASE LAYER
  *
- * 🩹 v8.8 CHANGELOG (CRITICAL PATCH — GABUNG BASE LAYER):
+ * 🩹 PATCH-L (v8.8-PATCH):
+ * ✅ Remove ALL optional chaining (?.) — 13 operator
+ *    - Compatible Chrome 55+ (async/await requires Chrome 55)
+ *    - Fix for Chrome 55-79 (where ?. causes SyntaxError)
+ *    - Behavior IDENTICAL on Chrome 80+ (no regression)
+ *
+ * ✅ PRESERVED dari v8.8:
  * ✅ FIX-H10: Anti-duplikat base layer untuk halaman GABUNG
- *            - Sebelumnya: GABUNG → Article buat LocalBusiness + WebPage
- *              padahal Universal/Hybrid sudah buat → DUPLIKAT @graph + property collision
- *            - Sekarang: jika primary=Service/Product DAN GABUNG confirmed
- *              → Article SKIP LocalBusiness + WebPage, hanya kirim node Article
- *            - Efek: @graph bersih, tidak ada duplikat base layer
- *
  * ✅ PRESERVED dari v8.7:
  * ✅ FIX-H5: TechArticle untuk VARIANT
  * ✅ FIX-H6: GABUNG support (tertiary/contentFocus/note)
  * ✅ FIX-H7: hasStaticArticleSchema() anti-duplikat
  * ✅ FIX-H8: Baca data-schema-type-tertiary
  * ✅ FIX-H9: Cross-script FAQ detection
- *
  * ✅ PRESERVED dari v8.6g:
  * ✅ FIX-F2: Re-read AEDMetaDates setelah hybridDateFinalReady
  * ✅ FIX-H1: Hapus escapeJSON() pre-stringify
  * ✅ FIX-H2: safeStringify()
  * ✅ FIX-H3: HYBRID_FINAL_TIMEOUT 1500 ms
  * ✅ FIX-H4: Canonical / og:url order
- *
  * ✅ PRESERVED dari v8.6f:
  * ✅ FIX-F: Sync dateModifiedFinal
  * ✅ FIX-E: Entity Base Layer
@@ -238,7 +236,8 @@
           parentUrl: parentUrl || location.origin,
           source: 'breadcrumb-event',
           allParents: [],
-          detail: e?.detail
+          // 🔥 PATCH-L: e?.detail → e && e.detail
+          detail: e && e.detail ? e.detail : null
         });
       };
 
@@ -325,10 +324,11 @@
 
   // ═══════════════════════════════════════════════════════════
   // FIX-F / FIX-F2: WAIT FOR HYBRID dateModifiedFinal
+  // 🔥 PATCH-L: remove ?. (2 instances)
   // ═══════════════════════════════════════════════════════════
   function waitForHybridDateFinal(timeout = CONFIG.HYBRID_FINAL_TIMEOUT) {
     return new Promise((resolve) => {
-      if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
+      if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates && window.AEDMetaDates.dateModifiedFinal) {
         log(`✅ Hybrid dateModifiedFinal READY (instant): ${window.AEDMetaDates.dateModifiedFinal}`, "HYBRID");
         resolve(true);
         return;
@@ -349,7 +349,7 @@
 
       const startTime = Date.now();
       const interval = setInterval(() => {
-        if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates?.dateModifiedFinal) {
+        if (window.__HYBRID_DATE_FINAL_READY && window.AEDMetaDates && window.AEDMetaDates.dateModifiedFinal) {
           clearInterval(interval);
           window.removeEventListener('hybridDateFinalReady', onReady);
           log(`✅ Hybrid dateModifiedFinal READY (polling)`, "HYBRID");
@@ -417,7 +417,6 @@
     return document.body.getAttribute('data-entity-sub-type') || null;
   }
 
-  // FIX-H8: PLD hint — tambahkan tertiary
   function getPLDSchemaHint() {
     const primary   = (document.body.getAttribute('data-schema-type-primary')   || '').trim();
     const secondary = (document.body.getAttribute('data-schema-type-secondary') || '').trim();
@@ -428,29 +427,13 @@
     return hint;
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // FIX-H10: Anti-duplikat base layer untuk halaman GABUNG
-  // ───────────────────────────────────────────────────────────────
-  // KONDISI SKIP (HARUS SEMUA TERPENUHI):
-  //   1. primary = 'Service' atau 'Product'
-  //   2. Ada konfirmasi GABUNG eksplisit:
-  //      - tertiary = 'Article' (PLD v23.9.10+), ATAU
-  //      - data-content-focus = 'GABUNG' (fallback)
-  //
-  // RATIONALE:
-  //   - Non-GABUNG Service/Product sudah SKIP di GATE (PRIMARY 5)
-  //   - PILLAR tetap generate base layer (primary='Article' atau entity=artikel)
-  //   - Hanya GABUNG yang skip → Universal/Hybrid handle base layer
-  // ═══════════════════════════════════════════════════════════════
   function shouldSkipBaseLayer() {
     const hint = getPLDSchemaHint();
 
-    // Guard 1: primary harus Service/Product
     if (hint.primary !== 'Service' && hint.primary !== 'Product') {
       return false;
     }
 
-    // Guard 2: harus ada konfirmasi GABUNG eksplisit
     const bodyFocus = (document.body.getAttribute('data-content-focus') || '').toUpperCase();
     const isGabungConfirmed =
       hint.tertiary === 'Article' ||
@@ -465,6 +448,7 @@
     return true;
   }
 
+  // 🔥 PATCH-L: remove ?. in contentLength
   function shouldSkipPage() {
     const currentPath = window.location.pathname;
 
@@ -482,7 +466,8 @@
 
     const hasMainContent = document.querySelector('.post-body.entry-content, .post-body, article, main, section');
     const hasH1 = document.querySelector('h1');
-    const contentLength = document.body.innerText?.trim()?.length || 0;
+    // 🔥 PATCH-L: document.body.innerText?.trim()?.length || 0 → (document.body.innerText || '').trim().length
+    const contentLength = (document.body.innerText || '').trim().length;
     const isContentPage = hasMainContent && hasH1 && contentLength > CONFIG.SKIP_WORD_COUNT;
 
     if (!isContentPage) {
@@ -515,26 +500,20 @@
     return { pageLevel: null, entityType: null, source: 'unavailable' };
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // FIX-H5 + FIX-H6 + FIX-H8: shouldGenerateArticleSchema
-  // ═══════════════════════════════════════════════════════════════
   function shouldGenerateArticleSchema(pageLevel, entityType, contentFocus) {
     const hint = getPLDSchemaHint();
     const bodyFocus = (document.body.getAttribute('data-content-focus') || contentFocus || '').toUpperCase();
 
-    // ─── FIX-H7: Cek static Article dulu (anti-duplikat) ───
     if (hasStaticArticleSchema()) {
       log(`⏭️ Article SKIP — static Article/TechArticle sudah ada di HTML`, "STATIC");
       return false;
     }
 
-    // ─── PRIMARY 1: PLD primary = Article ───
     if (hint.primary === 'Article') {
       log(`✅ Article WAJIB — PLD primary=Article`, "ARTICLE");
       return true;
     }
 
-    // ─── FIX-H5 REVISED: TechArticle di-handle Universal/Hybrid → SKIP ───
     if (hint.secondary === 'TechArticle') {
       const ENTITIES_HANDLED_BY_OTHER = ['jasa', 'sewa', 'desain', 'produk', 'material'];
       if (ENTITIES_HANDLED_BY_OTHER.includes(entityType)) {
@@ -545,7 +524,6 @@
       return true;
     }
 
-    // ─── PRIMARY 3: GABUNG — 3rd schema Article (FIX-H6 + FIX-H8) ───
     const tertiaryArticle = (hint.tertiary === 'Article');
     const noteWithOffers = /(^|,)with-offers($|,)/.test(hint.note) && !/without-offers/.test(hint.note);
     const isGabungFocus = (bodyFocus === 'GABUNG');
@@ -563,26 +541,22 @@
       return true;
     }
 
-    // ─── PRIMARY 4: PILLAR/SP fallback ───
     const mandatoryArticleLevels = ['pillar', 'sub-pillar-tipe-2', 'sub-pillar-tipe-1'];
     if (mandatoryArticleLevels.includes(pageLevel)) {
       log(`✅ Article LAYAK (fallback legacy) untuk level: ${pageLevel}`, "ARTICLE");
       return true;
     }
 
-    // ─── PRIMARY 5: SKIP untuk Service/Product non-GABUNG ───
     if (hint.primary === 'Service' || hint.primary === 'Product') {
       log(`⏭️ Article SKIP — primary=${hint.primary}, focus=${bodyFocus} (bukan GABUNG)`, "SKIP");
       return false;
     }
 
-    // ─── PRIMARY 6: PLD hint tidak menunjuk Article ───
     if (hint.primary || hint.secondary) {
       log(`⏭️ Article SKIP — PLD hint tidak menunjuk Article`, "SKIP");
       return false;
     }
 
-    // ─── PRIMARY 7: Legacy fallback untuk MONEY levels ───
     const MONEY_LEVELS = ['money-master', 'money-page', 'money-child',
                           'variant', 'sub-variant'];
     if (MONEY_LEVELS.includes(pageLevel)) {
@@ -685,7 +659,6 @@
     return Array.from(keywords).slice(0, 12).join(", ");
   }
 
-  // FIX-H2: safeStringify — ganti escapeJSON
   function safeStringify(obj, indent) {
     const json = JSON.stringify(obj, null, indent);
     return json
@@ -777,7 +750,6 @@
     }
   }
 
-  // FIX-G1: OWN_IDS lengkap
   function hasStaticFAQPageSchema() {
     const scripts = document.querySelectorAll('script[type="application/ld+json"]');
     const OWN_IDS = ['auto-schema-service', 'auto-schema-product', 'auto-schema'];
@@ -814,7 +786,6 @@
     return false;
   }
 
-  // FIX-H7: hasStaticArticleSchema — anti-duplikat Article
   function hasStaticArticleSchema() {
     const ARTICLE_TYPES = ['Article', 'TechArticle', 'BlogPosting', 'NewsArticle',
                            'ScholarlyArticle', 'Report', 'Review'];
@@ -1133,18 +1104,25 @@
     };
   }
 
-  // FIX-G3 + FIX-H4: URL cleaning + urutan ogUrl → canonical
+  // ═══════════════════════════════════════════════════════════════
+  // FIX-G3 + FIX-H4 + PATCH-L: URL cleaning + urutan ogUrl → canonical
+  // 🔥 PATCH-L: remove ?. in extractPageData (7 operators)
+  // ═══════════════════════════════════════════════════════════════
   function extractPageData() {
-    const ogUrl = document.querySelector('meta[property="og:url"]')?.content?.trim();
-    const canonical = document.querySelector('link[rel="canonical"]')?.href?.trim();
+    const _ogMetaEl = document.querySelector('meta[property="og:url"]');
+    const ogUrl = _ogMetaEl && _ogMetaEl.content ? _ogMetaEl.content.trim() : null;
+    const _canonicalEl = document.querySelector('link[rel="canonical"]');
+    const canonical = _canonicalEl && _canonicalEl.href ? _canonicalEl.href.trim() : null;
     const rawUrl = ogUrl || canonical || location.href;
     const url = rawUrl.replace(/[?&]m=1/, '').replace(/\/$/, '');
 
     const h1El = document.querySelector('h1');
-    const h1Title = (h1El?.innerText || h1El?.textContent || '').trim();
+    const h1Title = (h1El && (h1El.innerText || h1El.textContent) || '').trim();
     const title = h1Title || document.title || "";
 
-    const descMeta = document.querySelector("meta[name='description']")?.content || "";
+    const _descMetaEl = document.querySelector("meta[name='description']");
+    const descMeta = (_descMetaEl && _descMetaEl.content) || "";
+
     const articleImage = findBestArticleImage();
     const content = document.querySelector(".post-body.entry-content")
                  || document.querySelector("article")
@@ -1206,7 +1184,6 @@
     const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     if (aedData) log(`✅ AED ready: ${aedData.dateModified}`, "AED");
 
-    // FIX-F / FIX-F2: Wait for Hybrid offset, max 1500ms
     const hybridReady = await waitForHybridDateFinal(CONFIG.HYBRID_FINAL_TIMEOUT);
     if (hybridReady) {
       log(`✅ Hybrid offset READY`, "HYBRID");
@@ -1214,7 +1191,6 @@
       log(`⏰ Hybrid offset timeout — pakai AED dateModified`, "HYBRID");
     }
 
-    // FIX-F2: Re-read `window.AEDMetaDates` SETELAH event
     const finalAed = window.AEDMetaDates || aedData;
     const effectiveDates = finalAed ? {
       datePublished: finalAed.datePublished,
@@ -1231,7 +1207,6 @@
       log(`📅 Schema dateModified = AED original: ${effectiveDates.dateModified}`, "AED");
     }
 
-    // FIX-G2: Create-if-not-exists untuk #auto-schema element
     let articleElem = document.getElementById("auto-schema");
     if (!articleElem) {
       articleElem = document.createElement("script");
@@ -1259,7 +1234,6 @@
     }
 
     const hasStaticFAQ = hasStaticFAQPageSchema();
-    // FIX-H9 REVISED: Cross-script FAQ — body flag + primary guard
     const faqAlreadyGenerated = document.body.getAttribute('data-faq-schema-generated') === 'true';
     const _hintForFAQ = getPLDSchemaHint();
     const isServiceOrProductPrimary = (_hintForFAQ.primary === 'Service' || _hintForFAQ.primary === 'Product');
@@ -1296,14 +1270,6 @@
       const debugInfo = schemaObj.__debug || {};
       delete schemaObj.__debug;
 
-      // ═══════════════════════════════════════════════════════════
-      // FIX-H10: Conditional base layer
-      // ─────────────────────────────────────────────────────────────
-      // - GABUNG (primary=Service/Product + tertiary/focus=GABUNG):
-      //     → SKIP LocalBusiness + WebPage (di-handle Universal/Hybrid)
-      // - PILLAR / lainnya:
-      //     → Generate LocalBusiness + WebPage seperti biasa
-      // ═══════════════════════════════════════════════════════════
       const skipBase = shouldSkipBaseLayer();
 
       let graph;
@@ -1319,11 +1285,9 @@
         const faqSchema = generateFaqSchema(faqsFromDOM, pageData, dates);
         graph.push(faqSchema);
         log(`✅ FAQPage node ditambah ke @graph: ${faqsFromDOM.length} pertanyaan`, "FAQ");
-        // FIX-H9: Set flag untuk prevent duplikat dengan script lain
         document.body.setAttribute('data-faq-schema-generated', 'true');
       }
 
-      // FIX-H2: safeStringify dengan </script>, U+2028, U+2029 protection
       articleElem.textContent = safeStringify({
         "@context": "https://schema.org",
         "@graph": graph
@@ -1341,7 +1305,8 @@
       log(`   mainEntityOfPage: ${pageData.url}${CONFIG.WEBPAGE_ID_SUFFIX} 🔗`, "SYNC");
       log(`   isPartOf: ${parentData.parentName} ✅`, "SCHEMA");
       log(`   Image source: ${debugInfo.imageSource || 'unknown'}`, "IMG");
-      log(`   Title (H1): "${pageData.h1Title?.substring(0, 50) || '(empty)'}"`, "URL");
+      // 🔥 PATCH-L: pageData.h1Title?.substring → ternary
+      log(`   Title (H1): "${pageData.h1Title ? pageData.h1Title.substring(0, 50) : '(empty)'}"`, "URL");
       log(`   datePublished: ${dates.datePublished}`, "HYBRID");
       log(`   dateModified: ${dates.dateModified}`, "HYBRID");
       if (wantFAQ) {
@@ -1369,7 +1334,8 @@
     init();
   }
 
-  console.log(`✅ [AutoSchema v8.8] Ready — PLD-DRIVEN + FAQ + GABUNG + BASE LAYER SYNC`);
+  console.log(`✅ [AutoSchema v8.8-PATCH] Ready — PLD-DRIVEN + FAQ + GABUNG + BASE LAYER SYNC`);
+  console.log(`🩹 PATCH-L: Remove ALL optional chaining (?.) — 13 operators removed — Chrome 55+ compatible`);
   console.log(`🩹 FIX-H10: Anti-duplikat base layer GABUNG — SKIP LocalBusiness+WebPage saat GABUNG`);
   console.log(`✅ PRESERVED: FIX-H5, FIX-H6, FIX-H7, FIX-H8, FIX-H9`);
   console.log(`✅ PRESERVED: FIX-F2, FIX-H1, FIX-H2, FIX-H3, FIX-H4`);
