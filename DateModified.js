@@ -1,6 +1,14 @@
 /* ============================================================
- 🔥 Hybrid Date Modified v10.3a — PURE CONSUMER + AUTO-RUN SYNC
-    🩹 FIX-SYNC-v6 (build 10.3a-fix6) — CRITICAL:
+ 🔥 Hybrid Date Modified v10.3a-fix6-PATCH — PURE CONSUMER + AUTO-RUN SYNC
+    🩹 PATCH-L: Remove ALL optional chaining (?.) — 2 operator
+       - `document.body.innerText?.trim()?.length || 0`
+       - Replaced with `(document.body.innerText || '').trim().length`
+       - Compatible Chrome 49+
+    🩹 PATCH-PAD: Remove String.padStart (Chrome 57+)
+       - `.padStart(2, "0")` → `(n < 10 ? '0' : '') + n`
+       - Compatible Chrome 49+
+
+    🩹 FIX-SYNC-v6 (build 10.3a-fix6) — PRESERVED:
        - MUTATE AEDMetaDates (JANGAN reassign object)
        - Consumer yang sudah pegang referensi lama tetap
          melihat dateModifiedFinal setelah event fire
@@ -147,7 +155,12 @@
 
       const hasMainContent = document.querySelector('.post-body.entry-content, .post-body, article, main, section');
       const hasH1 = document.querySelector('h1');
-      const contentLength = document.body.innerText?.trim()?.length || 0;
+
+      // 🔥 PATCH-L: document.body.innerText?.trim()?.length || 0
+      // → (document.body.innerText || '').trim().length
+      // Semantik IDENTIK: null → 0, "   " → 0, "Text" → 4
+      const contentLength = (document.body.innerText || '').trim().length;
+
       const isContentPage = hasMainContent && hasH1 && contentLength > 500;
 
       if (isHomepage) {
@@ -365,7 +378,7 @@
 
   // ═══════════════════════════════════════════════════════════
   // 🔥 FIX-SYNC-v4: WAIT FOR AEDMetaDates
-  // 
+  //
   // PRIORITAS:
   //   1. AEDMetaDates sudah ada → instant resolve
   //   2. Event detectEvergreenReady → resolve
@@ -418,13 +431,17 @@
 
   // ═══════════════════════════════════════════════════════════
   // HELPER: TO ISO WITH TIMEZONE
+  // 🔥 PATCH-PAD: padStart → inline ternary (Chrome 49+)
   // ═══════════════════════════════════════════════════════════
   function toISOWithTimezoneLocal(date, offset) {
     offset = offset || "+07:00";
     if (!date) return null;
     const d = new Date(date);
     if (isNaN(d.getTime())) return null;
-    const pad = (n) => n.toString().padStart(2, "0");
+    // 🔥 PATCH-PAD: (n < 10 ? '0' : '') + n — IDENTIK dengan padStart(2, '0')
+    //   n = 5  → '05'  (padStart → '05')  ✅
+    //   n = 15 → '15'  (padStart → '15')  ✅
+    const pad = (n) => (n < 10 ? '0' : '') + n;
     const yyyy = d.getFullYear();
     const mm = pad(d.getMonth() + 1);
     const dd = pad(d.getDate());
@@ -476,8 +493,10 @@
   // CLEANUP LOG
   // ═══════════════════════════════════════════════════════════
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Hybrid Date Modified v10.3a-fix6 — PURE CONSUMER + MUTATE-SAFE");
+  console.log("✅ Hybrid Date Modified v10.3a-fix6-PATCH — PURE CONSUMER + MUTATE-SAFE");
   console.log("═══════════════════════════════════════════════════════════");
+  console.log("🩹 PATCH-L: Remove ALL optional chaining (?. ) — Chrome 49+ compatible");
+  console.log("🩹 PATCH-PAD: Remove String.padStart — Chrome 49+ compatible");
   console.log("🩹 FIX-SYNC-v6: MUTATE AEDMetaDates (JANGAN reassign)");
   console.log("🩹 FIX-SYNC-v6: Consumer reference tetap valid → dateModifiedFinal terbaca");
   console.log("🩹 FIX-SYNC-v6: Schema dateModified == meta tag dateModified ✅");
