@@ -5,6 +5,7 @@
  * 🔥 v12.3.6 CHANGELOG:
  * ✅ PATCH-J: Update komentar AED v17.4.0/v17.4.1 → v17.4.8
  * ✅ PATCH-K: Hapus duplikasi log getLevelCategory() (baris 26)
+ * ✅ PATCH-L: Remove all optional chaining (?. ) → Chrome 49+ compatible
  * 
  * FIX FINAL:
  * ✅ TANPA LAZY LOAD — breadcrumb render INSTAN
@@ -28,6 +29,11 @@
  * ✅ PATCH G: getLevelCategory(level, contentFocus) — Money + INFORMASI = evergreen
  * ✅ PATCH H: isMoneyLevel/isEvergreenLevel sinkron AED v17.4.8
  * ✅ PATCH I: Caller getLevelCategory() diupdate untuk kirim contentFocus
+ * 
+ * 🔥 PATCH-L (v12.3.6):
+ * ✅ Remove ALL optional chaining (?.)
+ * ✅ Compatible Chrome 49+ (const/let/arrow/template literal OK)
+ * ✅ Fix for Chrome 51-79 (where ?. causes SyntaxError)
  * 
  * @version 12.3.6-lite
  * ============================================================
@@ -200,7 +206,6 @@
         // ============================================================
         // 9. PLD READERS
         // ============================================================
-        // 🔥 FIX-SYNC-v1 (PATCH D): prefer detectFromDOM() (H1 fallback)
         function getPageLevelFromPLD() {
             const pldVersions = [
                 'pageLevelDetectorv22', 'pageLevelDetectorv20',
@@ -212,7 +217,6 @@
                 const pld = window[pldName];
                 if (!pld) continue;
 
-                // 🔥 FIX-SYNC-v1: prefer detectFromDOM (dapat H1 fallback)
                 if (typeof pld.detectFromDOM === 'function') {
                     try {
                         const domLevel = pld.detectFromDOM();
@@ -225,7 +229,6 @@
                     }
                 }
 
-                // Fallback ke detect() kalau detectFromDOM tidak ada / kosong
                 if (typeof pld.detect === 'function') {
                     try {
                         const level = pld.detect();
@@ -331,26 +334,17 @@
 
         // ============================================================
         // 🔥 FIX-SYNC-v2 (PATCH G): Helper baru — cek level kategori
-        // Konsisten dengan AED v17.4.8 & Hybrid v10.2
-        // 
-        // ATURAN:
-        //   - EVERGREEN_LEVELS → 'evergreen'
-        //   - MONEY_LEVELS + INFORMASI → 'evergreen'
-        //   - MONEY_LEVELS + lainnya → 'non-evergreen'
-        //   - home → 'home'
         // ============================================================
         function getLevelCategory(level, contentFocus) {
             if (!level) return 'unknown';
             if (level === 'home') return 'home';
 
-            // Level EVERGREEN_LEVELS → evergreen
             if (EVERGREEN_LEVELS_SET[level]) return 'evergreen';
 
-            // Level MONEY_LEVELS
             if (MONEY_LEVELS_SET[level]) {
                 var normalizedFocus = String(contentFocus || '').toUpperCase();
                 if (normalizedFocus === 'INFORMASI') {
-                    return 'evergreen'; // Money + INFORMASI = evergreen
+                    return 'evergreen';
                 }
                 return 'non-evergreen';
             }
@@ -481,7 +475,6 @@
             'standar', 'merk', 'brand', 'seri'
         ];
 
-        // 🔥 FIX-A: Tambah spec phrase words
         const VARIANT_KEYWORDS_JASA = [
             'standar pelayanan', 'sop', 'metode kerja',
             'prosedur', 'tahapan', 'cara kerja',
@@ -645,7 +638,6 @@
         function isLocation(text) {
             if (!text) return false;
             const lower = text.toLowerCase();
-            // 🔥 FIX-B: Pakai pre-compiled regexes
             for (let i = 0; i < LOCATION_REGEXES.length; i++) {
                 if (LOCATION_REGEXES[i].test(lower)) return true;
             }
@@ -701,7 +693,6 @@
         // 20. DETECT PAGE TYPE FALLBACK — DENGAN CACHE
         // ============================================================
         function detectPageTypeFallback(pageName, isHome = false) {
-            // Cache check
             const cacheKey = pageName + '|' + (isHome ? '1' : '0') + '|' + entityType;
             if (__pageTypeCache.has(cacheKey)) {
                 log(`⚡ CACHE HIT detectPageType: ${pageName}`, 'CACHE');
@@ -829,7 +820,8 @@
             for (let i = maxItems - 1; i >= 0; i--) reversedItems.push(items[i]);
 
             for (const item of reversedItems) {
-                const itemName = item.name?.toLowerCase() || '';
+                // 🔥 PATCH-L: remove ?. — use (item.name || '')
+                const itemName = (item.name || '').toLowerCase();
                 if (itemName !== currentLower) {
                     log(`✅ PARENT TERDEKAT: "${item.name}" (level ${item.level || 'unknown'})`, 'PARENT_FIX');
                     return item;
@@ -839,7 +831,8 @@
             const entityPillarNames = ENTITY_PILLAR_NAMES[entityType] || [];
             if (entityPillarNames.length > 0) {
                 const pillarName = entityPillarNames[0];
-                const pillarItem = items.find(item => item.name?.toLowerCase() === pillarName);
+                // 🔥 PATCH-L: remove ?.
+                const pillarItem = items.find(item => (item.name || '').toLowerCase() === pillarName);
                 if (pillarItem) {
                     log(`⚠️ FALLBACK: Entity pillar "${pillarName}" as parent`, 'WARN');
                     return pillarItem;
@@ -857,7 +850,8 @@
             let items = [...breadcrumbItems];
             const currentLower = currentPageName.toLowerCase();
 
-            const hasCurrent = items.some(item => item.name?.toLowerCase() === currentLower);
+            // 🔥 PATCH-L: remove ?.
+            const hasCurrent = items.some(item => (item.name || '').toLowerCase() === currentLower);
 
             if (!hasCurrent) {
                 items.push({ name: currentPageName, url: currentFullUrl });
@@ -866,11 +860,17 @@
             const detectedParent = findNearestParentFromItems(items, currentPageName);
 
             if (detectedParent) {
-                const hasParent = items.some(item => item.name?.toLowerCase() === detectedParent.name?.toLowerCase());
+                // 🔥 PATCH-L: remove ?.
+                const hasParent = items.some(item => 
+                    (item.name || '').toLowerCase() === (detectedParent.name || '').toLowerCase()
+                );
 
                 if (!hasParent) {
                     log(`✅ AUTO-INJECTED PARENT: "${detectedParent.name}"`, 'SUCCESS');
-                    const currentIndex = items.findIndex(item => item.name?.toLowerCase() === currentLower);
+                    // 🔥 PATCH-L: remove ?.
+                    const currentIndex = items.findIndex(item => 
+                        (item.name || '').toLowerCase() === currentLower
+                    );
                     if (currentIndex > -1) {
                         items.splice(currentIndex, 0, detectedParent);
                     } else {
@@ -881,7 +881,10 @@
                 const entityPillarNames = ENTITY_PILLAR_NAMES[entityType] || [];
                 if (entityPillarNames.length > 0) {
                     const pillarName = entityPillarNames[0];
-                    const pillarExists = items.some(item => item.name?.toLowerCase() === pillarName);
+                    // 🔥 PATCH-L: remove ?.
+                    const pillarExists = items.some(item => 
+                        (item.name || '').toLowerCase() === pillarName
+                    );
                     if (!pillarExists) {
                         items.unshift({
                             name: pillarName,
@@ -904,8 +907,14 @@
             const words = currentLower.split(/\s+/);
 
             const autoParent = findNearestParentFromItems(breadcrumbItems, currentPageTitle);
-            if (autoParent && !modifiedLineage.some(l => l.name?.toLowerCase() === autoParent.name?.toLowerCase())) {
-                const parentFromAll = allLevels.find(item => item.name?.toLowerCase() === autoParent.name?.toLowerCase());
+            // 🔥 PATCH-L: remove ?.
+            if (autoParent && !modifiedLineage.some(l => 
+                (l.name || '').toLowerCase() === (autoParent.name || '').toLowerCase()
+            )) {
+                // 🔥 PATCH-L: remove ?.
+                const parentFromAll = allLevels.find(item => 
+                    (item.name || '').toLowerCase() === (autoParent.name || '').toLowerCase()
+                );
                 if (parentFromAll) {
                     log(`✅ AUTO PARENT FROM ITEMS: "${parentFromAll.name}" (level ${parentFromAll.level})`, 'SUCCESS');
                     modifiedLineage.push(parentFromAll);
@@ -925,8 +934,14 @@
             if (modifiedLineage.length === lineageLevels.length && words.length >= 2) {
                 for (let i = words.length - 1; i >= 1; i--) {
                     const potentialParent = words.slice(0, i).join(' ');
-                    const parentItem = allLevels.find(item => item.name?.toLowerCase() === potentialParent);
-                    if (parentItem && !modifiedLineage.some(l => l.name?.toLowerCase() === parentItem.name?.toLowerCase())) {
+                    // 🔥 PATCH-L: remove ?.
+                    const parentItem = allLevels.find(item => 
+                        (item.name || '').toLowerCase() === potentialParent
+                    );
+                    // 🔥 PATCH-L: remove ?.
+                    if (parentItem && !modifiedLineage.some(l => 
+                        (l.name || '').toLowerCase() === (parentItem.name || '').toLowerCase()
+                    )) {
                         log(`✅ PATTERN PARENT: "${parentItem.name}"`, 'SUCCESS');
                         modifiedLineage.push(parentItem);
                         break;
@@ -947,8 +962,14 @@
                 for (const [parentKeyword, childKeywords] of Object.entries(semanticKeywords)) {
                     const isChildMatch = childKeywords.some(kw => currentLower.includes(kw));
                     if (isChildMatch) {
-                        const parentItem = allLevels.find(item => item.name?.toLowerCase().includes(parentKeyword));
-                        if (parentItem && !modifiedLineage.some(l => l.name?.toLowerCase() === parentItem.name?.toLowerCase())) {
+                        // 🔥 PATCH-L: remove ?. (this one was buggy in original - would throw if name null)
+                        const parentItem = allLevels.find(item => 
+                            (item.name || '').toLowerCase().indexOf(parentKeyword) !== -1
+                        );
+                        // 🔥 PATCH-L: remove ?.
+                        if (parentItem && !modifiedLineage.some(l => 
+                            (l.name || '').toLowerCase() === (parentItem.name || '').toLowerCase()
+                        )) {
                             log(`✅ SEMANTIC PARENT: "${parentItem.name}"`, 'SUCCESS');
                             modifiedLineage.push(parentItem);
                             break;
@@ -957,12 +978,21 @@
                 }
             }
 
-            if (modifiedLineage.length === 0 || modifiedLineage.every(l => l.name?.toLowerCase() === currentLower)) {
+            // 🔥 PATCH-L: remove ?.
+            if (modifiedLineage.length === 0 || modifiedLineage.every(l => 
+                (l.name || '').toLowerCase() === currentLower
+            )) {
                 const entityPillarNames = ENTITY_PILLAR_NAMES[entityType] || [];
                 if (entityPillarNames.length > 0) {
                     const pillarName = entityPillarNames[0];
-                    const pillarItem = allLevels.find(item => item.name?.toLowerCase() === pillarName);
-                    if (pillarItem && !modifiedLineage.some(l => l.name?.toLowerCase() === pillarName)) {
+                    // 🔥 PATCH-L: remove ?.
+                    const pillarItem = allLevels.find(item => 
+                        (item.name || '').toLowerCase() === pillarName
+                    );
+                    // 🔥 PATCH-L: remove ?.
+                    if (pillarItem && !modifiedLineage.some(l => 
+                        (l.name || '').toLowerCase() === pillarName
+                    )) {
                         log(`✅ ENTITY PILLAR (fallback): "${pillarName}"`, 'WARN');
                         modifiedLineage.push(pillarItem);
                     }
@@ -987,7 +1017,8 @@
 
             const uniqueNames = new Set();
             for (const item of sorted) {
-                const key = item.name?.toLowerCase() || '';
+                // 🔥 PATCH-L: remove ?.
+                const key = (item.name || '').toLowerCase();
                 if (!uniqueNames.has(key)) {
                     uniqueNames.add(key);
                     if (!item.level) {
@@ -1029,8 +1060,6 @@
         const isPLDSynced = !!pldLevel;
         log(`PLD Sync: ${isPLDSynced ? '✅ SINKRON' : '❌ FALLBACK'}`, 'PLD');
 
-        // 🔥 PATCH-K (v12.3.6): Duplikasi log getLevelCategory() dihapus
-        // (Log sudah ada di STEP 39 di bawah)
         const _focusForLog = getContentFocusFromPLD();
         const levelCat = pldLevel ? getLevelCategory(pldLevel, _focusForLog) : null;
 
@@ -1307,27 +1336,19 @@
         document.body.setAttribute('data-breadcrumb-parent', nearestParent ? (nearestParent.name || '') : '');
         document.body.setAttribute('data-breadcrumb-parent-url', nearestParent ? (nearestParent.url || '') : '');
 
-        // 🔥 FIX-C: Ambil contentFocus + kategori dari PLD
         const contentFocusFromPLD = getContentFocusFromPLD();
         const kategoriFromPLD = getKategoriFromPLD(contentFocusFromPLD);
 
-        // ============================================================
-        // 🔥 FIX-SYNC-v2 (PATCH H): isMoneyLevel/isEvergreenLevel sinkron AED v17.4.8
-        // ============================================================
         const _levelForCategory = pldLevel || currentPageType;
         const _focusUpper = String(contentFocusFromPLD || '').toUpperCase();
         const _isInformationalFocus = (_focusUpper === 'INFORMASI');
 
-        // 🔥 FIX-SYNC-v2: getLevelCategory butuh contentFocus
         const levelCategory = getLevelCategory(_levelForCategory, contentFocusFromPLD);
 
-        // 🔥 FIX-SYNC-v2: Money + INFORMASI = evergreen (konsisten AED v17.4.8)
         const isEvergreenLevel = EVERGREEN_LEVELS_SET[_levelForCategory] === true
                                || (MONEY_LEVELS_SET[_levelForCategory] === true && _isInformationalFocus);
         const isMoneyLevel = MONEY_LEVELS_SET[_levelForCategory] === true && !_isInformationalFocus;
 
-        // 🔥 FIX-SYNC-v1: Sync contentFocus/kategori ke body attribute
-        // agar script lain bisa baca tanpa akses PLD
         try {
             if (contentFocusFromPLD) {
                 document.body.setAttribute('data-content-focus', contentFocusFromPLD);
@@ -1350,10 +1371,8 @@
                 version: '12.3.6-lite',
                 pldLevel: pldLevel,
                 pldSync: isPLDSynced,
-                // 🔥 FIX-C: Content focus fields
                 contentFocus: contentFocusFromPLD,
                 pldKategori: kategoriFromPLD,
-                // 🔥 FIX-SYNC-v1 + v2: Kategori level fields
                 levelCategory: levelCategory,
                 isEvergreenLevel: isEvergreenLevel,
                 isMoneyLevel: isMoneyLevel
@@ -1399,10 +1418,8 @@
             commercialIntent: COMMERCIAL_WORDS.some(w => currentPageTitle.startsWith(w)),
             parentNoSkip: true,
             parentByPosition: true,
-            // 🔥 FIX-C: Content focus fields
             contentFocus: contentFocusFromPLD,
             pldKategori: kategoriFromPLD,
-            // 🔥 FIX-SYNC-v1 + v2: Kategori level fields
             levelCategory: levelCategory,
             isEvergreenLevel: isEvergreenLevel,
             isMoneyLevel: isMoneyLevel
@@ -1415,6 +1432,6 @@
     window.generateBreadcrumbShared = generateBreadcrumbShared;
     window.generateBreadcrumbSharedSync = generateBreadcrumbShared;
 
-    console.log(`✅ [Breadcrumb v12.3.6-LITE] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'}) — LANGSUNG TANPA LAZY LOAD + AED SYNC v17.4.8`);
+    console.log(`✅ [Breadcrumb v12.3.6-LITE-PATCH-L] Ready (mode: ${ENABLE_DEBUG ? 'VERBOSE' : 'SILENT'}) — NO ?. — Chrome 49+ Compatible`);
 
 })();
