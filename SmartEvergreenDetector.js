@@ -1,24 +1,27 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.5.6 — CSS FIX + PAGE BYLINE
+ 🧠 Smart Evergreen Detector v17.5.6-PATCH — CSS FIX + PAGE BYLINE
 ============================================================
- 🔥🔥🔥 v17.5.6 CHANGELOG 🔥🔥🔥
+ 🔥🔥🔥 v17.5.6-PATCH CHANGELOG 🔥🔥🔥
+ ✅ PATCH-L: Remove ALL optional chaining (?. ) — 3 operator
+    - Compatible Chrome 49+ (const/let/arrow/async-await OK)
+    - Fix for Chrome 55-79 (where ?. causes SyntaxError)
+    - Behavior IDENTICAL on Chrome 80+
+ ✅ PATCH-PAD: Remove String.padStart (Chrome 57+)
+    - Replaced with inline ternary: (n < 10 ? '0' : '') + n
+    - Compatible Chrome 49+
+
+ ✅ PRESERVED dari v17.5.6:
  ✅ FIX-CSS-LOAD: injectWarningStyles() di awal detectEvergreen()
-    - Sebelumnya: CSS hanya load saat warning muncul
-    - Efek: "BBy" tanpa spasi di halaman fresh (no warning)
-    - Sesudah: CSS SELALU load → byline rapi di semua halaman
  ✅ FIX-CSS-MARGIN: margin-right eksplisit (tidak andalkan gap)
  ✅ FIX-PARTIAL-HIDE: Partial hide untuk template user
-    - Detect .title-secondary → hide "By" + icon
-    - PERTAHANKAN timestamp
  ✅ FIX-PAGE-BYLINE: Page dapat byline via inject setelah H1
-
- ✅ PRESERVED dari v17.5.5: FIX-DOUBLE-BYLINE
- ✅ PRESERVED dari v17.5.4: FIX-AUTHOR-BYLINE
- ✅ PRESERVED dari v17.5.3: FIX-MINI-BADGE
- ✅ PRESERVED dari v17.5.2: FIX-UX-1 s/d UX-7
- ✅ PRESERVED dari v17.5.1: FIX-WARN-*
- ✅ PRESERVED dari v17.5.0: FIX-PLD-SYNC, FIX-AUTORUN, FIX-EVENT
- ✅ PRESERVED dari v17.4.x: SEMUA FIX
+ ✅ FIX-DOUBLE-BYLINE (v17.5.5)
+ ✅ FIX-AUTHOR-BYLINE (v17.5.4)
+ ✅ FIX-MINI-BADGE (v17.5.3)
+ ✅ FIX-UX-1 s/d UX-7 (v17.5.2)
+ ✅ FIX-WARN-* (v17.5.1)
+ ✅ FIX-PLD-SYNC, FIX-AUTORUN, FIX-EVENT (v17.5.0)
+ ✅ SEMUA FIX v17.4.x
 
  📌 BRAND DEFAULT: "Beton Jaya Readymix"
  📌 BIO URL: "/p/about.html"
@@ -395,12 +398,13 @@
     return WARNING_CONFIG.SHOW_DAYS_BEFORE;
   }
 
+  // 🔥 PATCH-PAD: padStart removed (Chrome 57+ → Chrome 49+)
   function toISOWithTimezoneLocal(date, offset) {
     offset = offset || "+07:00";
     if (!date) return null;
     const d = new Date(date);
     if (isNaN(d.getTime())) return null;
-    const pad = (n) => n.toString().padStart(2, "0");
+    const pad = (n) => (n < 10 ? '0' : '') + n;
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${offset}`;
   }
 
@@ -1138,6 +1142,7 @@
     return 'INFORMASI';
   }
 
+  // 🔥 PATCH-L: remove ?. in queryByKeyword
   function queryByKeyword(container, keywords, requireYear) {
     if (requireYear === undefined) requireYear = true;
     const results = [];
@@ -1146,7 +1151,8 @@
     elements.forEach(el => {
       const tag = el.tagName;
       if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return;
-      const text = el.innerText?.toLowerCase() || '';
+      // 🔥 PATCH-L: el.innerText?.toLowerCase() → (el.innerText || '').toLowerCase()
+      const text = (el.innerText || '').toLowerCase();
       if (!text || text.length > 500) return;
       const hasKeyword = keywords.some(kw => text.includes(kw.toLowerCase()));
       if (!hasKeyword) return;
@@ -1385,6 +1391,7 @@
     return true;
   }
 
+  // 🔥 PATCH-L: remove ?. in processMetaDates (2 instances)
   async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated) {
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
@@ -1396,8 +1403,10 @@
     const shouldRefresh = autoUpdated === true || isFirstInit || hasCustomDate || hasIllegalFaqProps;
 
     const nowISO = new Date().toISOString();
-    let datePublished = toISOWithTimezoneLocal(metaPublished?.content) || toISOWithTimezoneLocal(nowISO);
-    let dateModified = toISOWithTimezoneLocal(customDateModified) || toISOWithTimezoneLocal(metaModified?.content) || datePublished;
+    // 🔥 PATCH-L: metaPublished?.content → metaPublished ? metaPublished.content : null
+    // 🔥 PATCH-L: metaModified?.content → metaModified ? metaModified.content : null
+    let datePublished = toISOWithTimezoneLocal(metaPublished ? metaPublished.content : null) || toISOWithTimezoneLocal(nowISO);
+    let dateModified = toISOWithTimezoneLocal(customDateModified) || toISOWithTimezoneLocal(metaModified ? metaModified.content : null) || datePublished;
     if (new Date(dateModified) < new Date(datePublished)) dateModified = datePublished;
 
     if (!metaPublished) { metaPublished = document.createElement("meta"); metaPublished.setAttribute("itemprop", "datePublished"); document.head.appendChild(metaPublished); }
@@ -1570,7 +1579,7 @@
     if (_AED_INITIALIZED) return;
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.5.6 — CSS Fix + Page Byline");
+    console.log("🧩 detectEvergreen() v17.5.6-PATCH — CSS Fix + Page Byline");
 
     // 🔥 FIX-CSS-LOAD v17.5.6: load CSS di awal (selalu)
     injectWarningStyles();
@@ -1597,20 +1606,22 @@
     injectAuthorByline();
 
     window.dispatchEvent(new Event("detectEvergreenReady"));
-    console.log(`🧩 detectEvergreen() v17.5.6 — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.5.6-PATCH — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Smart Evergreen Detector v17.5.6 — CSS FIX + PAGE BYLINE");
+  console.log("✅ Smart Evergreen Detector v17.5.6-PATCH — CSS FIX + PAGE BYLINE");
   console.log("═══════════════════════════════════════════════════════════");
+  console.log("🩹 PATCH-L: Remove ALL optional chaining (?. ) — Chrome 49+ compatible");
+  console.log("🩹 PATCH-PAD: Remove String.padStart — Chrome 49+ compatible");
   console.log("🔥 FIX-CSS-LOAD: CSS selalu load (termasuk halaman fresh)");
   console.log("🔥 FIX-CSS-MARGIN: Spasi byline fix (tidak 'BBy' lagi)");
   console.log("🔥 FIX-PARTIAL-HIDE: Fix double byline di Post template user");
   console.log("🔥 FIX-PAGE-BYLINE: Page dapat byline via inject setelah H1");
-  console.log("✅ PRESERVED: SEMUA fitur v17.5.5 + v17.5.4 + v17.5.3 + v17.5.2 + v17.5.1 + v17.5.0 + v17.4.x");
+  console.log("✅ PRESERVED: SEMUA fitur v17.5.6 + v17.5.5 + v17.5.4 + v17.5.3 + v17.5.2 + v17.5.1 + v17.5.0 + v17.4.x");
   console.log("📌 Author URL: " + AUTHOR_BYLINE_CONFIG.URL);
   console.log("═══════════════════════════════════════════════════════════");
 
