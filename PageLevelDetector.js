@@ -555,7 +555,10 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "tiang bor mini", "bor pile mini",
       "baja tulangan", "besi tulangan",
       "kolom praktis", "ring balk",
-      "cor dak beton", "cor lantai beton", "cor jalan beton"
+      "cor dak beton", "cor lantai beton", "cor jalan beton",
+       "beton bertulang",
+         "beton per lubang",
+         "per lubang"      // safety net
     ],
 
     produk: [
