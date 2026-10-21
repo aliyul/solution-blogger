@@ -361,6 +361,7 @@
   function getPLDVersion() {
     if (window.pageLevelDetectorv22 && window.pageLevelDetectorv22.version) {
       var v = String(window.pageLevelDetectorv22.version);
+      if (v.indexOf("23.9.10") === 0) return { version: v, family: "v23-lite", label: "v23.9.10-lite" };
       if (v.indexOf("23.9.9a") === 0) return { version: v, family: "v23-lite", label: "v23.9.9a-lite" };
       if (v.indexOf("23.9.9") === 0) return { version: v, family: "v23-lite", label: "v23.9.9-lite" };
       if (v.indexOf("23.9.8") === 0) return { version: v, family: "v23-lite", label: "v23.9.8-lite" };
@@ -1757,6 +1758,7 @@
            const faqPage = {
              "@type": "FAQPage",
              "@id": cleanUrl + "#faq",
+             "isPartOf": { "@id": cleanUrl + "#webpage" },
              "author": { "@id": CONFIG.LOCALBUSINESS_ID },
              "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
              "mainEntity": faqsFromDOM.map(f => ({
