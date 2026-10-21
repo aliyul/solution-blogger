@@ -428,26 +428,22 @@
   }
 
   function shouldSkipBaseLayer() {
-    const hint = getPLDSchemaHint();
+  const hint = getPLDSchemaHint();
 
-    if (hint.primary !== 'Service' && hint.primary !== 'Product') {
-      return false;
-    }
-
-    const bodyFocus = (document.body.getAttribute('data-content-focus') || '').toUpperCase();
-    const isGabungConfirmed =
-      hint.tertiary === 'Article' ||
-      bodyFocus === 'GABUNG';
-
-    if (!isGabungConfirmed) {
-      log(`⚠️ primary=${hint.primary} tapi GABUNG tidak terkonfirmasi — base layer tetap di-generate`, "WARN");
-      return false;
-    }
-
-    log(`🛡️ Base layer SKIP — GABUNG confirmed (primary=${hint.primary}, tertiary=${hint.tertiary || '-'}, focus=${bodyFocus})`, "GABUNG");
-    return true;
+  if (hint.primary !== 'Service' && hint.primary !== 'Product') {
+    return false;
   }
 
+  // 🔥 FIX-H10-EXT: Skip base layer SELALU ketika primary = Service/Product,
+  // karena Universal/Hybrid sudah generate LocalBusiness + WebPage
+  const bodyFocus = (document.body.getAttribute('data-content-focus') || '').toUpperCase();
+  const tertiaryArticle = (hint.tertiary === 'Article');
+  const isGabungFocus = (bodyFocus === 'GABUNG');
+
+  log(`🛡️ Base layer SKIP — primary=${hint.primary} (base layer di-handle Universal/Hybrid) | tertiary=${hint.tertiary || '-'} | focus=${bodyFocus} | GABUNG=${isGabungFocus || tertiaryArticle}`, "GABUNG");
+  return true;
+}
+  
   // 🔥 PATCH-L: remove ?. in contentLength
   function shouldSkipPage() {
     const currentPath = window.location.pathname;
@@ -1037,15 +1033,13 @@
   }
 
   function generateFaqSchema(faqs, data, dates) {
-    return {
-      "@type": "FAQPage",
-      "@id": data.url + "#faq",
-      "author": {
-        "@type": "Organization",
-        "@id": CONFIG.LOCALBUSINESS_ID,
-        "name": "Beton Jaya Readymix"
-      },
-      "mainEntity": faqs.map(f => ({
+      return {
+        "@type": "FAQPage",
+        "@id": data.url + "#faq",
+        "isPartOf": { "@id": data.url + CONFIG.WEBPAGE_ID_SUFFIX },
+        "author": { "@id": CONFIG.LOCALBUSINESS_ID },
+        "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
+        "mainEntity": faqs.map(f => ({
         "@type": "Question",
         "name": f.name,
         "acceptedAnswer": {
@@ -1065,9 +1059,10 @@
       "@id": CONFIG.LOCALBUSINESS_ID,
       "name": "Beton Jaya Readymix",
       "url": "https://www.betonjayareadymix.com",
-      "telephone": "+6281299842508",
-      "description": "Beton Jaya Readymix melayani jasa konstruksi terpadu: pengeboran, coring beton, pondasi, beton readymix, pagar panel, saluran precast, material, sewa alat, dan jasa pasang konstruksi di seluruh Indonesia.",
-      "address": {
+        "telephone": "+6281299842508",
+        "description": "Beton Jaya Readymix — penyedia layanan beton dan konstruksi di Jabodetabek, Karawang, Serang, Cilegon, dan Surabaya.",
+        "priceRange": "Rp",
+        "address": {
         "@type": "PostalAddress",
         "addressLocality": "Bogor",
         "addressRegion": "Jawa Barat",
@@ -1086,24 +1081,23 @@
   }
 
   function generateWebPageNode(pageData, parentData, dates) {
-    return {
-      "@type": "WebPage",
-      "@id": pageData.url + CONFIG.WEBPAGE_ID_SUFFIX,
-      "url": pageData.url,
-      "name": pageData.title,
-      "description": pageData.descMeta,
-      "inLanguage": "id",
-      "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
-      "isPartOf": parentData && parentData.parentUrl ? {
-        "@type": "WebPage",
-        "@id": parentData.parentUrl,
-        "name": cleanBreadcrumbText(parentData.parentName)
-      } : undefined,
-      "datePublished": dates.datePublished,
-      "dateModified": dates.dateModified
-    };
-  }
-
+  return {
+    "@type": "WebPage",
+    "@id": pageData.url + CONFIG.WEBPAGE_ID_SUFFIX,
+    "url": pageData.url,
+    "name": pageData.title,
+    "description": pageData.descMeta,
+    "inLanguage": "id",
+    "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
+    "isPartOf": parentData && parentData.parentUrl
+      ? (parentData.parentUrl === location.origin
+          ? { "@id": "https://www.betonjayareadymix.com#website" }
+          : { "@type": "WebPage", "@id": parentData.parentUrl, "name": cleanBreadcrumbText(parentData.parentName) })
+      : undefined,
+    "datePublished": dates.datePublished,
+    "dateModified": dates.dateModified
+  };
+}
   // ═══════════════════════════════════════════════════════════════
   // FIX-G3 + FIX-H4 + PATCH-L: URL cleaning + urutan ogUrl → canonical
   // 🔥 PATCH-L: remove ?. in extractPageData (7 operators)
@@ -1120,8 +1114,9 @@
     const h1Title = (h1El && (h1El.innerText || h1El.textContent) || '').trim();
     const title = h1Title || document.title || "";
 
-    const _descMetaEl = document.querySelector("meta[name='description']");
-    const descMeta = (_descMetaEl && _descMetaEl.content) || "";
+        const _descMetaEl = document.querySelector("meta[name='description']");
+    const _descContent = _descMetaEl && _descMetaEl.content ? _descMetaEl.content.trim() : "";
+    const descMeta = _descContent || (h1Title ? h1Title.substring(0, 155) : "Beton Jaya Readymix — penyedia layanan beton dan konstruksi.");
 
     const articleImage = findBestArticleImage();
     const content = document.querySelector(".post-body.entry-content")
