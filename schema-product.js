@@ -816,20 +816,23 @@
   }
 
   function generateInternalLinks() {
-    perf.start('generateInternalLinks');
-    const container = document.querySelector('article, main, .post-body') || document.body;
-    const anchors = container.querySelectorAll('a');
-    const links = [];
-    for (const a of anchors) {
-      const href = a.href;
-      if (!href) continue;
-      if (!href.includes(location.hostname)) continue;
-      if (href.includes('#')) continue;
-      if (href.match(/(\/search|\/feed|\/label)/i)) continue;
-      if (href.includes('{{') || href.includes('%7B') || href.includes('LINK_')) continue;
-      links.push(href);
-      if (links.length >= CONFIG.MAX_INTERNAL_LINKS) break;
-    }
+  perf.start('generateInternalLinks');
+  const container = document.querySelector('article, main, .post-body') || document.body;
+  const anchors = container.querySelectorAll('a');
+  const links = [];
+  const SKIP_PATTERNS = /\/(hubungi-kami|portofolio|disclaimer|privacy-policy|terms-of-service|about|tentang-kami|sitemap|search|feed|label)/i;
+  for (const a of anchors) {
+    const href = a.href;
+    if (!href) continue;
+    if (!href.includes(location.hostname)) continue;
+    if (href.includes('#')) continue;
+    if (SKIP_PATTERNS.test(href)) continue;
+    if (href === location.href) continue;
+    if (links.includes(href)) continue;
+    if (href.includes('{{') || href.includes('%7B') || href.includes('LINK_')) continue;
+    links.push(href);
+    if (links.length >= CONFIG.MAX_INTERNAL_LINKS) break;
+  }
     const unique = [...new Set(links)];
     const limited = unique.slice(0, CONFIG.MAX_INTERNAL_LINKS);
 
@@ -1475,6 +1478,119 @@
     });
   }
 
+ function extractProductSpecs(container) {
+  if (!container) container = document.querySelector('.post-body, .entry-content, article, main') || document.body;
+  const props = [];
+  const seen = new Set();
+
+  const NOISE_NAMES = ['harga', 'biaya', 'tarif', 'price', 'cost', 'diskon', 'promo', 'stok', 'stock', 'ongkir', 'berat kirim'];
+
+  function isAllowed(name) {
+    if (!name || name.length < 2 || name.length > 50) return false;
+    const lower = name.toLowerCase().trim();
+    if (NOISE_NAMES.some(n => lower.includes(n))) return false;
+    return true;
+  }
+
+  function addProp(name, value) {
+    if (!isAllowed(name)) return;
+    if (!value || value.length < 1 || value.length > 100) return;
+    const key = name.toLowerCase().trim();
+    if (seen.has(key)) return;
+    seen.add(key);
+    props.push({
+      "@type": "PropertyValue",
+      "name": name.trim(),
+      "value": String(value).trim().substring(0, 100)
+    });
+  }
+
+  // ═══ LAPIS 1: TABEL dengan header spesifikasi ═══
+  const tables = container.querySelectorAll('table');
+  for (const table of tables) {
+    const headers = Array.from(table.querySelectorAll('th')).map(h => 
+      (h.innerText || '').toLowerCase().trim()
+    );
+    let nameColIdx = -1, valueColIdx = -1;
+    for (let i = 0; i < headers.length; i++) {
+      const h = headers[i];
+      if (/^(spesifikasi|parameter|properti|atribut|nama|item|keterangan|spec|specification)/i.test(h)) nameColIdx = i;
+      if (/^(nilai|value|ukuran|detail|besaran)/i.test(h)) valueColIdx = i;
+    }
+    if (nameColIdx === -1 || valueColIdx === -1) continue;
+    const rows = table.querySelectorAll('tbody tr, tr');
+    for (const row of rows) {
+      const cells = row.querySelectorAll('td');
+      if (cells.length <= Math.max(nameColIdx, valueColIdx)) continue;
+      const name = (cells[nameColIdx].innerText || '').trim();
+      const value = (cells[valueColIdx].innerText || '').trim();
+      addProp(name, value);
+    }
+    if (props.length >= 10) break;
+  }
+
+  // ═══ LAPIS 2: DEFINITION LIST (dl > dt + dd) ═══
+  if (props.length < 10) {
+    const dls = container.querySelectorAll('dl');
+    for (const dl of dls) {
+      const dts = dl.querySelectorAll('dt');
+      const dds = dl.querySelectorAll('dd');
+      const len = Math.min(dts.length, dds.length);
+      for (let i = 0; i < len; i++) {
+        const name = (dts[i].innerText || '').trim().replace(/:$/, '');
+        const value = (dds[i].innerText || '').trim();
+        addProp(name, value);
+      }
+      if (props.length >= 10) break;
+    }
+  }
+
+  // ═══ LAPIS 3: DATA-* ATTRIBUTES ═══
+  if (props.length < 5) {
+    const DATA_ATTRS = [
+      ['data-product-mutu', 'Mutu'],
+      ['data-product-size', 'Ukuran'],
+      ['data-product-dimension', 'Dimensi'],
+      ['data-product-material', 'Material'],
+      ['data-product-weight', 'Berat'],
+      ['data-product-color', 'Warna'],
+      ['data-product-thickness', 'Tebal'],
+      ['data-product-length', 'Panjang'],
+      ['data-product-width', 'Lebar'],
+      ['data-product-height', 'Tinggi'],
+      ['data-product-diameter', 'Diameter'],
+    ];
+    for (const [attr, label] of DATA_ATTRS) {
+      const el = container.querySelector(`[${attr}]`);
+      if (el) addProp(label, el.getAttribute(attr));
+    }
+  }
+
+  // ═══ LAPIS 4: CONTEXTUAL REGEX — keyword HARUS di depan angka ═══
+  if (props.length < 5) {
+    const text = (container.innerText || '').replace(/\s+/g, ' ');
+    const CONTEXTUAL_PATTERNS = [
+      { name: 'Mutu',     pattern: /\b(?:mutu|kualitas|grade|kelas)\s*[:\-]?\s*(K[\-\s]?\d{2,4}|FC['\s]?\d+(?:[.,]\d+)?)\b/gi },
+      { name: 'Dimensi',  pattern: /\b(?:dimensi|ukuran)\s*[:\-]?\s*(\d{1,4}\s*[x×]\s*\d{1,4}(?:\s*[x×]\s*\d{1,4})?\s*(?:cm|mm|m|meter)?)/gi },
+      { name: 'Diameter', pattern: /\bdiameter\s*[:\-]?\s*(\d+(?:[.,]\d+)?\s*(?:cm|mm|inch|inchi))/gi },
+      { name: 'Tebal',    pattern: /\b(?:tebal|ketebalan)\s*[:\-]?\s*(\d+(?:[.,]\d+)?\s*(?:cm|mm|inch))/gi },
+      { name: 'Panjang',  pattern: /\bpanjang\s*[:\-]?\s*(\d+(?:[.,]\d+)?\s*(?:cm|mm|m|meter|inch))/gi },
+      { name: 'Lebar',    pattern: /\blebar\s*[:\-]?\s*(\d+(?:[.,]\d+)?\s*(?:cm|mm|m|meter|inch))/gi },
+      { name: 'Tinggi',   pattern: /\btinggi\s*[:\-]?\s*(\d+(?:[.,]\d+)?\s*(?:cm|mm|m|meter|inch))/gi },
+      { name: 'Berat',    pattern: /\b(?:berat|bobot)\s*[:\-]?\s*(\d+(?:[.,]\d+)?\s*(?:kg|ton|gr|gram))/gi },
+            { name: 'Material', pattern: /\b(?:material|bahan)\s*[:\-]?\s*([a-z]+(?:\s+[a-z]+){0,2})(?=[,.;:\n]|$)/gi },
+      { name: 'Standar',  pattern: /\b(SNI\s*\d{4}(?::\d{4})?)\b/gi },
+    ];
+    for (const p of CONTEXTUAL_PATTERNS) {
+      p.pattern.lastIndex = 0;
+      const m = p.pattern.exec(text);
+      if (m && m[1]) addProp(p.name, m[1]);
+    }
+  }
+
+  return props.length > 0 ? props : null;
+}
+   
   async function init() {
     perf.start('init');
     log("═══════════════════════════════════════════════════");
@@ -1513,7 +1629,7 @@
       const pageLevel = getPageLevelFromPLD();
       const entityType = getEntityTypeFromPLD();
       const contentFocus = detectContentFocus();
-      const kategori = getKategori();
+      //const kategori = getKategori();
 
       log(`🔷 PLD Version: ${pldVer.label}`, "VERSION");
       log(`📌 Page Level: ${pageLevel}`, "PLD");
@@ -1529,7 +1645,7 @@
       const hint = getPLDSchemaHint();
       const wantOffers = /(^|,)with-offers($|,)/.test(hint.note) && !/without-offers/.test(hint.note);
       const wantAreaServed = /with-areaServed/.test(hint.note);
-      const isProductVariant = /without-offers/.test(hint.note);
+      //const isProductVariant = /without-offers/.test(hint.note);
 
       const wantTechArticle = (hint.secondary === 'TechArticle') &&
                               (hint.primary === 'Product' || hint.secondary === 'Product');
@@ -1613,7 +1729,8 @@
         url: "https://www.betonjayareadymix.com",
         logo: LOGO_IMAGE,
         telephone: "+6281299842508",
-        description: "Beton Jaya Readymix melayani jasa konstruksi terpadu.",
+        description: "Beton Jaya Readymix — penyedia layanan beton dan konstruksi di Jabodetabek, Karawang, Serang, Cilegon, dan Surabaya.",
+        priceRange: "Rp",
         address: {
           "@type": "PostalAddress",
           addressLocality: "Bogor",
@@ -1639,11 +1756,35 @@
         brand: { "@type": "Brand", name: "Beton Jaya Readymix" },
         category: productCategory
       };
-
+      
+      // SKU universal dari URL slug (untuk Merchant Listings)
+      const skuFromUrl = window.location.pathname
+        .replace(/\.html$/, '')
+        .replace(/\/$/, '')
+        .split('/')
+        .filter(Boolean)
+        .pop();
+      if (skuFromUrl && skuFromUrl.length >= 3 && skuFromUrl.length <= 50) {
+        product.sku = skuFromUrl.toUpperCase().replace(/-/g, '');
+      }
+      
+      // ✅ Material selalu ada (patch #P1)
+      product.material = detectProductMaterial();
+      
+      // ✅ AdditionalProperty — multi-source extraction (patch #P3 improved)
+      const extractedSpecs = extractProductSpecs(
+        document.querySelector('.post-body, .entry-content, article, main') || document.body
+      );
+      if (extractedSpecs && extractedSpecs.length > 0) {
+        product.additionalProperty = extractedSpecs;
+        log(`📐 additionalProperty: ${extractedSpecs.length} spec (${extractedSpecs.map(s => s.name).join(', ')})`, "PRODUCT");
+      } else {
+        log(`📐 additionalProperty: tidak ditemukan (tidak apa-apa)`, "PRODUCT");
+      }
+      
       if (wantAreaServed || pageLevel === 'money-child') {
         product.areaServed = areaServed;
       }
-
       if (offers.length > 0) {
         const prices = offers.map(o => o.price);
         const lowPrice = Math.min(...prices);
@@ -1660,11 +1801,24 @@
         };
       }
 
+   //  product.material = detectProductMaterial();   // ← SELALU
+
       if (pageLevel === 'variant' || pageLevel === 'sub-variant') {
         product.productType = pageLevel === 'variant' ? "Variant" : "Sub-Variant";
-        product.material = detectProductMaterial();
         product.manufacturer = { "@type": "Organization", name: "Beton Jaya Readymix" };
-
+        
+        // isVariantOf — hubungkan variant ke parent product
+        const parentProductName = parentData.parentName || '';
+        const parentProductUrl = parentData.parentUrl || '';
+        if (parentProductName && parentProductUrl && 
+            parentProductName !== 'Home' && 
+            parentProductUrl !== location.origin) {
+          product.isVariantOf = {
+            "@type": "Product",
+            "@id": parentProductUrl.replace(/\/$/, '') + "#product",
+            "name": parentProductName
+          };
+        }      
         const sizeEl = document.querySelector('[data-product-size]');
         if (sizeEl) product.size = sizeEl.getAttribute('data-product-size');
 
@@ -1677,19 +1831,15 @@
           };
         }
 
-        const skuMatch = window.location.pathname.match(/-([a-z0-9]+)\.html$/);
-        if (skuMatch) product.sku = skuMatch[1].toUpperCase();
-
-        const variantSpec = extractVariantSpec();
+      const variantSpec = extractVariantSpec();
         if (variantSpec) product.variant = variantSpec;
       }
 
-      const parentUrls = [{
-        "@type": "WebPage",
-        "@id": parentData.parentUrl,
-        name: parentData.parentName
-      }];
-
+      const parentUrls = [
+        parentData.parentUrl === location.origin
+             ? { "@id": "https://www.betonjayareadymix.com#website" }
+             : { "@type": "WebPage", "@id": parentData.parentUrl, name: parentData.parentName }
+         ];
       const webpage = {
         "@type": "WebPage",
         "@id": currentUrl + "#webpage",
@@ -1723,16 +1873,14 @@
       }
 
       if (wantFAQ) {
-        const faqPage = {
-          "@type": "FAQPage",
-          "@id": currentUrl + "#faq",
-          "author": {
-            "@type": "Organization",
-            "@id": CONFIG.LOCALBUSINESS_ID,
-            "name": "Beton Jaya Readymix"
-          },
-          "mainEntity": faqsFromDOM.map(f => ({
-            "@type": "Question",
+         const faqPage = {
+           "@type": "FAQPage",
+           "@id": currentUrl + "#faq",
+           "isPartOf": { "@id": currentUrl + "#webpage" },
+           "author": { "@id": CONFIG.LOCALBUSINESS_ID },
+           "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
+           "mainEntity": faqsFromDOM.map(f => ({
+             "@type": "Question",
             "name": f.name,
             "acceptedAnswer": {
               "@type": "Answer",
