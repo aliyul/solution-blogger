@@ -1205,20 +1205,23 @@
   }
 
   function generateInternalLinks() {
-    perf.start('generateInternalLinks');
-    const container = document.querySelector('article, main, .post-body') || document.body;
-    const anchors = container.querySelectorAll('a');
-    const links = [];
-    for (const a of anchors) {
-      const href = a.href;
-      if (!href) continue;
-      if (!href.includes(location.hostname)) continue;
-      if (href.includes('#')) continue;
-      if (href.match(/(\/search|\/feed|\/label)/i)) continue;
-      if (href.includes('{{') || href.includes('%7B') || href.includes('LINK_')) continue;
-      links.push(href);
-      if (links.length >= CONFIG.MAX_INTERNAL_LINKS) break;
-    }
+  perf.start('generateInternalLinks');
+  const container = document.querySelector('article, main, .post-body') || document.body;
+  const anchors = container.querySelectorAll('a');
+  const links = [];
+  const SKIP_PATTERNS = /\/(hubungi-kami|portofolio|disclaimer|privacy-policy|terms-of-service|about|tentang-kami|sitemap|search|feed|label)/i;
+  for (const a of anchors) {
+    const href = a.href;
+    if (!href) continue;
+    if (!href.includes(location.hostname)) continue;
+    if (href.includes('#')) continue;
+    if (SKIP_PATTERNS.test(href)) continue;
+    if (href === location.href) continue;
+    if (links.includes(href)) continue;
+    if (href.includes('{{') || href.includes('%7B') || href.includes('LINK_')) continue;
+    links.push(href);
+    if (links.length >= CONFIG.MAX_INTERNAL_LINKS) break;
+  }
     const unique = [...new Set(links)];
     const limited = unique.slice(0, CONFIG.MAX_INTERNAL_LINKS);
 
@@ -1604,14 +1607,15 @@
         const datePublished = finalAed && finalAed.datePublished ? finalAed.datePublished : undefined;
 
         const graph = [
-          {
-            "@type": ["LocalBusiness", "GeneralContractor"],
-            "@id": CONFIG.LOCALBUSINESS_ID,
-            "name": "Beton Jaya Readymix",
-            "url": "https://www.betonjayareadymix.com",
-            "telephone": "+6281299842508",
-            "description": "Beton Jaya Readymix melayani jasa konstruksi terpadu.",
-            "address": { "@type": "PostalAddress", "addressLocality": "Bogor", "addressRegion": "Jawa Barat", "addressCountry": "ID" },
+         {
+           "@type": ["LocalBusiness", "GeneralContractor"],
+           "@id": CONFIG.LOCALBUSINESS_ID,
+           "name": "Beton Jaya Readymix",
+           "url": "https://www.betonjayareadymix.com",
+           "telephone": "+6281299842508",
+           "description": "Beton Jaya Readymix — penyedia layanan beton dan konstruksi di Jabodetabek, Karawang, Serang, Cilegon, dan Surabaya.",
+           "priceRange": "Rp",
+           "address": { "@type": "PostalAddress", "addressLocality": "Bogor", "addressRegion": "Jawa Barat", "addressCountry": "ID" },
             "openingHours": "Mo-Sa 08:00-17:00",
             "logo": IMAGE_CONFIG.LOGO_IMAGE,
             "sameAs": ["https://www.facebook.com/betonjayareadymix", "https://www.instagram.com/betonjayareadymix"],
@@ -1626,7 +1630,9 @@
             "name": title,
             "description": description,
             "image": pageImage,
-            "isPartOf": { "@type": "WebPage", "@id": parentData.parentUrl, "name": parentData.parentName },
+            "isPartOf": parentData.parentUrl === location.origin
+           ? { "@id": "https://www.betonjayareadymix.com#website" }
+           : { "@type": "WebPage", "@id": parentData.parentUrl, "name": parentData.parentName },
             "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
             ...(datePublished && { "datePublished": datePublished }),
             ...(dateModified && { "dateModified": dateModified }),
@@ -1635,24 +1641,25 @@
         ];
 
         if (wantService) {
-          const serviceType = extractServiceType(title, entityType);
-          const serviceNode = {
-            "@type": "Service",
-            "@id": cleanUrl + "#service",
-            "name": title,
-            "description": description,
-            "image": pageImage,
-            "serviceType": serviceType,
-            "provider": { "@id": CONFIG.LOCALBUSINESS_ID },
-            "brand": { "@type": "Brand", "name": "Beton Jaya Readymix" },
-            "mainEntityOfPage": { "@id": cleanUrl + "#webpage" }
-          };
-
-          if (wantAreaServed || isEvergreenSvc || pageLevel === 'money-child') {
-            serviceNode.areaServed = CONFIG.AREA_SERVED;
-          }
-
-          if (wantOffers && hasPrice && tableOffers.length > 0) {
+        const serviceType = extractServiceType(title, entityType);
+        const serviceNode = {
+          "@type": "Service",
+          "@id": cleanUrl + "#service",
+          "name": title,
+          "description": description,
+          "image": pageImage,
+          "serviceType": serviceType,
+          "provider": { "@id": CONFIG.LOCALBUSINESS_ID },
+          "brand": { "@type": "Brand", "name": "Beton Jaya Readymix" },
+          "areaServed": CONFIG.AREA_SERVED,
+          "audience": {
+            "@type": "Audience",
+            "audienceType": "Residensial, Komersial, Infrastruktur"
+          },
+          "mainEntityOfPage": { "@id": cleanUrl + "#webpage" }
+        };
+           
+      if (wantOffers && hasPrice && tableOffers.length > 0) {
             const prices = tableOffers.map(o => o.price);
             serviceNode.offers = {
               "@type": "AggregateOffer",
@@ -1746,16 +1753,13 @@
           log(`✅ CreativeWork node`, "DESIGN");
         }
 
-        if (wantFAQ) {
-          const faqPage = {
-            "@type": "FAQPage",
-            "@id": cleanUrl + "#faq",
-            "author": {
-              "@type": "Organization",
-              "@id": CONFIG.LOCALBUSINESS_ID,
-              "name": "Beton Jaya Readymix"
-            },
-            "mainEntity": faqsFromDOM.map(f => ({
+         if (wantFAQ) {
+           const faqPage = {
+             "@type": "FAQPage",
+             "@id": cleanUrl + "#faq",
+             "author": { "@id": CONFIG.LOCALBUSINESS_ID },
+             "publisher": { "@id": CONFIG.LOCALBUSINESS_ID },
+             "mainEntity": faqsFromDOM.map(f => ({
               "@type": "Question",
               "name": f.name,
               "acceptedAnswer": {
