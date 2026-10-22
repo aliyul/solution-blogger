@@ -317,7 +317,7 @@
     };
   }
  
-    function generatePageGuide(pageLevel, contentFocus, finalType, validityDays, daysUntilReview) {
+  function generatePageGuide(pageLevel, contentFocus, finalType, validityDays, daysUntilReview) {
     var a = analyzePageContent();
     var currentMonthYear = (new Date().toLocaleString('id-ID', { month: 'long' })) + ' ' + a.currentYear;
     var isMoney = pageLevel.indexOf('money') === 0 || pageLevel === 'variant' || pageLevel === 'sub-variant';
@@ -330,51 +330,47 @@
     };
 
     // ============================================================
-    // 🆕 DYNAMIC GENERATOR (EXTRACT CONTEXT DARI PARAGRAF ASLI)
+    // 🆕 FINAL LOGIC: CONTEXT EXTRACTION (FULL PARAGRAPH)
     // ============================================================
     var draftText = "";
-    
-    // Helper untuk memilih kalimat acak (Cadangan jika tidak ada paragraf asli)
-    var pickRandom = function(arr) { return arr[Math.floor(Math.random() * arr.length)]; };
+    var pickRandom = function(arr) { return Math.floor(Math.random() * arr.length); };
+    var freshSignal = "";
 
     if (a.hasFirstP) {
-      // ✅ JIKA PARAGRAF ASLI DITEMUKAN:
-      // Ambil 120 karakter pertama sebagai konteks unik.
-      var cleanContext = a.firstPText.substring(0, 120).trim();
+      // ✅ JIKA PARAGRAF ASLI DITEMUKAN: Ambil SELURUH teks, bukan cuma 120 karakter
+      var fullContext = a.firstPText.trim();
       
-      // Hapus tanda baca berlebih di akhir potongan
-      cleanContext = cleanContext.replace(/[.,;:]$/, '');
-      
-      // Bersihkan tahun-tahun lama di dalam potongan teks agar tidak bentrok
-      cleanContext = cleanContext.replace(/\b(2020|2021|2022|2023|2024|2025)\b/g, '');
+      // Bersihkan tahun-tahun lama di dalam teks asli agar tidak bentrok
+      fullContext = fullContext.replace(/\b(2020|2021|2022|2023|2024|2025)\b/g, '');
 
-      // Rangkai ulang: Konteks Asli + Sinyal Freshness (Anti Duplikat)
-      var freshSignal = "";
+      // Tentukan kalimat tambahan (Freshness Signal)
       if (isMoney) {
         freshSignal = ` Seluruh data dan penawaran terkait hal tersebut telah kami tinjau ulang dan perbarui pada ${currentMonthYear} untuk memastikan akurasi harga dan ketersediaan stok.`;
       } else {
         freshSignal = ` Pembahasan lengkap mengenai topik ini telah kami perbarui pada ${currentMonthYear} agar sesuai dengan standar teknis dan regulasi terkini.`;
       }
       
-      draftText = `"${cleanContext}...${freshSignal}"`;
+      // Gabungkan Paragraf Utuh + Kalimat Tambahan
+      draftText = `"${fullContext}${freshSignal}"`;
 
     } else {
-      // ❌ JIKA TIDAK ADA PARAGRAF (Hanya Gambar/Tabel):
-      // Gunakan Pseudo-AI Randomizer (seperti patch sebelumnya)
+      // ❌ JIKA TIDAK ADA PARAGRAF (Hanya Gambar/Tabel)
       var cleanH1 = a.h1Text.replace(/\b(19|20)\d{2}\b/g, '').replace(/harga|terbaru|termurah|terbaik|update|revisi|jasa|di|untuk|profesional|melayani|ready|mix/gi, '').replace(/\s+/g, ' ').trim();
       if (cleanH1.length < 5) cleanH1 = "Produk & Layanan Konstruksi";
       var locationMatch = window.location.href.match(/(bogor|jakarta|depok|tangerang|bekasi|bandung|surabaya|semarang|karawang|serang|cilegon)/i);
       var detectedLocation = locationMatch ? locationMatch[1].charAt(0).toUpperCase() + locationMatch[1].slice(1) : 'Jabodetabek';
 
       if (isMoney) {
+        freshSignal = ` Kami memastikan ketersediaan stok dan kualitas material tetap prima untuk mendukung kelancaran proyek Anda.`;
         draftText = pickRandom([
-          `Informasi terbaru mengenai ${cleanH1} di area ${detectedLocation} telah kami perbarui pada ${currentMonthYear}. Kami memastikan ketersediaan stok dan kualitas material tetap prima untuk mendukung kelancaran proyek Anda.`,
-          `Memasuki ${currentMonthYear}, kami telah merangkum pembaruan data dan penawaran ${cleanH1} untuk wilayah ${detectedLocation}. Dapatkan harga kompetitif dengan layanan pengiriman tepat waktu.`
+          `Informasi terbaru mengenai ${cleanH1} di area ${detectedLocation} telah kami perbarui pada ${currentMonthYear}.${freshSignal}`,
+          `Memasuki ${currentMonthYear}, kami telah merangkum pembaruan data dan penawaran ${cleanH1} untuk wilayah ${detectedLocation}.${freshSignal}`
         ]);
       } else {
+        freshSignal = ` Artikel ini mengulas standar teknis terbaru, metode pelaksanaan, serta tips efisiensi biaya.`;
         draftText = pickRandom([
-          `Panduan komprehensif mengenai ${cleanH1} telah kami perbarui untuk tahun ${a.currentYear}. Artikel ini mengulas standar teknis terbaru, metode pelaksanaan, serta tips efisiensi biaya.`,
-          `Artikel edukasi terkait ${cleanH1} ini telah ditinjau kembali pada ${currentMonthYear} agar tetap relevan. Pembahasan mencakup regulasi terbaru dan praktik terbaik di lapangan.`
+          `Panduan komprehensif mengenai ${cleanH1} telah kami perbarui untuk tahun ${a.currentYear}.${freshSignal}`,
+          `Artikel edukasi terkait ${cleanH1} ini telah ditinjau kembali pada ${currentMonthYear} agar tetap relevan.${freshSignal}`
         ]);
       }
     }
@@ -382,10 +378,13 @@
     // 4. Cek apakah harus REVISI atau TAMBAH
     if (a.hasFirstP) {
       guide.patchParagraph = `[⚠️ REVISI PARAGRAF PEMBUKA]\n` +
-      `Teks lama saat ini: "${a.firstPText.substring(0, 100)}..."\n\n` +
+      `Teks lama saat ini: "${a.firstPText}"\n\n` +
       `GANTI DENGAN DRAF BARU INI (Anti-Duplikat):\n` +
       `${draftText}\n\n` +
-      `💡 *Catatan Admin:* Sistem mengambil konteks dari paragraf asli Anda dan menambahkan sinyal update tanggal. Copy teks di atas, lalu timpa paragraf pertama di Blogger.`;
+      `💡 *Catatan Admin:*\n` +
+      `- Sistem mengambil SELURUH teks paragraf pertama Anda secara utuh.\n` +
+      `- Kalimat baru yang ditambahkan di bagian akhir adalah: "${freshSignal}"\n` +
+      `- Silakan copy SELURUH teks di atas, lalu timpa (replace) paragraf pertama di Blogger.`;
     } else {
       guide.patchParagraph = `[➕ TAMBAH PARAGRAF PEMBUKA BARU]\n` +
       `(Tidak ditemukan paragraf teks pembuka. Kemungkinan artikel langsung diawali gambar/tabel).\n\n` +
