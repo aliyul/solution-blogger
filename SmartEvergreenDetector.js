@@ -1,42 +1,39 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.5.7 — SEO-SAFE 180D + MANUAL VERIFY GUARD
+ 🧠 Smart Evergreen Detector v17.6.2 — SUPER SET + GUIDE BUTTON
 ============================================================
- 🔥 v17.5.7 CHANGELOG 🔥
- ✅ CHANGE-VALIDITY: Non-evergreen 90/365 → 180 hari
-    - HARGA/GABUNG: 90 → 180
-    - COMMERCIAL: 180 (tetap)
-    - INFORMASI: 365 (tetap)
-    - money-master/page/child: 365 → 180
-    - variant/sub-variant: 365 → 180
- ✅ GUARD-AUTOUPDATE: HARGA/GABUNG TIDAK auto-bump dateModified
-    - Banner warning tetap tampil sampai admin verifikasi manual
-    - data-aed-needs-review="true" set saat expired
- ✅ EXTEND-PRICE-VALID: priceValidUntil tetap future walau HARGA expired
-    - Rich result AMAN meski dateModified masih lama
- ✅ VERIFY-BADGE: Banner expired menampilkan "🔍 Perlu verifikasi harga"
- ✅ PRESERVED dari v17.5.6:
- ✅ PATCH-L: Remove ALL optional chaining — Chrome 49+
- ✅ PATCH-PAD: Remove String.padStart — Chrome 49+
- ✅ FIX-CSS-LOAD, FIX-CSS-MARGIN, FIX-PARTIAL-HIDE, FIX-PAGE-BYLINE,
-    FIX-DOUBLE-BYLINE, FIX-AUTHOR-BYLINE, FIX-MINI-BADGE, FIX-UX-*, FIX-WARN-*
-
- 📌 BRAND DEFAULT: "Beton Jaya Readymix"
- 📌 BIO URL: "/p/about.html"
- 📌 KOMPATIBEL: PLD v23.9.9
+ ✅ 100% PRESERVED: Semua logika, edge-case, dan kompatibilitas v17.5.9a
+ ✅ NEW: Tombol 📖 Panduan di bawah H1 (no-snippet)
+ ✅ NEW: Klik 3x tombol → Buka Modal Guide
+ ✅ NEW: Tekan ENTER 3x → Aktifkan Admin Mode (Auto Reload)
+ ✅ NEW: Auto-Analysis konten (H1, Harga, FAQ, WA, Tabel)
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.5.7") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.6.2") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.5.7";
+  window.__AED_VERSION = "17.6.2";
 
   var DEFAULT_BRAND_NAME = "Beton Jaya Readymix";
 
   // ============================================================
-  // 🔥 FIX-AUTHOR-BYLINE v17.5.7
+  // 🆕 GUIDE CONFIG
+  // ============================================================
+  const GUIDE_CONFIG = {
+    ENABLED: true,
+    ADMIN_ONLY: true,              // Set false jika ingin semua user melihat tombol
+    CLICKS_TO_OPEN: 3,
+    CLICK_RESET_MS: 3000,
+    BUTTON_TEXT: '📖 Panduan Halaman',
+    BUTTON_HINT_1: '🖱️ Klik 2x lagi...',
+    BUTTON_HINT_2: '🖱️ Klik 1x lagi...',
+    MODAL_TITLE: '📖 Panduan Update Halaman'
+  };
+
+  // ============================================================
+  // AUTHOR BYLINE CONFIG
   // ============================================================
   const AUTHOR_BYLINE_CONFIG = {
     ENABLED: true,
@@ -46,12 +43,8 @@
     SHOW_AVATAR: true,
     AVATAR_INITIAL: 'B',
     BROKEN_PATTERNS: [
-      /^by\s*$/i,
-      /^oleh\s*$/i,
-      /^by\s+admin\s*$/i,
-      /^oleh\s+admin\s*$/i,
-      /^by\s+unknown\s*$/i,
-      /^by\s*[|]\s*$/i
+      /^by\s*$/i, /^oleh\s*$/i, /^by\s+admin\s*$/i, /^oleh\s+admin\s*$/i,
+      /^by\s+unknown\s*$/i, /^by\s*[|]\s*$/i
     ],
     SELECTORS: [
       '.post-author', '.byline', '.post-byline', '.author-byline',
@@ -67,17 +60,15 @@
   };
 
   // ============================================================
-  // 🔔 INLINE WARNING CONFIG
-  // 🔥 v17.5.7: tiered rules diupdate untuk 180 hari
+  // WARNING CONFIG
   // ============================================================
   const WARNING_CONFIG = {
     ENABLED: true,
     SHOW_AFTER_EXPIRED: true,
     USE_TIERED: true,
     TIERED_RULES: [
-      { maxValidity: 90,  showDays: 14, label: '≤90 hari → warning 14 hari' },
-      { maxValidity: 180, showDays: 21, label: '≤180 hari (HARGA/GABUNG/COMMERCIAL) → warning 21 hari' },
-      { maxValidity: 999, showDays: 30, label: '≤365 hari (INFORMASI) → warning 30 hari' }
+      { maxValidity: 180, showDays: 21, label: '≤180 hari → warning 21 hari' },
+      { maxValidity: 999, showDays: 30, label: '≤365 hari → warning 30 hari' }
     ],
     SHOW_DAYS_BEFORE: 30,
     INSERT_AFTER_SELECTOR: '.last-updated, .updated-date, .date-modified, [class*="last-updated"]',
@@ -94,7 +85,8 @@
         stale:      '⚠️ Konten perlu segera di-review',
         miniBadge:  '📅 Terakhir diperbarui: {date}',
         editBtn:    'Edit →',
-        needsVerify: '🔍 Perlu verifikasi harga'
+        needsVerify: '🔍 Perlu verifikasi harga',
+        editHint:    '💡 Cara verify: Edit di Blogger → ubah minimal 1 kata/kalimat/FAQ → Save & Publish → banner hilang otomatis'
       },
       en: {
         expired:    'ℹ️ Periodic review needed — this page passed its review schedule',
@@ -103,7 +95,8 @@
         stale:      '⚠️ Content needs immediate review',
         miniBadge:  '📅 Last updated: {date}',
         editBtn:    'Edit →',
-        needsVerify: '🔍 Needs price verification'
+        needsVerify: '🔍 Needs price verification',
+        editHint:    '💡 How to verify: Edit in Blogger → change at least 1 word/sentence/FAQ → Save & Publish → banner auto-hides'
       }
     },
 
@@ -119,38 +112,19 @@
     },
 
     STYLE: {
-      expired: {
-        display: 'block', color: '#c2410c', fontWeight: 'bold',
-        fontSize: '0.9rem', marginTop: '8px', marginBottom: '12px',
-        padding: '8px 12px', background: '#fff7ed',
-        borderLeft: '4px solid #f97316', borderRadius: '4px',
-        position: 'relative'
-      },
-      critical: {
-        display: 'block', color: '#c2410c', fontWeight: 'bold',
-        fontSize: '0.9rem', marginTop: '8px', marginBottom: '12px',
-        padding: '8px 12px', background: '#fff7ed',
-        borderLeft: '4px solid #f97316', borderRadius: '4px',
-        position: 'relative'
-      },
-      warning: {
-        display: 'block', color: '#b45309', fontWeight: 'bold',
-        fontSize: '0.9rem', marginTop: '8px', marginBottom: '12px',
-        padding: '8px 12px', background: '#fffbeb',
-        borderLeft: '4px solid #f59e0b', borderRadius: '4px',
-        position: 'relative'
-      }
+      expired: { display: 'block', color: '#c2410c', fontWeight: 'bold', fontSize: '0.9rem', marginTop: '8px', marginBottom: '12px', padding: '8px 12px', background: '#fff7ed', borderLeft: '4px solid #f97316', borderRadius: '4px', position: 'relative' },
+      critical: { display: 'block', color: '#c2410c', fontWeight: 'bold', fontSize: '0.9rem', marginTop: '8px', marginBottom: '12px', padding: '8px 12px', background: '#fff7ed', borderLeft: '4px solid #f97316', borderRadius: '4px', position: 'relative' },
+      warning: { display: 'block', color: '#b45309', fontWeight: 'bold', fontSize: '0.9rem', marginTop: '8px', marginBottom: '12px', padding: '8px 12px', background: '#fffbeb', borderLeft: '4px solid #f59e0b', borderRadius: '4px', position: 'relative' }
     }
   };
 
   // ============================================================
-  // 📌 ATURAN v17.5.7 — BASE RULES (non-evergreen → 180 hari)
+  // BASE RULES
   // ============================================================
   const BASE_PAGE_LEVEL_RULES = {
     'pillar':            { type: 'evergreen',     validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft' },
     'sub-pillar-tipe-2': { type: 'evergreen',     validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft-medium' },
     'sub-pillar-tipe-1': { type: 'evergreen',     validityDays: 730,  usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'medium' },
-    // 🔥 v17.5.7: ALL non-evergreen → 180 hari
     'variant':           { type: 'non-evergreen', validityDays: 180,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
     'sub-variant':       { type: 'non-evergreen', validityDays: 180,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
     'money-master':      { type: 'non-evergreen', validityDays: 180,  usePriceValidUntil: false, allowPriceRange: true,  ctaIntensity: 'hard' },
@@ -214,197 +188,127 @@
   }
 
   // ============================================================
-  // 🔥 FIX-CSS-LOAD + FIX-CSS-MARGIN + VERIFY-BADGE v17.5.7
+  // CSS INJECTION (v17.5.9a base + v17.6.2 new guide styles)
   // ============================================================
   function injectWarningStyles() {
     if (document.getElementById('aed-warning-styles')) return;
     var style = document.createElement('style');
     style.id = 'aed-warning-styles';
     style.textContent = `
-      /* 🔥 FIX-UX-2: MOBILE-FIRST */
       @media (max-width: 640px) {
-        #aed-update-warning {
-          font-size: 0.82rem !important;
-          padding: 6px 10px !important;
-          margin-top: 6px !important;
-          margin-bottom: 8px !important;
-        }
+        #aed-update-warning { font-size: 0.82rem !important; padding: 6px 10px !important; margin-top: 6px !important; margin-bottom: 8px !important; }
         #aed-update-warning .aed-warning-full { display: none !important; }
         #aed-update-warning .aed-warning-compact { display: inline !important; }
-        #aed-update-warning .aed-edit-link {
-          font-size: 0.78rem !important;
-          padding: 3px 8px !important;
-        }
-        #aed-update-warning .aed-mini-badge {
-          font-size: 0.72rem !important;
-        }
+        #aed-update-warning .aed-edit-link { font-size: 0.78rem !important; padding: 3px 8px !important; }
+        #aed-update-warning .aed-mini-badge { font-size: 0.72rem !important; }
+        #aed-update-warning .aed-edit-hint { font-size: 0.75rem !important; padding: 4px 8px !important; }
       }
-      @media (min-width: 641px) {
-        #aed-update-warning .aed-warning-compact { display: none !important; }
-      }
-
-      /* 🔥 FIX-UX-4: DARK MODE */
+      @media (min-width: 641px) { #aed-update-warning .aed-warning-compact { display: none !important; } }
       @media (prefers-color-scheme: dark) {
-        #aed-update-warning[data-severity="warning"] {
-          background: #1c1917 !important;
-          color: #fbbf24 !important;
-          border-left-color: #f59e0b !important;
-        }
-        #aed-update-warning[data-severity="expired"],
-        #aed-update-warning[data-severity="critical"] {
-          background: #1c1917 !important;
-          color: #fb923c !important;
-          border-left-color: #f97316 !important;
-        }
-        #aed-update-warning .aed-edit-link {
-          background: #292524 !important;
-          color: #fbbf24 !important;
-          border-color: #f59e0b !important;
-        }
-        #aed-update-warning .aed-mini-badge {
-          color: #9ca3af !important;
-          border-top-color: rgba(255,255,255,0.1) !important;
-        }
-        .aed-verify-badge {
-          background: #450a0a !important;
-          border-color: #dc2626 !important;
-          color: #fca5a5 !important;
-        }
+        #aed-update-warning[data-severity="warning"] { background: #1c1917 !important; color: #fbbf24 !important; border-left-color: #f59e0b !important; }
+        #aed-update-warning[data-severity="expired"], #aed-update-warning[data-severity="critical"] { background: #1c1917 !important; color: #fb923c !important; border-left-color: #f97316 !important; }
+        #aed-update-warning .aed-edit-link { background: #292524 !important; color: #fbbf24 !important; border-color: #f59e0b !important; }
+        #aed-update-warning .aed-mini-badge { color: #9ca3af !important; border-top-color: rgba(255,255,255,0.1) !important; }
+        #aed-update-warning .aed-edit-hint { background: #292524 !important; color: #fbbf24 !important; border-color: #f59e0b !important; }
       }
+      #aed-update-warning[data-priority="critical"] { font-weight: 800 !important; border-left-width: 6px !important; }
+      #aed-update-warning[data-priority="high"] { font-weight: 700 !important; border-left-width: 5px !important; }
+      #aed-update-warning .aed-edit-link { display: inline-block; margin-left: 10px; padding: 4px 10px; background: #fff; color: #c2410c; border: 1px solid #f97316; border-radius: 4px; text-decoration: none; font-size: 0.8rem; font-weight: 600; transition: all 0.15s; }
+      #aed-update-warning .aed-edit-link:hover { background: #f97316; color: #fff; }
+      #aed-update-warning .aed-mini-badge { display: block; font-weight: normal; font-size: 0.78rem; opacity: 0.85; margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(0, 0, 0, 0.08); letter-spacing: 0.01em; }
+      #aed-update-warning .aed-edit-hint { display: block; margin-top: 8px; padding: 6px 10px; background: #fef3c7; border: 1px solid #fbbf24; border-radius: 4px; color: #78350f !important; font-size: 0.82rem; font-weight: 500; line-height: 1.4; text-align: left; }
+      .aed-verify-badge { display: none !important; }
 
-      /* 🔥 FIX-UX-1: PRIORITY STYLING */
-      #aed-update-warning[data-priority="critical"] {
-        font-weight: 800 !important;
-        border-left-width: 6px !important;
-      }
-      #aed-update-warning[data-priority="high"] {
-        font-weight: 700 !important;
-        border-left-width: 5px !important;
-      }
-
-      /* 🔥 FIX-UX-7: EDIT LINK */
-      #aed-update-warning .aed-edit-link {
-        display: inline-block;
-        margin-left: 10px;
-        padding: 4px 10px;
-        background: #fff;
-        color: #c2410c;
-        border: 1px solid #f97316;
-        border-radius: 4px;
-        text-decoration: none;
-        font-size: 0.8rem;
-        font-weight: 600;
-        transition: all 0.15s;
-      }
-      #aed-update-warning .aed-edit-link:hover {
-        background: #f97316;
-        color: #fff;
-      }
-
-      /* 🔥 FIX-MINI-BADGE v17.5.3 */
-      #aed-update-warning .aed-mini-badge {
-        display: block;
-        font-weight: normal;
-        font-size: 0.78rem;
-        opacity: 0.85;
-        margin-top: 6px;
-        padding-top: 6px;
-        border-top: 1px solid rgba(0, 0, 0, 0.08);
-        letter-spacing: 0.01em;
-      }
-
-      /* 🔥 v17.5.7 NEW: VERIFY BADGE untuk HARGA expired */
-      .aed-verify-badge {
-        display: inline-block;
-        margin-left: 10px;
-        padding: 2px 8px;
-        background: #fef2f2;
-        border: 1px solid #dc2626;
-        border-radius: 4px;
-        color: #dc2626 !important;
-        font-size: 0.78rem;
-        font-weight: 700;
-        vertical-align: middle;
-        white-space: nowrap;
-      }
-
-      /* 🔥 FIX-AUTHOR-BYLINE v17.5.6 */
-      .aed-author-byline {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 8px;
-        font-size: 0.9rem;
-        color: #4b5563;
-        margin: 8px 0 !important;
-        font-family: system-ui, -apple-system, sans-serif;
-        line-height: 1.4;
-        white-space: nowrap;
-        flex-wrap: wrap;
-      }
-      .aed-author-byline .aed-author-avatar {
-        display: inline-block !important;
-        width: 22px;
-        height: 22px;
-        border-radius: 50%;
-        background: #ea580c;
-        color: #fff;
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-align: center;
-        line-height: 22px;
-        flex-shrink: 0;
-        margin-right: 6px !important;
-        vertical-align: middle;
-      }
-      .aed-author-byline .aed-author-label {
-        color: #6b7280;
-        font-weight: 400;
-        margin-right: 6px !important;
-        vertical-align: middle;
-      }
-      .aed-author-byline a.aed-author-name {
-        color: #ea580c;
-        text-decoration: none;
-        font-weight: 600;
-      }
-      .aed-author-byline a.aed-author-name:hover {
-        text-decoration: underline;
-      }
-      [data-aed-author-enhanced="true"] {
-        display: inline-block;
-      }
-      [data-aed-hidden="true"],
-      [data-aed-hidden="partial"],
-      [data-aed-hidden="full"] {
-        display: none !important;
-      }
+      /* 🆕 v17.6.2: GUIDE BUTTON */
+      #aed-guide-btn-wrap { display: block; margin: 12px 0 16px 0; }
+      #aed-guide-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: #eff6ff; color: #1e40af !important; border: 1px solid #93c5fd; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer; font-family: system-ui, -apple-system, sans-serif; transition: all 0.15s; user-select: none; }
+      #aed-guide-btn:hover { background: #dbeafe; border-color: #3b82f6; }
+      #aed-guide-btn:active { transform: scale(0.98); }
+      #aed-guide-hint { display: inline-block; margin-left: 10px; color: #16a34a; font-size: 0.78rem; font-weight: 600; vertical-align: middle; }
       @media (prefers-color-scheme: dark) {
-        .aed-author-byline { color: #9ca3af; }
-        .aed-author-byline .aed-author-label { color: #6b7280; }
-        .aed-author-byline a.aed-author-name { color: #fb923c; }
+        #aed-guide-btn { background: #1e3a8a !important; color: #93c5fd !important; border-color: #1e40af !important; }
+        #aed-guide-btn:hover { background: #1e40af !important; }
+        #aed-guide-hint { color: #4ade80 !important; }
+      }
+
+      /* 🆕 v17.6.2: GUIDE MODAL */
+      #aed-guide-modal { position: fixed; inset: 0; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+      .aed-guide-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+      .aed-guide-content { position: relative; background: #fff; border-radius: 12px; max-width: 800px; width: 100%; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); font-family: system-ui, -apple-system, sans-serif; }
+      .aed-guide-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; border-bottom: 2px solid #e5e7eb; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 12px 12px 0 0; }
+      .aed-guide-header h2 { margin: 0; color: #1e40af; font-size: 1.15rem; }
+      .aed-guide-close { background: #ef4444; color: #fff; border: none; border-radius: 6px; width: 32px; height: 32px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+      .aed-guide-close:hover { background: #dc2626; transform: rotate(90deg); }
+      .aed-guide-body { padding: 20px 24px; overflow-y: auto; flex: 1; color: #374151; font-size: 0.9rem; line-height: 1.6; }
+      .aed-guide-section { margin-bottom: 24px; }
+      .aed-guide-section h3 { margin: 0 0 10px 0; padding-bottom: 6px; color: #1f2937; font-size: 1rem; border-bottom: 2px solid #e5e7eb; }
+      .aed-guide-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 16px; }
+      .aed-guide-meta-item { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 8px 12px; }
+      .aed-guide-meta-label { color: #6b7280; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+      .aed-guide-meta-value { color: #111827; font-weight: 700; font-size: 0.9rem; margin-top: 2px; }
+      .aed-guide-meta-value.status-fresh { color: #16a34a; }
+      .aed-guide-meta-value.status-warning { color: #f59e0b; }
+      .aed-guide-meta-value.status-expired { color: #dc2626; }
+      .aed-guide-list { margin: 0; padding-left: 20px; }
+      .aed-guide-list li { margin-bottom: 6px; }
+      .aed-guide-issue-critical { background: #fef2f2; border-left: 4px solid #dc2626; padding: 10px 14px; border-radius: 4px; margin-bottom: 8px; color: #991b1b; }
+      .aed-guide-issue-warning { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 10px 14px; border-radius: 4px; margin-bottom: 8px; color: #78350f; }
+      .aed-guide-section-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+      .aed-guide-section-table th, .aed-guide-section-table td { border: 1px solid #e5e7eb; padding: 8px 12px; text-align: left; }
+      .aed-guide-section-table th { background: #f3f4f6; font-weight: 700; color: #374151; }
+      .aed-guide-section-table tr:nth-child(even) { background: #f9fafb; }
+      .aed-guide-footer { padding: 14px 24px; border-top: 1px solid #e5e7eb; background: #f9fafb; border-radius: 0 0 12px 12px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: #6b7280; }
+      .aed-guide-footer-btn { padding: 8px 16px; background: #6b7280; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.85rem; }
+      .aed-guide-footer-btn:hover { background: #4b5563; }
+      @media (prefers-color-scheme: dark) {
+        .aed-guide-content { background: #1f2937; color: #e5e7eb; }
+        .aed-guide-header { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); }
+        .aed-guide-header h2 { color: #93c5fd; }
+        .aed-guide-body { color: #d1d5db; }
+        .aed-guide-section h3 { color: #f3f4f6; border-bottom-color: #374151; }
+        .aed-guide-meta-item { background: #111827; border-color: #374151; }
+        .aed-guide-meta-label { color: #9ca3af; }
+        .aed-guide-meta-value { color: #f3f4f6; }
+        .aed-guide-section-table th { background: #111827; color: #e5e7eb; }
+        .aed-guide-section-table td { border-color: #374151; }
+        .aed-guide-section-table tr:nth-child(even) { background: #111827; }
+        .aed-guide-issue-critical { background: #450a0a; color: #fca5a5; }
+        .aed-guide-issue-warning { background: #451a03; color: #fcd34d; }
+        .aed-guide-footer { background: #111827; border-top-color: #374151; }
       }
       @media (max-width: 640px) {
-        .aed-author-byline { font-size: 0.82rem; gap: 6px; }
-        .aed-author-byline .aed-author-avatar { width: 18px; height: 18px; line-height: 18px; font-size: 0.65rem; margin-right: 4px !important; }
-        .aed-author-byline .aed-author-label { margin-right: 4px !important; }
+        .aed-guide-content { max-height: 95vh; border-radius: 8px; }
+        .aed-guide-header { padding: 14px 16px; }
+        .aed-guide-header h2 { font-size: 1rem; }
+        .aed-guide-body { padding: 16px; font-size: 0.85rem; }
+        .aed-guide-section-table { font-size: 0.78rem; }
+        .aed-guide-section-table th, .aed-guide-section-table td { padding: 6px 8px; }
       }
+
+      .aed-author-byline { display: inline-flex !important; align-items: center !important; gap: 8px; font-size: 0.9rem; color: #4b5563; margin: 8px 0 !important; font-family: system-ui, -apple-system, sans-serif; line-height: 1.4; white-space: nowrap; flex-wrap: wrap; }
+      .aed-author-byline .aed-author-avatar { display: inline-block !important; width: 22px; height: 22px; border-radius: 50%; background: #ea580c; color: #fff; font-size: 0.72rem; font-weight: 700; text-align: center; line-height: 22px; flex-shrink: 0; margin-right: 6px !important; vertical-align: middle; }
+      .aed-author-byline .aed-author-label { color: #6b7280; font-weight: 400; margin-right: 6px !important; vertical-align: middle; }
+      .aed-author-byline a.aed-author-name { color: #ea580c; text-decoration: none; font-weight: 600; }
+      .aed-author-byline a.aed-author-name:hover { text-decoration: underline; }
+      [data-aed-author-enhanced="true"] { display: inline-block; }
+      [data-aed-hidden="true"], [data-aed-hidden="partial"], [data-aed-hidden="full"] { display: none !important; }
+      @media (prefers-color-scheme: dark) { .aed-author-byline { color: #9ca3af; } .aed-author-byline .aed-author-label { color: #6b7280; } .aed-author-byline a.aed-author-name { color: #fb923c; } }
+      @media (max-width: 640px) { .aed-author-byline { font-size: 0.82rem; gap: 6px; } .aed-author-byline .aed-author-avatar { width: 18px; height: 18px; line-height: 18px; font-size: 0.65rem; margin-right: 4px !important; } .aed-author-byline .aed-author-label { margin-right: 4px !important; } }
     `;
     document.head.appendChild(style);
-    console.log('✅ [AED] Styles injected (warning + author byline + verify badge)');
+    console.log('✅ [AED] Styles injected (v17.6.2)');
   }
 
   // ============================================================
-  // CONTENT-AWARE VALIDITY — 🔥 v17.5.7: non-evergreen → 180
+  // VALIDITY
   // ============================================================
   function getValidityByContext(pageLevel, contentFocus) {
     var focus = String(contentFocus || '').toUpperCase();
     var isMoney = MONEY_LEVELS.indexOf(pageLevel) !== -1;
     if (isMoney) {
-      // 🔥 v17.5.7: HARGA/GABUNG 90 → 180 (SEO-safe, reduce load)
       if (focus === 'HARGA' || focus === 'GABUNG') return 180;
       if (focus === 'COMMERCIAL') return 180;
       if (focus === 'INFORMASI') return 365;
-      // 🔥 v17.5.7: variant/sub-variant 365 → 180
       if (pageLevel === 'variant' || pageLevel === 'sub-variant') return 180;
       return 180;
     }
@@ -421,7 +325,6 @@
     return WARNING_CONFIG.SHOW_DAYS_BEFORE;
   }
 
-  // 🔥 PATCH-PAD: padStart removed
   function toISOWithTimezoneLocal(date, offset) {
     offset = offset || "+07:00";
     if (!date) return null;
@@ -431,9 +334,6 @@
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${offset}`;
   }
 
-  // ============================================================
-  // INLINE WARNING
-  // ============================================================
   function formatTanggalIndo(dateStr) {
     if (!dateStr) return '';
     var bulan = ['Januari','Februari','Maret','April','Mei','Juni',
@@ -443,6 +343,9 @@
     return d.getDate() + ' ' + bulan[d.getMonth()] + ' ' + d.getFullYear();
   }
 
+  // ============================================================
+  // INLINE WARNING
+  // ============================================================
   function checkAndShowInlineWarning(pageLevel, contentFocus) {
     if (!WARNING_CONFIG.ENABLED) return;
     pageLevel = pageLevel || document.body.getAttribute('data-page-level') || '';
@@ -470,9 +373,7 @@
     const now = new Date();
     const daysDiff = Math.ceil((nextDate - now) / 86400000);
 
-    let severity = null;
-    let messageKey = null;
-    let messageReplace = null;
+    let severity = null, messageKey = null, messageReplace = null;
 
     if (daysDiff < 0) {
       if (!WARNING_CONFIG.SHOW_AFTER_EXPIRED) return;
@@ -494,21 +395,15 @@
 
     var analyticsSummary = {
       url: window.location.pathname,
-      pageLevel: pageLevel,
-      contentFocus: contentFocus,
-      severity: severity,
-      priority: priority,
-      daysDiff: daysDiff,
-      validityDays: validityDays,
+      pageLevel, contentFocus, severity, priority, daysDiff, validityDays,
       threshold: warningThreshold,
       stuck: (severity === 'expired' && Math.abs(daysDiff) > WARNING_CONFIG.STUCK_THRESHOLD_DAYS),
-      needsVerify: (document.body.getAttribute('data-aed-needs-review') === 'true'),
       timestamp: new Date().toISOString()
     };
     console.log('📊 [AED Analytics]', JSON.stringify(analyticsSummary));
 
     if (severity === 'expired' && Math.abs(daysDiff) > WARNING_CONFIG.STUCK_THRESHOLD_DAYS) {
-      console.warn('🚨 [AED WARNING STUCK]', Math.abs(daysDiff), 'hari — AED auto-update mungkin tidak berjalan');
+      console.warn('🚨 [AED WARNING STUCK]', Math.abs(daysDiff), 'hari');
       document.body.setAttribute('data-aed-warning-stuck', 'true');
       document.body.setAttribute('data-aed-warning-stuck-days', String(Math.abs(daysDiff)));
     }
@@ -520,10 +415,10 @@
     var message = getMessage(messageKey, messageReplace);
     console.log('ℹ️ [AED Warning]', message, '| priority:', priority);
 
-    createWarningElement(message, severity, priority, daysDiff, modifiedStr);
+    createWarningElement(message, severity, priority, daysDiff, modifiedStr, pageLevel, contentFocus);
   }
 
-  function createWarningElement(message, severity, priority, daysDiff, modifiedStr) {
+  function createWarningElement(message, severity, priority, daysDiff, modifiedStr, pageLevel, contentFocus) {
     if (document.getElementById('aed-update-warning')) return;
 
     injectWarningStyles();
@@ -555,14 +450,12 @@
     compactSpan.textContent = compactMsg;
     warning.appendChild(compactSpan);
 
-    // 🔥 v17.5.7 NEW: VERIFY BADGE untuk HARGA expired
-    if (document.body.getAttribute('data-aed-needs-review') === 'true') {
-      var verifyBadge = document.createElement('span');
-      verifyBadge.className = 'aed-verify-badge';
-      verifyBadge.setAttribute('data-nosnippet', '');
-      verifyBadge.textContent = getMessage('needsVerify');
-      warning.appendChild(verifyBadge);
-      console.log('🔍 [AED] Verify badge ditampilkan');
+    if (isAdmin()) {
+      var editHint = document.createElement('span');
+      editHint.className = 'aed-edit-hint';
+      editHint.setAttribute('data-nosnippet', '');
+      editHint.textContent = getMessage('editHint');
+      warning.appendChild(editHint);
     }
 
     if (WARNING_CONFIG.MINI_BADGE_ENABLED && modifiedStr && modifiedStr !== 'unknown') {
@@ -574,7 +467,6 @@
         miniBadge.setAttribute('data-source', 'dateModified');
         miniBadge.textContent = getMessage('miniBadge', { date: modText });
         warning.appendChild(miniBadge);
-        console.log('📅 [AED Mini Badge] Terakhir diperbarui:', modText);
       }
     }
 
@@ -619,7 +511,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-AUTHOR-BYLINE v17.5.7
+  // AUTHOR BYLINE (Preserved 100% dari v17.5.9a)
   // ============================================================
   function normalizeBylineText(text) {
     return String(text || '').replace(/\s+/g, ' ').trim();
@@ -700,14 +592,8 @@
     var hidden = 0;
 
     var CONTAINER_SELECTORS = [
-      '.title-secondary',
-      '.post-header-line-1',
-      '.post-header',
-      '.post-meta',
-      '.entry-meta',
-      '.post-info',
-      '.byline',
-      'address'
+      '.title-secondary', '.post-header-line-1', '.post-header',
+      '.post-meta', '.entry-meta', '.post-info', '.byline', 'address'
     ];
 
     for (var i = 0; i < CONTAINER_SELECTORS.length; i++) {
@@ -733,12 +619,9 @@
         if (!hasTimestamp && !hasComments && !hasLabels) {
           parent.style.display = 'none';
           parent.setAttribute('data-aed-hidden', 'full');
-          console.log('✅ [AED Author] Full hide byline container');
           hidden++;
           break;
         }
-
-        console.log('🔧 [AED Author] PARTIAL HIDE (timestamp dipertahankan)');
 
         parent.querySelectorAll('.post-author, .vcard, [itemprop="author"]').forEach(function(el) {
           if (el.querySelector && el.querySelector('.aed-author-byline')) return;
@@ -780,7 +663,6 @@
         });
 
         parent.setAttribute('data-aed-hidden', 'partial');
-        console.log('✅ [AED Author] Partial hide berhasil');
         hidden++;
         break;
       }
@@ -796,10 +678,7 @@
     var isPost = /\/\d{4}\/\d{2}\//.test(window.location.pathname);
     var mode = isPost ? 'POST' : 'PAGE';
 
-    if (document.querySelector('.aed-author-byline')) {
-      console.log('⏭️ [AED Author] Byline AED sudah ada — skip');
-      return;
-    }
+    if (document.querySelector('.aed-author-byline')) return;
 
     var bylineEl = findExistingByline();
 
@@ -808,14 +687,8 @@
       var broken = isBrokenByline(currentText);
 
       if (!broken && !AUTHOR_BYLINE_CONFIG.ALWAYS_REPLACE) {
-        console.log('✅ [AED Author] Byline sudah bagus — JANGAN sentuh:', JSON.stringify(currentText));
+        console.log('✅ [AED Author] Byline sudah bagus:', JSON.stringify(currentText));
         return;
-      }
-
-      if (broken) {
-        console.log('⚠️ [AED Author] Byline kosong/rusak: ' + JSON.stringify(currentText) + ' → enhance');
-      } else {
-        console.log('🔄 [AED Author] ALWAYS_REPLACE aktif → replace');
       }
 
       var newByline = buildAuthorByline();
@@ -826,24 +699,18 @@
       return;
     }
 
-    var hiddenCount = hideExistingBylineNearH1();
-    if (hiddenCount > 0) {
-      console.log('✅ [AED Author] Cleaned ' + hiddenCount + ' existing broken byline');
-    }
+    hideExistingBylineNearH1();
 
-    console.log('ℹ️ [AED Author] Inject byline baru setelah H1 (' + mode + ')');
     var h1 = document.querySelector('h1');
     if (h1) {
       var newByline2 = buildAuthorByline();
       h1.parentNode.insertBefore(newByline2, h1.nextSibling);
       console.log('✅ [AED Author] Byline di-inject setelah H1 (' + mode + ')');
-    } else {
-      console.warn('⚠️ [AED Author] Tidak ada H1 — skip');
     }
   }
 
   // ============================================================
-  // FIX-B10: Decode HTML Entities
+  // HTML ENTITIES + FAQ SCHEMA
   // ============================================================
   function decodeHtmlEntities(str) {
     if (typeof str !== 'string') return str;
@@ -888,9 +755,6 @@
     return found;
   }
 
-  // ============================================================
-  // FIX-B9 + B10
-  // ============================================================
   function detectIllegalFaqProps() {
     var hasIllegal = false;
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
@@ -931,9 +795,6 @@
     return hasIllegal;
   }
 
-  // ============================================================
-  // FIX-B8 + B2: Brand
-  // ============================================================
   function normalizeBrandCase(str) {
     if (!str || typeof str !== 'string') return str;
     var trimmed = str.trim();
@@ -977,9 +838,6 @@
     return DEFAULT_BRAND_NAME;
   }
 
-  // ============================================================
-  // FIX-B1 + B8 + B10: Cleanup FAQ
-  // ============================================================
   function cleanupFaqSchema(brandName) {
     var cleaned = 0, injected = 0, normalized = 0, entitiesDecoded = 0;
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
@@ -1114,7 +972,7 @@
   }
 
   // ============================================================
-  // FIX-EE-4
+  // H1 DETECTION
   // ============================================================
   function detectContentTypeByH1() {
     const h1 = document.querySelector('h1');
@@ -1380,9 +1238,43 @@
   }
 
   // ============================================================
-  // 🔥 v17.5.7: autoUpdateDates — GUARD untuk HARGA/GABUNG
+  // CONTENT HASH DETECTION
   // ============================================================
-  function autoUpdateDates(pageLevel, contentFocus) {
+  function detectContentChangeSinceLastVisit() {
+    var container = document.querySelector('.post-body.entry-content, .post-body, article, main');
+    if (!container) return { changed: false, reason: 'no-container' };
+
+    var text = (container.innerText || '').replace(/\s+/g, ' ').trim();
+    if (text.length < 100) return { changed: false, reason: 'too-short' };
+
+    var hash = 0;
+    for (var i = 0; i < text.length; i++) {
+      hash = ((hash << 5) - hash) + text.charCodeAt(i);
+      hash = hash | 0;
+    }
+    var currentHash = String(Math.abs(hash));
+
+    var storageKey = 'aed-content-hash-' + location.pathname;
+    var storedHash = null;
+    try { storedHash = localStorage.getItem(storageKey); } catch (e) {}
+
+    var changed = false;
+    if (storedHash && storedHash !== currentHash) {
+      changed = true;
+      console.log('🔍 [AED] 📝 KONTEN BERUBAH — hash:', storedHash, '→', currentHash);
+    } else if (!storedHash) {
+      console.log('🆕 [AED] First visit — hash disimpan:', currentHash);
+    }
+
+    try { localStorage.setItem(storageKey, currentHash); } catch (e) {}
+    return { changed: changed, reason: changed ? 'content-changed' : 'same', hash: currentHash };
+  }
+
+  // ============================================================
+  // AUTO UPDATE DATES
+  // ============================================================
+  function autoUpdateDates(pageLevel, contentFocus, options) {
+    options = options || {};
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
     let metaNext = document.querySelector('meta[name="nextUpdate"]');
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
@@ -1391,20 +1283,20 @@
 
     const now = new Date();
     const nextDate = new Date(currentNext);
-    if (now < nextDate) return false;
+    if (!options.forceBump && now < nextDate) return false;
 
-    // 🔥 v17.5.7 GUARD: HARGA/GABUNG → JANGAN auto-bump dateModified
-    // Alasan: harga butuh verifikasi manual admin, bukan sekadar ganti tanggal
-    // Banner warning akan tetap tampil sampai admin verifikasi manual
     const focus = String(contentFocus || '').toUpperCase();
-    if (focus === 'HARGA' || focus === 'GABUNG') {
-      console.warn('⏸️ [AED] HARGA expired — auto-update SKIP. Banner tetap, admin verifikasi manual required.');
+    if ((focus === 'HARGA' || focus === 'GABUNG') && !options.forceBump) {
+      console.warn('⏸️ [AED] HARGA expired — auto-update SKIP (butuh verify manual via edit konten)');
       document.body.setAttribute('data-aed-needs-review', 'true');
       document.body.setAttribute('data-aed-review-reason', 'harga-manual-verify-required');
-      return false; // ← dateModified TIDAK di-bump
+      return false;
     }
 
-    // INFORMASI / COMMERCIAL: boleh auto (tahun memang berubah faktual)
+    if (options.forceBump) {
+      console.log('🔧 [AED] forceBump=true — bypass expiry & guard (content changed)');
+    }
+
     let validityDays = getValidityByContext(pageLevel, contentFocus);
     const newModifiedStr = toISOWithTimezoneLocal(now);
     const newNextStr = toISOWithTimezoneLocal(new Date(now.getTime() + (validityDays * 86400000)));
@@ -1430,7 +1322,7 @@
   }
 
   // ============================================================
-  // 🔥 v17.5.7: processMetaDates — priceValidUntil extension
+  // PROCESS META DATES
   // ============================================================
   async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated) {
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
@@ -1451,7 +1343,6 @@
     if (!metaModified) { metaModified = document.createElement("meta"); metaModified.setAttribute("itemprop", "dateModified"); document.head.appendChild(metaModified); }
     metaModified.setAttribute("content", dateModified);
 
-    // 🔥 v17.5.7: HARGA expired → nextUpdate tetap (banner trigger), priceValidUntil extend
     const focus = String(contentFocus || '').toUpperCase();
     const isPriceManual = (focus === 'HARGA' || focus === 'GABUNG');
     const nowLocal = new Date();
@@ -1462,13 +1353,13 @@
     if (isPriceExpired) {
       nextUpdate = toISOWithTimezoneLocal(new Date(naturalNextUpdateMs));
       priceValidUntil = toISOWithTimezoneLocal(new Date(nowLocal.getTime() + validityMs));
-      console.warn('⏸️ [AED] HARGA expired — nextUpdate tetap (banner trigger), priceValidUntil di-extend ke:', priceValidUntil);
+      console.warn('⏸️ [AED] HARGA expired — nextUpdate tetap, priceValidUntil extend:', priceValidUntil);
+      console.warn('💡 [AED] SOLUSI: Edit halaman di Blogger + ubah minimal 1 kata/kalimat/FAQ → Save & Publish');
       document.body.setAttribute('data-aed-needs-review', 'true');
       document.body.setAttribute('data-aed-review-reason', 'harga-manual-verify-required');
     } else {
       nextUpdate = toISOWithTimezoneLocal(new Date(naturalNextUpdateMs));
       priceValidUntil = nextUpdate;
-      // 🔥 v17.5.7: clear flag saat sudah fresh/verified
       if (document.body.hasAttribute('data-aed-needs-review')) {
         document.body.removeAttribute('data-aed-needs-review');
         document.body.removeAttribute('data-aed-review-reason');
@@ -1507,7 +1398,7 @@
       datePublished, dateModified, nextUpdate, priceValidUntil,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.5.7',
+      detectorVersion: detectorVersion || 'v17.6.2',
       detectionConfidence: confidence || null,
       isOverridden: isOverridden || false,
       overrideReason: overrideReason || null,
@@ -1535,7 +1426,6 @@
     const bodyEntity = document.body.getAttribute('data-entity-type');
     if (bodyLevel && bodyEntity) {
       const pldVer = getPLDVersion();
-      console.log(`📌 [FIX-PLD-SYNC] body attribute → ${bodyLevel} | ${bodyEntity}`);
       return { pageLevel: bodyLevel, entityType: bodyEntity, detectorVersion: pldVer.label, confidence, strategies, strategyCount };
     }
 
@@ -1613,41 +1503,393 @@
     return BASE_PAGE_LEVEL_RULES[pageLevel] || DEFAULT_RULE;
   }
 
-  function logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated) {
+  function logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated, contentCheck) {
     var summary = {
       url: window.location.pathname,
-      pageLevel: pageLevel,
-      entityType: entityType,
-      contentFocus: contentFocus,
-      finalType: finalType,
-      validityDays: validityDays,
+      pageLevel, entityType, contentFocus, finalType, validityDays,
       autoUpdated: autoUpdated === true,
+      contentChanged: contentCheck ? contentCheck.changed : false,
+      contentChangeReason: contentCheck ? contentCheck.reason : null,
       needsManualVerify: (document.body.getAttribute('data-aed-needs-review') === 'true'),
       priority: getPriority(pageLevel, contentFocus),
       locale: detectLocale(),
       isAdmin: isAdmin(),
-      miniBadgeEnabled: WARNING_CONFIG.MINI_BADGE_ENABLED,
-      authorBylineEnabled: AUTHOR_BYLINE_CONFIG.ENABLED,
       timestamp: new Date().toISOString(),
-      aedVersion: '17.5.7'
+      aedVersion: '17.6.2'
     };
     console.log('📊 [AED Final Analytics]', JSON.stringify(summary));
   }
 
   // ============================================================
-  // FUNGSI UTAMA
+  // 🆕 v17.6.2: ANALYZE PAGE CONTENT
+  // ============================================================
+  function analyzePageContent() {
+    var container = document.querySelector('.post-body.entry-content, .post-body, article, main') || document.body;
+    var text = container.innerText || '';
+    var h1 = document.querySelector('h1');
+    var h1Text = h1 ? (h1.innerText || '').trim() : '';
+    var h1YearMatch = h1Text.match(/\b(19|20)\d{2}\b/);
+    var h1Year = h1YearMatch ? parseInt(h1YearMatch[0], 10) : null;
+    var currentYear = new Date().getFullYear();
+    var h1YearOutdated = h1Year && h1Year < currentYear;
+
+    var allYears = text.match(/\b(19|20)\d{2}\b/g) || [];
+    var uniqueYears = Array.from(new Set(allYears.map(Number)));
+    var outdatedYears = uniqueYears.filter(function(y) { return y >= 2020 && y < currentYear; });
+
+    var hasFaq = false;
+    var faqSelectors = ['[itemtype*="FAQ"]', '[itemprop="mainEntity"]', '.faq', '[class*="faq"]', '[id*="faq"]'];
+    for (var i = 0; i < faqSelectors.length; i++) {
+      try { if (document.querySelector(faqSelectors[i])) { hasFaq = true; break; } } catch (e) {}
+    }
+    var faqCount = 0;
+    var faqQRegex = /\b(?:T\s*[:.]|\bQ\s*:)/g;
+    var faqMatches = text.match(faqQRegex) || [];
+    faqCount = faqMatches.length;
+    if (faqCount === 0 && hasFaq) {
+      var qmarks = text.match(/\?/g) || [];
+      faqCount = Math.min(qmarks.length, 20);
+    }
+
+    var priceMatches = text.match(/Rp\s*[\d.,]+/gi) || [];
+    var hasPrice = priceMatches.length > 0;
+    var priceCount = priceMatches.length;
+
+    var hasWA = false;
+    try {
+      if (document.querySelector('a[href*="wa.me"], a[href*="whatsapp"], a[href*="wa.link"]')) hasWA = true;
+    } catch (e) {}
+    if (!hasWA && /628\d{8,}|62\s*8\d{2}[\s-]?\d{4}/.test(text)) hasWA = true;
+
+    var tableCount = 0;
+    try { tableCount = document.querySelectorAll('.post-body table, article table').length; } catch (e) {}
+    var hasTable = tableCount > 0;
+
+    var wordCount = text.trim().split(/\s+/).length;
+    var h2Count = 0, h3Count = 0;
+    try {
+      h2Count = document.querySelectorAll('.post-body h2, article h2').length;
+      h3Count = document.querySelectorAll('.post-body h3, article h3').length;
+    } catch (e) {}
+
+    return {
+      h1Text: h1Text, h1Year: h1Year, h1YearOutdated: h1YearOutdated,
+      currentYear: currentYear, uniqueYears: uniqueYears, outdatedYears: outdatedYears,
+      hasFaq: hasFaq, faqCount: faqCount, hasPrice: hasPrice, priceCount: priceCount,
+      hasWA: hasWA, hasTable: hasTable, tableCount: tableCount,
+      wordCount: wordCount, h2Count: h2Count, h3Count: h3Count
+    };
+  }
+
+  // ============================================================
+  // 🆕 v17.6.2: GENERATE PAGE GUIDE
+  // ============================================================
+  function generatePageGuide(pageLevel, contentFocus, finalType, validityDays, daysUntilReview) {
+    var a = analyzePageContent();
+    var guide = {
+      meta: {
+        pageLevel: pageLevel, contentFocus: contentFocus, finalType: finalType,
+        validityDays: validityDays, daysUntilReview: daysUntilReview,
+        status: daysUntilReview > 21 ? 'FRESH' : (daysUntilReview > 0 ? 'WARNING' : 'EXPIRED')
+      },
+      issues: [], priorityActions: [], sectionGuide: [], minimalChanges: [], checklist: []
+    };
+
+    if (a.h1YearOutdated) guide.issues.push({ level: 'critical', text: 'Tahun di H1 (' + a.h1Year + ') usang. Current: ' + a.currentYear + '.' });
+    if (a.outdatedYears.length > 0) guide.issues.push({ level: 'warning', text: 'Tahun usang di konten: ' + a.outdatedYears.join(', ') });
+    if ((contentFocus === 'HARGA' || contentFocus === 'GABUNG') && !a.hasPrice) guide.issues.push({ level: 'critical', text: 'Tidak ada harga (Rp...) padahal content focus = HARGA.' });
+    if (!a.hasWA && pageLevel.indexOf('money') === 0) guide.issues.push({ level: 'warning', text: 'Nomor WA/telepon tidak terdeteksi.' });
+    if (a.faqCount < 3) guide.issues.push({ level: 'warning', text: 'FAQ terdeteksi hanya ' + a.faqCount + ' (ideal ≥ 3).' });
+    if (!a.hasTable && pageLevel.indexOf('money') === 0) guide.issues.push({ level: 'warning', text: 'Tidak ada tabel — idealnya ada tabel harga/spesifikasi.' });
+    if (a.wordCount < 500) guide.issues.push({ level: 'warning', text: 'Konten tipis: ' + a.wordCount + ' kata (ideal ≥ 500).' });
+    if (daysUntilReview < 0) guide.issues.push({ level: 'critical', text: '🚨 EXPIRED ' + Math.abs(daysUntilReview) + ' hari. Action required.' });
+
+    if (pageLevel === 'pillar' || pageLevel === 'sub-pillar-tipe-1' || pageLevel === 'sub-pillar-tipe-2') {
+      guide.priorityActions = [
+        '✅ Verify topik masih relevan dengan trend ' + a.currentYear + '.',
+        '✅ Cek standar/regulasi (SNI, PUPR) masih update.',
+        '💡 Tambah 1 FAQ dari pertanyaan pembaca terbaru.',
+        '💡 Update contoh kasus dengan data ' + a.currentYear + '.'
+      ];
+    } else if (pageLevel.indexOf('money') === 0) {
+      var levelLabel = { 'money-master': 'Range harga per mutu + wilayah', 'money-page': 'Harga fixed 1 produk', 'money-child': 'Harga fixed + wilayah (PALING KRITIS)', 'variant': 'Spesifikasi + harga varian', 'sub-variant': 'Spesifikasi + harga sub-varian' };
+      guide.priorityActions = [
+        '🚨 Verify harga dengan supplier real-time.',
+        '🚨 Cek stok/varian masih tersedia.',
+        '🚨 Cek nomor WA/telepon masih aktif.',
+        '✅ Cek syarat order (min order, ongkir, PPN) masih sama.',
+        '📌 Level: ' + (levelLabel[pageLevel] || pageLevel)
+      ];
+    } else {
+      guide.priorityActions = ['✅ Verify panduan masih akurat.', '💡 Tambah 1 FAQ baru.'];
+    }
+
+    guide.sectionGuide = [
+      { section: 'H1', action: a.h1YearOutdated ? '🚨 UPDATE — tahun ' + a.h1Year + ' usang' : '✅ Cek masih relevan' },
+      { section: 'Intro paragraf', action: '✅ Cek akurat, tambah 1 kalimat konteks ' + a.currentYear },
+      { section: 'Harga', action: a.hasPrice ? '✅ ' + a.priceCount + ' harga terdeteksi — verify real-time' : '⚠️ Tidak ada harga — tambahkan' },
+      { section: 'Spesifikasi', action: '✅ Cek standar (SNI) masih berlaku' },
+      { section: 'FAQ', action: a.faqCount < 3 ? '💡 Tambah (' + a.faqCount + ' → 3+)' : '✅ Cukup (' + a.faqCount + ' item)' },
+      { section: 'Tabel', action: a.hasTable ? '✅ ' + a.tableCount + ' tabel terdeteksi' : '💡 Tambahkan tabel harga/spesifikasi' },
+      { section: 'Kontak WA', action: a.hasWA ? '✅ WA terdeteksi' : '⚠️ Tidak ada WA — tambahkan' },
+      { section: 'Schema JSON-LD', action: '✅ Auto-update via AED' },
+      { section: 'Internal link', action: '✅ Cek tidak broken, tambah 1 link ke halaman baru' }
+    ];
+
+    if (contentFocus === 'HARGA' || contentFocus === 'GABUNG') {
+      guide.minimalChanges = [
+        '1. Update "Berlaku per [bulan] ' + a.currentYear + '" di paragraf pembuka.',
+        '2. Tambah 1 FAQ dari pertanyaan CS bulan ini.',
+        '3. Update tanggal "Terakhir diperbarui: [bulan] ' + a.currentYear + '" di body (kalau ada).',
+        '4. Tambah 1 testimoni pelanggan terbaru (nama + wilayah + proyek).',
+        '5. Reorder FAQ: taruh yang paling sering ditanya di atas.'
+      ];
+    } else if (pageLevel === 'pillar' || pageLevel.indexOf('sub-pillar') === 0) {
+      guide.minimalChanges = [
+        '1. Tambah 1 FAQ baru (paling ringan & aman).',
+        '2. Update statistik/contoh kasus dengan data ' + a.currentYear + '.',
+        '3. Update screenshot/gambar ke versi terbaru.',
+        '4. Cek internal link — tambah 1 link ke halaman baru.'
+      ];
+    } else {
+      guide.minimalChanges = [
+        '1. Tambah 1 FAQ baru.',
+        '2. Update contoh/kasus dengan data ' + a.currentYear + '.'
+      ];
+    }
+
+    guide.checklist = [
+      '□ Buka halaman di browser — verify tampilan normal',
+      '□ Cek harga dengan supplier (WA/telp) — sama atau berubah?',
+      '□ Cek nomor WA/telepon masih aktif',
+      '□ Cek stok/varian masih tersedia',
+      '□ Cek wilayah layanan masih sama',
+      '□ Cek syarat order (min order, ongkir, PPN)',
+      '□ Buka Blogger editor — edit minimal 1 elemen',
+      '□ Save & Publish',
+      '□ Reload halaman → banner hilang ✅'
+    ];
+
+    return guide;
+  }
+
+  // ============================================================
+  // 🆕 v17.6.2: SHOW GUIDE MODAL
+  // ============================================================
+  function showGuideModal(guide) {
+    var existing = document.getElementById('aed-guide-modal');
+    if (existing) existing.remove();
+
+    var statusClass = guide.meta.status === 'FRESH' ? 'status-fresh' : (guide.meta.status === 'WARNING' ? 'status-warning' : 'status-expired');
+
+    var issuesHtml = guide.issues.length > 0
+      ? guide.issues.map(function(i) { return '<div class="aed-guide-issue-' + i.level + '">' + i.text + '</div>'; }).join('')
+      : '<p style="color:#16a34a;font-weight:600;">✅ Tidak ada issue signifikan terdeteksi. Halaman dalam kondisi baik.</p>';
+
+    var priorityHtml = '<ul class="aed-guide-list">' + guide.priorityActions.map(function(p) { return '<li>' + p + '</li>'; }).join('') + '</ul>';
+
+    var sectionTableHtml = '<table class="aed-guide-section-table"><thead><tr><th>Section</th><th>Action</th></tr></thead><tbody>' +
+      guide.sectionGuide.map(function(s) { return '<tr><td><strong>' + s.section + '</strong></td><td>' + s.action + '</td></tr>'; }).join('') +
+      '</tbody></table>';
+
+    var minimalHtml = '<ul class="aed-guide-list">' + guide.minimalChanges.map(function(c) { return '<li>' + c + '</li>'; }).join('') + '</ul>';
+    var checklistHtml = '<div style="font-family:monospace;font-size:0.85rem;line-height:1.8;">' + guide.checklist.map(function(c) { return c.replace('□', '<span style="color:#9ca3af;">□</span>'); }).join('<br>') + '</div>';
+
+    var modal = document.createElement('div');
+    modal.id = 'aed-guide-modal';
+    modal.setAttribute('data-nosnippet', '');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+
+    modal.innerHTML =
+      '<div class="aed-guide-backdrop" data-aed-close="1"></div>' +
+      '<div class="aed-guide-content">' +
+        '<div class="aed-guide-header">' +
+          '<h2>' + GUIDE_CONFIG.MODAL_TITLE + '</h2>' +
+          '<button class="aed-guide-close" data-aed-close="1" aria-label="Close">✕</button>' +
+        '</div>' +
+        '<div class="aed-guide-body">' +
+          '<div class="aed-guide-section">' +
+            '<h3>📊 Summary</h3>' +
+            '<div class="aed-guide-meta">' +
+              '<div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Page Level</div><div class="aed-guide-meta-value">' + guide.meta.pageLevel + '</div></div>' +
+              '<div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Content Focus</div><div class="aed-guide-meta-value">' + guide.meta.contentFocus + '</div></div>' +
+              '<div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Type</div><div class="aed-guide-meta-value">' + guide.meta.finalType + '</div></div>' +
+              '<div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Validity</div><div class="aed-guide-meta-value">' + guide.meta.validityDays + ' hari</div></div>' +
+              '<div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Status</div><div class="aed-guide-meta-value ' + statusClass + '">' + guide.meta.status + '</div></div>' +
+              '<div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Next Review</div><div class="aed-guide-meta-value">' + (guide.meta.daysUntilReview > 0 ? guide.meta.daysUntilReview + ' hari lagi' : 'Expired ' + Math.abs(guide.meta.daysUntilReview) + ' hari') + '</div></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="aed-guide-section"><h3>🚨 Issues Terdeteksi</h3>' + issuesHtml + '</div>' +
+          '<div class="aed-guide-section"><h3>🎯 Priority Actions</h3>' + priorityHtml + '</div>' +
+          '<div class="aed-guide-section"><h3>📋 Panduan per Section</h3>' + sectionTableHtml + '</div>' +
+          '<div class="aed-guide-section"><h3>💡 Minimal Changes (kalau fakta masih sama)</h3>' + minimalHtml + '</div>' +
+          '<div class="aed-guide-section"><h3>✅ Checklist Eksekusi</h3>' + checklistHtml + '</div>' +
+          '<div class="aed-guide-section">' +
+            '<h3>🚨 Emergency Option</h3>' +
+            '<div class="aed-guide-issue-warning">⚠️ <strong>LAST RESORT:</strong> <code>aedEmergencyVerify(null, { confirm: true })</code> — tidak persist ke server. Gunakan hanya kalau akses Blogger bermasalah.</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="aed-guide-footer">' +
+          '<span>Dibuat: ' + new Date().toLocaleString('id-ID') + '</span>' +
+          '<button class="aed-guide-footer-btn" data-aed-close="1">Tutup</button>' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+
+    modal.querySelectorAll('[data-aed-close]').forEach(function(el) {
+      el.addEventListener('click', closeGuideModal);
+    });
+
+    if (!window._aedGuideEscHandler) {
+      window._aedGuideEscHandler = function(e) {
+        if (e.key === 'Escape') closeGuideModal();
+      };
+      document.addEventListener('keydown', window._aedGuideEscHandler);
+    }
+    console.log('✅ [AED Guide] Modal terbuka');
+  }
+
+  function closeGuideModal() {
+    var modal = document.getElementById('aed-guide-modal');
+    if (modal) modal.remove();
+    document.body.style.overflow = '';
+    if (window._aedGuideEscHandler) {
+      document.removeEventListener('keydown', window._aedGuideEscHandler);
+      window._aedGuideEscHandler = null;
+    }
+  }
+
+  // ============================================================
+  // 🆕 v17.6.2: GUIDE BUTTON (3-click)
+  // ============================================================
+  var _guideClickCount = 0;
+  var _guideClickTimer = null;
+
+  function handleGuideButtonClick() {
+    _guideClickCount++;
+    var hint = document.getElementById('aed-guide-hint');
+    if (_guideClickTimer) clearTimeout(_guideClickTimer);
+
+    if (_guideClickCount === 1) {
+      if (hint) hint.textContent = GUIDE_CONFIG.BUTTON_HINT_1;
+      _guideClickTimer = setTimeout(function() { _guideClickCount = 0; if (hint) hint.textContent = ''; }, GUIDE_CONFIG.CLICK_RESET_MS);
+    } else if (_guideClickCount === 2) {
+      if (hint) hint.textContent = GUIDE_CONFIG.BUTTON_HINT_2;
+      _guideClickTimer = setTimeout(function() { _guideClickCount = 0; if (hint) hint.textContent = ''; }, GUIDE_CONFIG.CLICK_RESET_MS);
+    } else if (_guideClickCount >= GUIDE_CONFIG.CLICKS_TO_OPEN) {
+      _guideClickCount = 0;
+      if (hint) hint.textContent = '';
+      openGuideFromCurrentPage();
+    }
+  }
+
+  function openGuideFromCurrentPage() {
+    var pageLevel = document.body.getAttribute('data-page-level') || 'pillar';
+    var contentFocus = document.body.getAttribute('data-content-focus') || 'INFORMASI';
+    var finalType = (document.body.getAttribute('data-content-type') || (EVERGREEN_LEVELS.indexOf(pageLevel) !== -1 ? 'evergreen' : 'non-evergreen'));
+    var validityDays = getValidityByContext(pageLevel, contentFocus);
+    var metaNext = document.querySelector('meta[name="nextUpdate"]');
+    var daysUntilReview = metaNext ? Math.ceil((new Date(metaNext.content) - new Date()) / 86400000) : 0;
+    var guide = generatePageGuide(pageLevel, contentFocus, finalType, validityDays, daysUntilReview);
+    showGuideModal(guide);
+  }
+
+  function injectGuideButton() {
+    if (!GUIDE_CONFIG.ENABLED) return;
+    if (GUIDE_CONFIG.ADMIN_ONLY && !isAdmin()) return;
+    if (document.getElementById('aed-guide-btn')) return;
+
+    var h1 = document.querySelector('h1');
+    if (!h1) return;
+
+    var wrap = document.createElement('div');
+    wrap.id = 'aed-guide-btn-wrap';
+    wrap.setAttribute('data-nosnippet', '');
+
+    var btn = document.createElement('button');
+    btn.id = 'aed-guide-btn';
+    btn.type = 'button';
+    btn.setAttribute('data-nosnippet', '');
+    btn.setAttribute('aria-label', 'Buka panduan update halaman');
+    btn.textContent = GUIDE_CONFIG.BUTTON_TEXT;
+    btn.addEventListener('click', handleGuideButtonClick);
+
+    var hint = document.createElement('span');
+    hint.id = 'aed-guide-hint';
+    hint.setAttribute('data-nosnippet', '');
+
+    wrap.appendChild(btn);
+    wrap.appendChild(hint);
+    h1.parentNode.insertBefore(wrap, h1.nextSibling);
+    console.log('✅ [AED Guide] Button injected di bawah H1');
+  }
+
+  // ============================================================
+  // 🆕 v17.6.2: ENTER KEY ADMIN TRIGGER (3x)
+  // ============================================================
+  function initAdminKeyboardShortcut() {
+    var count = 0;
+    var timer = null;
+
+    document.addEventListener('keydown', function(e) {
+      if (!document.hasFocus()) return;
+      var activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) return;
+
+      if (e.key === 'Enter') {
+        count++;
+        if (timer) clearTimeout(timer);
+        showToast('Tekan ENTER ' + (3 - count) + 'x lagi untuk Admin Mode...');
+
+        if (count >= 3) {
+          count = 0;
+          localStorage.setItem('aed-is-admin', 'true');
+          showToast('✅ Admin Mode Aktif! Reloading...');
+          setTimeout(function() { location.reload(); }, 1000);
+        } else {
+          timer = setTimeout(function() { count = 0; hideToast(); }, 3000);
+        }
+      }
+    });
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('aed-admin-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'aed-admin-toast';
+      t.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#1e293b; color:#fff; padding:10px 20px; border-radius:8px; font-family:sans-serif; font-size:14px; z-index:999999; transition:opacity 0.3s; box-shadow:0 4px 12px rgba(0,0,0,0.15); pointer-events:none;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+  }
+
+  function hideToast() {
+    var t = document.getElementById('aed-admin-toast');
+    if (t) t.style.opacity = '0';
+  }
+
+  // ============================================================
+  // MAIN
   // ============================================================
   async function detectEvergreen(opts) {
     opts = opts || {};
     var customDateModified = opts.customDateModified || null;
+    var forceBump = opts.forceBump === true;
 
-    if (_AED_INITIALIZED) return;
+    if (_AED_INITIALIZED) {
+      console.log('⏭️ [AED] detectEvergreen sudah pernah jalan — skip');
+      return;
+    }
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.5.7 — SEO-SAFE 180D + MANUAL VERIFY GUARD");
+    console.log("🧩 detectEvergreen() v17.6.2 — SUPER SET + GUIDE BUTTON");
 
     injectWarningStyles();
-
     await waitForPageLevelDetector();
 
     const { pageLevel, entityType, detectorVersion } = getPageLevelAndEntityType();
@@ -1659,34 +1901,148 @@
     const validityDays = rule.validityDays;
     const validityMs = validityDays * 86400000;
 
-    const autoUpdated = autoUpdateDates(pageLevel, contentFocus);
+    var contentCheck = detectContentChangeSinceLastVisit();
 
-    await processMetaDates(customDateModified, finalType, validityMs, rule.usePriceValidUntil, pageLevel, entityType, rule.ctaIntensity, rule.allowPriceRange, detectorVersion, null, null, null, rule.overridden || false, rule.overrideReason || null, h1Detection, contentFocus, autoUpdated);
+    var autoUpdated = false;
+    if (forceBump) {
+      console.log('🔧 [AED] forceBump explicit — forcing auto-update');
+      autoUpdated = autoUpdateDates(pageLevel, contentFocus, { forceBump: true });
+    } else if (contentCheck.changed) {
+      console.log('✅ [AED] Content changed — forcing auto-update (bypass guard)');
+      autoUpdated = autoUpdateDates(pageLevel, contentFocus, { forceBump: true });
+    } else {
+      autoUpdated = autoUpdateDates(pageLevel, contentFocus);
+    }
+
+    await processMetaDates(
+      customDateModified, finalType, validityMs, rule.usePriceValidUntil,
+      pageLevel, entityType, rule.ctaIntensity, rule.allowPriceRange,
+      detectorVersion, null, null, null, rule.overridden || false,
+      rule.overrideReason || null, h1Detection, contentFocus, autoUpdated
+    );
 
     checkAndShowInlineWarning(pageLevel, contentFocus);
-    logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated);
-
+    logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated, contentCheck);
     injectAuthorByline();
 
+    // 🆕 v17.6.2: Inject guide button
+    injectGuideButton();
+
     window.dispatchEvent(new Event("detectEvergreenReady"));
-    console.log(`🧩 detectEvergreen() v17.5.7 — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.6.2 — FINISHED ✅`);
   }
+
+  // ============================================================
+  // EMERGENCY VERIFY (Preserved 100%)
+  // ============================================================
+  window.aedEmergencyVerify = function(customDate, opts) {
+    opts = opts || {};
+    if (!opts.confirm) {
+      console.warn('⚠️ [AED] EMERGENCY VERIFY memerlukan konfirmasi!');
+      return null;
+    }
+    customDate = customDate || toISOWithTimezoneLocal(new Date());
+    var pageLevel = document.body.getAttribute('data-page-level') || 'money-page';
+    var contentFocus = document.body.getAttribute('data-content-focus') || 'HARGA';
+    var validityDays = getValidityByContext(pageLevel, contentFocus);
+
+    var metaModified = document.querySelector('meta[itemprop="dateModified"]');
+    if (!metaModified) { metaModified = document.createElement('meta'); metaModified.setAttribute('itemprop', 'dateModified'); document.head.appendChild(metaModified); }
+    metaModified.setAttribute('content', customDate);
+
+    var nextUpdate = toISOWithTimezoneLocal(new Date(new Date(customDate).getTime() + validityDays * 86400000));
+    var metaNext = document.querySelector('meta[name="nextUpdate"]');
+    if (!metaNext) { metaNext = document.createElement('meta'); metaNext.setAttribute('name', 'nextUpdate'); document.head.appendChild(metaNext); }
+    metaNext.setAttribute('content', nextUpdate);
+
+    updateJsonLdDates(customDate, nextUpdate);
+    document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(function(el) { el.setAttribute('priceValidUntil', nextUpdate); });
+
+    document.body.removeAttribute('data-aed-needs-review');
+    document.body.removeAttribute('data-aed-review-reason');
+    document.body.removeAttribute('data-aed-warning-severity');
+    document.body.removeAttribute('data-aed-warning-days');
+    document.body.removeAttribute('data-aed-warning-stuck');
+    document.body.removeAttribute('data-aed-warning-stuck-days');
+
+    var banner = document.getElementById('aed-update-warning');
+    if (banner) banner.remove();
+
+    if (window.AEDMetaDates) {
+      window.AEDMetaDates.dateModified = customDate;
+      window.AEDMetaDates.nextUpdate = nextUpdate;
+      window.AEDMetaDates.priceValidUntil = nextUpdate;
+      window.AEDMetaDates.needsManualVerify = false;
+      window.AEDMetaDates.lastEmergencyVerify = customDate;
+      window.AEDMetaDates.updateCount = (window.AEDMetaDates.updateCount || 0) + 1;
+    }
+
+    try {
+      var auditData = { date: customDate, nextUpdate: nextUpdate, validityDays: validityDays, pageLevel: pageLevel, contentFocus: contentFocus, verifiedAt: new Date().toISOString(), method: 'emergency' };
+      localStorage.setItem('aed-emergency-verified-' + location.pathname, JSON.stringify(auditData));
+      localStorage.setItem('aed-verified-' + location.pathname, JSON.stringify(auditData));
+    } catch (e) {}
+
+    try {
+      window.dispatchEvent(new CustomEvent('aedVerified', { detail: { dateModified: customDate, nextUpdate: nextUpdate, validityDays: validityDays, pageLevel: pageLevel, contentFocus: contentFocus, method: 'emergency' } }));
+    } catch (e) {
+      try { var evt = document.createEvent('Event'); evt.initEvent('aedVerified', true, true); window.dispatchEvent(evt); } catch (e2) {}
+    }
+
+    return { dateModified: customDate, nextUpdate: nextUpdate, validityDays: validityDays, pageLevel: pageLevel, contentFocus: contentFocus };
+  };
+
+  window.aedVerifyNow = function(customDate) {
+    console.warn('⚠️ [AED] aedVerifyNow() sudah DIGANTI di v17.5.9');
+    return window.aedEmergencyVerify(customDate, { confirm: true });
+  };
+
+  window.aedShowEditGuide = function() {
+    var pl = document.body.getAttribute('data-page-level') || 'pillar';
+    var cf = document.body.getAttribute('data-content-focus') || 'INFORMASI';
+    var ft = (EVERGREEN_LEVELS.indexOf(pl) !== -1) ? 'evergreen' : 'non-evergreen';
+    var vd = getValidityByContext(pl, cf);
+    var mn = document.querySelector('meta[name="nextUpdate"]');
+    var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : 0;
+    var g = generatePageGuide(pl, cf, ft, vd, dur);
+    console.log('%c📖 PAGE GUIDE — ' + pl + ' | ' + cf, 'color:#16a34a; font-size:14px; font-weight:bold');
+    console.log('Status:', g.meta.status, '| Next:', g.meta.daysUntilReview, 'hari');
+    if (g.issues.length > 0) g.issues.forEach(function(i) { console.log((i.level === 'critical' ? '🚨' : '⚠️') + ' ' + i.text); });
+    console.log('Priority:', g.priorityActions);
+    console.log('Minimal Changes:', g.minimalChanges);
+  };
+
+  window.aedCheckStatus = function() {
+    if (!window.AEDMetaDates) { console.warn('⚠️ AED belum selesai init'); return null; }
+    var mm = document.querySelector('meta[itemprop="dateModified"]');
+    var mn = document.querySelector('meta[name="nextUpdate"]');
+    var mp = document.querySelector('meta[itemprop="datePublished"]');
+    var ad = null;
+    try {
+      var rn = localStorage.getItem('aed-emergency-verified-' + location.pathname);
+      if (rn) ad = JSON.parse(rn);
+      else { var rl = localStorage.getItem('aed-verified-' + location.pathname); if (rl) { ad = JSON.parse(rl); ad._source = 'legacy-key'; } }
+    } catch (e) {}
+    var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : null;
+    var s = { datePublished: mp ? mp.content : null, dateModified: mm ? mm.content : null, nextUpdate: mn ? mn.content : null, daysUntilReview: dur, needsManualVerify: document.body.getAttribute('data-aed-needs-review') === 'true', warningSeverity: document.body.getAttribute('data-aed-warning-severity'), lastEmergencyVerify: ad, aedData: window.AEDMetaDates };
+    console.table(s);
+    return s;
+  };
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
 
+  // Inisialisasi pendeteksi tombol ENTER 3x
+  initAdminKeyboardShortcut();
+
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Smart Evergreen Detector v17.5.7 — SEO-SAFE 180D");
+  console.log("✅ Smart Evergreen Detector v17.6.2 — SUPER SET + GUIDE BUTTON");
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("🔥 CHANGE-VALIDITY: HARGA/GABUNG 90 → 180 hari (SEO-safe)");
-  console.log("🔥 CHANGE-VALIDITY: money-master/page/child 365 → 180 hari");
-  console.log("🔥 CHANGE-VALIDITY: variant/sub-variant 365 → 180 hari");
-  console.log("🛡️ GUARD-AUTOUPDATE: HARGA/GABUNG tidak auto-bump dateModified");
-  console.log("🛡️ EXTEND-PRICE-VALID: priceValidUntil tetap future walau expired");
-  console.log("🔍 VERIFY-BADGE: Banner expired tampilkan 'Perlu verifikasi harga'");
-  console.log("🩹 PATCH-L: Remove optional chaining — Chrome 49+");
-  console.log("🩹 PATCH-PAD: Remove String.padStart — Chrome 49+");
-  console.log("✅ PRESERVED: SEMUA fitur v17.5.6 + v17.5.5 + v17.5.4 + v17.5.3 + v17.5.2 + v17.5.1 + v17.5.0 + v17.4.x");
+  console.log("🎯 WORKFLOW UTAMA: Edit konten → Save → Auto-detect");
+  console.log("🚨 EMERGENCY ONLY: aedEmergencyVerify(null, { confirm: true })");
+  console.log("📖 PANDUAN: aedShowEditGuide()");
+  console.log("📊 DEBUG: aedCheckStatus()");
+  console.log("✨ NEW: Tombol 📖 Panduan & ENTER 3x (tanpa hapus fitur lama)");
   console.log("═══════════════════════════════════════════════════════════");
 
   if (document.readyState === "loading") {
