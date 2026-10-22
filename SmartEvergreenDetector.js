@@ -330,33 +330,62 @@
     };
 
     // ============================================================
-    // 🆕 DYNAMIC PSEUDO-AI GENERATOR (REVISI vs TAMBAH)
+    // 🆕 DYNAMIC GENERATOR (EXTRACT CONTEXT DARI PARAGRAF ASLI)
     // ============================================================
-    // 1. Ekstrak Topik dari H1
-    var cleanH1 = a.h1Text.replace(/\b(19|20)\d{2}\b/g, '').replace(/harga|terbaru|termurah|terbaik|update|revisi|jasa|di|untuk|profesional|melayani|ready|mix/gi, '').replace(/\s+/g, ' ').trim();
-    if (cleanH1.length < 5) cleanH1 = "Produk & Layanan Konstruksi";
-
-    // 2. Ekstrak Lokasi dari URL
-    var locationMatch = window.location.href.match(/(bogor|jakarta|depok|tangerang|bekasi|bandung|surabaya|semarang|karawang|serang|cilegon)/i);
-    var detectedLocation = locationMatch ? locationMatch[1].charAt(0).toUpperCase() + locationMatch[1].slice(1) : 'Jabodetabek';
-    
-    // 3. Generate Teks Draf
     var draftText = "";
-    if (isMoney) {
-      draftText = `Informasi terbaru mengenai ${cleanH1} untuk area ${detectedLocation} telah kami perbarui pada ${currentMonthYear}. Kami memastikan ketersediaan stok dan kualitas material tetap prima. Dapatkan penawaran harga kompetitif dan layanan pengiriman tepat waktu untuk mendukung kelancaran proyek Anda.`;
-    } else if (isEvergreen) {
-      draftText = `Panduan komprehensif mengenai ${cleanH1} telah kami perbarui untuk tahun ${a.currentYear}. Artikel ini mengulas standar teknis terbaru, metode pelaksanaan yang efisien, serta tips perawatan. Pelajari panduan di bawah ini untuk memastikan proyek Anda sesuai dengan regulasi dan standar konstruksi terkini.`;
+    
+    // Helper untuk memilih kalimat acak (Cadangan jika tidak ada paragraf asli)
+    var pickRandom = function(arr) { return arr[Math.floor(Math.random() * arr.length)]; };
+
+    if (a.hasFirstP) {
+      // ✅ JIKA PARAGRAF ASLI DITEMUKAN:
+      // Ambil 120 karakter pertama sebagai konteks unik.
+      var cleanContext = a.firstPText.substring(0, 120).trim();
+      
+      // Hapus tanda baca berlebih di akhir potongan
+      cleanContext = cleanContext.replace(/[.,;:]$/, '');
+      
+      // Bersihkan tahun-tahun lama di dalam potongan teks agar tidak bentrok
+      cleanContext = cleanContext.replace(/\b(2020|2021|2022|2023|2024|2025)\b/g, '');
+
+      // Rangkai ulang: Konteks Asli + Sinyal Freshness (Anti Duplikat)
+      var freshSignal = "";
+      if (isMoney) {
+        freshSignal = ` Seluruh data dan penawaran terkait hal tersebut telah kami tinjau ulang dan perbarui pada ${currentMonthYear} untuk memastikan akurasi harga dan ketersediaan stok.`;
+      } else {
+        freshSignal = ` Pembahasan lengkap mengenai topik ini telah kami perbarui pada ${currentMonthYear} agar sesuai dengan standar teknis dan regulasi terkini.`;
+      }
+      
+      draftText = `"${cleanContext}...${freshSignal}"`;
+
     } else {
-      draftText = `Artikel mengenai ${cleanH1} ini telah ditinjau dan diperbarui pada ${currentMonthYear}. Kami sajikan informasi akurat, referensi standar, dan data pendukung agar dapat menjadi panduan yang bermanfaat bagi pembaca dan pelaku proyek.`;
+      // ❌ JIKA TIDAK ADA PARAGRAF (Hanya Gambar/Tabel):
+      // Gunakan Pseudo-AI Randomizer (seperti patch sebelumnya)
+      var cleanH1 = a.h1Text.replace(/\b(19|20)\d{2}\b/g, '').replace(/harga|terbaru|termurah|terbaik|update|revisi|jasa|di|untuk|profesional|melayani|ready|mix/gi, '').replace(/\s+/g, ' ').trim();
+      if (cleanH1.length < 5) cleanH1 = "Produk & Layanan Konstruksi";
+      var locationMatch = window.location.href.match(/(bogor|jakarta|depok|tangerang|bekasi|bandung|surabaya|semarang|karawang|serang|cilegon)/i);
+      var detectedLocation = locationMatch ? locationMatch[1].charAt(0).toUpperCase() + locationMatch[1].slice(1) : 'Jabodetabek';
+
+      if (isMoney) {
+        draftText = pickRandom([
+          `Informasi terbaru mengenai ${cleanH1} di area ${detectedLocation} telah kami perbarui pada ${currentMonthYear}. Kami memastikan ketersediaan stok dan kualitas material tetap prima untuk mendukung kelancaran proyek Anda.`,
+          `Memasuki ${currentMonthYear}, kami telah merangkum pembaruan data dan penawaran ${cleanH1} untuk wilayah ${detectedLocation}. Dapatkan harga kompetitif dengan layanan pengiriman tepat waktu.`
+        ]);
+      } else {
+        draftText = pickRandom([
+          `Panduan komprehensif mengenai ${cleanH1} telah kami perbarui untuk tahun ${a.currentYear}. Artikel ini mengulas standar teknis terbaru, metode pelaksanaan, serta tips efisiensi biaya.`,
+          `Artikel edukasi terkait ${cleanH1} ini telah ditinjau kembali pada ${currentMonthYear} agar tetap relevan. Pembahasan mencakup regulasi terbaru dan praktik terbaik di lapangan.`
+        ]);
+      }
     }
 
     // 4. Cek apakah harus REVISI atau TAMBAH
     if (a.hasFirstP) {
       guide.patchParagraph = `[⚠️ REVISI PARAGRAF PEMBUKA]\n` +
       `Teks lama saat ini: "${a.firstPText.substring(0, 100)}..."\n\n` +
-      `GANTI DENGAN DRAF BARU INI:\n` +
-      `"${draftText}"\n\n` +
-      `💡 *Catatan Admin:* Hapus paragraf pertama yang lama di Blogger, lalu paste draf baru di atas.`;
+      `GANTI DENGAN DRAF BARU INI (Anti-Duplikat):\n` +
+      `${draftText}\n\n` +
+      `💡 *Catatan Admin:* Sistem mengambil konteks dari paragraf asli Anda dan menambahkan sinyal update tanggal. Copy teks di atas, lalu timpa paragraf pertama di Blogger.`;
     } else {
       guide.patchParagraph = `[➕ TAMBAH PARAGRAF PEMBUKA BARU]\n` +
       `(Tidak ditemukan paragraf teks pembuka. Kemungkinan artikel langsung diawali gambar/tabel).\n\n` +
@@ -372,7 +401,7 @@
     `  <div class="faq-answer"><p>J: [Tulis jawaban yang belum ada di halaman lain]</p></div>\n` +
     `</div>\n\n` +
     `⚠️ PERINGATAN DUPLIKASI:\n` +
-    `JANGAN meng-copy FAQ ini ke halaman lain. Google membenci duplikasi. Buat pertanyaan yang HANYA relevan dengan halaman "${cleanH1}".`;
+    `JANGAN meng-copy FAQ ini ke halaman lain. Google membenci duplikasi. Buat pertanyaan yang HANYA relevan dengan halaman "${a.h1Text}".`;
 
     // ============================================================
     // TABEL PATCH & ISSUES
@@ -420,7 +449,8 @@
 
     guide.checklist = ['□ Buka halaman di browser — verify tampilan normal', '□ Cek harga dengan supplier (WA/telp) — sama atau berubah?', '□ Cek nomor WA/telepon masih aktif', '□ Cek stok/varian masih tersedia', '□ Cek wilayah layanan masih sama', '□ Cek syarat order (min order, ongkir, PPN)', '□ Buka Blogger editor — edit minimal 1 elemen', '□ Save & Publish', '□ Reload halaman → banner hilang ✅'];
     return guide;
-  } 
+  }
+ 
   function showGuideModal(guide) {
     var existing = document.getElementById('aed-guide-modal'); if (existing) existing.remove();
     var statusClass = guide.meta.status === 'FRESH' ? 'status-fresh' : (guide.meta.status === 'WARNING' ? 'status-warning' : 'status-expired');
