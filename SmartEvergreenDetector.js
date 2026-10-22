@@ -280,7 +280,7 @@
   // ============================================================
   // 🆕 ANALYZE PAGE CONTENT & PATCH GENERATOR (GABUNGAN)
   // ============================================================
-  function analyzePageContent() {
+    function analyzePageContent() {
     var container = document.querySelector('.post-body.entry-content, .post-body, article, main') || document.body;
     var text = container.innerText || ''; var h1 = document.querySelector('h1'); var h1Text = h1 ? (h1.innerText || '').trim() : '';
     var h1YearMatch = h1Text.match(/\b(19|20)\d{2}\b/); var h1Year = h1YearMatch ? parseInt(h1YearMatch[0], 10) : null; var currentYear = new Date().getFullYear(); var h1YearOutdated = h1Year && h1Year < currentYear;
@@ -294,13 +294,27 @@
     var hasWA = false; try { if (document.querySelector('a[href*="wa.me"], a[href*="whatsapp"], a[href*="wa.link"]')) hasWA = true; } catch (e) {} if (!hasWA && /628\d{8,}|62\s*8\d{2}[\s-]?\d{4}/.test(text)) hasWA = true;
     var tableCount = 0; try { tableCount = document.querySelectorAll('.post-body table, article table').length; } catch (e) {} var hasTable = tableCount > 0;
     var wordCount = text.trim().split(/\s+/).length; var h2Count = 0, h3Count = 0; try { h2Count = document.querySelectorAll('.post-body h2, article h2').length; h3Count = document.querySelectorAll('.post-body h3, article h3').length; } catch (e) {}
-    return { h1Text: h1Text, h1Year: h1Year, h1YearOutdated: h1YearOutdated, currentYear: currentYear, uniqueYears: uniqueYears, outdatedYears: outdatedYears, hasFaq: hasFaq, faqCount: faqCount, hasPrice: hasPrice, priceCount: priceCount, priceSnippet: priceSnippet, dateSnippet: dateSnippet, hasWA: hasWA, hasTable: hasTable, tableCount: tableCount, wordCount: wordCount, h2Count: h2Count, h3Count: h3Count };
-  }
+    
+    // 🆕 Deteksi Paragraf Pertama
+    var firstP = document.querySelector('.post-body.entry-content p, .post-body p, article p');
+    var hasFirstP = firstP && (firstP.innerText || '').trim().length > 20;
+    var firstPText = hasFirstP ? (firstP.innerText || '').trim() : '';
 
-  function generatePageGuide(pageLevel, contentFocus, finalType, validityDays, daysUntilReview) {
+    return { 
+      h1Text: h1Text, h1Year: h1Year, h1YearOutdated: h1YearOutdated, 
+      currentYear: currentYear, uniqueYears: uniqueYears, outdatedYears: outdatedYears, 
+      hasFaq: hasFaq, faqCount: faqCount, hasPrice: hasPrice, priceCount: priceCount, priceSnippet: priceSnippet, dateSnippet: dateSnippet,
+      hasWA: hasWA, hasTable: hasTable, tableCount: tableCount, 
+      wordCount: wordCount, h2Count: h2Count, h3Count: h3Count,
+      hasFirstP: hasFirstP, firstPText: firstPText 
+    };
+  }
+ 
+    function generatePageGuide(pageLevel, contentFocus, finalType, validityDays, daysUntilReview) {
     var a = analyzePageContent();
     var currentMonthYear = (new Date().toLocaleString('id-ID', { month: 'long' })) + ' ' + a.currentYear;
     var isMoney = pageLevel.indexOf('money') === 0 || pageLevel === 'variant' || pageLevel === 'sub-variant';
+    var isEvergreen = EVERGREEN_LEVELS.indexOf(pageLevel) !== -1;
     
     var guide = { 
       meta: { pageLevel: pageLevel, contentFocus: contentFocus, finalType: finalType, validityDays: validityDays, daysUntilReview: daysUntilReview, status: daysUntilReview > 21 ? 'FRESH' : (daysUntilReview > 0 ? 'WARNING' : 'EXPIRED') }, 
@@ -308,27 +322,54 @@
       patchParagraph: '', patchFaq: ''
     };
 
-    // 📝 GENERATE PARAGRAPH PATCH
+    // ============================================================
+    // 🆕 DYNAMIC PSEUDO-AI GENERATOR (REVISI vs TAMBAH)
+    // ============================================================
+    // 1. Ekstrak Topik dari H1
+    var cleanH1 = a.h1Text.replace(/\b(19|20)\d{2}\b/g, '').replace(/harga|terbaru|termurah|terbaik|update|revisi|jasa|di|untuk|profesional|melayani|ready|mix/gi, '').replace(/\s+/g, ' ').trim();
+    if (cleanH1.length < 5) cleanH1 = "Produk & Layanan Konstruksi";
+
+    // 2. Ekstrak Lokasi dari URL
+    var locationMatch = window.location.href.match(/(bogor|jakarta|depok|tangerang|bekasi|bandung|surabaya|semarang|karawang|serang|cilegon)/i);
+    var detectedLocation = locationMatch ? locationMatch[1].charAt(0).toUpperCase() + locationMatch[1].slice(1) : 'Jabodetabek';
+    
+    // 3. Generate Teks Draf
+    var draftText = "";
     if (isMoney) {
-      guide.patchParagraph = `[Update Paragraf Pembuka - Non-Evergreen]\n` +
-      `Draf: "Daftar harga [Nama Produk/Jasa] di [Wilayah] diperbarui pada ${currentMonthYear}. Kami memastikan ketersediaan stok dan kualitas material tetap prima. Harga di bawah ini bersifat mengikat dan sudah termasuk ongkos kirim untuk area [Nama Wilayah]. Untuk pemesanan volume besar, silakan hubungi tim kami."\n\n` +
-      `💡 *Catatan Admin:* Silakan ganti teks dalam tanda [ ] sesuai konteks halaman. Jangan lupa update teks "Berlaku per ${a.dateSnippet !== 'Tidak terdeteksi' ? a.dateSnippet : '...'}" menjadi "${currentMonthYear}".`;
+      draftText = `Informasi terbaru mengenai ${cleanH1} untuk area ${detectedLocation} telah kami perbarui pada ${currentMonthYear}. Kami memastikan ketersediaan stok dan kualitas material tetap prima. Dapatkan penawaran harga kompetitif dan layanan pengiriman tepat waktu untuk mendukung kelancaran proyek Anda.`;
+    } else if (isEvergreen) {
+      draftText = `Panduan komprehensif mengenai ${cleanH1} telah kami perbarui untuk tahun ${a.currentYear}. Artikel ini mengulas standar teknis terbaru, metode pelaksanaan yang efisien, serta tips perawatan. Pelajari panduan di bawah ini untuk memastikan proyek Anda sesuai dengan regulasi dan standar konstruksi terkini.`;
     } else {
-      guide.patchParagraph = `[Update Paragraf Pembuka - Evergreen]\n` +
-      `Draf: "Panduan lengkap mengenai [Topik Halaman] telah kami perbarui untuk tahun ${a.currentYear}. Artikel ini mengulas standar terbaru (SNI/Regulasi), metode pelaksanaan, serta tips efisiensi biaya. Pelajari panduan di bawah ini untuk memastikan proyek Anda sesuai standar konstruksi terbaru."\n\n` +
-      `💡 *Catatan Admin:* Ganti teks dalam tanda [ ] dengan topik utama. Ini memberikan sinyal "Freshness" yang kuat ke Google tanpa harus mengubah seluruh isi artikel.`;
+      draftText = `Artikel mengenai ${cleanH1} ini telah ditinjau dan diperbarui pada ${currentMonthYear}. Kami sajikan informasi akurat, referensi standar, dan data pendukung agar dapat menjadi panduan yang bermanfaat bagi pembaca dan pelaku proyek.`;
     }
 
-    // 📝 GENERATE FAQ PATCH
+    // 4. Cek apakah harus REVISI atau TAMBAH
+    if (a.hasFirstP) {
+      guide.patchParagraph = `[⚠️ REVISI PARAGRAF PEMBUKA]\n` +
+      `Teks lama saat ini: "${a.firstPText.substring(0, 100)}..."\n\n` +
+      `GANTI DENGAN DRAF BARU INI:\n` +
+      `"${draftText}"\n\n` +
+      `💡 *Catatan Admin:* Hapus paragraf pertama yang lama di Blogger, lalu paste draf baru di atas.`;
+    } else {
+      guide.patchParagraph = `[➕ TAMBAH PARAGRAF PEMBUKA BARU]\n` +
+      `(Paragraf pembuka tidak terdeteksi / artikel langsung diawali gambar)\n\n` +
+      `TAMBAHKAN PARAGRAF INI TEPAT DI BAWAH H1:\n` +
+      `"${draftText}"\n\n` +
+      `💡 *Catatan Admin:* Copy teks di atas, lalu paste di Blogger tepat di bawah judul H1 (sebelum gambar/tabel).`;
+    }
+
+    // 5. Generate FAQ Template
     guide.patchFaq = `[Template FAQ Baru - WAJIB UNIK]\n` +
     `<div class="faq-item">\n` +
     `  <button class="faq-question">T: [Tulis pertanyaan spesifik untuk halaman ini]?</button>\n` +
     `  <div class="faq-answer"><p>J: [Tulis jawaban yang belum ada di halaman lain]</p></div>\n` +
     `</div>\n\n` +
     `⚠️ PERINGATAN DUPLIKASI:\n` +
-    `JANGAN meng-copy FAQ ini ke halaman lain. Google membenci duplikasi. Buat pertanyaan yang HANYA relevan dengan halaman "${a.h1Text.substring(0, 30)}...". Contoh: Jika ini halaman Bogor, tanyakan "Berapa lama pengiriman ke area Bogor?"`;
+    `JANGAN meng-copy FAQ ini ke halaman lain. Google membenci duplikasi. Buat pertanyaan yang HANYA relevan dengan halaman "${cleanH1}".`;
 
-    // PATCH TABLE
+    // ============================================================
+    // TABEL PATCH & ISSUES
+    // ============================================================
     guide.patches = [
       { section: 'H1 (Judul)', detected: a.h1YearOutdated ? 'Tahun ' + a.h1Year + ' (Usang)' : 'Tahun ' + a.currentYear, action: a.h1YearOutdated ? 'Update tahun' : 'Cek relevansi', patch: a.h1YearOutdated ? 'Ubah <span class="aed-patch-old">' + a.h1Year + '</span> menjadi <span class="aed-patch-new">' + a.currentYear + '</span>' : '<span style="color:#16a34a">✅ Tidak perlu diubah</span>' },
       { section: 'Harga', detected: a.hasPrice ? 'Terdeteksi ' + a.priceCount + ' harga (cth: ' + a.priceSnippet + ')' : 'Tidak ada harga', action: a.hasPrice ? 'Verifikasi fakta' : 'Tambahkan harga', patch: a.hasPrice ? 'Pastikan <span class="aed-patch-old">' + a.priceSnippet + '</span> masih sama dengan supplier. Jika berubah: Ubah ke <span class="aed-patch-new">Rp [Harga Baru]</span>' : 'Tambahkan teks harga (Misal: <span class="aed-patch-new">Rp 850.000 / m³</span>)' },
@@ -352,7 +393,6 @@
       guide.priorityActions = ['🚨 Verify harga dengan supplier real-time.', '🚨 Cek stok/varian masih tersedia.', '🚨 Cek nomor WA/telepon masih aktif.', '✅ Cek syarat order (min order, ongkir, PPN) masih sama.', '📌 Level: ' + (levelLabel[pageLevel] || pageLevel)];
     } else { guide.priorityActions = ['✅ Verify panduan masih akurat.', '💡 Tambah 1 FAQ baru.']; }
 
-    // SECTION GUIDE (Tabel 9 baris dari v17.6.2)
     guide.sectionGuide = [
       { section: 'H1', action: a.h1YearOutdated ? '🚨 UPDATE — tahun ' + a.h1Year + ' usang' : '✅ Cek masih relevan' },
       { section: 'Intro paragraf', action: '✅ Cek akurat, tambah 1 kalimat konteks ' + a.currentYear },
@@ -374,7 +414,7 @@
     guide.checklist = ['□ Buka halaman di browser — verify tampilan normal', '□ Cek harga dengan supplier (WA/telp) — sama atau berubah?', '□ Cek nomor WA/telepon masih aktif', '□ Cek stok/varian masih tersedia', '□ Cek wilayah layanan masih sama', '□ Cek syarat order (min order, ongkir, PPN)', '□ Buka Blogger editor — edit minimal 1 elemen', '□ Save & Publish', '□ Reload halaman → banner hilang ✅'];
     return guide;
   }
-
+ 
   function showGuideModal(guide) {
     var existing = document.getElementById('aed-guide-modal'); if (existing) existing.remove();
     var statusClass = guide.meta.status === 'FRESH' ? 'status-fresh' : (guide.meta.status === 'WARNING' ? 'status-warning' : 'status-expired');
