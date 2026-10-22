@@ -423,7 +423,7 @@
               '<strong>Kapan Dipakai?</strong> HANYA untuk keadaan darurat (misal: presentasi ke klien mendadak, tapi Anda tidak bisa login ke Blogger).<br><br>' +
               '<strong>Cara Pakai:</strong><br>' +
               'Buka Console (F12) &rarr; Ketik:<br>' +
-              '<code style="background:#000;color:#0f0;padding:4px 8px;border-radius:4px;font-size:0.9rem;display:inline-block;margin-top:4px;">aedEmergencyVerify(null, { confirm: true })</code>' +
+              '<input style="background:#000;color:#0f0;padding:4px 8px;border-radius:4px;font-size:0.9rem;display:inline-block;margin-top:4px;">aedEmergencyVerify(null, { confirm: true })</input>' +
             '</div>' +
           '</div>' +
         '</div>' +
