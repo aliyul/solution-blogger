@@ -1,27 +1,24 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.5.6-PATCH — CSS FIX + PAGE BYLINE
+ 🧠 Smart Evergreen Detector v17.5.7 — SEO-SAFE 180D + MANUAL VERIFY GUARD
 ============================================================
- 🔥🔥🔥 v17.5.6-PATCH CHANGELOG 🔥🔥🔥
- ✅ PATCH-L: Remove ALL optional chaining (?. ) — 3 operator
-    - Compatible Chrome 49+ (const/let/arrow/async-await OK)
-    - Fix for Chrome 55-79 (where ?. causes SyntaxError)
-    - Behavior IDENTICAL on Chrome 80+
- ✅ PATCH-PAD: Remove String.padStart (Chrome 57+)
-    - Replaced with inline ternary: (n < 10 ? '0' : '') + n
-    - Compatible Chrome 49+
-
+ 🔥 v17.5.7 CHANGELOG 🔥
+ ✅ CHANGE-VALIDITY: Non-evergreen 90/365 → 180 hari
+    - HARGA/GABUNG: 90 → 180
+    - COMMERCIAL: 180 (tetap)
+    - INFORMASI: 365 (tetap)
+    - money-master/page/child: 365 → 180
+    - variant/sub-variant: 365 → 180
+ ✅ GUARD-AUTOUPDATE: HARGA/GABUNG TIDAK auto-bump dateModified
+    - Banner warning tetap tampil sampai admin verifikasi manual
+    - data-aed-needs-review="true" set saat expired
+ ✅ EXTEND-PRICE-VALID: priceValidUntil tetap future walau HARGA expired
+    - Rich result AMAN meski dateModified masih lama
+ ✅ VERIFY-BADGE: Banner expired menampilkan "🔍 Perlu verifikasi harga"
  ✅ PRESERVED dari v17.5.6:
- ✅ FIX-CSS-LOAD: injectWarningStyles() di awal detectEvergreen()
- ✅ FIX-CSS-MARGIN: margin-right eksplisit (tidak andalkan gap)
- ✅ FIX-PARTIAL-HIDE: Partial hide untuk template user
- ✅ FIX-PAGE-BYLINE: Page dapat byline via inject setelah H1
- ✅ FIX-DOUBLE-BYLINE (v17.5.5)
- ✅ FIX-AUTHOR-BYLINE (v17.5.4)
- ✅ FIX-MINI-BADGE (v17.5.3)
- ✅ FIX-UX-1 s/d UX-7 (v17.5.2)
- ✅ FIX-WARN-* (v17.5.1)
- ✅ FIX-PLD-SYNC, FIX-AUTORUN, FIX-EVENT (v17.5.0)
- ✅ SEMUA FIX v17.4.x
+ ✅ PATCH-L: Remove ALL optional chaining — Chrome 49+
+ ✅ PATCH-PAD: Remove String.padStart — Chrome 49+
+ ✅ FIX-CSS-LOAD, FIX-CSS-MARGIN, FIX-PARTIAL-HIDE, FIX-PAGE-BYLINE,
+    FIX-DOUBLE-BYLINE, FIX-AUTHOR-BYLINE, FIX-MINI-BADGE, FIX-UX-*, FIX-WARN-*
 
  📌 BRAND DEFAULT: "Beton Jaya Readymix"
  📌 BIO URL: "/p/about.html"
@@ -29,17 +26,17 @@
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.5.6") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.5.7") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.5.6";
+  window.__AED_VERSION = "17.5.7";
 
   var DEFAULT_BRAND_NAME = "Beton Jaya Readymix";
 
   // ============================================================
-  // 🔥 FIX-AUTHOR-BYLINE v17.5.6
+  // 🔥 FIX-AUTHOR-BYLINE v17.5.7
   // ============================================================
   const AUTHOR_BYLINE_CONFIG = {
     ENABLED: true,
@@ -71,15 +68,16 @@
 
   // ============================================================
   // 🔔 INLINE WARNING CONFIG
+  // 🔥 v17.5.7: tiered rules diupdate untuk 180 hari
   // ============================================================
   const WARNING_CONFIG = {
     ENABLED: true,
     SHOW_AFTER_EXPIRED: true,
     USE_TIERED: true,
     TIERED_RULES: [
-      { maxValidity: 90,  showDays: 14, label: 'HARGA (90 hari) → warning 14 hari' },
-      { maxValidity: 180, showDays: 21, label: 'COMMERCIAL (180 hari) → warning 21 hari' },
-      { maxValidity: 999, showDays: 30, label: 'INFORMASI (365 hari) → warning 30 hari' }
+      { maxValidity: 90,  showDays: 14, label: '≤90 hari → warning 14 hari' },
+      { maxValidity: 180, showDays: 21, label: '≤180 hari (HARGA/GABUNG/COMMERCIAL) → warning 21 hari' },
+      { maxValidity: 999, showDays: 30, label: '≤365 hari (INFORMASI) → warning 30 hari' }
     ],
     SHOW_DAYS_BEFORE: 30,
     INSERT_AFTER_SELECTOR: '.last-updated, .updated-date, .date-modified, [class*="last-updated"]',
@@ -95,7 +93,8 @@
         warning:    'ℹ️ Review berkala: halaman akan di-review dalam {days} hari',
         stale:      '⚠️ Konten perlu segera di-review',
         miniBadge:  '📅 Terakhir diperbarui: {date}',
-        editBtn:    'Edit →'
+        editBtn:    'Edit →',
+        needsVerify: '🔍 Perlu verifikasi harga'
       },
       en: {
         expired:    'ℹ️ Periodic review needed — this page passed its review schedule',
@@ -103,7 +102,8 @@
         warning:    'ℹ️ Periodic review: page will be reviewed in {days} days',
         stale:      '⚠️ Content needs immediate review',
         miniBadge:  '📅 Last updated: {date}',
-        editBtn:    'Edit →'
+        editBtn:    'Edit →',
+        needsVerify: '🔍 Needs price verification'
       }
     },
 
@@ -144,17 +144,18 @@
   };
 
   // ============================================================
-  // 📌 ATURAN V37 — BASE RULES
+  // 📌 ATURAN v17.5.7 — BASE RULES (non-evergreen → 180 hari)
   // ============================================================
   const BASE_PAGE_LEVEL_RULES = {
     'pillar':            { type: 'evergreen',     validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft' },
     'sub-pillar-tipe-2': { type: 'evergreen',     validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft-medium' },
     'sub-pillar-tipe-1': { type: 'evergreen',     validityDays: 730,  usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'medium' },
-    'variant':           { type: 'non-evergreen', validityDays: 365,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
-    'sub-variant':       { type: 'non-evergreen', validityDays: 365,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
-    'money-master':      { type: 'non-evergreen', validityDays: 365,  usePriceValidUntil: false, allowPriceRange: true,  ctaIntensity: 'hard' },
-    'money-page':        { type: 'non-evergreen', validityDays: 365,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
-    'money-child':       { type: 'non-evergreen', validityDays: 365,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'very-hard' }
+    // 🔥 v17.5.7: ALL non-evergreen → 180 hari
+    'variant':           { type: 'non-evergreen', validityDays: 180,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
+    'sub-variant':       { type: 'non-evergreen', validityDays: 180,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
+    'money-master':      { type: 'non-evergreen', validityDays: 180,  usePriceValidUntil: false, allowPriceRange: true,  ctaIntensity: 'hard' },
+    'money-page':        { type: 'non-evergreen', validityDays: 180,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'hard' },
+    'money-child':       { type: 'non-evergreen', validityDays: 180,  usePriceValidUntil: true,  allowPriceRange: false, ctaIntensity: 'very-hard' }
   };
 
   const PRODUK_MATERIAL_RULES = Object.assign({}, BASE_PAGE_LEVEL_RULES);
@@ -213,7 +214,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-CSS-LOAD + FIX-CSS-MARGIN v17.5.6
+  // 🔥 FIX-CSS-LOAD + FIX-CSS-MARGIN + VERIFY-BADGE v17.5.7
   // ============================================================
   function injectWarningStyles() {
     if (document.getElementById('aed-warning-styles')) return;
@@ -264,6 +265,11 @@
           color: #9ca3af !important;
           border-top-color: rgba(255,255,255,0.1) !important;
         }
+        .aed-verify-badge {
+          background: #450a0a !important;
+          border-color: #dc2626 !important;
+          color: #fca5a5 !important;
+        }
       }
 
       /* 🔥 FIX-UX-1: PRIORITY STYLING */
@@ -295,7 +301,7 @@
         color: #fff;
       }
 
-      /* 🔥 FIX-MINI-BADGE v17.5.3: MINI BADGE */
+      /* 🔥 FIX-MINI-BADGE v17.5.3 */
       #aed-update-warning .aed-mini-badge {
         display: block;
         font-weight: normal;
@@ -307,7 +313,22 @@
         letter-spacing: 0.01em;
       }
 
-      /* 🔥 FIX-AUTHOR-BYLINE v17.5.6 — CSS selalu load */
+      /* 🔥 v17.5.7 NEW: VERIFY BADGE untuk HARGA expired */
+      .aed-verify-badge {
+        display: inline-block;
+        margin-left: 10px;
+        padding: 2px 8px;
+        background: #fef2f2;
+        border: 1px solid #dc2626;
+        border-radius: 4px;
+        color: #dc2626 !important;
+        font-size: 0.78rem;
+        font-weight: 700;
+        vertical-align: middle;
+        white-space: nowrap;
+      }
+
+      /* 🔥 FIX-AUTHOR-BYLINE v17.5.6 */
       .aed-author-byline {
         display: inline-flex !important;
         align-items: center !important;
@@ -369,24 +390,26 @@
       }
     `;
     document.head.appendChild(style);
-    console.log('✅ [AED] Styles injected (warning + author byline)');
+    console.log('✅ [AED] Styles injected (warning + author byline + verify badge)');
   }
 
   // ============================================================
-  // CONTENT-AWARE VALIDITY
+  // CONTENT-AWARE VALIDITY — 🔥 v17.5.7: non-evergreen → 180
   // ============================================================
   function getValidityByContext(pageLevel, contentFocus) {
     var focus = String(contentFocus || '').toUpperCase();
     var isMoney = MONEY_LEVELS.indexOf(pageLevel) !== -1;
     if (isMoney) {
-      if (focus === 'HARGA' || focus === 'GABUNG') return 90;
+      // 🔥 v17.5.7: HARGA/GABUNG 90 → 180 (SEO-safe, reduce load)
+      if (focus === 'HARGA' || focus === 'GABUNG') return 180;
       if (focus === 'COMMERCIAL') return 180;
       if (focus === 'INFORMASI') return 365;
-      if (pageLevel === 'variant' || pageLevel === 'sub-variant') return 365;
-      return 365;
+      // 🔥 v17.5.7: variant/sub-variant 365 → 180
+      if (pageLevel === 'variant' || pageLevel === 'sub-variant') return 180;
+      return 180;
     }
     var rule = BASE_PAGE_LEVEL_RULES[pageLevel];
-    return rule ? rule.validityDays : 365;
+    return rule ? rule.validityDays : 180;
   }
 
   function getWarningDays(validityDays) {
@@ -398,7 +421,7 @@
     return WARNING_CONFIG.SHOW_DAYS_BEFORE;
   }
 
-  // 🔥 PATCH-PAD: padStart removed (Chrome 57+ → Chrome 49+)
+  // 🔥 PATCH-PAD: padStart removed
   function toISOWithTimezoneLocal(date, offset) {
     offset = offset || "+07:00";
     if (!date) return null;
@@ -479,6 +502,7 @@
       validityDays: validityDays,
       threshold: warningThreshold,
       stuck: (severity === 'expired' && Math.abs(daysDiff) > WARNING_CONFIG.STUCK_THRESHOLD_DAYS),
+      needsVerify: (document.body.getAttribute('data-aed-needs-review') === 'true'),
       timestamp: new Date().toISOString()
     };
     console.log('📊 [AED Analytics]', JSON.stringify(analyticsSummary));
@@ -530,6 +554,16 @@
     compactSpan.className = 'aed-warning-compact';
     compactSpan.textContent = compactMsg;
     warning.appendChild(compactSpan);
+
+    // 🔥 v17.5.7 NEW: VERIFY BADGE untuk HARGA expired
+    if (document.body.getAttribute('data-aed-needs-review') === 'true') {
+      var verifyBadge = document.createElement('span');
+      verifyBadge.className = 'aed-verify-badge';
+      verifyBadge.setAttribute('data-nosnippet', '');
+      verifyBadge.textContent = getMessage('needsVerify');
+      warning.appendChild(verifyBadge);
+      console.log('🔍 [AED] Verify badge ditampilkan');
+    }
 
     if (WARNING_CONFIG.MINI_BADGE_ENABLED && modifiedStr && modifiedStr !== 'unknown') {
       var modText = formatTanggalIndo(modifiedStr);
@@ -585,7 +619,7 @@
   }
 
   // ============================================================
-  // 🔥 FIX-AUTHOR-BYLINE v17.5.6
+  // 🔥 FIX-AUTHOR-BYLINE v17.5.7
   // ============================================================
   function normalizeBylineText(text) {
     return String(text || '').replace(/\s+/g, ' ').trim();
@@ -659,9 +693,6 @@
     return null;
   }
 
-  // ============================================================
-  // 🔥 FIX-v17.5.6: PARTIAL HIDE untuk template user
-  // ============================================================
   function hideExistingBylineNearH1() {
     var h1 = document.querySelector('h1');
     if (!h1) return 0;
@@ -699,7 +730,6 @@
         var hasComments = parent.querySelector('.post-comment-link, .comment-link');
         var hasLabels = parent.querySelector('.post-labels, .entry-labels');
 
-        // FULL HIDE
         if (!hasTimestamp && !hasComments && !hasLabels) {
           parent.style.display = 'none';
           parent.setAttribute('data-aed-hidden', 'full');
@@ -708,7 +738,6 @@
           break;
         }
 
-        // PARTIAL HIDE
         console.log('🔧 [AED Author] PARTIAL HIDE (timestamp dipertahankan)');
 
         parent.querySelectorAll('.post-author, .vcard, [itemprop="author"]').forEach(function(el) {
@@ -761,9 +790,6 @@
     return hidden;
   }
 
-  // ============================================================
-  // 🔥 FIX-v17.5.6: injectAuthorByline 3-step logic
-  // ============================================================
   function injectAuthorByline() {
     if (!AUTHOR_BYLINE_CONFIG.ENABLED) return;
 
@@ -775,7 +801,6 @@
       return;
     }
 
-    // STEP 1: Selector-based detect
     var bylineEl = findExistingByline();
 
     if (bylineEl) {
@@ -801,13 +826,11 @@
       return;
     }
 
-    // STEP 2: Hide existing broken
     var hiddenCount = hideExistingBylineNearH1();
     if (hiddenCount > 0) {
       console.log('✅ [AED Author] Cleaned ' + hiddenCount + ' existing broken byline');
     }
 
-    // STEP 3: Inject AED byline setelah H1
     console.log('ℹ️ [AED Author] Inject byline baru setelah H1 (' + mode + ')');
     var h1 = document.querySelector('h1');
     if (h1) {
@@ -1142,7 +1165,6 @@
     return 'INFORMASI';
   }
 
-  // 🔥 PATCH-L: remove ?. in queryByKeyword
   function queryByKeyword(container, keywords, requireYear) {
     if (requireYear === undefined) requireYear = true;
     const results = [];
@@ -1151,7 +1173,6 @@
     elements.forEach(el => {
       const tag = el.tagName;
       if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT') return;
-      // 🔥 PATCH-L: el.innerText?.toLowerCase() → (el.innerText || '').toLowerCase()
       const text = (el.innerText || '').toLowerCase();
       if (!text || text.length > 500) return;
       const hasKeyword = keywords.some(kw => text.includes(kw.toLowerCase()));
@@ -1174,7 +1195,7 @@
     return keywordEls && keywordEls.length > 0;
   }
 
-  function updateJsonLdDates(dateModified, nextUpdate) {
+  function updateJsonLdDates(dateModified, priceValidUntilOrNextUpdate) {
     var updated = 0;
     var scripts = document.querySelectorAll('script[type="application/ld+json"]');
     scripts.forEach(function (script) {
@@ -1194,7 +1215,9 @@
         if (node.offers) {
           var offers = Array.isArray(node.offers) ? node.offers : [node.offers];
           offers.forEach(function (offer) {
-            if (offer && offer.priceValidUntil !== undefined) { offer.priceValidUntil = nextUpdate; changed = true; }
+            if (offer && offer.priceValidUntil !== undefined) {
+              offer.priceValidUntil = priceValidUntilOrNextUpdate; changed = true;
+            }
           });
         }
       });
@@ -1356,6 +1379,9 @@
     return { updated: false };
   }
 
+  // ============================================================
+  // 🔥 v17.5.7: autoUpdateDates — GUARD untuk HARGA/GABUNG
+  // ============================================================
   function autoUpdateDates(pageLevel, contentFocus) {
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
     let metaNext = document.querySelector('meta[name="nextUpdate"]');
@@ -1367,6 +1393,18 @@
     const nextDate = new Date(currentNext);
     if (now < nextDate) return false;
 
+    // 🔥 v17.5.7 GUARD: HARGA/GABUNG → JANGAN auto-bump dateModified
+    // Alasan: harga butuh verifikasi manual admin, bukan sekadar ganti tanggal
+    // Banner warning akan tetap tampil sampai admin verifikasi manual
+    const focus = String(contentFocus || '').toUpperCase();
+    if (focus === 'HARGA' || focus === 'GABUNG') {
+      console.warn('⏸️ [AED] HARGA expired — auto-update SKIP. Banner tetap, admin verifikasi manual required.');
+      document.body.setAttribute('data-aed-needs-review', 'true');
+      document.body.setAttribute('data-aed-review-reason', 'harga-manual-verify-required');
+      return false; // ← dateModified TIDAK di-bump
+    }
+
+    // INFORMASI / COMMERCIAL: boleh auto (tahun memang berubah faktual)
     let validityDays = getValidityByContext(pageLevel, contentFocus);
     const newModifiedStr = toISOWithTimezoneLocal(now);
     const newNextStr = toISOWithTimezoneLocal(new Date(now.getTime() + (validityDays * 86400000)));
@@ -1391,7 +1429,9 @@
     return true;
   }
 
-  // 🔥 PATCH-L: remove ?. in processMetaDates (2 instances)
+  // ============================================================
+  // 🔥 v17.5.7: processMetaDates — priceValidUntil extension
+  // ============================================================
   async function processMetaDates(customDateModified, finalType, validityMs, usePriceValidUntil, pageLevel, entityType, ctaIntensity, allowPriceRange, detectorVersion, confidence, strategies, strategyCount, isOverridden, overrideReason, h1Detection, contentFocus, autoUpdated) {
     let metaPublished = document.querySelector('meta[itemprop="datePublished"]');
     let metaModified = document.querySelector('meta[itemprop="dateModified"]');
@@ -1400,11 +1440,8 @@
     const isFirstInit = !(metaModified && metaModified.getAttribute('content'));
     const hasCustomDate = customDateModified !== null && customDateModified !== undefined;
     const hasIllegalFaqProps = detectIllegalFaqProps();
-    const shouldRefresh = autoUpdated === true || isFirstInit || hasCustomDate || hasIllegalFaqProps;
 
     const nowISO = new Date().toISOString();
-    // 🔥 PATCH-L: metaPublished?.content → metaPublished ? metaPublished.content : null
-    // 🔥 PATCH-L: metaModified?.content → metaModified ? metaModified.content : null
     let datePublished = toISOWithTimezoneLocal(metaPublished ? metaPublished.content : null) || toISOWithTimezoneLocal(nowISO);
     let dateModified = toISOWithTimezoneLocal(customDateModified) || toISOWithTimezoneLocal(metaModified ? metaModified.content : null) || datePublished;
     if (new Date(dateModified) < new Date(datePublished)) dateModified = datePublished;
@@ -1414,18 +1451,44 @@
     if (!metaModified) { metaModified = document.createElement("meta"); metaModified.setAttribute("itemprop", "dateModified"); document.head.appendChild(metaModified); }
     metaModified.setAttribute("content", dateModified);
 
-    let nextUpdate = toISOWithTimezoneLocal(new Date(new Date(dateModified).getTime() + validityMs));
+    // 🔥 v17.5.7: HARGA expired → nextUpdate tetap (banner trigger), priceValidUntil extend
+    const focus = String(contentFocus || '').toUpperCase();
+    const isPriceManual = (focus === 'HARGA' || focus === 'GABUNG');
+    const nowLocal = new Date();
+    const naturalNextUpdateMs = new Date(dateModified).getTime() + validityMs;
+    const isPriceExpired = isPriceManual && (naturalNextUpdateMs < nowLocal.getTime());
+
+    let nextUpdate, priceValidUntil;
+    if (isPriceExpired) {
+      nextUpdate = toISOWithTimezoneLocal(new Date(naturalNextUpdateMs));
+      priceValidUntil = toISOWithTimezoneLocal(new Date(nowLocal.getTime() + validityMs));
+      console.warn('⏸️ [AED] HARGA expired — nextUpdate tetap (banner trigger), priceValidUntil di-extend ke:', priceValidUntil);
+      document.body.setAttribute('data-aed-needs-review', 'true');
+      document.body.setAttribute('data-aed-review-reason', 'harga-manual-verify-required');
+    } else {
+      nextUpdate = toISOWithTimezoneLocal(new Date(naturalNextUpdateMs));
+      priceValidUntil = nextUpdate;
+      // 🔥 v17.5.7: clear flag saat sudah fresh/verified
+      if (document.body.hasAttribute('data-aed-needs-review')) {
+        document.body.removeAttribute('data-aed-needs-review');
+        document.body.removeAttribute('data-aed-review-reason');
+        console.log('✅ [AED] HARGA verified — needs-review flag cleared');
+      }
+    }
+
     if (!metaNext) { metaNext = document.createElement("meta"); metaNext.setAttribute("name", "nextUpdate"); document.head.appendChild(metaNext); }
     metaNext.setAttribute("content", nextUpdate);
 
+    const shouldRefresh = autoUpdated === true || isFirstInit || hasCustomDate || hasIllegalFaqProps || isPriceExpired;
+
     if (shouldRefresh) {
-      updateJsonLdDates(dateModified, nextUpdate);
+      updateJsonLdDates(dateModified, priceValidUntil);
       cleanupFaqSchema(resolveBrandName());
       updateJsonLdFaqYears(new Date().getFullYear());
     }
 
     if (usePriceValidUntil && h1Detection && h1Detection.isPrice) {
-      document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => el.setAttribute("priceValidUntil", nextUpdate));
+      document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => el.setAttribute("priceValidUntil", priceValidUntil));
     } else {
       document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(el => el.removeAttribute("priceValidUntil"));
     }
@@ -1441,10 +1504,10 @@
 
     window.AEDMetaDates = {
       type: finalType, entityType, pageLevel,
-      datePublished, dateModified, nextUpdate,
+      datePublished, dateModified, nextUpdate, priceValidUntil,
       validityDays: validityMs / 86400000,
       usePriceValidUntil, ctaIntensity, allowPriceRange,
-      detectorVersion: detectorVersion || 'v17.5.6',
+      detectorVersion: detectorVersion || 'v17.5.7',
       detectionConfidence: confidence || null,
       isOverridden: isOverridden || false,
       overrideReason: overrideReason || null,
@@ -1455,12 +1518,13 @@
       pldSchemaType: getPLDSchemaType(pageLevel, entityType, contentFocus),
       pldCtaType: getPLDCtaType(pageLevel, contentFocus, entityType),
       brandName: resolveBrandName(),
+      needsManualVerify: isPriceExpired,
       lastAutoUpdate: null,
       updateCount: 0
     };
     window.EvergreenDetectorResults = window.AEDMetaDates;
 
-    console.log(`✅ ${finalType.toUpperCase()} ACTIVE | level=${pageLevel} | entity=${entityType} | focus=${contentFocus}`);
+    console.log(`✅ ${finalType.toUpperCase()} ACTIVE | level=${pageLevel} | entity=${entityType} | focus=${contentFocus} | needsVerify=${isPriceExpired}`);
   }
 
   function getPageLevelAndEntityType() {
@@ -1558,13 +1622,14 @@
       finalType: finalType,
       validityDays: validityDays,
       autoUpdated: autoUpdated === true,
+      needsManualVerify: (document.body.getAttribute('data-aed-needs-review') === 'true'),
       priority: getPriority(pageLevel, contentFocus),
       locale: detectLocale(),
       isAdmin: isAdmin(),
       miniBadgeEnabled: WARNING_CONFIG.MINI_BADGE_ENABLED,
       authorBylineEnabled: AUTHOR_BYLINE_CONFIG.ENABLED,
       timestamp: new Date().toISOString(),
-      aedVersion: '17.5.6'
+      aedVersion: '17.5.7'
     };
     console.log('📊 [AED Final Analytics]', JSON.stringify(summary));
   }
@@ -1579,9 +1644,8 @@
     if (_AED_INITIALIZED) return;
     _AED_INITIALIZED = true;
 
-    console.log("🧩 detectEvergreen() v17.5.6-PATCH — CSS Fix + Page Byline");
+    console.log("🧩 detectEvergreen() v17.5.7 — SEO-SAFE 180D + MANUAL VERIFY GUARD");
 
-    // 🔥 FIX-CSS-LOAD v17.5.6: load CSS di awal (selalu)
     injectWarningStyles();
 
     await waitForPageLevelDetector();
@@ -1602,27 +1666,27 @@
     checkAndShowInlineWarning(pageLevel, contentFocus);
     logFinalAnalytics(pageLevel, entityType, contentFocus, finalType, validityDays, autoUpdated);
 
-    // 🔥 FIX-AUTHOR-BYLINE v17.5.6
     injectAuthorByline();
 
     window.dispatchEvent(new Event("detectEvergreenReady"));
-    console.log(`🧩 detectEvergreen() v17.5.6-PATCH — FINISHED ✅`);
+    console.log(`🧩 detectEvergreen() v17.5.7 — FINISHED ✅`);
   }
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
 
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Smart Evergreen Detector v17.5.6-PATCH — CSS FIX + PAGE BYLINE");
+  console.log("✅ Smart Evergreen Detector v17.5.7 — SEO-SAFE 180D");
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("🩹 PATCH-L: Remove ALL optional chaining (?. ) — Chrome 49+ compatible");
-  console.log("🩹 PATCH-PAD: Remove String.padStart — Chrome 49+ compatible");
-  console.log("🔥 FIX-CSS-LOAD: CSS selalu load (termasuk halaman fresh)");
-  console.log("🔥 FIX-CSS-MARGIN: Spasi byline fix (tidak 'BBy' lagi)");
-  console.log("🔥 FIX-PARTIAL-HIDE: Fix double byline di Post template user");
-  console.log("🔥 FIX-PAGE-BYLINE: Page dapat byline via inject setelah H1");
+  console.log("🔥 CHANGE-VALIDITY: HARGA/GABUNG 90 → 180 hari (SEO-safe)");
+  console.log("🔥 CHANGE-VALIDITY: money-master/page/child 365 → 180 hari");
+  console.log("🔥 CHANGE-VALIDITY: variant/sub-variant 365 → 180 hari");
+  console.log("🛡️ GUARD-AUTOUPDATE: HARGA/GABUNG tidak auto-bump dateModified");
+  console.log("🛡️ EXTEND-PRICE-VALID: priceValidUntil tetap future walau expired");
+  console.log("🔍 VERIFY-BADGE: Banner expired tampilkan 'Perlu verifikasi harga'");
+  console.log("🩹 PATCH-L: Remove optional chaining — Chrome 49+");
+  console.log("🩹 PATCH-PAD: Remove String.padStart — Chrome 49+");
   console.log("✅ PRESERVED: SEMUA fitur v17.5.6 + v17.5.5 + v17.5.4 + v17.5.3 + v17.5.2 + v17.5.1 + v17.5.0 + v17.4.x");
-  console.log("📌 Author URL: " + AUTHOR_BYLINE_CONFIG.URL);
   console.log("═══════════════════════════════════════════════════════════");
 
   if (document.readyState === "loading") {
