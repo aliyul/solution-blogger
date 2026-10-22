@@ -421,17 +421,51 @@
               '2. <strong>Googlebot Tidak Melihat:</strong> Google tetap melihat tanggal lama, sehingga ini <strong>TIDAK</strong> menyelesaikan masalah SEO.<br>' +
               '3. <strong>Risiko Date Manipulation:</strong> Jika sering dipakai tanpa edit konten asli, berisiko penalti SEO.<br><br>' +
               '<strong>Kapan Dipakai?</strong> HANYA untuk keadaan darurat (misal: presentasi ke klien mendadak, tapi Anda tidak bisa login ke Blogger).<br><br>' +
-              '<strong>Cara Pakai:</strong><br>' +
+               '<strong>Cara Pakai:</strong><br>' +
               'Buka Console (F12) &rarr; Ketik:<br>' +
-              '<input style="background:#000;color:#0f0;padding:4px 8px;border-radius:4px;font-size:0.9rem;display:inline-block;margin-top:4px;">aedEmergencyVerify(null, { confirm: true })</input>' +
+              '<div style="display:flex; align-items:center; gap:8px; margin-top:6px;">' +
+                '<input type="text" id="aed-emergency-cmd" value="aedEmergencyVerify(null, { confirm: true })" readonly onclick="this.select();" style="flex:1; padding:8px; font-family:monospace; font-size:0.85rem; background:#000; color:#0f0; border:1px solid #333; border-radius:4px; outline:none; width:100%;">' +
+                '<button id="aed-copy-cmd-btn" style="padding:8px 12px; background:#3b82f6; color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:bold; font-size:0.8rem; white-space:nowrap;">📋 Copy</button>' +
+              '</div>' +
             '</div>' +
           '</div>' +
-        '</div>' +
+     '</div>' +
         '<div class="aed-guide-footer"><span>Dibuat: ' + new Date().toLocaleString('id-ID') + '</span><button class="aed-guide-footer-btn" data-aed-close="1">Tutup</button></div>' +
       '</div>';
       
-    document.body.appendChild(modal); document.body.style.overflow = 'hidden';
-    modal.querySelectorAll('[data-aed-close]').forEach(function(el) { el.addEventListener('click', closeGuideModal); });
+        document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+
+    modal.querySelectorAll('[data-aed-close]').forEach(function(el) {
+      el.addEventListener('click', closeGuideModal);
+    });
+
+    // 🆕 v17.8.2: Fitur Copy Command
+    var copyBtn = document.getElementById('aed-copy-cmd-btn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function() {
+        var input = document.getElementById('aed-emergency-cmd');
+        input.select();
+        input.setSelectionRange(0, 99999);
+        try {
+          document.execCommand('copy');
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(input.value);
+          }
+          var btn = this;
+          var originalText = btn.innerHTML;
+          btn.innerHTML = '✅ Copied!';
+          btn.style.background = '#16a34a'; // Warna hijau sukses
+          setTimeout(function() {
+            btn.innerHTML = originalText;
+            btn.style.background = '#3b82f6'; // Kembali ke biru
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy', err);
+        }
+      });
+    }
+
     if (!window._aedGuideEscHandler) { window._aedGuideEscHandler = function(e) { if (e.key === 'Escape') closeGuideModal(); }; document.addEventListener('keydown', window._aedGuideEscHandler); }
   }
 
