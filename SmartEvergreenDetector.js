@@ -317,7 +317,7 @@
     };
   }
  
-  function generatePageGuide(pageLevel, contentFocus, finalType, validityDays, daysUntilReview) {
+    function generatePageGuide(pageLevel, contentFocus, finalType, validityDays, daysUntilReview) {
     var a = analyzePageContent();
     var currentMonthYear = (new Date().toLocaleString('id-ID', { month: 'long' })) + ' ' + a.currentYear;
     var isMoney = pageLevel.indexOf('money') === 0 || pageLevel === 'variant' || pageLevel === 'sub-variant';
@@ -330,14 +330,14 @@
     };
 
     // ============================================================
-    // 🆕 FINAL LOGIC: CONTEXT EXTRACTION (FULL PARAGRAPH)
+    // 🆕 FINAL LOGIC: CONTEXT EXTRACTION + DYNAMIC LOCATION
     // ============================================================
     var draftText = "";
-    var pickRandom = function(arr) { return Math.floor(Math.random() * arr.length); };
+    var pickRandom = function(arr) { return arr[Math.floor(Math.random() * arr.length)]; };
     var freshSignal = "";
 
     if (a.hasFirstP) {
-      // ✅ JIKA PARAGRAF ASLI DITEMUKAN: Ambil SELURUH teks, bukan cuma 120 karakter
+      // ✅ JIKA PARAGRAF ASLI DITEMUKAN: Ambil SELURUH teks utuh
       var fullContext = a.firstPText.trim();
       
       // Bersihkan tahun-tahun lama di dalam teks asli agar tidak bentrok
@@ -357,8 +357,19 @@
       // ❌ JIKA TIDAK ADA PARAGRAF (Hanya Gambar/Tabel)
       var cleanH1 = a.h1Text.replace(/\b(19|20)\d{2}\b/g, '').replace(/harga|terbaru|termurah|terbaik|update|revisi|jasa|di|untuk|profesional|melayani|ready|mix/gi, '').replace(/\s+/g, ' ').trim();
       if (cleanH1.length < 5) cleanH1 = "Produk & Layanan Konstruksi";
-      var locationMatch = window.location.href.match(/(bogor|jakarta|depok|tangerang|bekasi|bandung|surabaya|semarang|karawang|serang|cilegon)/i);
-      var detectedLocation = locationMatch ? locationMatch[1].charAt(0).toUpperCase() + locationMatch[1].slice(1) : 'Jabodetabek';
+      
+      // 🆕 EKSTRAKSI LOKASI DINAMIS (TANPA HARDCODE)
+      var detectedLocation = 'Jabodetabek'; // Default fallback
+      if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectLocation === 'function') {
+        try { detectedLocation = window.pageLevelDetectorv22.detectLocation(); } catch(e){}
+      } else {
+        var urlSlug = window.location.pathname.split('/').pop().replace('.html', '');
+        var slugParts = urlSlug.split('-');
+        var lastWord = slugParts[slugParts.length - 1];
+        if (lastWord && lastWord.length > 3) {
+          detectedLocation = lastWord.charAt(0).toUpperCase() + lastWord.slice(1);
+        }
+      }
 
       if (isMoney) {
         freshSignal = ` Kami memastikan ketersediaan stok dan kualitas material tetap prima untuk mendukung kelancaran proyek Anda.`;
@@ -449,6 +460,7 @@
     guide.checklist = ['□ Buka halaman di browser — verify tampilan normal', '□ Cek harga dengan supplier (WA/telp) — sama atau berubah?', '□ Cek nomor WA/telepon masih aktif', '□ Cek stok/varian masih tersedia', '□ Cek wilayah layanan masih sama', '□ Cek syarat order (min order, ongkir, PPN)', '□ Buka Blogger editor — edit minimal 1 elemen', '□ Save & Publish', '□ Reload halaman → banner hilang ✅'];
     return guide;
   }
+ 
  
   function showGuideModal(guide) {
     var existing = document.getElementById('aed-guide-modal'); if (existing) existing.remove();
