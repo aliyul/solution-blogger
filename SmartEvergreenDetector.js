@@ -280,7 +280,7 @@
   // ============================================================
   // 🆕 ANALYZE PAGE CONTENT & PATCH GENERATOR (GABUNGAN)
   // ============================================================
-    function analyzePageContent() {
+      function analyzePageContent() {
     var container = document.querySelector('.post-body.entry-content, .post-body, article, main') || document.body;
     var text = container.innerText || ''; var h1 = document.querySelector('h1'); var h1Text = h1 ? (h1.innerText || '').trim() : '';
     var h1YearMatch = h1Text.match(/\b(19|20)\d{2}\b/); var h1Year = h1YearMatch ? parseInt(h1YearMatch[0], 10) : null; var currentYear = new Date().getFullYear(); var h1YearOutdated = h1Year && h1Year < currentYear;
@@ -295,10 +295,17 @@
     var tableCount = 0; try { tableCount = document.querySelectorAll('.post-body table, article table').length; } catch (e) {} var hasTable = tableCount > 0;
     var wordCount = text.trim().split(/\s+/).length; var h2Count = 0, h3Count = 0; try { h2Count = document.querySelectorAll('.post-body h2, article h2').length; h3Count = document.querySelectorAll('.post-body h3, article h3').length; } catch (e) {}
     
-    // 🆕 Deteksi Paragraf Pertama
-    var firstP = document.querySelector('.post-body.entry-content p, .post-body p, article p');
-    var hasFirstP = firstP && (firstP.innerText || '').trim().length > 20;
-    var firstPText = hasFirstP ? (firstP.innerText || '').trim() : '';
+    // 🆕 PERBAIKAN: Mencari paragraf pertama yang benar-benar berisi teks (min. 30 karakter), mengabaikan caption/gambar
+    var pElements = document.querySelectorAll('.post-body.entry-content p, .post-body p, article p');
+    var firstPText = '';
+    for (var j = 0; j < pElements.length; j++) {
+      var txt = (pElements[j].innerText || '').trim();
+      if (txt.length > 30 && !pElements[j].closest('.faq-item')) {
+        firstPText = txt;
+        break;
+      }
+    }
+    var hasFirstP = firstPText !== '';
 
     return { 
       h1Text: h1Text, h1Year: h1Year, h1YearOutdated: h1YearOutdated, 
@@ -352,10 +359,10 @@
       `💡 *Catatan Admin:* Hapus paragraf pertama yang lama di Blogger, lalu paste draf baru di atas.`;
     } else {
       guide.patchParagraph = `[➕ TAMBAH PARAGRAF PEMBUKA BARU]\n` +
-      `(Paragraf pembuka tidak terdeteksi / artikel langsung diawali gambar)\n\n` +
-      `TAMBAHKAN PARAGRAF INI TEPAT DI BAWAH H1:\n` +
+      `(Tidak ditemukan paragraf teks pembuka. Kemungkinan artikel langsung diawali gambar/tabel).\n\n` +
+      `TAMBAHKAN PARAGRAF INI:\n` +
       `"${draftText}"\n\n` +
-      `💡 *Catatan Admin:* Copy teks di atas, lalu paste di Blogger tepat di bawah judul H1 (sebelum gambar/tabel).`;
+      `💡 *Catatan Admin:* Copy teks di atas, lalu paste di Blogger TEPAT DI BAWAH GAMBAR PERTAMA (atau tepat di bawah H1 jika tidak ada gambar).`;
     }
 
     // 5. Generate FAQ Template
@@ -413,8 +420,7 @@
 
     guide.checklist = ['□ Buka halaman di browser — verify tampilan normal', '□ Cek harga dengan supplier (WA/telp) — sama atau berubah?', '□ Cek nomor WA/telepon masih aktif', '□ Cek stok/varian masih tersedia', '□ Cek wilayah layanan masih sama', '□ Cek syarat order (min order, ongkir, PPN)', '□ Buka Blogger editor — edit minimal 1 elemen', '□ Save & Publish', '□ Reload halaman → banner hilang ✅'];
     return guide;
-  }
- 
+  } 
   function showGuideModal(guide) {
     var existing = document.getElementById('aed-guide-modal'); if (existing) existing.remove();
     var statusClass = guide.meta.status === 'FRESH' ? 'status-fresh' : (guide.meta.status === 'WARNING' ? 'status-warning' : 'status-expired');
