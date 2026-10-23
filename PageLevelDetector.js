@@ -556,9 +556,13 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "baja tulangan", "besi tulangan",
       "kolom praktis", "ring balk",
       "cor dak beton", "cor lantai beton", "cor jalan beton",
-       "beton bertulang",
-         "beton per lubang",
-         "per lubang"      // safety net
+      // 🔥 TAMBAHKAN 2 BARIS INI:
+      "ac",
+      "rangka atap",
+      // (opsional, jika ada)
+      "beton bertulang",
+       "beton per lubang",
+       "per lubang"      // safety net
     ],
 
     produk: [
