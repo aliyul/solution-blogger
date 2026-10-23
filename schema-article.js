@@ -1179,7 +1179,7 @@
     const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     if (aedData) log(`✅ AED ready: ${aedData.dateModified}`, "AED");
 
-    const hybridReady = await waitForHybridDateFinal(CONFIG.HYBRID_FINAL_TIMEOUT);
+        const hybridReady = await waitForHybridDateFinal(CONFIG.HYBRID_FINAL_TIMEOUT);
     if (hybridReady) {
       log(`✅ Hybrid offset READY`, "HYBRID");
     } else {
@@ -1187,32 +1187,39 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-// 🩹 SAFE-MODE PATCH: Baca datePublished/dateModified dari
-//    meta tag Blogger (raw HTML) — JANGAN pakai `now`.
-//
-//   Rationale: SAFE mode → AED tidak bump. Fallback harus dari
-//   sumber yang sama dengan yang dilihat Googlebot Wave 1
-//   (Blogger raw HTML). `new Date().toISOString()` = inconsistency.
-// ═══════════════════════════════════════════════════════════════
-function _aedReadMetaDate(prop) {
-  var el = document.querySelector('meta[itemprop="' + prop + '"]');
-  var v = el ? el.getAttribute('content') : null;
-  return v ? v.trim() : null;
-}
-var _dpFallback = _aedReadMetaDate('datePublished');
-var _dmFallback = _aedReadMetaDate('dateModified') || _dpFallback;
-var _dpFinal = (finalAed && finalAed.datePublished) || _dpFallback;
-var _dmFinal = (finalAed && (finalAed.dateModifiedFinal || finalAed.dateModified)) || _dmFallback;
+    // 🩹 SAFE-MODE PATCH: Baca datePublished/dateModified dari
+    //    meta tag Blogger (raw HTML) — JANGAN pakai `now`.
+    //
+    //    Rationale: SAFE mode → AED tidak bump. Fallback harus dari
+    //    sumber yang sama dengan yang dilihat Googlebot Wave 1
+    //    (Blogger raw HTML). `new Date().toISOString()` = inconsistency.
+    //
+    //    🩹 FIX: `finalAed` sebelumnya UNDEFINED di Article v8.8
+    //    (variabel yang ada hanya `aedData`). Deklarasikan dari
+    //    `window.AEDMetaDates || aedData` — kalau tidak, ReferenceError
+    //    di baris `_dpFinal` → seluruh init() crash → schema kosong.
+    // ═══════════════════════════════════════════════════════════════
+    const finalAed = window.AEDMetaDates || aedData;   // 🩹 FIX: deklarasikan!
 
-if (!_dpFinal || !_dmFinal) {
-  log('❌ SAFE-MODE: datePublished/dateModified tidak tersedia (meta tag Blogger tidak ter-render)', "ERROR");
-  log('   → Schema generation dibatalkan untuk mencegah inconsistency', "ERROR");
-  return;   // Skip entire schema — lebih baik tidak ada schema daripada schema invalid
-}
-if (_dmFinal < _dpFinal) {
-  log(`⚠️ SAFE-MODE: dateModified < datePublished — koreksi ke datePublished`, "WARN");
-  _dmFinal = _dpFinal;
-}
+    function _aedReadMetaDate(prop) {
+      var el = document.querySelector('meta[itemprop="' + prop + '"]');
+      var v = el ? el.getAttribute('content') : null;
+      return v ? v.trim() : null;
+    }
+    var _dpFallback = _aedReadMetaDate('datePublished');
+    var _dmFallback = _aedReadMetaDate('dateModified') || _dpFallback;
+    var _dpFinal = (finalAed && finalAed.datePublished) || _dpFallback;
+    var _dmFinal = (finalAed && (finalAed.dateModifiedFinal || finalAed.dateModified)) || _dmFallback;
+
+    if (!_dpFinal || !_dmFinal) {
+      log('❌ SAFE-MODE: datePublished/dateModified tidak tersedia (meta tag Blogger tidak ter-render)', "ERROR");
+      log('   → Schema generation dibatalkan untuk mencegah inconsistency', "ERROR");
+      return;   // Skip entire schema — lebih baik tidak ada schema daripada schema invalid
+    }
+    if (_dmFinal < _dpFinal) {
+      log(`⚠️ SAFE-MODE: dateModified < datePublished — koreksi ke datePublished`, "WARN");
+      _dmFinal = _dpFinal;
+    }
 
 const effectiveDates = {
   datePublished: _dpFinal,
