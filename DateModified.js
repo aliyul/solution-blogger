@@ -254,9 +254,11 @@
 
       const hash = stableHash(hashSource);
       const offsetSeconds = hash % 86400;
-      const finalDate = new Date(new Date(dateModified).getTime() + offsetSeconds * 1000);
+      // 🩹 FIX-STABLE-v1: Mundurkan (bukan majukan) — DETERMINISTIC, tidak pakai `now`
+      // Range: dateModified-24jam s/d dateModified (selalu di masa lalu, selalu stabil)
+      const finalDate = new Date(new Date(dateModified).getTime() - offsetSeconds * 1000);
       const isoDate = toISOWithTimezoneLocal(finalDate);
-
+     
       // ═══ TULIS META TAG ═══
       // Meta tag pakai OFFSET (untuk uniqueness per-URL)
       updateMetaDateModified(isoDate);
