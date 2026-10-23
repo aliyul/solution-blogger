@@ -332,7 +332,7 @@
     // ============================================================
     // 🆕 FINAL LOGIC: CONTEXT EXTRACTION + DYNAMIC LOCATION
     // ============================================================
-    var draftText = "";
+        var draftText = "";
     var pickRandom = function(arr) { return arr[Math.floor(Math.random() * arr.length)]; };
     var freshSignal = "";
 
@@ -343,11 +343,25 @@
       // Bersihkan tahun-tahun lama di dalam teks asli agar tidak bentrok
       fullContext = fullContext.replace(/\b(2020|2021|2022|2023|2024|2025)\b/g, '');
 
-      // Tentukan kalimat tambahan (Freshness Signal)
+      // Tentukan kalimat tambahan (Freshness Signal) berdasarkan tipe halaman
       if (isMoney) {
-        freshSignal = ` Seluruh data dan penawaran terkait hal tersebut telah kami tinjau ulang dan perbarui pada ${currentMonthYear} untuk memastikan akurasi harga dan ketersediaan stok.`;
+        var moneySignals = [
+          ` Seluruh data dan penawaran terkait hal tersebut telah kami tinjau ulang dan perbarui pada ${currentMonthYear} untuk memastikan akurasi harga dan ketersediaan stok.`,
+          ` Kami telah memperbarui rincian harga dan ketersediaan stok pada ${currentMonthYear} agar sesuai dengan kondisi pasar saat ini.`,
+          ` Informasi harga dan spesifikasi telah divalidasi ulang pada ${currentMonthYear} demi memberikan penawaran terbaik bagi proyek Anda.`
+        ];
+        freshSignal = pickRandom(moneySignals);
+      } else if (isEvergreen) {
+        // 🆕 KALIMAT KHUSUS EVERGREEN (EDUKASI/STANDAR)
+        var evergreenSignals = [
+          ` Panduan teknis, standar industri, dan referensi edukasi pada artikel ini telah kami tinjau ulang pada ${currentMonthYear} agar tetap relevan.`,
+          ` Materi panduan komprehensif ini telah disegarkan pada ${currentMonthYear} untuk memastikan akurasi informasi dan praktik terbaiknya.`,
+          ` Pembahasan mendalam beserta standar teknis terbaru telah kami perbarui pada ${currentMonthYear} sebagai referensi proyek yang lebih baik.`,
+          ` Kami telah memperbarui ulasan edukatif ini pada ${currentMonthYear} untuk mencerminkan regulasi dan inovasi konstruksi terkini.`
+        ];
+        freshSignal = pickRandom(evergreenSignals);
       } else {
-        freshSignal = ` Pembahasan lengkap mengenai topik ini telah kami perbarui pada ${currentMonthYear} agar sesuai dengan standar teknis dan regulasi terkini.`;
+        freshSignal = ` Pembahasan lengkap mengenai topik ini telah kami perbarui pada ${currentMonthYear} agar sesuai dengan standar terkini.`;
       }
       
       // Gabungkan Paragraf Utuh + Kalimat Tambahan
