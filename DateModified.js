@@ -1,69 +1,32 @@
 /* ============================================================
- 🔥 Hybrid Date Modified v10.3a-fix6-PATCH — PURE CONSUMER + AUTO-RUN SYNC
-    🩹 PATCH-L: Remove ALL optional chaining (?.) — 2 operator
-       - `document.body.innerText?.trim()?.length || 0`
-       - Replaced with `(document.body.innerText || '').trim().length`
-       - Compatible Chrome 49+
+ 🔥 Hybrid Date Modified v10.3a-fix7-PATCH — PURE CONSUMER + AUTO-RUN SYNC
+    🩹 PATCH-L  : Remove ALL optional chaining (?.) — 2 operator
     🩹 PATCH-PAD: Remove String.padStart (Chrome 57+)
-       - `.padStart(2, "0")` → `(n < 10 ? '0' : '') + n`
-       - Compatible Chrome 49+
 
-    🩹 FIX-SYNC-v6 (build 10.3a-fix6) — PRESERVED:
-       - MUTATE AEDMetaDates (JANGAN reassign object)
-       - Consumer yang sudah pegang referensi lama tetap
-         melihat dateModifiedFinal setelah event fire
-       - Compatible dengan Article v8.6f, Product v5.7d,
-         Universal v7.36h yang baca aedData/aed variable
-       - dateModified TETAP tidak di-overwrite (offset hanya
-         disimpan di dateModifiedFinal)
+    🩹 FIX-BUG-1: Clamp finalDate >= datePublished
+       - Sebelum: artikel baru bisa punya dateModified < datePublished
+       - Sesudah: di-clamp ke datePublished, offset di-rekalibrasi
+       - Konsisten dengan schema.org spec (dateModified ≥ datePublished)
 
-    ✅ FIX-SYNC-v5 (v10.3a) — PRESERVED:
-       - dateModified TIDAK di-overwrite lagi (race fix)
-       - Offset disimpan di dateModifiedFinal (field BARU)
-       - Meta tag dateModified pakai offset (untuk uniqueness)
-       - Consumer script bisa akses dateModifiedFinal via flag/event
-       - window.__HYBRID_DATE_FINAL_READY = true
-       - Event 'hybridDateFinalReady' di-dispatch
+    🩹 FIX-BUG-2: Sync JSON-LD dateModified = meta tag dateModified
+       - Sebelum: meta[itemprop=dateModified] = offset, JSON-LD = original
+       - Sesudah: keduanya = isoDate (offset), konsisten
+       - Skip FAQPage/Question/Answer/QAPage (schema beda)
 
-    ✅ FIX-SYNC-v4 (v10.3) — PRESERVED:
-       - Kompatibel dengan PLD v23.9.9 + AED v17.5.x + Breadcrumb v12.3.6
-       - TIDAK call detectEvergreen() — AED sudah AUTO-RUN
-       - Tunggu window.AEDMetaDates terisi (bukan event saja)
-       - Guard: kalau AEDMetaDates sudah ada → langsung proses
-       - Fallback: kalau AED gagal, Hybrid tetap bisa pakai default
-
-    ✅ FIX-SYNC-v3 (v10.2) — PRESERVED:
-       - Hybrid = KONSUMEN SAJA — baca AEDMetaDates, tulis meta tag
-       - Hash offset per URL (anti duplicate date)
-       - Skip homepage & static pages
-
-    🎯 TUGAS UNIK HYBRID:
-       1. Hash offset per URL (anti duplicate date)
-       2. Write meta tag dateModified (pakai offset)
-       3. Set AEDMetaDates.dateModifiedFinal (MUTATE, bukan reassign)
-       4. Dispatch event hybridDateFinalReady
-       5. Skip homepage & static pages
-
-    ❌ TIDAK BOLEH dilakukan Hybrid:
-       - Putuskan EVERGREEN/NON-EVERGREEN (AED yang tentukan)
-       - Detect content focus (PLD yang tentukan)
-       - Call detectEvergreen() (AED auto-run)
-       - Overwrite AEDMetaDates.dateModified (RACE!)
-       - Reassign AEDMetaDates (stale reference untuk consumer)
-
-    📌 Stack: PLD v23.9.9 + AED v17.5.x + Breadcrumb v12.3.6
+    🩹 FIX-SYNC-v6 (preserved): MUTATE AEDMetaDates (JANGAN reassign)
+    🩹 FIX-SYNC-v5 (preserved): dateModified TIDAK di-overwrite
+    🩹 FIX-SYNC-v4 (preserved): Tunggu AED selesai (bukan call detectEvergreen)
 ============================================================ */
 
 (function () {
   "use strict";
 
-  // ═══ Guard global — cegah double init ═══
   if (window.__hybridDateModifiedVersion === "10.3a") {
-    console.log("[HybridDateModified v10.3a] ⏭️ Sudah dijalankan — skip");
+    console.log("[HybridDateModified v10.3a-fix7] ⏭️ Sudah dijalankan — skip");
     return;
   }
   window.__hybridDateModifiedVersion = "10.3a";
-  window.__hybridDateModifiedBuild = "10.3a-fix6";
+  window.__hybridDateModifiedBuild = "10.3a-fix7";
 
   // ═══════════════════════════════════════════════════════════
   // SKIP HALAMAN STATIS — EARLY (sebelum DOMContentLoaded)
@@ -102,19 +65,16 @@
     window.__HYBRID_SKIP_REASON = null;
   })();
 
-  // ═══════════════════════════════════════════════════════════
-  // TUNGGU DOM READY
-  // ═══════════════════════════════════════════════════════════
   if (window.__HYBRID_SKIP_REASON) {
-    console.log(`⏸️ [HybridDateModified v10.3a] Skip (${window.__HYBRID_SKIP_REASON})`);
+    console.log(`⏸️ [HybridDateModified v10.3a-fix7] Skip (${window.__HYBRID_SKIP_REASON})`);
   } else if (document.readyState === "loading") {
-    console.log("[HybridDateModified v10.3a] ⏳ Menunggu DOMContentLoaded...");
+    console.log("[HybridDateModified v10.3a-fix7] ⏳ Menunggu DOMContentLoaded...");
     document.addEventListener("DOMContentLoaded", function () {
-      console.log("[HybridDateModified v10.3a] ✅ DOM siap, menjalankan...");
+      console.log("[HybridDateModified v10.3a-fix7] ✅ DOM siap, menjalankan...");
       runHybridDateModified();
     }, { once: true });
   } else {
-    console.log("[HybridDateModified v10.3a] ✅ DOM sudah siap, menjalankan...");
+    console.log("[HybridDateModified v10.3a-fix7] ✅ DOM sudah siap, menjalankan...");
     runHybridDateModified();
   }
 
@@ -123,9 +83,8 @@
   // ═══════════════════════════════════════════════════════════
   async function runHybridDateModified() {
     try {
-      // Guard double init
       if (window.__HYBRID_RUNNING) {
-        console.log("[HybridDateModified v10.3a] ⏭️ Sudah running — skip");
+        console.log("[HybridDateModified v10.3a-fix7] ⏭️ Sudah running — skip");
         return;
       }
       window.__HYBRID_RUNNING = true;
@@ -138,7 +97,6 @@
 
       const currentPath = window.location.pathname;
 
-      // ═══ SKIP LOGIC — HALAMAN STATIS & HOMEPAGE ═══
       const STATIC_PAGES = [
         '/p/hubungi-kami.html',
         '/p/portofolio.html',
@@ -156,9 +114,6 @@
       const hasMainContent = document.querySelector('.post-body.entry-content, .post-body, article, main, section');
       const hasH1 = document.querySelector('h1');
 
-      // 🔥 PATCH-L: document.body.innerText?.trim()?.length || 0
-      // → (document.body.innerText || '').trim().length
-      // Semantik IDENTIK: null → 0, "   " → 0, "Text" → 4
       const contentLength = (document.body.innerText || '').trim().length;
 
       const isContentPage = hasMainContent && hasH1 && contentLength > 500;
@@ -206,23 +161,20 @@
       else console.log(`⏰ Breadcrumb timeout, lanjutkan`);
 
       // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-SYNC-v4: TUNGGU AED SELESAI
-      // AED v17.5.x sudah AUTO-RUN — Hybrid TIDAK memanggil
-      // detectEvergreen(). Cukup tunggu window.AEDMetaDates terisi.
+      // TUNGGU AED SELESAI (AED auto-run)
       // ═══════════════════════════════════════════════════════
       console.log("⏳ Menunggu AEDMetaDates terisi (AED auto-run)...");
       const aedReady = await waitForAEDMetaDates(3500);
 
       if (!aedReady) {
-        console.warn("⚠️ [HybridDateModified v10.3a] AEDMetaDates tidak terisi setelah timeout — skip");
+        console.warn("⚠️ [HybridDateModified v10.3a-fix7] AEDMetaDates tidak terisi setelah timeout — skip");
         return;
       }
 
       console.log("✅ AEDMetaDates siap — Hybrid lanjut konsumsi data");
 
       // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-SYNC-v3: BACA SEMUA DATA DARI AED + PLD
-      // Hybrid TIDAK putuskan apa-apa — hanya baca & pakai
+      // BACA SEMUA DATA DARI AED + PLD
       // ═══════════════════════════════════════════════════════
       const dateModified = window.AEDMetaDates.dateModified;
       const aedType = window.AEDMetaDates.type;
@@ -253,59 +205,64 @@
       }
 
       const hash = stableHash(hashSource);
-       // 🩹 v10.3a-fix8: Range 3 hari (untuk ribuan halaman)
-      const offsetSeconds = hash % (86400 * 3);  // ← 259.200 detik (0-72 jam)
+      // 🩹 v10.3a-fix8: Range 3 hari (untuk ribuan halaman)
+      let offsetSeconds = hash % (86400 * 3);  // 259.200 detik (0-72 jam)
+      let finalDate = new Date(new Date(dateModified).getTime() - offsetSeconds * 1000);
 
-      // 🩹 FIX-STABLE-v1: Mundurkan (bukan majukan) — DETERMINISTIC, tidak pakai `now`
-      // Range: dateModified-24jam s/d dateModified (selalu di masa lalu, selalu stabil)
-      const finalDate = new Date(new Date(dateModified).getTime() - offsetSeconds * 1000);
+      // ═══════════════════════════════════════════════════════
+      // 🩹 FIX-BUG-1: Clamp finalDate >= datePublished
+      //   Cegah dateModified < datePublished (schema.org invalid)
+      // ═══════════════════════════════════════════════════════
+      const datePublishedStr =
+        (window.AEDMetaDates && window.AEDMetaDates.datePublished) ||
+        (document.querySelector('meta[itemprop="datePublished"]') || {}).content ||
+        null;
+      if (datePublishedStr) {
+        const dp = new Date(datePublishedStr);
+        if (!isNaN(dp.getTime()) && finalDate.getTime() < dp.getTime()) {
+          finalDate = dp;
+          // Rekalibrasi offset efektif agar hashOffset konsisten
+          offsetSeconds = Math.max(0, Math.floor(
+            (new Date(dateModified).getTime() - finalDate.getTime()) / 1000
+          ));
+          console.log(`🩹 [HybridDateModified] FIX-BUG-1: offset di-clamp dari ${hash % (86400 * 3)}s → ${offsetSeconds}s (datePublished: ${datePublishedStr})`);
+        }
+      }
+
       const isoDate = toISOWithTimezoneLocal(finalDate);
-     
+
       // ═══ TULIS META TAG ═══
-      // Meta tag pakai OFFSET (untuk uniqueness per-URL)
       updateMetaDateModified(isoDate);
 
       // ═══════════════════════════════════════════════════════
-      // 🔥 FIX-SYNC-v6: MUTATE AEDMetaDates — JANGAN REASSIGN
-      //
-      // PERUBAHAN KRITIS dari v10.3a → v10.3a-fix6:
-      //   SEBELUM: window.AEDMetaDates = { ...window.AEDMetaDates, dateModifiedFinal: ... }
-      //            → consumer (Article/Product/Universal) yang sudah pegang
-      //              referensi lama TIDAK bisa lihat dateModifiedFinal
-      //            → schema dateModified != meta tag
-      //
-      //   SESUDAH: mutate field langsung di object yang SAMA
-      //            → consumer yang sudah pegang referensi otomatis lihat
-      //              dateModifiedFinal
-      //            → schema dateModified == meta tag ✅
-      //
-      // JAMINAN:
-      //   - dateModified    → TETAP = AED original (tidak di-overwrite)
-      //   - dateModifiedFinal → BARU = offset (untuk meta tag & schema)
-      //   - datePublished   → TETAP (tidak disentuh)
+      // 🩹 FIX-BUG-2: Sinkronkan JSON-LD dateModified = isoDate
+      //   Sebelum: meta=offset, JSON-LD=original (inkonsisten)
+      //   Sesudah: keduanya = offset (konsisten untuk Google)
+      // ═══════════════════════════════════════════════════════
+      const jsonLdSynced = syncJsonLdDateModified(isoDate);
+      console.log(`🩹 [HybridDateModified] FIX-BUG-2: ${jsonLdSynced} script JSON-LD disinkronkan`);
+
+      // ═══════════════════════════════════════════════════════
+      // MUTATE AEDMetaDates — JANGAN REASSIGN (FIX-SYNC-v6)
       // ═══════════════════════════════════════════════════════
       if (!window.AEDMetaDates || typeof window.AEDMetaDates !== 'object') {
-        // Safety net — seharusnya tidak terjadi karena kita sudah wait
         window.AEDMetaDates = {};
       }
 
-      // Mutate field satu per satu — PERTAHANKAN object reference
       window.AEDMetaDates.dateModifiedFinal = isoDate;
       window.AEDMetaDates.hashOffset = offsetSeconds;
-      window.AEDMetaDates.hybridVersion = '10.3a';
+      window.AEDMetaDates.hybridVersion = '10.3a-fix7';
       window.AEDMetaDates.originalDateModified = dateModified;
+      window.AEDMetaDates.originalHashOffset = hash % (86400 * 3);
       window.AEDMetaDates.breadcrumbReady = breadcrumbReady;
       window.AEDMetaDates.mode = (aedType === 'evergreen') ? 'MANUAL' : 'AUTO';
 
-      // 🔥 Signal ke consumer (Article/Hybrid/Universal)
-      //    bahwa dateModifiedFinal siap dibaca
       window.__HYBRID_DATE_FINAL_READY = true;
       try {
         window.dispatchEvent(new CustomEvent('hybridDateFinalReady', {
           detail: { dateModifiedFinal: isoDate, hashOffset: offsetSeconds }
         }));
       } catch (e) {
-        // Fallback legacy browser
         try {
           var evt = document.createEvent('Event');
           evt.initEvent('hybridDateFinalReady', true, true);
@@ -316,7 +273,7 @@
       // ═══════════════════════════════════════════════════════
       // LOG FINAL
       // ═══════════════════════════════════════════════════════
-      console.log(`✅ [HybridDateModified v10.3a-fix6] ${uniquePageIdentifier}`);
+      console.log(`✅ [HybridDateModified v10.3a-fix7] ${uniquePageIdentifier}`);
       console.log(`   → Meta Tag dateModified: ${isoDate}`);
       console.log(`   → Schema dateModified (AED): ${dateModified}`);
       console.log(`   → dateModifiedFinal (offset): ${isoDate}`);
@@ -326,12 +283,13 @@
       console.log(`   → Type (dari AED): ${aedType}`);
       console.log(`   → Content Focus (dari AED): ${contentFocus}`);
       console.log(`   → Breadcrumb Ready: ${breadcrumbReady ? '✅' : '⏰'}`);
+      console.log(`   → JSON-LD synced: ${jsonLdSynced} script`);
       console.log(`   → dateModifiedFinal Ready: ✅ (MUTATED in-place)`);
       console.log(`   → Consumer reference preserved: ✅ (no reassign)`);
-      console.log(`📋 Hybrid Date Modified v10.3a-fix6 applied — SYNC SAFE ✅`);
+      console.log(`📋 Hybrid Date Modified v10.3a-fix7 applied — SYNC SAFE + SCHEMA VALID ✅`);
 
     } catch (err) {
-      console.error("[HybridDateModified v10.3a] Fatal error:", err);
+      console.error("[HybridDateModified v10.3a-fix7] Fatal error:", err);
     }
   }
 
@@ -381,17 +339,11 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 🔥 FIX-SYNC-v4: WAIT FOR AEDMetaDates
-  //
-  // PRIORITAS:
-  //   1. AEDMetaDates sudah ada → instant resolve
-  //   2. Event detectEvergreenReady → resolve
-  //   3. Polling tiap 100ms sampai timeout
+  // HELPER: WAIT FOR AEDMetaDates
   // ═══════════════════════════════════════════════════════════
   function waitForAEDMetaDates(timeout) {
     timeout = timeout || 3500;
     return new Promise((resolve) => {
-      // 🔥 FIX-SYNC-v4: fast-path — AED sudah selesai
       if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
         console.log("✅ AEDMetaDates already ready (instant)");
         resolve(true);
@@ -406,14 +358,12 @@
         resolve(ok);
       };
 
-      // Event listener
       const onReady = () => {
         console.log("✅ AED ready (event detectEvergreenReady)");
         finish(true);
       };
       window.addEventListener("detectEvergreenReady", onReady, { once: true });
 
-      // Polling fallback (untuk kasus AED selesai sebelum Hybrid daftar event)
       const startTime = Date.now();
       const pollInterval = setInterval(() => {
         if (window.AEDMetaDates && window.AEDMetaDates.dateModified) {
@@ -434,17 +384,54 @@
   }
 
   // ═══════════════════════════════════════════════════════════
+  // 🩹 FIX-BUG-2: HELPER — Sync JSON-LD dateModified
+  //   - Update semua node (Article, Product, WebPage, dll.)
+  //   - SKIP FAQPage / Question / Answer / QAPage (schema beda)
+  //   - Idempoten: tidak tulis ulang kalau nilai sama
+  // ═══════════════════════════════════════════════════════════
+  function syncJsonLdDateModified(isoDate) {
+    if (!isoDate) return 0;
+    var updated = 0;
+    var scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    for (var i = 0; i < scripts.length; i++) {
+      var s = scripts[i];
+      var raw = s.textContent;
+      if (!raw || raw.indexOf('"dateModified"') === -1) continue;
+      var j;
+      try { j = JSON.parse(raw); } catch (e) { continue; }
+      var nodes = Array.isArray(j) ? j
+                : (j['@graph'] && Array.isArray(j['@graph']) ? j['@graph'] : [j]);
+      var changed = false;
+      for (var k = 0; k < nodes.length; k++) {
+        var n = nodes[k];
+        if (!n || typeof n !== 'object') continue;
+        var ts = (n['@type'] || '').toString();
+        if (ts.indexOf('FAQPage') !== -1 || ts.indexOf('Question') !== -1 ||
+            ts.indexOf('Answer') !== -1 || ts.indexOf('QAPage') !== -1) continue;
+        if (n.dateModified !== undefined && n.dateModified !== isoDate) {
+          n.dateModified = isoDate;
+          changed = true;
+        }
+      }
+      if (changed) {
+        try {
+          s.textContent = JSON.stringify(j, null, 2);
+          updated++;
+        } catch (e) {}
+      }
+    }
+    return updated;
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // HELPER: TO ISO WITH TIMEZONE
-  // 🔥 PATCH-PAD: padStart → inline ternary (Chrome 49+)
+  // 🩹 PATCH-PAD: padStart → inline ternary (Chrome 49+)
   // ═══════════════════════════════════════════════════════════
   function toISOWithTimezoneLocal(date, offset) {
     offset = offset || "+07:00";
     if (!date) return null;
     const d = new Date(date);
     if (isNaN(d.getTime())) return null;
-    // 🔥 PATCH-PAD: (n < 10 ? '0' : '') + n — IDENTIK dengan padStart(2, '0')
-    //   n = 5  → '05'  (padStart → '05')  ✅
-    //   n = 15 → '15'  (padStart → '15')  ✅
     const pad = (n) => (n < 10 ? '0' : '') + n;
     const yyyy = d.getFullYear();
     const mm = pad(d.getMonth() + 1);
@@ -497,24 +484,18 @@
   // CLEANUP LOG
   // ═══════════════════════════════════════════════════════════
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("✅ Hybrid Date Modified v10.3a-fix6-PATCH — PURE CONSUMER + MUTATE-SAFE");
+  console.log("✅ Hybrid Date Modified v10.3a-fix7-PATCH — PURE CONSUMER + MUTATE-SAFE");
   console.log("═══════════════════════════════════════════════════════════");
-  console.log("🩹 PATCH-L: Remove ALL optional chaining (?. ) — Chrome 49+ compatible");
+  console.log("🩹 FIX-BUG-1: Clamp dateModified >= datePublished (schema valid)");
+  console.log("🩹 FIX-BUG-2: Sync JSON-LD dateModified = meta tag (konsisten untuk Google)");
+  console.log("🩹 PATCH-L  : Remove ALL optional chaining (?.) — Chrome 49+ compatible");
   console.log("🩹 PATCH-PAD: Remove String.padStart — Chrome 49+ compatible");
   console.log("🩹 FIX-SYNC-v6: MUTATE AEDMetaDates (JANGAN reassign)");
   console.log("🩹 FIX-SYNC-v6: Consumer reference tetap valid → dateModifiedFinal terbaca");
-  console.log("🩹 FIX-SYNC-v6: Schema dateModified == meta tag dateModified ✅");
   console.log("🔥 FIX-SYNC-v5: dateModified TIDAK di-overwrite (race fix)");
-  console.log("🔥 FIX-SYNC-v5: Offset disimpan di dateModifiedFinal (field BARU)");
-  console.log("🔥 FIX-SYNC-v5: window.__HYBRID_DATE_FINAL_READY = true");
-  console.log("🔥 FIX-SYNC-v5: Event 'hybridDateFinalReady' di-dispatch");
-  console.log("🔥 FIX-SYNC-v4: Kompatibel PLD v23.9.9 + AED v17.5.x");
-  console.log("🔥 FIX-SYNC-v4: HAPUS call detectEvergreen() — AED sudah AUTO-RUN");
-  console.log("🔥 FIX-SYNC-v4: Fast-path cek window.AEDMetaDates langsung");
-  console.log("🔥 FIX-SYNC-v4: Polling fallback (100ms) anti miss-event");
-  console.log("✅ Tugas Hybrid: hash offset + write meta + dateModifiedFinal (mutate)");
+  console.log("🔥 FIX-SYNC-v4: Kompatibel PLD v23.9.9 + AED v17.9.x");
+  console.log("✅ Tugas Hybrid: hash offset + write meta + JSON-LD + dateModifiedFinal (mutate)");
   console.log("⚠️  Consumer MUST read dateModifiedFinal (bukan dateModified)");
-  console.log("⚠️  Consumer TIDAK perlu ubah apapun — mutation sudah cukup");
   console.log("═══════════════════════════════════════════════════════════");
 
 })();
