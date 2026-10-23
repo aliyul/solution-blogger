@@ -1617,14 +1617,38 @@
       }
 
       const finalAed = window.AEDMetaDates || aed;
-      const effectiveDateModified = (finalAed && (finalAed.dateModifiedFinal || finalAed.dateModified)) || null;
-
-      if (finalAed && finalAed.dateModifiedFinal) {
-        log(`📅 TechArticle dateModified = dateModifiedFinal: ${effectiveDateModified}`, "HYBRID");
-      } else {
-        log(`📅 TechArticle dateModified = AED original: ${effectiveDateModified || '(skip)'}`, "AED");
+      
+      // ═══════════════════════════════════════════════════════════════
+      // 🩹 SAFE-MODE PATCH: Fallback ke meta tag Blogger (jangan `null`)
+      // ═══════════════════════════════════════════════════════════════
+      function _aedReadMetaDate(prop) {
+        var el = document.querySelector('meta[itemprop="' + prop + '"]');
+        var v = el ? el.getAttribute('content') : null;
+        return v ? v.trim() : null;
       }
-
+      var _dpFallback = _aedReadMetaDate('datePublished');
+      var _dmFallback = _aedReadMetaDate('dateModified') || _dpFallback;
+      var _dmFinal = (finalAed && (finalAed.dateModifiedFinal || finalAed.dateModified)) || _dmFallback;
+      
+      if (!_dmFinal) {
+        log('❌ SAFE-MODE: dateModified tidak tersedia (meta tag Blogger tidak ter-render)', "ERROR");
+        log('   → Schema generation dibatalkan untuk mencegah inconsistency', "ERROR");
+        perf.end('init');
+        return;   // Skip entire schema
+      }
+      
+      if (_dpFallback && _dmFinal < _dpFallback) {
+        log(`⚠️ SAFE-MODE: dateModified < datePublished — koreksi`, "WARN");
+        _dmFinal = _dpFallback;
+      }
+      
+      const effectiveDateModified = _dmFinal;
+      
+      if (finalAed && finalAed.dateModifiedFinal) {
+        log(`📅 TechArticle dateModified = dateModifiedFinal (SAFE identity): ${effectiveDateModified}`, "HYBRID");
+      } else {
+        log(`📅 TechArticle dateModified = AED/meta: ${effectiveDateModified}`, "AED");
+      }
       const pldVer = getPLDVersion();
       const pageLevel = getPageLevelFromPLD();
       const entityType = getEntityTypeFromPLD();
