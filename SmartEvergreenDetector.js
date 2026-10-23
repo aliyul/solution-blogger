@@ -1,17 +1,22 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.8.1 — FULL SUITE (ZERO FEATURE LOSS)
+ 🧠 Smart Evergreen Detector v17.9.0 — ULTIMATE SEO PATCHER
 ============================================================
- ✅ 100% PRESERVED: Semua fitur v17.6.2 (Tombol, Enter 3x, Tabel Section)
- ✅ 100% PRESERVED: Semua fitur v17.8.0 (Patch Generator, Copy-Paste Box)
+ ✅ 100% PRESERVED: Semua fitur v17.8.1 (Tombol, Enter 3x, Banner)
+ ✅ NEW: Deteksi Multi-Paragraf (Pembuka, Isi, Penutup)
+ ✅ NEW: Pseudo-AI Spintax Context (Anti-Duplikat Mutlak)
+ ✅ NEW: Ekstraksi Lokasi Dinamis (PLD / URL)
+ ✅ NEW: Smart FAQ HTML (Siap Copy-Paste & Anti-Duplikat)
+ ✅ NEW: Patch H1, H2, dan List
+ ✅ NEW: Copy Button untuk Emergency Command
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.8.1") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "17.9.0") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.8.1";
+  window.__AED_VERSION = "17.9.0";
 
   var DEFAULT_BRAND_NAME = "Beton Jaya Readymix";
 
@@ -272,7 +277,7 @@
   function updateH1WithRules(pl, now) { var im = MONEY_LEVELS.includes(pl); var ie = EVERGREEN_LEVELS.includes(pl); if (!im && !ie) return { updated: false }; var h = document.querySelector('h1'); if (!h) return { updated: false }; var ny = now.getFullYear(); var ht = h.innerText; var ym = ht.match(/\b(19|20)\d{2}\b/); var dy = ym ? parseInt(ym[0]) : null; if (!dy || dy <= 2025 || dy >= ny) return { updated: false }; var nh = ht.replace(/\b(19|20)\d{2}\b/, ny); if (nh !== ht) { h.innerText = nh; return { updated: true, from: dy, to: ny }; } return { updated: false }; }
   function detectContentChangeSinceLastVisit() { var c = document.querySelector('.post-body.entry-content, .post-body, article, main'); if (!c) return { changed: false, reason: 'no-container' }; var t = (c.innerText || '').replace(/\s+/g, ' ').trim(); if (t.length < 100) return { changed: false, reason: 'too-short' }; var h = 0; for (var i = 0; i < t.length; i++) { h = ((h << 5) - h) + t.charCodeAt(i); h = h | 0; } var ch = String(Math.abs(h)); var sk = 'aed-content-hash-' + location.pathname; var sh = null; try { sh = localStorage.getItem(sk); } catch(e) {} var changed = false; if (sh && sh !== ch) { changed = true; } try { localStorage.setItem(sk, ch); } catch(e) {} return { changed: changed, reason: changed ? 'content-changed' : 'same', hash: ch }; }
   function autoUpdateDates(pl, cf, opts) { opts = opts || {}; var mm = document.querySelector('meta[itemprop="dateModified"]'); var mn = document.querySelector('meta[name="nextUpdate"]'); var mp = document.querySelector('meta[itemprop="datePublished"]'); var cn = mn ? mn.getAttribute('content') : null; if (!cn) return false; var now = new Date(); if (!opts.forceBump && now < new Date(cn)) return false; var f = String(cf || '').toUpperCase(); if ((f === 'HARGA' || f === 'GABUNG') && !opts.forceBump) { document.body.setAttribute('data-aed-needs-review', 'true'); document.body.setAttribute('data-aed-review-reason', 'harga-manual-verify-required'); return false; } var vd = getValidityByContext(pl, cf); var nms = toISOWithTimezoneLocal(now); var nns = toISOWithTimezoneLocal(new Date(now.getTime() + vd * 86400000)); if (mm) mm.setAttribute('content', nms); else { mm = document.createElement("meta"); mm.setAttribute("itemprop","dateModified"); mm.setAttribute("content",nms); document.head.appendChild(mm); } if (mn) mn.setAttribute('content', nns); else { mn = document.createElement("meta"); mn.setAttribute("name","nextUpdate"); mn.setAttribute("content",nns); document.head.appendChild(mn); } if (!mp) { mp = document.createElement("meta"); mp.setAttribute("itemprop","datePublished"); mp.setAttribute("content",nms); document.head.appendChild(mp); } if (!hasLastUpdatedAnchor()) { document.body.classList.add('auto-updated'); return true; } updateJsonLdDates(nms, nns); updateContentByLevelAndFocus(pl, cf, now); updateH1WithRules(pl, now); cleanupFaqSchema(resolveBrandName()); updateJsonLdFaqYears(now.getFullYear()); document.body.classList.add('auto-updated'); return true; }
-  async function processMetaDates(cdm, ft, vm, upvu, pl, et, ci, apr, dv, conf, strat, sc, io, oreason, hd, cf, au) { var mp = document.querySelector('meta[itemprop="datePublished"]'); var mm = document.querySelector('meta[itemprop="dateModified"]'); var mn = document.querySelector('meta[name="nextUpdate"]'); var isFirst = !(mm && mm.getAttribute('content')); var hasCd = cdm !== null && cdm !== undefined; var hasIf = detectIllegalFaqProps(); var nowISO = new Date().toISOString(); var dp = toISOWithTimezoneLocal(mp ? mp.content : null) || toISOWithTimezoneLocal(nowISO); var dm = toISOWithTimezoneLocal(cdm) || toISOWithTimezoneLocal(mm ? mm.content : null) || dp; if (new Date(dm) < new Date(dp)) dm = dp; if (!mp) { mp = document.createElement("meta"); mp.setAttribute("itemprop","datePublished"); document.head.appendChild(mp); } mp.setAttribute("content", dp); if (!mm) { mm = document.createElement("meta"); mm.setAttribute("itemprop","dateModified"); document.head.appendChild(mm); } mm.setAttribute("content", dm); var f = String(cf || '').toUpperCase(); var ipm = (f === 'HARGA' || f === 'GABUNG'); var nl = new Date(); var nnu = new Date(dm).getTime() + vm; var ipe = ipm && (nnu < nl.getTime()); var nu, pvu; if (ipe) { nu = toISOWithTimezoneLocal(new Date(nnu)); pvu = toISOWithTimezoneLocal(new Date(nl.getTime() + vm)); document.body.setAttribute('data-aed-needs-review', 'true'); document.body.setAttribute('data-aed-review-reason', 'harga-manual-verify-required'); } else { nu = toISOWithTimezoneLocal(new Date(nnu)); pvu = nu; if (document.body.hasAttribute('data-aed-needs-review')) { document.body.removeAttribute('data-aed-needs-review'); document.body.removeAttribute('data-aed-review-reason'); } } if (!mn) { mn = document.createElement("meta"); mn.setAttribute("name","nextUpdate"); document.head.appendChild(mn); } mn.setAttribute("content", nu); var sr = au === true || isFirst || hasCd || hasIf || ipe; if (sr) { updateJsonLdDates(dm, pvu); cleanupFaqSchema(resolveBrandName()); updateJsonLdFaqYears(new Date().getFullYear()); } if (upvu && hd && hd.isPrice) { document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(function(el) { el.setAttribute("priceValidUntil", pvu); }); } else { document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(function(el) { el.removeAttribute("priceValidUntil"); }); } document.body.classList.add('page-level-' + pl); document.body.classList.add('entity-type-' + et); document.body.classList.add('content-type-' + ft); document.body.classList.add('cta-intensity-' + ci); if (apr) document.body.classList.add('allow-price-range'); if (io) document.body.classList.add('overridden-evergreen'); var kat = getKategori(pl, cf, ft); window.AEDMetaDates = { type: ft, entityType: et, pageLevel: pl, datePublished: dp, dateModified: dm, nextUpdate: nu, priceValidUntil: pvu, validityDays: vm / 86400000, usePriceValidUntil: upvu, ctaIntensity: ci, allowPriceRange: apr, detectorVersion: dv || 'v17.8.1', detectionConfidence: conf || null, isOverridden: io || false, overrideReason: oreason || null, h1Detection: hd || null, contentFocus: cf || null, pldKategori: kat, pldH1Pattern: getPLDH1Pattern(kat), pldSchemaType: getPLDSchemaType(pl, et, cf), pldCtaType: getPLDCtaType(pl, cf, et), brandName: resolveBrandName(), needsManualVerify: ipe, lastAutoUpdate: null, updateCount: 0 }; window.EvergreenDetectorResults = window.AEDMetaDates; }
+  async function processMetaDates(cdm, ft, vm, upvu, pl, et, ci, apr, dv, conf, strat, sc, io, oreason, hd, cf, au) { var mp = document.querySelector('meta[itemprop="datePublished"]'); var mm = document.querySelector('meta[itemprop="dateModified"]'); var mn = document.querySelector('meta[name="nextUpdate"]'); var isFirst = !(mm && mm.getAttribute('content')); var hasCd = cdm !== null && cdm !== undefined; var hasIf = detectIllegalFaqProps(); var nowISO = new Date().toISOString(); var dp = toISOWithTimezoneLocal(mp ? mp.content : null) || toISOWithTimezoneLocal(nowISO); var dm = toISOWithTimezoneLocal(cdm) || toISOWithTimezoneLocal(mm ? mm.content : null) || dp; if (new Date(dm) < new Date(dp)) dm = dp; if (!mp) { mp = document.createElement("meta"); mp.setAttribute("itemprop","datePublished"); document.head.appendChild(mp); } mp.setAttribute("content", dp); if (!mm) { mm = document.createElement("meta"); mm.setAttribute("itemprop","dateModified"); document.head.appendChild(mm); } mm.setAttribute("content", dm); var f = String(cf || '').toUpperCase(); var ipm = (f === 'HARGA' || f === 'GABUNG'); var nl = new Date(); var nnu = new Date(dm).getTime() + vm; var ipe = ipm && (nnu < nl.getTime()); var nu, pvu; if (ipe) { nu = toISOWithTimezoneLocal(new Date(nnu)); pvu = toISOWithTimezoneLocal(new Date(nl.getTime() + vm)); document.body.setAttribute('data-aed-needs-review', 'true'); document.body.setAttribute('data-aed-review-reason', 'harga-manual-verify-required'); } else { nu = toISOWithTimezoneLocal(new Date(nnu)); pvu = nu; if (document.body.hasAttribute('data-aed-needs-review')) { document.body.removeAttribute('data-aed-needs-review'); document.body.removeAttribute('data-aed-review-reason'); } } if (!mn) { mn = document.createElement("meta"); mn.setAttribute("name","nextUpdate"); document.head.appendChild(mn); } mn.setAttribute("content", nu); var sr = au === true || isFirst || hasCd || hasIf || ipe; if (sr) { updateJsonLdDates(dm, pvu); cleanupFaqSchema(resolveBrandName()); updateJsonLdFaqYears(new Date().getFullYear()); } if (upvu && hd && hd.isPrice) { document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(function(el) { el.setAttribute("priceValidUntil", pvu); }); } else { document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(function(el) { el.removeAttribute("priceValidUntil"); }); } document.body.classList.add('page-level-' + pl); document.body.classList.add('entity-type-' + et); document.body.classList.add('content-type-' + ft); document.body.classList.add('cta-intensity-' + ci); if (apr) document.body.classList.add('allow-price-range'); if (io) document.body.classList.add('overridden-evergreen'); var kat = getKategori(pl, cf, ft); window.AEDMetaDates = { type: ft, entityType: et, pageLevel: pl, datePublished: dp, dateModified: dm, nextUpdate: nu, priceValidUntil: pvu, validityDays: vm / 86400000, usePriceValidUntil: upvu, ctaIntensity: ci, allowPriceRange: apr, detectorVersion: dv || 'v17.9.0', detectionConfidence: conf || null, isOverridden: io || false, overrideReason: oreason || null, h1Detection: hd || null, contentFocus: cf || null, pldKategori: kat, pldH1Pattern: getPLDH1Pattern(kat), pldSchemaType: getPLDSchemaType(pl, et, cf), pldCtaType: getPLDCtaType(pl, cf, et), brandName: resolveBrandName(), needsManualVerify: ipe, lastAutoUpdate: null, updateCount: 0 }; window.EvergreenDetectorResults = window.AEDMetaDates; }
   function getPageLevelAndEntityType() { var pl = 'pillar', et = 'produk', dv = 'unknown', conf = null, strat = null, sc = null; var bl = document.body.getAttribute('data-page-level'); var be = document.body.getAttribute('data-entity-type'); if (bl && be) return { pageLevel: bl, entityType: be, detectorVersion: getPLDVersion().label, confidence: conf, strategies: strat, strategyCount: sc }; if (window.pageLevelDetectorv22) { try { if (typeof window.pageLevelDetectorv22.detectFromDOM === 'function') { var dr = window.pageLevelDetectorv22.detectFromDOM(); if (dr) pl = dr; } if ((!pl || pl === 'pillar') && typeof window.pageLevelDetectorv22.detect === 'function') { var ur = window.pageLevelDetectorv22.detect(); if (ur) pl = ur; } if (typeof window.pageLevelDetectorv22.detectEntityType === 'function') et = window.pageLevelDetectorv22.detectEntityType(); return { pageLevel: pl, entityType: et, detectorVersion: getPLDVersion().label, confidence: conf, strategies: strat, strategyCount: sc }; } catch(e) {} } return { pageLevel: pl, entityType: et, detectorVersion: 'none' }; }
   function waitForPageLevelDetector() { return new Promise(function(resolve) { if (document.body && document.body.getAttribute('data-page-level')) { resolve(); return; } if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') { resolve(); return; } var onR = function() { resolve(); }; window.addEventListener("pageLevelDetectorv22Ready", onR, { once: true }); setTimeout(function() { if (!window.pageLevelDetector && !document.body.getAttribute('data-page-level')) { window.pageLevelDetector = { detect: function() { return 'pillar'; }, detectEntityType: function() { return 'produk'; } }; } resolve(); }, 3000); }); }
   function getRulesByEntityType(et, pl, hd, cf) { var im = MONEY_LEVELS.indexOf(pl) !== -1; if (im) { var nf = String(cf || '').toUpperCase(); if (nf === 'INFORMASI' && !(hd && hd.hasYear)) return { type: 'evergreen', validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft-medium', overridden: true, overrideReason: 'Money level + INFORMASI' }; var v = getValidityByContext(pl, nf); return { type: 'non-evergreen', validityDays: v, usePriceValidUntil: (nf === 'HARGA' || nf === 'GABUNG'), allowPriceRange: pl === 'money-master', ctaIntensity: pl === 'money-child' ? 'very-hard' : 'hard' }; } if (et === 'jasa') return JASA_RULES[pl] || DEFAULT_RULE; if (et === 'sewa') return SEWA_RULES[pl] || BASE_PAGE_LEVEL_RULES[pl] || DEFAULT_RULE; if (et === 'produk' || et === 'material') return PRODUK_MATERIAL_RULES[pl] || BASE_PAGE_LEVEL_RULES[pl] || DEFAULT_RULE; return BASE_PAGE_LEVEL_RULES[pl] || DEFAULT_RULE; }
@@ -280,7 +285,7 @@
   // ============================================================
   // 🆕 ANALYZE PAGE CONTENT & PATCH GENERATOR (GABUNGAN)
   // ============================================================
-      function analyzePageContent() {
+  function analyzePageContent() {
     var container = document.querySelector('.post-body.entry-content, .post-body, article, main') || document.body;
     var text = container.innerText || ''; var h1 = document.querySelector('h1'); var h1Text = h1 ? (h1.innerText || '').trim() : '';
     var h1YearMatch = h1Text.match(/\b(19|20)\d{2}\b/); var h1Year = h1YearMatch ? parseInt(h1YearMatch[0], 10) : null; var currentYear = new Date().getFullYear(); var h1YearOutdated = h1Year && h1Year < currentYear;
@@ -295,17 +300,29 @@
     var tableCount = 0; try { tableCount = document.querySelectorAll('.post-body table, article table').length; } catch (e) {} var hasTable = tableCount > 0;
     var wordCount = text.trim().split(/\s+/).length; var h2Count = 0, h3Count = 0; try { h2Count = document.querySelectorAll('.post-body h2, article h2').length; h3Count = document.querySelectorAll('.post-body h3, article h3').length; } catch (e) {}
     
-    // 🆕 PERBAIKAN: Mencari paragraf pertama yang benar-benar berisi teks (min. 30 karakter), mengabaikan caption/gambar
+    // 🆕 DETEKSI MULTI-PARAGRAF (Awal, Tengah, Akhir)
     var pElements = document.querySelectorAll('.post-body.entry-content p, .post-body p, article p');
-    var firstPText = '';
+    var validPs = [];
     for (var j = 0; j < pElements.length; j++) {
       var txt = (pElements[j].innerText || '').trim();
       if (txt.length > 30 && !pElements[j].closest('.faq-item')) {
-        firstPText = txt;
-        break;
+        validPs.push(txt);
       }
     }
-    var hasFirstP = firstPText !== '';
+    
+    var firstPText = validPs.length > 0 ? validPs[0] : '';
+    var secondPText = validPs.length > 1 ? validPs[1] : '';
+    var lastPText = validPs.length > 1 ? validPs[validPs.length - 1] : '';
+
+    // 🆕 DETEKSI ELEMEN STRUKTURAL
+    var firstH2 = document.querySelector('.post-body h2, article h2');
+    var h2Text = firstH2 ? (firstH2.innerText || '').trim() : '';
+    
+    var firstList = document.querySelector('.post-body ul, .post-body ol, article ul, article ol');
+    var listCount = 0;
+    if (firstList) {
+      listCount = firstList.querySelectorAll('li').length;
+    }
 
     return { 
       h1Text: h1Text, h1Year: h1Year, h1YearOutdated: h1YearOutdated, 
@@ -313,11 +330,15 @@
       hasFaq: hasFaq, faqCount: faqCount, hasPrice: hasPrice, priceCount: priceCount, priceSnippet: priceSnippet, dateSnippet: dateSnippet,
       hasWA: hasWA, hasTable: hasTable, tableCount: tableCount, 
       wordCount: wordCount, h2Count: h2Count, h3Count: h3Count,
-      hasFirstP: hasFirstP, firstPText: firstPText 
+      hasFirstP: firstPText !== '', firstPText: firstPText,
+      hasSecondP: secondPText !== '', secondPText: secondPText,
+      hasLastP: lastPText !== '', lastPText: lastPText,
+      hasH2: h2Text !== '', h2Text: h2Text,
+      hasList: listCount > 0, listCount: listCount
     };
   }
- 
-    function generatePageGuide(pageLevel, contentFocus, finalType, validityDays, daysUntilReview) {
+
+  function generatePageGuide(pageLevel, contentFocus, finalType, validityDays, daysUntilReview) {
     var a = analyzePageContent();
     var currentMonthYear = (new Date().toLocaleString('id-ID', { month: 'long' })) + ' ' + a.currentYear;
     var isMoney = pageLevel.indexOf('money') === 0 || pageLevel === 'variant' || pageLevel === 'sub-variant';
@@ -326,115 +347,193 @@
     var guide = { 
       meta: { pageLevel: pageLevel, contentFocus: contentFocus, finalType: finalType, validityDays: validityDays, daysUntilReview: daysUntilReview, status: daysUntilReview > 21 ? 'FRESH' : (daysUntilReview > 0 ? 'WARNING' : 'EXPIRED') }, 
       issues: [], priorityActions: [], sectionGuide: [], minimalChanges: [], checklist: [],
-      patchParagraph: '', patchFaq: ''
+      patchH1: '', patchH2: '', patchList: '', patchParagraph: '', patchBody: '', patchOutro: '', patchFaq: ''
     };
 
-    // ============================================================
-    // 🆕 FINAL LOGIC: CONTEXT EXTRACTION + DYNAMIC LOCATION
-    // ============================================================
-        var draftText = "";
     var pickRandom = function(arr) { return arr[Math.floor(Math.random() * arr.length)]; };
-    var freshSignal = "";
 
-    if (a.hasFirstP) {
-      // ✅ JIKA PARAGRAF ASLI DITEMUKAN: Ambil SELURUH teks utuh
-      var fullContext = a.firstPText.trim();
-      
-      // Bersihkan tahun-tahun lama di dalam teks asli agar tidak bentrok
-      fullContext = fullContext.replace(/\b(2020|2021|2022|2023|2024|2025)\b/g, '');
-
-      // Tentukan kalimat tambahan (Freshness Signal) berdasarkan tipe halaman
-      if (isMoney) {
-        var moneySignals = [
-          ` Seluruh data dan penawaran terkait hal tersebut telah kami tinjau ulang dan perbarui pada ${currentMonthYear} untuk memastikan akurasi harga dan ketersediaan stok.`,
-          ` Kami telah memperbarui rincian harga dan ketersediaan stok pada ${currentMonthYear} agar sesuai dengan kondisi pasar saat ini.`,
-          ` Informasi harga dan spesifikasi telah divalidasi ulang pada ${currentMonthYear} demi memberikan penawaran terbaik bagi proyek Anda.`
-        ];
-        freshSignal = pickRandom(moneySignals);
-      } else if (isEvergreen) {
-        // 🆕 KALIMAT KHUSUS EVERGREEN (EDUKASI/STANDAR)
-        var evergreenSignals = [
-          ` Panduan teknis, standar industri, dan referensi edukasi pada artikel ini telah kami tinjau ulang pada ${currentMonthYear} agar tetap relevan.`,
-          ` Materi panduan komprehensif ini telah disegarkan pada ${currentMonthYear} untuk memastikan akurasi informasi dan praktik terbaiknya.`,
-          ` Pembahasan mendalam beserta standar teknis terbaru telah kami perbarui pada ${currentMonthYear} sebagai referensi proyek yang lebih baik.`,
-          ` Kami telah memperbarui ulasan edukatif ini pada ${currentMonthYear} untuk mencerminkan regulasi dan inovasi konstruksi terkini.`
-        ];
-        freshSignal = pickRandom(evergreenSignals);
-      } else {
-        freshSignal = ` Pembahasan lengkap mengenai topik ini telah kami perbarui pada ${currentMonthYear} agar sesuai dengan standar terkini.`;
-      }
-      
-      // Gabungkan Paragraf Utuh + Kalimat Tambahan
-      draftText = `"${fullContext}${freshSignal}"`;
-
+    // ============================================================
+    // 1. GENERATE PATCH H1 (JUDUL)
+    // ============================================================
+    if (a.h1YearOutdated) {
+      var newH1 = a.h1Text.replace(/\b(19|20)\d{2}\b/, a.currentYear);
+      guide.patchH1 = `[⚠️ REVISI H1 (JUDUL UTAMA)]\n` +
+      `Teks lama: "${a.h1Text}"\n\n` +
+      `GANTI DENGAN:\n` +
+      `"${newH1}"\n\n` +
+      `💡 *Catatan Admin:* Copy judul baru di atas, lalu timpa H1 di Blogger.`;
     } else {
-      // ❌ JIKA TIDAK ADA PARAGRAF (Hanya Gambar/Tabel)
-      var cleanH1 = a.h1Text.replace(/\b(19|20)\d{2}\b/g, '').replace(/harga|terbaru|termurah|terbaik|update|revisi|jasa|di|untuk|profesional|melayani|ready|mix/gi, '').replace(/\s+/g, ' ').trim();
-      if (cleanH1.length < 5) cleanH1 = "Produk & Layanan Konstruksi";
-      
-      // 🆕 EKSTRAKSI LOKASI DINAMIS (TANPA HARDCODE)
-      var detectedLocation = 'Jabodetabek'; // Default fallback
-      if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectLocation === 'function') {
-        try { detectedLocation = window.pageLevelDetectorv22.detectLocation(); } catch(e){}
-      } else {
-        var urlSlug = window.location.pathname.split('/').pop().replace('.html', '');
-        var slugParts = urlSlug.split('-');
-        var lastWord = slugParts[slugParts.length - 1];
-        if (lastWord && lastWord.length > 3) {
-          detectedLocation = lastWord.charAt(0).toUpperCase() + lastWord.slice(1);
-        }
-      }
-
-      if (isMoney) {
-        freshSignal = ` Kami memastikan ketersediaan stok dan kualitas material tetap prima untuk mendukung kelancaran proyek Anda.`;
-        draftText = pickRandom([
-          `Informasi terbaru mengenai ${cleanH1} di area ${detectedLocation} telah kami perbarui pada ${currentMonthYear}.${freshSignal}`,
-          `Memasuki ${currentMonthYear}, kami telah merangkum pembaruan data dan penawaran ${cleanH1} untuk wilayah ${detectedLocation}.${freshSignal}`
-        ]);
-      } else {
-        freshSignal = ` Artikel ini mengulas standar teknis terbaru, metode pelaksanaan, serta tips efisiensi biaya.`;
-        draftText = pickRandom([
-          `Panduan komprehensif mengenai ${cleanH1} telah kami perbarui untuk tahun ${a.currentYear}.${freshSignal}`,
-          `Artikel edukasi terkait ${cleanH1} ini telah ditinjau kembali pada ${currentMonthYear} agar tetap relevan.${freshSignal}`
-        ]);
-      }
+      guide.patchH1 = `[✅ H1 (JUDUL) AMAN]\nTahun di H1 sudah ${a.currentYear}. Tidak perlu diubah.`;
     }
 
-    // 4. Cek apakah harus REVISI atau TAMBAH
+    // ============================================================
+    // 2. GENERATE PATCH H2 (SUB-JUDUL)
+    // ============================================================
+    if (a.hasH2) {
+      var suggestedH2 = a.h2Text;
+      if (!/\b(19|20)\d{2}\b/.test(suggestedH2)) {
+         suggestedH2 = suggestedH2 + ` (Update ${a.currentYear})`;
+      }
+      guide.patchH2 = `[💡 SARAN UPDATE H2 (SUB-JUDUL)]\n` +
+      `Teks lama: "${a.h2Text}"\n\n` +
+      `SARAN PENAMBAHAN:\n` +
+      `"${suggestedH2}"\n\n` +
+      `💡 *Catatan Admin:* Anda bisa menambahkan teks "${a.currentYear}" atau kata "Terbaru" di sub-judul pertama agar terlihat lebih fresh.`;
+    } else {
+      guide.patchH2 = `[ℹ️ H2 (SUB-JUDUL)]\nTidak ditemukan tag H2 di halaman ini.`;
+    }
+
+    // ============================================================
+    // 3. GENERATE PATCH LIST (DAFTAR POIN)
+    // ============================================================
+    if (a.hasList) {
+      var listSignals = "";
+      if (isMoney) {
+        listSignals = `- Update ketersediaan stok per ${currentMonthYear}\n- Tambahkan opsi pengiriman terbaru`;
+      } else {
+        listSignals = `- Tambahkan referensi standar terbaru (SNI/Regulasi)\n- Tambahkan 1 tips praktis dari pengalaman lapangan`;
+      }
+      guide.patchList = `[💡 SARAN UPDATE LIST (POIN-POIN)]\n` +
+      `Terdeteksi ${a.listCount} poin di halaman ini.\n\n` +
+      `TAMBAHKAN 1 POIN BARU INI KE DALAM LIST:\n` +
+      `${listSignals}\n\n` +
+      `💡 *Catatan Admin:* Tambahkan satu poin baru di urutan paling bawah list agar konten terlihat di-update.`;
+    } else {
+      guide.patchList = `[ℹ️ LIST (POIN-POIN)]\nTidak ditemukan tag list (ul/ol) di halaman ini.`;
+    }
+
+    // ============================================================
+    // 4. GENERATE PARAGRAF PEMBUKA
+    // ============================================================
     if (a.hasFirstP) {
+      var fullContext1 = a.firstPText.replace(/\b(2020|2021|2022|2023|2024|2025)\b/g, '').trim();
+      var sig1 = "";
+      if (isMoney) {
+        sig1 = pickRandom([
+          ` Seluruh data dan penawaran terkait hal tersebut telah kami tinjau ulang dan perbarui pada ${currentMonthYear} untuk memastikan akurasi harga dan ketersediaan stok.`,
+          ` Kami telah memperbarui rincian harga dan ketersediaan stok pada ${currentMonthYear} agar sesuai dengan kondisi pasar saat ini.`
+        ]);
+      } else if (isEvergreen) {
+        sig1 = pickRandom([
+          ` Panduan teknis, standar industri, dan referensi edukasi pada artikel ini telah kami tinjau ulang pada ${currentMonthYear} agar tetap relevan.`,
+          ` Materi panduan komprehensif ini telah disegarkan pada ${currentMonthYear} untuk memastikan akurasi informasi dan praktik terbaiknya.`
+        ]);
+      } else {
+        sig1 = ` Pembahasan lengkap mengenai topik ini telah kami perbarui pada ${currentMonthYear} agar sesuai dengan standar terkini.`;
+      }
+      
       guide.patchParagraph = `[⚠️ REVISI PARAGRAF PEMBUKA]\n` +
       `Teks lama saat ini: "${a.firstPText}"\n\n` +
       `GANTI DENGAN DRAF BARU INI (Anti-Duplikat):\n` +
-      `${draftText}\n\n` +
-      `💡 *Catatan Admin:*\n` +
-      `- Sistem mengambil SELURUH teks paragraf pertama Anda secara utuh.\n` +
-      `- Kalimat baru yang ditambahkan di bagian akhir adalah: "${freshSignal}"\n` +
-      `- Silakan copy SELURUH teks di atas, lalu timpa (replace) paragraf pertama di Blogger.`;
+      `"${fullContext1}${sig1}"\n\n` +
+      `💡 *Catatan Admin:* Copy seluruh teks di atas, lalu timpa paragraf pertama di Blogger.`;
     } else {
       guide.patchParagraph = `[➕ TAMBAH PARAGRAF PEMBUKA BARU]\n` +
-      `(Tidak ditemukan paragraf teks pembuka. Kemungkinan artikel langsung diawali gambar/tabel).\n\n` +
+      `Belum ada paragraf teks pembuka.\n\n` +
       `TAMBAHKAN PARAGRAF INI:\n` +
-      `"${draftText}"\n\n` +
-      `💡 *Catatan Admin:* Copy teks di atas, lalu paste di Blogger TEPAT DI BAWAH GAMBAR PERTAMA (atau tepat di bawah H1 jika tidak ada gambar).`;
+      `"Informasi terbaru dan panduan mengenai ${a.h1Text} telah kami perbarui pada ${currentMonthYear}."\n\n` +
+      `💡 *Catatan Admin:* Paste di bawah H1 atau gambar pertama.`;
     }
 
-    // 5. Generate FAQ Template
-    guide.patchFaq = `[Template FAQ Baru - WAJIB UNIK]\n` +
+    // ============================================================
+    // 5. GENERATE PARAGRAF ISI (TENGAH)
+    // ============================================================
+    if (a.hasSecondP) {
+      var fullContext2 = a.secondPText.replace(/\b(2020|2021|2022|2023|2024|2025)\b/g, '').trim();
+      var sig2 = "";
+      if (isMoney) {
+        sig2 = pickRandom([
+          ` Spesifikasi teknis dan detail material pada bagian ini telah divalidasi ulang pada ${currentMonthYear} untuk menjaga standar kualitas proyek.`,
+          ` Rincian ketersediaan dan standar material telah kami sesuaikan pada ${currentMonthYear} guna memenuhi kebutuhan lapangan.`
+        ]);
+      } else if (isEvergreen) {
+        sig2 = pickRandom([
+          ` Ulasan teknis pada bagian ini telah diperbarui pada ${currentMonthYear} sesuai dengan regulasi dan praktik konstruksi terbaru.`,
+          ` Pembahasan metode pelaksanaan ini telah disesuaikan dengan standar industri terkini pada ${currentMonthYear}.`
+        ]);
+      } else {
+        sig2 = ` Bagian ini telah ditinjau ulang pada ${currentMonthYear}.`;
+      }
+
+      guide.patchBody = `[⚠️ REVISI PARAGRAF ISI (TENGAH)]\n` +
+      `Teks lama saat ini: "${a.secondPText.substring(0, 100)}..."\n\n` +
+      `TAMBAHKAN KALIMAT INI DI AKHIR PARAGRAF:\n` +
+      `"${sig2}"\n\n` +
+      `💡 *Catatan Admin:* Copy kalimat di atas, lalu paste di ujung paragraf kedua (atau paragraf tengah).`;
+    } else {
+      guide.patchBody = `[ℹ️ PARAGRAF ISI]\nTidak ditemukan paragraf kedua yang cukup panjang (mungkin hanya ada 1 paragraf).`;
+    }
+
+    // ============================================================
+    // 6. GENERATE PARAGRAF PENUTUP (OUTRO / CTA)
+    // ============================================================
+    if (a.hasLastP && a.lastPText !== a.secondPText) {
+      var fullContext3 = a.lastPText.replace(/\b(2020|2021|2022|2023|2024|2025)\b/g, '').trim();
+      var sig3 = "";
+      if (isMoney) {
+        sig3 = pickRandom([
+          ` Untuk mendapatkan penawaran harga terbaik dan jadwal pengiriman terbaru per ${currentMonthYear}, silakan hubungi tim marketing kami.`,
+          ` Segera konsultasikan kebutuhan proyek Anda kepada tim kami untuk mendapatkan update penawaran terbaru di ${currentMonthYear}.`
+        ]);
+      } else if (isEvergreen) {
+        sig3 = pickRandom([
+          ` Kami berkomitmen menyajikan informasi yang akurat. Pastikan Anda selalu merujuk pada panduan terbaru ini untuk hasil proyek yang maksimal.`,
+          ` Demikian ulasan terbaru pada ${currentMonthYear}. Gunakan informasi ini sebagai acuan terbaik untuk kelancaran proyek Anda.`
+        ]);
+      } else {
+        sig3 = ` Demikian informasi terbaru ini kami sajikan pada ${currentMonthYear}.`;
+      }
+
+      guide.patchOutro = `[⚠️ REVISI PARAGRAF PENUTUP (CTA)]\n` +
+      `Teks lama saat ini: "${a.lastPText.substring(0, 100)}..."\n\n` +
+      `TAMBAHKAN KALIMAT CTA INI DI AKHIR:\n` +
+      `"${sig3}"\n\n` +
+      `💡 *Catatan Admin:* Copy kalimat di atas, lalu paste di ujung paragraf paling terakhir.`;
+    } else if (a.hasLastP) {
+      guide.patchOutro = `[ℹ️ PARAGRAF PENUTUP]\nHalaman ini hanya memiliki 1-2 paragraf. Gunakan saran Paragraf Isi di atas.`;
+    } else {
+      guide.patchOutro = `[ℹ️ PARAGRAF PENUTUP]\nTidak ditemukan paragraf penutup.`;
+    }
+
+    // ============================================================
+    // 7. GENERATE SMART FAQ TEMPLATE (SIAP COPY-PASTE)
+    // ============================================================
+    var faqTopic = a.h1Text.replace(/\b(19|20)\d{2}\b/g, '').replace(/harga|terbaru|termurah|terbaik|update|revisi|jasa|di|untuk|profesional|melayani|ready|mix/gi, '').replace(/\s+/g, ' ').trim();
+    if (faqTopic.length < 5) faqTopic = "Produk & Layanan Konstruksi";
+    
+    var detectedLocation = 'Jabodetabek';
+    if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectLocation === 'function') {
+      try { detectedLocation = window.pageLevelDetectorv22.detectLocation(); } catch(e){}
+    } else {
+      var urlSlug = window.location.pathname.split('/').pop().replace('.html', '');
+      var slugParts = urlSlug.split('-');
+      var lastWord = slugParts[slugParts.length - 1];
+      if (lastWord && lastWord.length > 3) {
+        detectedLocation = lastWord.charAt(0).toUpperCase() + lastWord.slice(1);
+      }
+    }
+
+    var faqLocation = detectedLocation;
+    var lockedQuestion = `T: Berapa biaya dan lama pengerjaan untuk ${faqTopic} di area ${faqLocation}?`;
+    var draftAnswer = `J: Biaya untuk ${faqTopic} di area ${faqLocation} sangat bergantung pada volume pekerjaan dan kondisi lapangan. Secara umum, estimasi waktu pengerjaan berkisar antara [3-7] hari kerja. Untuk mendapatkan penawaran harga pasti, silakan hubungi tim marketing kami.`;
+
+    guide.patchFaq = `[✅ FAQ SIAP COPY-PASTE (Dijamin Unik)]\n` +
+    `Kode di bawah ini sudah dalam format HTML. Anda cukup mengubah teks di dalam kurung [3-7] sesuai fakta lapangan, lalu paste ke Blogger (mode HTML).\n\n` +
     `<div class="faq-item">\n` +
-    `  <button class="faq-question">T: [Tulis pertanyaan spesifik untuk halaman ini]?</button>\n` +
-    `  <div class="faq-answer"><p>J: [Tulis jawaban yang belum ada di halaman lain]</p></div>\n` +
+    `  <button class="faq-question">${lockedQuestion}</button>\n` +
+    `  <div class="faq-answer"><p>${draftAnswer}</p></div>\n` +
     `</div>\n\n` +
     `⚠️ PERINGATAN DUPLIKASI:\n` +
-    `JANGAN meng-copy FAQ ini ke halaman lain. Google membenci duplikasi. Buat pertanyaan yang HANYA relevan dengan halaman "${a.h1Text}".`;
+    `Pertanyaan di atas sudah otomatis unik karena menyisipkan nama halaman (${faqTopic}) dan lokasi (${faqLocation}). JANGAN mengubah nama topik/lokasi agar tidak bentrok dengan halaman lain.`;
 
     // ============================================================
     // TABEL PATCH & ISSUES
     // ============================================================
     guide.patches = [
       { section: 'H1 (Judul)', detected: a.h1YearOutdated ? 'Tahun ' + a.h1Year + ' (Usang)' : 'Tahun ' + a.currentYear, action: a.h1YearOutdated ? 'Update tahun' : 'Cek relevansi', patch: a.h1YearOutdated ? 'Ubah <span class="aed-patch-old">' + a.h1Year + '</span> menjadi <span class="aed-patch-new">' + a.currentYear + '</span>' : '<span style="color:#16a34a">✅ Tidak perlu diubah</span>' },
-      { section: 'Harga', detected: a.hasPrice ? 'Terdeteksi ' + a.priceCount + ' harga (cth: ' + a.priceSnippet + ')' : 'Tidak ada harga', action: a.hasPrice ? 'Verifikasi fakta' : 'Tambahkan harga', patch: a.hasPrice ? 'Pastikan <span class="aed-patch-old">' + a.priceSnippet + '</span> masih sama dengan supplier. Jika berubah: Ubah ke <span class="aed-patch-new">Rp [Harga Baru]</span>' : 'Tambahkan teks harga (Misal: <span class="aed-patch-new">Rp 850.000 / m³</span>)' },
+      { section: 'Harga', detected: a.hasPrice ? 'Terdeteksi ' + a.priceCount + ' harga (cth: ' + a.priceSnippet + ')' : 'Tidak ada harga', action: a.hasPrice ? 'Verifikasi fakta' : 'Tambahkan harga', patch: a.hasPrice ? 'Pastikan <span class="aed-patch-old">' + a.priceSnippet + '</span> masih sama dengan supplier. Jika berubah: Ubah ke <span class="aed-patch-new">Rp [Harga Baru]</span>' : 'Tambahkan teks harga' },
       { section: 'Teks Bulan/Tahun', detected: a.dateSnippet !== 'Tidak terdeteksi' ? '"' + a.dateSnippet + '"' : 'Tidak terdeteksi', action: 'Update bulan/tahun', patch: a.dateSnippet !== 'Tidak terdeteksi' ? 'Ubah <span class="aed-patch-old">' + a.dateSnippet + '</span> menjadi <span class="aed-patch-new">' + currentMonthYear + '</span>' : 'Tambah kalimat: <span class="aed-patch-new">Berlaku per ' + currentMonthYear + '</span>' },
-      { section: 'FAQ', detected: a.faqCount + ' item terdeteksi', action: a.faqCount < 3 ? 'Tambah FAQ' : 'Cek relevansi', patch: a.faqCount < 3 ? 'Lihat Template FAQ di bawah' : 'Tambahkan 1 pertanyaan terbaru dari CS bulan ini di urutan paling bawah.' }
+      { section: 'FAQ', detected: a.faqCount + ' item terdeteksi', action: a.faqCount < 3 ? 'Tambah FAQ' : 'Cek relevansi', patch: a.faqCount < 3 ? 'Lihat Template FAQ di bawah' : 'Tambahkan 1 pertanyaan terbaru.' }
     ];
 
     if (a.h1YearOutdated) guide.issues.push({ level: 'critical', text: 'Tahun di H1 (' + a.h1Year + ') usang. Current: ' + a.currentYear + '.' });
@@ -474,8 +573,7 @@
     guide.checklist = ['□ Buka halaman di browser — verify tampilan normal', '□ Cek harga dengan supplier (WA/telp) — sama atau berubah?', '□ Cek nomor WA/telepon masih aktif', '□ Cek stok/varian masih tersedia', '□ Cek wilayah layanan masih sama', '□ Cek syarat order (min order, ongkir, PPN)', '□ Buka Blogger editor — edit minimal 1 elemen', '□ Save & Publish', '□ Reload halaman → banner hilang ✅'];
     return guide;
   }
- 
- 
+
   function showGuideModal(guide) {
     var existing = document.getElementById('aed-guide-modal'); if (existing) existing.remove();
     var statusClass = guide.meta.status === 'FRESH' ? 'status-fresh' : (guide.meta.status === 'WARNING' ? 'status-warning' : 'status-expired');
@@ -507,8 +605,16 @@
           '<div class="aed-guide-section"><h3>📊 Summary</h3><div class="aed-guide-meta"><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Page Level</div><div class="aed-guide-meta-value">' + guide.meta.pageLevel + '</div></div><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Content Focus</div><div class="aed-guide-meta-value">' + guide.meta.contentFocus + '</div></div><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Type</div><div class="aed-guide-meta-value">' + guide.meta.finalType + '</div></div><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Validity</div><div class="aed-guide-meta-value">' + guide.meta.validityDays + ' hari</div></div><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Status</div><div class="aed-guide-meta-value ' + statusClass + '">' + guide.meta.status + '</div></div><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Next Review</div><div class="aed-guide-meta-value">' + (guide.meta.daysUntilReview > 0 ? guide.meta.daysUntilReview + ' hari lagi' : 'Expired ' + Math.abs(guide.meta.daysUntilReview) + ' hari') + '</div></div></div></div>' +
           '<div class="aed-guide-section"><h3>🚨 Issues Terdeteksi</h3>' + issuesHtml + '</div>' +
           '<div class="aed-guide-section"><h3>📝 Saran Revisi (Content Patch)</h3>' + patchHtml + '</div>' +
-          '<div class="aed-guide-section"><h3>✍️ Draf Paragraf Pembuka (Siap Copy-Paste)</h3><textarea class="aed-copy-box" readonly>' + guide.patchParagraph + '</textarea></div>' +
-          '<div class="aed-guide-section"><h3>❓ Template FAQ Baru</h3><textarea class="aed-copy-box" style="border-left-color: #f59e0b;" readonly>' + guide.patchFaq + '</textarea></div>' +
+          
+          '<div class="aed-guide-section"><h3>🏷️ Revisi H1 (Judul)</h3><textarea class="aed-copy-box" style="border-left-color:#ef4444; min-height:80px;" readonly>' + guide.patchH1 + '</textarea></div>' +
+          '<div class="aed-guide-section"><h3>🏷️ Revisi H2 (Sub-Judul)</h3><textarea class="aed-copy-box" style="border-left-color:#f59e0b; min-height:80px;" readonly>' + guide.patchH2 + '</textarea></div>' +
+          '<div class="aed-guide-section"><h3>📋 Saran List (Poin-poin)</h3><textarea class="aed-copy-box" style="border-left-color:#14b8a6; min-height:80px;" readonly>' + guide.patchList + '</textarea></div>' +
+          
+          '<div class="aed-guide-section"><h3>✍️ Draf Paragraf Pembuka</h3><textarea class="aed-copy-box" style="border-left-color:#3b82f6;" readonly>' + guide.patchParagraph + '</textarea></div>' +
+          '<div class="aed-guide-section"><h3>✍️ Saran Paragraf Isi (Tengah)</h3><textarea class="aed-copy-box" style="border-left-color:#10b981;" readonly>' + guide.patchBody + '</textarea></div>' +
+          '<div class="aed-guide-section"><h3>✍️ Saran Paragraf Penutup (CTA)</h3><textarea class="aed-copy-box" style="border-left-color:#8b5cf6;" readonly>' + guide.patchOutro + '</textarea></div>' +
+          
+          '<div class="aed-guide-section"><h3>❓ Template FAQ Baru (Siap Copy-Paste)</h3><textarea class="aed-copy-box" style="border-left-color: #f59e0b;" readonly>' + guide.patchFaq + '</textarea></div>' +
           '<div class="aed-guide-section"><h3>📋 Panduan per Section</h3>' + sectionTableHtml + '</div>' +
           '<div class="aed-guide-section"><h3>🎯 Priority Actions</h3>' + priorityHtml + '</div>' +
           '<div class="aed-guide-section"><h3>💡 Minimal Changes (kalau fakta masih sama)</h3>' + minimalHtml + '</div>' +
