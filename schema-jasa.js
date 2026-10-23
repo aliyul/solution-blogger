@@ -1516,13 +1516,39 @@
         }
 
         const finalAed = window.AEDMetaDates || aed;
-        const effectiveDateModified = (finalAed && (finalAed.dateModifiedFinal || finalAed.dateModified)) || undefined;
+
+        // ═══════════════════════════════════════════════════════════════
+        // 🩹 SAFE-MODE PATCH: Fallback ke meta tag Blogger (raw HTML)
+        //    JANGAN pakai `now` / `undefined` — konsistensi dengan Wave 1.
+        //    Schema dateModified HARUS = meta[itemprop=dateModified] Blogger.
+        // ═══════════════════════════════════════════════════════════════
+        function _aedReadMetaDate(prop) {
+          var el = document.querySelector('meta[itemprop="' + prop + '"]');
+          var v = el ? el.getAttribute('content') : null;
+          return v ? v.trim() : null;
+        }
+        var _dpFallback = _aedReadMetaDate('datePublished');
+        var _dmFallback = _aedReadMetaDate('dateModified') || _dpFallback;
+        var _dpFinal = (finalAed && finalAed.datePublished) || _dpFallback;
+        var _dmFinal = (finalAed && (finalAed.dateModifiedFinal || finalAed.dateModified)) || _dmFallback;
+
+        if (!_dpFinal || !_dmFinal) {
+          log('❌ SAFE-MODE: datePublished/dateModified tidak tersedia — schema dibatalkan', "ERROR");
+          log('   → Mencegah inconsistency (lebih baik no schema daripada schema invalid)', "ERROR");
+          perf.end('init');
+          return;
+        }
+        if (_dmFinal < _dpFinal) {
+          log(`⚠️ SAFE-MODE: dateModified < datePublished — koreksi ke datePublished`, "WARN");
+          _dmFinal = _dpFinal;
+        }
+
+        const effectiveDateModified = _dmFinal;
 
         if (finalAed && finalAed.dateModifiedFinal) {
-          log(`📅 TechArticle dateModified = dateModifiedFinal (offset): ${effectiveDateModified}`, "HYBRID");
-          log(`   (source: window.AEDMetaDates — re-read setelah event)`, "HYBRID");
+          log(`📅 TechArticle dateModified = dateModifiedFinal (SAFE identity): ${effectiveDateModified}`, "HYBRID");
         } else {
-          log(`📅 TechArticle dateModified = AED original: ${effectiveDateModified || '(skip)'}`, "AED");
+          log(`📅 TechArticle dateModified = AED/meta: ${effectiveDateModified}`, "AED");
         }
 
         const pageLevel    = getPageLevelFromPLD();
@@ -1603,10 +1629,12 @@
         const knowsAbout = getDynamicKnowsAbout(CONFIG.KNOWS_ABOUT, pageLevel, entityType);
         log(`🎓 Dynamic knowsAbout: ${knowsAbout.length} item (dari total ${CONFIG.KNOWS_ABOUT.length})`, "KNOWS");
 
+        // 🩹 SAFE-MODE PATCH: gunakan _dpFinal (jangan undefined)
+        //    dateModified sudah terset di atas (dari effectiveDateModified)
+        //    datePublished dijamin ada (guard sudah return kalau null)
         const dateModified = effectiveDateModified;
         const priceValidUntil = (finalAed && finalAed.nextUpdate) ? finalAed.nextUpdate : undefined;
-        const datePublished = finalAed && finalAed.datePublished ? finalAed.datePublished : undefined;
-
+        const datePublished = _dpFinal;
         const graph = [
          {
            "@type": ["LocalBusiness", "GeneralContractor"],
