@@ -261,10 +261,14 @@
     var mm = document.querySelector('meta[itemprop="dateModified"]');
     var mn = document.querySelector('meta[name="nextUpdate"]');
     var nowISO = new Date().toISOString();
-    var dp = toISOWithTimezoneLocal(mp ? mp.content : null) || toISOWithTimezoneLocal(nowISO);
-    var dm = toISOWithTimezoneLocal(mm ? mm.content : null) || dp;
-    if (new Date(dm) < new Date(dp)) dm = dp;
 
+    // 🩹 SAFE-MODE FIX: Baca string RAW dari meta (jangan reformat via toISOWithTimezoneLocal)
+    //    toISOWithTimezoneLocal() hardcode offset +07:00 tapi pakai getHours() local browser.
+    //    → Untuk browser non-+07:00, nilai "mundur/maju" 7+ jam = inconsistency.
+    //    Solusi: pakai string mentah dari getAttribute('content') — 100% roundtrip identik.
+    var dp = (mp && mp.getAttribute('content')) ? mp.getAttribute('content').trim() : nowISO;
+    var dm = (mm && mm.getAttribute('content')) ? mm.getAttribute('content').trim() : dp;
+    if (new Date(dm).getTime() < new Date(dp).getTime()) dm = dp;
     // 🩹 SAFE-MODE: Do NOT create meta tags if they don't exist.
     // Blogger template MUST provide them. AED only reads, doesn't write to Blogger-owned tags.
     // We DO write nextUpdate (AED-internal, not Google signal).
