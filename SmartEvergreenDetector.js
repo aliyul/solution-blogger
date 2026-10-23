@@ -1,5 +1,9 @@
 /* ============================================================
  🧠 Smart Evergreen Detector v17.9.0 — ULTIMATE SEO PATCHER
+ 🩹 PATCH-2024a: Fix autoUpdateDates dead-code + persist to localStorage
+    - FIX-BUG-3 : 3-layer cn resolution (meta → localStorage → computed)
+    - FIX-BUG-3b: Persist bumped dates to localStorage (cross-reload)
+    - FIX-BUG-3c: aedEmergencyVerify juga persist ke localStorage
 ============================================================
  ✅ 100% PRESERVED: Semua fitur v17.8.1 (Tombol, Enter 3x, Banner)
  ✅ NEW: Deteksi Multi-Paragraf (Pembuka, Isi, Penutup)
@@ -276,14 +280,124 @@
   function updateContentByLevelAndFocus(pl, cf, now) { var mn = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']; var ny = now.getFullYear(); var ndt = mn[now.getMonth()] + ' ' + ny; var im = MONEY_LEVELS.includes(pl); var ie = EVERGREEN_LEVELS.includes(pl); var nf = String(cf || '').toUpperCase(); var um = 'year-only'; if (ie) um = 'year-only'; else if (im) um = (nf === 'INFORMASI') ? 'year-only' : 'month-year'; var bit = document.body.innerText || ''; var ay = bit.match(/\b(19|20)\d{2}\b/g) || []; var hoy = false; for (var yi = 0; yi < ay.length; yi++) { var yn = parseInt(ay[yi], 10); if (yn > 2025 && yn < ny) { hoy = true; break; } } if (!hoy) return { updated: false, skipped: true }; var sels = ['.update-badge','[class*="update-badge"]','.last-updated','.updated-date','.date-modified','.post-date','.article-date','.publish-date','.post-meta','.entry-meta','.article-meta','.breadcrumb + p','.toc + p','h1 + p']; var cu = false; var es = new Set(); sels.forEach(function(s) { try { document.querySelectorAll(s).forEach(function(e) { es.add(e); }); } catch(e) {} }); queryByKeyword(document.body, ['diperbarui','update','terakhir','last updated','updated','perbarui'], true).forEach(function(e) { es.add(e); }); Array.from(es).slice(0, 50).forEach(function(el) { if (!el || el.tagName === 'H1') return; var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null, false); var tns = []; var n; while (n = w.nextNode()) tns.push(n); tns.forEach(function(tn) { var ot = tn.textContent || ''; if (!ot.match(/\b(19|20)\d{2}\b/)) return; var nt = ot; if (um === 'month-year') nt = nt.replace(/(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember)\s+(\d{4})/gi, function(m, mo, yr) { var y = parseInt(yr); return (y > 2025 && y < ny) ? ndt : m; }); else nt = nt.replace(/\b(19|20)\d{2}\b/g, function(m) { var y = parseInt(m); return (y > 2025 && y < ny) ? String(ny) : m; }); if (nt !== ot) { tn.textContent = nt; cu = true; } }); }); return { updated: cu, mode: um }; }
   function updateH1WithRules(pl, now) { var im = MONEY_LEVELS.includes(pl); var ie = EVERGREEN_LEVELS.includes(pl); if (!im && !ie) return { updated: false }; var h = document.querySelector('h1'); if (!h) return { updated: false }; var ny = now.getFullYear(); var ht = h.innerText; var ym = ht.match(/\b(19|20)\d{2}\b/); var dy = ym ? parseInt(ym[0]) : null; if (!dy || dy <= 2025 || dy >= ny) return { updated: false }; var nh = ht.replace(/\b(19|20)\d{2}\b/, ny); if (nh !== ht) { h.innerText = nh; return { updated: true, from: dy, to: ny }; } return { updated: false }; }
   function detectContentChangeSinceLastVisit() { var c = document.querySelector('.post-body.entry-content, .post-body, article, main'); if (!c) return { changed: false, reason: 'no-container' }; var t = (c.innerText || '').replace(/\s+/g, ' ').trim(); if (t.length < 100) return { changed: false, reason: 'too-short' }; var h = 0; for (var i = 0; i < t.length; i++) { h = ((h << 5) - h) + t.charCodeAt(i); h = h | 0; } var ch = String(Math.abs(h)); var sk = 'aed-content-hash-' + location.pathname; var sh = null; try { sh = localStorage.getItem(sk); } catch(e) {} var changed = false; if (sh && sh !== ch) { changed = true; } try { localStorage.setItem(sk, ch); } catch(e) {} return { changed: changed, reason: changed ? 'content-changed' : 'same', hash: ch }; }
-  function autoUpdateDates(pl, cf, opts) { opts = opts || {}; var mm = document.querySelector('meta[itemprop="dateModified"]'); var mn = document.querySelector('meta[name="nextUpdate"]'); var mp = document.querySelector('meta[itemprop="datePublished"]'); var cn = mn ? mn.getAttribute('content') : null; if (!cn) return false; var now = new Date(); if (!opts.forceBump && now < new Date(cn)) return false; var f = String(cf || '').toUpperCase(); if ((f === 'HARGA' || f === 'GABUNG') && !opts.forceBump) { document.body.setAttribute('data-aed-needs-review', 'true'); document.body.setAttribute('data-aed-review-reason', 'harga-manual-verify-required'); return false; } var vd = getValidityByContext(pl, cf); var nms = toISOWithTimezoneLocal(now); var nns = toISOWithTimezoneLocal(new Date(now.getTime() + vd * 86400000)); if (mm) mm.setAttribute('content', nms); else { mm = document.createElement("meta"); mm.setAttribute("itemprop","dateModified"); mm.setAttribute("content",nms); document.head.appendChild(mm); } if (mn) mn.setAttribute('content', nns); else { mn = document.createElement("meta"); mn.setAttribute("name","nextUpdate"); mn.setAttribute("content",nns); document.head.appendChild(mn); } if (!mp) { mp = document.createElement("meta"); mp.setAttribute("itemprop","datePublished"); mp.setAttribute("content",nms); document.head.appendChild(mp); } if (!hasLastUpdatedAnchor()) { document.body.classList.add('auto-updated'); return true; } updateJsonLdDates(nms, nns); updateContentByLevelAndFocus(pl, cf, now); updateH1WithRules(pl, now); cleanupFaqSchema(resolveBrandName()); updateJsonLdFaqYears(now.getFullYear()); document.body.classList.add('auto-updated'); return true; }
+
+  // ============================================================
+  // 🩹 FIX-BUG-3: autoUpdateDates — sekarang BENAR-BENAR berjalan
+  //   1. Restore dari localStorage kalau masih valid (cross-reload)
+  //   2. Resolve cn dengan 3 fallback (meta → LS → computed)
+  //   3. Persist hasil bump ke localStorage
+  // ============================================================
+  function autoUpdateDates(pl, cf, opts) {
+    opts = opts || {};
+    var now = new Date();
+    var vd = getValidityByContext(pl, cf);
+    var lsDatesKey = 'aed-dates-v1-' + location.pathname;
+    var lsNextKey  = 'aed-nextUpdate-' + location.pathname;
+
+    // ── LAPIS 1: Restore dari localStorage (kalau valid & tidak forcing) ──
+    if (!opts.forceBump) {
+      try {
+        var persisted = JSON.parse(localStorage.getItem(lsDatesKey) || 'null');
+        if (persisted && persisted.dateModified && persisted.nextUpdate) {
+          var pu = new Date(persisted.nextUpdate);
+          if (!isNaN(pu.getTime()) && now < pu) {
+            var mmR = document.querySelector('meta[itemprop="dateModified"]');
+            var mnR = document.querySelector('meta[name="nextUpdate"]');
+            if (mmR) mmR.setAttribute('content', persisted.dateModified);
+            if (mnR) mnR.setAttribute('content', persisted.nextUpdate);
+            updateJsonLdDates(persisted.dateModified, persisted.nextUpdate);
+            document.body.classList.add('auto-updated');
+            document.body.classList.add('auto-updated-cached');
+            document.body.setAttribute('data-aed-update-source', 'localStorage-cache');
+            return true;
+          }
+        }
+      } catch(e) {}
+    }
+
+    var mm = document.querySelector('meta[itemprop="dateModified"]');
+    var mn = document.querySelector('meta[name="nextUpdate"]');
+    var mp = document.querySelector('meta[itemprop="datePublished"]');
+
+    // ── LAPIS 2: Resolve cn dengan 3 fallback ──
+    //   1) meta nextUpdate (kalau ada)
+    //   2) localStorage nextUpdate (cache dari bump/emergency sebelumnya)
+    //   3) computed: dateModified + validityDays
+    var cn = mn ? mn.getAttribute('content') : null;
+
+    if (!cn) {
+      try { cn = localStorage.getItem(lsNextKey); } catch(e) {}
+    }
+
+    if (!cn && mm) {
+      var dmSrc = mm.getAttribute('content');
+      if (dmSrc) {
+        var dmDate = new Date(dmSrc);
+        if (!isNaN(dmDate.getTime())) {
+          cn = new Date(dmDate.getTime() + vd * 86400000).toISOString();
+        }
+      }
+    }
+
+    if (!cn) return false;
+    if (!opts.forceBump && now < new Date(cn)) return false;
+
+    // ── Guard: HARGA/GABUNG butuh verify manual (kecuali forceBump) ──
+    var f = String(cf || '').toUpperCase();
+    if ((f === 'HARGA' || f === 'GABUNG') && !opts.forceBump) {
+      document.body.setAttribute('data-aed-needs-review', 'true');
+      document.body.setAttribute('data-aed-review-reason', 'harga-manual-verify-required');
+      return false;
+    }
+
+    var nms = toISOWithTimezoneLocal(now);
+    var nns = toISOWithTimezoneLocal(new Date(now.getTime() + vd * 86400000));
+
+    if (mm) mm.setAttribute('content', nms);
+    else { mm = document.createElement("meta"); mm.setAttribute("itemprop","dateModified"); mm.setAttribute("content",nms); document.head.appendChild(mm); }
+
+    if (mn) mn.setAttribute('content', nns);
+    else { mn = document.createElement("meta"); mn.setAttribute("name","nextUpdate"); mn.setAttribute("content",nns); document.head.appendChild(mn); }
+
+    if (!mp) { mp = document.createElement("meta"); mp.setAttribute("itemprop","datePublished"); mp.setAttribute("content",nms); document.head.appendChild(mp); }
+
+    // ── LAPIS 3: Persist hasil bump ke localStorage ──
+    try {
+      localStorage.setItem(lsDatesKey, JSON.stringify({
+        dateModified: nms,
+        nextUpdate: nns,
+        bumpedAt: now.toISOString(),
+        validityDays: vd,
+        pageLevel: pl,
+        contentFocus: cf,
+        source: opts.forceBump ? 'force-bump' : 'auto-bump'
+      }));
+      localStorage.setItem(lsNextKey, nns);
+    } catch(e) {}
+
+    document.body.setAttribute('data-aed-update-source', opts.forceBump ? 'force-bump' : 'auto-bump');
+
+    if (!hasLastUpdatedAnchor()) {
+      document.body.classList.add('auto-updated');
+      return true;
+    }
+
+    updateJsonLdDates(nms, nns);
+    updateContentByLevelAndFocus(pl, cf, now);
+    updateH1WithRules(pl, now);
+    cleanupFaqSchema(resolveBrandName());
+    updateJsonLdFaqYears(now.getFullYear());
+    document.body.classList.add('auto-updated');
+    return true;
+  }
+
   async function processMetaDates(cdm, ft, vm, upvu, pl, et, ci, apr, dv, conf, strat, sc, io, oreason, hd, cf, au) { var mp = document.querySelector('meta[itemprop="datePublished"]'); var mm = document.querySelector('meta[itemprop="dateModified"]'); var mn = document.querySelector('meta[name="nextUpdate"]'); var isFirst = !(mm && mm.getAttribute('content')); var hasCd = cdm !== null && cdm !== undefined; var hasIf = detectIllegalFaqProps(); var nowISO = new Date().toISOString(); var dp = toISOWithTimezoneLocal(mp ? mp.content : null) || toISOWithTimezoneLocal(nowISO); var dm = toISOWithTimezoneLocal(cdm) || toISOWithTimezoneLocal(mm ? mm.content : null) || dp; if (new Date(dm) < new Date(dp)) dm = dp; if (!mp) { mp = document.createElement("meta"); mp.setAttribute("itemprop","datePublished"); document.head.appendChild(mp); } mp.setAttribute("content", dp); if (!mm) { mm = document.createElement("meta"); mm.setAttribute("itemprop","dateModified"); document.head.appendChild(mm); } mm.setAttribute("content", dm); var f = String(cf || '').toUpperCase(); var ipm = (f === 'HARGA' || f === 'GABUNG'); var nl = new Date(); var nnu = new Date(dm).getTime() + vm; var ipe = ipm && (nnu < nl.getTime()); var nu, pvu; if (ipe) { nu = toISOWithTimezoneLocal(new Date(nnu)); pvu = toISOWithTimezoneLocal(new Date(nl.getTime() + vm)); document.body.setAttribute('data-aed-needs-review', 'true'); document.body.setAttribute('data-aed-review-reason', 'harga-manual-verify-required'); } else { nu = toISOWithTimezoneLocal(new Date(nnu)); pvu = nu; if (document.body.hasAttribute('data-aed-needs-review')) { document.body.removeAttribute('data-aed-needs-review'); document.body.removeAttribute('data-aed-review-reason'); } } if (!mn) { mn = document.createElement("meta"); mn.setAttribute("name","nextUpdate"); document.head.appendChild(mn); } mn.setAttribute("content", nu); var sr = au === true || isFirst || hasCd || hasIf || ipe; if (sr) { updateJsonLdDates(dm, pvu); cleanupFaqSchema(resolveBrandName()); updateJsonLdFaqYears(new Date().getFullYear()); } if (upvu && hd && hd.isPrice) { document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(function(el) { el.setAttribute("priceValidUntil", pvu); }); } else { document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(function(el) { el.removeAttribute("priceValidUntil"); }); } document.body.classList.add('page-level-' + pl); document.body.classList.add('entity-type-' + et); document.body.classList.add('content-type-' + ft); document.body.classList.add('cta-intensity-' + ci); if (apr) document.body.classList.add('allow-price-range'); if (io) document.body.classList.add('overridden-evergreen'); var kat = getKategori(pl, cf, ft); window.AEDMetaDates = { type: ft, entityType: et, pageLevel: pl, datePublished: dp, dateModified: dm, nextUpdate: nu, priceValidUntil: pvu, validityDays: vm / 86400000, usePriceValidUntil: upvu, ctaIntensity: ci, allowPriceRange: apr, detectorVersion: dv || 'v17.9.0', detectionConfidence: conf || null, isOverridden: io || false, overrideReason: oreason || null, h1Detection: hd || null, contentFocus: cf || null, pldKategori: kat, pldH1Pattern: getPLDH1Pattern(kat), pldSchemaType: getPLDSchemaType(pl, et, cf), pldCtaType: getPLDCtaType(pl, cf, et), brandName: resolveBrandName(), needsManualVerify: ipe, lastAutoUpdate: null, updateCount: 0 }; window.EvergreenDetectorResults = window.AEDMetaDates; }
   function getPageLevelAndEntityType() { var pl = 'pillar', et = 'produk', dv = 'unknown', conf = null, strat = null, sc = null; var bl = document.body.getAttribute('data-page-level'); var be = document.body.getAttribute('data-entity-type'); if (bl && be) return { pageLevel: bl, entityType: be, detectorVersion: getPLDVersion().label, confidence: conf, strategies: strat, strategyCount: sc }; if (window.pageLevelDetectorv22) { try { if (typeof window.pageLevelDetectorv22.detectFromDOM === 'function') { var dr = window.pageLevelDetectorv22.detectFromDOM(); if (dr) pl = dr; } if ((!pl || pl === 'pillar') && typeof window.pageLevelDetectorv22.detect === 'function') { var ur = window.pageLevelDetectorv22.detect(); if (ur) pl = ur; } if (typeof window.pageLevelDetectorv22.detectEntityType === 'function') et = window.pageLevelDetectorv22.detectEntityType(); return { pageLevel: pl, entityType: et, detectorVersion: getPLDVersion().label, confidence: conf, strategies: strat, strategyCount: sc }; } catch(e) {} } return { pageLevel: pl, entityType: et, detectorVersion: 'none' }; }
   function waitForPageLevelDetector() { return new Promise(function(resolve) { if (document.body && document.body.getAttribute('data-page-level')) { resolve(); return; } if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detect === 'function') { resolve(); return; } var onR = function() { resolve(); }; window.addEventListener("pageLevelDetectorv22Ready", onR, { once: true }); setTimeout(function() { if (!window.pageLevelDetector && !document.body.getAttribute('data-page-level')) { window.pageLevelDetector = { detect: function() { return 'pillar'; }, detectEntityType: function() { return 'produk'; } }; } resolve(); }, 3000); }); }
   function getRulesByEntityType(et, pl, hd, cf) { var im = MONEY_LEVELS.indexOf(pl) !== -1; if (im) { var nf = String(cf || '').toUpperCase(); if (nf === 'INFORMASI' && !(hd && hd.hasYear)) return { type: 'evergreen', validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft-medium', overridden: true, overrideReason: 'Money level + INFORMASI' }; var v = getValidityByContext(pl, nf); return { type: 'non-evergreen', validityDays: v, usePriceValidUntil: (nf === 'HARGA' || nf === 'GABUNG'), allowPriceRange: pl === 'money-master', ctaIntensity: pl === 'money-child' ? 'very-hard' : 'hard' }; } if (et === 'jasa') return JASA_RULES[pl] || DEFAULT_RULE; if (et === 'sewa') return SEWA_RULES[pl] || BASE_PAGE_LEVEL_RULES[pl] || DEFAULT_RULE; if (et === 'produk' || et === 'material') return PRODUK_MATERIAL_RULES[pl] || BASE_PAGE_LEVEL_RULES[pl] || DEFAULT_RULE; return BASE_PAGE_LEVEL_RULES[pl] || DEFAULT_RULE; }
 
   // ============================================================
-  // 🆕 ANALYZE PAGE CONTENT & PATCH GENERATOR (GABUNGAN)
+  // ANALYZE PAGE CONTENT & PATCH GENERATOR (GABUNGAN)
   // ============================================================
   function analyzePageContent() {
     var container = document.querySelector('.post-body.entry-content, .post-body, article, main') || document.body;
@@ -299,8 +413,7 @@
     var hasWA = false; try { if (document.querySelector('a[href*="wa.me"], a[href*="whatsapp"], a[href*="wa.link"]')) hasWA = true; } catch (e) {} if (!hasWA && /628\d{8,}|62\s*8\d{2}[\s-]?\d{4}/.test(text)) hasWA = true;
     var tableCount = 0; try { tableCount = document.querySelectorAll('.post-body table, article table').length; } catch (e) {} var hasTable = tableCount > 0;
     var wordCount = text.trim().split(/\s+/).length; var h2Count = 0, h3Count = 0; try { h2Count = document.querySelectorAll('.post-body h2, article h2').length; h3Count = document.querySelectorAll('.post-body h3, article h3').length; } catch (e) {}
-    
-    // 🆕 DETEKSI MULTI-PARAGRAF (Awal, Tengah, Akhir)
+
     var pElements = document.querySelectorAll('.post-body.entry-content p, .post-body p, article p');
     var validPs = [];
     for (var j = 0; j < pElements.length; j++) {
@@ -309,26 +422,25 @@
         validPs.push(txt);
       }
     }
-    
+
     var firstPText = validPs.length > 0 ? validPs[0] : '';
     var secondPText = validPs.length > 1 ? validPs[1] : '';
     var lastPText = validPs.length > 1 ? validPs[validPs.length - 1] : '';
 
-    // 🆕 DETEKSI ELEMEN STRUKTURAL
     var firstH2 = document.querySelector('.post-body h2, article h2');
     var h2Text = firstH2 ? (firstH2.innerText || '').trim() : '';
-    
+
     var firstList = document.querySelector('.post-body ul, .post-body ol, article ul, article ol');
     var listCount = 0;
     if (firstList) {
       listCount = firstList.querySelectorAll('li').length;
     }
 
-    return { 
-      h1Text: h1Text, h1Year: h1Year, h1YearOutdated: h1YearOutdated, 
-      currentYear: currentYear, uniqueYears: uniqueYears, outdatedYears: outdatedYears, 
+    return {
+      h1Text: h1Text, h1Year: h1Year, h1YearOutdated: h1YearOutdated,
+      currentYear: currentYear, uniqueYears: uniqueYears, outdatedYears: outdatedYears,
       hasFaq: hasFaq, faqCount: faqCount, hasPrice: hasPrice, priceCount: priceCount, priceSnippet: priceSnippet, dateSnippet: dateSnippet,
-      hasWA: hasWA, hasTable: hasTable, tableCount: tableCount, 
+      hasWA: hasWA, hasTable: hasTable, tableCount: tableCount,
       wordCount: wordCount, h2Count: h2Count, h3Count: h3Count,
       hasFirstP: firstPText !== '', firstPText: firstPText,
       hasSecondP: secondPText !== '', secondPText: secondPText,
@@ -343,18 +455,15 @@
     var currentMonthYear = (new Date().toLocaleString('id-ID', { month: 'long' })) + ' ' + a.currentYear;
     var isMoney = pageLevel.indexOf('money') === 0 || pageLevel === 'variant' || pageLevel === 'sub-variant';
     var isEvergreen = EVERGREEN_LEVELS.indexOf(pageLevel) !== -1;
-    
-    var guide = { 
-      meta: { pageLevel: pageLevel, contentFocus: contentFocus, finalType: finalType, validityDays: validityDays, daysUntilReview: daysUntilReview, status: daysUntilReview > 21 ? 'FRESH' : (daysUntilReview > 0 ? 'WARNING' : 'EXPIRED') }, 
+
+    var guide = {
+      meta: { pageLevel: pageLevel, contentFocus: contentFocus, finalType: finalType, validityDays: validityDays, daysUntilReview: daysUntilReview, status: daysUntilReview > 21 ? 'FRESH' : (daysUntilReview > 0 ? 'WARNING' : 'EXPIRED') },
       issues: [], priorityActions: [], sectionGuide: [], minimalChanges: [], checklist: [],
       patchH1: '', patchH2: '', patchList: '', patchParagraph: '', patchBody: '', patchOutro: '', patchFaq: ''
     };
 
     var pickRandom = function(arr) { return arr[Math.floor(Math.random() * arr.length)]; };
 
-    // ============================================================
-    // 1. GENERATE PATCH H1 (JUDUL)
-    // ============================================================
     if (a.h1YearOutdated) {
       var newH1 = a.h1Text.replace(/\b(19|20)\d{2}\b/, a.currentYear);
       guide.patchH1 = `[⚠️ REVISI H1 (JUDUL UTAMA)]\n` +
@@ -366,9 +475,6 @@
       guide.patchH1 = `[✅ H1 (JUDUL) AMAN]\nTahun di H1 sudah ${a.currentYear}. Tidak perlu diubah.`;
     }
 
-    // ============================================================
-    // 2. GENERATE PATCH H2 (SUB-JUDUL)
-    // ============================================================
     if (a.hasH2) {
       var suggestedH2 = a.h2Text;
       if (!/\b(19|20)\d{2}\b/.test(suggestedH2)) {
@@ -383,9 +489,6 @@
       guide.patchH2 = `[ℹ️ H2 (SUB-JUDUL)]\nTidak ditemukan tag H2 di halaman ini.`;
     }
 
-    // ============================================================
-    // 3. GENERATE PATCH LIST (DAFTAR POIN)
-    // ============================================================
     if (a.hasList) {
       var listSignals = "";
       if (isMoney) {
@@ -402,9 +505,6 @@
       guide.patchList = `[ℹ️ LIST (POIN-POIN)]\nTidak ditemukan tag list (ul/ol) di halaman ini.`;
     }
 
-    // ============================================================
-    // 4. GENERATE PARAGRAF PEMBUKA
-    // ============================================================
     if (a.hasFirstP) {
       var fullContext1 = a.firstPText.replace(/\b(2020|2021|2022|2023|2024|2025)\b/g, '').trim();
       var sig1 = "";
@@ -421,7 +521,7 @@
       } else {
         sig1 = ` Pembahasan lengkap mengenai topik ini telah kami perbarui pada ${currentMonthYear} agar sesuai dengan standar terkini.`;
       }
-      
+
       guide.patchParagraph = `[⚠️ REVISI PARAGRAF PEMBUKA]\n` +
       `Teks lama saat ini: "${a.firstPText}"\n\n` +
       `GANTI DENGAN DRAF BARU INI (Anti-Duplikat):\n` +
@@ -435,9 +535,6 @@
       `💡 *Catatan Admin:* Paste di bawah H1 atau gambar pertama.`;
     }
 
-    // ============================================================
-    // 5. GENERATE PARAGRAF ISI (TENGAH)
-    // ============================================================
     if (a.hasSecondP) {
       var fullContext2 = a.secondPText.replace(/\b(2020|2021|2022|2023|2024|2025)\b/g, '').trim();
       var sig2 = "";
@@ -464,9 +561,6 @@
       guide.patchBody = `[ℹ️ PARAGRAF ISI]\nTidak ditemukan paragraf kedua yang cukup panjang (mungkin hanya ada 1 paragraf).`;
     }
 
-    // ============================================================
-    // 6. GENERATE PARAGRAF PENUTUP (OUTRO / CTA)
-    // ============================================================
     if (a.hasLastP && a.lastPText !== a.secondPText) {
       var fullContext3 = a.lastPText.replace(/\b(2020|2021|2022|2023|2024|2025)\b/g, '').trim();
       var sig3 = "";
@@ -495,12 +589,9 @@
       guide.patchOutro = `[ℹ️ PARAGRAF PENUTUP]\nTidak ditemukan paragraf penutup.`;
     }
 
-    // ============================================================
-    // 7. GENERATE SMART FAQ TEMPLATE (SIAP COPY-PASTE)
-    // ============================================================
     var faqTopic = a.h1Text.replace(/\b(19|20)\d{2}\b/g, '').replace(/harga|terbaru|termurah|terbaik|update|revisi|jasa|di|untuk|profesional|melayani|ready|mix/gi, '').replace(/\s+/g, ' ').trim();
     if (faqTopic.length < 5) faqTopic = "Produk & Layanan Konstruksi";
-    
+
     var detectedLocation = 'Jabodetabek';
     if (window.pageLevelDetectorv22 && typeof window.pageLevelDetectorv22.detectLocation === 'function') {
       try { detectedLocation = window.pageLevelDetectorv22.detectLocation(); } catch(e){}
@@ -526,9 +617,6 @@
     `⚠️ PERINGATAN DUPLIKASI:\n` +
     `Pertanyaan di atas sudah otomatis unik karena menyisipkan nama halaman (${faqTopic}) dan lokasi (${faqLocation}). JANGAN mengubah nama topik/lokasi agar tidak bentrok dengan halaman lain.`;
 
-    // ============================================================
-    // TABEL PATCH & ISSUES
-    // ============================================================
     guide.patches = [
       { section: 'H1 (Judul)', detected: a.h1YearOutdated ? 'Tahun ' + a.h1Year + ' (Usang)' : 'Tahun ' + a.currentYear, action: a.h1YearOutdated ? 'Update tahun' : 'Cek relevansi', patch: a.h1YearOutdated ? 'Ubah <span class="aed-patch-old">' + a.h1Year + '</span> menjadi <span class="aed-patch-new">' + a.currentYear + '</span>' : '<span style="color:#16a34a">✅ Tidak perlu diubah</span>' },
       { section: 'Harga', detected: a.hasPrice ? 'Terdeteksi ' + a.priceCount + ' harga (cth: ' + a.priceSnippet + ')' : 'Tidak ada harga', action: a.hasPrice ? 'Verifikasi fakta' : 'Tambahkan harga', patch: a.hasPrice ? 'Pastikan <span class="aed-patch-old">' + a.priceSnippet + '</span> masih sama dengan supplier. Jika berubah: Ubah ke <span class="aed-patch-new">Rp [Harga Baru]</span>' : 'Tambahkan teks harga' },
@@ -579,24 +667,22 @@
     var statusClass = guide.meta.status === 'FRESH' ? 'status-fresh' : (guide.meta.status === 'WARNING' ? 'status-warning' : 'status-expired');
     var issuesHtml = guide.issues.length > 0 ? guide.issues.map(function(i) { return '<div class="aed-guide-issue-' + i.level + '">' + i.text + '</div>'; }).join('') : '<p style="color:#16a34a;font-weight:600;">✅ Tidak ada issue signifikan terdeteksi. Halaman dalam kondisi baik.</p>';
     var priorityHtml = '<ul class="aed-guide-list">' + guide.priorityActions.map(function(p) { return '<li>' + p + '</li>'; }).join('') + '</ul>';
-    
-    // 1. PATCH TABLE
-    var patchHtml = '<table class="aed-guide-section-table"><thead><tr><th>Bagian</th><th>Terdeteksi</th><th>Action</th><th>Saran Revisi (Patch)</th></tr></thead><tbody>' + 
-      guide.patches.map(function(p) { 
-        return '<tr><td><strong>' + p.section + '</strong></td><td style="font-size:0.8rem">' + p.detected + '</td><td style="font-size:0.8rem">' + p.action + '</td><td><div class="aed-patch-box">' + p.patch + '</div></td></tr>'; 
+
+    var patchHtml = '<table class="aed-guide-section-table"><thead><tr><th>Bagian</th><th>Terdeteksi</th><th>Action</th><th>Saran Revisi (Patch)</th></tr></thead><tbody>' +
+      guide.patches.map(function(p) {
+        return '<tr><td><strong>' + p.section + '</strong></td><td style="font-size:0.8rem">' + p.detected + '</td><td style="font-size:0.8rem">' + p.action + '</td><td><div class="aed-patch-box">' + p.patch + '</div></td></tr>';
       }).join('') + '</tbody></table>';
 
-    // 2. SECTION TABLE (DARI V17.6.2)
     var sectionTableHtml = '<table class="aed-guide-section-table"><thead><tr><th>Section</th><th>Action</th></tr></thead><tbody>' +
       guide.sectionGuide.map(function(s) { return '<tr><td><strong>' + s.section + '</strong></td><td>' + s.action + '</td></tr>'; }).join('') +
       '</tbody></table>';
 
     var minimalHtml = '<ul class="aed-guide-list">' + guide.minimalChanges.map(function(c) { return '<li>' + c + '</li>'; }).join('') + '</ul>';
     var checklistHtml = '<div style="font-family:monospace;font-size:0.85rem;line-height:1.8;">' + guide.checklist.map(function(c) { return c.replace('□', '<span style="color:#9ca3af;">□</span>'); }).join('<br>') + '</div>';
-    
+
     var modal = document.createElement('div');
     modal.id = 'aed-guide-modal'; modal.setAttribute('data-nosnippet', ''); modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true');
-    
+
     modal.innerHTML =
       '<div class="aed-guide-backdrop" data-aed-close="1"></div>' +
       '<div class="aed-guide-content">' +
@@ -605,15 +691,15 @@
           '<div class="aed-guide-section"><h3>📊 Summary</h3><div class="aed-guide-meta"><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Page Level</div><div class="aed-guide-meta-value">' + guide.meta.pageLevel + '</div></div><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Content Focus</div><div class="aed-guide-meta-value">' + guide.meta.contentFocus + '</div></div><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Type</div><div class="aed-guide-meta-value">' + guide.meta.finalType + '</div></div><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Validity</div><div class="aed-guide-meta-value">' + guide.meta.validityDays + ' hari</div></div><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Status</div><div class="aed-guide-meta-value ' + statusClass + '">' + guide.meta.status + '</div></div><div class="aed-guide-meta-item"><div class="aed-guide-meta-label">Next Review</div><div class="aed-guide-meta-value">' + (guide.meta.daysUntilReview > 0 ? guide.meta.daysUntilReview + ' hari lagi' : 'Expired ' + Math.abs(guide.meta.daysUntilReview) + ' hari') + '</div></div></div></div>' +
           '<div class="aed-guide-section"><h3>🚨 Issues Terdeteksi</h3>' + issuesHtml + '</div>' +
           '<div class="aed-guide-section"><h3>📝 Saran Revisi (Content Patch)</h3>' + patchHtml + '</div>' +
-          
+
           '<div class="aed-guide-section"><h3>🏷️ Revisi H1 (Judul)</h3><textarea class="aed-copy-box" style="border-left-color:#ef4444; min-height:80px;" readonly>' + guide.patchH1 + '</textarea></div>' +
           '<div class="aed-guide-section"><h3>🏷️ Revisi H2 (Sub-Judul)</h3><textarea class="aed-copy-box" style="border-left-color:#f59e0b; min-height:80px;" readonly>' + guide.patchH2 + '</textarea></div>' +
           '<div class="aed-guide-section"><h3>📋 Saran List (Poin-poin)</h3><textarea class="aed-copy-box" style="border-left-color:#14b8a6; min-height:80px;" readonly>' + guide.patchList + '</textarea></div>' +
-          
+
           '<div class="aed-guide-section"><h3>✍️ Draf Paragraf Pembuka</h3><textarea class="aed-copy-box" style="border-left-color:#3b82f6;" readonly>' + guide.patchParagraph + '</textarea></div>' +
           '<div class="aed-guide-section"><h3>✍️ Saran Paragraf Isi (Tengah)</h3><textarea class="aed-copy-box" style="border-left-color:#10b981;" readonly>' + guide.patchBody + '</textarea></div>' +
           '<div class="aed-guide-section"><h3>✍️ Saran Paragraf Penutup (CTA)</h3><textarea class="aed-copy-box" style="border-left-color:#8b5cf6;" readonly>' + guide.patchOutro + '</textarea></div>' +
-          
+
           '<div class="aed-guide-section"><h3>❓ Template FAQ Baru (Siap Copy-Paste)</h3><textarea class="aed-copy-box" style="border-left-color: #f59e0b;" readonly>' + guide.patchFaq + '</textarea></div>' +
           '<div class="aed-guide-section"><h3>📋 Panduan per Section</h3>' + sectionTableHtml + '</div>' +
           '<div class="aed-guide-section"><h3>🎯 Priority Actions</h3>' + priorityHtml + '</div>' +
@@ -639,7 +725,7 @@
      '</div>' +
         '<div class="aed-guide-footer"><span>Dibuat: ' + new Date().toLocaleString('id-ID') + '</span><button class="aed-guide-footer-btn" data-aed-close="1">Tutup</button></div>' +
       '</div>';
-      
+
         document.body.appendChild(modal);
     document.body.style.overflow = 'hidden';
 
@@ -647,7 +733,6 @@
       el.addEventListener('click', closeGuideModal);
     });
 
-    // 🆕 v17.8.2: Fitur Copy Command
     var copyBtn = document.getElementById('aed-copy-cmd-btn');
     if (copyBtn) {
       copyBtn.addEventListener('click', function() {
@@ -662,10 +747,10 @@
           var btn = this;
           var originalText = btn.innerHTML;
           btn.innerHTML = '✅ Copied!';
-          btn.style.background = '#16a34a'; // Warna hijau sukses
+          btn.style.background = '#16a34a';
           setTimeout(function() {
             btn.innerHTML = originalText;
-            btn.style.background = '#3b82f6'; // Kembali ke biru
+            btn.style.background = '#3b82f6';
           }, 2000);
         } catch (err) {
           console.error('Failed to copy', err);
@@ -688,7 +773,62 @@
 
   async function detectEvergreen(opts) { opts = opts || {}; var cdm = opts.customDateModified || null; var fb = opts.forceBump === true; if (_AED_INITIALIZED) return; _AED_INITIALIZED = true; injectWarningStyles(); await waitForPageLevelDetector(); var r = getPageLevelAndEntityType(); var hd = detectContentTypeByH1(); var cf = getContentFocus(hd, r.pageLevel, r.entityType); var rule = getRulesByEntityType(r.entityType, r.pageLevel, hd, cf); var ft = rule.type; var vd = rule.validityDays; var vm = vd * 86400000; var cc = detectContentChangeSinceLastVisit(); var au = false; if (fb) au = autoUpdateDates(r.pageLevel, cf, { forceBump: true }); else if (cc.changed) au = autoUpdateDates(r.pageLevel, cf, { forceBump: true }); else au = autoUpdateDates(r.pageLevel, cf); await processMetaDates(cdm, ft, vm, rule.usePriceValidUntil, r.pageLevel, r.entityType, rule.ctaIntensity, rule.allowPriceRange, r.detectorVersion, null, null, null, rule.overridden || false, rule.overrideReason || null, hd, cf, au); checkAndShowInlineWarning(r.pageLevel, cf); injectAuthorByline(); injectGuideButton(); window.dispatchEvent(new Event("detectEvergreenReady")); }
 
-  window.aedEmergencyVerify = function(customDate, opts) { opts = opts || {}; if (!opts.confirm) return null; customDate = customDate || toISOWithTimezoneLocal(new Date()); var pl = document.body.getAttribute('data-page-level') || 'money-page'; var cf = document.body.getAttribute('data-content-focus') || 'HARGA'; var vd = getValidityByContext(pl, cf); var mm = document.querySelector('meta[itemprop="dateModified"]'); if (!mm) { mm = document.createElement('meta'); mm.setAttribute('itemprop', 'dateModified'); document.head.appendChild(mm); } mm.setAttribute('content', customDate); var nu = toISOWithTimezoneLocal(new Date(new Date(customDate).getTime() + vd * 86400000)); var mn = document.querySelector('meta[name="nextUpdate"]'); if (!mn) { mn = document.createElement('meta'); mn.setAttribute('name', 'nextUpdate'); document.head.appendChild(mn); } mn.setAttribute('content', nu); updateJsonLdDates(customDate, nu); document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(function(el) { el.setAttribute('priceValidUntil', nu); }); document.body.removeAttribute('data-aed-needs-review'); document.body.removeAttribute('data-aed-review-reason'); document.body.removeAttribute('data-aed-warning-severity'); document.body.removeAttribute('data-aed-warning-days'); document.body.removeAttribute('data-aed-warning-stuck'); document.body.removeAttribute('data-aed-warning-stuck-days'); var b = document.getElementById('aed-update-warning'); if (b) b.remove(); if (window.AEDMetaDates) { window.AEDMetaDates.dateModified = customDate; window.AEDMetaDates.nextUpdate = nu; window.AEDMetaDates.priceValidUntil = nu; window.AEDMetaDates.needsManualVerify = false; window.AEDMetaDates.lastEmergencyVerify = customDate; window.AEDMetaDates.updateCount = (window.AEDMetaDates.updateCount || 0) + 1; } try { var ad = { date: customDate, nextUpdate: nu, validityDays: vd, pageLevel: pl, contentFocus: cf, verifiedAt: new Date().toISOString(), method: 'emergency' }; localStorage.setItem('aed-emergency-verified-' + location.pathname, JSON.stringify(ad)); localStorage.setItem('aed-verified-' + location.pathname, JSON.stringify(ad)); } catch(e) {} try { window.dispatchEvent(new CustomEvent('aedVerified', { detail: { dateModified: customDate, nextUpdate: nu, validityDays: vd, pageLevel: pl, contentFocus: cf, method: 'emergency' } })); } catch(e) {} return { dateModified: customDate, nextUpdate: nu, validityDays: vd, pageLevel: pl, contentFocus: cf }; };
+  // ============================================================
+  // 🩹 FIX-BUG-3c: aedEmergencyVerify juga persist ke localStorage
+  // ============================================================
+  window.aedEmergencyVerify = function(customDate, opts) {
+    opts = opts || {};
+    if (!opts.confirm) return null;
+    customDate = customDate || toISOWithTimezoneLocal(new Date());
+    var pl = document.body.getAttribute('data-page-level') || 'money-page';
+    var cf = document.body.getAttribute('data-content-focus') || 'HARGA';
+    var vd = getValidityByContext(pl, cf);
+    var mm = document.querySelector('meta[itemprop="dateModified"]');
+    if (!mm) { mm = document.createElement('meta'); mm.setAttribute('itemprop', 'dateModified'); document.head.appendChild(mm); }
+    mm.setAttribute('content', customDate);
+    var nu = toISOWithTimezoneLocal(new Date(new Date(customDate).getTime() + vd * 86400000));
+    var mn = document.querySelector('meta[name="nextUpdate"]');
+    if (!mn) { mn = document.createElement('meta'); mn.setAttribute('name', 'nextUpdate'); document.head.appendChild(mn); }
+    mn.setAttribute('content', nu);
+    updateJsonLdDates(customDate, nu);
+    document.querySelectorAll('[itemtype="http://schema.org/Offer"]').forEach(function(el) { el.setAttribute('priceValidUntil', nu); });
+    document.body.removeAttribute('data-aed-needs-review');
+    document.body.removeAttribute('data-aed-review-reason');
+    document.body.removeAttribute('data-aed-warning-severity');
+    document.body.removeAttribute('data-aed-warning-days');
+    document.body.removeAttribute('data-aed-warning-stuck');
+    document.body.removeAttribute('data-aed-warning-stuck-days');
+    var b = document.getElementById('aed-update-warning');
+    if (b) b.remove();
+    if (window.AEDMetaDates) {
+      window.AEDMetaDates.dateModified = customDate;
+      window.AEDMetaDates.nextUpdate = nu;
+      window.AEDMetaDates.priceValidUntil = nu;
+      window.AEDMetaDates.needsManualVerify = false;
+      window.AEDMetaDates.lastEmergencyVerify = customDate;
+      window.AEDMetaDates.updateCount = (window.AEDMetaDates.updateCount || 0) + 1;
+    }
+    try {
+      var ad = { date: customDate, nextUpdate: nu, validityDays: vd, pageLevel: pl, contentFocus: cf, verifiedAt: new Date().toISOString(), method: 'emergency' };
+      localStorage.setItem('aed-emergency-verified-' + location.pathname, JSON.stringify(ad));
+      localStorage.setItem('aed-verified-' + location.pathname, JSON.stringify(ad));
+      // 🩹 FIX-BUG-3c: sync cache dates + nextUpdate
+      localStorage.setItem('aed-dates-v1-' + location.pathname, JSON.stringify({
+        dateModified: customDate,
+        nextUpdate: nu,
+        bumpedAt: new Date().toISOString(),
+        validityDays: vd,
+        pageLevel: pl,
+        contentFocus: cf,
+        source: 'emergency-verify'
+      }));
+      localStorage.setItem('aed-nextUpdate-' + location.pathname, nu);
+    } catch(e) {}
+    try {
+      window.dispatchEvent(new CustomEvent('aedVerified', { detail: { dateModified: customDate, nextUpdate: nu, validityDays: vd, pageLevel: pl, contentFocus: cf, method: 'emergency' } }));
+    } catch(e) {}
+    return { dateModified: customDate, nextUpdate: nu, validityDays: vd, pageLevel: pl, contentFocus: cf };
+  };
   window.aedVerifyNow = function(customDate) { return window.aedEmergencyVerify(customDate, { confirm: true }); };
   window.aedShowEditGuide = function() { var pl = document.body.getAttribute('data-page-level') || 'pillar'; var cf = document.body.getAttribute('data-content-focus') || 'INFORMASI'; var ft = (EVERGREEN_LEVELS.indexOf(pl) !== -1) ? 'evergreen' : 'non-evergreen'; var vd = getValidityByContext(pl, cf); var mn = document.querySelector('meta[name="nextUpdate"]'); var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : 0; var g = generatePageGuide(pl, cf, ft, vd, dur); console.log('📖 PAGE GUIDE:', g.meta); if (g.issues.length > 0) console.log('Issues:', g.issues); console.log('Priority:', g.priorityActions); console.log('Minimal Changes:', g.minimalChanges); };
   window.aedCheckStatus = function() { if (!window.AEDMetaDates) return null; var mm = document.querySelector('meta[itemprop="dateModified"]'); var mn = document.querySelector('meta[name="nextUpdate"]'); var mp = document.querySelector('meta[itemprop="datePublished"]'); var ad = null; try { var rn = localStorage.getItem('aed-emergency-verified-' + location.pathname); if (rn) ad = JSON.parse(rn); else { var rl = localStorage.getItem('aed-verified-' + location.pathname); if (rl) { ad = JSON.parse(rl); ad._source = 'legacy-key'; } } } catch (e) {} var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : null; var s = { datePublished: mp ? mp.content : null, dateModified: mm ? mm.content : null, nextUpdate: mn ? mn.content : null, daysUntilReview: dur, needsManualVerify: document.body.getAttribute('data-aed-needs-review') === 'true', warningSeverity: document.body.getAttribute('data-aed-warning-severity'), lastEmergencyVerify: ad, aedData: window.AEDMetaDates }; console.table(s); return s; };
