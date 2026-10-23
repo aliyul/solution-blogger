@@ -1178,8 +1178,8 @@
 
     const aedData = await waitForAEDMetaDates(CONFIG.AED_TIMEOUT);
     if (aedData) log(`✅ AED ready: ${aedData.dateModified}`, "AED");
-
-        const hybridReady = await waitForHybridDateFinal(CONFIG.HYBRID_FINAL_TIMEOUT);
+    
+    const hybridReady = await waitForHybridDateFinal(CONFIG.HYBRID_FINAL_TIMEOUT);
     if (hybridReady) {
       log(`✅ Hybrid offset READY`, "HYBRID");
     } else {
@@ -1221,16 +1221,16 @@
       _dmFinal = _dpFinal;
     }
 
-const effectiveDates = {
-  datePublished: _dpFinal,
-  dateModified: _dmFinal
-};
-
-if (finalAed && finalAed.dateModifiedFinal) {
-  log(`📅 Schema dateModified = dateModifiedFinal (SAFE identity): ${effectiveDates.dateModified}`, "HYBRID");
-} else {
-  log(`📅 Schema dateModified = AED/meta: ${effectiveDates.dateModified}`, "AED");
-}
+    const effectiveDates = {
+      datePublished: _dpFinal,
+      dateModified: _dmFinal
+    };
+    
+    if (finalAed && finalAed.dateModifiedFinal) {
+      log(`📅 Schema dateModified = dateModifiedFinal (SAFE identity): ${effectiveDates.dateModified}`, "HYBRID");
+    } else {
+      log(`📅 Schema dateModified = AED/meta: ${effectiveDates.dateModified}`, "AED");
+    }
     let articleElem = document.getElementById("auto-schema");
     if (!articleElem) {
       articleElem = document.createElement("script");
