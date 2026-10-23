@@ -253,7 +253,9 @@
       }
 
       const hash = stableHash(hashSource);
-      const offsetSeconds = hash % 86400;
+       // 🩹 v10.3a-fix8: Range 3 hari (untuk ribuan halaman)
+      const offsetSeconds = hash % (86400 * 3);  // ← 259.200 detik (0-72 jam)
+
       // 🩹 FIX-STABLE-v1: Mundurkan (bukan majukan) — DETERMINISTIC, tidak pakai `now`
       // Range: dateModified-24jam s/d dateModified (selalu di masa lalu, selalu stabil)
       const finalDate = new Date(new Date(dateModified).getTime() - offsetSeconds * 1000);
