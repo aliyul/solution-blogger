@@ -4289,14 +4289,16 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     var isArticleEntity  = (entityType === 'artikel');
 
     // ═══════════════════════════════════════════════════════════
-    // 1) JASA / SEWA → Service sebagai primary
-    // ═══════════════════════════════════════════════════════════
-    if (isServiceEntity) {
-      if (isEvergreen) {
-        primary   = 'Service';
-        secondary = 'FAQPage';
-        note      = 'evergreen-service';
-      } else if (isVariant) {
+// 1) JASA / SEWA → Service untuk money/variant, ARTICLE untuk pillar
+// 🩹 FIX-EVERGREEN-ARTICLE: pillar/sub-pillar = halaman informasional
+//    → primary harus Article, bukan Service
+// ═══════════════════════════════════════════════════════════
+if (isServiceEntity) {
+       if (isEvergreen) {
+           primary   = 'Article';           // ← dari 'Service'
+           secondary = 'FAQPage';
+           note      = 'evergreen-article'; // ← dari 'evergreen-service'
+       } else if (isVariant) {
         primary   = 'Service';
         secondary = 'TechArticle';
         if (isCommercial) {
@@ -4323,14 +4325,11 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // 2) DESAIN → Service + CreativeWork
-    // ═══════════════════════════════════════════════════════════
-    else if (isDesignEntity) {
-      if (isEvergreen) {
-        primary   = 'Service';
-        secondary = 'FAQPage';
-        note      = 'design-service';
+ else if (isDesignEntity) {
+     if (isEvergreen) {
+           primary   = 'Article';           // ← dari 'Service'
+           secondary = 'FAQPage';
+           note      = 'evergreen-article'; // ← dari 'design-service'
       } else if (isVariant) {
         primary   = 'Service';
         secondary = 'CreativeWork';
