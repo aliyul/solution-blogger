@@ -707,6 +707,25 @@ function shouldSkipBaseLayer() {
     return null;
   }
 
+   function waitForRealImage(timeout = 1500) {
+    return new Promise((resolve) => {
+      const startTime = Date.now();
+      const interval = setInterval(() => {
+        __articleImageCache = undefined; // Paksa cek ulang DOM
+        const img = findBestArticleImage();
+        if (img) {
+          clearInterval(interval);
+          resolve(img);
+          return;
+        }
+        if (Date.now() - startTime > timeout) {
+          clearInterval(interval);
+          resolve(null); // Waktu habis, biarkan pakai Cloudinary
+          return;
+        }
+      }, 100);
+    });
+  }
   const CLOUDINARY_ARTICLE_CONFIG = {
     CLOUD_NAME: 'vagzz5sa',
     VERSION: 'v1789109159',
@@ -1253,6 +1272,10 @@ function shouldSkipBaseLayer() {
     const shouldGenerate = shouldGenerateArticleSchema(pageLevel, entityType, contentFocus);
     log(`🚦 Article decision: ${shouldGenerate ? 'GENERATE' : 'SKIP'}`, "GATE");
 
+    // 🩹 FIX-RACE-IMAGE: Tunggu script Universal/Hybrid menyisipkan gambar
+    if (shouldGenerate) {
+      await waitForRealImage(1500); 
+    }
     if (shouldGenerate) {
       const articleContent = document.querySelector(".post-body.entry-content")
                           || document.querySelector("article")
