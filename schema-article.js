@@ -427,20 +427,30 @@
     return hint;
   }
 
-  function shouldSkipBaseLayer() {
+function shouldSkipBaseLayer() {
   const hint = getPLDSchemaHint();
+
+  // 🩹 FIX-EVERGREEN-ARTICLE: pillar/sub-pillar jasa/sewa/desain
+  if (/evergreen-article/.test(hint.note)) {
+    log(`🛡️ Base layer SKIP — evergreen-article (base di-handle Universal)`, "GABUNG");
+    return true;
+  }
+
+  // 🩹 Backward-compat: note lama (untuk rollout-safe)
+  if (/evergreen-service/.test(hint.note) || /design-service/.test(hint.note)) {
+    log(`🛡️ Base layer SKIP — legacy evergreen note (${hint.note})`, "GABUNG");
+    return true;
+  }
 
   if (hint.primary !== 'Service' && hint.primary !== 'Product') {
     return false;
   }
 
-  // 🔥 FIX-H10-EXT: Skip base layer SELALU ketika primary = Service/Product,
-  // karena Universal/Hybrid sudah generate LocalBusiness + WebPage
   const bodyFocus = (document.body.getAttribute('data-content-focus') || '').toUpperCase();
   const tertiaryArticle = (hint.tertiary === 'Article');
   const isGabungFocus = (bodyFocus === 'GABUNG');
 
-  log(`🛡️ Base layer SKIP — primary=${hint.primary} (base layer di-handle Universal/Hybrid) | tertiary=${hint.tertiary || '-'} | focus=${bodyFocus} | GABUNG=${isGabungFocus || tertiaryArticle}`, "GABUNG");
+  log(`🛡️ Base layer SKIP — primary=${hint.primary} | tertiary=${hint.tertiary || '-'} | focus=${bodyFocus} | GABUNG=${isGabungFocus || tertiaryArticle}`, "GABUNG");
   return true;
 }
   
