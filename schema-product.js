@@ -383,7 +383,7 @@
     return hint;
   }
 
-  (function earlyExitCheck() {
+   (function earlyExitCheck() {
     const pageLevel = document.body && document.body.getAttribute('data-page-level');
     const contentFocus = document.body && document.body.getAttribute('data-content-focus');
 
@@ -395,9 +395,16 @@
     const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
     const isMoneyLevel = MONEY_LEVELS.indexOf(pageLevel) !== -1;
 
+    // 🩹 FIX-GAMBAR-PILLAR: Jalankan insert gambar untuk level pillar SEBELUM early-exit
     if (!isMoneyLevel) {
+      const imageEligibleLevels = ['pillar', 'sub-pillar-tipe-1', 'sub-pillar-tipe-2'];
+      if (imageEligibleLevels.indexOf(pageLevel) !== -1) {
+        // Jalankan insert gambar secara mandiri
+        try { fixImagesToFormat1(); } catch(e) {}
+      }
+      
       window.__AUTOSCHEMA_HYBRID_SKIP_REASON = 'not-money-level';
-      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7f-LITE] SKIP: level "${pageLevel}" bukan money level`);
+      if (DEBUG_MODE) console.log(`⏸️ [AutoSchema Hybrid v5.7f-LITE] SKIP SCHEMA: level "${pageLevel}" bukan money level (Gambar tetap di-insert jika eligible)`);
       return;
     }
 
