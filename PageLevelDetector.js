@@ -2475,7 +2475,12 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 
     if (/\bjasa\s+(desain|interior|arsitektur|eksterior)\b/i.test(lower)) return "desain";
 
-    if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|perbandingan|review)/i.test(lower.trim())) return "artikel";
+if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|perbandingan|review)/i.test(lower.trim())) {
+  // Jangan langsung return artikel jika ada keyword entity yang kuat
+  if (!/\b(jasa|sewa|desain|produk|material)\b/i.test(lower)) {
+    return "artikel";
+  }
+}
 
     if (/\b(sewa|rental)\b/i.test(lower)) {
       var _hasJasaExplicit = /\b(jasa|layanan|kontraktor|tukang|borongan)\b/i.test(lower);
