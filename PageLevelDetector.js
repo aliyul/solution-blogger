@@ -508,7 +508,118 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "desain wallpaper","desain lampu","desain furniture"
     ]
   };
-   
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🆕 PATCH 1: COMPOUND_NOUNS_CONSTRUCTION — Phase 1 (konstruksi & pondasi)
+  // FIX: "cakar ayam", "tiang pancang" dll adalah 1 konsep, bukan 2 modifier
+  // SCOPE: dipakai oleh normalizeCompoundTerms() untuk entity "jasa" saja
+  // ═══════════════════════════════════════════════════════════════════
+  var COMPOUND_NOUNS_CONSTRUCTION = [
+    // ─── Pondasi ───
+    "cakar ayam", "pondasi cakar ayam",
+    "tiang pancang", "pondasi tiang pancang",
+    "pondasi tapak", "pondasi telapak",
+    "pondasi sumuran", "sumuran",
+    "pondasi strauss", "strauss pile",
+    "pondasi bore pile", "bore pile", "bored pile",
+    "pondasi setempat", "pondasi langsung",
+    "pondasi dalam", "pondasi dangkal",
+    "pondasi menerus", "pondasi rakit",
+    "pondasi sarang laba-laba",
+    "pondasi batu kali", "pondasi batu belah",
+    "pondasi mini pile", "mini pile",
+    "pondasi tiang bor", "tiang bor",
+
+    // ─── Bor & drilling ───
+    "bor sumur", "sumur bor", "bor air", "bor tanah",
+    "bor horizontal", "horizontal drilling",
+    "bor vertikal", "vertical drilling",
+    "bor rotary", "rotary drilling",
+    "bor hidrolik", "hidrolik drilling",
+    "bor manual", "manual drilling",
+    "bor auger", "auger drilling",
+    "bor kering", "dry drilling",
+    "bor basah", "wet drilling",
+
+    // ─── Pekerjaan tanah ───
+    "cut and fill", "cut fill", "galian dan timbunan",
+    "pemadatan tanah", "soil compaction",
+    "pembersihan lahan", "land clearing",
+    "leveling tanah", "land leveling",
+    "uji kepadatan tanah", "soil density test",
+    "uji sondir", "sondir test",
+    "uji spt", "standard penetration test",
+
+    // ─── Material konstruksi ───
+    "besi beton", "besi tulangan", "besi ulir", "besi polos",
+    "besi hollow", "besi wiremesh",
+    "baja ringan", "baja struktural",
+    "beton readymix", "beton precast",
+    "beton cor", "beton k-300", "beton k-250", "beton k-225",
+    "bata ringan", "bata merah", "batako",
+    "kayu jati", "kayu pinus", "kayu keras",
+    "pipa pvc", "pipa hdpe", "pipa galvanis",
+
+    // ─── Struktur & bangunan ───
+    "bangunan rumah", "rumah tinggal",
+    "gedung bertingkat", "gedung tinggi",
+    "rumah susun", "rumah toko", "ruko", "rukan",
+    "rumah kos", "rumah kontrakan",
+
+    // ─── MEP & utilitas ───
+    "instalasi pipa", "instalasi kabel", "instalasi listrik",
+    "instalasi plumbing", "instalasi hvac",
+    "jalur kabel", "jalur pipa",
+    "saluran air", "saluran drainase",
+    "sistem plumbing", "sistem hvac",
+
+    // ─── Jalan & aspal ───
+    "jalan aspal", "jalan beton", "jalan hotmix",
+    "jalan tol", "jalan nasional", "jalan provinsi",
+    "jalan perumahan", "jalan lingkungan",
+    "aspal hotmix", "aspal cold mix",
+
+    // ─── Coring & special ───
+    "coring beton", "coring dinding", "coring lantai",
+    "coring aspal", "coring manual", "coring hidrolik",
+    "waterproofing beton", "injeksi beton",
+    "grouting semen", "grouting epoxy"
+  ];
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 🆕 PATCH 1: Helper — merge compound nouns dari token array
+  // (dipakai eksplisit kalau butuh dari luar normalizeCompoundTerms)
+  // ═══════════════════════════════════════════════════════════════════
+  function mergeCompoundNouns(tokens, compoundList) {
+    if (!tokens || !Array.isArray(tokens)) return tokens || [];
+    if (!compoundList || !Array.isArray(compoundList)) return tokens;
+
+    var result = [];
+    var i = 0;
+
+    while (i < tokens.length) {
+      var merged = false;
+
+      for (var len = Math.min(3, tokens.length - i); len >= 2; len--) {
+        var phrase = tokens.slice(i, i + len).join(" ").toLowerCase();
+
+        if (compoundList.indexOf(phrase) !== -1) {
+          result.push(phrase);
+          i += len;
+          merged = true;
+          break;
+        }
+      }
+
+      if (!merged) {
+        result.push(tokens[i]);
+        i++;
+      }
+    }
+
+    return result;
+  }
+
   // Sort base names DESC by word count
   (function() {
     for (var ent in ENTITY_BASE_NAMES) {
@@ -1015,15 +1126,24 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
   // TUJUAN: Agar countSemanticUnits() hitung 1 KONSEP,
   //         bukan 1 KATA.
   // ═══════════════════════════════════════════════════════════
-  function normalizeCompoundTerms(text, entityType) {
+    function normalizeCompoundTerms(text, entityType) {
     // Guard: input kosong
     if (!text) return text;
-    
+
     // Lowercase untuk konsistensi
     var normalized = text.toLowerCase();
-    
+
     // Ambil compound library untuk entity ini
-    var compounds = COMPOUND_LIBRARY[entityType] || [];
+    var compounds = (COMPOUND_LIBRARY[entityType] || []).slice();
+
+    // 🆕 PATCH 1b: ikutkan COMPOUND_NOUNS_CONSTRUCTION untuk entity jasa
+    // SCOPE: JASA saja — entity lain tidak berubah behavior-nya
+    if (entityType === "jasa" &&
+        typeof COMPOUND_NOUNS_CONSTRUCTION !== "undefined" &&
+        Array.isArray(COMPOUND_NOUNS_CONSTRUCTION)) {
+      compounds = compounds.concat(COMPOUND_NOUNS_CONSTRUCTION);
+    }
+
     if (compounds.length === 0) return normalized;
     
     // Sort by word count DESC (panjang dulu, agar "bore pile manual"
