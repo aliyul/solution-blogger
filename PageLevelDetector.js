@@ -364,6 +364,11 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "lapangan olahraga","struktur khusus","struktur konstruksi",
       "pembatas pengaman","saluran drainase","jalan perkerasan",
       "pematangan lahan","pekerjaan galian tanah","konstruksi",
+      // === METODE GEOTEKNIK ===
+      "soil nailing",
+      "stone column",
+      "vertical drain",
+      "bronjong",
       // === NOUN-BASED ===
       "pondasi",       
       "persiapan pondasi", // <--- TAMBAHKAN INI
