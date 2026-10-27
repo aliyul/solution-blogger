@@ -365,7 +365,9 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "pembatas pengaman","saluran drainase","jalan perkerasan",
       "pematangan lahan","pekerjaan galian tanah","konstruksi",
       // === NOUN-BASED ===
-      "pondasi","perkuatan tanah",
+      "pondasi",       
+      "persiapan pondasi", // <--- TAMBAHKAN INI
+      "perkuatan tanah",
        "cakar ayam", // <--- TAMBAHKAN BARIS INI
       // === KONSULTAN ===
       "konsultan","konsultan konstruksi","konsultan bangunan",
