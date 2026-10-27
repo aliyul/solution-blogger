@@ -1071,7 +1071,10 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     .concat(DESAIN_SPECS.furniture)
     .concat(DESAIN_SPECS.subjektif);
 
-  var SUB_PILLAR_2_KEYWORDS = ['daftar','jenis','macam','kategori','tipe','list','katalog','variasi','model','gaya','varian'];
+  var SUB_PILLAR_2_KEYWORDS = [
+  'daftar','jenis','macam','kategori','tipe','list','katalog','variasi','model','gaya','varian',
+  'spesifikasi','mutu','metode' // <--- TAMBAHKAN 3 KATA INI
+  ];
   var SUB_PILLAR_1_KEYWORDS = ['perbandingan','vs','versus','kelebihan','kekurangan','perbedaan','lebih baik','unggul','mana yang','antara','atau'];
   var SUB_PILLAR_1_STRONG = ['perbandingan','vs','versus','kelebihan','kekurangan','perbedaan','lebih baik','unggul','mana yang'];
   var SUB_PILLAR_1_WEAK = ['antara','atau'];
