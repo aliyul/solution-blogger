@@ -366,6 +366,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "pematangan lahan","pekerjaan galian tanah","konstruksi",
       // === NOUN-BASED ===
       "pondasi","perkuatan tanah",
+       "cakar ayam", // <--- TAMBAHKAN BARIS INI
       // === KONSULTAN ===
       "konsultan","konsultan konstruksi","konsultan bangunan",
       "konsultan struktur","konsultan sipil","konsultan arsitektur",
