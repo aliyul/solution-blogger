@@ -537,7 +537,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     "pondasi batu kali", "pondasi batu belah",
     "pondasi mini pile", "mini pile",
     "pondasi tiang bor", "tiang bor",
-
+      
     // ─── Bor & drilling ───
     "bor sumur", "sumur bor", "bor air", "bor tanah",
     "bor horizontal", "horizontal drilling",
@@ -656,6 +656,9 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       // Metode
       "rotary bor", "hidrolik bor", "casing bor", "slurry bor",
       "bor manual", "bor mesin", "bor hidrolik",
+        "drop hammer",
+       "diesel hammer",
+       "hydraulic hammer",
       // Objek
       "dak beton", "plat beton", "kolom beton", "sloof beton",
       "tiang bor", "pondasi bor", "pondasi dangkal", "pondasi dalam",
@@ -742,6 +745,11 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 
     sewa: [
            "alat berat", "heavy equipment",
+        // 🆕 Alat Pemancangan (Piling Equipment)
+      "drop hammer",
+      "diesel hammer",
+      "hydraulic hammer",
+      "vibro hammer",
       // 🔥 FIX-KVA: kapasitas genset = 1 konsep
       "100 kva", "50 kva", "20 kva", "10 kva", "100 kva silent",
       "concrete pump", "tower crane", "mobile crane", "crawler crane",
