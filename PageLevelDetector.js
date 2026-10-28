@@ -1092,8 +1092,49 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 
   var INFORMATIONAL_WORDS = ['butuh','cari','mau','ingin','panduan','cara','tips','tutorial','pengertian','definisi','penjelasan','kenapa','mengapa','bagaimana','berapa','apa itu','apa yang','kapan','dimana','siapa','yang mana','apakah','adakah','apa beda','apa perbedaan','update terbaru','informasi terbaru','kabar terbaru','update'];
 
-  var TIER_1_LOCATION = ["jakarta","jakarta pusat","jakarta barat","jakarta selatan","jakarta timur","jakarta utara","bogor","depok","tangerang","bekasi","bandung","karawang","purwakarta","cikarang","subang","cirebon","semarang","solo","surakarta","pekalongan","tegal","magelang","sukoharjo","boyolali","klaten","jogja","yogyakarta","surabaya","malang","kediri","gresik","sidoarjo","mojokerto","pasuruan","probolinggo","jember","banyuwangi","madiun","medan","palembang","pekanbaru","padang","lampung","batam","aceh","jambi","bengkulu","pontianak","balikpapan","samarinda","banjarmasin","makassar","manado","palu","kendari","bali","denpasar","gianyar","tabanan","bangli","karangasem","klungkung","buleleng","mataram","kupang"];
+    var TIER_1_LOCATION = [
+    // ─── DKI JAKARTA & BODETABEK ───
+    "jakarta","jakarta pusat","jakarta barat","jakarta selatan","jakarta timur","jakarta utara",
+    "bogor","depok","tangerang","tangerang selatan","bekasi","cikarang","karawang","purwakarta","subang",
+    "serang","cilegon","pandeglang","lebak","sukabumi","cianjur","garut","tasikmalaya","ciamis","banjar","kuningan","majalengka","indramayu","sumedang",
+    "pangandaran", // <--- Sudah ditambahkan
 
+    // ─── JAWA TENGAH & DIY ───
+    "semarang","solo","surakarta","pekalongan","tegal","magelang","sukoharjo","boyolali","klaten",
+    "jogja","yogyakarta","bantul","sleman","gunungkidul","kulon progo",
+    "kendal","demak","kudus","jepara","pati","rembang","blora","grobogan","sragen","karanganyar","wonogiri",
+    "temanggung","wonosobo","purworejo","kebumen","cilacap","purbalingga","banjarnegara","brebes","pemalang","batang",
+
+    // ─── JAWA TIMUR ───
+    "surabaya","malang","kediri","gresik","sidoarjo","mojokerto","pasuruan","probolinggo","jember","banyuwangi","madiun",
+    "tuban","bojonegoro","lamongan","bangkalan","sampang","pamekasan","sumenep","bondowoso","situbondo",
+    "jombang","nganjuk","magetan","ngawi","ponorogo","pacitan","trenggalek","tulungagung","blitar",
+
+    // ─── BALI & NUSA TENGGARA ───
+    "bali","denpasar","gianyar","tabanan","bangli","karangasem","klungkung","buleleng","jembrana","badung",
+    "mataram","lombok","sumbawa","bima","kupang","maumere","flores","sumba","ntt","ntb",
+
+    // ─── SUMATERA ───
+    "medan","palembang","pekanbaru","padang","lampung","batam","aceh","jambi","bengkulu","banda aceh","langsa","lhokseumawa","sabang",
+    "deli serdang","karo","simalungun","asahan","labuhanbatu","tapanuli","nias","mandailing","binjai","pematang siantar","tebing tinggi",
+    "dumai","bangka belitung","pangkal pinang","bengkalis","siak","kampar","rokan","indragiri","kuantan singingi","pelalawan",
+    "jambi","kerinci","merangin","sarolangun","batanghari","muaro jambi","tanjung jabung","tebo","bungo",
+    "bengkulu","rejang lebong","seluma","kaur","lebong","kepahiang","muko-muko",
+    "bandar lampung","metro","lampung selatan","lampung tengah","lampung utara","lampung timur","lampung barat","tanggamus","pesawaran","pringsewu","tulang bawang","way kanan","mesuji","pesisir barat",
+    "palembang","prabumulih","pagar alam","lubuklinggau","baturaja","muara enim","lahat","musi rawas","musi banyuasin","ogan","empat lawang","banyuasin",
+
+    // ─── KALIMANTAN ───
+    "pontianak","balikpapan","samarinda","banjarmasin","singkawang","tarakan","bontang","kutai","berau","paser","penajam","tabalong","tanah laut","tanah bumbu","kotabaru","hulu sungai","barito","kapuas","sintang","sambas","ketapang","bengkayang","landak","mempawah","kubu raya","sekadau","melawi","kayong","palangka raya","sampit","pangkalan bun","muara teweh","puruk cahu","tanjung selor","malinau","nunukan","tana tidung","bulungan",
+
+    // ─── SULAWESI ───
+    "makassar","manado","palu","kendari","gorontalo","bitung","tomohon","kotamobagu","palopo","parepare","bau-bau","ambon","ternate","sofifi",
+    "gowa","takalar","jeneponto","bantaeng","bulukumba","sinjai","maros","pangkep","barru","bone","soppeng","wajo","sidenreng","pinrang","enrekang","luwu","tana toraja","toraja","mamasa","mamuju","polewali","majene","pasangkayu",
+    "minahasa","benton","kepulauan sangihe","kepulauan talaud","bangka","bolmong","gorontalo","bone bolango","pohuwato","buol","toli-toli","donggala","parigi moutong","poso","tojo una-una","banggai","morowali","kolaka","konawe","bombana","muna","buton","wakatobi","bau-bau",
+    "maluku","ambon","tual","masohi","saumlaki","tidore","sofifi","halmahera","morotai","sula","buru","seram","aru","tanimbar","kei","maluku tenggara","maluku barat daya",
+
+    // ─── PAPUA ───
+    "jayapura","merauke","timika","mimika","biak","nabire","manokwari","sorong","raja ampat","teluk bintuni","fakfak","kaimana","wamena","jayawijaya","puncak jaya","mamberamo","keerom","sarmi","waropen","boven digoel","asmat","nduga","intan jaya","deiyai","dogiyai","paniai","tolikara","yahukimo","pegubin","tanah merah","malind"
+  ];
   var FISIK_WORDS = ["pantai","taman","sungai","gunung","jalan","pasar","sekolah","masjid","gereja","mall","terminal","stasiun","bandara","pelabuhan","sawah","hutan","danau","lembah","bukit","kali","dermaga","lapangan","kantor","pabrik","gudang","warung","restoran","cafe","hotel","villa","klinik","puskesmas","apotek","bank","atm","pos"];
 
   var LOCATION_WORDS = TIER_1_LOCATION;
@@ -1770,6 +1811,12 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     var lower = cleanText(text);
     if (!lower) return false;
 
+      // 🆕 TAMBAHKAN 3 BARIS INI:
+    // Mendeteksi prefix administratif Indonesia (desa, kecamatan, kabupaten, dll)
+    if (/\b(kabupaten|kab|kecamatan|kec|kelurahan|kel|desa|ds|kota|provinsi)\b/i.test(lower)) {
+      return true; // Langsung lolos sebagai MC
+    }
+         
     _buildMasterRegexes();
 
     if (_MASTER.locationCities && _MASTER.locationCities.test(lower)) {
