@@ -1,38 +1,46 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v17.9.0-SAFE
+ 🧠 Smart Evergreen Detector v18.0.0-SAFE+CONSISTENCY
  🩹 SAFE-MODE PATCH: Admin Reminder Tool (ZERO SEO RISK)
+ 🔍 + Cross-Page Consistency Checker (Blogger Feed API)
 ============================================================
- 🎯 PERUBAHAN DARI v17.9.0:
-    ❌ DISABLE: updateContentByLevelAndFocus (mutasi teks visible)
-    ❌ DISABLE: updateH1WithRules (mutasi H1)
-    ❌ DISABLE: autoUpdateDates (bump dateModified)
-    ❌ DISABLE: updateJsonLdDates di processMetaDates (mutasi JSON-LD)
-    ❌ DISABLE: cleanupFaqSchema di processMetaDates (mutasi FAQ schema)
-    ❌ DISABLE: updateJsonLdFaqYears di processMetaDates (mutasi FAQ text)
+ 🎯 PERUBAHAN DARI v17.9.0-SAFE:
+    ✅ ADD: Blogger Feed API consistency checker
+    ✅ ADD: Harga lintas halaman (product-overlap detection)
+    ✅ ADD: NAP (telepon/email) consistency
+    ✅ ADD: Brand name consistency (canonical vs alias)
+    ✅ ADD: Wilayah layanan (judul vs body)
+    ✅ ADD: Spesifikasi produk (mutu K-xxx, slump)
+    ✅ ADD: Cannibalization detection (judul mirip)
+    ✅ ADD: Cache index 6 jam + pagination (up to 750 post)
+
+ 🎯 PERUBAHAN DARI v17.9.0 (SAFE-MODE — tidak berubah):
+    ❌ DISABLE: updateContentByLevelAndFocus
+    ❌ DISABLE: updateH1WithRules
+    ❌ DISABLE: autoUpdateDates
+    ❌ DISABLE: updateJsonLdDates / cleanupFaqSchema / updateJsonLdFaqYears
     ❌ DISABLE: priceValidUntil write ke Offer schema
-    ⚠️  WARNING: aedEmergencyVerify (localStorage only, bukan SEO)
+    ⚠️  WARNING: aedEmergencyVerify (localStorage only)
     ✅ KEEP: banner, guide modal, nextUpdate, content hash, admin shortcut
-    
+
  📌 PRINSIP: Blogger raw HTML = SOURCE OF TRUTH. Googlebot lihat nilai asli.
  📌 TUJUAN: Admin reminder & workflow tool. Zero mutation, zero risk.
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "17.9.0-safe") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "18.0.0-safe-consistency") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "17.9.0-safe";
+  window.__AED_VERSION = "18.0.0-safe-consistency";
 
   var DEFAULT_BRAND_NAME = "Beton Jaya Readymix";
 
-  // 🩹 SAFE-MODE: Toggle semua mutation off
   const SAFE_MODE = {
-    DISABLE_DATE_MODIFIED_BUMP: true,   // Jangan call autoUpdateDates()
-    DISABLE_JSONLD_MUTATION: true,      // Jangan call updateJsonLdDates/cleanupFaqSchema/updateJsonLdFaqYears
-    DISABLE_OFFER_PRICE_VALID: true,    // Jangan write priceValidUntil ke Offer schema
-    WARN_EMERGENCY_VERIFY: true         // Warning di console saat aedEmergencyVerify dipanggil
+    DISABLE_DATE_MODIFIED_BUMP: true,
+    DISABLE_JSONLD_MUTATION: true,
+    DISABLE_OFFER_PRICE_VALID: true,
+    WARN_EMERGENCY_VERIFY: true
   };
 
   const GUIDE_CONFIG = {
@@ -81,6 +89,759 @@
   const DEFAULT_RULE = { type: 'evergreen', validityDays: 1095, usePriceValidUntil: false, allowPriceRange: false, ctaIntensity: 'soft' };
   const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
   const EVERGREEN_LEVELS = ['sub-pillar-tipe-1', 'sub-pillar-tipe-2', 'pillar'];
+
+  /* ============================================================
+   🔍 CONSISTENCY MODULE — Config
+  ============================================================ */
+
+  const CONSISTENCY_CONFIG = {
+    ENABLED: true,
+    FEED_URL_BASE: 'https://www.betonjayareadymix.com/feeds/posts/default',
+    PAGE_SIZE: 150,
+    MAX_PAGES: 5,
+    FETCH_TIMEOUT_MS: 10000,
+    CACHE_KEY: 'aed-content-index-v2',
+    CACHE_TTL_MS: 6 * 3600 * 1000,
+    PRICE_RANGE_TOLERANCE: 0.30,
+    CANNIBALIZATION_THRESHOLD: 0.60
+  };
+
+  const PRODUCT_KEYWORDS = [
+    'beton','cor','readymix','ready mix','ready-mix','minimix','mini mix','jayamix','beton jayamix',
+    'pasir','batu split','split','batu','semen','bata','batako','besi','baja','wiremesh',
+    'pompa','molen','gali','urug','sirtu','tanah','aspal','paving','kanstin',
+    'hebel','bata ringan','bata merah','precast','kanal','cakar ayam'
+  ];
+
+  const TRANSACTIONAL_KEYWORDS = ['harga','biaya','tarif','jual','sewa','jasa','order','pesan','beli','supplier','distributor'];
+
+  const NAP_CONFIG = {
+    ENABLED: true,
+    BRAND_CANONICAL: 'Beton Jaya Readymix',
+    BRAND_ALIASES: [
+      'beton jaya readymix','beton jaya','betonjaya','beton jaya ready mix','beton jaya ready-mix',
+      'cv beton jaya','cv. beton jaya','cv beton jaya readymix','cv. beton jaya readymix',
+      'pt beton jaya','pt. beton jaya'
+    ],
+    PHONE_REGEXES: [
+      /(?:\+?62|0)\s*8\d{1,3}[\s.\-]?\d{3,4}[\s.\-]?\d{3,5}/g
+    ],
+    EMAIL_REGEX: /[\w.+-]+@[\w-]+\.[\w.-]+/g,
+    AREA_KEYWORDS: [
+      'jabodetabek','jakarta','jakarta selatan','jakarta utara','jakarta barat','jakarta timur','jakarta pusat',
+      'bogor','depok','tangerang','tangerang selatan','bekasi','cibubur','cikarang',
+      'bandung','cimahi','soreang','banjaran','padalarang','lembang',
+      'surabaya','sidoarjo','gresik','mojokerto',
+      'semarang','kendal','demak','ungaran',
+      'yogyakarta','sleman','bantul','solo','surakarta',
+      'banten','jawa barat','jawa tengah','jawa timur',
+      'karawang','purwakarta','subang','sumedang','garut','tasikmalaya','cianjur','sukabumi'
+    ],
+    SPEC_MUTU: /\bK[\s-]?(\d{3})\b/gi,
+    SPEC_SLUMP: /slump\s*(?:[±+\-]\s*)?(\d{1,2})(?:\s*[±+\-]\s*(\d{1,2}))?\s*cm/gi
+  };
+
+  /* ============================================================
+   🔍 CONSISTENCY MODULE — Helpers
+  ============================================================ */
+
+  var _aedDecoder = null;
+  function decodeEntities(str) {
+    if (!str) return '';
+    if (!_aedDecoder) _aedDecoder = document.createElement('textarea');
+    _aedDecoder.innerHTML = str;
+    return _aedDecoder.value;
+  }
+  function stripHtml(html) {
+    if (!html) return '';
+    return decodeEntities(String(html).replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+  }
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function(c) {
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+  function normalizePagePath(p) {
+    var x = String(p || '').split('?')[0].split('#')[0];
+    x = x.replace(/\.html$/i, '');
+    if (x.length > 1 && x.charAt(x.length - 1) === '/') x = x.slice(0, -1);
+    return x.toLowerCase();
+  }
+  function extractPrices(text) {
+    var matches = (text || '').match(/Rp\.?\s*[\d.,]+/gi) || [];
+    var seen = {}, out = [];
+    for (var i = 0; i < matches.length; i++) {
+      var raw = matches[i];
+      var num = parseInt(raw.replace(/Rp\.?\s*/i, '').replace(/[.,]/g, ''), 10);
+      if (num > 0 && num < 1e12 && !seen[num]) { seen[num] = 1; out.push({ raw: raw, num: num }); }
+    }
+    return out;
+  }
+  function extractProducts(text) {
+    var lower = ' ' + String(text || '').toLowerCase().replace(/[^a-z0-9\s-]/g, ' ') + ' ';
+    var found = [];
+    for (var i = 0; i < PRODUCT_KEYWORDS.length; i++) {
+      if (lower.indexOf(' ' + PRODUCT_KEYWORDS[i] + ' ') !== -1) found.push(PRODUCT_KEYWORDS[i]);
+    }
+    return found;
+  }
+  function hasTransactionalKeywords(text) {
+    var lower = ' ' + String(text || '').toLowerCase() + ' ';
+    for (var i = 0; i < TRANSACTIONAL_KEYWORDS.length; i++) {
+      if (lower.indexOf(' ' + TRANSACTIONAL_KEYWORDS[i] + ' ') !== -1) return true;
+    }
+    return false;
+  }
+  function tokenizeTitle(title) {
+    var stop = { yang:1, dan:1, atau:1, di:1, ke:1, dari:1, untuk:1, dengan:1, pada:1, adalah:1, ini:1, itu:1, akan:1, telah:1, sudah:1, bisa:1, dapat:1, juga:1, saja:1, oleh:1, per:1, terbaru:1, update:1, murah:1, termurah:1, terbaik:1, 2023:1, 2024:1, 2025:1, 2026:1 };
+    var words = String(title || '').toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
+    return words.filter(function(w) { return !stop[w]; });
+  }
+  function jaccardSimilarity(a, b) {
+    if (!a.length || !b.length) return 0;
+    var setA = new Set(a), setB = new Set(b), inter = 0;
+    setA.forEach(function(x) { if (setB.has(x)) inter++; });
+    var union = setA.size + setB.size - inter;
+    return union > 0 ? inter / union : 0;
+  }
+  function formatRp(n) {
+    if (!n || n < 0) return 'Rp 0';
+    if (n >= 1e9) return 'Rp ' + (n/1e9).toFixed(1).replace('.0','') + ' M';
+    if (n >= 1e6) return 'Rp ' + (n/1e6).toFixed(1).replace('.0','') + ' jt';
+    if (n >= 1e3) return 'Rp ' + (n/1e3).toFixed(0) + ' rb';
+    return 'Rp ' + n;
+  }
+  function summarizePrices(prices) {
+    if (!prices || prices.length === 0) return { min:0, max:0, avg:0, count:0, samples:[] };
+    var nums = prices.map(function(p){ return p.num; });
+    var sum = nums.reduce(function(a,b){ return a+b; }, 0);
+    return {
+      min: Math.min.apply(null, nums),
+      max: Math.max.apply(null, nums),
+      avg: sum / nums.length,
+      count: nums.length,
+      samples: prices.slice(0, 3).map(function(p){ return p.raw; })
+    };
+  }
+  function formatPriceRange(s) {
+    if (!s || s.count === 0) return '—';
+    if (s.count === 1) return formatRp(s.min) + ' (1)';
+    if (s.min === s.max) return formatRp(s.min) + ' (' + s.count + ')';
+    return formatRp(s.min) + ' – ' + formatRp(s.max) + ' (' + s.count + ')';
+  }
+  function normalizePhone(raw) {
+    if (!raw) return '';
+    var d = String(raw).replace(/[^\d]/g, '');
+    if (d.indexOf('62') === 0) return d;
+    if (d.indexOf('0') === 0) return '62' + d.substring(1);
+    if (d.indexOf('8') === 0) return '62' + d;
+    return d;
+  }
+  function _extractPhonesFromText(text) {
+    var out = [], seen = {};
+    if (!text) return out;
+    for (var i = 0; i < NAP_CONFIG.PHONE_REGEXES.length; i++) {
+      NAP_CONFIG.PHONE_REGEXES[i].lastIndex = 0;
+      var matches = String(text).match(NAP_CONFIG.PHONE_REGEXES[i]) || [];
+      for (var j = 0; j < matches.length; j++) {
+        var norm = normalizePhone(matches[j]);
+        if (norm.length < 10 || norm.length > 15) continue;
+        if (!seen[norm]) { seen[norm] = 1; out.push({ raw: matches[j].trim(), normalized: norm, source: 'text' }); }
+      }
+    }
+    return out;
+  }
+  function extractPhonesFromHtml(html) {
+    var out = [], seen = {};
+    if (!html) return out;
+    var fromText = _extractPhonesFromText(stripHtml(html));
+    for (var i = 0; i < fromText.length; i++) {
+      if (!seen[fromText[i].normalized]) { seen[fromText[i].normalized] = 1; out.push(fromText[i]); }
+    }
+    var waRegex = /(?:wa\.me\/|api\.whatsapp\.com\/send\?phone=|whatsapp\.com\/send\?phone=)\/?(\d{8,15})/gi;
+    var m;
+    while ((m = waRegex.exec(html)) !== null) {
+      var n = normalizePhone(m[1]);
+      if (n.length >= 10 && n.length <= 15 && !seen[n]) { seen[n] = 1; out.push({ raw: 'wa.me/' + m[1], normalized: n, source: 'wa-link' }); }
+    }
+    var telRegex = /tel:\+?(\d{8,15})/gi;
+    while ((m = telRegex.exec(html)) !== null) {
+      var n2 = normalizePhone(m[1]);
+      if (n2.length >= 10 && n2.length <= 15 && !seen[n2]) { seen[n2] = 1; out.push({ raw: 'tel:' + m[1], normalized: n2, source: 'tel-link' }); }
+    }
+    return out;
+  }
+  function extractPhonesFromDOM(container) {
+    var out = [], seen = {};
+    if (!container) return out;
+    var fromText = _extractPhonesFromText(container.innerText || '');
+    for (var i = 0; i < fromText.length; i++) {
+      if (!seen[fromText[i].normalized]) { seen[fromText[i].normalized] = 1; out.push(fromText[i]); }
+    }
+    var links = container.querySelectorAll('a[href]');
+    for (var j = 0; j < links.length; j++) {
+      var href = links[j].getAttribute('href') || '';
+      var wm = href.match(/(?:wa\.me\/|api\.whatsapp\.com\/send\?phone=|whatsapp\.com\/send\?phone=)\/?(\d{8,15})/i);
+      if (wm) {
+        var nw = normalizePhone(wm[1]);
+        if (nw.length >= 10 && nw.length <= 15 && !seen[nw]) { seen[nw] = 1; out.push({ raw: 'wa.me/' + wm[1], normalized: nw, source: 'wa-link' }); }
+      }
+      var tm = href.match(/^tel:\+?(\d{8,15})/i);
+      if (tm) {
+        var nt = normalizePhone(tm[1]);
+        if (nt.length >= 10 && nt.length <= 15 && !seen[nt]) { seen[nt] = 1; out.push({ raw: 'tel:' + tm[1], normalized: nt, source: 'tel-link' }); }
+      }
+    }
+    return out;
+  }
+  function extractEmails(text) {
+    if (!text) return [];
+    var matches = String(text).match(NAP_CONFIG.EMAIL_REGEX) || [];
+    var seen = {}, out = [];
+    for (var i = 0; i < matches.length; i++) {
+      var e = matches[i].toLowerCase();
+      if (/\.(png|jpg|jpeg|gif|svg|webp|css|js)$/i.test(e)) continue;
+      if (e.indexOf('@sentry') !== -1 || e.indexOf('@example') !== -1) continue;
+      if (!seen[e]) { seen[e] = 1; out.push(e); }
+    }
+    return out;
+  }
+  function detectBrandAlias(title, text) {
+    var haystack = ' ' + String(title || '').toLowerCase() + ' ' + String(text || '').toLowerCase() + ' ';
+    haystack = haystack.replace(/\s+/g, ' ');
+    var canonical = NAP_CONFIG.BRAND_CANONICAL.toLowerCase();
+    var canonFound = haystack.indexOf(' ' + canonical + ' ') !== -1 || haystack.indexOf(' ' + canonical + ',') !== -1;
+    var aliasesFound = [];
+    for (var i = 0; i < NAP_CONFIG.BRAND_ALIASES.length; i++) {
+      var a = NAP_CONFIG.BRAND_ALIASES[i];
+      if (a === canonical) continue;
+      if (haystack.indexOf(' ' + a + ' ') !== -1) aliasesFound.push(a);
+    }
+    return { canonical: canonFound, aliases: aliasesFound };
+  }
+  function extractAreas(title, text) {
+    var haystack = ' ' + String(title || '').toLowerCase() + ' ' + String(text || '').toLowerCase() + ' ';
+    haystack = haystack.replace(/\s+/g, ' ');
+    var found = [];
+    for (var i = 0; i < NAP_CONFIG.AREA_KEYWORDS.length; i++) {
+      var kw = NAP_CONFIG.AREA_KEYWORDS[i];
+      if (haystack.indexOf(' ' + kw + ' ') !== -1) found.push(kw);
+    }
+    return found;
+  }
+  function extractSpecs(text) {
+    var out = { mutu: [], slump: [] };
+    if (!text) return out;
+    var m, seen = {};
+    NAP_CONFIG.SPEC_MUTU.lastIndex = 0;
+    while ((m = NAP_CONFIG.SPEC_MUTU.exec(text)) !== null) {
+      var k = 'K-' + m[1];
+      if (!seen[k]) { seen[k] = 1; out.mutu.push(k); }
+    }
+    seen = {};
+    NAP_CONFIG.SPEC_SLUMP.lastIndex = 0;
+    while ((m = NAP_CONFIG.SPEC_SLUMP.exec(text)) !== null) {
+      var s = m[2] ? m[1] + '±' + m[2] + ' cm' : m[1] + ' cm';
+      if (!seen[s]) { seen[s] = 1; out.slump.push(s); }
+    }
+    return out;
+  }
+
+  function parseFeedEntry(entry) {
+    try {
+      var title = decodeEntities((entry.title && entry.title.$t) || '');
+      var url = '';
+      for (var i = 0; i < (entry.link || []).length; i++) {
+        if (entry.link[i].rel === 'alternate') { url = entry.link[i].href; break; }
+      }
+      if (!url) return null;
+      var html = (entry.content && entry.content.$t) || (entry.summary && entry.summary.$t) || '';
+      var text = stripHtml(html).substring(0, 6000);
+      var prices = extractPrices(text);
+      var products = extractProducts(title);
+      var transactional = hasTransactionalKeywords(title);
+      var path = '';
+      try { path = new URL(url, location.origin).pathname; } catch(e) {}
+      var phones = extractPhonesFromHtml(html);
+      var emails = extractEmails(text);
+      var brand = detectBrandAlias(title, text.substring(0, 3000));
+      var areas = extractAreas(title, text.substring(0, 3000));
+      var specs = extractSpecs(text);
+      return {
+        title: title, url: url, path: path,
+        prices: prices, products: products, transactional: transactional,
+        _text: text, _phones: phones, _emails: emails,
+        _brand: brand, _areas: areas, _specs: specs, _enriched: true
+      };
+    } catch(e) { return null; }
+  }
+
+  function getCachedIndex() {
+    try {
+      var raw = localStorage.getItem(CONSISTENCY_CONFIG.CACHE_KEY);
+      if (!raw) return null;
+      var c = JSON.parse(raw);
+      if (!c || !c.ts || !c.data) return null;
+      if (Date.now() - c.ts > CONSISTENCY_CONFIG.CACHE_TTL_MS) return null;
+      return c.data;
+    } catch(e) { return null; }
+  }
+  function cacheIndex(data) {
+    try { localStorage.setItem(CONSISTENCY_CONFIG.CACHE_KEY, JSON.stringify({ ts: Date.now(), data: data })); } catch(e) {}
+  }
+  function fetchWithTimeout(url, ms) {
+    return new Promise(function(resolve, reject) {
+      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var tid = setTimeout(function() { if (controller) controller.abort(); reject(new Error('timeout')); }, ms);
+      fetch(url, controller ? { signal: controller.signal, credentials: 'omit' } : { credentials: 'omit' })
+        .then(function(r) { clearTimeout(tid); resolve(r); })
+        .catch(function(e) { clearTimeout(tid); reject(e); });
+    });
+  }
+  async function fetchContentIndex(force) {
+    if (!CONSISTENCY_CONFIG.ENABLED) return [];
+    if (!force) {
+      var cached = getCachedIndex();
+      if (cached) return cached;
+    }
+    var all = [];
+    var startIndex = 1;
+    var page = 0;
+    while (page < CONSISTENCY_CONFIG.MAX_PAGES) {
+      var url = CONSISTENCY_CONFIG.FEED_URL_BASE + '?alt=json&max-results=' + CONSISTENCY_CONFIG.PAGE_SIZE + '&start-index=' + startIndex;
+      try {
+        var res = await fetchWithTimeout(url, CONSISTENCY_CONFIG.FETCH_TIMEOUT_MS);
+        if (!res.ok) break;
+        var json = await res.json();
+        var entries = (json.feed && json.feed.entry) || [];
+        if (entries.length === 0) break;
+        for (var i = 0; i < entries.length; i++) {
+          var parsed = parseFeedEntry(entries[i]);
+          if (parsed) all.push(parsed);
+        }
+        if (entries.length < CONSISTENCY_CONFIG.PAGE_SIZE) break;
+        startIndex += CONSISTENCY_CONFIG.PAGE_SIZE;
+        page++;
+      } catch(e) {
+        console.warn('[AED] feed fetch error:', e.message || e);
+        break;
+      }
+    }
+    if (all.length > 0) cacheIndex(all);
+    return all;
+  }
+  function enrichIndexItem(p) {
+    if (!p._enriched) {
+      if (!p._text) p._text = '';
+      if (!p._phones) p._phones = extractPhonesFromHtml(p._text);
+      if (!p._emails) p._emails = extractEmails(p._text);
+      if (!p._brand) p._brand = detectBrandAlias(p.title, p._text.substring(0, 3000));
+      if (!p._areas) p._areas = extractAreas(p.title, p._text.substring(0, 3000));
+      if (!p._specs) p._specs = extractSpecs(p._text);
+      p._enriched = true;
+    }
+    return p;
+  }
+
+  async function checkNAPConsistency(index) {
+    var currentPath = normalizePagePath(location.pathname);
+    var currentBody = document.querySelector('.post-body.entry-content, .post-body, article, main') || document.body;
+    var currentPhones = extractPhonesFromDOM(currentBody);
+    var currentEmails = extractEmails(currentBody.innerText || '');
+
+    var phoneGroups = {}, emailGroups = {};
+    for (var i = 0; i < index.length; i++) {
+      var p = index[i];
+      if (normalizePagePath(p.path) === currentPath) continue;
+      enrichIndexItem(p);
+      for (var j = 0; j < p._phones.length; j++) {
+        var k = p._phones[j].normalized;
+        if (!phoneGroups[k]) phoneGroups[k] = [];
+        phoneGroups[k].push({ title: p.title, url: p.url });
+      }
+      for (var ek = 0; ek < p._emails.length; ek++) {
+        var ee = p._emails[ek];
+        if (!emailGroups[ee]) emailGroups[ee] = [];
+        emailGroups[ee].push({ title: p.title, url: p.url });
+      }
+    }
+
+    var issues = [], phoneRows = [], emailRows = [];
+    for (var ci = 0; ci < currentPhones.length; ci++) {
+      var cp = currentPhones[ci];
+      var matches = phoneGroups[cp.normalized] || [];
+      var status = 'ok';
+      if (matches.length === 0) {
+        var otherKeys = Object.keys(phoneGroups);
+        if (otherKeys.length > 0) status = 'warning';
+      }
+      phoneRows.push({ phone: cp.raw, normalized: cp.normalized, source: cp.source || 'text', otherPagesCount: matches.length, status: status });
+    }
+
+    if (currentPhones.length === 0 && Object.keys(phoneGroups).length > 0) {
+      issues.push({ level: 'warning', text: 'Nomor WA/telepon TIDAK terdeteksi di halaman ini, padahal ' + Object.keys(phoneGroups).length + ' nomor ditemukan di halaman lain.' });
+    }
+    var unikPhones = phoneRows.filter(function(r) { return r.status === 'warning'; });
+    if (unikPhones.length > 0) {
+      issues.push({ level: 'warning', text: 'Nomor ' + unikPhones.map(function(r) { return r.phone; }).join(', ') + ' hanya ada di halaman ini (tidak ditemukan di halaman lain). Cek apakah nomor resmi.' });
+    }
+
+    for (var ei = 0; ei < currentEmails.length; ei++) {
+      var em = currentEmails[ei];
+      var emMatches = emailGroups[em] || [];
+      emailRows.push({ email: em, otherPagesCount: emMatches.length, status: emMatches.length > 0 ? 'ok' : 'warning' });
+    }
+
+    var phoneSummary = [];
+    var keys = Object.keys(phoneGroups);
+    keys.sort(function(a, b) { return phoneGroups[b].length - phoneGroups[a].length; });
+    for (var pk = 0; pk < Math.min(keys.length, 5); pk++) {
+      phoneSummary.push({ normalized: keys[pk], count: phoneGroups[keys[pk]].length });
+    }
+
+    return {
+      available: true,
+      currentPhones: phoneRows,
+      currentEmails: emailRows,
+      phoneGroups: phoneSummary,
+      totalUniquePhones: keys.length,
+      totalUniqueEmails: Object.keys(emailGroups).length,
+      issues: issues
+    };
+  }
+
+  async function checkBrandConsistency(index) {
+    var currentBody = document.querySelector('.post-body.entry-content, .post-body, article, main') || document.body;
+    var h1 = document.querySelector('h1');
+    var currentTitle = (h1 ? (h1.innerText || '') : '') + ' ' + document.title;
+    var currentText = (currentBody.innerText || '').substring(0, 3000);
+
+    var current = detectBrandAlias(currentTitle, currentText);
+    var issues = [];
+
+    if (!current.canonical && current.aliases.length === 0) {
+      issues.push({ level: 'critical', text: 'Nama brand "' + NAP_CONFIG.BRAND_CANONICAL + '" tidak ditemukan di halaman ini. Tambahkan untuk E-E-A-T.' });
+    } else if (!current.canonical && current.aliases.length > 0) {
+      issues.push({ level: 'warning', text: 'Hanya alias ditemukan: ' + current.aliases.join(', ') + '. Sebaiknya gunakan nama resmi "' + NAP_CONFIG.BRAND_CANONICAL + '".' });
+    }
+
+    var dist = { canonical: 0, aliases: {} };
+    for (var i = 0; i < index.length; i++) {
+      enrichIndexItem(index[i]);
+      var b = index[i]._brand;
+      if (b.canonical) dist.canonical++;
+      for (var j = 0; j < b.aliases.length; j++) {
+        dist.aliases[b.aliases[j]] = (dist.aliases[b.aliases[j]] || 0) + 1;
+      }
+    }
+    var topAliases = Object.keys(dist.aliases).sort(function(a, b) {
+      return dist.aliases[b] - dist.aliases[a];
+    }).slice(0, 5).map(function(a) { return { alias: a, count: dist.aliases[a] }; });
+
+    return {
+      available: true,
+      currentBrand: current,
+      brandDistribution: { canonicalCount: dist.canonical, aliases: topAliases },
+      issues: issues
+    };
+  }
+
+  async function checkServiceAreaConsistency(index) {
+    var currentBody = document.querySelector('.post-body.entry-content, .post-body, article, main') || document.body;
+    var h1 = document.querySelector('h1');
+    var currentTitle = h1 ? (h1.innerText || '') : document.title;
+    var currentText = (currentBody.innerText || '').substring(0, 3000);
+
+    var areasInTitle = extractAreas(currentTitle, '');
+    var areasInBody = extractAreas('', currentText);
+    var issues = [], areaRows = [];
+
+    for (var i = 0; i < areasInTitle.length; i++) {
+      var a = areasInTitle[i];
+      var inBody = areasInBody.indexOf(a) !== -1;
+      if (!inBody) {
+        issues.push({ level: 'warning', text: 'Wilayah "' + a + '" ada di judul tapi tidak disebut di body. Untuk local SEO, sebutkan 2-3x di body.' });
+      }
+      areaRows.push({ area: a, inTitle: true, inBody: inBody, status: inBody ? 'ok' : 'warning' });
+    }
+    for (var j = 0; j < areasInBody.length; j++) {
+      var b = areasInBody[j];
+      if (areasInTitle.indexOf(b) === -1) areaRows.push({ area: b, inTitle: false, inBody: true, status: 'ok' });
+    }
+
+    var pl = document.body.getAttribute('data-page-level') || '';
+    if (areasInTitle.length === 0 && areasInBody.length === 0 && MONEY_LEVELS.indexOf(pl) !== -1) {
+      issues.push({ level: 'warning', text: 'Halaman money-level tidak menyebut wilayah layanan. Untuk local SEO, tambahkan wilayah eksplisit.' });
+    }
+
+    var dist = {};
+    for (var k = 0; k < index.length; k++) {
+      enrichIndexItem(index[k]);
+      for (var m = 0; m < index[k]._areas.length; m++) {
+        var ar = index[k]._areas[m];
+        if (!dist[ar]) dist[ar] = 0;
+        dist[ar]++;
+      }
+    }
+    var topAreas = Object.keys(dist).sort(function(a, b) { return dist[b] - dist[a]; }).slice(0, 8).map(function(a) { return { area: a, count: dist[a] }; });
+
+    return {
+      available: true,
+      areasInTitle: areasInTitle,
+      areasInBody: areasInBody,
+      areaRows: areaRows,
+      areaDistribution: topAreas,
+      issues: issues
+    };
+  }
+
+  async function checkSpecConsistency(index) {
+    var currentBody = document.querySelector('.post-body.entry-content, .post-body, article, main') || document.body;
+    var currentText = (currentBody.innerText || '').substring(0, 4000);
+    var currentSpecs = extractSpecs(currentText);
+
+    var mutuGroups = {};
+    for (var i = 0; i < index.length; i++) {
+      enrichIndexItem(index[i]);
+      var specs = index[i]._specs || { mutu: [], slump: [] };
+      for (var j = 0; j < specs.mutu.length; j++) {
+        var k = specs.mutu[j];
+        if (!mutuGroups[k]) mutuGroups[k] = [];
+        mutuGroups[k].push({ title: index[i].title, url: index[i].url, slumps: specs.slump });
+      }
+    }
+
+    var issues = [];
+    for (var mi = 0; mi < currentSpecs.mutu.length; mi++) {
+      var mutu = currentSpecs.mutu[mi];
+      var peers = mutuGroups[mutu] || [];
+      var slumpSet = {};
+      for (var pi = 0; pi < peers.length; pi++) {
+        for (var si = 0; si < peers[pi].slumps.length; si++) slumpSet[peers[pi].slumps[si]] = 1;
+      }
+      var otherSlumps = Object.keys(slumpSet);
+      if (otherSlumps.length > 0 && currentSpecs.slump.length > 0) {
+        var conflict = otherSlumps.filter(function(s) { return currentSpecs.slump.indexOf(s) === -1; });
+        if (conflict.length > 0 && conflict.length === otherSlumps.length) {
+          issues.push({ level: 'warning', text: 'Mutu ' + mutu + ' di halaman ini punya slump (' + currentSpecs.slump.join(', ') + ') berbeda dari halaman lain (' + conflict.slice(0, 2).join(', ') + ').' });
+        }
+      }
+    }
+
+    return { available: true, currentMutu: currentSpecs.mutu, currentSlump: currentSpecs.slump, issues: issues };
+  }
+
+  async function checkConsistency() {
+    if (!CONSISTENCY_CONFIG.ENABLED) {
+      return { available: false, totalIndexed: 0, productOverlap: [], potentialCannibalization: [], issues: [] };
+    }
+    var index = await fetchContentIndex(false);
+    if (!index || index.length === 0) {
+      return { available: false, totalIndexed: 0, productOverlap: [], potentialCannibalization: [], issues: [] };
+    }
+    for (var ei = 0; ei < index.length; ei++) enrichIndexItem(index[ei]);
+
+    var currentPath = normalizePagePath(location.pathname);
+    var h1El = document.querySelector('h1');
+    var currentTitle = (h1El && (h1El.innerText || h1El.textContent)) || document.title;
+    var currentBody = document.querySelector('.post-body.entry-content, .post-body, article, main') || document.body;
+    var currentText = (currentBody.innerText || '').substring(0, 2000);
+
+    var myPrices = extractPrices(currentText);
+    var myProducts = extractProducts(currentTitle);
+    var currentData = { path: currentPath, title: currentTitle, prices: summarizePrices(myPrices), products: myProducts };
+
+    var productOverlap = [], potentialCannibalization = [];
+    var myTitleTokens = tokenizeTitle(currentTitle);
+
+    for (var i = 0; i < index.length; i++) {
+      var p = index[i];
+      if (normalizePagePath(p.path) === currentPath) continue;
+      var shared = [];
+      for (var j = 0; j < myProducts.length; j++) {
+        if (p.products.indexOf(myProducts[j]) !== -1) shared.push(myProducts[j]);
+      }
+      if (shared.length > 0) {
+        var hasBoth = myPrices.length > 0 && p.prices.length > 0;
+        var curSum = summarizePrices(myPrices), othSum = summarizePrices(p.prices);
+        var item = { page: { title: p.title, url: p.url, path: p.path }, sharedProducts: shared, hasBothPrices: hasBoth, currentPrices: curSum, otherPrices: othSum, deltaPct: null, status: 'ok' };
+        if (hasBoth) {
+          var ratio = Math.abs(curSum.avg - othSum.avg) / Math.max(curSum.avg, othSum.avg);
+          item.deltaPct = Math.round(ratio * 100);
+          var overlapRange = !(curSum.max < othSum.min || othSum.max < curSum.min);
+          if (!overlapRange && ratio > CONSISTENCY_CONFIG.PRICE_RANGE_TOLERANCE) item.status = 'check';
+          else if (ratio > CONSISTENCY_CONFIG.PRICE_RANGE_TOLERANCE * 0.5) item.status = 'warning';
+        }
+        productOverlap.push(item);
+      }
+      var sim = jaccardSimilarity(myTitleTokens, tokenizeTitle(p.title));
+      if (sim >= CONSISTENCY_CONFIG.CANNIBALIZATION_THRESHOLD) {
+        potentialCannibalization.push({ page: { title: p.title, url: p.url, path: p.path }, similarity: sim });
+      }
+    }
+
+    productOverlap.sort(function(a, b) { var o = { check: 0, warning: 1, ok: 2 }; return o[a.status] - o[b.status]; });
+    potentialCannibalization.sort(function(a, b) { return b.similarity - a.similarity; });
+
+    var issues = [];
+    var checkCount = productOverlap.filter(function(x) { return x.status === 'check'; }).length;
+    var warnCount = productOverlap.filter(function(x) { return x.status === 'warning'; }).length;
+    if (checkCount > 0) issues.push({ level: 'critical', text: '⚠️ ' + checkCount + ' halaman dengan harga berpotensi TIDAK konsisten.' });
+    if (warnCount > 0) issues.push({ level: 'warning', text: 'ℹ️ ' + warnCount + ' halaman dengan selisih harga sedang — review manual.' });
+    if (potentialCannibalization.length > 0) issues.push({ level: 'warning', text: '⚠️ ' + potentialCannibalization.length + ' halaman berpotensi keyword cannibalization.' });
+
+    var nap = await checkNAPConsistency(index);
+    var brand = await checkBrandConsistency(index);
+    var area = await checkServiceAreaConsistency(index);
+    var spec = await checkSpecConsistency(index);
+
+    issues = issues.concat(nap.issues, brand.issues, area.issues, spec.issues);
+
+    return {
+      available: true,
+      totalIndexed: index.length,
+      productOverlap: productOverlap,
+      potentialCannibalization: potentialCannibalization,
+      nap: nap, brand: brand, area: area, spec: spec,
+      issues: issues,
+      currentData: currentData
+    };
+  }
+
+  function buildConsistencySection(consistency) {
+    if (!consistency) return '<p style="color:#9ca3af;">⏳ Memuat index konten dari Blogger Feed...</p>';
+    if (!consistency.available) {
+      return '<p style="color:#9ca3af;">ℹ️ Index belum tersedia. Jalankan <code>aedWarmContentIndex()</code> di console.</p>';
+    }
+
+    var html = '<p style="margin-bottom:10px;color:#6b7280;font-size:0.85rem;">📊 Terindeks: <strong>' + consistency.totalIndexed + '</strong> halaman · ' + consistency.issues.length + ' issue total</p>';
+
+    if (consistency.issues.length > 0) {
+      html += '<div style="margin-bottom:12px;">';
+      for (var ii = 0; ii < consistency.issues.length; ii++) {
+        var iss = consistency.issues[ii];
+        html += '<div class="aed-guide-issue-' + iss.level + '" style="margin-bottom:6px;">' + iss.text + '</div>';
+      }
+      html += '</div>';
+    } else {
+      html += '<p style="color:#16a34a;font-weight:600;">✅ Tidak ada issue terdeteksi.</p>';
+    }
+
+    if (consistency.nap && consistency.nap.available) {
+      html += '<h4 style="margin-top:16px;color:#1f2937;">📞 NAP / Kontak</h4>';
+      if (consistency.nap.currentPhones.length === 0) {
+        html += '<p style="color:#dc2626;font-size:0.85rem;">⚠️ Tidak ada nomor telepon/WA terdeteksi di halaman ini.</p>';
+      } else {
+        html += '<table class="aed-guide-section-table"><thead><tr><th>Nomor</th><th>Sumber</th><th>Konsistensi</th></tr></thead><tbody>';
+        for (var ni = 0; ni < consistency.nap.currentPhones.length; ni++) {
+          var ph = consistency.nap.currentPhones[ni];
+          var nbadge = ph.status === 'ok'
+            ? '<span style="color:#16a34a;">✅ Ada di ' + ph.otherPagesCount + ' halaman lain</span>'
+            : '<span style="color:#f59e0b;">⚠️ Hanya di halaman ini</span>';
+          html += '<tr><td><code style="font-size:0.82rem;">' + escapeHtml(ph.phone) + '</code></td><td style="font-size:0.78rem;color:#6b7280;">' + escapeHtml(ph.source) + '</td><td style="font-size:0.82rem;">' + nbadge + '</td></tr>';
+        }
+        html += '</tbody></table>';
+      }
+      if (consistency.nap.phoneGroups.length > 0) {
+        html += '<p style="font-size:0.82rem;margin-top:8px;color:#6b7280;">Nomor paling sering muncul:</p><ul class="aed-guide-list">';
+        for (var nk = 0; nk < Math.min(3, consistency.nap.phoneGroups.length); nk++) {
+          var pg = consistency.nap.phoneGroups[nk];
+          html += '<li><code style="font-size:0.82rem;">' + escapeHtml(pg.normalized) + '</code> — ' + pg.count + ' halaman</li>';
+        }
+        html += '</ul>';
+      }
+    }
+
+    if (consistency.brand && consistency.brand.available) {
+      html += '<h4 style="margin-top:16px;color:#1f2937;">🏢 Brand Name</h4>';
+      if (consistency.brand.currentBrand.canonical) {
+        html += '<p style="color:#16a34a;font-size:0.85rem;">✅ "' + escapeHtml(NAP_CONFIG.BRAND_CANONICAL) + '" ditemukan di halaman ini.</p>';
+      } else if (consistency.brand.currentBrand.aliases.length > 0) {
+        html += '<p style="color:#f59e0b;font-size:0.85rem;">⚠️ Hanya alias ditemukan: ' + escapeHtml(consistency.brand.currentBrand.aliases.join(', ')) + '</p>';
+      } else {
+        html += '<p style="color:#dc2626;font-size:0.85rem;">⚠️ Nama brand tidak ditemukan.</p>';
+      }
+      var bd = consistency.brand.brandDistribution;
+      if (bd.canonicalCount > 0 || bd.aliases.length > 0) {
+        html += '<p style="font-size:0.8rem;margin-top:6px;color:#6b7280;">Nama resmi dipakai di ' + bd.canonicalCount + ' halaman.</p>';
+        if (bd.aliases.length > 0) {
+          html += '<p style="font-size:0.8rem;color:#6b7280;">Alias ditemukan:</p><ul class="aed-guide-list">';
+          for (var bi = 0; bi < bd.aliases.length; bi++) {
+            html += '<li><span style="color:#f59e0b;">"' + escapeHtml(bd.aliases[bi].alias) + '"</span> — ' + bd.aliases[bi].count + ' halaman</li>';
+          }
+          html += '</ul>';
+        }
+      }
+    }
+
+    if (consistency.area && consistency.area.available) {
+      html += '<h4 style="margin-top:16px;color:#1f2937;">📍 Wilayah Layanan</h4>';
+      if (consistency.area.areaRows.length > 0) {
+        html += '<table class="aed-guide-section-table"><thead><tr><th>Wilayah</th><th>Judul</th><th>Body</th><th>Status</th></tr></thead><tbody>';
+        for (var ai = 0; ai < consistency.area.areaRows.length; ai++) {
+          var ar = consistency.area.areaRows[ai];
+          var abadge = ar.status === 'ok' ? '<span style="color:#16a34a;">✅</span>' : '<span style="color:#f59e0b;">⚠️ Cek</span>';
+          html += '<tr><td>' + escapeHtml(ar.area) + '</td><td>' + (ar.inTitle ? '✅' : '—') + '</td><td>' + (ar.inBody ? '✅' : '—') + '</td><td>' + abadge + '</td></tr>';
+        }
+        html += '</tbody></table>';
+      } else {
+        html += '<p style="font-size:0.85rem;color:#9ca3af;">Tidak ada wilayah terdeteksi di halaman ini.</p>';
+      }
+      if (consistency.area.areaDistribution.length > 0) {
+        html += '<p style="font-size:0.82rem;margin-top:8px;color:#6b7280;">Wilayah terpopuler di site:</p><ul class="aed-guide-list">';
+        for (var ak = 0; ak < Math.min(4, consistency.area.areaDistribution.length); ak++) {
+          var ad = consistency.area.areaDistribution[ak];
+          html += '<li>' + escapeHtml(ad.area) + ' — ' + ad.count + ' halaman</li>';
+        }
+        html += '</ul>';
+      }
+    }
+
+    if (consistency.spec && consistency.spec.available) {
+      html += '<h4 style="margin-top:16px;color:#1f2937;">🔧 Spesifikasi Produk</h4>';
+      var hasSpecs = consistency.spec.currentMutu.length > 0 || consistency.spec.currentSlump.length > 0;
+      if (hasSpecs) {
+        if (consistency.spec.currentMutu.length > 0) html += '<p style="font-size:0.85rem;">Mutu: <strong>' + escapeHtml(consistency.spec.currentMutu.join(', ')) + '</strong></p>';
+        if (consistency.spec.currentSlump.length > 0) html += '<p style="font-size:0.85rem;">Slump: <strong>' + escapeHtml(consistency.spec.currentSlump.join(', ')) + '</strong></p>';
+      } else {
+        html += '<p style="font-size:0.85rem;color:#9ca3af;">Tidak ada spesifikasi mutu/slump terdeteksi.</p>';
+      }
+    }
+
+    if (consistency.currentData && consistency.currentData.prices && consistency.currentData.prices.count > 0) {
+      html += '<h4 style="margin-top:16px;color:#1f2937;">💰 Harga</h4>';
+      html += '<p style="font-size:0.85rem;">Halaman ini: <strong>' + formatPriceRange(consistency.currentData.prices) + '</strong></p>';
+    }
+    var withPrices = (consistency.productOverlap || []).filter(function(x) { return x.hasBothPrices; });
+    if (withPrices.length > 0) {
+      html += '<table class="aed-guide-section-table" style="margin-top:8px;"><thead><tr><th>Halaman</th><th>Produk</th><th>Ini</th><th>Itu</th><th>Status</th></tr></thead><tbody>';
+      for (var wi = 0; wi < withPrices.length; wi++) {
+        var it = withPrices[wi];
+        var wbadge = it.status === 'check' ? '<span style="color:#dc2626;font-weight:700;">⚠️ Cek</span>'
+                   : it.status === 'warning' ? '<span style="color:#f59e0b;">ℹ️ Beda ' + it.deltaPct + '%</span>'
+                   : '<span style="color:#16a34a;">✅</span>';
+        html += '<tr><td><a href="' + escapeHtml(it.page.url) + '" target="_blank" rel="noopener" style="color:#2563eb;">' + escapeHtml(it.page.title) + '</a></td><td style="font-size:0.78rem;">' + escapeHtml(it.sharedProducts.join(',')) + '</td><td style="font-size:0.8rem;">' + formatPriceRange(it.currentPrices) + '</td><td style="font-size:0.8rem;">' + formatPriceRange(it.otherPrices) + '</td><td>' + wbadge + '</td></tr>';
+      }
+      html += '</tbody></table>';
+    }
+
+    if (consistency.potentialCannibalization && consistency.potentialCannibalization.length > 0) {
+      html += '<h4 style="margin-top:16px;color:#1f2937;">⚔️ Cannibalization</h4>';
+      html += '<ul class="aed-guide-list">';
+      for (var cc = 0; cc < Math.min(5, consistency.potentialCannibalization.length); cc++) {
+        var cn = consistency.potentialCannibalization[cc];
+        html += '<li><a href="' + escapeHtml(cn.page.url) + '" target="_blank" rel="noopener">' + escapeHtml(cn.page.title) + '</a> <span style="color:#9ca3af;">(' + Math.round(cn.similarity * 100) + '% mirip)</span></li>';
+      }
+      html += '</ul>';
+    }
+
+    html += '<p style="margin-top:12px;font-size:0.75rem;color:#9ca3af;">ℹ️ Index cached 6 jam. Refresh: <code>aedClearContentIndex()</code> → reload.</p>';
+    return html;
+  }
+
+  /* ============================================================
+   🎯 CORE AED — Helper functions (unchanged dari v17.9.0-SAFE)
+  ============================================================ */
 
   function getPriority(pl, cf) { return WARNING_CONFIG.PRIORITY_MAP[pl + '|' + String(cf || '').toUpperCase()] || 'low'; }
   function detectLocale() { try { var h = document.documentElement.getAttribute('lang') || ''; if (h.toLowerCase().indexOf('en') === 0) return 'en'; var b = document.body.getAttribute('lang') || ''; if (b.toLowerCase().indexOf('en') === 0) return 'en'; } catch (e) {} return 'id'; }
@@ -240,46 +1001,29 @@
   function hasLastUpdatedAnchor() { var sels = ['.update-badge', '[class*="update-badge"]', '.last-updated', '.updated-date', '.date-modified', '.post-date', '.article-date', '.publish-date', '.post-meta', '.entry-meta', '.article-meta', '.breadcrumb + p', '.toc + p', 'h1 + p', '[class*="last-updated"]']; for (var i = 0; i < sels.length; i++) { try { var e = document.querySelectorAll(sels[i]); if (e && e.length > 0) return true; } catch(er) {} } var ke = queryByKeyword(document.body, ['diperbarui','update','terakhir','last updated','updated','perbarui'], true); return ke && ke.length > 0; }
   function detectContentChangeSinceLastVisit() { var c = document.querySelector('.post-body.entry-content, .post-body, article, main'); if (!c) return { changed: false, reason: 'no-container' }; var t = (c.innerText || '').replace(/\s+/g, ' ').trim(); if (t.length < 100) return { changed: false, reason: 'too-short' }; var h = 0; for (var i = 0; i < t.length; i++) { h = ((h << 5) - h) + t.charCodeAt(i); h = h | 0; } var ch = String(Math.abs(h)); var sk = 'aed-content-hash-' + location.pathname; var sh = null; try { sh = localStorage.getItem(sk); } catch(e) {} var changed = false; if (sh && sh !== ch) { changed = true; } try { localStorage.setItem(sk, ch); } catch(e) {} return { changed: changed, reason: changed ? 'content-changed' : 'same', hash: ch }; }
 
-  // 🩹 SAFE-MODE: All mutation functions below are kept for backward compat but NEVER called automatically.
-  // Google sees Blogger raw HTML = source of truth. No client-side manipulation.
-
-  function updateJsonLdDates(dm, pv) { /* 🩹 SAFE-MODE: DISABLED — see processMetaDates */ return { updated: 0 }; }
-  function cleanupFaqSchema(bn) { /* 🩹 SAFE-MODE: DISABLED — see processMetaDates */ return { cleaned: 0, injected: 0, normalized: 0, entitiesDecoded: 0 }; }
-  function updateJsonLdFaqYears(ny) { /* 🩹 SAFE-MODE: DISABLED — see processMetaDates */ return { updated: 0, replaced: 0 }; }
-  function updateContentByLevelAndFocus(pl, cf, now) { /* 🩹 SAFE-MODE: DISABLED — never called */ return { updated: false, skipped: true }; }
-  function updateH1WithRules(pl, now) { /* 🩹 SAFE-MODE: DISABLED — never called */ return { updated: false }; }
+  function updateJsonLdDates(dm, pv) { /* 🩹 SAFE-MODE: DISABLED */ return { updated: 0 }; }
+  function cleanupFaqSchema(bn) { /* 🩹 SAFE-MODE: DISABLED */ return { cleaned: 0, injected: 0, normalized: 0, entitiesDecoded: 0 }; }
+  function updateJsonLdFaqYears(ny) { /* 🩹 SAFE-MODE: DISABLED */ return { updated: 0, replaced: 0 }; }
+  function updateContentByLevelAndFocus(pl, cf, now) { /* 🩹 SAFE-MODE: DISABLED */ return { updated: false, skipped: true }; }
+  function updateH1WithRules(pl, now) { /* 🩹 SAFE-MODE: DISABLED */ return { updated: false }; }
   function autoUpdateDates(pl, cf, opts) {
-    // 🩹 SAFE-MODE: Never bump dateModified. Blogger = source of truth.
     console.log('🩹 [AED SAFE-MODE] autoUpdateDates() called but DISABLED. dateModified stays as Blogger value.');
     return false;
   }
 
-  // 🩹 SAFE-MODE: processMetaDates — hanya set meta tags untuk admin internal (nextUpdate, AEDMetaDates)
-  // TIDAK memodifikasi dateModified, JSON-LD, FAQ schema, atau Offer priceValidUntil.
   async function processMetaDates(cdm, ft, vm, upvu, pl, et, ci, apr, dv, conf, strat, sc, io, oreason, hd, cf, au) {
     var mp = document.querySelector('meta[itemprop="datePublished"]');
     var mm = document.querySelector('meta[itemprop="dateModified"]');
     var mn = document.querySelector('meta[name="nextUpdate"]');
     var nowISO = new Date().toISOString();
 
-    // 🩹 SAFE-MODE FIX: Baca string RAW dari meta (jangan reformat via toISOWithTimezoneLocal)
-    //    toISOWithTimezoneLocal() hardcode offset +07:00 tapi pakai getHours() local browser.
-    //    → Untuk browser non-+07:00, nilai "mundur/maju" 7+ jam = inconsistency.
-    //    Solusi: pakai string mentah dari getAttribute('content') — 100% roundtrip identik.
     var dp = (mp && mp.getAttribute('content')) ? mp.getAttribute('content').trim() : nowISO;
     var dm = (mm && mm.getAttribute('content')) ? mm.getAttribute('content').trim() : dp;
     if (new Date(dm).getTime() < new Date(dp).getTime()) dm = dp;
-    // 🩹 SAFE-MODE: Do NOT create meta tags if they don't exist.
-    // Blogger template MUST provide them. AED only reads, doesn't write to Blogger-owned tags.
-    // We DO write nextUpdate (AED-internal, not Google signal).
     if (!mn) { mn = document.createElement("meta"); mn.setAttribute("name","nextUpdate"); document.head.appendChild(mn); }
     var nu = toISOWithTimezoneLocal(new Date(new Date(dm).getTime() + vm));
     mn.setAttribute("content", nu);
 
-    // 🩹 SAFE-MODE: priceValidUntil write DISABLED
-    // (was: if (upvu && hd && hd.isPrice) { el.setAttribute("priceValidUntil", pvu); })
-
-    // Body classes (harmless CSS state)
     document.body.classList.add('page-level-' + pl);
     document.body.classList.add('entity-type-' + et);
     document.body.classList.add('content-type-' + ft);
@@ -291,13 +1035,13 @@
     window.AEDMetaDates = {
       type: ft, entityType: et, pageLevel: pl,
       datePublished: dp,
-      dateModified: dm,           // 🩹 SAFE: original Blogger value, untouched
-      nextUpdate: nu,             // AED-internal, not Google signal
-      priceValidUntil: nu,        // value only, NOT written to Offer schema
+      dateModified: dm,
+      nextUpdate: nu,
+      priceValidUntil: nu,
       validityDays: vm / 86400000,
       usePriceValidUntil: upvu,
       ctaIntensity: ci, allowPriceRange: apr,
-      detectorVersion: dv || 'v17.9.0-safe',
+      detectorVersion: dv || 'v18.0.0-safe-consistency',
       detectionConfidence: conf || null,
       isOverridden: io || false,
       overrideReason: oreason || null,
@@ -308,10 +1052,11 @@
       pldSchemaType: getPLDSchemaType(pl, et, cf),
       pldCtaType: getPLDCtaType(pl, cf, et),
       brandName: resolveBrandName(),
-      needsManualVerify: false,   // 🩹 SAFE: no auto-verify flag
+      needsManualVerify: false,
       lastAutoUpdate: null,
       updateCount: 0,
-      safeMode: true              // 🩹 SAFE: marker for consumer/debug
+      safeMode: true,
+      consistencyEnabled: CONSISTENCY_CONFIG.ENABLED
     };
     window.EvergreenDetectorResults = window.AEDMetaDates;
   }
@@ -415,7 +1160,7 @@
 
     if (a.h1YearOutdated) guide.issues.push({ level: 'critical', text: 'Tahun di H1 (' + a.h1Year + ') usang. Current: ' + a.currentYear + '.' });
     if (a.outdatedYears.length > 0) guide.issues.push({ level: 'warning', text: 'Tahun usang di konten: ' + a.outdatedYears.join(', ') });
-    if ((contentFocus === 'HARGA' || contentFocus === 'GABUNG') && !a.hasPrice) guide.issues.push({ level: 'critical', text: 'Tidak ada harga (Rp...) padahal content focus = HARGA.' });
+    if ((contentFocus === 'HARGA' || contentFocus === 'GABUNG') && !a.hasPrice) guide.issues.push({ level: 'critical', text: 'Tidak  ada harga (Rp...) padahal content focus = HARGA.' });
     if (!a.hasWA && pageLevel.indexOf('money') === 0) guide.issues.push({ level: 'warning', text: 'Nomor WA/telepon tidak terdeteksi.' });
     if (a.faqCount < 3) guide.issues.push({ level: 'warning', text: 'FAQ terdeteksi hanya ' + a.faqCount + ' (ideal ≥ 3).' });
     if (!a.hasTable && pageLevel.indexOf('money') === 0) guide.issues.push({ level: 'warning', text: 'Tidak ada tabel — idealnya ada tabel harga/spesifikasi.' });
@@ -435,14 +1180,15 @@
       { section: 'Tabel', action: a.hasTable ? '✅ ' + a.tableCount + ' tabel terdeteksi' : '💡 Tambahkan tabel harga/spesifikasi' },
       { section: 'Kontak WA', action: a.hasWA ? '✅ WA terdeteksi' : '⚠️ Tidak ada WA — tambahkan' },
       { section: 'Schema JSON-LD', action: '✅ Auto-handled by Blogger (AED Safe Mode)' },
-      { section: 'Internal link', action: '✅ Cek tidak broken, tambah 1 link ke halaman baru' }
+      { section: 'Internal link', action: '✅ Cek tidak broken, tambah 1 link ke halaman baru' },
+      { section: 'Konsistensi Lintas Halaman', action: '🔍 Cek NAP, Brand, Area, Spec, Harga di section bawah' }
     ];
 
     if (contentFocus === 'HARGA' || contentFocus === 'GABUNG') { guide.minimalChanges = ['1. Update "Berlaku per [bulan] ' + a.currentYear + '" di paragraf pembuka.', '2. Tambah 1 FAQ dari pertanyaan CS bulan ini.', '3. Update tanggal "Terakhir diperbarui: [bulan] ' + a.currentYear + '" di body (kalau ada).', '4. Tambah 1 testimoni pelanggan terbaru (nama + wilayah + proyek).', '5. Reorder FAQ: taruh yang paling sering ditanya di atas.']; }
     else if (pageLevel === 'pillar' || pageLevel.indexOf('sub-pillar') === 0) { guide.minimalChanges = ['1. Tambah 1 FAQ baru (paling ringan & aman).', '2. Update statistik/contoh kasus dengan data ' + a.currentYear + '.', '3. Update screenshot/gambar ke versi terbaru.', '4. Cek internal link — tambah 1 link ke halaman baru.']; }
     else { guide.minimalChanges = ['1. Tambah 1 FAQ baru.', '2. Update contoh/kasus dengan data ' + a.currentYear + '.']; }
 
-    guide.checklist = ['□ Buka halaman di browser — verify tampilan normal', '□ Cek harga dengan supplier (WA/telp) — sama atau berubah?', '□ Cek nomor WA/telepon masih aktif', '□ Cek stok/varian masih tersedia', '□ Cek wilayah layanan masih sama', '□ Cek syarat order (min order, ongkir, PPN)', '□ Buka Blogger editor — edit minimal 1 elemen', '□ Save & Publish', '□ Reload halaman → banner hilang ✅'];
+    guide.checklist = ['□ Buka halaman di browser — verify tampilan normal', '□ Cek harga dengan supplier (WA/telp) — sama atau berubah?', '□ Cek nomor WA/telepon masih aktif', '□ Cek stok/varian masih tersedia', '□ Cek wilayah layanan masih sama', '□ Cek syarat order (min order, ongkir, PPN)', '□ Cek konsistensi NAP/Brand/Area di section Konsistensi Lintas Halaman', '□ Buka Blogger editor — edit minimal 1 elemen', '□ Save & Publish', '□ Reload halaman → banner hilang ✅'];
     return guide;
   }
 
@@ -476,6 +1222,9 @@
           '<div class="aed-guide-section"><h3>🎯 Priority Actions</h3>' + priorityHtml + '</div>' +
           '<div class="aed-guide-section"><h3>💡 Minimal Changes (kalau fakta masih sama)</h3>' + minimalHtml + '</div>' +
           '<div class="aed-guide-section"><h3>✅ Checklist Eksekusi</h3>' + checklistHtml + '</div>' +
+          '<div class="aed-guide-section"><h3>🔍 Konsistensi Lintas Halaman</h3><div id="aed-consistency-section">' +
+            (guide.consistency ? buildConsistencySection(guide.consistency) : '<p style="color:#9ca3af;">⏳ Memuat index konten dari Blogger Feed...</p>') +
+          '</div></div>' +
           '<div class="aed-guide-section">' +
             '<h3>🚨 Emergency Option (Tombol Darurat)</h3>' +
             '<div class="aed-guide-issue-critical" style="font-size:0.85rem; margin-bottom:12px;">' +
@@ -509,7 +1258,29 @@
   function closeGuideModal() { var m = document.getElementById('aed-guide-modal'); if (m) m.remove(); document.body.style.overflow = ''; if (window._aedGuideEscHandler) { document.removeEventListener('keydown', window._aedGuideEscHandler); window._aedGuideEscHandler = null; } }
   var _guideClickCount = 0; var _guideClickTimer = null;
   function handleGuideButtonClick() { _guideClickCount++; var hint = document.getElementById('aed-guide-hint'); if (_guideClickTimer) clearTimeout(_guideClickTimer); if (_guideClickCount === 1) { if (hint) hint.textContent = GUIDE_CONFIG.BUTTON_HINT_1; _guideClickTimer = setTimeout(function() { _guideClickCount = 0; if (hint) hint.textContent = ''; }, GUIDE_CONFIG.CLICK_RESET_MS); } else if (_guideClickCount === 2) { if (hint) hint.textContent = GUIDE_CONFIG.BUTTON_HINT_2; _guideClickTimer = setTimeout(function() { _guideClickCount = 0; if (hint) hint.textContent = ''; }, GUIDE_CONFIG.CLICK_RESET_MS); } else if (_guideClickCount >= GUIDE_CONFIG.CLICKS_TO_OPEN) { _guideClickCount = 0; if (hint) hint.textContent = ''; openGuideFromCurrentPage(); } }
-  function openGuideFromCurrentPage() { var pl = document.body.getAttribute('data-page-level') || 'pillar'; var cf = document.body.getAttribute('data-content-focus') || 'INFORMASI'; var ft = (document.body.getAttribute('data-content-type') || (EVERGREEN_LEVELS.indexOf(pl) !== -1 ? 'evergreen' : 'non-evergreen')); var vd = getValidityByContext(pl, cf); var mn = document.querySelector('meta[name="nextUpdate"]'); var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : 0; showGuideModal(generatePageGuide(pl, cf, ft, vd, dur)); }
+
+  async function openGuideFromCurrentPage() {
+    var pl = document.body.getAttribute('data-page-level') || 'pillar';
+    var cf = document.body.getAttribute('data-content-focus') || 'INFORMASI';
+    var ft = (document.body.getAttribute('data-content-type') || (EVERGREEN_LEVELS.indexOf(pl) !== -1 ? 'evergreen' : 'non-evergreen'));
+    var vd = getValidityByContext(pl, cf);
+    var mn = document.querySelector('meta[name="nextUpdate"]');
+    var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : 0;
+
+    var guide = generatePageGuide(pl, cf, ft, vd, dur);
+    guide.consistency = null;
+    showGuideModal(guide);
+
+    try {
+      var consistency = await checkConsistency();
+      var sec = document.getElementById('aed-consistency-section');
+      if (sec) sec.innerHTML = buildConsistencySection(consistency);
+    } catch(e) {
+      var sec2 = document.getElementById('aed-consistency-section');
+      if (sec2) sec2.innerHTML = '<p style="color:#dc2626;">⚠️ Gagal memuat index: ' + escapeHtml(e.message || 'unknown') + '</p>';
+    }
+  }
+
   function injectGuideButton() { if (!GUIDE_CONFIG.ENABLED) return; if (GUIDE_CONFIG.ADMIN_ONLY && !isAdmin()) return; if (document.getElementById('aed-guide-btn')) return; var h1 = document.querySelector('h1'); if (!h1) return; var wrap = document.createElement('div'); wrap.id = 'aed-guide-btn-wrap'; wrap.setAttribute('data-nosnippet', ''); var btn = document.createElement('button'); btn.id = 'aed-guide-btn'; btn.type = 'button'; btn.setAttribute('data-nosnippet', ''); btn.setAttribute('aria-label', 'Buka panduan update halaman'); btn.textContent = GUIDE_CONFIG.BUTTON_TEXT; btn.addEventListener('click', handleGuideButtonClick); var hint = document.createElement('span'); hint.id = 'aed-guide-hint'; hint.setAttribute('data-nosnippet', ''); wrap.appendChild(btn); wrap.appendChild(hint); h1.parentNode.insertBefore(wrap, h1.nextSibling); }
 
   function initAdminKeyboardShortcut() { var count = 0; var timer = null; document.addEventListener('keydown', function(e) { if (!document.hasFocus()) return; var activeEl = document.activeElement; if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) return; if (e.key === 'Enter') { count++; if (timer) clearTimeout(timer); showToast('Tekan ENTER ' + (3 - count) + 'x lagi untuk Admin Mode...'); if (count >= 3) { count = 0; localStorage.setItem('aed-is-admin', 'true'); showToast('✅ Admin Mode Aktif! Reloading...'); setTimeout(function() { location.reload(); }, 1000); } else { timer = setTimeout(function() { count = 0; hideToast(); }, 3000); } } }); }
@@ -530,11 +1301,7 @@
     var ft = rule.type;
     var vd = rule.validityDays;
     var vm = vd * 86400000;
-    var cc = detectContentChangeSinceLastVisit();  // Update hash only for admin tracking
-
-    // 🩹 SAFE-MODE: NEVER auto-bump. `au` always false.
-    // Even if content changed, dateModified stays as Blogger's lastUpdatedISO8601.
-    // Admin sees content hash change via console (if curious), but nothing is written.
+    var cc = detectContentChangeSinceLastVisit();
     var au = false;
 
     await processMetaDates(cdm, ft, vm, rule.usePriceValidUntil, r.pageLevel, r.entityType, rule.ctaIntensity, rule.allowPriceRange, r.detectorVersion, null, null, null, rule.overridden || false, rule.overrideReason || null, hd, cf, au);
@@ -544,7 +1311,6 @@
     window.dispatchEvent(new Event("detectEvergreenReady"));
   }
 
-  // 🩹 SAFE-MODE: aedEmergencyVerify — only localStorage, warning prominent
   window.aedEmergencyVerify = function(customDate, opts) {
     opts = opts || {};
     if (!opts.confirm) return null;
@@ -557,7 +1323,6 @@
     var cf = document.body.getAttribute('data-content-focus') || 'HARGA';
     var vd = getValidityByContext(pl, cf);
     var nu = toISOWithTimezoneLocal(new Date(new Date(customDate).getTime() + vd * 86400000));
-    // 🩹 SAFE-MODE: Do NOT touch meta tags. Only update localStorage for admin display.
     document.body.removeAttribute('data-aed-warning-severity');
     document.body.removeAttribute('data-aed-warning-days');
     document.body.removeAttribute('data-aed-warning-stuck');
@@ -578,18 +1343,76 @@
     return { dateModified: customDate, nextUpdate: nu, validityDays: vd, pageLevel: pl, contentFocus: cf, safeMode: true, note: 'Browser only - no SEO effect' };
   };
   window.aedVerifyNow = function(customDate) { return window.aedEmergencyVerify(customDate, { confirm: true }); };
-  window.aedShowEditGuide = function() { var pl = document.body.getAttribute('data-page-level') || 'pillar'; var cf = document.body.getAttribute('data-content-focus') || 'INFORMASI'; var ft = (EVERGREEN_LEVELS.indexOf(pl) !== -1) ? 'evergreen' : 'non-evergreen'; var vd = getValidityByContext(pl, cf); var mn = document.querySelector('meta[name="nextUpdate"]'); var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : 0; var g = generatePageGuide(pl, cf, ft, vd, dur); console.log('📖 PAGE GUIDE (SAFE MODE):', g.meta); if (g.issues.length > 0) console.log('Issues:', g.issues); console.log('Priority:', g.priorityActions); console.log('Minimal Changes:', g.minimalChanges); };
-  window.aedCheckStatus = function() { if (!window.AEDMetaDates) return null; var mm = document.querySelector('meta[itemprop="dateModified"]'); var mn = document.querySelector('meta[name="nextUpdate"]'); var mp = document.querySelector('meta[itemprop="datePublished"]'); var ad = null; try { var rn = localStorage.getItem('aed-emergency-verified-' + location.pathname); if (rn) ad = JSON.parse(rn); else { var rl = localStorage.getItem('aed-verified-' + location.pathname); if (rl) { ad = JSON.parse(rl); ad._source = 'legacy-key'; } } } catch (e) {} var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : null; var s = { datePublished: mp ? mp.content : null, dateModified: mm ? mm.content : null, nextUpdate: mn ? mn.content : null, daysUntilReview: dur, needsManualVerify: document.body.getAttribute('data-aed-needs-review') === 'true', warningSeverity: document.body.getAttribute('data-aed-warning-severity'), lastEmergencyVerify: ad, safeMode: true, aedData: window.AEDMetaDates }; console.table(s); return s; };
+
+  window.aedShowEditGuide = async function() {
+    var pl = document.body.getAttribute('data-page-level') || 'pillar';
+    var cf = document.body.getAttribute('data-content-focus') || 'INFORMASI';
+    var ft = (EVERGREEN_LEVELS.indexOf(pl) !== -1) ? 'evergreen' : 'non-evergreen';
+    var vd = getValidityByContext(pl, cf);
+    var mn = document.querySelector('meta[name="nextUpdate"]');
+    var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : 0;
+    var g = generatePageGuide(pl, cf, ft, vd, dur);
+    g.consistency = await checkConsistency();
+    console.log('📖 PAGE GUIDE (SAFE MODE):', g.meta);
+    if (g.issues.length > 0) console.log('Issues:', g.issues);
+    if (g.consistency.issues && g.consistency.issues.length > 0) console.log('Consistency issues:', g.consistency.issues);
+    if (g.consistency.productOverlap && g.consistency.productOverlap.length > 0) {
+      console.table(g.consistency.productOverlap.map(function(x){ return { page: x.page.title, products: x.sharedProducts.join(','), status: x.status, deltaPct: x.deltaPct }; }));
+    }
+    console.log('Priority:', g.priorityActions);
+    console.log('Minimal Changes:', g.minimalChanges);
+  };
+
+  window.aedCheckStatus = function() { if (!window.AEDMetaDates) return null; var mm = document.querySelector('meta[itemprop="dateModified"]'); var mn = document.querySelector('meta[name="nextUpdate"]'); var mp = document.querySelector('meta[itemprop="datePublished"]'); var ad = null; try { var rn = localStorage.getItem('aed-emergency-verified-' + location.pathname); if (rn) ad = JSON.parse(rn); else { var rl = localStorage.getItem('aed-verified-' + location.pathname); if (rl) { ad = JSON.parse(rl); ad._source = 'legacy-key'; } } } catch (e) {} var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : null; var s = { datePublished: mp ? mp.content : null, dateModified: mm ? mm.content : null, nextUpdate: mn ? mn.content : null, daysUntilReview: dur, needsManualVerify: document.body.getAttribute('data-aed-needs-review') === 'true', warningSeverity: document.body.getAttribute('data-aed-warning-severity'), lastEmergencyVerify: ad, safeMode: true, consistencyEnabled: CONSISTENCY_CONFIG.ENABLED, aedData: window.AEDMetaDates }; console.table(s); return s; };
+
+  /* ============================================================
+   🔍 Consistency — Public API
+  ============================================================ */
+
+  window.aedWarmContentIndex = async function() {
+    console.log('[AED] Fetching content index...');
+    var idx = await fetchContentIndex(true);
+    console.log('[AED] ✅ Indexed ' + idx.length + ' posts');
+    return idx;
+  };
+  window.aedClearContentIndex = function() {
+    try { localStorage.removeItem(CONSISTENCY_CONFIG.CACHE_KEY); console.log('[AED] ✅ Index cache cleared'); } catch(e) {}
+  };
+  window.aedCheckConsistency = async function() {
+    var c = await checkConsistency();
+    console.log('[AED] Consistency report:', c);
+    if (c.productOverlap && c.productOverlap.length > 0) {
+      console.table(c.productOverlap.map(function(x){ return { page: x.page.title, products: x.sharedProducts.join(','), status: x.status, deltaPct: x.deltaPct }; }));
+    }
+    if (c.nap && c.nap.phoneGroups && c.nap.phoneGroups.length > 0) {
+      console.log('[AED] NAP — nomor paling sering:', c.nap.phoneGroups);
+    }
+    if (c.brand && c.brand.brandDistribution) {
+      console.log('[AED] Brand distribution:', c.brand.brandDistribution);
+    }
+    if (c.area && c.area.areaDistribution) {
+      console.log('[AED] Area distribution:', c.area.areaDistribution);
+    }
+    return c;
+  };
 
   window.detectEvergreen = detectEvergreen;
   window.__detectEvergreenReady = true;
   initAdminKeyboardShortcut();
 
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('🩹 AED v17.9.0-SAFE — Admin Reminder Tool (ZERO SEO MUTATION)');
+  console.log('🩹 AED v18.0.0-SAFE+CONSISTENCY — Admin Reminder + Cross-Page Checker');
   console.log('═══════════════════════════════════════════════════════════');
   console.log('✅ PRESERVED: Banner warning, guide modal, nextUpdate, content hash');
   console.log('✅ PRESERVED: Author byline, admin shortcut, aedCheckStatus()');
+  console.log('✅ ADDED: Blogger Feed API consistency checker');
+  console.log('   • Harga lintas halaman (product-overlap)');
+  console.log('   • NAP (telepon/email) konsistensi');
+  console.log('   • Brand name konsistensi (canonical vs alias)');
+  console.log('   • Wilayah layanan (judul vs body)');
+  console.log('   • Spesifikasi produk (mutu K-xxx, slump)');
+  console.log('   • Keyword cannibalization detection');
+  console.log('   • Cache 6 jam + pagination (up to 750 post)');
   console.log('❌ DISABLED:  autoUpdateDates (dateModified bump)');
   console.log('❌ DISABLED:  updateJsonLdDates (JSON-LD mutation)');
   console.log('❌ DISABLED:  cleanupFaqSchema (FAQ schema mutation)');
@@ -599,6 +1422,12 @@
   console.log('❌ DISABLED:  priceValidUntil write to Offer schema');
   console.log('📌 Blogger raw HTML = SOURCE OF TRUTH');
   console.log('📌 Googlebot sees ORIGINAL dateModified. Zero risk.');
+  console.log('═══════════════════════════════════════════════════════════');
+  console.log('🔍 Consistency Console Commands:');
+  console.log('   await aedWarmContentIndex()   — fetch & cache index');
+  console.log('   await aedCheckConsistency()   — run full check');
+  console.log('   aedClearContentIndex()        — clear cache (force refetch)');
+  console.log('   await aedShowEditGuide()      — log guide + consistency');
   console.log('═══════════════════════════════════════════════════════════');
 
   if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", function () { setTimeout(function () { detectEvergreen(); }, 100); }, { once: true }); } else { setTimeout(function () { detectEvergreen(); }, 100); }
