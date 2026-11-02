@@ -156,6 +156,12 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     4: "money-master", 5: "money-page", 6: "money-child",
     7: "variant", 8: "sub-variant"
   };
+ // ═══════════════════════════════════════════════════════════════
+// 🆕 LEVEL_OVERRIDES — Paksa level untuk URL tertentu
+// ═══════════════════════════════════════════════════════════════
+var LEVEL_OVERRIDES = {
+  "jasa-pasang-pagar-beton-precast": "variant",
+};
 
   // ═══════════════════════════════════════════════════════════
   // 🔥 PATCH 12a: EXPECTED_CHILD_MAP (SEO DIMENSION)
@@ -3336,6 +3342,11 @@ if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|
   // ═══════════════════════════════════════════════════════════
     function detectMoneyLevelInternal(text, entityType, _skipHargaFollow) {
     var lowerText = text.toLowerCase();
+    // 🆕 LEVEL_OVERRIDES CHECK
+  var _slugKey = lowerText.replace(/\s+/g, "-");
+  if (LEVEL_OVERRIDES[_slugKey] !== undefined) {
+    return LEVEL_OVERRIDES[_slugKey];
+  }
 
    // 🔥 FIX-SUBPILLAR-STRICT: pakai versi ketat (keyword harus di awal)
     var _earlySubPillar = detectSubPillarStrict(text);
@@ -3433,20 +3444,11 @@ if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|
         }
       }
 
-            if (_matchedBaseMin.length >= 2) {
-        var _matchedFiltered = _matchedBaseMin.filter(function(b) {
-          if (b === "borongan") return false;
-          if (/^borongan\b/i.test(b)) return false;
-          
-          // 🔥 PATCH v23.9.11: pagar beton family adalah MODIFIER dari "pasang",
-          // bukan base name yang setara. Filter agar tidak trigger false MP.
-          if (b === "pagar beton") return false;
-          if (b === "pagar panel beton") return false;
-          if (b === "pagar panel") return false;
-          if (b === "panel beton") return false;
-          
-          return true;
-        });
+      var _matchedFiltered = _matchedBaseMin.filter(function(b) {
+         if (b === "borongan") return false;
+         if (/^borongan\b/i.test(b)) return false;
+         return true;
+       });
 
         if (_matchedFiltered.length >= 2) {
           var _hasLocMin2 = isLocation(text);
@@ -3458,7 +3460,6 @@ if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|
             return "money-page";
           }
         }
-      }
     }
 
     // ═══════════════════════════════════════════════════════════
