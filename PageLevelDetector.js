@@ -240,7 +240,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       // === Kanopi material ===
       "kanopi baja ringan","kanopi alderon","kanopi spandek","kanopi solarflat","kanopi kaca","kanopi polycarbonate","kanopi besi","kanopi galvanis","kanopi hollow","kanopi membrane",
       // === Pagar material ===
-            "pagar panel","pagar beton","pagar brc","pagar besi","pagar kayu","pagar aluminium","pagar stainless","pagar hollow","pagar tembok","pagar besi tempa","pagar besi hollow","pagar besi ulir","pagar wpc","pagar pvc","pagar grc","pagar kawat","pagar harmonika","pagar elektrik",
+       "pagar panel beton","pagar panel","pagar beton","pagar brc","pagar besi","pagar kayu","pagar aluminium","pagar stainless","pagar hollow","pagar tembok","pagar besi tempa","pagar besi hollow","pagar besi ulir","pagar wpc","pagar pvc","pagar grc","pagar kawat","pagar harmonika","pagar elektrik",
       // === Railing ===
       "railing tangga","railing balkon","railing besi","railing stainless","railing aluminium","railing kaca","railing hollow","railing besi tempa",
       // === Tangga ===
@@ -378,8 +378,10 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "konsultan","konsultan konstruksi","konsultan bangunan",
       "konsultan struktur","konsultan sipil","konsultan arsitektur",
       "konsultan mep","konsultan pengawas","konsultan proyek",
-      // === KATEGORI ===
-      "interior","eksterior","alat konstruksi"
+       // === KATEGORI ===
+      "interior","eksterior","alat konstruksi",
+      // 🔥 PATCH : pagar panel beton (jasa pasang)
+      "pagar panel beton", "pagar panel", "pagar beton", "panel beton"
     ],
 
     sewa: [
@@ -646,6 +648,10 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
   // ═══════════════════════════════════════════════════════════
     var COMPOUND_LIBRARY = {
     jasa: [
+             // 🔥 PATCH : pagar panel beton (jasa pasang)
+      "pagar panel beton", "pagar beton", "panel beton", "pagar panel",
+      "pasang pagar panel beton", "jasa pagar panel beton",
+
       // Base compounds
       "bore pile", "bored pile", "bor pile", "boring pile",
       "sumur bor", "bor sumur", "air tanah",
@@ -700,8 +706,9 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "paving block", "rooster beton", "half slab",
       "tangga putar", "tangga monyet",
       // Komponen pagar
-            // 🔥 FIX: pagar panel beton bukan base, biar jadi MP
-      //"pagar panel beton", "pagar brc galvanis",
+      // 🔥 PATCH : uncomment + tambah (fix level pagar panel beton)
+      "pagar panel beton", "pagar brc galvanis",
+      "pagar panel", "pagar beton", "panel beton",
       // Precast
       "precast beton", "beton precast",
       "tiang pancang beton", "mini pile beton",
@@ -730,6 +737,8 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
       "plafon gypsum", "plafon pvc", "plafon grc",
       "gypsum board", "gypsum jayaboard",
       // Tambahan
+      // 🔥 PATCH: pagar panel beton sebagai material
+      "pagar panel beton", "panel beton",
             // 🔥 FIX-TIPE-NUM: "tipe 1" sebagai 1 konsep
       "tipe 1", "tipe 2", "tipe 3", "tipe 4", "tipe 5",
       "type 1", "type 2", "type 3", "type 4", "type 5",
@@ -1153,7 +1162,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 
   var PRICE_WORDS = PRICE_HEAD_WORDS;
 
-  var NOISE_WORDS_UNIVERSAL = ['borongan','sistem borongan','borongan penuh','borongan sebagian','paket borongan','sistem paket','sistem paket borongan','all in','all-in','all in one','cash','kredit','cicilan','tunai','transfer','dp','lunas','termin','kontan','installment','debit','cod','cash on delivery','paylater','pay later','bayar di tempat','bayar di awal','bayar di akhir','pembayaran','preorder','pre-order','indent','po','bangunan','konstruksi','proyek'];
+  var NOISE_WORDS_UNIVERSAL = ['borongan','sistem borongan','borongan penuh','borongan sebagian','paket borongan','sistem paket','sistem paket borongan','all in','all-in','all in one','cash','kredit','cicilan','tunai','transfer','dp','lunas','termin','kontan','installment','debit','cod','cash on delivery','paylater','pay later','bayar di tempat','bayar di awal','bayar di akhir','pembayaran','preorder','pre-order','indent','po','bangunan','konstruksi','proyek','terpasang','dipasang','terbongkar','terpasang permanen','terpasang rapi'];
 
   var NOISE_WORDS_JASA = ['meteran','sistem meteran','sistem harian','sistem mingguan','sistem bulanan','sistem tahunan','per proyek','per paket','per pekerjaan','short term','long term','per area','per zona','per ruangan','per lantai','per hari kerja','per jam kerja','per shift','per tongkang','per rit','per ritase','rangka'];
 
