@@ -156,16 +156,15 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
     4: "money-master", 5: "money-page", 6: "money-child",
     7: "variant", 8: "sub-variant"
   };
- // ═══════════════════════════════════════════════════════════════
-// 🆕 LEVEL_OVERRIDES — Paksa level untuk URL tertentu
-// ═══════════════════════════════════════════════════════════════
+
 // ═══════════════════════════════════════════════════════════════
 // 🆕 LEVEL_OVERRIDES — Paksa level untuk URL tertentu
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
   // Base Variant
   "jasa-pasang-pagar-beton-precast": "variant",
-  
+  "jasa-pagar-panel-beton-terpasang": "variant",
+
   // Target Aplikasi (Application Context)
   "jasa-pasang-pagar-panel-beton-lahan-kosong": "variant",
   "jasa-pasang-pagar-panel-beton-kandang-ternak": "variant",
