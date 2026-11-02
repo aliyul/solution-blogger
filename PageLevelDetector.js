@@ -159,10 +159,27 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
  // ═══════════════════════════════════════════════════════════════
 // 🆕 LEVEL_OVERRIDES — Paksa level untuk URL tertentu
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// 🆕 LEVEL_OVERRIDES — Paksa level untuk URL tertentu
+// ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
+  // Base Variant
   "jasa-pasang-pagar-beton-precast": "variant",
+  
+  // Target Aplikasi (Application Context)
+  "jasa-pasang-pagar-panel-beton-lahan-kosong": "variant",
+  "jasa-pasang-pagar-panel-beton-kandang-ternak": "variant",
+  "jasa-pasang-pagar-panel-beton-pertambangan": "variant",
+  "jasa-pasang-pagar-panel-beton-sekolah": "variant",
+  "jasa-pasang-pagar-panel-beton-rumah-sakit": "variant",
+  "jasa-pasang-pagar-panel-beton-tempat-ibadah": "variant",
+  "jasa-pasang-pagar-panel-beton-pembatas-lahan": "variant",
+  "jasa-pasang-pagar-panel-beton-keamanan": "variant",
+  "jasa-pasang-pagar-panel-beton-kedap-suara": "variant",
+  "jasa-pasang-pagar-panel-beton-tahan-lama": "variant",
+  "jasa-pasang-pagar-panel-beton-cepat-dipasang": "variant",
+  "jasa-pasang-pagar-panel-beton-tahan-banjir": "variant"
 };
-
   // ═══════════════════════════════════════════════════════════
   // 🔥 PATCH 12a: EXPECTED_CHILD_MAP (SEO DIMENSION)
   // 
