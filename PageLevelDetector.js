@@ -164,7 +164,17 @@ var LEVEL_OVERRIDES = {
   // Base Variant
   "jasa-pasang-pagar-beton-precast": "variant",
   "jasa-pagar-panel-beton-terpasang": "variant",
-
+   // Spesifikasi & Target Aplikasi (WAJIB VARIANT)
+  "jasa-pasang-pagar-panel-beton-per-meter": "variant",
+  "jasa-pasang-pagar-panel-beton-perumahan": "variant",
+  "jasa-pasang-pagar-panel-beton-pabrik": "variant",
+  "jasa-pasang-pagar-panel-beton-gudang": "variant",
+  "jasa-pasang-pagar-panel-beton-tinggi": "variant",
+  "jasa-pasang-pagar-panel-beton-rendah": "variant",
+  "jasa-pasang-pagar-panel-beton-motif": "variant",
+  "jasa-pasang-pagar-panel-beton-custom": "variant",
+  "jasa-pasang-pagar-panel-beton-polosan": "variant",
+  "jasa-pagar-panel-beton-terpasang": "variant",
   // Target Aplikasi (Application Context)
   "jasa-pasang-pagar-panel-beton-lahan-kosong": "variant",
   "jasa-pasang-pagar-panel-beton-kandang-ternak": "variant",
