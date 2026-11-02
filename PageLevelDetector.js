@@ -1090,7 +1090,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 
   var SUB_PILLAR_2_KEYWORDS = [
   'daftar','jenis','macam','kategori','tipe','list','katalog','variasi','model','gaya','varian',
-  'spesifikasi','mutu','metode' // <--- TAMBAHKAN 3 KATA INI
+  'spesifikasi','mutu','metode', 'ukuran'
   ];
   var SUB_PILLAR_1_KEYWORDS = ['perbandingan','vs','versus','kelebihan','kekurangan','perbedaan','lebih baik','unggul','mana yang','antara','atau'];
   var SUB_PILLAR_1_STRONG = ['perbandingan','vs','versus','kelebihan','kekurangan','perbedaan','lebih baik','unggul','mana yang'];
