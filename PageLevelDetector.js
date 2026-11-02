@@ -272,7 +272,8 @@ var LEVEL_OVERRIDES = {
       // === Kanopi material ===
       "kanopi baja ringan","kanopi alderon","kanopi spandek","kanopi solarflat","kanopi kaca","kanopi polycarbonate","kanopi besi","kanopi galvanis","kanopi hollow","kanopi membrane",
       // === Pagar material ===
-       "pagar panel beton","pagar panel","pagar beton","pagar brc","pagar besi","pagar kayu","pagar aluminium","pagar stainless","pagar hollow","pagar tembok","pagar besi tempa","pagar besi hollow","pagar besi ulir","pagar wpc","pagar pvc","pagar grc","pagar kawat","pagar harmonika","pagar elektrik",
+      // HAPUS "pagar panel beton", "pagar panel", dan "pagar beton"
+      "pagar","pagar brc","pagar besi","pagar kayu","pagar aluminium","pagar stainless","pagar hollow","pagar tembok","pagar besi tempa","pagar besi hollow","pagar besi ulir","pagar wpc","pagar pvc","pagar grc","pagar kawat","pagar harmonika","pagar elektrik",
       // === Railing ===
       "railing tangga","railing balkon","railing besi","railing stainless","railing aluminium","railing kaca","railing hollow","railing besi tempa",
       // === Tangga ===
