@@ -3433,10 +3433,18 @@ if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|
         }
       }
 
-      if (_matchedBaseMin.length >= 2) {
+            if (_matchedBaseMin.length >= 2) {
         var _matchedFiltered = _matchedBaseMin.filter(function(b) {
           if (b === "borongan") return false;
           if (/^borongan\b/i.test(b)) return false;
+          
+          // 🔥 PATCH v23.9.11: pagar beton family adalah MODIFIER dari "pasang",
+          // bukan base name yang setara. Filter agar tidak trigger false MP.
+          if (b === "pagar beton") return false;
+          if (b === "pagar panel beton") return false;
+          if (b === "pagar panel") return false;
+          if (b === "panel beton") return false;
+          
           return true;
         });
 
