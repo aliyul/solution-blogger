@@ -189,7 +189,18 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-pagar-panel-beton-cepat-dipasang": "variant",
   "jasa-pasang-pagar-panel-beton-tahan-banjir": "variant",
 
-  "jasa-pasang-batu-alam-dinding": "variant"
+  "jasa-pasang-batu-alam-dinding": "variant",
+  // 🔥 FIX CANNIBALIZATION MATERIAL vs DINDING
+  "jasa-pasang-batu-alam-dinding-interior": "variant",
+  "jasa-pasang-wood-plank-dinding-interior": "variant",
+  "jasa-pasang-wood-plank-dinding-eksterior": "variant",
+  "jasa-pasang-hpl-dinding-interior": "variant",
+  "jasa-pasang-hpl-dinding-eksterior": "variant",
+  "jasa-pasang-acp-dinding-interior": "variant",
+
+  // 🔥 FIX CANNIBALIZATION VARIAN MATERIAL
+  "jasa-pasang-hpl-wall-panel": "sub-variant" // Karena wall panel ada varian sendiri
+
 };
   // ═══════════════════════════════════════════════════════════
   // 🔥 PATCH 12a: EXPECTED_CHILD_MAP (SEO DIMENSION)
