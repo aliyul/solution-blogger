@@ -187,7 +187,9 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-pagar-panel-beton-kedap-suara": "variant",
   "jasa-pasang-pagar-panel-beton-tahan-lama": "variant",
   "jasa-pasang-pagar-panel-beton-cepat-dipasang": "variant",
-  "jasa-pasang-pagar-panel-beton-tahan-banjir": "variant"
+  "jasa-pasang-pagar-panel-beton-tahan-banjir": "variant",
+
+  "jasa-pasang-batu-alam-dinding": "variant"
 };
   // ═══════════════════════════════════════════════════════════
   // 🔥 PATCH 12a: EXPECTED_CHILD_MAP (SEO DIMENSION)
