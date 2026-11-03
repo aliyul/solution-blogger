@@ -404,9 +404,21 @@ var LEVEL_OVERRIDES = {
       "bronjong",
       // === NOUN-BASED ===
       "pondasi",       
-      "persiapan pondasi", // <--- TAMBAHKAN INI
+      "persiapan pondasi",
       "perkuatan tanah",
-       "cakar ayam", // <--- TAMBAHKAN BARIS INI
+       "cakar ayam", 
+           
+      "bongkar bangunan",
+      "konstruksi bangunan",
+      "perbaikan bangunan",
+      "instalasi listrik",
+      "buang puing", 
+
+      "cutting beton",
+      "kitchen set",
+      "konstruksi struktur",
+      "relief", 
+       
       // === KONSULTAN ===
       "konsultan","konsultan konstruksi","konsultan bangunan",
       "konsultan struktur","konsultan sipil","konsultan arsitektur",
