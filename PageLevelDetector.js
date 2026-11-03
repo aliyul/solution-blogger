@@ -190,6 +190,18 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-pagar-panel-beton-tahan-banjir": "variant",
 
   "jasa-pasang-batu-alam-dinding": "variant",
+
+  // Turunkan Material menjadi Variant (agar tidak bersaing dengan Induk Area)
+  "jasa-pasang-grc-dinding": "variant",
+  "jasa-pasang-hpl-dinding": "variant",
+  "jasa-pasang-acp-dinding": "variant",
+  "jasa-pasang-batu-alam-dinding": "variant",
+  "jasa-pasang-wpc-dinding": "variant",
+
+  // Turunkan Material Spesifik ke Sub-variant
+  "jasa-pasang-acp-dinding-interior": "sub-variant",
+  "jasa-pasang-hpl-dinding-interior": "sub-variant",
+
   // 🔥 FIX CANNIBALIZATION MATERIAL vs DINDING
   "jasa-pasang-batu-alam-dinding-interior": "variant",
   "jasa-pasang-wood-plank-dinding-interior": "variant",
