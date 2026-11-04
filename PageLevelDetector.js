@@ -161,7 +161,11 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
-
+  // ═══════════════════════════════════════════════════════════════
+  // 🏛️ OVERRIDE KHUSUS: Naikkan ke MM
+  // ═══════════════════════════════════════════════════════════════
+  "jasa-perbaikan-infrastruktur": "money-master",  
+       
   // ═══════════════════════════════════════════════════════════════
   // 🏛️ LEVEL 2: MONEY PAGE (MP)
   // Induk Area & Induk Material
@@ -363,6 +367,7 @@ var LEVEL_OVERRIDES = {
 
   // -- Keramik --
   "jasa-ganti-keramik-lantai": "sub-variant"
+
 };
 
 // ═══════════════════════════════════════════════════════════
