@@ -161,7 +161,9 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
-
+       
+  "jasa-perbaikan-rs": "money-page",
+       
      // ─── 🆕 FIX CANNIBALIZATION KONSULTAN ───
   // Turunkan disiplin konsultan dari MM → MP (agar sejajar dengan manajemen & geoteknik)
   "jasa-konsultan-bangunan": "money-page",
@@ -948,7 +950,12 @@ var LEVEL_OVERRIDES = {
       // (opsional, jika ada)
       "beton bertulang",
        "beton per lubang",
-       "per lubang"      // safety net
+       "per lubang",      // safety net
+
+       "taman kota",
+       "terminal penumpang",
+       "rumah sakit",
+       "stadion"
     ],
 
     produk: [
