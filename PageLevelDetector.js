@@ -389,7 +389,16 @@ var LEVEL_OVERRIDES = {
     // ─── 🆕 FIX PROFIL BETON PILAR ───
   // Turunkan menjadi Variant agar tidak memicu warning (parent = money-page)
   "jasa-profil-beton-pilar-eksterior": "variant",
-  "jasa-profil-beton-pilar-interior": "variant"
+  "jasa-profil-beton-pilar-interior": "variant",
+
+    // ─── 🆕 FIX FINISHING CAT ───
+  // Turunkan jasa-cat menjadi MP (sejajar dengan finishing area lainnya)
+  "jasa-cat": "money-page",
+    // ─── 🆕 FIX FINISHING CAT ───
+  // Turunkan menjadi Variant di bawah jasa-cat (MP)
+  "jasa-finishing-cat": "variant"
+
+  
 };
 
 // ═══════════════════════════════════════════════════════════
