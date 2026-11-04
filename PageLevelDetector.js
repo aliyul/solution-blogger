@@ -383,7 +383,11 @@ var LEVEL_OVERRIDES = {
   "jasa-relief-batu-alam-interior": "sub-variant",
 
      // ─── 🆕 PATCH PROFIL BETON ───
-  "desain-jasa-profil-beton": "sub-pillar-tipe-2"
+  "desain-jasa-profil-beton": "sub-pillar-tipe-2",
+    // ─── 🆕 FIX PROFIL BETON PILAR ───
+  // Turunkan menjadi Variant agar tidak memicu warning (parent = money-page)
+  "jasa-profil-beton-pilar-eksterior": "variant",
+  "jasa-profil-beton-pilar-interior": "variant"
 };
 
 // ═══════════════════════════════════════════════════════════
