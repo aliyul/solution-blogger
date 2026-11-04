@@ -366,7 +366,20 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-acp-bungkus-kolom": "sub-variant",
 
   // -- Keramik --
-  "jasa-ganti-keramik-lantai": "sub-variant"
+  "jasa-ganti-keramik-lantai": "sub-variant",
+
+  // ─── 🆕 PATCH RELIEF (Anti-Cannibalization) ───
+  
+  // 1. Duplikat: "pembuatan" = "jasa", jadi ini cannibalization
+  "jasa-pembuatan-relief-dinding": "variant",
+  
+  // 2. Spesifikasi tambahan → seharusnya Variant, bukan MP
+  "jasa-relief-dinding-3d": "variant",
+  "jasa-relief-dinding-interior": "variant",
+  "jasa-relief-dinding-eksterior": "variant",
+  
+  // 3. Konsistensi: turunkan agar sejajar dengan saudaranya
+  "jasa-relief-batu-alam-interior": "sub-variant"
 
 };
 
