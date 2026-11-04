@@ -161,7 +161,8 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
-       
+
+  "jasa-perbaikan-elemen-arsitektural": "money-page", 
   "jasa-perbaikan-rs": "money-page",
        
      // ─── 🆕 FIX CANNIBALIZATION KONSULTAN ───
@@ -3677,7 +3678,7 @@ if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|
         _tempMin = normalizeCompoundTerms(_tempMin, "jasa");
 
         _tempMin = _tempMin.replace(/\b(murah|hemat|terjangkau|promo|diskon|obral|termurah|termahal|profesional|bersaing|kompetitif|ekonomis)\b/gi, ' ');
-        _tempMin = _tempMin.replace(/\b(borongan|sistem borongan|paket borongan|all in|all-in|proyek|per proyek)\b/gi, ' ');
+        _tempMin = _tempMin.replace(/\b(borongan|sistem borongan|paket borongan|all in|all-in|proyek|per proyek|bangunan|konstruksi)\b/gi, ' ');
         _tempMin = _tempMin.replace(/\b(ukuran|spesifikasi|mutu|metode|cara kerja|panduan|fungsi|dimensi|tipe|jenis|varian|model|standar|kapasitas|faktor penentu|faktor utama|penyebab|dampak|pengaruh|efek)\b/gi, ' ');
         
         _tempMin = _tempMin.replace(/\s+/g, ' ').trim();
