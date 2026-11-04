@@ -158,20 +158,25 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
   };
 
 // ═══════════════════════════════════════════════════════════════
-// 🆕 LEVEL_OVERRIDES — Paksa level untuk URL tertentu
+// 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🏛️ LEVEL 2: MONEY PAGE (MP)
+  // Induk Area & Induk Material
+  // ═══════════════════════════════════════════════════════════════
   
-  // ═══════════════════════════════════════════════════════════════
-  // 🏛️ LEVEL 1: INDUK AREA (Tetap MP)
-  // ═══════════════════════════════════════════════════════════════
+  // -- Induk Area --
   "jasa-pasang-dinding": "money-page",
   "jasa-pasang-lantai": "money-page",
+  "jasa-borongan-lantai": "money-page",
   "jasa-pasang-plafon": "money-page",
-  "jasa-pasang-atap": "money-page",
   "jasa-pasang-rangka-atap": "money-page",
+  "jasa-pasang-atap": "money-page",
   "jasa-pasang-kanopi": "money-page",
   "jasa-pasang-pagar": "money-page",
+  "jasa-pasang-pagar-panel-beton": "money-page",
   "jasa-pasang-kusen": "money-page",
   "jasa-pasang-pintu": "money-page",
   "jasa-pasang-jendela": "money-page",
@@ -182,9 +187,7 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-cctv": "money-page",
   "jasa-pasang-ac": "money-page",
 
-  // ═══════════════════════════════════════════════════════════════
-  // 🏛️ LEVEL 2: INDUK MATERIAL (Tetap MP)
-  // ═══════════════════════════════════════════════════════════════
+  // -- Induk Material --
   "jasa-pasang-acp": "money-page",
   "jasa-pasang-batu": "money-page",
   "jasa-pasang-grc": "money-page",
@@ -196,9 +199,11 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-pvc": "money-page",
 
   // ═══════════════════════════════════════════════════════════════
-  // 🔬 LEVEL 3: MATERIAL + AREA/APLIKASI (VARIANT)
+  // 🔬 LEVEL 3: VARIANT (Turunan dari MP)
+  // Material + Area/Aplikasi
   // ═══════════════════════════════════════════════════════════════
-  // -- Pagar Panel Beton --
+
+  // -- Pagar Panel Beton (Variant dari jasa-pasang-pagar-panel-beton) --
   "jasa-pasang-pagar-beton-precast": "variant",
   "jasa-pasang-pagar-panel-beton-per-meter": "variant",
   "jasa-pasang-pagar-panel-beton-perumahan": "variant",
@@ -223,50 +228,35 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-pagar-panel-beton-cepat-dipasang": "variant",
   "jasa-pasang-pagar-panel-beton-tahan-banjir": "variant",
 
-  // -- Batu Alam --
+  // -- GRC --
+  "jasa-pasang-grc-eksterior": "variant",
+  "jasa-pasang-grc-interior": "variant",
+  "jasa-pasang-grc-dinding": "variant",
+  "jasa-pasang-plafon-grc": "variant",
+
+  // -- Kaca --
+  "jasa-pasang-kaca-interior": "variant",
+  "jasa-pasang-kaca-eksterior": "variant",
+
+  // -- Batu --
   "jasa-pasang-batu-interior": "variant",
   "jasa-pasang-batu-eksterior": "variant",
   "jasa-pasang-batu-alam-dinding": "variant",
-  "jasa-pasang-batu-alam-dinding-interior": "variant",
-  
-  // -- HPL --
-  "jasa-pasang-hpl-dinding": "variant",
-  "jasa-pasang-hpl-dinding-interior": "variant",
-  "jasa-pasang-hpl-dinding-eksterior": "variant",
-  "jasa-pasang-hpl-interior": "variant",
-  "jasa-pasang-hpl-eksterior": "variant",
-  "jasa-pasang-hpl-kitchen-set": "variant",
-  "jasa-pasang-hpl-fasad": "variant",
-  "jasa-pasang-hpl-furniture": "variant",
-  "jasa-pasang-hpl-plafon": "variant",
-  "jasa-pasang-hpl-backdrop-tv": "variant",
-  "jasa-pasang-hpl-lemari": "variant",
-  "jasa-pasang-hpl-rak": "variant",
-  "jasa-pasang-hpl-wall-panel": "variant",
-  
-  // -- ACP --
-  "jasa-pasang-acp-interior": "variant",
-  "jasa-pasang-acp-eksterior": "variant",
-  "jasa-pasang-acp-dinding-interior": "variant",
-  "jasa-pasang-acp-per-meter": "variant",
-  "jasa-laser-cutting-acp": "variant",
-  "jasa-pasang-acp-plafon": "variant",
-  "jasa-pasang-acp-fasad": "variant",
 
   // -- Wood Plank --
   "jasa-pasang-wood-plank-interior": "variant",
   "jasa-pasang-wood-plank-eksterior": "variant",
-  "jasa-pasang-wood-plank-dinding-eksterior": "variant",
-  "jasa-pasang-wood-plank-dinding-interior": "variant",
 
-  // -- GRC, WPC, Conwood, Wallpaper, Panel --
-  "jasa-pasang-grc-dinding": "variant",
-  "jasa-pasang-conwood-dinding": "variant",
-  "jasa-pasang-wpc-dinding": "variant",
-  "jasa-pasang-wall-moulding": "variant",
-  "jasa-pasang-wall-panel": "variant",
-  "jasa-pasang-wallpaper-dinding": "variant",
-  "jasa-pasang-panel-dinding-3d": "variant",
+  // -- HPL --
+  "jasa-pasang-hpl-interior": "variant",
+  "jasa-pasang-hpl-eksterior": "variant",
+  "jasa-pasang-hpl-dinding": "variant",
+
+  // -- ACP --
+  "jasa-pasang-acp-interior": "variant",
+  "jasa-pasang-acp-eksterior": "variant",
+  "jasa-pasang-acp-per-meter": "variant",
+  "jasa-laser-cutting-acp": "variant",
 
   // -- Lantai --
   "jasa-pasang-keramik-lantai": "variant",
@@ -275,36 +265,107 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-lantai-laminate": "variant",
   "jasa-pasang-lantai-hardwood": "variant",
   "jasa-pasang-lantai-parket": "variant",
-  "jasa-borongan-lantai": "variant",
+
+  // -- Dinding (Material lain) --
+  "jasa-pasang-panel-dinding-3d": "variant",
+  "jasa-pasang-hpl-dinding": "variant",
+  "jasa-pasang-batu-alam-dinding": "variant",
+  "jasa-pasang-conwood-dinding": "variant",
+  "jasa-pasang-wall-moulding": "variant",
+  "jasa-pasang-wall-panel": "variant",
+  "jasa-pasang-wallpaper-dinding": "variant",
+  "jasa-pasang-wpc-dinding": "variant",
+
+  // -- Furniture --
+  "jasa-pasang-lemari-rumah": "variant",
+  "jasa-pasang-meja-kantor": "variant",
+  "jasa-pasang-kursi-kantor": "variant",
 
   // ═══════════════════════════════════════════════════════════════
-  // 🧬 LEVEL 4: MATERIAL + AREA + RUANGAN (SUB-VARIANT)
+  // 🧬 LEVEL 4: SUB-VARIANT (Turunan dari Variant)
+  // Material + Area + Ruangan/Spesifikasi
   // ═══════════════════════════════════════════════════════════════
-  // -- Batu Alam --
+
+  // -- GRC Eksterior --
+  "jasa-pasang-grc-fasad": "sub-variant",
+  "jasa-pasang-dinding-grc-eksterior": "sub-variant",
+  "jasa-pasang-panel-grc-dekoratif": "sub-variant",
+  "jasa-pasang-lisplank-grc": "sub-variant",
+  "jasa-pasang-list-profil-kolom-grc": "sub-variant",
+  "jasa-pasang-grc-relief": "sub-variant",
+
+  // -- GRC Interior --
+  "jasa-pasang-dinding-grc-interior": "sub-variant",
+  "jasa-pasang-panel-grc-3d": "sub-variant",
+
+  // -- Kaca Interior (Termasuk yang ditarik dari SubVariantSubVariant) --
+  "jasa-pasang-partisi-kaca": "sub-variant",
+  "jasa-pasang-railing-tangga-kaca": "sub-variant",
+  "jasa-pasang-pintu-kaca-interior": "sub-variant",
+  "jasa-pasang-cermin-hias": "sub-variant",
+  "jasa-pasang-skylight-kaca": "sub-variant",
+  "jasa-pasang-partisi-kaca-kantor": "sub-variant",
+  "jasa-pasang-partisi-kaca-rumah": "sub-variant",
+  "jasa-pasang-partisi-kaca-tempered": "sub-variant",
+  "jasa-pasang-railing-kaca-tempered": "sub-variant",
+
+  // -- Kaca Eksterior --
+  "jasa-pasang-kaca-fasad": "sub-variant",
+  "jasa-pasang-kanopi-kaca": "sub-variant",
+  "jasa-pasang-curtain-wall-kaca": "sub-variant",
+
+  // -- Batu Interior (Termasuk yang ditarik dari SubVariantSubVariant) --
+  "jasa-pasang-batu-alam-dinding-interior": "sub-variant",
   "jasa-pasang-batu-alam-kamar-mandi": "sub-variant",
   "jasa-pasang-batu-alam-tangga": "sub-variant",
   "jasa-pasang-batu-alam-ruang-tamu": "sub-variant",
   "jasa-pasang-batu-alam-kamar-tidur": "sub-variant",
+
+  // -- Batu Eksterior --
   "jasa-pasang-batu-alam-fasad": "sub-variant",
   "jasa-pasang-batu-alam-pagar": "sub-variant",
   "jasa-pasang-batu-alam-taman": "sub-variant",
 
-  // -- Wood Plank --
+  // -- Wood Plank Eksterior --
+  "jasa-pasang-wood-plank-dinding-eksterior": "sub-variant",
   "jasa-pasang-wood-plank-pagar": "sub-variant",
   "jasa-pasang-wood-plank-fasad": "sub-variant",
+
+  // -- Wood Plank Interior (Termasuk yang ditarik dari SubVariantSubVariant) --
+  "jasa-pasang-wood-plank-dinding-interior": "sub-variant",
   "jasa-pasang-wood-plank-plafon": "sub-variant",
   "jasa-pasang-wood-plank-ruang-tamu": "sub-variant",
   "jasa-pasang-wood-plank-kamar-tidur": "sub-variant",
 
-  // -- HPL & ACP (Partisi, dll) --
+  // -- HPL Eksterior --
+  "jasa-pasang-hpl-fasad": "sub-variant",
+  "jasa-pasang-hpl-dinding-eksterior": "sub-variant",
+
+  // -- HPL Interior (Termasuk yang ditarik dari SubVariantSubVariant) --
+  "jasa-pasang-hpl-dinding-interior": "sub-variant",
+  "jasa-pasang-hpl-furniture": "sub-variant",
+  "jasa-pasang-hpl-plafon": "sub-variant",
+  "jasa-pasang-hpl-kitchen-set": "sub-variant",
+  "jasa-pasang-hpl-lemari": "sub-variant",
+  "jasa-pasang-hpl-rak": "sub-variant",
+  "jasa-pasang-hpl-backdrop-tv": "sub-variant",
   "jasa-pasang-hpl-partisi-ruangan": "sub-variant",
+  "jasa-pasang-hpl-wall-panel": "sub-variant",
+
+  // -- ACP Interior --
+  "jasa-pasang-acp-dinding-interior": "sub-variant",
+  "jasa-pasang-acp-plafon": "sub-variant",
   "jasa-pasang-acp-partisi-ruangan": "sub-variant",
+
+  // -- ACP Eksterior --
+  "jasa-pasang-acp-fasad": "sub-variant",
   "jasa-pasang-acp-bungkus-kolom": "sub-variant",
 
-  // -- Keramik (Ganti) --
+  // -- Keramik --
   "jasa-ganti-keramik-lantai": "sub-variant"
 };
-  // ═══════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════
   // 🔥 PATCH 12a: EXPECTED_CHILD_MAP (SEO DIMENSION)
   // 
   // PERUBAHAN:
