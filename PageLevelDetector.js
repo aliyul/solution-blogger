@@ -161,6 +161,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
+
   // ═══════════════════════════════════════════════════════════════
   // 🏛️ OVERRIDE KHUSUS: Naikkan ke MM
   // ═══════════════════════════════════════════════════════════════
@@ -379,8 +380,10 @@ var LEVEL_OVERRIDES = {
   "jasa-relief-dinding-eksterior": "variant",
   
   // 3. Konsistensi: turunkan agar sejajar dengan saudaranya
-  "jasa-relief-batu-alam-interior": "sub-variant"
+  "jasa-relief-batu-alam-interior": "sub-variant",
 
+     // ─── 🆕 PATCH PROFIL BETON ───
+  "desain-jasa-profil-beton": "sub-pillar-tipe-2"
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -601,6 +604,7 @@ var LEVEL_OVERRIDES = {
       "persiapan pondasi",
       "perkuatan tanah",
        "cakar ayam", 
+       "profil beton",
            
       "bongkar bangunan",
       "konstruksi bangunan",
