@@ -161,7 +161,8 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
-
+       
+   "jasa-saluran-irigasi": "money-page",
   "jasa-perbaikan-elemen-arsitektural": "money-page", 
   "jasa-perbaikan-rs": "money-page",
        
