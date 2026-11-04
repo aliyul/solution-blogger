@@ -162,10 +162,12 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
 
-  // ═══════════════════════════════════════════════════════════════
-  // 🏛️ OVERRIDE KHUSUS: Naikkan ke MM
-  // ═══════════════════════════════════════════════════════════════
-  "jasa-perbaikan-infrastruktur": "money-master",  
+     // ─── 🆕 FIX CANNIBALIZATION KONSULTAN ───
+  // Turunkan disiplin konsultan dari MM → MP (agar sejajar dengan manajemen & geoteknik)
+  "jasa-konsultan-bangunan": "money-page",
+  "jasa-konsultan-konstruksi": "money-page",
+  "harga-jasa-konsultan-struktur": "money-page",
+  "harga-jasa-konsultan-arsitektur": "money-page",
        
   // ═══════════════════════════════════════════════════════════════
   // 🏛️ LEVEL 2: MONEY PAGE (MP)
@@ -609,7 +611,7 @@ var LEVEL_OVERRIDES = {
       "perkuatan tanah",
        "cakar ayam", 
        "profil beton",
-           
+       "perbaikan infrastruktur",
       "bongkar bangunan",
       "konstruksi bangunan",
       "perbaikan bangunan",
