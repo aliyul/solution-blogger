@@ -956,7 +956,14 @@ var LEVEL_OVERRIDES = {
        "taman kota",
        "terminal penumpang",
        "rumah sakit",
-       "stadion"
+       "stadion",
+
+     "pipa drainase",
+    "box culvert",
+    "u ditch",
+    "gorong-gorong",
+    "gorong gorong"
+
     ],
 
     produk: [
