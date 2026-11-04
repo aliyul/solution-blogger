@@ -2093,11 +2093,17 @@ var LEVEL_OVERRIDES = {
     var lower = cleanText(text);
     if (!lower) return false;
 
-      // 🆕 TAMBAHKAN 3 BARIS INI:
-    // Mendeteksi prefix administratif Indonesia (desa, kecamatan, kabupaten, dll)
-    if (/\b(kabupaten|kab|kecamatan|kec|kelurahan|kel|desa|ds|kota|provinsi)\b/i.test(lower)) {
-      return true; // Langsung lolos sebagai MC
-    }
+       // 🆕 FIX: Deteksi prefix administratif, KECUALI jika didahului kata fasilitas
+       if (/\b(kabupaten|kab|kecamatan|kec|kelurahan|kel|desa|ds|provinsi)\b/i.test(lower)) {
+         return true;
+       }
+       if (/\bkota\b/i.test(lower)) {
+         // Cegah false positive: "taman kota", "terminal kota", "gedung kota" bukan lokasi
+         var fasilitasKota = /(taman|alun-alun|terminal|gedung|halaman|pasar|pusat|stadion|masjid|gereja)\s+kota\b/i;
+         if (!fasilitasKota.test(lower)) {
+           return true;
+         }
+       }
          
     _buildMasterRegexes();
 
