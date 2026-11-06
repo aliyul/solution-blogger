@@ -399,7 +399,9 @@ var LEVEL_OVERRIDES = {
   "jasa-cat": "money-page",
     // ─── 🆕 FIX FINISHING CAT ───
   // Turunkan menjadi Variant di bawah jasa-cat (MP)
-  "jasa-finishing-cat": "variant"
+  "jasa-finishing-cat": "variant",
+
+  "jasa-alat-konstruksi-harga-paket-all-in": "variant"
 
   
 };
