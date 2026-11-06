@@ -2943,11 +2943,17 @@ var LEVEL_OVERRIDES = {
     return level;
   }
 
-  function detectEntityTypeFromText(text) {
-    if (!text) return null;
-    var lower = text.toLowerCase();
+function detectEntityTypeFromText(text) {
+  if (!text) return null;
+  var lower = text.toLowerCase();
 
-    if (/\bjasa\s+(desain|interior|arsitektur|eksterior)\b/i.test(lower)) return "desain";
+  // 🩹 FIX v23.9.11: Perbaiki false positive "jasa eksterior" → desain
+  // RULE BARU: 
+  //   - "jasa desain X" → desain
+  //   - "desain X" (tanpa jasa) → desain
+  //   - "jasa interior/eksterior" (tanpa "desain") → jatuh ke logika berikutnya (jasa)
+  if (/\bjasa\s+desain\b/i.test(lower)) return "desain";
+  if (/\bdesain\s+(interior|eksterior|arsitektur)\b/i.test(lower)) return "desain";
 
 if (/^(cara|panduan|tips|tutorial|langkah|apa itu|pengertian|definisi|perbedaan|perbandingan|review)/i.test(lower.trim())) {
   // Jangan langsung return artikel jika ada keyword entity yang kuat
