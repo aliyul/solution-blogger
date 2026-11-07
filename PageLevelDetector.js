@@ -161,6 +161,8 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
+  "jasa-pasang-sandwich-panel": "money-page",
+       
   "jasa-saluran-irigasi": "money-page",        // ← WAJIB (parent virtual butuh MP)
   "jasa-perbaikan-elemen-arsitektural": "money-page", 
   "jasa-perbaikan-rs": "money-page",
@@ -401,9 +403,11 @@ var LEVEL_OVERRIDES = {
   // Turunkan menjadi Variant di bawah jasa-cat (MP)
   "jasa-finishing-cat": "variant",
 
-  "jasa-alat-konstruksi-harga-paket-all-in": "variant"
+  "jasa-alat-konstruksi-harga-paket-all-in": "variant",
 
-  
+  "jasa-konstruksi-baja-ringan": "variant",
+  "jasa-pengecoran-kolom-beton": "variant"
+
 };
 
 // ═══════════════════════════════════════════════════════════
