@@ -406,7 +406,9 @@ var LEVEL_OVERRIDES = {
   "jasa-alat-konstruksi-harga-paket-all-in": "variant",
 
   "jasa-konstruksi-baja-ringan": "variant",
-  "jasa-pengecoran-kolom-beton": "variant"
+  "jasa-pengecoran-kolom-beton": "variant",
+
+  "jasa-konstruksi-baja-ringan-ruko": "sub-variant"
 
 };
 
