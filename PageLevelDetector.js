@@ -1388,6 +1388,7 @@ var LEVEL_OVERRIDES = {
     // ─── DKI JAKARTA & BODETABEK ───
     "jakarta","jakarta pusat","jakarta barat","jakarta selatan","jakarta timur","jakarta utara",
     "bogor","depok","tangerang","tangerang selatan","bekasi","cikarang","karawang","purwakarta","subang",
+    "bandung","cimahi","bandung barat","bandung timur",  // 🆕 TAMBAHKAN INI
     "serang","cilegon","pandeglang","lebak","sukabumi","cianjur","garut","tasikmalaya","ciamis","banjar","kuningan","majalengka","indramayu","sumedang",
     "pangandaran", // <--- Sudah ditambahkan
 
