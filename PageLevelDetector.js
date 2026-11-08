@@ -408,6 +408,8 @@ var LEVEL_OVERRIDES = {
   "jasa-konstruksi-baja-ringan": "variant",
   "jasa-pengecoran-kolom-beton": "variant",
 
+   "jasa-borongan-cor-beton-bangunan": "variant",
+
   "jasa-konstruksi-baja-ringan-ruko": "sub-variant"
 
 };
