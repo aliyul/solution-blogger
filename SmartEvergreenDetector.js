@@ -1,38 +1,27 @@
 /* ============================================================
- 🧠 Smart Evergreen Detector v18.0.0-SAFE+CONSISTENCY
- 🩹 SAFE-MODE PATCH: Admin Reminder Tool (ZERO SEO RISK)
+ 🧠 Smart Evergreen Detector v18.1.0-SAFE+MANUAL-MARKER
+ 🩹 SAFE-MODE + Manual Date Override (Marker di body post)
  🔍 + Cross-Page Consistency Checker (Blogger Feed API)
 ============================================================
- 🎯 PERUBAHAN DARI v17.9.0-SAFE:
-    ✅ ADD: Blogger Feed API consistency checker
-    ✅ ADD: Harga lintas halaman (product-overlap detection)
-    ✅ ADD: NAP (telepon/email) consistency
-    ✅ ADD: Brand name consistency (canonical vs alias)
-    ✅ ADD: Wilayah layanan (judul vs body)
-    ✅ ADD: Spesifikasi produk (mutu K-xxx, slump)
-    ✅ ADD: Cannibalization detection (judul mirip)
-    ✅ ADD: Cache index 6 jam + pagination (up to 750 post)
+ 🎯 PERUBAHAN DARI v18.0.0:
+    ✅ ADD: ALLOW_MANUAL_DATE_OVERRIDE di SAFE_MODE
+    ✅ ADD: Blok override dateModified dari marker <span data-aed-date-modified>
+    ✅ ADD: Deteksi hash opsional (data-aed-content-hash) → warning admin
+    ✅ ADD: manualOverride info di window.AEDMetaDates untuk debugging
+    ✅ ADD: Helper aedSetMarker() untuk generate marker HTML
 
- 🎯 PERUBAHAN DARI v17.9.0 (SAFE-MODE — tidak berubah):
-    ❌ DISABLE: updateContentByLevelAndFocus
-    ❌ DISABLE: updateH1WithRules
-    ❌ DISABLE: autoUpdateDates
-    ❌ DISABLE: updateJsonLdDates / cleanupFaqSchema / updateJsonLdFaqYears
-    ❌ DISABLE: priceValidUntil write ke Offer schema
-    ⚠️  WARNING: aedEmergencyVerify (localStorage only)
-    ✅ KEEP: banner, guide modal, nextUpdate, content hash, admin shortcut
-
- 📌 PRINSIP: Blogger raw HTML = SOURCE OF TRUTH. Googlebot lihat nilai asli.
- 📌 TUJUAN: Admin reminder & workflow tool. Zero mutation, zero risk.
+ 📌 PRINSIP: Blogger raw HTML = SOURCE OF TRUTH.
+ 📌 Marker HANYA dibaca AED, bukan ditulis balik ke server.
+ 📌 Tanpa marker = perilaku identik v18.0.0 (zero regression).
 ============================================================ */
 
 (function () {
-  if (window.detectEvergreen && window.__AED_VERSION === "18.0.0-safe-consistency") return;
+  if (window.detectEvergreen && window.__AED_VERSION === "18.1.0-safe-manual-marker") return;
 
   var _AED_INITIALIZED = false;
   var _AED_PLD_CACHE = {};
 
-  window.__AED_VERSION = "18.0.0-safe-consistency";
+  window.__AED_VERSION = "18.1.0-safe-manual-marker";
 
   var DEFAULT_BRAND_NAME = "Beton Jaya Readymix";
 
@@ -40,7 +29,8 @@
     DISABLE_DATE_MODIFIED_BUMP: true,
     DISABLE_JSONLD_MUTATION: true,
     DISABLE_OFFER_PRICE_VALID: true,
-    WARN_EMERGENCY_VERIFY: true
+    WARN_EMERGENCY_VERIFY: true,
+    ALLOW_MANUAL_DATE_OVERRIDE: true   // 🎯 NEW
   };
 
   const GUIDE_CONFIG = {
@@ -90,10 +80,6 @@
   const MONEY_LEVELS = ['money-master', 'money-page', 'money-child', 'variant', 'sub-variant'];
   const EVERGREEN_LEVELS = ['sub-pillar-tipe-1', 'sub-pillar-tipe-2', 'pillar'];
 
-  /* ============================================================
-   🔍 CONSISTENCY MODULE — Config
-  ============================================================ */
-
   const CONSISTENCY_CONFIG = {
     ENABLED: true,
     FEED_URL_BASE: 'https://www.betonjayareadymix.com/feeds/posts/default',
@@ -140,10 +126,6 @@
     SPEC_MUTU: /\bK[\s-]?(\d{3})\b/gi,
     SPEC_SLUMP: /slump\s*(?:[±+\-]\s*)?(\d{1,2})(?:\s*[±+\-]\s*(\d{1,2}))?\s*cm/gi
   };
-
-  /* ============================================================
-   🔍 CONSISTENCY MODULE — Helpers
-  ============================================================ */
 
   var _aedDecoder = null;
   function decodeEntities(str) {
@@ -839,10 +821,6 @@
     return html;
   }
 
-  /* ============================================================
-   🎯 CORE AED — Helper functions (unchanged dari v17.9.0-SAFE)
-  ============================================================ */
-
   function getPriority(pl, cf) { return WARNING_CONFIG.PRIORITY_MAP[pl + '|' + String(cf || '').toUpperCase()] || 'low'; }
   function detectLocale() { try { var h = document.documentElement.getAttribute('lang') || ''; if (h.toLowerCase().indexOf('en') === 0) return 'en'; var b = document.body.getAttribute('lang') || ''; if (b.toLowerCase().indexOf('en') === 0) return 'en'; } catch (e) {} return 'id'; }
   function getMessage(key, replacements) { var locale = detectLocale(); var msgs = WARNING_CONFIG.MESSAGES[locale] || WARNING_CONFIG.MESSAGES.id; var msg = msgs[key] || WARNING_CONFIG.MESSAGES.id[key] || ''; if (replacements) { for (var k in replacements) { if (replacements.hasOwnProperty(k)) msg = msg.replace('{' + k + '}', String(replacements[k])); } } return msg; }
@@ -1001,13 +979,23 @@
   function hasLastUpdatedAnchor() { var sels = ['.update-badge', '[class*="update-badge"]', '.last-updated', '.updated-date', '.date-modified', '.post-date', '.article-date', '.publish-date', '.post-meta', '.entry-meta', '.article-meta', '.breadcrumb + p', '.toc + p', 'h1 + p', '[class*="last-updated"]']; for (var i = 0; i < sels.length; i++) { try { var e = document.querySelectorAll(sels[i]); if (e && e.length > 0) return true; } catch(er) {} } var ke = queryByKeyword(document.body, ['diperbarui','update','terakhir','last updated','updated','perbarui'], true); return ke && ke.length > 0; }
   function detectContentChangeSinceLastVisit() { var c = document.querySelector('.post-body.entry-content, .post-body, article, main'); if (!c) return { changed: false, reason: 'no-container' }; var t = (c.innerText || '').replace(/\s+/g, ' ').trim(); if (t.length < 100) return { changed: false, reason: 'too-short' }; var h = 0; for (var i = 0; i < t.length; i++) { h = ((h << 5) - h) + t.charCodeAt(i); h = h | 0; } var ch = String(Math.abs(h)); var sk = 'aed-content-hash-' + location.pathname; var sh = null; try { sh = localStorage.getItem(sk); } catch(e) {} var changed = false; if (sh && sh !== ch) { changed = true; } try { localStorage.setItem(sk, ch); } catch(e) {} return { changed: changed, reason: changed ? 'content-changed' : 'same', hash: ch }; }
 
-  function updateJsonLdDates(dm, pv) { /* 🩹 SAFE-MODE: DISABLED */ return { updated: 0 }; }
-  function cleanupFaqSchema(bn) { /* 🩹 SAFE-MODE: DISABLED */ return { cleaned: 0, injected: 0, normalized: 0, entitiesDecoded: 0 }; }
-  function updateJsonLdFaqYears(ny) { /* 🩹 SAFE-MODE: DISABLED */ return { updated: 0, replaced: 0 }; }
-  function updateContentByLevelAndFocus(pl, cf, now) { /* 🩹 SAFE-MODE: DISABLED */ return { updated: false, skipped: true }; }
-  function updateH1WithRules(pl, now) { /* 🩹 SAFE-MODE: DISABLED */ return { updated: false }; }
+  function computeContentHash() {
+    var c = document.querySelector('.post-body.entry-content, .post-body, article, main');
+    if (!c) return null;
+    var t = (c.innerText || '').replace(/\s+/g, ' ').trim();
+    if (t.length < 50) return null;
+    var h = 0;
+    for (var i = 0; i < t.length; i++) { h = ((h << 5) - h) + t.charCodeAt(i); h = h | 0; }
+    return String(Math.abs(h));
+  }
+
+  function updateJsonLdDates(dm, pv) { return { updated: 0 }; }
+  function cleanupFaqSchema(bn) { return { cleaned: 0, injected: 0, normalized: 0, entitiesDecoded: 0 }; }
+  function updateJsonLdFaqYears(ny) { return { updated: 0, replaced: 0 }; }
+  function updateContentByLevelAndFocus(pl, cf, now) { return { updated: false, skipped: true }; }
+  function updateH1WithRules(pl, now) { return { updated: false }; }
   function autoUpdateDates(pl, cf, opts) {
-    console.log('🩹 [AED SAFE-MODE] autoUpdateDates() called but DISABLED. dateModified stays as Blogger value.');
+    console.log('🩹 [AED SAFE-MODE] autoUpdateDates() called but DISABLED.');
     return false;
   }
 
@@ -1020,6 +1008,61 @@
     var dp = (mp && mp.getAttribute('content')) ? mp.getAttribute('content').trim() : nowISO;
     var dm = (mm && mm.getAttribute('content')) ? mm.getAttribute('content').trim() : dp;
     if (new Date(dm).getTime() < new Date(dp).getTime()) dm = dp;
+
+    /* 🎯 NEW: MANUAL DATE OVERRIDE — Level 1 + Level 2 (hash opsional) */
+    var manualOverride = { applied: false, reason: null, marker: null, hashMatch: null, lastUpdated: dm };
+    if (SAFE_MODE.ALLOW_MANUAL_DATE_OVERRIDE) {
+      var markerEl = document.querySelector('[data-aed-date-modified]');
+      if (markerEl) {
+        var manualDate = (markerEl.getAttribute('data-aed-date-modified') || '').trim();
+        var manualHash = (markerEl.getAttribute('data-aed-content-hash') || '').trim();
+        var manualTs = manualDate ? new Date(manualDate).getTime() : NaN;
+        var publishTs = new Date(dp).getTime();
+        var nowTs = Date.now();
+
+        if (!isNaN(manualTs) && manualDate) {
+          if (manualTs < publishTs) {
+            console.warn('[AED] ⚠️ Marker lebih awal dari datePublished, diabaikan:', manualDate);
+            manualOverride.reason = 'marker-before-publish';
+          } else if (manualTs > nowTs) {
+            console.warn('[AED] ⚠️ Marker di masa depan, diabaikan:', manualDate);
+            manualOverride.reason = 'marker-in-future';
+          } else {
+            if (manualHash) {
+              var currentHash = computeContentHash();
+              if (currentHash) {
+                if (currentHash === manualHash) {
+                  manualOverride.hashMatch = true;
+                  console.log('[AED] ✅ Hash konten cocok → marker valid (CSS-only edit).');
+                } else {
+                  manualOverride.hashMatch = false;
+                  console.warn('[AED] ⚠️ Hash konten BEDA dari marker. Kemungkinan ada update konten substantif.');
+                  console.warn('[AED] ⚠️ Jika memang update konten, ubah marker:');
+                  console.warn('[AED]    data-aed-date-modified="' + toISOWithTimezoneLocal(new Date()) + '"');
+                  console.warn('[AED]    data-aed-content-hash="' + currentHash + '"');
+                  console.warn('[AED] ⚠️ Override tetap diterapkan (marker = otoritatif).');
+                }
+              }
+            }
+            var lastUpdatedTs = new Date(dm).getTime();
+            if (lastUpdatedTs - manualTs > 30 * 86400000) {
+              var diffDays = Math.floor((lastUpdatedTs - manualTs) / 86400000);
+              console.warn('[AED] ℹ️ Marker ' + diffDays + ' hari lebih lama dari lastUpdated Blogger.');
+            }
+            dm = manualDate;
+            if (mm) mm.setAttribute('content', manualDate);
+            manualOverride.applied = true;
+            manualOverride.marker = manualDate;
+            console.log('[AED] ✅ dateModified di-override oleh marker:', manualDate);
+          }
+        } else {
+          console.warn('[AED] ⚠️ Format marker tidak valid, diabaikan:', manualDate);
+          manualOverride.reason = 'invalid-format';
+        }
+      }
+    }
+    /* END MANUAL DATE OVERRIDE */
+
     if (!mn) { mn = document.createElement("meta"); mn.setAttribute("name","nextUpdate"); document.head.appendChild(mn); }
     var nu = toISOWithTimezoneLocal(new Date(new Date(dm).getTime() + vm));
     mn.setAttribute("content", nu);
@@ -1041,7 +1084,7 @@
       validityDays: vm / 86400000,
       usePriceValidUntil: upvu,
       ctaIntensity: ci, allowPriceRange: apr,
-      detectorVersion: dv || 'v18.0.0-safe-consistency',
+      detectorVersion: dv || 'v18.1.0-safe-manual-marker',
       detectionConfidence: conf || null,
       isOverridden: io || false,
       overrideReason: oreason || null,
@@ -1056,6 +1099,7 @@
       lastAutoUpdate: null,
       updateCount: 0,
       safeMode: true,
+      manualOverride: manualOverride,   // 🎯 NEW
       consistencyEnabled: CONSISTENCY_CONFIG.ENABLED
     };
     window.EvergreenDetectorResults = window.AEDMetaDates;
@@ -1363,11 +1407,51 @@
     console.log('Minimal Changes:', g.minimalChanges);
   };
 
-  window.aedCheckStatus = function() { if (!window.AEDMetaDates) return null; var mm = document.querySelector('meta[itemprop="dateModified"]'); var mn = document.querySelector('meta[name="nextUpdate"]'); var mp = document.querySelector('meta[itemprop="datePublished"]'); var ad = null; try { var rn = localStorage.getItem('aed-emergency-verified-' + location.pathname); if (rn) ad = JSON.parse(rn); else { var rl = localStorage.getItem('aed-verified-' + location.pathname); if (rl) { ad = JSON.parse(rl); ad._source = 'legacy-key'; } } } catch (e) {} var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : null; var s = { datePublished: mp ? mp.content : null, dateModified: mm ? mm.content : null, nextUpdate: mn ? mn.content : null, daysUntilReview: dur, needsManualVerify: document.body.getAttribute('data-aed-needs-review') === 'true', warningSeverity: document.body.getAttribute('data-aed-warning-severity'), lastEmergencyVerify: ad, safeMode: true, consistencyEnabled: CONSISTENCY_CONFIG.ENABLED, aedData: window.AEDMetaDates }; console.table(s); return s; };
+  /* 🎯 NEW: Helper untuk generate marker HTML (untuk copy-paste ke post body) */
+  window.aedSetMarker = function(dateStr, includeHash) {
+    if (!dateStr) dateStr = toISOWithTimezoneLocal(new Date());
+    var d = new Date(dateStr);
+    if (isNaN(d.getTime())) { console.error('[AED] Format tanggal tidak valid:', dateStr); return null; }
+    var html = '<span data-aed-date-modified="' + dateStr + '"';
+    var currentHash = null;
+    if (includeHash) {
+      currentHash = computeContentHash();
+      if (currentHash) html += ' data-aed-content-hash="' + currentHash + '"';
+    }
+    html += ' style="display:none"></span>';
+    console.log('📋 COPY HTML MARKER DI BAWAH INI (paste di baris paling atas post body, mode HTML):');
+    console.log(html);
+    if (currentHash) console.log('📊 Content hash saat ini:', currentHash);
+    return html;
+  };
 
-  /* ============================================================
-   🔍 Consistency — Public API
-  ============================================================ */
+  window.aedCheckStatus = function() {
+    if (!window.AEDMetaDates) return null;
+    var mm = document.querySelector('meta[itemprop="dateModified"]');
+    var mn = document.querySelector('meta[name="nextUpdate"]');
+    var mp = document.querySelector('meta[itemprop="datePublished"]');
+    var ad = null;
+    try {
+      var rn = localStorage.getItem('aed-emergency-verified-' + location.pathname);
+      if (rn) ad = JSON.parse(rn);
+      else { var rl = localStorage.getItem('aed-verified-' + location.pathname); if (rl) { ad = JSON.parse(rl); ad._source = 'legacy-key'; } }
+    } catch (e) {}
+    var dur = mn ? Math.ceil((new Date(mn.content) - new Date()) / 86400000) : null;
+    var s = {
+      datePublished: mp ? mp.content : null,
+      dateModified: mm ? mm.content : null,
+      nextUpdate: mn ? mn.content : null,
+      daysUntilReview: dur,
+      manualOverride: window.AEDMetaDates.manualOverride || null,
+      warningSeverity: document.body.getAttribute('data-aed-warning-severity'),
+      lastEmergencyVerify: ad,
+      safeMode: true,
+      consistencyEnabled: CONSISTENCY_CONFIG.ENABLED,
+      aedData: window.AEDMetaDates
+    };
+    console.table(s);
+    return s;
+  };
 
   window.aedWarmContentIndex = async function() {
     console.log('[AED] Fetching content index...');
@@ -1401,33 +1485,23 @@
   initAdminKeyboardShortcut();
 
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('🩹 AED v18.0.0-SAFE+CONSISTENCY — Admin Reminder + Cross-Page Checker');
+  console.log('🩹 AED v18.1.0-SAFE+MANUAL-MARKER — Admin Reminder + Manual Date Override');
   console.log('═══════════════════════════════════════════════════════════');
   console.log('✅ PRESERVED: Banner warning, guide modal, nextUpdate, content hash');
   console.log('✅ PRESERVED: Author byline, admin shortcut, aedCheckStatus()');
-  console.log('✅ ADDED: Blogger Feed API consistency checker');
-  console.log('   • Harga lintas halaman (product-overlap)');
-  console.log('   • NAP (telepon/email) konsistensi');
-  console.log('   • Brand name konsistensi (canonical vs alias)');
-  console.log('   • Wilayah layanan (judul vs body)');
-  console.log('   • Spesifikasi produk (mutu K-xxx, slump)');
-  console.log('   • Keyword cannibalization detection');
-  console.log('   • Cache 6 jam + pagination (up to 750 post)');
-  console.log('❌ DISABLED:  autoUpdateDates (dateModified bump)');
-  console.log('❌ DISABLED:  updateJsonLdDates (JSON-LD mutation)');
-  console.log('❌ DISABLED:  cleanupFaqSchema (FAQ schema mutation)');
-  console.log('❌ DISABLED:  updateJsonLdFaqYears (FAQ text mutation)');
-  console.log('❌ DISABLED:  updateContentByLevelAndFocus (visible text mutation)');
-  console.log('❌ DISABLED:  updateH1WithRules (H1 mutation)');
-  console.log('❌ DISABLED:  priceValidUntil write to Offer schema');
-  console.log('📌 Blogger raw HTML = SOURCE OF TRUTH');
-  console.log('📌 Googlebot sees ORIGINAL dateModified. Zero risk.');
+  console.log('✅ PRESERVED: Cross-page consistency checker (NAP, Brand, Area, Spec)');
+  console.log('🆕 ADDED: Manual date override via marker <span data-aed-date-modified="...">');
+  console.log('🆕 ADDED: Optional hash detection via data-aed-content-hash (admin warning)');
+  console.log('🆕 ADDED: aedSetMarker(dateStr, includeHash) — generate marker HTML');
+  console.log('❌ DISABLED:  autoUpdateDates, updateJsonLdDates, cleanupFaqSchema');
+  console.log('📌 Tanpa marker = perilaku identik v18.0.0 (zero regression).');
   console.log('═══════════════════════════════════════════════════════════');
-  console.log('🔍 Consistency Console Commands:');
-  console.log('   await aedWarmContentIndex()   — fetch & cache index');
-  console.log('   await aedCheckConsistency()   — run full check');
-  console.log('   aedClearContentIndex()        — clear cache (force refetch)');
-  console.log('   await aedShowEditGuide()      — log guide + consistency');
+  console.log('🎯 CARA PAKAI MARKER:');
+  console.log('   1. Buka post di editor Blogger (mode HTML)');
+  console.log('   2. Baris paling atas, paste:');
+  console.log('      <span data-aed-date-modified="2026-02-15T10:00:00+07:00" style="display:none"></span>');
+  console.log('   3. Atau jalankan: aedSetMarker("2026-02-15T10:00:00+07:00", true)');
+  console.log('   4. Save. AED akan override dateModified ke tanggal di marker.');
   console.log('═══════════════════════════════════════════════════════════');
 
   if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", function () { setTimeout(function () { detectEvergreen(); }, 100); }, { once: true }); } else { setTimeout(function () { detectEvergreen(); }, 100); }
