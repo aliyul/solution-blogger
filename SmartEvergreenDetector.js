@@ -12,6 +12,9 @@
 
  📌 PRINSIP: Blogger raw HTML = SOURCE OF TRUTH.
  📌 Marker HANYA dibaca AED, bukan ditulis balik ke server.
+     FORMAT MARKER DI HALAMAN <span data-aed-date-modified="2026-03-XXT10:00:00+07:00" style="display:none"></span> (MASUKKAN DI PALING ATAS HALAMAN NYA)
+     JIKA INGIN UPDATE KARNA BENAR KONTEN INTI DI EDIT(MAKA GANTI TANGGAL HARI ITU) ATAU 
+     PERTAHANKAN DATEMODIFIED LAMA KARNA MEMANG CUMA EDIT CSS/JS/GANTI GAMBAR(GANTI TANGGAL LAMA SESUAI DATEMODIFIED NYA)
  📌 Tanpa marker = perilaku identik v18.0.0 (zero regression).
 ============================================================ */
 
