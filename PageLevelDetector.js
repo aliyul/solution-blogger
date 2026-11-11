@@ -410,7 +410,26 @@ var LEVEL_OVERRIDES = {
 
    "jasa-borongan-cor-beton-bangunan": "variant",
 
-  "jasa-konstruksi-baja-ringan-ruko": "sub-variant"
+  "jasa-konstruksi-baja-ringan-ruko": "sub-variant",
+
+ //STRUKTUR KHUSUS OVERIDE
+  // ─── MP upgrades (umbrella pages) ───
+  "jasa-kolam-renang":                              "money-page",   // was variant
+  "jasa-kolam-ikan":                                "money-page",   // was variant
+
+  // ─── MC upgrade ───
+  "jasa-kolam-renang-cirebon":                      "money-child",  // was sub-variant
+
+  // ─── Variant upgrades (specifier, was sub-variant) ───
+  "biaya-jasa-bangun-kolam-renang-per-meter":       "variant",
+  "harga-jasa-pembuatan-kolam-renang-per-m2":       "variant",
+  "harga-jasa-borongan-tenaga-bikin-kolam-renang":  "variant",
+  "harga-jasa-pembuatan-waterpark-kolam-renang":    "variant",
+  "harga-jasa-pembuatan-wahana-kolam-renang":       "variant",
+  "jasa-pembuatan-kolam-ikan-koi":                  "variant",
+  "jasa-pembuatan-septic-tank-beton":               "variant",
+  "jasa-pembuatan-septic-tank-biofilter":           "variant"
+
 
 };
 
