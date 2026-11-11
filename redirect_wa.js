@@ -16,9 +16,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // ============================================
     const replaceMap = {
         // Ganti dari nomor lama ke nomor baru
-        "6283839000968": "6281293108428",
-        "6281299842508": "6281293108428",
-        "wa.link/mz5dsa": "wa.me/6281293108428"
+        "6283839000968": "628212586060",
+        "6281299842508": "628212586060",
+        "wa.link/mz5dsa": "wa.me/628212586060"
         // Tambahkan lainnya di sini
         // "6281293108428": "6281299842508"
     };
