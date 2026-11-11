@@ -417,9 +417,6 @@ var LEVEL_OVERRIDES = {
   "jasa-kolam-renang":                              "money-page",   // was variant
   "jasa-kolam-ikan":                                "money-page",   // was variant
 
-  // ─── MC upgrade ───
-  "jasa-kolam-renang-cirebon":                      "money-child",  // was sub-variant
-
   // ─── Variant upgrades (specifier, was sub-variant) ───
   "biaya-jasa-bangun-kolam-renang-per-meter":       "variant",
   "harga-jasa-pembuatan-kolam-renang-per-m2":       "variant",
@@ -1416,7 +1413,7 @@ var LEVEL_OVERRIDES = {
     "jakarta","jakarta pusat","jakarta barat","jakarta selatan","jakarta timur","jakarta utara",
     "bogor","depok","tangerang","tangerang selatan","bekasi","cikarang","karawang","purwakarta","subang",
     "bandung","cimahi","bandung barat","bandung timur",  // 🆕 TAMBAHKAN INI
-    "serang","cilegon","pandeglang","lebak","sukabumi","cianjur","garut","tasikmalaya","ciamis","banjar","kuningan","majalengka","indramayu","sumedang",
+    "serang","cilegon","pandeglang","lebak","sukabumi","cianjur","garut","tasikmalaya","ciamis","cirebon","banjar","kuningan","majalengka","indramayu","sumedang",
     "pangandaran", // <--- Sudah ditambahkan
 
     // ─── JAWA TENGAH & DIY ───
