@@ -412,6 +412,16 @@ var LEVEL_OVERRIDES = {
 
   "jasa-konstruksi-baja-ringan-ruko": "sub-variant",
 
+ //JASA KONSTRUKSI BANGUNAN
+  // ─── Wajib (3) — SV → Variant untuk konsistensi parallel ───
+  "jasa-upah-tenaga-borongan-bangunan-per":   "variant",  // Blogspot truncation, H1 lengkap "Per M2"
+  "jasa-pembuatan-gudang-rangka-baja":        "variant",  // parallel dengan -baja-ringan, -per-m2
+  "jasa-konstruksi-cold-storage-modern":      "variant",  // parallel dengan -workshop-modern, -bengkel-modern
+
+  // ─── Skenario A aktif (fix typo + Variant baru) ───
+  "jasa-borongan-tenaga-bikin-gudang":        "variant",   // slug BARU setelah fix typo
+
+
  //STRUKTUR KHUSUS OVERIDE
   // ─── MP upgrades (umbrella pages) ───
   "jasa-kolam-renang":                              "money-page",   // was variant
