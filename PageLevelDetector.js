@@ -425,8 +425,18 @@ var LEVEL_OVERRIDES = {
   "harga-jasa-pembuatan-wahana-kolam-renang":       "variant",
   "jasa-pembuatan-kolam-ikan-koi":                  "variant",
   "jasa-pembuatan-septic-tank-beton":               "variant",
-  "jasa-pembuatan-septic-tank-biofilter":           "variant"
+  "jasa-pembuatan-septic-tank-biofilter":           "variant",
 
+// 🔧 LEVEL_OVERRIDES — Cluster Lapangan Olahraga
+// Upgrade 7 sport MP (was Variant di PLD)
+    // ─── MP upgrades (sport umbrella) ───
+  "jasa-pembuatan-lapangan-futsal":      "money-page",
+  "jasa-pembuatan-lapangan-basket":      "money-page",
+  "jasa-pembuatan-lapangan-sepakbola":   "money-page",
+  "jasa-pembuatan-lapangan-voli":        "money-page",
+  "jasa-pembuatan-lapangan-tenis":       "money-page",
+  "jasa-pembuatan-lapangan-badminton":   "money-page",
+  "jasa-pembuatan-lapangan-serbaguna":   "money-page"
 
 };
 
