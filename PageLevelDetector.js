@@ -446,7 +446,51 @@ var LEVEL_OVERRIDES = {
   "jasa-pembuatan-lapangan-voli":        "money-page",
   "jasa-pembuatan-lapangan-tenis":       "money-page",
   "jasa-pembuatan-lapangan-badminton":   "money-page",
-  "jasa-pembuatan-lapangan-serbaguna":   "money-page"
+  "jasa-pembuatan-lapangan-serbaguna":   "money-page",
+
+  // ═══ 🔴 FIX #1: 17 MP → Variant (parent = jasa-renovasi-interior MP) ═══
+  "jasa-renovasi-interior-rumah":            "variant",
+  "jasa-renovasi-interior-kantor":           "variant",
+  "jasa-renovasi-interior-apartemen":        "variant",
+  "jasa-renovasi-interior-hotel":            "variant",
+  "jasa-renovasi-interior-toko":             "variant",
+  "jasa-renovasi-interior-mini-market":      "variant",
+  "jasa-renovasi-interior-butik":            "variant",
+  "jasa-renovasi-interior-gerai-kuliner":    "variant",
+  "jasa-renovasi-interior-etalase-toko":     "variant",
+  "jasa-renovasi-interior-gerai-waralaba":   "variant",
+  "jasa-renovasi-interior-studio-apartemen": "variant",
+  "jasa-renovasi-interior-ruang-tamu":       "variant",
+  "jasa-renovasi-interior-dapur":            "variant",
+  "jasa-renovasi-interior-kamar-tidur":      "variant",
+  "jasa-renovasi-interior-kamar-mandi":      "variant",
+  "jasa-renovasi-interior-ruang-kerja":      "variant",
+  "jasa-renovasi-interior-ruang-keluarga":   "variant",
+
+  // ═══ 🔴 FIX #2: 11 SV → Variant (parent = MP) ═══
+  // Group A — Fasad (7)
+  "jasa-renovasi-fasad-kaca-gedung":                "variant",
+  "renovasi-fasad-aluminium-composite-panel":       "variant",
+  "jasa-recoating-fasad-gedung":                    "variant",
+  "jasa-perbaikan-fasad-gedung-retak":              "variant",
+  "jasa-renovasi-kanopi-fasad-gedung":              "variant",
+  "jasa-penggantian-fasad-bangunan-lama":           "variant",
+  "jasa-perkuatan-struktur-fasad-bangunan":         "variant",
+
+  // Group B — Eksterior (4)
+  "jasa-renovasi-pagar-dan-gerbang":                "variant",
+  "jasa-renovasi-taman-dan-landscape":              "variant",
+  "jasa-renovasi-balkon-dan-teras":                 "variant",
+  "jasa-renovasi-jalur-pejalan-akses":              "variant",
+
+  // ═══ 🟡 FIX #3: 5 duplicate room MP → Variant ═══
+  // Setelah redirect, level di-set variant (supaya tidak conflict dengan interior-{room})
+  "jasa-renovasi-kamar-tidur":                      "variant",
+  "jasa-renovasi-kamar-mandi":                      "variant",
+  "jasa-renovasi-ruang-tamu":                       "variant",
+  "jasa-renovasi-ruang-keluarga":                   "variant",
+  "jasa-renovasi-dapur":                            "variant"
+ 
 
 };
 
