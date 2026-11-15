@@ -531,8 +531,36 @@ var LEVEL_OVERRIDES = {
    // PLD detect as money-page karena "harga" + method, tapi ini pricing variant
   "harga-jasa-injeksi-beton":         "variant",   // was money-page
   "harga-jasa-bobok-beton":           "variant",   // was money-page
-  "harga-jasa-shotcrete-beton":       "variant"    // was money-page
+  "harga-jasa-shotcrete-beton":       "variant",    // was money-page
 
+// 🔧 LEVEL_OVERRIDES — Jasa Perbaikan Infrastruktur (FINAL, 16 items)
+  // ═══ A) Halte-bus → MP (1) ═══
+  "jasa-perbaikan-halte-bus":                  "money-page",   // was variant
+
+  // ═══ B) Jalan children → Variant (5) ═══
+  "jasa-perbaikan-jalan-aspal":                "variant",      // was money-page
+  "jasa-perbaikan-jalan-beton":                "variant",      // was money-page
+  "jasa-perbaikan-jalan-coring-beton":         "variant",      // was money-page
+  "jasa-bongkar-pasang-jalan-paving":          "variant",      // was money-page
+  "jasa-perbaikan-jalan-perumahan":            "variant",      // was money-page
+
+  // ═══ C) Jalan SV → Variant (6) ═══
+  "jasa-perbaikan-jalan-rusak-berat":          "variant",      // was sub-variant
+  "jasa-overlay-jalan-aspal":                  "variant",      // was sub-variant
+  "jasa-rekonstruksi-jalan-beton":             "variant",      // was sub-variant
+  "jasa-penambalan-jalan-berlubang":           "variant",      // was sub-variant
+  "jasa-repair-jalan-dengan-cold-mix":         "variant",      // was sub-variant
+  "jasa-marking-jalan-dan-repair":             "variant",      // was sub-variant
+
+  // ═══ D) Taman SV → Variant (2) ═══
+  "jasa-perbaikan-jalur-pedestrian-taman":     "variant",      // was sub-variant
+  "jasa-perbaikan-area-bermain-anak-taman":    "variant",      // was sub-variant
+
+  // ═══ E) Stadion SV → Variant (1) ═══
+  "jasa-perbaikan-fasilitas-penonton-stadion": "variant",      // was sub-variant
+
+  // ═══ F) Halte SV → Variant (1) ═══
+  "jasa-perbaikan-tempat-duduk-halte":         "variant"       // was sub-variant
  
 
 };
