@@ -560,8 +560,170 @@ var LEVEL_OVERRIDES = {
   "jasa-perbaikan-fasilitas-penonton-stadion": "variant",      // was sub-variant
 
   // ═══ F) Halte SV → Variant (1) ═══
-  "jasa-perbaikan-tempat-duduk-halte":         "variant"       // was sub-variant
+  "jasa-perbaikan-tempat-duduk-halte":         "variant",       // was sub-variant
  
+  // 🔧 LEVEL_OVERRIDES — Jasa Finishing (One-Shot Fix)
+// 
+// 116 overrides, organized by category
+// NO URL changes — schema/hierarchy only
+// ═══ A) MM DUPLICATE FIX (1) ═══
+  // jasa-finishing-bangunan jadi MP (bukan MM) — jadi parent 11 building-type Variant
+  "jasa-finishing-bangunan":                  "money-page",
+
+  // ═══ B) 11 BUILDING-TYPE → Variant (under jasa-finishing-bangunan MP) ═══
+  "jasa-finishing-rumah":                     "variant",
+  "jasa-finishing-gedung":                    "variant",
+  "jasa-finishing-ruko":                      "variant",
+  "jasa-finishing-pabrik":                    "variant",
+  "jasa-finishing-kantor":                    "variant",
+  "jasa-finishing-toko":                      "variant",
+  "jasa-finishing-hotel":                     "variant",
+  "jasa-finishing-apartemen":                 "variant",
+  "jasa-finishing-mewah":                     "variant",
+  "jasa-finishing-bangunan-modern":           "variant",
+  "jasa-finishing-bangunan-minimalis":        "variant",
+
+  // ═══ C) INTERIOR CHILDREN → Variant (6) ═══
+  "jasa-finishing-interior-kantor":           "variant",
+  "jasa-finishing-interior-apartemen":        "variant",
+  "jasa-finishing-interior-rumah":            "variant",
+  "jasa-finishing-interior-minimalis":        "variant",
+  "jasa-finishing-interior-klasik":           "variant",
+  "jasa-finishing-interior-modern":           "variant",
+
+  // ═══ D) EKSTERIOR CHILDREN → Variant (31) ═══
+  // D1. Building types (15)
+  "jasa-finishing-eksterior-rumah":           "variant",
+  "jasa-finishing-eksterior-gedung":          "variant",
+  "jasa-finishing-eksterior-ruko":            "variant",
+  "jasa-finishing-eksterior-pabrik":          "variant",
+  "jasa-finishing-eksterior-kantor":          "variant",
+  "jasa-finishing-eksterior-hotel":           "variant",
+  "jasa-finishing-eksterior-cafe":            "variant",
+  "jasa-finishing-eksterior-restoran":        "variant",
+  "jasa-finishing-eksterior-sekolah":         "variant",
+  "jasa-finishing-eksterior-rumah-sakit":     "variant",
+  "jasa-finishing-eksterior-toko":            "variant",
+  "jasa-finishing-eksterior-showroom":        "variant",
+  "jasa-finishing-eksterior-gudang":          "variant",
+  "jasa-finishing-eksterior-mushola":         "variant",
+  "jasa-finishing-eksterior-masjid":          "variant",
+
+  // D2. Styles (7)
+  "jasa-finishing-eksterior-modern":          "variant",
+  "jasa-finishing-eksterior-minimalis":       "variant",
+  "jasa-finishing-eksterior-klasik":          "variant",
+  "jasa-finishing-eksterior-mewah":           "variant",
+  "jasa-finishing-eksterior-industrial":      "variant",
+  "jasa-finishing-eksterior-skandinavian":    "variant",
+  "jasa-finishing-eksterior-kontemporer":     "variant",
+
+  // D3. Components (9)
+  "jasa-finishing-eksterior-dinding":         "variant",
+  "jasa-finishing-eksterior-pagar":           "variant",
+  "jasa-finishing-eksterior-balkon":          "variant",
+  "jasa-finishing-eksterior-teras":           "variant",
+  "jasa-finishing-eksterior-kanopi":          "variant",
+  "jasa-finishing-eksterior-kolam-renang":    "variant",
+  "jasa-finishing-eksterior-plafon-terbuka":  "variant",
+  "jasa-finishing-eksterior-tangga-luar":     "variant",
+  "jasa-finishing-eksterior-gazebo":          "variant",
+
+  // ═══ E) FASAD & EPOXY (2) ═══
+  "jasa-finishing-fasad-eksterior":           "variant",
+  "jasa-finishing-epoxy-dinding":             "variant",
+
+  // ═══ F) CAT CHILDREN → Variant (under jasa-cat MP) (18) ═══
+  "jasa-cat-dinding":                         "variant",
+  "jasa-cat-interior":                        "variant",
+  "jasa-cat-eksterior":                       "variant",
+  "jasa-cat-kayu-eksterior":                  "variant",
+  "jasa-cat-besi-interior":                   "variant",
+  "jasa-cat-besi-eksterior":                  "variant",
+  "jasa-cat-genteng":                         "variant",
+  "jasa-cat-atap":                            "variant",
+  "jasa-cat-pagar":                           "variant",
+  "jasa-cat-lantai":                          "variant",
+  "jasa-cat-beton":                           "variant",
+  "jasa-cat-keramik":                         "variant",
+  "jasa-cat-dinding-interior":                "variant",
+  "jasa-cat-dinding-eksterior":               "variant",
+  "jasa-cat-plafon-eksterior":                "variant",
+  "jasa-cat-permukaan-khusus":                "variant",
+  "jasa-cat-kolam-renang":                    "variant",
+  "jasa-cat-paving-block":                    "variant",
+
+  // ═══ F2) CAT INTERIOR CHILDREN → SV (10) ═══
+  "jasa-cat-interior-rumah":                  "sub-variant",
+  "jasa-cat-interior-modern":                 "sub-variant",
+  "jasa-cat-interior-minimalis":              "sub-variant",
+  "jasa-cat-interior-apartemen":              "sub-variant",
+  "jasa-cat-interior-gedung":                 "sub-variant",
+  "jasa-cat-interior-kantor":                 "sub-variant",
+  "jasa-cat-interior-kamar-tidur":            "sub-variant",
+  "jasa-cat-interior-ruang-tamu":             "sub-variant",
+  "jasa-cat-interior-dapur":                  "sub-variant",
+  "jasa-cat-interior-ruang-kantor":           "sub-variant",
+
+  // ═══ F3) CAT EKSTERIOR CHILDREN → SV (6) ═══
+  "jasa-cat-eksterior-rumah":                 "sub-variant",
+  "jasa-cat-eksterior-gedung":                "sub-variant",
+  "jasa-cat-eksterior-kantor":                "sub-variant",
+  "jasa-cat-eksterior-modern":                "sub-variant",
+  "jasa-cat-eksterior-minimalis":             "sub-variant",
+  "jasa-cat-eksterior-klasik":                "sub-variant",
+
+  // ═══ G) DINDING CHILDREN → Variant (9) ═══
+  "jasa-finishing-dinding-wallpaper":         "variant",
+  "jasa-finishing-dinding-ekspos":            "variant",
+  "jasa-finishing-wpc-dinding":               "variant",
+  "jasa-finishing-pvc-dinding":               "variant",
+  "jasa-finishing-wall-moulding":             "variant",
+  "jasa-finishing-dinding-rumah":             "variant",
+  "jasa-finishing-dinding-kantor":            "variant",
+  "jasa-finishing-dinding-hotel":             "variant",
+  "jasa-finishing-dinding-restoran":          "variant",
+
+  // ═══ H) LANTAI CHILDREN → Variant (6) ═══
+  "jasa-finishing-lantai-epoxy":              "variant",
+  "jasa-finishing-lantai-beton":              "variant",
+  "jasa-finishing-lantai-keramik":            "variant",
+  "jasa-finishing-lantai-marmer":             "variant",
+  "jasa-finishing-lantai-granit":             "variant",
+  "jasa-finishing-lantai-kayu":               "variant",
+
+  // H2. Advanced lantai (5)
+  "jasa-poles-lantai-beton":                  "variant",
+  "jasa-coating-lantai-beton":                "variant",
+  "jasa-grinding-lantai-beton":               "variant",
+  "jasa-poles-lantai-marmer":                 "variant",
+  "jasa-poles-lantai-granit":                 "variant",
+
+  // ═══ I) LAMPU CHILDREN → Variant (4) ═══
+  "jasa-finishing-lampu-taman":               "variant",
+  "jasa-finishing-lampu-cafe":                "variant",
+  "jasa-finishing-lampu-hotel":               "variant",
+  "jasa-finishing-lampu-kantor":              "variant",
+
+  // ═══ J) STRUKTUR CHILDREN → Variant (4) ═══
+  "jasa-finishing-dak-beton":                 "variant",
+  "jasa-finishing-jalan-beton":               "variant",
+  "jasa-coating-jembatan":                    "variant",
+  "jasa-waterproofing-saluran-air":           "variant",
+
+  // ═══ K) INFRA CHILDREN → Variant (3) ═══
+  "jasa-finishing-trotoar":                   "variant",
+  "jasa-finishing-saluran-drainase":          "variant",
+  "jasa-coating-gorong-gorong":               "variant",
+
+  // ═══ L) PELAPISAN FIX → Variant (was SV under MP) (4) ═══
+  "jasa-pelapisan-genteng-dak":               "variant",
+  "jasa-pelapisan-anti-cuaca":                "variant",
+  "jasa-pelapisan-dinding-luar":              "variant",
+  "jasa-pelapisan-batu-alam-eksterior":       "variant",
+
+  // ═══ M) PLESTERAN (1) — parent correct ═══
+  "jasa-plesteran-acian-dinding":             "sub-variant"  // under jasa-plesteran-acian Variant
 
 };
 
