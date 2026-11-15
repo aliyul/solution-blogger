@@ -491,6 +491,12 @@ var LEVEL_OVERRIDES = {
   "jasa-renovasi-ruang-keluarga":                   "variant",
   "jasa-renovasi-dapur":                            "variant",
 
+// ═════════════════════════════════════════════════════════════════════
+// 🔧 LEVEL_OVERRIDES — Jasa Perbaikan Bangunan (FINAL)
+// 
+// ✅ 4 methods promote sudah confirmed
+// ✅ 16 SV → Variant sudah confirmed
+// 🔴 3 harga- masih perlu fix
 // ═══ 🆕 A) 4 Methods promote: Variant → MP ═══
   "jasa-injeksi-beton":                        "money-page",
   "jasa-bobok-beton":                          "money-page",
@@ -520,7 +526,13 @@ var LEVEL_OVERRIDES = {
   "jasa-bobok-beton-chipping":                 "variant",
   "jasa-tambal-beton-retak":                   "variant",
   "jasa-injeksi-anti-bocor":                   "variant",
-  "jasa-perkuatan-gedung-bertingkat":          "variant"
+  "jasa-perkuatan-gedung-bertingkat":          "variant",
+
+   // PLD detect as money-page karena "harga" + method, tapi ini pricing variant
+  "harga-jasa-injeksi-beton":         "variant",   // was money-page
+  "harga-jasa-bobok-beton":           "variant",   // was money-page
+  "harga-jasa-shotcrete-beton":       "variant"    // was money-page
+
  
 
 };
