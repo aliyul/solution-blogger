@@ -489,7 +489,38 @@ var LEVEL_OVERRIDES = {
   "jasa-renovasi-kamar-mandi":                      "variant",
   "jasa-renovasi-ruang-tamu":                       "variant",
   "jasa-renovasi-ruang-keluarga":                   "variant",
-  "jasa-renovasi-dapur":                            "variant"
+  "jasa-renovasi-dapur":                            "variant",
+
+// ═══ 🆕 A) 4 Methods promote: Variant → MP ═══
+  "jasa-injeksi-beton":                        "money-page",
+  "jasa-bobok-beton":                          "money-page",
+  "jasa-shotcrete-beton":                      "money-page",
+  "jasa-tambal-beton":                         "money-page",
+
+  // ═══ 🆕 B) 3 Bobok family: MP/SV fix ═══
+  "harga-jasa-bobok-beton-per-m2":             "variant",       // was money-page
+  "harga-jasa-bobok-beton-per-m3":             "variant",       // was money-page
+  "harga-jasa-bobok-lantai-beton-per-m2":      "sub-variant",   // was money-page
+
+  // ═══ 🆕 C1) Beton kategori SV → Variant (11) ═══
+  "jasa-perbaikan-retak-struktural-beton":     "variant",
+  "jasa-perbaikan-beton-akibat-korosi":        "variant",
+  "jasa-perbaikan-beton-akibat-overload":      "variant",
+  "jasa-perbaikan-beton-akibat-asr":           "variant",
+  "jasa-perbaikan-beton-serangan-sulfat":      "variant",
+  "jasa-perbaikan-beton-area-pesisir":         "variant",
+  "jasa-perbaikan-beton-area-industri":        "variant",
+  "jasa-rehabilitasi-struktur-beton-lama":     "variant",
+  "jasa-retrofit-struktur-beton-eksisting":    "variant",
+  "jasa-peningkatan-kapasitas-struktur-beton": "variant",
+  "jasa-perpanjangan-umur-struktur-beton":     "variant",
+
+  // ═══ 🆕 C2-C5) Children methods SV → Variant (5) ═══
+  "jasa-bobok-lantai-beton":                   "variant",
+  "jasa-bobok-beton-chipping":                 "variant",
+  "jasa-tambal-beton-retak":                   "variant",
+  "jasa-injeksi-anti-bocor":                   "variant",
+  "jasa-perkuatan-gedung-bertingkat":          "variant"
  
 
 };
