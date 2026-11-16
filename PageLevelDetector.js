@@ -162,7 +162,8 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
   "jasa-pasang-sandwich-panel": "money-page",
-       
+
+  "jasa-saluran-air-hujan": "money-page",   // was variant
   "jasa-saluran-irigasi": "money-page",        // ← WAJIB (parent virtual butuh MP)
   "jasa-perbaikan-elemen-arsitektural": "money-page", 
   "jasa-perbaikan-rs": "money-page",
