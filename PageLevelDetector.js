@@ -720,12 +720,10 @@ var LEVEL_OVERRIDES = {
   "jasa-pelapisan-genteng-dak":               "variant",
   "jasa-pelapisan-anti-cuaca":                "variant",
   "jasa-pelapisan-dinding-luar":              "variant",
-  "jasa-pelapisan-batu-alam-eksterior":       "variant"
+  "jasa-pelapisan-batu-alam-eksterior":       "variant",
 
-  // ═══ M) PLESTERAN (1) — parent correct ═══
-  // under jasa-plesteran-acian Variant SV under Variant (no override needed, already detected correct by PLD
- // "jasa-plesteran-acian-dinding":             "sub-variant" 
-
+  // ═══ 🆕 M) PLESTERAN-ACIAN → Variant (1) ═══
+  "jasa-plesteran-acian-dinding":             "variant"   // was sub-variant
 };
 
 // ═══════════════════════════════════════════════════════════
