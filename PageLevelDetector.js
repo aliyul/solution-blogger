@@ -295,6 +295,24 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-meja-kantor": "variant",
   "jasa-pasang-kursi-kantor": "variant",
 
+  // ═══ A) 2 MP → Variant (location umbrella) ═══
+  "jasa-pasang-lampu-interior":             "variant",       // was money-page
+  "jasa-pasang-lampu-eksterior":            "variant",       // was money-page
+
+  // ═══ B) 4 MP → SV (room/style under interior) ═══
+  "jasa-pasang-lampu-interior-modern":      "sub-variant",   // was money-page
+  "jasa-pasang-lampu-interior-minimalis":   "sub-variant",   // was money-page
+  "jasa-pasang-lampu-interior-rumah":       "sub-variant",   // was money-page
+  "jasa-pasang-lampu-interior-gedung":      "sub-variant",   // was money-page
+
+  // ═══ C) 3 Variant → SV (room-based, was parallel to type) ═══
+  "jasa-pasang-lampu-dapur":                "sub-variant",   // was variant (under interior)
+  "jasa-pasang-lampu-kantor":               "sub-variant",   // was variant (under interior)
+  "jasa-pasang-lampu-taman":                "sub-variant",   // was variant (under eksterior)
+
+  // ═══ D) 1 SV → Variant (smart-home = tech, not room) ═══
+  "jasa-pasang-lampu-smart-home":           "variant",       // was sub-variant
+       
   // ═══════════════════════════════════════════════════════════════
   // 🧬 LEVEL 4: SUB-VARIANT (Turunan dari Variant)
   // Material + Area + Ruangan/Spesifikasi
