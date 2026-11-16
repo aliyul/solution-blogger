@@ -161,8 +161,7 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
-  "jasa-pasang-sandwich-panel": "money-page",
-
+       
   "jasa-saluran-air-hujan": "money-page",   // was variant
   "jasa-saluran-irigasi": "money-page",        // ← WAJIB (parent virtual butuh MP)
   "jasa-perbaikan-elemen-arsitektural": "money-page", 
@@ -174,13 +173,15 @@ var LEVEL_OVERRIDES = {
   "jasa-konsultan-konstruksi": "money-page",
   "harga-jasa-konsultan-struktur": "money-page",
   "harga-jasa-konsultan-arsitektur": "money-page",
-       
+
+ // 🔧 LEVEL_OVERRIDES — Jasa Pasang
   // ═══════════════════════════════════════════════════════════════
   // 🏛️ LEVEL 2: MONEY PAGE (MP)
   // Induk Area & Induk Material
   // ═══════════════════════════════════════════════════════════════
   
   // -- Induk Area --
+   "jasa-pasang-sandwich-panel": "money-page",
   "jasa-pasang-dinding": "money-page",
   "jasa-pasang-lantai": "money-page",
   "jasa-borongan-lantai": "money-page",
@@ -215,7 +216,6 @@ var LEVEL_OVERRIDES = {
   // 🔬 LEVEL 3: VARIANT (Turunan dari MP)
   // Material + Area/Aplikasi
   // ═══════════════════════════════════════════════════════════════
-
   // -- Pagar Panel Beton (Variant dari jasa-pasang-pagar-panel-beton) --
   "jasa-pasang-pagar-beton-precast": "variant",
   "jasa-pasang-pagar-panel-beton-per-meter": "variant",
@@ -272,6 +272,7 @@ var LEVEL_OVERRIDES = {
   "jasa-laser-cutting-acp": "variant",
 
   // -- Lantai --
+  "jasa-borongan-lantai": "variant",  // was money-page (duplikat jasa-pasang-lantai) 
   "jasa-pasang-keramik-lantai": "variant",
   "jasa-pasang-lantai-spc": "variant",
   "jasa-pasang-lantai-vinyl": "variant",
