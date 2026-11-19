@@ -389,6 +389,10 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-acp-plafon": "sub-variant",
   "jasa-pasang-acp-partisi-ruangan": "sub-variant",
 
+//Jasa Pasang Pagar Rumah
+    "spesifikasi-jasa-pasang-pagar-rumah": "sub-variant",   // was sub-pillar-tipe-2
+  "model-jasa-pasang-pagar-rumah":       "sub-variant",    // was sub-pillar-tipe-2
+
   // -- ACP Eksterior --
   "jasa-pasang-acp-fasad": "sub-variant",
   "jasa-pasang-acp-bungkus-kolom": "sub-variant",
