@@ -184,7 +184,6 @@ var LEVEL_OVERRIDES = {
    "jasa-pasang-sandwich-panel": "money-page",
   "jasa-pasang-dinding": "money-page",
   "jasa-pasang-lantai": "money-page",
-  "jasa-borongan-lantai": "money-page",
   "jasa-pasang-plafon": "money-page",
   "jasa-pasang-rangka-atap": "money-page",
   "jasa-pasang-atap": "money-page",
