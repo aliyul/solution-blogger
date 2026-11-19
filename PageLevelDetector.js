@@ -211,6 +211,14 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-wpc": "money-page",
   "jasa-pasang-pvc": "money-page",
 
+ // ─── 🩹 FIX-SP2-FALSE-POSITIVE (silent patch — versi tetap 23.9.10) ───
+// "spesifikasi"/"ukuran" di kata PERTAMA memicu detectSubPillarStrict()
+// → sub-pillar-tipe-2 (level 2), padahal parent = MP (level 5).
+// Hierarki terbalik. Sebenarnya halaman atribut teknis = VARIANT
+// (alternate sah dari money-page di EXPECTED_CHILD_MAP).
+"spesifikasi-jasa-pasang-pagar-panel":       "variant",  // slug AKTUAL (terpotong)
+"spesifikasi-jasa-pasang-pagar-panel-beton": "variant",  // ALIAS (title/H1 lengkap)
+"ukuran-jasa-pasang-pagar-panel-beton":      "variant",  // slug aktual = title
   // ═══════════════════════════════════════════════════════════════
   // 🔬 LEVEL 3: VARIANT (Turunan dari MP)
   // Material + Area/Aplikasi
@@ -311,6 +319,7 @@ var LEVEL_OVERRIDES = {
 
   // ═══ D) 1 SV → Variant (smart-home = tech, not room) ═══
   "jasa-pasang-lampu-smart-home":           "variant",       // was sub-variant
+
 
   // 🔒 FIX: PLD detect sub-variant, tapi target = variant (sejajar dengan brc/besi-hollow/beton-precast)
   "jasa-pasang-pagar-kawat-harmonika": "variant",   // was sub-variant
