@@ -226,7 +226,7 @@ var LEVEL_OVERRIDES = {
   "jasa-pasang-pagar-panel-beton-motif": "variant",
   "jasa-pasang-pagar-panel-beton-custom": "variant",
   "jasa-pasang-pagar-panel-beton-polosan": "variant",
-  "jasa-pagar-panel-beton-terpasang": "variant",
+  "jasa-pasang-pagar-panel-beton-terpasang": "variant",
   "jasa-pasang-pagar-panel-beton-lahan-kosong": "variant",
   "jasa-pasang-pagar-panel-beton-kandang-ternak": "variant",
   "jasa-pasang-pagar-panel-beton-pertambangan": "variant",
