@@ -312,6 +312,10 @@ var LEVEL_OVERRIDES = {
 
   // ═══ D) 1 SV → Variant (smart-home = tech, not room) ═══
   "jasa-pasang-lampu-smart-home":           "variant",       // was sub-variant
+
+  // 🔒 FIX: PLD detect sub-variant, tapi target = variant (sejajar dengan brc/besi-hollow/beton-precast)
+  "jasa-pasang-pagar-kawat-harmonika": "variant",   // was sub-variant
+  "jasa-pasang-pagar-plat-laser":      "variant",    // was sub-variant
        
   // ═══════════════════════════════════════════════════════════════
   // 🧬 LEVEL 4: SUB-VARIANT (Turunan dari Variant)
