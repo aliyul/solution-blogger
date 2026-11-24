@@ -161,6 +161,66 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
+  // ═══════════════════════════════════════════════════════════════
+  // 📂 CLUSTER SHEET PILE: Koreksi Deteksi Salah (Variant → Variant)
+  // PLD mendeteksi ini sebagai 'money-page' karena panjang slug, 
+  // padahal ini adalah child spesifik dari MP induknya.
+  // ═══════════════════════════════════════════════════════════════
+  
+  // Turunan dari: jasa-pemasangan-sheet-pile-baja
+  "jasa-pemasangan-sheet-pile-baja-pelabuhan": "variant",
+  "jasa-pemasangan-sheet-pile-baja-basement": "variant",
+  "jasa-pemasangan-sheet-pile-baja-tipe-u": "variant",
+  "jasa-pemasangan-sheet-pile-baja-tipe-z": "variant",
+  "jasa-pemasangan-sheet-pile-baja-tipe-larsen": "variant",
+  
+  // Turunan dari: jasa-pemasangan-sheet-pile-beton
+  "jasa-pemasangan-sheet-pile-beton-saluran-irigasi": "variant",
+  "jasa-pemasangan-sheet-pile-beton-dermaga": "variant",
+  
+  // Turunan dari: jasa-pemasangan-sheet-pile-vinyl
+  "jasa-pemasangan-sheet-pile-vinyl-kolam": "variant",
+  "jasa-pemasangan-sheet-pile-vinyl-standar": "variant",
+  "jasa-pemasangan-sheet-pile-vinyl-heavy-duty": "variant",
+  
+  // Turunan dari: harga-jasa-pemasangan-sheet-pile (Pricing Hub)
+  "harga-jasa-pemasangan-sheet-pile-baja-per-m2": "variant",
+  "harga-jasa-pemasangan-sheet-pile-beton-per-m2": "variant",
+  "harga-jasa-pemasangan-sheet-pile-per-meter": "variant",
+
+    // ═══════════════════════════════════════════════════════════════
+  // 🚨 UPGRADE: Terdeteksi 'variant', tapi SEHARUSNYA 'money-page'
+  // ═══════════════════════════════════════════════════════════════
+  "jasa-jacking-pile": "money-page", 
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🚨 DOWNGRADE: Terdeteksi 'money-page', tapi SEHARUSNYA 'variant'
+  // (Aplikasi, Tipe, dan Harga Spesifik di bawah MP induknya)
+  // ═══════════════════════════════════════════════════════════════
+  
+  // Turunan dari: jasa-pancang-spun-pile
+  "jasa-pancang-spun-pile-gedung-bertingkat": "variant",
+  "jasa-pancang-spun-pile-jembatan": "variant",
+  "jasa-pancang-spun-pile-gudang-pabrik": "variant",
+  "harga-jasa-pemancangan-spun-pile-per-titik": "variant",
+  
+  // Turunan dari: jasa-pancang-mini-pile
+  "jasa-pancang-mini-pile-rumah-2-lantai": "variant",
+  "jasa-pancang-mini-pile-rumah-3-lantai": "variant",
+  "jasa-pancang-mini-pile-renovasi-bangunan": "variant",
+  "harga-jasa-pemancangan-mini-pile-per-titik": "variant",
+  
+  // Turunan dari: jasa-pemancangan-tiang-pancang-baja
+  "jasa-pemancangan-h-beam": "variant",
+  "jasa-pemancangan-tiang-pancang-baja-tipe-u": "variant",
+  "jasa-pemancangan-tiang-pancang-baja-tipe-z": "variant",
+  "harga-jasa-pemancangan-tiang-pancang-baja-per-meter": "variant",
+  
+  // Turunan dari: jasa-pemancangan-tiang-pancang-beton
+  "jasa-pemancangan-tiang-pancang-beton-k-450": "variant",
+  "jasa-pemancangan-tiang-pancang-beton-k-500": "variant",
+  "jasa-pemancangan-tiang-pancang-beton-30cm": "variant",
+  "jasa-pemancangan-tiang-pancang-beton-40cm": "variant",
        
   "jasa-saluran-air-hujan": "money-page",   // was variant
   "jasa-saluran-irigasi": "money-page",        // ← WAJIB (parent virtual butuh MP)
