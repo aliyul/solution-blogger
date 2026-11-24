@@ -221,6 +221,10 @@ var LEVEL_OVERRIDES = {
   "jasa-pemancangan-tiang-pancang-beton-k-500": "variant",
   "jasa-pemancangan-tiang-pancang-beton-30cm": "variant",
   "jasa-pemancangan-tiang-pancang-beton-40cm": "variant",
+   // ─── VARIANT SPESIFIK YANG ANDA SEBUTKAN (Mencegah deteksi yang tidak konsisten) ───
+  "jasa-jacking-pile-basement": "variant",
+  "jasa-jacking-pile-dekat-bangunan-eksisting": "variant",
+
        
   "jasa-saluran-air-hujan": "money-page",   // was variant
   "jasa-saluran-irigasi": "money-page",        // ← WAJIB (parent virtual butuh MP)
