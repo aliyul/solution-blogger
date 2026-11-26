@@ -168,11 +168,9 @@ var LEVEL_OVERRIDES = {
   "harga-u-ditch": "money-page",
   "gorong-gorong-beton": "money-page",
   "harga-gorong-gorong-beton": "money-page",
-  "pipa-beton": "money-page",
   "pipa-beton-precast": "money-page",
   "pipa-beton-cor": "money-page",
   "harga-pipa-beton-precast": "money-page",
-  "saluran-beton": "money-page",
 
   // ─── VARIANTS (Level 7) ───
   // Dikoreksi dari Money Master menjadi Variant
