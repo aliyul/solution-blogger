@@ -161,6 +161,45 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
+  //CLUSTER DRAINASESALURANPRODUK
+ // ─── MONEY PAGES (Level 5) ───
+  // Dikoreksi dari MM/Variant menjadi Money Page
+  "harga-buis-beton": "money-page", 
+  "harga-u-ditch": "money-page",
+  "gorong-gorong-beton": "money-page",
+  "harga-gorong-gorong-beton": "money-page",
+  "pipa-beton": "money-page",
+  "pipa-beton-precast": "money-page",
+  "pipa-beton-cor": "money-page",
+  "harga-pipa-beton-precast": "money-page",
+  "saluran-beton": "money-page",
+
+  // ─── VARIANTS (Level 7) ───
+  // Dikoreksi dari Money Master menjadi Variant
+  "buis-beton-u": "variant",
+  "harga-u-ditch-40-x-60": "variant",
+  "harga-u-ditch-40-x-40": "variant",
+// ─── UPGRADE: Dari Sub-Pillar menjadi VARIANT ───
+  // Kategori: Ukuran & Aplikasi Spesifik
+  "ukuran-buis-beton-diameter-100-cm": "variant",
+  "ukuran-buis-beton-diameter-80-cm": "variant",
+  "ukuran-buis-beton-untuk-sumur": "variant",
+  "ukuran-buis-beton-saluran-air": "variant",
+  "ukuran-pipa-beton-150-mm": "variant",
+  "ukuran-pipa-beton-200-mm": "variant",
+  "ukuran-pipa-beton-300-mm": "variant",
+  "ukuran-pipa-beton-400-mm": "variant",
+  "ukuran-box-culvert-precast": "variant",
+  "ukuran-u-ditch-beton": "variant",
+  "ukuran-cover-u-ditch": "variant",
+  "ukuran-saluran-beton": "variant",
+  // Kategori: Kelebihan/Kekurangan (Decision-making Variant)
+  "kelebihan-saluran-beton": "variant",
+  "kekurangan-saluran-beton": "variant",
+  "kelebihan-box-culvert": "variant",
+  // ─── SUB-PILLAR TIPE 1 YANG ASLI (Tetap) ───
+ // "perbandingan-produk-saluran-drainase": "sub-pillar-tipe-1"
+       
   // ═══════════════════════════════════════════════════════════════
   // 📂 CLUSTER SHEET PILE: Koreksi Deteksi Salah (Variant → Variant)
   // PLD mendeteksi ini sebagai 'money-page' karena panjang slug, 
