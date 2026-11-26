@@ -162,6 +162,84 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
   //CLUSTER DRAINASESALURANPRODUK
+  // ═══════════════════════════════════════════════════════
+  "pipa-beton": "money-master",
+  "saluran-beton": "money-master",
+
+  // ═══════════════════════════════════════════════════════
+  // 2. DOWNGRADE: Money Page ➔ Variant (Buis Beton)
+  // ═══════════════════════════════════════════════════════
+  "harga-buis-beton-diameter-30-cm": "variant",
+  "harga-buis-beton-diameter-40-cm": "variant",
+  "harga-buis-beton-diameter-50-cm": "variant",
+  "harga-buis-beton-diameter-60-cm": "variant",
+  "harga-buis-beton-diameter-80-cm": "variant",
+  "harga-buis-beton-bertulang": "variant",
+  "harga-buis-beton-bulat": "variant",
+  "harga-buis-beton-kotak": "variant",
+  "harga-buis-beton-dusaspun": "variant",
+  "buis-beton-precon": "variant",
+  "buis-beton-asiacon": "variant",
+  "buis-beton-dusaspun": "variant",
+  "buis-beton-scg": "variant",
+  "buis-beton-bulat": "variant",
+  "buis-beton-kotak": "variant",
+  "buis-beton-bertulang": "variant",
+  "buis-beton-sumur-resapan": "variant",
+  "buis-beton-gorong-gorong": "variant",
+  "buis-beton-riol": "variant",
+  "buis-beton-saluran": "variant",
+
+  // ═══════════════════════════════════════════════════════
+  // 3. DOWNGRADE: Money Page ➔ Variant (Box Culvert)
+  // ═══════════════════════════════════════════════════════
+  "box-culvert-80x80": "variant",
+  "harga-box-culvert-40x40": "variant",
+  "harga-box-culvert-50x50": "variant",
+  "harga-box-culvert-60x60": "variant",
+  "harga-box-culvert-80x80x100": "variant",
+  "harga-box-culvert-100x100x100": "variant",
+  "harga-box-culvert-150x150": "variant",
+  "harga-box-culvert-200x200": "variant",
+  "harga-box-culvert-300x300": "variant",
+  "kegunaan-box-culvert": "variant",
+  "box-culvert-dusaspun": "variant",
+  "harga-box-culvert-calvary": "variant",
+  "saluran-box-culvert": "variant",
+
+  // ═══════════════════════════════════════════════════════
+  // 4. DOWNGRADE: Money Page ➔ Variant (U-Ditch & Lain)
+  // ═══════════════════════════════════════════════════════
+  "u-ditch-murah": "variant",
+  "harga-u-ditch-dusaspun": "variant",
+  "harga-u-ditch-duracon": "variant",
+  "harga-u-ditch-precon": "variant",
+  "harga-u-ditch-asiacon": "variant",
+  "fungsi-u-ditch": "variant",
+  "u-ditch-precast": "variant",
+  "u-ditch-dusaspun": "variant",
+  "u-ditch-scg": "variant",
+  "u-ditch-40x40x120": "variant",
+  "u-ditch-60x60": "variant",
+  "u-ditch-80x80": "variant",
+  "u-ditch-90x90": "variant",
+  "u-ditch-70x70": "variant",
+  "harga-u-ditch-k350": "variant",
+  "harga-cover-tutup-u-ditch": "variant",
+  "jual-tutup-u-ditch": "variant",
+  "biaya-pemasangan-u-ditch": "variant",
+
+  // ═══════════════════════════════════════════════════════
+  // 5. UPGRADE: Sub-Variant ➔ Variant (Konsistensi)
+  // ═══════════════════════════════════════════════════════
+  "gorong-gorong-beton-sesuai-kapasitas-air": "variant",
+  "arti-saluran-beton": "variant",
+  "kegunaan-saluran-beton": "variant",
+  "pipa-beton-drainase": "variant",
+  "harga-buis-beton-diameter-100-cm": "variant",
+  "harga-buis-beton-diameter-150-cm": "variant",
+  "buis-beton-untuk-septic-tank": "variant",
+       
  // ─── MONEY PAGES (Level 5) ───
   // Dikoreksi dari MM/Variant menjadi Money Page
   "harga-buis-beton": "money-page", 
