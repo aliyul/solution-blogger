@@ -248,6 +248,7 @@ var LEVEL_OVERRIDES = {
   "harga-gorong-gorong-beton": "money-page",
   "pipa-beton-precast": "money-page",
   "pipa-beton-cor": "money-page",
+  "harga-pipa-beton": "money-page",
   "harga-pipa-beton-precast": "money-page",
 
   // ─── VARIANTS (Level 7) ───
