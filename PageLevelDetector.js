@@ -189,6 +189,7 @@ var LEVEL_OVERRIDES = {
   "buis-beton-gorong-gorong": "variant",
   "buis-beton-riol": "variant",
   "buis-beton-saluran": "variant",
+  "harga-saluran-beton": "variant",
 
   // ═══════════════════════════════════════════════════════
   // 3. DOWNGRADE: Money Page ➔ Variant (Box Culvert)
