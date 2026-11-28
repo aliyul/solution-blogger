@@ -172,6 +172,14 @@ var LEVEL_OVERRIDES = {
   "sandwich-panel": "money-master",
   "bangunan-prefab-modular": "money-master",
 
+   // Koreksi: Turunkan dari money-page ke variant agar lebih bersih
+  "panel-beton-precast-ready-stock": "variant",
+  
+  // Koreksi: Naikkan dari sub-variant ke variant (Konsistensi Aplikasi/Tipe)
+  "panel-beton-precast-untuk-dinding": "variant",
+  "panel-dinding-beton-pracetak-ringan": "variant",
+  "panel-beton-pracetak-untuk-gedung": "variant",
+
   // ─── SANDWICH PANEL: UPGRADE dari Sub-Variant ke Variant ───
   // Tipe & Material
   "panel-sandwich-eps": "variant",
