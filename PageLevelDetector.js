@@ -172,6 +172,35 @@ var LEVEL_OVERRIDES = {
   "sandwich-panel": "money-master",
   "bangunan-prefab-modular": "money-master",
 
+  // ─── SANDWICH PANEL: UPGRADE dari Sub-Variant ke Variant ───
+  // Tipe & Material
+  "panel-sandwich-eps": "variant",
+  "panel-sandwich-pu": "variant",
+  "panel-sandwich-xps": "variant",
+  "panel-sandwich-rockwool": "variant",
+  "panel-sandwich-tahan-api": "variant",
+  "panel-sandwich-tahan-air": "variant",
+  "panel-sandwich-akustik": "variant",
+  "panel-sandwich-ringan": "variant",
+  "panel-sandwich-isolasi-termal": "variant",
+  "panel-sandwich-untuk-rumah-modular": "variant",
+  
+  // Harga Spesifik (Juga Variant dari MM)
+  "harga-sandwich-panel-modular-per-m2": "variant",
+  "harga-panel-sandwich-eps-per-lembar": "variant",
+  "harga-panel-sandwich-dinding-ringan": "variant",
+  "harga-panel-sandwich-lantai-ringan": "variant",
+  "harga-panel-sandwich-anti-api": "variant",
+  "harga-panel-sandwich-isolasi-termal": "variant",
+  "harga-panel-sandwich-akustik": "variant",
+  "harga-panel-sandwich-tahan-air": "variant",
+  "harga-panel-sandwich-tahan-gempa": "variant",
+  "harga-panel-sandwich-untuk-rumah-modular": "variant",
+
+  // Aplikasi Bangunan (Tetap Variant karena sangat spesifik)
+  "dinding-panel-sandwich-modular": "variant",
+  "bangunan-panel-sandwich-modular": "variant",
+       
   // ─── DOWNGRADE: Sub-Pillar 2 ➔ Variant (Spesifikasi Ukuran) ───
   "ukuran-bata-ringan-hebel-modular": "variant",
   "ukuran-roster-beton-kotak": "variant",
@@ -188,9 +217,15 @@ var LEVEL_OVERRIDES = {
   "roster-beton-murah": "variant",
 
   // ─── DOWNGRADE: Money Page ➔ Variant / Money Child ───
-  "modular-kamar-mandi-toilet": "variant",
-  "harga-sandwich-panel-modular-per-m2": "variant",
-  "harga-panel-sandwich-eps-per-lembar": "variant",
+  / ✅ DIUPGRADE: Dari variant menjadi Money Page (Mini-Hub)
+  "modular-kamar-mandi-toilet": "money-page", 
+
+  // ✅ VARIANT: Turunan spesifik dari Modular Kamar Mandi Toilet
+  "toilet-modular-3-pintu": "variant",
+  "toilet-modular-custom-desain": "variant",
+  "kamar-mandi-modular-portable": "variant",
+  "toilet-modular-site-office": "variant",
+  "harga-toilet-modular": "variant",
   "harga-roster-beton-per-m2": "variant",
   "harga-roster-beton-masjid": "variant",
   "harga-roster-beton-cisangkan": "variant",
