@@ -161,6 +161,98 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
+  // ═══════════════════════════════════════════════════════
+  // CLUSTER: PRODUK DINDING MODULAR & ROSTER BETON
+  // ═══════════════════════════════════════════════════════
+
+  // ─── UPGRADE: Variant ➔ Money Master (Induk Kategori) ───
+  "panel-beton": "money-master",
+  "beton-ringan": "money-master",
+  "bata-ringan": "money-master",
+  "sandwich-panel": "money-master",
+  "bangunan-prefab-modular": "money-master",
+
+  // ─── DOWNGRADE: Sub-Pillar 2 ➔ Variant (Spesifikasi Ukuran) ───
+  "ukuran-bata-ringan-hebel-modular": "variant",
+  "ukuran-roster-beton-kotak": "variant",
+  "ukuran-roster-beton-minimalis": "variant",
+
+  // ─── DOWNGRADE: Sub-Pillar 1 ➔ Variant (Kelebihan Spesifik) ───
+  "kelebihan-bata-ringan-modular": "variant",
+
+  // ─── DOWNGRADE: Money Master ➔ Money Page / Variant ───
+  "harga-roster-beton": "money-page", // Pricing Hub
+  "harga-roster-beton-murah": "variant",
+  "harga-roster-beton-20-x-20": "variant",
+  "harga-roster-beton-minimalis": "variant",
+  "roster-beton-murah": "variant",
+
+  // ─── DOWNGRADE: Money Page ➔ Variant / Money Child ───
+  "modular-kamar-mandi-toilet": "variant",
+  "harga-sandwich-panel-modular-per-m2": "variant",
+  "harga-panel-sandwich-eps-per-lembar": "variant",
+  "harga-roster-beton-per-m2": "variant",
+  "harga-roster-beton-masjid": "variant",
+  "harga-roster-beton-cisangkan": "variant",
+  "harga-roster-beton-per-buah": "variant",
+  "harga-pagar-roster-beton": "variant",
+  "pagar-roster-beton-minimalis": "variant",
+  "jual-roster-beton-minimalis": "variant",
+  "roster-beton-cisangkan": "variant",
+  "roster-beton-kotak": "variant",
+  "roster-beton-banjarbaru": "money-child", // Lokasi
+
+  // ─── UPGRADE: Sub-Variant ➔ Variant (Konsistensi Hierarki) ───
+  // Bata Ringan
+  "bata-ringan-hebel-modular": "variant",
+  "konstruksi-dinding-bata-ringan-modular": "variant",
+  "teknologi-bata-ringan-modular": "variant",
+  "pemasangan-bata-ringan-modular": "variant",
+  "kekuatan-bata-ringan-modular": "variant",
+  "modular-hebel-untuk-rumah": "variant",
+  "bata-ringan-modular-prefab": "variant",
+  
+  // Panel Beton
+  "dinding-panel-beton-precast-modular": "variant",
+  "sistem-dinding-modular-beton": "variant",
+  "rumah-modular-panel-beton-precast": "variant",
+  "bangunan-modular-panel-beton-precast": "variant",
+  "konstruksi-modular-panel-beton": "variant",
+  "teknologi-dinding-panel-modular-beton": "variant",
+  "material-modular-dinding-beton-precast": "variant",
+  "inovasi-panel-modular-beton-precast": "variant",
+
+  // Sandwich Panel
+  "dinding-panel-sandwich-modular": "variant",
+  "bangunan-panel-sandwich-modular": "variant",
+  "panel-sandwich-rockwool": "variant",
+  "panel-sandwich-tahan-api": "variant",
+  "panel-sandwich-tahan-air": "variant",
+  "panel-sandwich-akustik": "variant",
+  "panel-sandwich-ringan": "variant",
+  "panel-sandwich-isolasi-termal": "variant",
+  "panel-sandwich-untuk-rumah-modular": "variant",
+  "harga-panel-sandwich-dinding-ringan": "variant",
+  "harga-panel-sandwich-lantai-ringan": "variant",
+  "harga-panel-sandwich-anti-api": "variant",
+  "harga-panel-sandwich-isolasi-termal": "variant",
+  "harga-panel-sandwich-akustik": "variant",
+  "harga-panel-sandwich-tahan-air": "variant",
+  "harga-panel-sandwich-tahan-gempa": "variant",
+  "harga-panel-sandwich-untuk-rumah-modular": "variant",
+
+  // Bangunan Prefab / Modular
+  "toilet-modular-custom-desain": "variant",
+  "kamar-mandi-modular-portable": "variant",
+  "toilet-modular-site-office": "variant",
+  "rumah-prefab-modular-indonesia": "variant",
+  "rumah-modular-cepat-bangun": "variant",
+  "harga-rumah-prefab-modular": "variant",
+  "rumah-prefab-modular-hemat-biaya": "variant",
+  "rumah-prefab-modular-ramah-lingkungan": "variant",
+  "desain-rumah-prefab-modular": "variant",
+  "bangunan-ruspin-modular": "variant",
+       
    // ═══════════════════════════════════════════════════════
   // CLUSTER: PRODUK PEMBATAS (PAGAR & KANSTIN)
   // ═══════════════════════════════════════════════════════
