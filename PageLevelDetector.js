@@ -172,6 +172,8 @@ var LEVEL_OVERRIDES = {
   "sandwich-panel": "money-master",
   "bangunan-prefab-modular": "money-master",
 
+   //koreksi dari sub2 agar variant
+  "spesifikasi-panel-beton-precast":  "variant",
    // Koreksi: Turunkan dari money-page ke variant agar lebih bersih
   "panel-beton-precast-ready-stock": "variant",
   
@@ -179,6 +181,19 @@ var LEVEL_OVERRIDES = {
   "panel-beton-precast-untuk-dinding": "variant",
   "panel-dinding-beton-pracetak-ringan": "variant",
   "panel-beton-pracetak-untuk-gedung": "variant",
+
+   // Sub-Pillars Koreksi ke Variant
+  "spesifikasi-beton-ringan-precast": "variant",
+  "kelebihan-beton-ringan-precast": "variant",
+  
+  // Variant Pricing
+  "harga-beton-ringan-precast": "variant",
+  
+  // ✅ UPGRADE: Dari Sub-Variant menjadi Variant (Aplikasi & Kondisi)
+  "beton-ringan-precast-untuk-bangunan": "variant",
+  "beton-ringan-precast-berkualitas": "variant",
+  "pabrik-beton-ringan-precast": "variant",
+  "beton-ringan-precast-siap-pakai": "variant",
 
   // ─── SANDWICH PANEL: UPGRADE dari Sub-Variant ke Variant ───
   // Tipe & Material
