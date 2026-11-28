@@ -217,7 +217,7 @@ var LEVEL_OVERRIDES = {
   "roster-beton-murah": "variant",
 
   // ─── DOWNGRADE: Money Page ➔ Variant / Money Child ───
-  / ✅ DIUPGRADE: Dari variant menjadi Money Page (Mini-Hub)
+  // ✅ DIUPGRADE: Dari variant menjadi Money Page (Mini-Hub)
   "modular-kamar-mandi-toilet": "money-page", 
 
   // ✅ VARIANT: Turunan spesifik dari Modular Kamar Mandi Toilet
