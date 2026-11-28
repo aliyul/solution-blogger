@@ -358,7 +358,7 @@ var LEVEL_OVERRIDES = {
   
 // ─── LOKASI KECAMATAN / SPESIFIK (Dikoreksi dari Variant) ───
   "pagar-brc-telukjambe-timur": "money-child",
-  "pagar-brc-kelapa-nunggal": "money-child"
+  "pagar-brc-kelapa-nunggal": "money-child",
 
   // ─── SUB-VARIANTS (Level 8) ───
   // Pagar beton - aplikasi spesifik
