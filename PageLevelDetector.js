@@ -161,6 +161,270 @@ PATCH: SEO DIMENSION (Compound-aware + Location-parallel)
 // 🆕 LEVEL_OVERRIDES — SINKRONISASI FINAL DENGAN URL MAPPING
 // ═══════════════════════════════════════════════════════════════
 var LEVEL_OVERRIDES = {
+   // ═══════════════════════════════════════════════════════
+  // CLUSTER: PRODUK PEMBATAS (PAGAR & KANSTIN)
+  // ═══════════════════════════════════════════════════════
+
+  // ─── SUB-PILLAR (Level 2 & 3) ───
+  "daftar-produk-pembatas": "sub-pillar-tipe-2",
+  "perbandingan-produk-pembatas": "sub-pillar-tipe-1",
+
+  // ─── MONEY MASTERS (Level 4) ───
+  "pagar-panel": "money-master",
+  "pagar-grc": "money-master",
+  "pagar-brc": "money-master",
+  "pagar-besi": "money-master",
+  "kanstin-beton": "money-master",
+  "pagar-rumah": "money-master",
+  "pagar-beton": "money-master",
+  "pagar-batu": "money-master",
+
+  // ─── MONEY PAGES (Level 5) ───
+  "harga-pagar-panel": "money-page",
+  "harga-pagar-brc": "money-page",
+  "harga-pagar-besi": "money-page",
+  "pagar-panel-beton": "money-page",
+  "harga-pagar-panel-beton": "money-page",
+
+  // ─── VARIANTS (Level 7) - Dikoreksi dari MM/MP ───
+  // Harga spesifik pagar BRC
+  "harga-pagar-brc-90-cm": "variant",
+  "harga-pagar-brc-60-cm": "variant",
+  "harga-pagar-brc-murah": "variant",
+  "pagar-brc-harga": "variant",
+  "pagar-brc-murah": "variant",
+  
+  // Harga spesifik pagar besi
+  "pagar-besi-murah": "variant",
+  "pagar-besi-tempa": "variant",
+  
+  // Harga spesifik kanstin
+  "harga-kanstin-murah": "variant",
+  "kanstin-l": "variant",
+  "kanstin-s": "variant",
+  "kanstin-murah": "variant",
+  "dimensi-kanstin": "variant",
+  
+  // Variant pagar panel beton
+  "pagar-panel-beton-murah": "variant",
+  "pagar-panel-beton-precast": "variant",
+  "harga-pagar-panel-beton-murah": "variant",
+  "harga-pagar-panel-beton-pracetak": "variant",
+  "jual-pagar-panel-beton-precast": "variant",
+  "harga-pagar-beton": "variant",
+  "pagar-beton-murah": "variant",
+  "pagar-beton-pracetak": "variant",
+  "pagar-beton-gazebo": "variant",
+  "pagar-beton-precast": "variant",
+  "jual-pagar-beton-precast": "variant",
+  
+  // Variant pagar rumah
+  "pagar-rumah-murah": "variant",
+  "gerbang-rumah": "variant",
+  "pagar-perumahan": "variant",
+  "harga-pagar-rumah": "variant",
+  "harga-gerbang-rumah": "variant",
+  
+  // Variant harga pagar BRC spesifik
+  "harga-pagar-brc-per-meter": "variant",
+  "harga-pagar-brc-90-x-240": "variant",
+  "harga-pagar-brc-120-cm": "variant",
+  "harga-pagar-brc-8mm": "variant",
+  "harga-pagar-brc-galvanis": "variant",
+  "harga-pagar-brc-120-x-240": "variant",
+  "harga-pagar-brc-190-x-240": "variant",
+  
+  // Variant pagar BRC umum
+  "brc-pagar": "variant",
+  "jual-pagar-brc": "variant",
+  "pagar-brc-galvanis": "variant",
+  "pagar-brc-per-meter": "variant",
+  "pagar-besi-brc": "variant",
+  "harga-brc-pagar": "variant",
+  "besi-pagar-brc": "variant",
+  "tinggi-pagar-brc": "variant",
+  "pagar-brc-rumah": "variant",
+  "harga-besi-pagar-brc": "variant",
+  "besi-brc-pagar": "variant",
+  "harga-besi-brc-pagar": "variant",
+  "harga-besi-pagar-brc-per-meter": "variant",
+  
+  // Variant pagar besi umum
+  "harga-pagar-besi-per-meter": "variant",
+  "harga-pagar-besi-permeter": "variant",
+  "harga-pagar-minimalis": "variant",
+  "pagar-besi-minimalis": "variant",
+  "besi-pagar": "variant",
+  "pagar-besi-rumah": "variant",
+  "tralis-pagar": "variant",
+  "pagar-lipat": "variant",
+  "pagar-hollow-minimalis": "variant",
+  "pagar-tralis": "variant",
+  "pintu-pagar-besi": "variant",
+  "pagar-besi-hollow-galvanis": "variant",
+  "harga-pagar-minimalis-per-meter": "variant",
+  "pagar-besi-minimalis-terbaru": "variant",
+  "pagar-plat-cutting": "variant",
+  "pagar-holo-minimalis": "variant",
+  "pagar-terali-minimalis": "variant",
+  
+  // Variant pagar beton umum
+  "pagar-beton-motif": "variant",
+  "pagar-beton-per-meter": "variant",
+  "pagar-beton-keliling": "variant",
+  "pagarbeton-jadi": "variant",
+  "pagar-beton-eser": "variant",
+  "pagar-beton-modern": "variant",
+  "pagar-beton-balkon": "variant",
+  "tiang-pagar-beton": "variant",
+  "pagar-rumah-beton": "variant",
+  "pagar-beton-minimalis": "variant",
+  "pagar-beton-lantai-2": "variant",
+  "pagar-beton-cantik": "variant",
+  "pagar-beton-terbaik": "variant",
+  "harga-pagar-beton-motif": "variant",
+  "harga-pagar-beton-per-meter": "variant",
+  
+  // Variant pagar rumah umum
+  "pagar-rumah-minimalis": "variant",
+  "pagar-rumah-mewah": "variant",
+  "pagar-rumah-cantik": "variant",
+  "pagar-rumah-modern": "variant",
+  "pagar-rumah-simple": "variant",
+  "pagar-rumah-sederhana": "variant",
+  "pagar-teras-rumah": "variant",
+  "pagar-rumah-estetik": "variant",
+  "pagar-rumah-industrial": "variant",
+  "pagar-samping-rumah": "variant",
+  "pagar-rumah-type-36": "variant",
+  "rumah-pagar-minimalis": "variant",
+  "gerbang-rumah-mewah": "variant",
+  "gerbang-rumah-modern": "variant",
+  "pagar-rumah-terbaru": "variant",
+  "harga-pagar-rumah-per-meter": "variant",
+  "harga-pagar-rumah-minimalis": "variant",
+  
+  // Variant kanstin umum
+  "harga-kanstin-beton-paving-block": "variant",
+  "harga-kanstin-conblock": "variant",
+  "harga-kanstin-trotoar": "variant",
+  "harga-kanstin-paving-block": "variant",
+  "harga-kanstin-dki": "variant",
+  "harga-kanstin-jalan": "variant",
+  "harga-kanstin-paving": "variant",
+  "harga-kanstin-taman": "variant",
+  "harga-kanstin-per-meter": "variant",
+  "harga-kanstin-k-250": "variant",
+  "jual-kanstin-beton": "variant",
+  "jual-kanstin-taman": "variant",
+  "bentuk-kanstin": "variant",
+  "volume-kanstin": "variant",
+  "sni-kanstin": "variant",
+  "kanstin-conblock": "variant",
+  "kanstin-sepatu": "variant",
+  "kanstin-slipform": "variant",
+  "kanstin-dki": "variant",
+  "kanstin-cisangkan": "variant",
+  "kanstin-saluran": "variant",
+  "beton-precast-kanstin": "variant",
+  "dimensi-kanstin-jalan": "variant",
+  "kanstin-paving-block": "variant",
+  "kanstin-taman-cor": "variant",
+  "dimensi-kanstin-trotoar": "variant",
+  "dimensi-kanstin-paving": "variant",
+  "fungsi-kanstin-beton": "variant",
+  "cetakan-kanstin": "variant",
+  "type-kanstin": "variant",
+  "berat-kanstin": "variant",
+  "tinggi-kanstin": "variant",
+  "harga-kanstin-cisangkan": "variant",
+  "harga-kanstin-slip-form": "variant",
+  "harga-kanstin-taman-10x20x40": "variant",
+  "harga-kanstin-pembatas-jalan": "variant",
+  "harga-car-stopper-beton": "variant",
+  "jual-kanstin-jalan": "variant",
+  "kanstin-car-stopper": "variant",
+  "car-stopper-beton": "variant",
+  "kanstin-tali-air": "variant",
+  "kanstin-beton-pembatas-jalan": "variant",
+  "cat-kanstin-jalan": "variant",
+  "kanstin-jalan-raya": "variant",
+  "kanstin-trotoar-jalan": "variant",
+  "pagar-beton-grc": "variant",
+  "pagar-beton-pembatas-tanah": "variant",
+  "pagar-beton-kawat-duri": "variant",
+  "pagar-beton-jalan-tol": "variant",
+  "pagar-beton-batu-alam": "variant",
+  
+// ─── LOKASI KECAMATAN / SPESIFIK (Dikoreksi dari Variant) ───
+  "pagar-brc-telukjambe-timur": "money-child",
+  "pagar-brc-kelapa-nunggal": "money-child"
+
+  // ─── SUB-VARIANTS (Level 8) ───
+  // Pagar beton - aplikasi spesifik
+  "pagar-beton-rumah-minimalis": "sub-variant",
+  "pagar-beton-depan-rumah": "sub-variant",
+  
+  // Pagar rumah - style kompleks
+  "pagar-rumah-minimalis-modern": "sub-variant",
+  "pagar-rumah-sederhana-tapi-cantik": "sub-variant",
+  "pagar-rumah-mewah-minimalis-modern": "sub-variant",
+  "pagar-teras-rumah-minimalis-modern": "sub-variant",
+  "pagar-teras-rumah-minimalis": "sub-variant",
+  "pagar-rumah-minimalis-terbaru": "sub-variant",
+  "pagar-depan-rumah-minimalis": "sub-variant",
+  "pagar-rumah-minimalis-modern-terbaru": "sub-variant",
+  "pagar-rumah-subsidi-minimalis": "sub-variant",
+  "pagar-rumah-mewah-minimalis": "sub-variant",
+  "pagar-rumah-mewah-klasik-modern": "sub-variant",
+  "pagar-rumah-mewah-modern": "sub-variant",
+  "pagar-rumah-minimalis-type-36-72": "sub-variant",
+  "pagar-rumah-tinggi-tertup-minimalis": "sub-variant",
+  "pagar-rumah-klasik-terbaru": "sub-variant",
+  "pagar-rumah-mewah-klasik": "sub-variant",
+  
+  // Harga pagar BRC tinggi spesifik
+  "harga-pagar-brc-tinggi-150-cm": "sub-variant",
+  "harga-pagar-brc-tinggi-120-cm": "sub-variant",
+  "harga-pagar-brc-tinggi-190-cm": "sub-variant",
+  "harga-pagar-brc-tinggi-175-cm": "sub-variant",
+  "harga-pagar-brc-tinggi-240-cm": "sub-variant",
+  
+  // Pagar lipat spesifik
+  "pagar-lipat-dorong-minimalis": "sub-variant",
+  
+  // Kanstin regional luas
+// ─── LOKASI PROVINSI / WILAYAH LUAS (Dikoreksi dari Sub-Variant) ───
+  "jual-kanstin-jalan-di-jawa-barat": "money-child",
+  "jual-kanstin-di-jawa-barat": "money-child",
+
+   // ─── VARIANTS (Level 7) ───
+  // ✅ DIKOREKSI: Diturunkan dari sub-pillar-tipe-2 menjadi variant
+  // Karena ini adalah halaman atribut spesifik (ukuran, jenis, harga spesifik), 
+  // bukan halaman hub/katalog umum.
+  "ukuran-pagar-panel-beton": "variant",
+  "jenis-pagar-beton": "variant",
+  "ukuran-pagar-beton": "variant",
+  "model-pagar-rumah-minimalis-modern": "variant",
+  "daftar-harga-pagar-brc": "variant",
+  "daftar-harga-pagar-brc-galvanis": "variant",
+  "daftar-harga-kanstin-beton": "variant",
+  "spesifikasi-kanstin-jalan": "variant",
+  "ukuran-kanstin-jalan-raya": "variant",
+  "ukuran-kanstin-paving-block": "variant",
+  "ukuran-kanstin-untuk-trotoar": "variant",
+  "ukuran-kanstin-sepatu": "variant",
+  "ukuran-kanstin-parkir": "variant",
+  "ukuran-kanstin-s": "variant",
+  "ukuran-kanstin-trotoar": "variant",
+  "ukuran-kanstin-jalan": "variant",
+  "ukuran-kanstin-paving": "variant",
+  "ukuran-kanstin-taman": "variant",
+  "ukuran-kanstin-beton": "variant",
+  "mutu-beton-untuk-kanstin": "variant",
+  "macam-kanstin": "variant",
+  "jenis-kanstin": "variant",
+       
   //CLUSTER DRAINASESALURANPRODUK
   // ═══════════════════════════════════════════════════════
   "pipa-beton": "money-master",
